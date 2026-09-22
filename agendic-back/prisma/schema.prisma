@@ -1,0 +1,108 @@
+// Identifiers follow docs/agents/domain.md (ADR 0003).
+// Hand-written SQL in the migrations, not expressible here (ADR 0004):
+// - no overlapping BOOKED Bookings per Employee (exclusion constraint)
+// - Service name unique in any casing among a Branch's Services not retired
+// - Employee email unique in any casing among a Business's Employees not retired
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum BookingStatus {
+  UNVERIFIED
+  BOOKED
+  CANCELLED
+}
+
+enum ServiceCategory {
+  CLINICA
+  SPA
+  GIMNASIO
+  ACADEMIA
+  OTRO
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  clerkId   String   @unique // Clerk is the identity's system of record; no local credentials
+  name      String
+  email     String
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  businesses Business[]
+}
+
+model Business {
+  id          Int    @id @default(autoincrement())
+  name        String
+  description String
+  ownerId     Int
+  clerkOrgId  String @unique
+
+  owner     User       @relation(fields: [ownerId], references: [id])
+  branches  Branch[]
+  employees Employee[]
+}
+
+model Branch {
+  id         Int      @id @default(autoincrement())
+  businessId Int
+  name       String
+  address    String
+  opensAt    DateTime @db.Time(0) // read by Prisma as 1970-01-01T<HH:mm>Z
+  closesAt   DateTime @db.Time(0)
+
+  business Business  @relation(fields: [businessId], references: [id])
+  services Service[]
+}
+
+model Service {
+  id              Int       @id @default(autoincrement())
+  branchId        Int
+  name            String
+  description     String?
+  category        ServiceCategory
+  durationMinutes Int
+  price           Decimal   @db.Decimal(10, 2)
+  retiredAt       DateTime? @db.Timestamptz(3) // when dado de baja; null while offered
+
+  branch    Branch     @relation(fields: [branchId], references: [id])
+  employees Employee[]
+  bookings  Booking[]
+}
+
+model Employee {
+  id         Int       @id @default(autoincrement())
+  businessId Int
+  clerkId    String    @unique // Clerk is the identity's system of record; no local credentials
+  name       String
+  email      String
+  retiredAt  DateTime? @db.Timestamptz(3) // when dado de baja; null while employed
+
+  business Business  @relation(fields: [businessId], references: [id])
+  services Service[]
+  bookings Booking[]
+}
+
+model Booking {
+  id                         Int           @id @default(autoincrement())
+  serviceId                  Int
+  employeeId                 Int
+  clientName                 String
+  clientEmail                String
+  startsAt                   DateTime      @db.Timestamptz(3)
+  endsAt                     DateTime      @db.Timestamptz(3) // startsAt + Service.durationMinutes, fixed at booking
+  status                     BookingStatus @default(UNVERIFIED)
+  verificationTokenHash      String? // sha256 of the token, never the token itself
+  verificationTokenExpiresAt DateTime?     @db.Timestamptz(3)
+  createdAt                  DateTime      @default(now()) @db.Timestamptz(3)
+
+  service  Service  @relation(fields: [serviceId], references: [id])
+  employee Employee @relation(fields: [employeeId], references: [id])
+}
