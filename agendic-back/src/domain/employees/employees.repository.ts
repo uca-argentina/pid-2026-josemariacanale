@@ -18,8 +18,11 @@ export interface EmployeesRepository {
   findByClerkId(clerkId: string): Promise<Employee | null>;
   /** The Business's Employees not dados de baja. */
   listActiveByBusiness(businessId: number): Promise<Employee[]>;
-  /** Leaves undefined fields unchanged. */
-  update(id: number, data: Partial<Pick<Employee, 'name'>>): Promise<Employee>;
+  /** Leaves undefined fields unchanged. Throws ConflictError on an email clash. */
+  update(
+    id: number,
+    data: Partial<Pick<Employee, 'name' | 'email'>>,
+  ): Promise<Employee>;
   /** Dado de baja: sets retiredAt, takes the Employee off every Service, and cancels their future BOOKED Bookings, atomically. */
   retire(
     id: number,

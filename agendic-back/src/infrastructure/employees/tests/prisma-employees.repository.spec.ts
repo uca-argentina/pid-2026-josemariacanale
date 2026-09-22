@@ -126,6 +126,32 @@ describe('PrismaEmployeesRepository', () => {
     });
   });
 
+  it('updates the name and the email together', async () => {
+    prisma.employee.update.mockResolvedValue(EMPLOYEE);
+
+    await expect(
+      repository.update(1, {
+        name: 'Ana María',
+        email: 'ana.new@example.com',
+      }),
+    ).resolves.toEqual(EMPLOYEE);
+    expect(prisma.employee.update).toHaveBeenCalledWith({
+      where: { id: 1 },
+      data: { name: 'Ana María', email: 'ana.new@example.com' },
+    });
+  });
+
+  it('rejects with ConflictError when the email clashes with another Employee', async () => {
+    prisma.employee.update.mockRejectedValue(knownError('P2002'));
+
+    const error = await repository
+      .update(1, { email: 'bruno@example.com' })
+      .catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(ConflictError);
+    expect(error).toHaveProperty('cause', expect.any(Prisma.PrismaClientKnownRequestError));
+  });
+
   describe('retire', () => {
     const retiredAt = new Date('2026-02-01T00:00:00.000Z');
 

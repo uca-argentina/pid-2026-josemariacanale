@@ -26,20 +26,27 @@ export class ResolveCurrentEmployeeUseCase {
   ) {}
 
   async execute(token: string | undefined): Promise<Employee> {
-    const { clerkId, orgId } = await this.clerkAuth.verifyToken(token);
+    const { clerkId, orgId, profile } = await this.clerkAuth.verifyToken(token);
     const existing = await this.employees.findByClerkId(clerkId);
-    if (existing) return existing;
+    if (existing) {
+      if (!profile) return existing;
+      if (profile.name === existing.name && profile.email === existing.email)
+        return existing;
+      return this.employees
+        .update(existing.id, profile)
+        .catch(() => existing);
+    }
     if (!orgId)
       throw new UnauthenticatedError(
         'Missing active Organization in Clerk token',
       );
     const business = await this.businesses.findByClerkOrgId(orgId);
     if (!business) throw new UnauthenticatedError('Unknown Organization');
-    const profile = await this.clerkAuth.getProfile(clerkId);
+    const seed = await this.clerkAuth.getProfile(clerkId);
     return this.employees.create({
       businessId: business.id,
       clerkId,
-      ...profile,
+      ...seed,
     });
   }
 }

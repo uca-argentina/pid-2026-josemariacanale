@@ -1,4 +1,8 @@
-import { DatabaseOperationError, UnauthenticatedError } from '../../domain/errors';
+import {
+  ConflictError,
+  DatabaseOperationError,
+  UnauthenticatedError,
+} from '../../domain/errors';
 import { ServiceCategory } from '../../domain/services/service';
 import {
   ANA,
@@ -150,6 +154,102 @@ describe('Empleado', () => {
         email: 'bruno@example.com',
       });
       expect(res.body).toMatchObject({ name: 'Bruno Díaz' });
+    });
+
+    it('refreshes the name and email when the token profile differs from the row', async () => {
+      t.clerkAuth.verifyToken.mockResolvedValue({
+        clerkId: ANA.clerkId,
+        orgId: ANAS_BUSINESS.clerkOrgId,
+        profile: { name: 'Ana María', email: 'ana.new@example.com' },
+      });
+      t.employees.findByClerkId.mockResolvedValue(ANAS_EMPLOYEE);
+      t.employees.update.mockResolvedValue({
+        ...ANAS_EMPLOYEE,
+        name: 'Ana María',
+        email: 'ana.new@example.com',
+      });
+      t.employees.findById.mockResolvedValue({
+        ...ANAS_EMPLOYEE,
+        name: 'Ana María',
+        email: 'ana.new@example.com',
+      });
+
+      const res = await t.http
+        .get('/employees/me')
+        .set(bearer(CLERK_TOKEN))
+        .expect(200);
+
+      expect(t.employees.update).toHaveBeenCalledWith(ANAS_EMPLOYEE.id, {
+        name: 'Ana María',
+        email: 'ana.new@example.com',
+      });
+      expect(res.body).toEqual({
+        id: ANAS_EMPLOYEE.id,
+        name: 'Ana María',
+        email: 'ana.new@example.com',
+      });
+    });
+
+    it('responds with the stale row when the refresh clashes with another Empleado email', async () => {
+      t.clerkAuth.verifyToken.mockResolvedValue({
+        clerkId: ANA.clerkId,
+        orgId: ANAS_BUSINESS.clerkOrgId,
+        profile: { name: ANAS_EMPLOYEE.name, email: 'bruno@example.com' },
+      });
+      t.employees.findByClerkId.mockResolvedValue(ANAS_EMPLOYEE);
+      t.employees.update.mockRejectedValue(
+        new ConflictError('Employee email already in use', {
+          cause: new Error('unique constraint'),
+        }),
+      );
+      t.employees.findById.mockResolvedValue(ANAS_EMPLOYEE);
+
+      const res = await t.http
+        .get('/employees/me')
+        .set(bearer(CLERK_TOKEN))
+        .expect(200);
+
+      expect(res.body).toEqual({
+        id: ANAS_EMPLOYEE.id,
+        name: ANAS_EMPLOYEE.name,
+        email: ANAS_EMPLOYEE.email,
+      });
+    });
+
+    it('does not update when the token profile matches the row', async () => {
+      t.clerkAuth.verifyToken.mockResolvedValue({
+        clerkId: ANA.clerkId,
+        orgId: ANAS_BUSINESS.clerkOrgId,
+        profile: { name: ANAS_EMPLOYEE.name, email: ANAS_EMPLOYEE.email },
+      });
+      t.employees.findByClerkId.mockResolvedValue(ANAS_EMPLOYEE);
+      t.employees.findById.mockResolvedValue(ANAS_EMPLOYEE);
+
+      await t.http.get('/employees/me').set(bearer(CLERK_TOKEN)).expect(200);
+
+      expect(t.employees.update).not.toHaveBeenCalled();
+    });
+
+    it('does not call update or getProfile when the token carries no profile claims', async () => {
+      t.clerkAuth.verifyToken.mockResolvedValue({
+        clerkId: ANA.clerkId,
+        orgId: ANAS_BUSINESS.clerkOrgId,
+      });
+      t.employees.findByClerkId.mockResolvedValue(ANAS_EMPLOYEE);
+      t.employees.findById.mockResolvedValue(ANAS_EMPLOYEE);
+
+      const res = await t.http
+        .get('/employees/me')
+        .set(bearer(CLERK_TOKEN))
+        .expect(200);
+
+      expect(t.employees.update).not.toHaveBeenCalled();
+      expect(t.clerkAuth.getProfile).not.toHaveBeenCalled();
+      expect(res.body).toEqual({
+        id: ANAS_EMPLOYEE.id,
+        name: ANAS_EMPLOYEE.name,
+        email: ANAS_EMPLOYEE.email,
+      });
     });
 
     it('answers 401 when the token carries no active Organization and no Empleado exists yet', async () => {

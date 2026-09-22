@@ -53,7 +53,7 @@ export class PrismaEmployeesRepository implements EmployeesRepository {
     ).map(toEmployee);
   }
 
-  async update(id: number, data: Partial<Pick<Employee, 'name'>>) {
+  async update(id: number, data: Partial<Pick<Employee, 'name' | 'email'>>) {
     return toEmployee(
       await this.prisma.employee
         .update({ where: { id }, data })
