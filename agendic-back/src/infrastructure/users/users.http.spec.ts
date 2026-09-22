@@ -74,6 +74,102 @@ describe('Usuario', () => {
       });
     });
 
+    it('refreshes the name and email when the token profile differs from the row', async () => {
+      t.clerkAuth.verifyToken.mockResolvedValue({
+        clerkId: ANA.clerkId,
+        orgId: null,
+        profile: { name: 'Ana María', email: 'ana.new@example.com' },
+      });
+      t.users.findByClerkId.mockResolvedValue(ANA);
+      t.users.update.mockResolvedValue({
+        ...ANA,
+        name: 'Ana María',
+        email: 'ana.new@example.com',
+      });
+      t.users.findById.mockResolvedValue({
+        ...ANA,
+        name: 'Ana María',
+        email: 'ana.new@example.com',
+      });
+
+      const res = await t.http
+        .get('/users/me')
+        .set(bearer(CLERK_TOKEN))
+        .expect(200);
+
+      expect(t.users.update).toHaveBeenCalledWith(ANA.id, {
+        name: 'Ana María',
+        email: 'ana.new@example.com',
+      });
+      expect(res.body).toEqual({
+        id: ANA.id,
+        name: 'Ana María',
+        email: 'ana.new@example.com',
+      });
+    });
+
+    it('responds with the stale row when the refresh update fails', async () => {
+      t.clerkAuth.verifyToken.mockResolvedValue({
+        clerkId: ANA.clerkId,
+        orgId: null,
+        profile: { name: 'Ana María', email: 'ana.new@example.com' },
+      });
+      t.users.findByClerkId.mockResolvedValue(ANA);
+      t.users.update.mockRejectedValue(
+        new DatabaseOperationError('Database operation failed', {
+          cause: new Error('connection refused at 10.0.0.1'),
+        }),
+      );
+      t.users.findById.mockResolvedValue(ANA);
+
+      const res = await t.http
+        .get('/users/me')
+        .set(bearer(CLERK_TOKEN))
+        .expect(200);
+
+      expect(res.body).toEqual({
+        id: ANA.id,
+        name: ANA.name,
+        email: ANA.email,
+      });
+    });
+
+    it('does not update when the token profile matches the row', async () => {
+      t.clerkAuth.verifyToken.mockResolvedValue({
+        clerkId: ANA.clerkId,
+        orgId: null,
+        profile: { name: ANA.name, email: ANA.email },
+      });
+      t.users.findByClerkId.mockResolvedValue(ANA);
+      t.users.findById.mockResolvedValue(ANA);
+
+      await t.http.get('/users/me').set(bearer(CLERK_TOKEN)).expect(200);
+
+      expect(t.users.update).not.toHaveBeenCalled();
+    });
+
+    it('does not call update or getProfile when the token carries no profile claims', async () => {
+      t.clerkAuth.verifyToken.mockResolvedValue({
+        clerkId: ANA.clerkId,
+        orgId: null,
+      });
+      t.users.findByClerkId.mockResolvedValue(ANA);
+      t.users.findById.mockResolvedValue(ANA);
+
+      const res = await t.http
+        .get('/users/me')
+        .set(bearer(CLERK_TOKEN))
+        .expect(200);
+
+      expect(t.users.update).not.toHaveBeenCalled();
+      expect(t.clerkAuth.getProfile).not.toHaveBeenCalled();
+      expect(res.body).toEqual({
+        id: ANA.id,
+        name: ANA.name,
+        email: ANA.email,
+      });
+    });
+
     it('answers 401 without a Clerk token', async () => {
       await t.http.get('/users/me').expect(401);
     });

@@ -90,6 +90,33 @@ describe('PrismaUsersRepository', () => {
     });
   });
 
+  it('updates only the email', async () => {
+    prisma.user.update.mockResolvedValue(ANA);
+
+    await expect(
+      repository.update(1, { email: 'ana.new@example.com' }),
+    ).resolves.toEqual(ANA);
+    expect(prisma.user.update).toHaveBeenCalledWith({
+      where: { id: 1 },
+      data: { email: 'ana.new@example.com' },
+    });
+  });
+
+  it('updates the name and the email together', async () => {
+    prisma.user.update.mockResolvedValue(ANA);
+
+    await expect(
+      repository.update(1, {
+        name: 'Ana María',
+        email: 'ana.new@example.com',
+      }),
+    ).resolves.toEqual(ANA);
+    expect(prisma.user.update).toHaveBeenCalledWith({
+      where: { id: 1 },
+      data: { name: 'Ana María', email: 'ana.new@example.com' },
+    });
+  });
+
   describe('translates Prisma errors, keeping the original as cause', () => {
     const calls = {
       create: () =>

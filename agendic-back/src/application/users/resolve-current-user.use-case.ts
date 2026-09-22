@@ -15,10 +15,15 @@ export class ResolveCurrentUserUseCase {
   ) {}
 
   async execute(token: string | undefined): Promise<User> {
-    const { clerkId } = await this.clerkAuth.verifyToken(token);
+    const { clerkId, profile } = await this.clerkAuth.verifyToken(token);
     const existing = await this.users.findByClerkId(clerkId);
-    if (existing) return existing;
-    const profile = await this.clerkAuth.getProfile(clerkId);
-    return this.users.create({ clerkId, ...profile });
+    if (!existing) {
+      const seed = await this.clerkAuth.getProfile(clerkId);
+      return this.users.create({ clerkId, ...seed });
+    }
+    if (!profile) return existing;
+    if (profile.name === existing.name && profile.email === existing.email)
+      return existing;
+    return this.users.update(existing.id, profile).catch(() => existing);
   }
 }

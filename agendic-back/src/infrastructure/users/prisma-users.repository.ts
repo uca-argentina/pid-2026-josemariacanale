@@ -40,7 +40,7 @@ export class PrismaUsersRepository implements UsersRepository {
     return row && toUser(row);
   }
 
-  async update(id: number, data: Partial<Pick<User, 'name'>>) {
+  async update(id: number, data: Partial<Pick<User, 'name' | 'email'>>) {
     return toUser(
       await this.prisma.user
         .update({ where: { id }, data })

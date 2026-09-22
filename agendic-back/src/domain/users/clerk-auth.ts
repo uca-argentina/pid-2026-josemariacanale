@@ -10,6 +10,8 @@ export interface ClerkIdentity {
   clerkId: string;
   /** The token's active Organization; null outside an Organization context. */
   orgId: string | null;
+  /** Name and email carried as session token custom claims; absent when not configured in Clerk or on an old token. */
+  profile?: ClerkProfile;
 }
 
 export interface ClerkAuth {

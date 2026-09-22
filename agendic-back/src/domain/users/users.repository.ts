@@ -9,5 +9,5 @@ export interface UsersRepository {
   findByClerkId(clerkId: string): Promise<User | null>;
   findByEmail(email: string): Promise<User | null>;
   /** Leaves undefined fields unchanged. */
-  update(id: number, data: Partial<Pick<User, 'name'>>): Promise<User>;
+  update(id: number, data: Partial<Pick<User, 'name' | 'email'>>): Promise<User>;
 }

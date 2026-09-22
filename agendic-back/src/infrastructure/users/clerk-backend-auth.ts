@@ -22,7 +22,11 @@ export class ClerkBackendAuth implements ClerkAuth {
       const payload = await verifyClerkToken(token, {
         secretKey: process.env.CLERK_SECRET_KEY,
       });
-      return { clerkId: payload.sub, orgId: payload.org_id ?? null };
+      return {
+        clerkId: payload.sub,
+        orgId: payload.org_id ?? null,
+        profile: profileClaims(payload),
+      };
     } catch (error) {
       throw new UnauthenticatedError('Invalid or expired Clerk token', {
         cause: error,
@@ -61,4 +65,11 @@ export class ClerkBackendAuth implements ClerkAuth {
       inviterUserId: inviterId,
     });
   }
+}
+
+/** Reads the `name`/`email` session token custom claims, absent unless both are set. */
+function profileClaims(payload: Record<string, unknown>): ClerkProfile | undefined {
+  const { name, email } = payload;
+  if (typeof name !== 'string' || typeof email !== 'string') return undefined;
+  return { name, email };
 }
