@@ -47,8 +47,12 @@ _Avoid_: categoría, industria
 
 ### Acceso
 
+**Proveedor de autenticación**:
+Servicio externo que Agendic usa para identificar a sus Usuarios: guarda sus credenciales, les manda el Código de verificación, abre sus Sesiones y habla con los Proveedores de identidad. Es dueño de la identidad; el Usuario de negocio sigue siendo del back.
+_Avoid_: proveedor de identidad (eso es otra cosa), auth provider, IdP
+
 **Proveedor de identidad**:
-Servicio externo (Google, Microsoft) con el que un Usuario puede registrarse e iniciar sesión.
+Servicio externo (Google, Microsoft) con el que un Usuario puede registrarse e iniciar sesión, a través del Proveedor de autenticación.
 _Avoid_: provider, OAuth
 
 **Registro pendiente**:
@@ -72,7 +76,7 @@ Ingresar el Código de verificación recibido por email para probar que la direc
 _Avoid_: confirmar email
 
 **Código de verificación**:
-Código de un solo uso que el Proveedor de identidad manda por email para Verificar email. Al ingresarlo, el Usuario queda con una Sesión abierta. Vence.
+Código de un solo uso que el Proveedor de autenticación manda por email para Verificar email. Al ingresarlo, el Usuario queda con una Sesión abierta. Vence.
 _Avoid_: link de verificación, link de confirmación, magic link
 
 ### Agenda
