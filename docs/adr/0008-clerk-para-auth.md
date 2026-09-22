@@ -6,7 +6,7 @@ Seguir a mano hubiera significado construir y mantener, con nuestro propio códi
 
 MFA queda afuera de este alcance: el plan de Clerk que lo habilita es pago, y no hay hoy una razón de negocio que justifique pasar a ese plan.
 
-El back sigue siendo dueño del Usuario de negocio (sus Negocios, su rol de Dueño, etc.). Clerk es dueño de la identidad (login, Sesión, Código de verificación, Proveedor de identidad) pero no sabe nada de Negocios ni de Dueños. La sincronización entre el Usuario de Clerk y el Usuario del back — típicamente vía webhook, para crear o actualizar el Usuario de negocio cuando Clerk crea o actualiza el suyo — queda pendiente como trabajo futuro.
+El back sigue siendo dueño del Usuario de negocio (sus Negocios, su rol de Dueño, etc.). Clerk es dueño de la identidad (login, Sesión, Código de verificación, Proveedor de identidad) pero no sabe nada de Negocios ni de Dueños. La sincronización entre el Usuario de Clerk y el Usuario del back — típicamente vía webhook, para crear o actualizar el Usuario de negocio cuando Clerk crea o actualiza el suyo — queda pendiente como trabajo futuro. Resuelta después sin webhook, en ADR 0009.
 
 ## Consecuencias
 
