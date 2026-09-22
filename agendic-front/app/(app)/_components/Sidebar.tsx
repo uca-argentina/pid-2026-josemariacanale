@@ -33,13 +33,13 @@ import { SIGNED_IN_HOME_PATH } from '@/app/routes';
 import type { CurrentBusinessUser, NavItem, SectionId } from './types';
 
 const ICONS: Record<SectionId, React.ComponentType<{ className?: string }>> = {
-    turnos: Calendar,
-    disponibilidad: Clock,
-    servicios: LayoutGrid,
-    staff: Users,
-    sucursales: Building2,
-    clientes: UserRound,
-    metricas: BarChart3,
+    bookings: Calendar,
+    availability: Clock,
+    services: LayoutGrid,
+    employees: Users,
+    branches: Building2,
+    clients: UserRound,
+    metrics: BarChart3,
 };
 
 const ITEM = 'flex w-full items-center gap-2.5 rounded-[10px] px-2.5 py-2 text-left font-semibold transition-colors hover:bg-muted';

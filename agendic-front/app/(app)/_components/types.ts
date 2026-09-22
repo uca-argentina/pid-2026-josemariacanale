@@ -1,11 +1,11 @@
 export type SectionId =
-    | 'turnos'
-    | 'disponibilidad'
-    | 'servicios'
-    | 'staff'
-    | 'sucursales'
-    | 'clientes'
-    | 'metricas';
+    | 'bookings'
+    | 'availability'
+    | 'services'
+    | 'employees'
+    | 'branches'
+    | 'clients'
+    | 'metrics';
 
 export type TabId = 'proximos' | 'pendientes' | 'pasados' | 'cancelados';
 

@@ -9,7 +9,7 @@ export function PlaceholderView({ title }: { title: string }) {
                 Esta sección todavía no está maquetada.
             </div>
             <Button asChild className="mt-1.5 h-auto rounded-[10px] px-4 py-2 text-[13px] font-bold">
-                <Link href="/turnos">Volver a Turnos</Link>
+                <Link href="/bookings">Volver a Turnos</Link>
             </Button>
         </div>
     );

@@ -9,14 +9,13 @@ import { SIGN_IN_PATH, SIGNED_IN_HOME_PATH } from '@/app/routes';
 // Optimistic check only (no session validation); the layouts do the authoritative
 // server-side verification (see docs/agents/clean-architecture.md).
 const protectedRoutes = [
-    '/turnos',
-    '/disponibilidad',
-    '/servicios',
-    '/staff',
-    '/sucursales',
-    '/clientes',
-    '/metricas',
-    '/config',
+    '/bookings',
+    '/availability',
+    '/services',
+    '/employees',
+    '/branches',
+    '/clients',
+    '/metrics',
 ];
 const authRoutes = ['/sign-in', '/sign-up'];
 

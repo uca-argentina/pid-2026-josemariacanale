@@ -32,7 +32,7 @@ const scheduleDetail: ScheduleDetail = {
     ],
 };
 
-export default function DisponibilidadPage() {
+export default function AvailabilityPage() {
     return (
         <>
             <Topbar title="Disponibilidad" subtitle="Definí los horarios en los que tus clientes pueden reservar." />

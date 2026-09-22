@@ -6,13 +6,13 @@ import { pendingCount } from './_components/mock-turnos';
 import type { NavItem } from './_components/types';
 
 const navItems: NavItem[] = [
-    { id: 'turnos', label: 'Turnos', count: pendingCount },
-    { id: 'disponibilidad', label: 'Disponibilidad' },
-    { id: 'servicios', label: 'Servicios' },
-    { id: 'staff', label: 'Profesionales' },
-    { id: 'sucursales', label: 'Sucursales' },
-    { id: 'clientes', label: 'Clientes' },
-    { id: 'metricas', label: 'Métricas' },
+    { id: 'bookings', label: 'Turnos', count: pendingCount },
+    { id: 'availability', label: 'Disponibilidad' },
+    { id: 'services', label: 'Servicios' },
+    { id: 'employees', label: 'Profesionales' },
+    { id: 'branches', label: 'Sucursales' },
+    { id: 'clients', label: 'Clientes' },
+    { id: 'metrics', label: 'Métricas' },
 ];
 
 function initialsOf(name: string) {
