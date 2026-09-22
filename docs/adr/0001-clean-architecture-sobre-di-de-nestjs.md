@@ -1,0 +1,5 @@
+# Clean architecture sobre la DI nativa de NestJS
+
+El back adopta el capeado y la regla de dependencias de clean architecture (domain ← application ← infrastructure, puertos en `domain/interfaces`, un caso de uso por operación, presenters, errores de dominio traducidos a HTTP por un exception filter), pero se aparta a propósito de sus mecanismos habituales: los casos de uso y los adapters son clases `@Injectable()` cableadas por módulos de NestJS con tokens de inyección, no funciones currificadas resueltas desde un contenedor `di/`; la entrada HTTP la valida un DTO de class-validator en infrastructure, no Zod en el controller; los tests son archivos `.spec.ts` al lado del código, no un árbol espejo en `tests/unit/`; y la regla de dependencias la hace cumplir `no-restricted-imports` de oxlint, no `eslint-plugin-boundaries`, porque este repo lintea con oxlint.
+
+Evitar los decoradores solo paga en runtimes sin reflection, que no es lo que esta API apunta, y class-validator más los specs al lado del código ya estaban puestos.

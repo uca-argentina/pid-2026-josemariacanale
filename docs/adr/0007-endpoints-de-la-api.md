@@ -1,8 +1,8 @@
 # Endpoints de la API para el front
 
-El front (`2026-agendic-front`) necesita saber qué endpoints expone este back y para qué sirve
-cada uno. Este documento no registra una decisión de arquitectura sino el contrato actual de la
-API, a pedido explícito para que el front lo consulte. No se genera automáticamente: hay que
+El front (`agendic-front/`) necesita saber qué endpoints expone el back (`agendic-back/`) y para
+qué sirve cada uno. Este documento no registra una decisión de arquitectura sino el contrato actual
+de la API, a pedido explícito para que el front lo consulte. No se genera automáticamente: hay que
 actualizarlo a mano cuando se agregue, cambie o borre un endpoint.
 
 ## Notas generales

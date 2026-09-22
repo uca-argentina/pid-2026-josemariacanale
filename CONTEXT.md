@@ -81,6 +81,10 @@ _Avoid_: link de verificación, link de confirmación, magic link
 Prestación que ofrece una Sucursal, con duración y precio, atendida por uno o más Empleados. No confundir con los microservicios de la arquitectura.
 _Avoid_: prestación, tratamiento
 
+**Categoría de Servicio**:
+Tipo de prestación al que pertenece un Servicio, elegido de una lista fija. No confundir con el Rubro, que es del Negocio.
+_Avoid_: tipo de servicio, categoría (a secas)
+
 **Turno**:
 Reserva concreta de un Cliente con un Empleado, para un Servicio y un horario determinados. Es el sustantivo; "reservar" es el verbo.
 _Avoid_: cita, reserva (como sustantivo), appointment

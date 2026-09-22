@@ -5,11 +5,10 @@ bits emitido dentro de un link clickeable. Pasan a un código alfanumérico de 6
 persona tipea a mano. `Booking` (Turno) no cambia: sigue con link y token de 256 bits, porque un
 Cliente anónimo no tiene ninguna pantalla propia donde tipear un código.
 
-Esto contradice el ADR 0002 del front (`2026-agendic-front/docs/adr/0002-verification-link-lands-on-the-front.md`),
-que ese repo ya marcó `superseded`, y la premisa de este mismo repo en ADR 0005 de que un Turno
-necesita "el mismo tipo de campos de verificación (hash, expiración) que un Usuario o un Empleado":
-sigue siendo cierto para los campos, pero ya no para lo que contienen (un token de 256 bits en
-`Booking`, un código de 6 caracteres en `User`/`Employee`).
+Esto matiza la premisa del ADR 0005 de que un Turno necesita "campos de verificación (hash,
+expiración), de la misma forma que los de un Usuario o un Empleado": sigue siendo cierto para los
+campos, pero ya no para lo que contienen (un token de 256 bits en `Booking`, un código de 6
+caracteres en `User` y `Employee`).
 
 Un código corto no aguanta el diseño de un token largo:
 
@@ -29,15 +28,15 @@ Un código corto no aguanta el diseño de un token largo:
   nuevo"), así que se agregan `ExpiredError` (410) e `InvalidCodeError` (400) a
   `DomainExceptionFilter`.
 
-## Consequences
+## Consecuencias
 
 - `Mailer` gana `sendVerificationCode(email, code)` al lado de `sendVerificationLink`, que sigue
   existiendo para `Booking`.
 - `POST /users/verification` y `POST /employees/verification` piden `{ email, code }` en vez de
   `{ token }`.
-- El código mejora, de paso, el caso de uso multi-dispositivo que motivaba el ADR 0002 del front:
-  antes el link quedaba atrapado en el dispositivo donde se abría el mail; el código se lee ahí y se
-  tipea donde la persona ya está con la sesión que le interesa.
+- El código mejora, de paso, el caso de uso multi-dispositivo: antes el link quedaba atrapado en el
+  dispositivo donde se abría el mail; el código se lee ahí y se tipea donde la persona ya está con
+  la sesión que le interesa.
 - No hay contador de intentos fallidos ni rate limiting: con este alfabeto y el filtro por email no
   hace falta. Si el volumen de un `Employee.email` (sin índice) o `User.pendingEmail` crece lo
   suficiente para importar, se agrega un índice entonces.

@@ -13,3 +13,12 @@ The skills speak in terms of five canonical triage roles. This file maps those r
 When a skill mentions a role (e.g. "apply the AFK-ready triage label"), use the corresponding label string from this table.
 
 Edit the right-hand column to match whatever vocabulary you actually use.
+
+## Area labels
+
+Front and back share one tracker, so every issue also carries the area it touches. An issue that touches both carries both labels.
+
+| Label    | Meaning                     |
+| -------- | --------------------------- |
+| `front`  | Touches `agendic-front/`    |
+| `back`   | Touches `agendic-back/`     |
