@@ -5,4 +5,5 @@ export const presentBusiness = (business: Business) => ({
   name: business.name,
   description: business.description,
   ownerId: business.ownerId,
+  slug: business.slug,
 });

@@ -1,3 +1,4 @@
+import { ConflictError } from '../../domain/errors';
 import { ServiceCategory } from '../../domain/services/service';
 import {
   ANA,
@@ -16,6 +17,7 @@ import {
 const BUSINESS_PART = {
   name: ANAS_BUSINESS.name,
   description: ANAS_BUSINESS.description,
+  slug: ANAS_BUSINESS.slug,
 };
 
 const BRANCH_PART = {
@@ -45,6 +47,7 @@ const PRESENTED_BUSINESS = {
   name: ANAS_BUSINESS.name,
   description: ANAS_BUSINESS.description,
   ownerId: ANAS_BUSINESS.ownerId,
+  slug: ANAS_BUSINESS.slug,
 };
 
 const ANAS_SERVICE = {
@@ -160,11 +163,47 @@ describe('Negocio', () => {
       const res = await t.http
         .post('/businesses')
         .set(bearer(CLERK_TOKEN))
-        .send({ ...VALID_BODY, business: { ...BUSINESS_PART, name: "Ana's Spa" } })
+        .send({
+          ...VALID_BODY,
+          business: { ...BUSINESS_PART, name: "Ana's Spa" },
+        })
         .expect(201);
 
       expect(t.businesses.create).toHaveBeenCalledTimes(2);
       expect(res.body.business.id).toBe(2);
+    });
+
+    it('normalizes the Enlace de reserva to lowercase', async () => {
+      t.businesses.create.mockResolvedValue(CREATED);
+
+      await t.http
+        .post('/businesses')
+        .set(bearer(CLERK_TOKEN))
+        .send({
+          ...VALID_BODY,
+          business: { ...BUSINESS_PART, slug: 'Anas-SALON' },
+        })
+        .expect(201);
+
+      expect(t.businesses.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          business: expect.objectContaining({ slug: 'anas-salon' }),
+        }),
+      );
+    });
+
+    it('answers 409 when the Enlace de reserva is already in use', async () => {
+      t.businesses.create.mockRejectedValue(
+        new ConflictError('Booking link already in use'),
+      );
+
+      const res = await t.http
+        .post('/businesses')
+        .set(bearer(CLERK_TOKEN))
+        .send(VALID_BODY)
+        .expect(409);
+
+      expect(res.body.message).toBe('Booking link already in use');
     });
 
     it('answers 401 without a Sesión', async () => {
@@ -189,10 +228,33 @@ describe('Negocio', () => {
       ['a missing Negocio name', { business: { description: 'y' } }],
       [
         'a missing Negocio description',
-        { business: { name: ANAS_BUSINESS.name } },
+        { business: { name: ANAS_BUSINESS.name, slug: ANAS_BUSINESS.slug } },
+      ],
+      [
+        'a missing Enlace de reserva',
+        { business: { name: ANAS_BUSINESS.name, description: 'y' } },
+      ],
+      [
+        'an Enlace de reserva with invalid characters',
+        { business: { ...BUSINESS_PART, slug: 'anas salon!' } },
+      ],
+      [
+        'an Enlace de reserva with a leading hyphen',
+        { business: { ...BUSINESS_PART, slug: '-anas-salon' } },
+      ],
+      [
+        'a too short Enlace de reserva',
+        { business: { ...BUSINESS_PART, slug: 'ab' } },
+      ],
+      [
+        'a too long Enlace de reserva',
+        { business: { ...BUSINESS_PART, slug: 'a'.repeat(41) } },
       ],
       ['a missing Sucursal', { branch: undefined }],
-      ['a blank Sucursal address', { branch: { ...BRANCH_PART, address: ' ' } }],
+      [
+        'a blank Sucursal address',
+        { branch: { ...BRANCH_PART, address: ' ' } },
+      ],
       ['a malformed opensAt', { branch: { ...BRANCH_PART, opensAt: '9am' } }],
       ['a missing Servicio', { service: undefined }],
       ['a blank Servicio name', { service: { ...SERVICE_PART, name: ' ' } }],
@@ -245,7 +307,7 @@ describe('Negocio', () => {
       expect(res.body.name).toBe('New name');
     });
 
-    it("answers 403 for another Usuario", async () => {
+    it('answers 403 for another Usuario', async () => {
       await t.http
         .patch(`/businesses/${ANAS_BUSINESS.id}`)
         .set(bearer(OTHER_CLERK_TOKEN))
@@ -277,15 +339,18 @@ describe('Negocio', () => {
       ['a null name', { name: null }],
       ['a blank description', { description: ' ' }],
       ['a null description', { description: null }],
-    ])('rejects %s with 400, without reaching the repository', async (_, body) => {
-      await t.http
-        .patch(`/businesses/${ANAS_BUSINESS.id}`)
-        .set(bearer(CLERK_TOKEN))
-        .send(body)
-        .expect(400);
+    ])(
+      'rejects %s with 400, without reaching the repository',
+      async (_, body) => {
+        await t.http
+          .patch(`/businesses/${ANAS_BUSINESS.id}`)
+          .set(bearer(CLERK_TOKEN))
+          .send(body)
+          .expect(400);
 
-      expect(t.businesses.update).not.toHaveBeenCalled();
-    });
+        expect(t.businesses.update).not.toHaveBeenCalled();
+      },
+    );
   });
 
   describe('GET /businesses', () => {

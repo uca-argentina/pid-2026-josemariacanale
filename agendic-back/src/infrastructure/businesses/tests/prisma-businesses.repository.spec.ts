@@ -15,6 +15,7 @@ const ANAS_BUSINESS: Business = {
   description: 'Hair and nails',
   ownerId: 1,
   clerkOrgId: 'org_clerk_anas_salon',
+  slug: 'anas-salon',
 };
 
 const knownError = (code: string) =>
@@ -59,6 +60,7 @@ const CREATE_DATA = {
     description: ANAS_BUSINESS.description,
     ownerId: ANAS_BUSINESS.ownerId,
     clerkOrgId: ANAS_BUSINESS.clerkOrgId,
+    slug: ANAS_BUSINESS.slug,
   },
   branch: {
     name: 'Downtown',
@@ -107,7 +109,10 @@ describe('PrismaBusinessesRepository', () => {
   });
 
   it('creates the Business, its Branch, its Service and the owner as its Employee, in one transaction', async () => {
-    tx.business.create.mockResolvedValue({ ...ANAS_BUSINESS, futureColumn: 'x' });
+    tx.business.create.mockResolvedValue({
+      ...ANAS_BUSINESS,
+      futureColumn: 'x',
+    });
     tx.branch.create.mockResolvedValue(BRANCH_ROW);
     tx.employee.create.mockResolvedValue(EMPLOYEE_ROW);
     tx.service.create.mockResolvedValue(SERVICE_ROW);
@@ -161,6 +166,22 @@ describe('PrismaBusinessesRepository', () => {
         }),
       }),
     );
+  });
+
+  it('names the Enlace de reserva in the ConflictError when two Businesses take the same slug', async () => {
+    const cause = knownError('P2002');
+    // Where ADR 0004 says @prisma/adapter-pg puts the violated index's name.
+    cause.meta = {
+      driverAdapterError: {
+        cause: { constraint: { index: 'Business_slug_key' } },
+      },
+    };
+    tx.business.create.mockRejectedValue(cause);
+
+    const error = await repository.create(CREATE_DATA).catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(ConflictError);
+    expect(error).toHaveProperty('message', 'Booking link already in use');
   });
 
   it.each([

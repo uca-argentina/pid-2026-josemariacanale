@@ -44,6 +44,7 @@ model Business {
   description String
   ownerId     Int
   clerkOrgId  String @unique
+  slug        String @unique // Enlace de reserva: /business/<slug>, always lowercase
 
   owner     User       @relation(fields: [ownerId], references: [id])
   branches  Branch[]

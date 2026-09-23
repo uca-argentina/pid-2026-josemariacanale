@@ -30,10 +30,7 @@ export class BusinessesController {
 
   @Post()
   @UseGuards(ClerkGuard)
-  async create(
-    @CurrentUser() userId: number,
-    @Body() dto: CreateBusinessDto,
-  ) {
+  async create(@CurrentUser() userId: number, @Body() dto: CreateBusinessDto) {
     const created = await this.createBusinessUseCase.execute(userId, dto);
     return {
       business: presentBusiness(created.business),

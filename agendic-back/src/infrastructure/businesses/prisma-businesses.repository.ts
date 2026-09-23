@@ -98,10 +98,11 @@ const toBusiness = (row: BusinessRow): Business => ({
   description: row.description,
   ownerId: row.ownerId,
   clerkOrgId: row.clerkOrgId,
+  slug: row.slug,
 });
 
-/** Business has no unique index of its own; a P2002 here comes from the Service or Employee written alongside it. */
 const CONFLICT_BY_INDEX: Record<string, string> = {
+  Business_slug_key: 'Booking link already in use',
   Service_branchId_name_ci_key: 'Service name already in use',
   Employee_businessId_email_ci_key: 'Employee email already in use',
 };

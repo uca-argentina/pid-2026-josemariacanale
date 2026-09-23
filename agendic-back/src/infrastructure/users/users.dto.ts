@@ -2,7 +2,9 @@ import { applyDecorators } from '@nestjs/common';
 import { Transform } from 'class-transformer';
 import { IsEmail, IsNotEmpty, IsString, ValidateIf } from 'class-validator';
 
-const trimmed = (normalize: (value: string) => string = (value) => value) =>
+export const trimmed = (
+  normalize: (value: string) => string = (value) => value,
+) =>
   Transform(({ value }) =>
     typeof value === 'string' ? normalize(value.trim()) : value,
   );

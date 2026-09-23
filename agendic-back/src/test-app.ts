@@ -29,7 +29,11 @@ import {
   SERVICES_REPOSITORY,
   ServicesRepository,
 } from './domain/services/services.repository';
-import { CLERK_AUTH, ClerkAuth, ClerkIdentity } from './domain/users/clerk-auth';
+import {
+  CLERK_AUTH,
+  ClerkAuth,
+  ClerkIdentity,
+} from './domain/users/clerk-auth';
 import { User } from './domain/users/user';
 import {
   USERS_REPOSITORY,
@@ -176,6 +180,7 @@ export const ANAS_BUSINESS: Business = {
   description: 'Hair and nails',
   ownerId: ANA.id,
   clerkOrgId: 'org_clerk_anas_salon',
+  slug: 'anas-salon',
 };
 
 export const ANAS_BRANCH: Branch = {
@@ -251,7 +256,9 @@ export function scriptEmployeeSession({ clerkAuth, employees }: TestApp) {
   );
   const findByClerkId = employees.findByClerkId.getMockImplementation();
   employees.findByClerkId.mockImplementation(async (clerkId) =>
-    clerkId === ANA.clerkId ? ANAS_EMPLOYEE : (findByClerkId?.(clerkId) ?? null),
+    clerkId === ANA.clerkId
+      ? ANAS_EMPLOYEE
+      : (findByClerkId?.(clerkId) ?? null),
   );
 }
 
