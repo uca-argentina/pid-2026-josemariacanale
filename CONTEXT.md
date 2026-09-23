@@ -97,6 +97,10 @@ _Avoid_: cita, reserva (como sustantivo), appointment
 Acción del Cliente de tomar un turno disponible.
 _Avoid_: agendar, sacar turno, pedir turno
 
+**Enlace de reserva**:
+Dirección pública y única que un Negocio comparte para que un Cliente entre a Reservar. La elige el Dueño al Crear Negocio y puede cambiarla; al cambiarla, la anterior deja de funcionar.
+_Avoid_: link del negocio, perfil público, página pública, slug (eso es el identificador en el código)
+
 **Reagendar**:
 Mover un turno existente a otro horario. Libera el horario anterior.
 _Avoid_: reprogramar, cambiar el turno

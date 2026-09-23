@@ -42,10 +42,9 @@ Los datos mock de las pantallas se siguen mostrando igual en todos los casos. M�
 
 **Contrato con el back**
 - La URL base sale de la variable de entorno `API_URL`. En local vale `http://localhost:3001`.
-- `GET {API_URL}/me/negocios` con el header `Authorization: Bearer <JWT de Sesión de Clerk>`. El back identifica al Usuario por el token, así que el front no manda ningún id.
+- `GET {API_URL}/businesses` con el header `Authorization: Bearer <JWT de Sesión de Clerk>`. El back identifica al Usuario por el token, así que el front no manda ningún id, y devuelve solo los Negocios de los que ese Usuario es Dueño (ADR 0010).
 - Respuestas:
-  - `200` con `[{ "id": string, "nombre": string }]`, o `[]` si el Usuario no tiene Negocios.
-  - `404`: se toma como `[]`. Es el Usuario que el back todavía no conoce porque la sincronización entre Clerk y el back sigue pendiente (ADR 0003).
+  - `200` con `[{ "id": number, "name": string, "description": string, "ownerId": number, "slug": string }]`, o `[]` si el Usuario no tiene Negocios. El adaptador se queda con lo que necesita.
   - Cualquier otro status, un error de red o un JSON que no respeta el esquema se traducen al error de persistencia de entities, con el error original como `cause`.
 - Si `API_URL` no está definida, el adaptador tira un error y rige lo mismo que para una falla del back.
 
@@ -93,7 +92,7 @@ Los datos mock de las pantallas se siguen mostrando igual en todos los casos. M�
   - lista vacía.
 - **Adaptador**: se stubean `fetch` y `authWith({ getAccessToken })`. Casos:
   - 200 devuelve la lista parseada;
-  - 404 devuelve `[]`;
+  - 200 con `[]` devuelve lista vacía;
   - 500 tira el error de persistencia con `cause`;
   - JSON inválido tira el error de persistencia con `cause`;
   - `API_URL` ausente tira error;
@@ -109,11 +108,11 @@ Los datos mock de las pantallas se siguen mostrando igual en todos los casos. M�
 - El formulario de Crear Negocio y su endpoint: la página de onboarding es solo un placeholder.
 - Mostrar los datos reales del Negocio en cada pantalla (se reemplazan los mocks más adelante).
 - Elegir entre varios Negocios o cambiar de Negocio activo.
-- La sincronización entre el Usuario de Clerk y el Usuario del back (webhook, ADR 0003).
+- La sincronización entre el Usuario de Clerk y el Usuario del back (ADR 0008). Hoy lo único pendiente es el refresco del nombre y el email desde los claims del token; no hay webhook (ADR 0009).
 - Cachear la consulta entre navegaciones.
 - Ocultar o deshabilitar funciones del panel para Usuarios sin Negocios.
 
 ## Further Notes
 
-- Tratar el 404 como `[]` es una decisión temporal y fácil de revertir: cuando exista la sincronización, un 404 debería pasar a ser un error.
+- No hay rama de 404: el back crea el Usuario la primera vez que ve su token (ADR 0009), así que un Usuario con Sesión siempre resuelve y, sin Negocios, devuelve `200 []`. Un `401` cae en el mismo camino que una falla del back.
 - La regla "No mock adapter" se mantiene: el adaptador es HTTP real contra `API_URL`. Sin el back levantado en `localhost:3001`, el panel funciona sin aviso ni banner y el error queda reportado.
