@@ -74,6 +74,13 @@ export class PrismaBusinessesRepository implements BusinessesRepository {
     return row && toBusiness(row);
   }
 
+  async findBySlug(slug: string) {
+    const row = await this.prisma.business
+      .findUnique({ where: { slug } })
+      .catch(translateError);
+    return row && toBusiness(row);
+  }
+
   async listByOwner(ownerId: number) {
     return (
       await this.prisma.business

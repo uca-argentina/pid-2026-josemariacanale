@@ -247,6 +247,23 @@ describe('PrismaBusinessesRepository', () => {
     });
   });
 
+  it('finds a Business by its slug', async () => {
+    prisma.business.findUnique.mockResolvedValue(ANAS_BUSINESS);
+
+    await expect(repository.findBySlug(ANAS_BUSINESS.slug)).resolves.toEqual(
+      ANAS_BUSINESS,
+    );
+    expect(prisma.business.findUnique).toHaveBeenCalledWith({
+      where: { slug: ANAS_BUSINESS.slug },
+    });
+  });
+
+  it('returns null when no Business has that slug', async () => {
+    prisma.business.findUnique.mockResolvedValue(null);
+
+    await expect(repository.findBySlug('unknown-slug')).resolves.toBeNull();
+  });
+
   describe('translates Prisma errors, keeping the original as cause', () => {
     const calls = {
       findById: () => repository.findById(1),

@@ -84,6 +84,7 @@ export async function createTestApp() {
     create: jest.fn(),
     findById: jest.fn(),
     findByClerkOrgId: jest.fn(),
+    findBySlug: jest.fn(),
     listByOwner: jest.fn(),
     update: jest.fn(),
   };

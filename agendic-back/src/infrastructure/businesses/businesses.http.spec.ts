@@ -468,4 +468,31 @@ describe('Negocio', () => {
       await t.http.get('/businesses/999').expect(404);
     });
   });
+
+  describe('GET /businesses/by-slug/:slug', () => {
+    it('returns a Negocio by its Enlace de reserva, without a Sesión', async () => {
+      t.businesses.findBySlug.mockResolvedValue(ANAS_BUSINESS);
+
+      const res = await t.http
+        .get(`/businesses/by-slug/${ANAS_BUSINESS.slug}`)
+        .expect(200);
+
+      expect(t.businesses.findBySlug).toHaveBeenCalledWith(ANAS_BUSINESS.slug);
+      expect(res.body).toEqual(PRESENTED_BUSINESS);
+    });
+
+    it('normalizes the slug to lowercase before searching', async () => {
+      t.businesses.findBySlug.mockResolvedValue(ANAS_BUSINESS);
+
+      await t.http.get('/businesses/by-slug/ANAS-SALON').expect(200);
+
+      expect(t.businesses.findBySlug).toHaveBeenCalledWith(ANAS_BUSINESS.slug);
+    });
+
+    it('answers 404 for an unknown Enlace de reserva', async () => {
+      t.businesses.findBySlug.mockResolvedValue(null);
+
+      await t.http.get('/businesses/by-slug/unknown-salon').expect(404);
+    });
+  });
 });

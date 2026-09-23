@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { CreateBusinessUseCase } from '../../application/businesses/create-business.use-case';
+import { GetBusinessBySlugUseCase } from '../../application/businesses/get-business-by-slug.use-case';
 import { GetBusinessUseCase } from '../../application/businesses/get-business.use-case';
 import { ListBusinessesByOwnerUseCase } from '../../application/businesses/list-businesses-by-owner.use-case';
 import { UpdateBusinessUseCase } from '../../application/businesses/update-business.use-case';
@@ -14,6 +15,7 @@ import { BusinessesController } from './businesses.controller';
     UpdateBusinessUseCase,
     ListBusinessesByOwnerUseCase,
     GetBusinessUseCase,
+    GetBusinessBySlugUseCase,
   ],
 })
 export class BusinessesModule {}

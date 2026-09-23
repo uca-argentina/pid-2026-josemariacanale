@@ -9,6 +9,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CreateBusinessUseCase } from '../../application/businesses/create-business.use-case';
+import { GetBusinessBySlugUseCase } from '../../application/businesses/get-business-by-slug.use-case';
 import { GetBusinessUseCase } from '../../application/businesses/get-business.use-case';
 import { ListBusinessesByOwnerUseCase } from '../../application/businesses/list-businesses-by-owner.use-case';
 import { UpdateBusinessUseCase } from '../../application/businesses/update-business.use-case';
@@ -26,6 +27,7 @@ export class BusinessesController {
     private readonly updateBusinessUseCase: UpdateBusinessUseCase,
     private readonly listBusinessesByOwnerUseCase: ListBusinessesByOwnerUseCase,
     private readonly getBusinessUseCase: GetBusinessUseCase,
+    private readonly getBusinessBySlugUseCase: GetBusinessBySlugUseCase,
   ) {}
 
   @Post()
@@ -63,5 +65,10 @@ export class BusinessesController {
   @Get(':id')
   async get(@Param('id', ParseIntPipe) id: number) {
     return presentBusiness(await this.getBusinessUseCase.execute(id));
+  }
+
+  @Get('by-slug/:slug')
+  async getBySlug(@Param('slug') slug: string) {
+    return presentBusiness(await this.getBusinessBySlugUseCase.execute(slug));
   }
 }

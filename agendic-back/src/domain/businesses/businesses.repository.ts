@@ -32,6 +32,8 @@ export interface BusinessesRepository {
   create(data: CreateBusinessData): Promise<CreatedBusiness>;
   findById(id: number): Promise<Business | null>;
   findByClerkOrgId(clerkOrgId: string): Promise<Business | null>;
+  /** `slug` is matched as stored, so the caller normalizes case beforehand. */
+  findBySlug(slug: string): Promise<Business | null>;
   listByOwner(ownerId: number): Promise<Business[]>;
   /** Leaves undefined fields unchanged. */
   update(
