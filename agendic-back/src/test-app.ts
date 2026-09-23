@@ -84,7 +84,7 @@ export async function createTestApp() {
     create: jest.fn(),
     findById: jest.fn(),
     findByClerkOrgId: jest.fn(),
-    list: jest.fn(),
+    listByOwner: jest.fn(),
     update: jest.fn(),
   };
   const branches: jest.Mocked<BranchesRepository> = {

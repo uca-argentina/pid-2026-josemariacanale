@@ -225,10 +225,15 @@ describe('PrismaBusinessesRepository', () => {
     expect(prisma.$transaction).toHaveBeenCalledTimes(1);
   });
 
-  it('lists Businesses', async () => {
+  it('lists only the Businesses of one owner', async () => {
     prisma.business.findMany.mockResolvedValue([ANAS_BUSINESS]);
 
-    await expect(repository.list()).resolves.toEqual([ANAS_BUSINESS]);
+    await expect(
+      repository.listByOwner(ANAS_BUSINESS.ownerId),
+    ).resolves.toEqual([ANAS_BUSINESS]);
+    expect(prisma.business.findMany).toHaveBeenCalledWith({
+      where: { ownerId: ANAS_BUSINESS.ownerId },
+    });
   });
 
   it('finds a Business by its Clerk Organization id', async () => {

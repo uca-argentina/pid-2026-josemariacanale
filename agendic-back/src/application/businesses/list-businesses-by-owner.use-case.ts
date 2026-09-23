@@ -6,13 +6,13 @@ import {
 } from '../../domain/businesses/businesses.repository';
 
 @Injectable()
-export class ListBusinessesUseCase {
+export class ListBusinessesByOwnerUseCase {
   constructor(
     @Inject(BUSINESSES_REPOSITORY)
     private readonly businesses: BusinessesRepository,
   ) {}
 
-  execute(): Promise<Business[]> {
-    return this.businesses.list();
+  execute(ownerId: number): Promise<Business[]> {
+    return this.businesses.listByOwner(ownerId);
   }
 }

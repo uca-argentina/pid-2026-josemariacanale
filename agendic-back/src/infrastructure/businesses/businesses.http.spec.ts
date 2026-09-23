@@ -6,6 +6,7 @@ import {
   ANAS_BUSINESS,
   ANAS_EMPLOYEE,
   bearer,
+  BRUNO,
   createTestApp,
   OTHER_CLERK_TOKEN,
   scriptOtherSession,
@@ -354,12 +355,65 @@ describe('Negocio', () => {
   });
 
   describe('GET /businesses', () => {
-    it('lists Negocios without a Sesión', async () => {
-      t.businesses.list.mockResolvedValue([ANAS_BUSINESS]);
+    beforeEach(() => {
+      scriptSession(t);
+      scriptOtherSession(t);
+    });
 
-      const res = await t.http.get('/businesses').expect(200);
+    it('lists the Negocios of the Dueño of the Sesión', async () => {
+      t.businesses.listByOwner.mockResolvedValue([ANAS_BUSINESS]);
 
+      const res = await t.http
+        .get('/businesses')
+        .set(bearer(CLERK_TOKEN))
+        .expect(200);
+
+      expect(t.businesses.listByOwner).toHaveBeenCalledWith(ANA.id);
       expect(res.body).toEqual([PRESENTED_BUSINESS]);
+    });
+
+    it('lists another Usuario only his own Negocios', async () => {
+      const brunosBusiness = {
+        ...ANAS_BUSINESS,
+        id: 2,
+        name: "Bruno's Gym",
+        ownerId: BRUNO.id,
+        slug: 'brunos-gym',
+      };
+      t.businesses.listByOwner.mockResolvedValue([brunosBusiness]);
+
+      const res = await t.http
+        .get('/businesses')
+        .set(bearer(OTHER_CLERK_TOKEN))
+        .expect(200);
+
+      expect(t.businesses.listByOwner).toHaveBeenCalledWith(BRUNO.id);
+      expect(res.body).toEqual([
+        {
+          id: brunosBusiness.id,
+          name: brunosBusiness.name,
+          description: brunosBusiness.description,
+          ownerId: BRUNO.id,
+          slug: brunosBusiness.slug,
+        },
+      ]);
+    });
+
+    it('answers 200 with an empty list for a Usuario without Negocios', async () => {
+      t.businesses.listByOwner.mockResolvedValue([]);
+
+      const res = await t.http
+        .get('/businesses')
+        .set(bearer(CLERK_TOKEN))
+        .expect(200);
+
+      expect(res.body).toEqual([]);
+    });
+
+    it('answers 401 without a Sesión', async () => {
+      await t.http.get('/businesses').expect(401);
+
+      expect(t.businesses.listByOwner).not.toHaveBeenCalled();
     });
   });
 

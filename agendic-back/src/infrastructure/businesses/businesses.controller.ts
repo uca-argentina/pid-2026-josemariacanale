@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { CreateBusinessUseCase } from '../../application/businesses/create-business.use-case';
 import { GetBusinessUseCase } from '../../application/businesses/get-business.use-case';
-import { ListBusinessesUseCase } from '../../application/businesses/list-businesses.use-case';
+import { ListBusinessesByOwnerUseCase } from '../../application/businesses/list-businesses-by-owner.use-case';
 import { UpdateBusinessUseCase } from '../../application/businesses/update-business.use-case';
 import { presentBranch } from '../branches/branch.presenter';
 import { presentEmployee } from '../employees/employee.presenter';
@@ -24,7 +24,7 @@ export class BusinessesController {
   constructor(
     private readonly createBusinessUseCase: CreateBusinessUseCase,
     private readonly updateBusinessUseCase: UpdateBusinessUseCase,
-    private readonly listBusinessesUseCase: ListBusinessesUseCase,
+    private readonly listBusinessesByOwnerUseCase: ListBusinessesByOwnerUseCase,
     private readonly getBusinessUseCase: GetBusinessUseCase,
   ) {}
 
@@ -53,8 +53,11 @@ export class BusinessesController {
   }
 
   @Get()
-  async list() {
-    return (await this.listBusinessesUseCase.execute()).map(presentBusiness);
+  @UseGuards(ClerkGuard)
+  async list(@CurrentUser() userId: number) {
+    return (await this.listBusinessesByOwnerUseCase.execute(userId)).map(
+      presentBusiness,
+    );
   }
 
   @Get(':id')

@@ -32,7 +32,7 @@ export interface BusinessesRepository {
   create(data: CreateBusinessData): Promise<CreatedBusiness>;
   findById(id: number): Promise<Business | null>;
   findByClerkOrgId(clerkOrgId: string): Promise<Business | null>;
-  list(): Promise<Business[]>;
+  listByOwner(ownerId: number): Promise<Business[]>;
   /** Leaves undefined fields unchanged. */
   update(
     id: number,

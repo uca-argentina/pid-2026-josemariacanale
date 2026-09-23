@@ -74,10 +74,12 @@ export class PrismaBusinessesRepository implements BusinessesRepository {
     return row && toBusiness(row);
   }
 
-  async list() {
-    return (await this.prisma.business.findMany().catch(translateError)).map(
-      toBusiness,
-    );
+  async listByOwner(ownerId: number) {
+    return (
+      await this.prisma.business
+        .findMany({ where: { ownerId } })
+        .catch(translateError)
+    ).map(toBusiness);
   }
 
   async update(
