@@ -308,6 +308,38 @@ describe('Negocio', () => {
       expect(res.body.name).toBe('New name');
     });
 
+    it('edits the Enlace de reserva, for the Dueño', async () => {
+      t.businesses.update.mockResolvedValue({
+        ...ANAS_BUSINESS,
+        slug: 'anas-salon-nuevo',
+      });
+
+      const res = await t.http
+        .patch(`/businesses/${ANAS_BUSINESS.id}`)
+        .set(bearer(CLERK_TOKEN))
+        .send({ slug: 'anas-salon-nuevo' })
+        .expect(200);
+
+      expect(t.businesses.update).toHaveBeenCalledWith(ANAS_BUSINESS.id, {
+        slug: 'anas-salon-nuevo',
+      });
+      expect(res.body.slug).toBe('anas-salon-nuevo');
+    });
+
+    it('answers 409 when the Enlace de reserva is already in use', async () => {
+      t.businesses.update.mockRejectedValue(
+        new ConflictError('Booking link already in use'),
+      );
+
+      const res = await t.http
+        .patch(`/businesses/${ANAS_BUSINESS.id}`)
+        .set(bearer(CLERK_TOKEN))
+        .send({ slug: 'taken-slug' })
+        .expect(409);
+
+      expect(res.body.message).toBe('Booking link already in use');
+    });
+
     it('answers 403 for another Usuario', async () => {
       await t.http
         .patch(`/businesses/${ANAS_BUSINESS.id}`)
@@ -340,6 +372,8 @@ describe('Negocio', () => {
       ['a null name', { name: null }],
       ['a blank description', { description: ' ' }],
       ['a null description', { description: null }],
+      ['a malformed slug', { slug: 'anas salon!' }],
+      ['a null slug', { slug: null }],
     ])(
       'rejects %s with 400, without reaching the repository',
       async (_, body) => {

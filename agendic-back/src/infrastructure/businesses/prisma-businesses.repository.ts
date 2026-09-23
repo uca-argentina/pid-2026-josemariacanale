@@ -84,7 +84,7 @@ export class PrismaBusinessesRepository implements BusinessesRepository {
 
   async update(
     id: number,
-    data: Partial<Pick<Business, 'name' | 'description'>>,
+    data: Partial<Pick<Business, 'name' | 'description' | 'slug'>>,
   ) {
     return toBusiness(
       await this.prisma.business

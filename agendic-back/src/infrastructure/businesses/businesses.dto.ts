@@ -57,4 +57,8 @@ export class UpdateBusinessDto {
   @IfPresent()
   @IsText()
   description?: string;
+
+  @IfPresent()
+  @IsSlug()
+  slug?: string;
 }

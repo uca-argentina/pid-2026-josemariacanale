@@ -23,4 +23,5 @@ export interface CreateBusinessInput {
 export interface UpdateBusinessInput {
   name?: string;
   description?: string;
+  slug?: string;
 }
