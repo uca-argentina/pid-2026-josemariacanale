@@ -4,7 +4,6 @@ export const EMPLOYEES_REPOSITORY = Symbol('EmployeesRepository');
 
 export interface CreateEmployeeData {
   businessId: number;
-  clerkId: string;
   name: string;
   email: string;
 }
@@ -15,7 +14,6 @@ export interface EmployeesRepository {
   /** Throws ConflictError when the email is already used by an Employee not dado de baja in the same Business. */
   create(data: CreateEmployeeData): Promise<Employee>;
   findById(id: number): Promise<Employee | null>;
-  findByClerkId(clerkId: string): Promise<Employee | null>;
   /** The Business's Employees not dados de baja. */
   listActiveByBusiness(businessId: number): Promise<Employee[]>;
   /** Leaves undefined fields unchanged. Throws ConflictError on an email clash. */

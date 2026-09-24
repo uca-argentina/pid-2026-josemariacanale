@@ -14,7 +14,6 @@ const ANAS_BUSINESS: Business = {
   name: "Ana's Salon",
   description: 'Hair and nails',
   ownerId: 1,
-  clerkOrgId: 'org_clerk_anas_salon',
   slug: 'anas-salon',
 };
 
@@ -36,7 +35,6 @@ const BRANCH_ROW = {
 const EMPLOYEE_ROW = {
   id: 20,
   businessId: ANAS_BUSINESS.id,
-  clerkId: 'user_clerk_ana',
   name: 'Ana Pérez',
   email: 'ana@example.com',
   retiredAt: null,
@@ -59,7 +57,6 @@ const CREATE_DATA = {
     name: ANAS_BUSINESS.name,
     description: ANAS_BUSINESS.description,
     ownerId: ANAS_BUSINESS.ownerId,
-    clerkOrgId: ANAS_BUSINESS.clerkOrgId,
     slug: ANAS_BUSINESS.slug,
   },
   branch: {
@@ -76,7 +73,6 @@ const CREATE_DATA = {
     price: 20,
   },
   employee: {
-    clerkId: 'user_clerk_ana',
     name: 'Ana Pérez',
     email: 'ana@example.com',
   },
@@ -132,7 +128,6 @@ describe('PrismaBusinessesRepository', () => {
     expect(created.employee).toEqual({
       id: EMPLOYEE_ROW.id,
       businessId: ANAS_BUSINESS.id,
-      clerkId: 'user_clerk_ana',
       name: 'Ana Pérez',
       email: 'ana@example.com',
       retiredAt: null,
@@ -184,6 +179,19 @@ describe('PrismaBusinessesRepository', () => {
     expect(error).toHaveProperty('message', 'Booking link already in use');
   });
 
+  it('answers "Ya tenés un Negocio" when a race violates the owner uniqueness', async () => {
+    const cause = knownError('P2002');
+    cause.meta = {
+      driverAdapterError: { cause: { constraint: { index: 'Business_ownerId_key' } } },
+    };
+    tx.business.create.mockRejectedValue(cause);
+
+    const error = await repository.create(CREATE_DATA).catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(ConflictError);
+    expect(error).toHaveProperty('message', 'Ya tenés un Negocio');
+  });
+
   it.each([
     ['Service_branchId_name_ci_key', 'Service name already in use'],
     ['Employee_businessId_email_ci_key', 'Employee email already in use'],
@@ -233,17 +241,6 @@ describe('PrismaBusinessesRepository', () => {
     ).resolves.toEqual([ANAS_BUSINESS]);
     expect(prisma.business.findMany).toHaveBeenCalledWith({
       where: { ownerId: ANAS_BUSINESS.ownerId },
-    });
-  });
-
-  it('finds a Business by its Clerk Organization id', async () => {
-    prisma.business.findUnique.mockResolvedValue(ANAS_BUSINESS);
-
-    await expect(
-      repository.findByClerkOrgId(ANAS_BUSINESS.clerkOrgId),
-    ).resolves.toEqual(ANAS_BUSINESS);
-    expect(prisma.business.findUnique).toHaveBeenCalledWith({
-      where: { clerkOrgId: ANAS_BUSINESS.clerkOrgId },
     });
   });
 

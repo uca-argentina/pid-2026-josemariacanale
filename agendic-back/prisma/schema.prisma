@@ -42,8 +42,7 @@ model Business {
   id          Int    @id @default(autoincrement())
   name        String
   description String
-  ownerId     Int
-  clerkOrgId  String @unique
+  ownerId     Int    @unique // un Usuario es Dueño de a lo sumo un Negocio (ADR 0012)
   slug        String @unique // Enlace de reserva: /business/<slug>, always lowercase
 
   owner     User       @relation(fields: [ownerId], references: [id])
@@ -81,10 +80,9 @@ model Service {
 model Employee {
   id         Int       @id @default(autoincrement())
   businessId Int
-  clerkId    String    @unique // Clerk is the identity's system of record; no local credentials
   name       String
   email      String
-  retiredAt  DateTime? @db.Timestamptz(3) // when dado de baja; null while employed
+  retiredAt DateTime? @db.Timestamptz(3) // when dado de baja; null while employed
 
   business Business  @relation(fields: [businessId], references: [id])
   services Service[]

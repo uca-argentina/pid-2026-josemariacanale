@@ -3,8 +3,6 @@ import {
   Controller,
   Delete,
   Get,
-  HttpCode,
-  HttpStatus,
   Param,
   ParseIntPipe,
   Patch,
@@ -12,12 +10,10 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AddEmployeeUseCase } from '../../application/employees/add-employee.use-case';
-import { GetMeEmployeeUseCase } from '../../application/employees/get-me-employee.use-case';
 import { ListEmployeesByBusinessUseCase } from '../../application/employees/list-employees-by-business.use-case';
 import { RetireEmployeeUseCase } from '../../application/employees/retire-employee.use-case';
 import { UpdateEmployeeUseCase } from '../../application/employees/update-employee.use-case';
 import { ClerkGuard, CurrentUser } from '../users/clerk.guard';
-import { CurrentEmployee, EmployeeClerkGuard } from './employee-clerk.guard';
 import { presentEmployee } from './employee.presenter';
 import { CreateEmployeeDto, UpdateEmployeeDto } from './employees.dto';
 
@@ -25,27 +21,21 @@ import { CreateEmployeeDto, UpdateEmployeeDto } from './employees.dto';
 export class EmployeesController {
   constructor(
     private readonly addEmployeeUseCase: AddEmployeeUseCase,
-    private readonly getMeEmployeeUseCase: GetMeEmployeeUseCase,
     private readonly updateEmployeeUseCase: UpdateEmployeeUseCase,
     private readonly listEmployeesByBusinessUseCase: ListEmployeesByBusinessUseCase,
     private readonly retireEmployeeUseCase: RetireEmployeeUseCase,
   ) {}
 
   @Post('businesses/:id/employees')
-  @HttpCode(HttpStatus.ACCEPTED)
   @UseGuards(ClerkGuard)
   async create(
     @CurrentUser() userId: number,
     @Param('id', ParseIntPipe) businessId: number,
     @Body() dto: CreateEmployeeDto,
   ) {
-    await this.addEmployeeUseCase.execute(userId, businessId, dto);
-  }
-
-  @Get('employees/me')
-  @UseGuards(EmployeeClerkGuard)
-  async getMe(@CurrentEmployee() employeeId: number) {
-    return presentEmployee(await this.getMeEmployeeUseCase.execute(employeeId));
+    return presentEmployee(
+      await this.addEmployeeUseCase.execute(userId, businessId, dto),
+    );
   }
 
   @Patch('employees/:id')

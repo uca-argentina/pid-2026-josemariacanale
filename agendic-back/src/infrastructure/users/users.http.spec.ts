@@ -35,7 +35,6 @@ describe('Usuario', () => {
     it('creates the User from the Clerk profile on its first request', async () => {
       t.clerkAuth.verifyToken.mockResolvedValue({
         clerkId: 'user_clerk_new',
-        orgId: null,
       });
       t.users.findByClerkId.mockResolvedValue(null);
       t.clerkAuth.getProfile.mockResolvedValue({
@@ -77,7 +76,6 @@ describe('Usuario', () => {
     it('refreshes the name and email when the token profile differs from the row', async () => {
       t.clerkAuth.verifyToken.mockResolvedValue({
         clerkId: ANA.clerkId,
-        orgId: null,
         profile: { name: 'Ana María', email: 'ana.new@example.com' },
       });
       t.users.findByClerkId.mockResolvedValue(ANA);
@@ -111,7 +109,6 @@ describe('Usuario', () => {
     it('responds with the stale row when the refresh update fails', async () => {
       t.clerkAuth.verifyToken.mockResolvedValue({
         clerkId: ANA.clerkId,
-        orgId: null,
         profile: { name: 'Ana María', email: 'ana.new@example.com' },
       });
       t.users.findByClerkId.mockResolvedValue(ANA);
@@ -137,7 +134,6 @@ describe('Usuario', () => {
     it('does not update when the token profile matches the row', async () => {
       t.clerkAuth.verifyToken.mockResolvedValue({
         clerkId: ANA.clerkId,
-        orgId: null,
         profile: { name: ANA.name, email: ANA.email },
       });
       t.users.findByClerkId.mockResolvedValue(ANA);
@@ -151,7 +147,6 @@ describe('Usuario', () => {
     it('does not call update or getProfile when the token carries no profile claims', async () => {
       t.clerkAuth.verifyToken.mockResolvedValue({
         clerkId: ANA.clerkId,
-        orgId: null,
       });
       t.users.findByClerkId.mockResolvedValue(ANA);
       t.users.findById.mockResolvedValue(ANA);

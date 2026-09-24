@@ -92,17 +92,14 @@ actualizarlo a mano cuando se agregue, cambie o borre un endpoint.
 
 | Método | Ruta | Auth | Qué hace |
 |---|---|---|---|
-| POST | `/businesses/:id/employees` | sí | Agrega un empleado a un negocio (solo el dueño); dispara email de verificación |
-| POST | `/employees/verification` | no | Verifica el email del empleado con código de 6 caracteres; 204 |
-| POST | `/employees/:id/verification/resend` | sí | Reenvía el email de verificación (solo el dueño); 204 |
+| POST | `/businesses/:id/employees` | sí | Agrega un empleado a un negocio (solo el dueño); 201 con el empleado, 409 si su email ya está en el negocio |
 | PATCH | `/employees/:id` | sí | Actualiza el name del empleado (solo el dueño) |
 | DELETE | `/employees/:id` | sí | Da de baja (soft-delete) un empleado (solo el dueño) |
 | GET | `/businesses/:id/employees` | sí | Lista empleados de un negocio (solo el dueño) |
 
 - `CreateEmployeeDto`: `{ name, email }`
-- `VerifyEmployeeDto`: `{ email, code }`
 - `UpdateEmployeeDto`: `{ name }`
-- Respuesta (`presentEmployee`): `{ id, name, email, verified }` — vista del dueño; en el array
+- Respuesta (`presentEmployee`): `{ id, name, email }` — vista del dueño; en el array
   `employees` de un Service la vista pública es solo `{ id, name }`.
 
 ## Bookings (Turno)

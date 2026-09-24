@@ -38,13 +38,6 @@ export class PrismaEmployeesRepository implements EmployeesRepository {
     return row && toEmployee(row);
   }
 
-  async findByClerkId(clerkId: string) {
-    const row = await this.prisma.employee
-      .findUnique({ where: { clerkId } })
-      .catch(translateError);
-    return row && toEmployee(row);
-  }
-
   async listActiveByBusiness(businessId: number) {
     return (
       await this.prisma.employee
@@ -82,7 +75,6 @@ export class PrismaEmployeesRepository implements EmployeesRepository {
 export const toEmployee = (row: EmployeeRow): Employee => ({
   id: row.id,
   businessId: row.businessId,
-  clerkId: row.clerkId,
   name: row.name,
   email: row.email,
   retiredAt: row.retiredAt,

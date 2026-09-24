@@ -26,24 +26,20 @@ _Avoid_: recurso
 El conjunto de Empleados de un Negocio. Solo se usa en plural/colectivo.
 
 **Usuario**:
-Persona identificada por Agendic, con contraseña o con un Proveedor de identidad. Puede ser Dueño de cero o más Negocios.
+Persona identificada por Agendic, con contraseña o con un Proveedor de identidad. Puede ser Dueño de cero o un Negocio.
 _Avoid_: cuenta, perfil
 
 **Dueño**:
-Usuario que creó un Negocio y lo gestiona. Un Usuario puede ser Dueño de varios Negocios.
+Usuario que creó un Negocio y lo gestiona. Un Usuario es Dueño de un solo Negocio; quien quiera otro Negocio se registra como otro Usuario con otro email.
 _Avoid_: owner, titular, admin
 
 **Crear Negocio**:
-Acción de un Usuario de dar de alta un Negocio con sus datos. Al hacerlo pasa a ser su Dueño.
+Acción de un Usuario de dar de alta un Negocio con sus datos. Solo puede hacerlo un Usuario que todavía no es Dueño de un Negocio. Al hacerlo pasa a ser su Dueño.
 _Avoid_: registrar negocio, alta de negocio, onboarding
 
 **Administrador**:
 Usuario del equipo de Agendic que gestiona la plataforma. No gestiona Negocios.
 _Avoid_: admin, superusuario
-
-**Rubro**:
-Categoría a la que pertenece un Negocio (clínica, spa, gimnasio, academia…).
-_Avoid_: categoría, industria
 
 ### Acceso
 
@@ -86,7 +82,7 @@ Prestación que ofrece una Sucursal, con duración y precio, atendida por uno o 
 _Avoid_: prestación, tratamiento
 
 **Categoría de Servicio**:
-Tipo de prestación al que pertenece un Servicio, elegido de una lista fija. No confundir con el Rubro, que es del Negocio.
+Tipo de prestación al que pertenece un Servicio, elegido de una lista fija.
 _Avoid_: tipo de servicio, categoría (a secas)
 
 **Turno**:

@@ -7,17 +7,14 @@ export const BUSINESSES_REPOSITORY = Symbol('BusinessesRepository');
 
 /** Everything a Negocio needs to take Turnos, written at once. */
 export interface CreateBusinessData {
-  business: Pick<
-    Business,
-    'name' | 'description' | 'ownerId' | 'clerkOrgId' | 'slug'
-  >;
+  business: Pick<Business, 'name' | 'description' | 'ownerId' | 'slug'>;
   branch: Pick<Branch, 'name' | 'address' | 'opensAt' | 'closesAt'>;
   service: Pick<
     Service,
     'name' | 'description' | 'category' | 'durationMinutes' | 'price'
   >;
   /** The Dueño, in charge of that first Servicio. */
-  employee: Pick<Employee, 'clerkId' | 'name' | 'email'>;
+  employee: Pick<Employee, 'name' | 'email'>;
 }
 
 export interface CreatedBusiness {
@@ -31,7 +28,6 @@ export interface BusinessesRepository {
   /** Generates every id. Atomic: a failure in any part creates nothing. */
   create(data: CreateBusinessData): Promise<CreatedBusiness>;
   findById(id: number): Promise<Business | null>;
-  findByClerkOrgId(clerkOrgId: string): Promise<Business | null>;
   /** `slug` is matched as stored, so the caller normalizes case beforehand. */
   findBySlug(slug: string): Promise<Business | null>;
   listByOwner(ownerId: number): Promise<Business[]>;

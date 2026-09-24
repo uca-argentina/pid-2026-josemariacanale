@@ -1,7 +1,6 @@
 export interface Employee {
   id: number;
   businessId: number;
-  clerkId: string;
   name: string;
   email: string;
   /** When dado de baja; null while employed. */

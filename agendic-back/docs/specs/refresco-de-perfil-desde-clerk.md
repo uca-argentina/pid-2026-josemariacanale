@@ -1,5 +1,7 @@
 # Refresco del nombre y el email del Usuario y del Empleado desde Clerk
 
+> Nota: la parte del Empleado quedó sin efecto: el Empleado dejó de ser una identidad de Clerk (ADR 0011).
+
 Labels: `ready-for-agent`, `area:back`
 
 ## Problem Statement

@@ -42,7 +42,7 @@ const VALID_BODY = {
   service: SERVICE_PART,
 };
 
-/** What the API presents for a Negocio: no `clerkOrgId`, an internal identifier the front never sees. */
+/** What the API presents for a Negocio. */
 const PRESENTED_BUSINESS = {
   id: ANAS_BUSINESS.id,
   name: ANAS_BUSINESS.name,
@@ -76,9 +76,7 @@ describe('Negocio', () => {
     beforeEach(() => {
       scriptSession(t);
       t.users.findById.mockResolvedValue(ANA);
-      t.clerkAuth.createOrganization.mockResolvedValue(
-        ANAS_BUSINESS.clerkOrgId,
-      );
+      t.businesses.listByOwner.mockResolvedValue([]);
     });
 
     it('creates the Negocio, its Sucursal, its Servicio and the Dueño as its Empleado', async () => {
@@ -90,23 +88,11 @@ describe('Negocio', () => {
         .send(VALID_BODY)
         .expect(201);
 
-      expect(t.clerkAuth.createOrganization).toHaveBeenCalledWith(
-        BUSINESS_PART.name,
-        ANA.clerkId,
-      );
       expect(t.businesses.create).toHaveBeenCalledWith({
-        business: {
-          ...BUSINESS_PART,
-          ownerId: ANA.id,
-          clerkOrgId: ANAS_BUSINESS.clerkOrgId,
-        },
+        business: { ...BUSINESS_PART, ownerId: ANA.id },
         branch: BRANCH_PART,
         service: SERVICE_PART,
-        employee: {
-          clerkId: ANA.clerkId,
-          name: ANA.name,
-          email: ANA.email,
-        },
+        employee: { name: ANA.name, email: ANA.email },
       });
       expect(res.body).toEqual({
         business: PRESENTED_BUSINESS,
@@ -148,30 +134,32 @@ describe('Negocio', () => {
       );
     });
 
-    it('lets the same Usuario create a further Negocio the same way', async () => {
-      const second = {
-        ...CREATED,
-        business: { ...ANAS_BUSINESS, id: 2, name: "Ana's Spa" },
-      };
-      t.businesses.create.mockResolvedValueOnce(CREATED);
-      t.businesses.create.mockResolvedValueOnce(second);
+    it('answers 409 and creates nothing when the Usuario already owns a Negocio', async () => {
+      t.businesses.listByOwner.mockResolvedValue([ANAS_BUSINESS]);
 
-      await t.http
-        .post('/businesses')
-        .set(bearer(CLERK_TOKEN))
-        .send(VALID_BODY)
-        .expect(201);
       const res = await t.http
         .post('/businesses')
         .set(bearer(CLERK_TOKEN))
-        .send({
-          ...VALID_BODY,
-          business: { ...BUSINESS_PART, name: "Ana's Spa" },
-        })
-        .expect(201);
+        .send(VALID_BODY)
+        .expect(409);
 
-      expect(t.businesses.create).toHaveBeenCalledTimes(2);
-      expect(res.body.business.id).toBe(2);
+      expect(res.body.message).toBe('Ya tenés un Negocio');
+      expect(t.businesses.create).not.toHaveBeenCalled();
+    });
+
+    it('lets another Usuario create their own Negocio', async () => {
+      scriptOtherSession(t);
+      t.users.findById.mockResolvedValue(BRUNO);
+      t.businesses.listByOwner.mockImplementation((id: number) =>
+        Promise.resolve(id === ANA.id ? [ANAS_BUSINESS] : []),
+      );
+      t.businesses.create.mockResolvedValue(CREATED);
+
+      await t.http
+        .post('/businesses')
+        .set(bearer(OTHER_CLERK_TOKEN))
+        .send(VALID_BODY)
+        .expect(201);
     });
 
     it('normalizes the Enlace de reserva to lowercase', async () => {

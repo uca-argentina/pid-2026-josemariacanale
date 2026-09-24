@@ -67,13 +67,6 @@ export class PrismaBusinessesRepository implements BusinessesRepository {
     return row && toBusiness(row);
   }
 
-  async findByClerkOrgId(clerkOrgId: string) {
-    const row = await this.prisma.business
-      .findUnique({ where: { clerkOrgId } })
-      .catch(translateError);
-    return row && toBusiness(row);
-  }
-
   async findBySlug(slug: string) {
     const row = await this.prisma.business
       .findUnique({ where: { slug } })
@@ -106,12 +99,12 @@ const toBusiness = (row: BusinessRow): Business => ({
   name: row.name,
   description: row.description,
   ownerId: row.ownerId,
-  clerkOrgId: row.clerkOrgId,
   slug: row.slug,
 });
 
 const CONFLICT_BY_INDEX: Record<string, string> = {
   Business_slug_key: 'Booking link already in use',
+  Business_ownerId_key: 'Ya tenés un Negocio',
   Service_branchId_name_ci_key: 'Service name already in use',
   Employee_businessId_email_ci_key: 'Employee email already in use',
 };

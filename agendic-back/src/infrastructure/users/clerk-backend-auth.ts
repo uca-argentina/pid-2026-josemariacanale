@@ -24,7 +24,6 @@ export class ClerkBackendAuth implements ClerkAuth {
       });
       return {
         clerkId: payload.sub,
-        orgId: payload.org_id ?? null,
         profile: profileClaims(payload),
       };
     } catch (error) {
@@ -46,24 +45,6 @@ export class ClerkBackendAuth implements ClerkAuth {
         .join(' ')
         .trim() || email;
     return { name, email };
-  }
-
-  async createOrganization(name: string, clerkId: string) {
-    const organization =
-      await this.clerkClient.organizations.createOrganization({
-        name,
-        createdBy: clerkId,
-      });
-    return organization.id;
-  }
-
-  async inviteToOrganization(orgId: string, email: string, inviterId: string) {
-    await this.clerkClient.organizations.createOrganizationInvitation({
-      organizationId: orgId,
-      emailAddress: email,
-      role: 'org:member',
-      inviterUserId: inviterId,
-    });
   }
 }
 

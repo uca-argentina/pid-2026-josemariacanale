@@ -6,8 +6,6 @@ export interface Business {
   name: string;
   description: string;
   ownerId: number;
-  /** The Clerk Organization this Business is mapped to 1:1, with the Dueño as its admin. */
-  clerkOrgId: string;
   /** Enlace de reserva: the lowercase address a Cliente reaches this Business by, at /business/<slug>. */
   slug: string;
 }
