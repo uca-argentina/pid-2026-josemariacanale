@@ -5,7 +5,8 @@ export type SectionId =
     | 'employees'
     | 'branches'
     | 'clients'
-    | 'metrics';
+    | 'metrics'
+    | 'business';
 
 export type TabId = 'proximos' | 'pendientes' | 'pasados' | 'cancelados';
 

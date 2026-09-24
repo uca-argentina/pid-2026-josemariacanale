@@ -2,7 +2,7 @@ import type { IBusinessesRepository } from '@/src/application/repositories/busin
 import type { IAuthenticationService } from '@/src/application/services/authentication.service.interface';
 import { AlreadyOwnerError, InvalidSlugError, SlugTakenError } from '@/src/entities/errors/business';
 import { ApiRequestError } from '@/src/entities/errors/common';
-import { businessSchema, type Business, type CreateBusiness } from '@/src/entities/models/business';
+import { businessSchema, type Business, type CreateBusiness, type UpdateBusiness } from '@/src/entities/models/business';
 
 // A body the back answered with but the schema rejects is a failure of the back, not of the
 // Usuario: it becomes an ApiRequestError without status, like a network failure.
@@ -65,5 +65,28 @@ export class BusinessesRepository implements IBusinessesRepository {
         if (!response.ok) throw new ApiRequestError(String(message), { status: response.status });
 
         return parseOrFail(() => businessSchema.parse(body?.business), 'POST /businesses');
+    }
+
+    async updateBusiness({ id, ...changes }: UpdateBusiness): Promise<Business> {
+        const token = await this.authenticationService.getAccessToken();
+
+        let response: Response;
+        try {
+            response = await fetch(`${this.apiUrl}/businesses/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify(changes),
+            });
+        } catch (cause) {
+            throw new ApiRequestError('PATCH /businesses/:id failed', { cause });
+        }
+
+        const body = await response.json().catch(() => undefined);
+        const message = String(body?.message ?? `PATCH /businesses/:id responded ${response.status}`);
+        if (response.status === 409) throw new SlugTakenError(message);
+        if (response.status === 400) throw new InvalidSlugError(message);
+        if (!response.ok) throw new ApiRequestError(message, { status: response.status });
+
+        return parseOrFail(() => businessSchema.parse(body), 'PATCH /businesses/:id');
     }
 }

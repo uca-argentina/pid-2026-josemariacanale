@@ -126,3 +126,52 @@ describe('BusinessesRepository.listBusinesses', () => {
         expect(error.status).toBeUndefined();
     });
 });
+
+describe('BusinessesRepository.updateBusiness', () => {
+    const update = { id: 1, name: 'Nuevo', description: 'Desc', slug: 'nuevo' };
+
+    it('PATCHes /businesses/:id with only the three fields and the bearer token', async () => {
+        const fetchSpy = respond(200, { ...business, name: 'Nuevo', slug: 'nuevo' });
+
+        await expect(repo().updateBusiness(update)).resolves.toMatchObject({ name: 'Nuevo', slug: 'nuevo' });
+        expect(fetchSpy).toHaveBeenCalledWith(
+            'http://api/businesses/1',
+            expect.objectContaining({
+                method: 'PATCH',
+                headers: expect.objectContaining({ Authorization: 'Bearer tok' }),
+                body: JSON.stringify({ name: 'Nuevo', description: 'Desc', slug: 'nuevo' }),
+            }),
+        );
+    });
+
+    it('translates 409 to SlugTakenError', async () => {
+        respond(409, { statusCode: 409, message: 'taken' });
+        await expect(repo().updateBusiness(update)).rejects.toBeInstanceOf(SlugTakenError);
+    });
+
+    it('translates 400 to InvalidSlugError', async () => {
+        respond(400, { statusCode: 400, message: 'bad' });
+        await expect(repo().updateBusiness(update)).rejects.toBeInstanceOf(InvalidSlugError);
+    });
+
+    it('translates 403 to ApiRequestError carrying the status', async () => {
+        respond(403, { statusCode: 403, message: 'no' });
+        await expect(repo().updateBusiness(update)).rejects.toMatchObject({ status: 403 });
+    });
+
+    it('translates a network failure to ApiRequestError without status, keeping the cause', async () => {
+        const cause = new TypeError('offline');
+        jest.spyOn(global, 'fetch').mockRejectedValue(cause);
+        const error = await repo().updateBusiness(update).catch((e) => e);
+        expect(error).toBeInstanceOf(ApiRequestError);
+        expect(error.status).toBeUndefined();
+        expect(error.cause).toBe(cause);
+    });
+
+    it('translates a body that does not match the schema to ApiRequestError without status', async () => {
+        respond(200, { id: 'x' });
+        const error = await repo().updateBusiness(update).catch((e) => e);
+        expect(error).toBeInstanceOf(ApiRequestError);
+        expect(error.status).toBeUndefined();
+    });
+});

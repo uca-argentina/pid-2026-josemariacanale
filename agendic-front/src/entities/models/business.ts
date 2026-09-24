@@ -24,3 +24,12 @@ export const createBusinessSchema = z.object({
     }),
 });
 export type CreateBusiness = z.infer<typeof createBusinessSchema>;
+
+// The exact shape PATCH /businesses/:id expects, plus the id that goes in the path.
+export const updateBusinessSchema = z.object({
+    id: z.number(),
+    name: z.string(),
+    description: z.string(),
+    slug: z.string(),
+});
+export type UpdateBusiness = z.infer<typeof updateBusinessSchema>;

@@ -13,7 +13,7 @@ const business = { id: 1, name: 'Estudio', description: 'Desc', slug: 'estudio',
 describe('createBusinessUseCase', () => {
     it('creates the Negocio through the repository', async () => {
         const createBusiness = jest.fn().mockResolvedValue(business);
-        const repo: IBusinessesRepository = { listBusinesses: jest.fn(), createBusiness };
+        const repo: IBusinessesRepository = { listBusinesses: jest.fn(), createBusiness, updateBusiness: jest.fn() };
 
         await expect(createBusinessUseCase(instrumentation, repo)(input)).resolves.toEqual(business);
         expect(createBusiness).toHaveBeenCalledWith(input);
@@ -23,6 +23,7 @@ describe('createBusinessUseCase', () => {
         const repo: IBusinessesRepository = {
             listBusinesses: jest.fn(),
             createBusiness: jest.fn().mockRejectedValue(new SlugTakenError('x')),
+            updateBusiness: jest.fn(),
         };
 
         await expect(createBusinessUseCase(instrumentation, repo)(input)).rejects.toBeInstanceOf(SlugTakenError);

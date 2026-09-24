@@ -5,7 +5,7 @@ import type { Business } from '@/src/entities/models/business';
 
 function presenter(business: Business | undefined, instrumentationService: IInstrumentationService) {
     return instrumentationService.startSpan({ name: 'getMyBusiness Presenter', op: 'serialize' }, () =>
-        business ? { id: business.id, name: business.name, slug: business.slug } : null,
+        business ? { id: business.id, name: business.name, description: business.description, slug: business.slug } : null,
     );
 }
 

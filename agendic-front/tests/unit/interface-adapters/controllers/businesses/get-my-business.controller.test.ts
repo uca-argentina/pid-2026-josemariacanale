@@ -12,6 +12,7 @@ describe('getMyBusinessController', () => {
         await expect(getMyBusinessController(instrumentation, signedIn(), useCase)()).resolves.toEqual({
             id: 1,
             name: 'Estudio',
+            description: 'Desc',
             slug: 'estudio',
         });
     });

@@ -13,6 +13,7 @@ const navItems: NavItem[] = [
     { id: 'branches', label: 'Sucursales' },
     { id: 'clients', label: 'Clientes' },
     { id: 'metrics', label: 'Métricas' },
+    { id: 'business', label: 'Mi Negocio' },
 ];
 
 function initialsOf(name: string) {

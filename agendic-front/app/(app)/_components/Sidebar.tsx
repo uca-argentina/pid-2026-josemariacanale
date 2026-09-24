@@ -12,6 +12,7 @@ import {
     UserRound,
     BarChart3,
     Settings,
+    Store,
     ExternalLink,
     Link as LinkIcon,
     LogOut,
@@ -40,6 +41,7 @@ const ICONS: Record<SectionId, React.ComponentType<{ className?: string }>> = {
     branches: Building2,
     clients: UserRound,
     metrics: BarChart3,
+    business: Store,
 };
 
 const ITEM = 'flex w-full items-center gap-2.5 rounded-[10px] px-2.5 py-2 text-left font-semibold transition-colors hover:bg-muted';
