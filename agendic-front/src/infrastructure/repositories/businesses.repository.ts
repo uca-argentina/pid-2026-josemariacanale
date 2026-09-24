@@ -4,6 +4,16 @@ import { AlreadyOwnerError, InvalidSlugError, SlugTakenError } from '@/src/entit
 import { ApiRequestError } from '@/src/entities/errors/common';
 import { businessSchema, type Business, type CreateBusiness } from '@/src/entities/models/business';
 
+// A body the back answered with but the schema rejects is a failure of the back, not of the
+// Usuario: it becomes an ApiRequestError without status, like a network failure.
+function parseOrFail<T>(parse: () => T, what: string): T {
+    try {
+        return parse();
+    } catch (cause) {
+        throw new ApiRequestError(`${what} responded with an unexpected body`, { cause });
+    }
+}
+
 export class BusinessesRepository implements IBusinessesRepository {
     constructor(
         private readonly authenticationService: IAuthenticationService,
@@ -21,9 +31,12 @@ export class BusinessesRepository implements IBusinessesRepository {
         }
 
         const body = await response.json().catch(() => undefined);
-        if (!response.ok) throw new ApiRequestError(String(body?.message ?? `GET /businesses responded ${response.status}`));
+        if (!response.ok)
+            throw new ApiRequestError(String(body?.message ?? `GET /businesses responded ${response.status}`), {
+                status: response.status,
+            });
 
-        return businessSchema.array().parse(body);
+        return parseOrFail(() => businessSchema.array().parse(body), 'GET /businesses');
     }
 
     async createBusiness(input: CreateBusiness): Promise<Business> {
@@ -49,8 +62,8 @@ export class BusinessesRepository implements IBusinessesRepository {
                 : new SlugTakenError(String(message));
         }
         if (response.status === 400) throw new InvalidSlugError(String(message));
-        if (!response.ok) throw new ApiRequestError(String(message));
+        if (!response.ok) throw new ApiRequestError(String(message), { status: response.status });
 
-        return businessSchema.parse(body.business);
+        return parseOrFail(() => businessSchema.parse(body?.business), 'POST /businesses');
     }
 }

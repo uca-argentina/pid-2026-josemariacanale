@@ -1,7 +1,9 @@
 'use server';
 
+import { redirect, unstable_rethrow } from 'next/navigation';
+import { isSessionExpired } from '@/app/api-error';
+import { SIGN_IN_PATH } from '@/app/routes';
 import { getInjection } from '@/di/container';
-import { UnauthenticatedError } from '@/src/entities/errors/auth';
 import { AlreadyOwnerError, InvalidSlugError, SlugTakenError } from '@/src/entities/errors/business';
 import { InputParseError } from '@/src/entities/errors/common';
 
@@ -12,10 +14,12 @@ export async function createBusinessAction(payload: unknown): Promise<CreateBusi
         await getInjection('ICreateBusinessController')(payload);
         return { ok: true };
     } catch (error) {
+        unstable_rethrow(error); // redirect/notFound/dynamic usage are Next's control flow, not failures
         if (error instanceof AlreadyOwnerError) return { ok: false, message: 'Ya tenés un Negocio.', alreadyOwner: true };
         if (error instanceof SlugTakenError) return { ok: false, message: 'Esa dirección ya está en uso.' };
         if (error instanceof InvalidSlugError) return { ok: false, message: 'El Enlace de reserva no es válido.' };
-        if (error instanceof UnauthenticatedError) return { ok: false, message: 'Tu sesión expiró. Volvé a iniciar sesión.' };
+        // La Sesión vencida la resuelve el Usuario solo: se lo manda a Iniciar sesión.
+        if (isSessionExpired(error)) redirect(SIGN_IN_PATH);
         if (error instanceof InputParseError) return { ok: false, message: 'Revisá los datos e intentá de nuevo.' };
         getInjection('ICrashReporterService').report(error);
         return { ok: false, message: 'No pudimos crear tu Negocio. Intentá de nuevo.' };

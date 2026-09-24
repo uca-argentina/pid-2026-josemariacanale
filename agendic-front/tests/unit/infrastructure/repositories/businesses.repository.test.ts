@@ -42,14 +42,32 @@ describe('BusinessesRepository.createBusiness', () => {
         await expect(repo().createBusiness(input)).rejects.toBeInstanceOf(InvalidSlugError);
     });
 
-    it('translates other failures to ApiRequestError', async () => {
+    it('translates other failures to ApiRequestError carrying the status', async () => {
         respond(500, { statusCode: 500, message: 'boom' });
-        await expect(repo().createBusiness(input)).rejects.toBeInstanceOf(ApiRequestError);
+        await expect(repo().createBusiness(input)).rejects.toMatchObject({ status: 500 });
     });
 
-    it('translates a network failure to ApiRequestError', async () => {
-        jest.spyOn(global, 'fetch').mockRejectedValue(new TypeError('offline'));
-        await expect(repo().createBusiness(input)).rejects.toBeInstanceOf(ApiRequestError);
+    it('translates a 401 to ApiRequestError with status 401', async () => {
+        respond(401, { statusCode: 401, message: 'Invalid or expired Clerk token' });
+        const error = await repo().createBusiness(input).catch((e) => e);
+        expect(error).toBeInstanceOf(ApiRequestError);
+        expect(error.status).toBe(401);
+    });
+
+    it('translates a network failure to ApiRequestError without status, keeping the cause', async () => {
+        const cause = new TypeError('offline');
+        jest.spyOn(global, 'fetch').mockRejectedValue(cause);
+        const error = await repo().createBusiness(input).catch((e) => e);
+        expect(error).toBeInstanceOf(ApiRequestError);
+        expect(error.status).toBeUndefined();
+        expect(error.cause).toBe(cause);
+    });
+
+    it('translates a body that does not match the schema to ApiRequestError without status', async () => {
+        respond(201, { business: { id: 'not-a-number' } });
+        const error = await repo().createBusiness(input).catch((e) => e);
+        expect(error).toBeInstanceOf(ApiRequestError);
+        expect(error.status).toBeUndefined();
     });
 });
 
@@ -78,13 +96,33 @@ describe('BusinessesRepository.listBusinesses', () => {
         await expect(repo().listBusinesses()).resolves.toEqual([]);
     });
 
-    it('translates a failure to ApiRequestError', async () => {
-        respond(401, { statusCode: 401, message: 'no' });
-        await expect(repo().listBusinesses()).rejects.toBeInstanceOf(ApiRequestError);
+    it('translates a 401 to ApiRequestError with status 401', async () => {
+        respond(401, { statusCode: 401, message: 'Invalid or expired Clerk token' });
+        const error = await repo().listBusinesses().catch((e) => e);
+        expect(error).toBeInstanceOf(ApiRequestError);
+        expect(error.status).toBe(401);
     });
 
-    it('translates a network failure to ApiRequestError', async () => {
-        jest.spyOn(global, 'fetch').mockRejectedValue(new TypeError('offline'));
-        await expect(repo().listBusinesses()).rejects.toBeInstanceOf(ApiRequestError);
+    it('translates a 500 to ApiRequestError with status 500', async () => {
+        respond(500, { statusCode: 500, message: 'Database operation failed' });
+        const error = await repo().listBusinesses().catch((e) => e);
+        expect(error).toBeInstanceOf(ApiRequestError);
+        expect(error.status).toBe(500);
+    });
+
+    it('translates a network failure to ApiRequestError without status, keeping the cause', async () => {
+        const cause = new TypeError('offline');
+        jest.spyOn(global, 'fetch').mockRejectedValue(cause);
+        const error = await repo().listBusinesses().catch((e) => e);
+        expect(error).toBeInstanceOf(ApiRequestError);
+        expect(error.status).toBeUndefined();
+        expect(error.cause).toBe(cause);
+    });
+
+    it('translates a body that does not match the schema to ApiRequestError without status', async () => {
+        respond(200, [{ id: 'not-a-number' }]);
+        const error = await repo().listBusinesses().catch((e) => e);
+        expect(error).toBeInstanceOf(ApiRequestError);
+        expect(error.status).toBeUndefined();
     });
 });
