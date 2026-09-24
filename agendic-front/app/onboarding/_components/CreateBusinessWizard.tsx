@@ -252,15 +252,6 @@ function BusinessStep({
                 />
             </Field>
 
-            <Field id="business-rubro" label="Rubro" hint="Próximamente">
-                <Select disabled>
-                    <SelectTrigger id="business-rubro" className="w-full">
-                        <SelectValue placeholder="Elegí el Rubro de tu Negocio" />
-                    </SelectTrigger>
-                    <SelectContent />
-                </Select>
-            </Field>
-
             <Field id="business-slug" label="Enlace de reserva" error={errors.slug}>
                 <div className="flex">
                     <span className="flex h-8 items-center rounded-l-lg border border-r-0 border-input bg-muted px-2.5 text-sm text-muted-foreground">
