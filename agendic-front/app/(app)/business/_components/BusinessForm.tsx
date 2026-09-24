@@ -44,7 +44,8 @@ export function BusinessForm({ business }: { business: BusinessFields & { id: nu
                 const { name, description, slug } = response.business;
                 setValues({ name, description, slug });
                 setSaved(true);
-            } else setSubmitError(response.message);
+            } else if (response.field === 'slug') setErrors({ slug: response.message });
+            else setSubmitError(response.message);
         });
     };
 
@@ -85,6 +86,11 @@ export function BusinessForm({ business }: { business: BusinessFields & { id: nu
                             aria-describedby={errors.slug ? 'business-slug-error' : undefined}
                         />
                     </div>
+                    {values.slug !== business.slug && (
+                        <p className="mt-1.5 text-sm text-muted-foreground">
+                            Al cambiar el Enlace de reserva, los enlaces que ya compartiste dejan de funcionar.
+                        </p>
+                    )}
                 </Field>
 
                 {submitError && (

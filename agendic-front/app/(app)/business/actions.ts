@@ -9,7 +9,7 @@ import { InputParseError } from '@/src/entities/errors/common';
 
 export type UpdateBusinessResult =
     | { ok: true; business: { id: number; name: string; description: string; slug: string } }
-    | { ok: false; message: string };
+    | { ok: false; message: string; field?: 'slug' };
 
 export async function updateBusinessAction(payload: unknown): Promise<UpdateBusinessResult> {
     try {
@@ -17,8 +17,8 @@ export async function updateBusinessAction(payload: unknown): Promise<UpdateBusi
         return { ok: true, business };
     } catch (error) {
         unstable_rethrow(error); // redirect/notFound/dynamic usage are Next's control flow, not failures
-        if (error instanceof SlugTakenError) return { ok: false, message: 'Esa dirección ya está en uso.' };
-        if (error instanceof InvalidSlugError) return { ok: false, message: 'El Enlace de reserva no es válido.' };
+        if (error instanceof SlugTakenError) return { ok: false, field: 'slug', message: 'Esa dirección ya está en uso.' };
+        if (error instanceof InvalidSlugError) return { ok: false, field: 'slug', message: 'El Enlace de reserva no es válido.' };
         // La Sesión vencida la resuelve el Usuario solo: se lo manda a Iniciar sesión.
         if (isSessionExpired(error)) redirect(SIGN_IN_PATH);
         if (error instanceof InputParseError) return { ok: false, message: 'Revisá los datos e intentá de nuevo.' };
