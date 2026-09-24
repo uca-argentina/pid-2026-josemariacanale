@@ -13,6 +13,16 @@ Issues and specs for this repo live as GitHub issues. Use the `gh` CLI for all o
 
 Infer the repo from `git remote -v`; `gh` does this automatically when run inside a clone. Front and back share this one repo and this one tracker: label every issue with its area (see `triage-labels.md`).
 
+## Tickets para dos ventanas (front / back)
+
+Se trabaja con dos VS Code abiertos, uno en `agendic-front/` y otro en `agendic-back/`. El agente de cada ventana no tiene el código de la otra app, así que cada ticket tiene que alcanzarle por sí solo. Rige para todo ticket que escribas (`/to-tickets`, `/triage`, issues sueltos), ya sean archivos en `.scratch/` o issues de GitHub.
+
+- **Un ticket, una app.** Nunca un ticket que toque front y back. El de front va bloqueado por el de back del que consume el contrato.
+- **Dónde trabajar** (todos los tickets): la carpeta desde la que correr Claude (`agendic-front/` o `agendic-back/`), y dónde viven glosario, ADRs y tickets en la raíz (`../CONTEXT.md`, `../docs/adr/`, `../.scratch/<feature>/issues/`). En front, sumá las reglas de esa app (`agendic-front/CLAUDE.md`).
+- **Contrato del back** (tickets de front que consumen la API): método, ruta, si exige Sesión, body, respuestas y códigos de error con su mensaje (por ejemplo el 409 de dirección en uso), en vocabulario del glosario. Remití al ticket del back y a `../docs/adr/0007-endpoints-de-la-api.md`. Nunca "mirá el código del back": si el contrato no alcanza, es un hueco del ticket del back, no algo para deducir del código.
+- **Qué necesita el front** (tickets de back): una línea con cómo consume el front ese endpoint (por ejemplo "el front muestra el 409 bajo el campo") cuando eso condiciona el contrato. No hace falta describir componentes ni nada del front.
+- **Rutas de archivo**: van las de docs, ADRs y tickets, y el contrato de la API. No van rutas al código de la implementación (se desactualizan rápido).
+
 ## Pull requests as a triage surface
 
 **PRs as a request surface: no.** _(Set to `yes` if this repo treats external PRs as feature requests; `/triage` reads this flag.)_
