@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
 import { SIGNED_IN_HOME_PATH } from '@/app/routes';
@@ -16,6 +16,7 @@ import {
 } from '@/app/_components/ui/select';
 import { Textarea } from '@/app/_components/ui/textarea';
 import { SignOutButton } from '@/app/_components/SignOutButton';
+import { createBusinessAction } from '../actions';
 import { Field } from './Field';
 import { StepHeader } from './StepHeader';
 import {
@@ -79,8 +80,12 @@ export function CreateBusinessWizard() {
     // Una vez que el Dueño edita el Enlace de reserva a mano, deja de seguir al nombre.
     const [slugEdited, setSlugEdited] = useState(false);
 
+    const [submitError, setSubmitError] = useState<string>();
+    const [isPending, startTransition] = useTransition();
+
     const goTo = (next: number) => {
         setErrors({});
+        setSubmitError(undefined);
         setStep(next);
     };
 
@@ -106,10 +111,11 @@ export function CreateBusinessWizard() {
             branch: branchSchema.parse(branch),
             service: serviceSchema.parse(service),
         };
-        // TODO: POST /businesses. El cableado (entidad, puerto, adapter, caso de uso,
-        // controller y DI) va en su propio ticket, junto con API_URL y getAccessToken.
-        console.info('Crear Negocio', payload);
-        router.push(SIGNED_IN_HOME_PATH);
+        startTransition(async () => {
+            const result = await createBusinessAction(payload);
+            if (result.ok) router.push(SIGNED_IN_HOME_PATH);
+            else setSubmitError(result.message);
+        });
     };
 
     const copy = STEP_COPY[step - 1];
@@ -149,6 +155,12 @@ export function CreateBusinessWizard() {
                         />
                     )}
 
+                    {submitError && (
+                        <p role="alert" className="text-sm text-destructive">
+                            {submitError}
+                        </p>
+                    )}
+
                     <div className="flex items-center gap-2">
                         {step > 1 && (
                             <Button
@@ -161,7 +173,7 @@ export function CreateBusinessWizard() {
                                 Atrás
                             </Button>
                         )}
-                        <Button type="submit" size="lg" className="flex-1">
+                        <Button type="submit" size="lg" className="flex-1" disabled={isPending}>
                             {step === TOTAL_STEPS ? 'Crear Negocio' : 'Siguiente'}
                             {step === TOTAL_STEPS ? (
                                 <Check data-icon="inline-end" />

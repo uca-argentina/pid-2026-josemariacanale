@@ -1,8 +1,8 @@
-import { currentUser } from '@clerk/nextjs/server';
+import { auth, currentUser } from '@clerk/nextjs/server';
 import { UnauthenticatedError } from '@/src/entities/errors/auth';
 import { AuthenticationService } from '@/src/infrastructure/services/authentication.service';
 
-jest.mock('@clerk/nextjs/server', () => ({ currentUser: jest.fn() }));
+jest.mock('@clerk/nextjs/server', () => ({ currentUser: jest.fn(), auth: jest.fn() }));
 
 const mockedCurrentUser = jest.mocked(currentUser);
 const authenticationService = new AuthenticationService();
@@ -23,6 +23,20 @@ const clerkUser = (
 });
 
 describe('AuthenticationService', () => {
+    describe('getAccessToken', () => {
+        it('returns the Clerk session token', async () => {
+            jest.mocked(auth).mockResolvedValue({ getToken: async () => 'tok' } as never);
+
+            await expect(authenticationService.getAccessToken()).resolves.toBe('tok');
+        });
+
+        it('throws UnauthenticatedError when there is no token', async () => {
+            jest.mocked(auth).mockResolvedValue({ getToken: async () => null } as never);
+
+            await expect(authenticationService.getAccessToken()).rejects.toBeInstanceOf(UnauthenticatedError);
+        });
+    });
+
     describe('getCurrentUser', () => {
         it('returns the Usuario behind the Sesión', async () => {
             mockedCurrentUser.mockResolvedValue(clerkUser() as never);

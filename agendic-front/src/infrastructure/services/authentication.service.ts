@@ -1,4 +1,4 @@
-import { currentUser } from '@clerk/nextjs/server';
+import { auth, currentUser } from '@clerk/nextjs/server';
 import type { IAuthenticationService } from '@/src/application/services/authentication.service.interface';
 import { UnauthenticatedError } from '@/src/entities/errors/auth';
 import { userSchema, type User } from '@/src/entities/models/user';
@@ -17,5 +17,12 @@ export class AuthenticationService implements IAuthenticationService {
         const imageUrl = clerkUser.hasImage && URL.canParse(clerkUser.imageUrl) ? clerkUser.imageUrl : undefined;
 
         return userSchema.parse({ id: clerkUser.id, email, name, imageUrl });
+    }
+
+    async getAccessToken(): Promise<string> {
+        const { getToken } = await auth();
+        const token = await getToken();
+        if (!token) throw new UnauthenticatedError('No hay Sesión');
+        return token;
     }
 }
