@@ -2,16 +2,17 @@
 
 import { getInjection } from '@/di/container';
 import { UnauthenticatedError } from '@/src/entities/errors/auth';
-import { InvalidSlugError, SlugTakenError } from '@/src/entities/errors/business';
+import { AlreadyOwnerError, InvalidSlugError, SlugTakenError } from '@/src/entities/errors/business';
 import { InputParseError } from '@/src/entities/errors/common';
 
-export type CreateBusinessResult = { ok: true } | { ok: false; message: string };
+export type CreateBusinessResult = { ok: true } | { ok: false; message: string; alreadyOwner?: true };
 
 export async function createBusinessAction(payload: unknown): Promise<CreateBusinessResult> {
     try {
         await getInjection('ICreateBusinessController')(payload);
         return { ok: true };
     } catch (error) {
+        if (error instanceof AlreadyOwnerError) return { ok: false, message: 'Ya tenés un Negocio.', alreadyOwner: true };
         if (error instanceof SlugTakenError) return { ok: false, message: 'Esa dirección ya está en uso.' };
         if (error instanceof InvalidSlugError) return { ok: false, message: 'El Enlace de reserva no es válido.' };
         if (error instanceof UnauthenticatedError) return { ok: false, message: 'Tu sesión expiró. Volvé a iniciar sesión.' };

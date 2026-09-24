@@ -1,4 +1,4 @@
-import { InvalidSlugError, SlugTakenError } from '@/src/entities/errors/business';
+import { AlreadyOwnerError, InvalidSlugError, SlugTakenError } from '@/src/entities/errors/business';
 import { ApiRequestError } from '@/src/entities/errors/common';
 import { BusinessesRepository } from '@/src/infrastructure/repositories/businesses.repository';
 import { authWith } from '@/tests/unit/stubs';
@@ -50,5 +50,41 @@ describe('BusinessesRepository.createBusiness', () => {
     it('translates a network failure to ApiRequestError', async () => {
         jest.spyOn(global, 'fetch').mockRejectedValue(new TypeError('offline'));
         await expect(repo().createBusiness(input)).rejects.toBeInstanceOf(ApiRequestError);
+    });
+});
+
+describe('BusinessesRepository.createBusiness 409s', () => {
+    it('translates the "Ya tenés un Negocio" 409 to AlreadyOwnerError, not SlugTakenError', async () => {
+        respond(409, { statusCode: 409, message: 'Ya tenés un Negocio' });
+        const error = await repo().createBusiness(input).catch((e) => e);
+        expect(error).toBeInstanceOf(AlreadyOwnerError);
+        expect(error).not.toBeInstanceOf(SlugTakenError);
+    });
+});
+
+describe('BusinessesRepository.listBusinesses', () => {
+    it('GETs with the bearer token and returns the Negocios', async () => {
+        const fetchSpy = respond(200, [business]);
+
+        await expect(repo().listBusinesses()).resolves.toEqual([business]);
+        expect(fetchSpy).toHaveBeenCalledWith(
+            'http://api/businesses',
+            expect.objectContaining({ headers: expect.objectContaining({ Authorization: 'Bearer tok' }) }),
+        );
+    });
+
+    it('returns an empty list when the Usuario has no Negocio', async () => {
+        respond(200, []);
+        await expect(repo().listBusinesses()).resolves.toEqual([]);
+    });
+
+    it('translates a failure to ApiRequestError', async () => {
+        respond(401, { statusCode: 401, message: 'no' });
+        await expect(repo().listBusinesses()).rejects.toBeInstanceOf(ApiRequestError);
+    });
+
+    it('translates a network failure to ApiRequestError', async () => {
+        jest.spyOn(global, 'fetch').mockRejectedValue(new TypeError('offline'));
+        await expect(repo().listBusinesses()).rejects.toBeInstanceOf(ApiRequestError);
     });
 });

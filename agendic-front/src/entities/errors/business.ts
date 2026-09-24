@@ -11,3 +11,10 @@ export class InvalidSlugError extends Error {
         super(message, options);
     }
 }
+
+// 409: the Usuario is already Dueño of a Negocio (ADR 0012).
+export class AlreadyOwnerError extends Error {
+    constructor(message: string, options?: ErrorOptions) {
+        super(message, options);
+    }
+}

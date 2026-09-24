@@ -81,6 +81,7 @@ export function CreateBusinessWizard() {
     const [slugEdited, setSlugEdited] = useState(false);
 
     const [submitError, setSubmitError] = useState<string>();
+    const [alreadyOwner, setAlreadyOwner] = useState(false);
     const [isPending, startTransition] = useTransition();
 
     const goTo = (next: number) => {
@@ -114,7 +115,10 @@ export function CreateBusinessWizard() {
         startTransition(async () => {
             const result = await createBusinessAction(payload);
             if (result.ok) router.push(SIGNED_IN_HOME_PATH);
-            else setSubmitError(result.message);
+            else {
+                setSubmitError(result.message);
+                setAlreadyOwner(Boolean(result.alreadyOwner));
+            }
         });
     };
 
@@ -159,6 +163,11 @@ export function CreateBusinessWizard() {
                         <p role="alert" className="text-sm text-destructive">
                             {submitError}
                         </p>
+                    )}
+                    {alreadyOwner && (
+                        <Button type="button" size="lg" onClick={() => router.push(SIGNED_IN_HOME_PATH)}>
+                            Ir a mi panel
+                        </Button>
                     )}
 
                     <div className="flex items-center gap-2">
