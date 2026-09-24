@@ -16,9 +16,10 @@ Edit the right-hand column to match whatever vocabulary you actually use.
 
 ## Area labels
 
-Front and back share one tracker, so every issue also carries the area it touches. An issue that touches both carries both labels.
+Front and back share one tracker, so every issue also carries the area it touches. A ticket carries `front` or `back`, never both. A spec that touches both carries `full-stack`.
 
-| Label    | Meaning                     |
-| -------- | --------------------------- |
-| `front`  | Touches `agendic-front/`    |
-| `back`   | Touches `agendic-back/`     |
+| Label        | Meaning                                  |
+| ------------ | ---------------------------------------- |
+| `front`      | Touches `agendic-front/`                 |
+| `back`       | Touches `agendic-back/`                  |
+| `full-stack` | Spec that touches both front and back    |
