@@ -47,14 +47,16 @@ actualizarlo a mano cuando se agregue, cambie o borre un endpoint.
 
 | Método | Ruta | Auth | Qué hace |
 |---|---|---|---|
-| POST | `/businesses` | sí | Crea un negocio junto con su primera sucursal, servicio y empleado (alta todo-en-uno) |
-| PATCH | `/businesses/:id` | sí | Actualiza name/description (solo el dueño) |
-| GET | `/businesses` | no | Lista todos los negocios |
+| POST | `/businesses` | sí | Crea un negocio junto con su primera sucursal, servicio y empleado (alta todo-en-uno); 409 si el Usuario ya es Dueño de un Negocio (ADR 0012) |
+| PATCH | `/businesses/:id` | sí | Actualiza name/description/slug (solo el dueño); cambiar el slug deja de servir el Enlace de reserva anterior |
+| GET | `/businesses` | sí | Lista solo los negocios del Dueño de la sesión (0 o 1) |
 | GET | `/businesses/:id` | no | Detalle de un negocio |
+| GET | `/businesses/by-slug/:slug` | no | Detalle de un negocio por su Enlace de reserva; el slug se compara en minúsculas; 404 si no existe |
 
-- `CreateBusinessDto`: `{ business: { name, description }, branch: CreateBranchDto, service: ServiceFieldsDto }`
-- `UpdateBusinessDto`: `{ name?, description? }`
-- Respuesta (`presentBusiness`): `{ id, name, description, ownerId }`
+- `CreateBusinessDto`: `{ business: { name, description, slug }, branch: CreateBranchDto, service: ServiceFieldsDto }`
+- `UpdateBusinessDto`: `{ name?, description?, slug? }`
+- `slug` (Enlace de reserva): se pasa a minúsculas, 3-40 caracteres, palabras de letras y dígitos unidas por guiones (`^[a-z0-9]+(-[a-z0-9]+)*$`); formato inválido → 400, slug ya tomado → 409
+- Respuesta (`presentBusiness`): `{ id, name, description, slug, ownerId }`
 - Respuesta del POST: `{ business, branch, service, employee }` (cada uno con su propio presenter)
 
 ## Branches (Sucursal)
