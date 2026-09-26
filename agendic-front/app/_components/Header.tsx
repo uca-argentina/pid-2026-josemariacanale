@@ -4,23 +4,26 @@ import { Button } from './ui/button';
 import { Logo } from './Logo';
 import { SignOutButton } from './SignOutButton';
 
-export function Header({ user }: { user: CurrentUser | null }) {
+// `nav` son los enlaces de la landing; la página pública de un Negocio usa el mismo Header sin ellos.
+export function Header({ user, nav = true }: { user: CurrentUser | null; nav?: boolean }) {
     return (
         <header className="flex items-center justify-between px-16 py-5">
             <Link href="/">
                 <Logo />
             </Link>
-            <nav className="flex gap-8 text-[15px] font-medium text-foreground">
-                <Link href="#" className="hover:text-primary transition-colors">
-                    Funcionalidades
-                </Link>
-                <Link href="#" className="hover:text-primary transition-colors">
-                    Rubros
-                </Link>
-                <Link href="#" className="hover:text-primary transition-colors">
-                    Preguntas frecuentes
-                </Link>
-            </nav>
+            {nav && (
+                <nav className="flex gap-8 text-[15px] font-medium text-foreground">
+                    <Link href="#" className="hover:text-primary transition-colors">
+                        Funcionalidades
+                    </Link>
+                    <Link href="#" className="hover:text-primary transition-colors">
+                        Rubros
+                    </Link>
+                    <Link href="#" className="hover:text-primary transition-colors">
+                        Preguntas frecuentes
+                    </Link>
+                </nav>
+            )}
             <div className="flex items-center gap-2.5">
                 {user ? (
                     <>
