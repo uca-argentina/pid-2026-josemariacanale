@@ -47,6 +47,7 @@ export interface Service {
      * Negocio cobra por adelantado; sin valor, el Servicio no pide seña.
      */
     depositPercent?: number;
+    depositAmount?: number;
 }
 
 /** Por qué un día no tiene horarios: cada motivo se resuelve distinto desde la UI. */
@@ -93,7 +94,15 @@ export interface Booking {
     date: string;
     /** 'HH:mm' */
     time: string;
-    status: 'UNVERIFIED' | 'BOOKED';
+    status:
+        | 'UNVERIFIED'
+        | 'BOOKED'
+        | 'CANCELLED'
+        | 'PENDIENTE_SENA'
+        | 'CONFIRMADO'
+        | 'ATENDIDO'
+        | 'NO_PRESENTADO'
+        | 'CANCELADO';
     /** El Cliente no tiene cuenta (ADR 0005): sus datos viven en el Turno. */
     client: { name: string; email: string };
     /** ponytail: Booking no tiene campo de notas en el schema. */

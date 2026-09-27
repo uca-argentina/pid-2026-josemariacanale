@@ -16,6 +16,8 @@ export interface Service {
   category: ServiceCategory;
   durationMinutes: number;
   price: number;
+  depositPercent?: number | null;
+  depositAmount?: number | null;
   retiredAt: Date | null;
   /** In charge of it: verified and not dados de baja. */
   employees: EmployeeSummary[];
@@ -34,6 +36,8 @@ export interface CreateServiceInput {
   category: ServiceCategory;
   durationMinutes: number;
   price: number;
+  depositPercent?: number;
+  depositAmount?: number;
   employeeIds: number[];
 }
 
@@ -43,4 +47,6 @@ export interface UpdateServiceInput {
   category?: ServiceCategory;
   durationMinutes?: number;
   price?: number;
+  depositPercent?: number | null;
+  depositAmount?: number | null;
 }

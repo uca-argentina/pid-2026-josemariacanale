@@ -24,6 +24,10 @@ import type { IAddEmployeeController } from '@/src/interface-adapters/controller
 import type { IRetireEmployeeController } from '@/src/interface-adapters/controllers/employees/retire-employee.controller';
 import type { ICreateBookingController } from '@/src/interface-adapters/controllers/bookings/create-booking.controller';
 import type { IGetServiceSlotsController } from '@/src/interface-adapters/controllers/bookings/get-service-slots.controller';
+import type { IPayDepositUseCase } from '@/src/application/use-cases/bookings/pay-deposit.use-case';
+import type { IUpdateBookingStatusUseCase } from '@/src/application/use-cases/bookings/update-booking-status.use-case';
+import type { IPayDepositController } from '@/src/interface-adapters/controllers/bookings/pay-deposit.controller';
+import type { IUpdateBookingStatusController } from '@/src/interface-adapters/controllers/bookings/update-booking-status.controller';
 
 export const DI_SYMBOLS = {
     // Services
@@ -47,6 +51,8 @@ export const DI_SYMBOLS = {
     IRetireEmployeeUseCase: Symbol.for('IRetireEmployeeUseCase'),
     ICreateBookingUseCase: Symbol.for('ICreateBookingUseCase'),
     IGetServiceSlotsUseCase: Symbol.for('IGetServiceSlotsUseCase'),
+    IPayDepositUseCase: Symbol.for('IPayDepositUseCase'),
+    IUpdateBookingStatusUseCase: Symbol.for('IUpdateBookingStatusUseCase'),
 
     // Controllers
     IGetCurrentUserController: Symbol.for('IGetCurrentUserController'),
@@ -59,6 +65,8 @@ export const DI_SYMBOLS = {
     IRetireEmployeeController: Symbol.for('IRetireEmployeeController'),
     ICreateBookingController: Symbol.for('ICreateBookingController'),
     IGetServiceSlotsController: Symbol.for('IGetServiceSlotsController'),
+    IPayDepositController: Symbol.for('IPayDepositController'),
+    IUpdateBookingStatusController: Symbol.for('IUpdateBookingStatusController'),
 };
 
 export interface DI_RETURN_TYPES {
@@ -83,6 +91,8 @@ export interface DI_RETURN_TYPES {
     IRetireEmployeeUseCase: IRetireEmployeeUseCase;
     ICreateBookingUseCase: ICreateBookingUseCase;
     IGetServiceSlotsUseCase: IGetServiceSlotsUseCase;
+    IPayDepositUseCase: IPayDepositUseCase;
+    IUpdateBookingStatusUseCase: IUpdateBookingStatusUseCase;
 
     // Controllers
     IGetCurrentUserController: IGetCurrentUserController;
@@ -95,4 +105,6 @@ export interface DI_RETURN_TYPES {
     IRetireEmployeeController: IRetireEmployeeController;
     ICreateBookingController: ICreateBookingController;
     IGetServiceSlotsController: IGetServiceSlotsController;
+    IPayDepositController: IPayDepositController;
+    IUpdateBookingStatusController: IUpdateBookingStatusController;
 }

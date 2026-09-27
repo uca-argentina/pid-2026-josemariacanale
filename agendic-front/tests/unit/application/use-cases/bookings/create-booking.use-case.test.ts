@@ -23,6 +23,8 @@ describe('createBookingUseCase', () => {
         const repo = {
             createBooking: jest.fn().mockResolvedValue(booking),
             getServiceSlots: jest.fn(),
+            payDeposit: jest.fn(),
+            updateStatus: jest.fn(),
         };
 
         const result = await createBookingUseCase(instrumentation, repo)(input);

@@ -28,7 +28,7 @@ export async function reassignBookedOnDate(
   const candidates = await tx.booking.findMany({
     where: {
       employeeId,
-      status: BookingStatus.BOOKED,
+      status: { in: [BookingStatus.BOOKED, BookingStatus.CONFIRMADO] },
       startsAt: {
         gte: new Date(start.getTime() - DAY_MS),
         lt: new Date(start.getTime() + 2 * DAY_MS),

@@ -1,4 +1,4 @@
-import { ArrayNotEmpty, IsEnum, IsInt, IsNumber, Min } from 'class-validator';
+import { ArrayNotEmpty, IsEnum, IsInt, IsNumber, Max, Min } from 'class-validator';
 import { ServiceCategory } from '../../domain/services/service';
 import { IfPresent, IsName, IsText } from '../users/users.dto';
 
@@ -21,6 +21,17 @@ export class ServiceFieldsDto {
   @IsNumber()
   @Min(0)
   price!: number;
+
+  @IfPresent()
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  depositPercent?: number;
+
+  @IfPresent()
+  @IsNumber()
+  @Min(0)
+  depositAmount?: number;
 }
 
 export class CreateServiceDto extends ServiceFieldsDto {
@@ -61,4 +72,15 @@ export class UpdateServiceDto {
   @IsNumber()
   @Min(0)
   price?: number;
+
+  @IfPresent()
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  depositPercent?: number;
+
+  @IfPresent()
+  @IsNumber()
+  @Min(0)
+  depositAmount?: number;
 }

@@ -1,8 +1,12 @@
+'use client';
+
+import { useState } from 'react';
 import Image from 'next/image';
-import { CalendarPlus, MailCheck, MapPin, CalendarCog } from 'lucide-react';
+import { CalendarPlus, MailCheck, MapPin, CalendarCog, CheckCircle2, CreditCard } from 'lucide-react';
 import { Button } from '@/app/_components/ui/button';
 import { depositFor, endTime, formatDate, formatDuration, formatPrice } from './mock-business';
 import type { Booking } from './types';
+import { payDepositAction } from '../booking-actions';
 
 const ACTIONS = [
     { icon: CalendarPlus, title: 'Agendar recordatorio', detail: 'Sumalo a tu calendario' },
@@ -18,7 +22,22 @@ export function MyBookings({
     onBackToBusiness: () => void;
 }) {
     const { business, branch, service, employee, date, time, client, notes } = booking;
+    const [status, setStatus] = useState(booking.status);
+    const [paying, setPaying] = useState(false);
+    const [payError, setPayError] = useState<string | null>(null);
     const deposit = depositFor(service);
+
+    const handlePayDeposit = async () => {
+        setPaying(true);
+        setPayError(null);
+        const result = await payDepositAction(Number(booking.id));
+        setPaying(false);
+        if (result.ok) {
+            setStatus('CONFIRMADO');
+        } else {
+            setPayError(result.message);
+        }
+    };
 
     return (
         <div className="mx-auto grid w-full max-w-[1400px] flex-1 items-start gap-10 px-4 pt-6 pb-20 sm:px-8 lg:grid-cols-[340px_1fr] lg:px-16">
@@ -82,25 +101,70 @@ export function MyBookings({
                 </div>
 
                 <div className="p-6">
-                    {/* El Turno nace UNVERIFIED y no retiene el horario hasta que el Cliente verifica (ADR 0005). */}
-                    <span className="inline-flex items-center gap-2 rounded-full bg-foreground px-3.5 py-1.5 text-[13px] font-bold text-white">
-                        <MailCheck className="size-4" />
-                        Falta confirmar por mail
-                    </span>
-
-                    <h3 className="mt-4 text-[26px] leading-tight font-extrabold tracking-[-0.03em] first-letter:uppercase sm:text-[32px]">
-                        {formatDate(date)} a las {time}
-                    </h3>
-                    <p className="mt-1 text-[14px] text-muted-foreground">
-                        {formatDuration(service.durationMinutes)} de duración, termina{' '}
-                        {endTime(time, service.durationMinutes)}
-                    </p>
-
-                    <p className="mt-4 max-w-[62ch] rounded-xl bg-muted p-4 text-[13.5px] leading-relaxed">
-                        Te mandamos un mail a <strong className="font-bold">{client.email}</strong>{' '}
-                        para que confirmes el turno, {client.name.split(' ')[0]}. Hasta que lo
-                        confirmes, el horario sigue disponible para otras personas.
-                    </p>
+                    {status === 'CONFIRMADO' || status === 'BOOKED' ? (
+                        <>
+                            <span className="inline-flex items-center gap-2 rounded-full bg-[#e6f6ec] px-3.5 py-1.5 text-[13px] font-bold text-[#15803d]">
+                                <CheckCircle2 className="size-4" />
+                                Turno confirmado
+                            </span>
+                            <h3 className="mt-4 text-[26px] leading-tight font-extrabold tracking-[-0.03em] first-letter:uppercase sm:text-[32px]">
+                                {formatDate(date)} a las {time}
+                            </h3>
+                            <p className="mt-1 text-[14px] text-muted-foreground">
+                                {formatDuration(service.durationMinutes)} de duración, termina{' '}
+                                {endTime(time, service.durationMinutes)}
+                            </p>
+                            <p className="mt-4 max-w-[62ch] rounded-xl bg-emerald-50 border border-emerald-200 p-4 text-[13.5px] text-emerald-900 leading-relaxed">
+                                ¡Tu turno está confirmado, <strong className="font-bold">{client.name.split(' ')[0]}</strong>! Te esperamos en la fecha y horario seleccionados.
+                            </p>
+                        </>
+                    ) : status === 'PENDIENTE_SENA' ? (
+                        <>
+                            <span className="inline-flex items-center gap-2 rounded-full bg-[#f3e8ff] px-3.5 py-1.5 text-[13px] font-bold text-[#7c3aed]">
+                                <CreditCard className="size-4" />
+                                Pendiente de seña
+                            </span>
+                            <h3 className="mt-4 text-[26px] leading-tight font-extrabold tracking-[-0.03em] first-letter:uppercase sm:text-[32px]">
+                                {formatDate(date)} a las {time}
+                            </h3>
+                            <p className="mt-1 text-[14px] text-muted-foreground">
+                                {formatDuration(service.durationMinutes)} de duración, termina{' '}
+                                {endTime(time, service.durationMinutes)}
+                            </p>
+                            <div className="mt-4 rounded-xl bg-purple-50 p-4 border border-purple-200 text-[13.5px]">
+                                <p className="font-semibold text-purple-900">
+                                    Este servicio requiere una seña de {deposit ? formatPrice(deposit.upfront) : ''} para confirmar la reserva.
+                                </p>
+                                {payError && <p className="mt-2 text-destructive font-medium">{payError}</p>}
+                                <Button
+                                    onClick={handlePayDeposit}
+                                    disabled={paying}
+                                    className="mt-3 bg-[#7c3aed] hover:bg-[#6d28d9] text-white font-bold"
+                                >
+                                    {paying ? 'Procesando seña...' : 'Pagar seña (Simulación)'}
+                                </Button>
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            <span className="inline-flex items-center gap-2 rounded-full bg-foreground px-3.5 py-1.5 text-[13px] font-bold text-white">
+                                <MailCheck className="size-4" />
+                                Falta confirmar por mail
+                            </span>
+                            <h3 className="mt-4 text-[26px] leading-tight font-extrabold tracking-[-0.03em] first-letter:uppercase sm:text-[32px]">
+                                {formatDate(date)} a las {time}
+                            </h3>
+                            <p className="mt-1 text-[14px] text-muted-foreground">
+                                {formatDuration(service.durationMinutes)} de duración, termina{' '}
+                                {endTime(time, service.durationMinutes)}
+                            </p>
+                            <p className="mt-4 max-w-[62ch] rounded-xl bg-muted p-4 text-[13.5px] leading-relaxed">
+                                Te mandamos un mail a <strong className="font-bold">{client.email}</strong>{' '}
+                                para que confirmes el turno, {client.name.split(' ')[0]}. Hasta que lo
+                                confirmes, el horario sigue disponible para otras personas.
+                            </p>
+                        </>
+                    )}
 
                     <ul className="mt-6 flex flex-col">
                         {ACTIONS.map(({ icon: Icon, title, detail }) => (
@@ -140,7 +204,6 @@ export function MyBookings({
                         </span>
                     </div>
 
-                    {/* ponytail: maqueta, igual que en Revisá y confirmá. La Seña no existe todavía. */}
                     {deposit && (
                         <dl className="mt-2.5 flex flex-col gap-1.5 text-[13.5px]">
                             <div className="flex items-center justify-between">

@@ -1,4 +1,4 @@
-import { Booking } from './booking';
+import { Booking, BookingStatus } from './booking';
 
 export const BOOKINGS_REPOSITORY = Symbol('BookingsRepository');
 
@@ -9,6 +9,7 @@ export interface CreateBookingData {
   clientEmail: string;
   startsAt: Date;
   endsAt: Date;
+  status?: BookingStatus;
 }
 
 export interface BookingsRepository {
@@ -17,7 +18,8 @@ export interface BookingsRepository {
     data: CreateBookingData,
     expiresAt: Date,
   ): Promise<{ booking: Booking; token: string }>;
-  /** Whether a BOOKED Booking of the same Empleado overlaps [startsAt, endsAt). */
+  findById(id: number): Promise<Booking | null>;
+  /** Whether a BOOKED or CONFIRMADO Booking of the same Empleado overlaps [startsAt, endsAt). */
   hasOverlappingBooked(
     employeeId: number,
     startsAt: Date,
@@ -27,6 +29,7 @@ export interface BookingsRepository {
   findByVerificationToken(token: string, now: Date): Promise<Booking>;
   /** Moves an UNVERIFIED Booking to BOOKED. Throws ConflictError if it now overlaps a BOOKED Booking. */
   markBooked(id: number): Promise<Booking>;
+  updateStatus(id: number, status: BookingStatus): Promise<Booking>;
   listByBusiness(businessId: number): Promise<Booking[]>;
   /** BOOKED Turnos of this Empleado, in any of their Servicios, overlapping [from, to). */
   listBookedByEmployee(

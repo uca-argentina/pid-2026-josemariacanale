@@ -1,4 +1,5 @@
-import { IsDateString, IsInt, IsString } from 'class-validator';
+import { IsDateString, IsEnum, IsInt, IsString } from 'class-validator';
+import { BookingStatus } from '../../domain/bookings/booking';
 import { IsName, IsNormalizedEmail } from '../users/users.dto';
 
 export class CreateBookingDto {
@@ -21,4 +22,9 @@ export class CreateBookingDto {
 export class VerifyBookingDto {
   @IsString()
   token!: string;
+}
+
+export class UpdateBookingStatusDto {
+  @IsEnum(BookingStatus)
+  status!: BookingStatus;
 }

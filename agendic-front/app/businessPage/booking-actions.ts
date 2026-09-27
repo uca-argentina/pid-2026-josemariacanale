@@ -47,3 +47,39 @@ export async function createBookingAction(payload: unknown): Promise<CreateBooki
         return { ok: false, message: 'No se pudo completar la reserva. Intentá de nuevo más tarde.' };
     }
 }
+
+export type PayDepositResult =
+    | { ok: true; booking: Booking }
+    | { ok: false; message: string };
+
+export async function payDepositAction(bookingId: number): Promise<PayDepositResult> {
+    try {
+        const booking = await getInjection('IPayDepositController')({ bookingId });
+        return { ok: true, booking };
+    } catch (error) {
+        unstable_rethrow(error);
+        if (error instanceof InputParseError) {
+            return { ok: false, message: 'ID de reserva inválido.' };
+        }
+        getInjection('ICrashReporterService').report(error);
+        return { ok: false, message: 'No se pudo procesar el pago de la seña. Intentá de nuevo más tarde.' };
+    }
+}
+
+export type UpdateBookingStatusResult =
+    | { ok: true; booking: Booking }
+    | { ok: false; message: string };
+
+export async function updateBookingStatusAction(payload: unknown): Promise<UpdateBookingStatusResult> {
+    try {
+        const booking = await getInjection('IUpdateBookingStatusController')(payload);
+        return { ok: true, booking };
+    } catch (error) {
+        unstable_rethrow(error);
+        if (error instanceof InputParseError) {
+            return { ok: false, message: 'Datos de actualización inválidos.' };
+        }
+        getInjection('ICrashReporterService').report(error);
+        return { ok: false, message: 'No se pudo actualizar el estado del turno.' };
+    }
+}

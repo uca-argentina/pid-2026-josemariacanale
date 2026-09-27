@@ -2,7 +2,6 @@ import { DEFAULT_AVAILABILITY } from '../../domain/availabilities/availability';
 import { ConflictError, DatabaseOperationError } from '../../domain/errors';
 import { ServiceCategory } from '../../domain/services/service';
 import {
-  ANA,
   ANAS_BUSINESS,
   ANAS_EMPLOYEE,
   bearer,

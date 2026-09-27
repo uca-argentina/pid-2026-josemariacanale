@@ -338,6 +338,95 @@ describe('Turno', () => {
     });
   });
 
+  describe('POST /bookings/:id/pay-deposit', () => {
+    it('simulates paying deposit and transitions to CONFIRMADO', async () => {
+      t.bookings.findById.mockResolvedValue({
+        ...BOOKING,
+        status: BookingStatus.PENDIENTE_SENA,
+      });
+      t.bookings.updateStatus.mockResolvedValue({
+        ...BOOKING,
+        status: BookingStatus.CONFIRMADO,
+      });
+
+      const res = await t.http
+        .post(`/bookings/${BOOKING.id}/pay-deposit`)
+        .expect(201);
+
+      expect(t.bookings.updateStatus).toHaveBeenCalledWith(
+        BOOKING.id,
+        BookingStatus.CONFIRMADO,
+      );
+      expect(res.body).toMatchObject({
+        id: BOOKING.id,
+        status: BookingStatus.CONFIRMADO,
+      });
+    });
+
+    it('answers 404 for an unknown Turno', async () => {
+      t.bookings.findById.mockResolvedValue(null);
+
+      await t.http.post('/bookings/999/pay-deposit').expect(404);
+    });
+  });
+
+  describe('PATCH /bookings/:id/status', () => {
+    beforeEach(() => {
+      scriptSession(t);
+      t.bookings.findById.mockResolvedValue(BOOKING);
+      t.services.findById.mockResolvedValue(SERVICE);
+      t.branches.findById.mockResolvedValue(BRANCH);
+      t.businesses.findById.mockResolvedValue(ANAS_BUSINESS);
+    });
+
+    it('updates status to ATENDIDO for the Dueño', async () => {
+      t.bookings.updateStatus.mockResolvedValue({
+        ...BOOKING,
+        status: BookingStatus.ATENDIDO,
+      });
+
+      const res = await t.http
+        .patch(`/bookings/${BOOKING.id}/status`)
+        .set(bearer(CLERK_TOKEN))
+        .send({ status: 'ATENDIDO' })
+        .expect(200);
+
+      expect(t.bookings.updateStatus).toHaveBeenCalledWith(
+        BOOKING.id,
+        BookingStatus.ATENDIDO,
+      );
+      expect(res.body).toMatchObject({
+        id: BOOKING.id,
+        status: 'ATENDIDO',
+      });
+    });
+
+    it('answers 401 without a Sesión', async () => {
+      await t.http
+        .patch(`/bookings/${BOOKING.id}/status`)
+        .send({ status: 'ATENDIDO' })
+        .expect(401);
+    });
+
+    it('answers 403 for another Usuario', async () => {
+      scriptOtherSession(t);
+
+      await t.http
+        .patch(`/bookings/${BOOKING.id}/status`)
+        .set(bearer(OTHER_CLERK_TOKEN))
+        .send({ status: 'ATENDIDO' })
+        .expect(403);
+    });
+
+    it('answers 400 for an invalid status', async () => {
+      await t.http
+        .patch(`/bookings/${BOOKING.id}/status`)
+        .set(bearer(CLERK_TOKEN))
+        .send({ status: 'INVALID_STATUS' })
+        .expect(400);
+    });
+  });
+
   it('GET /me/bookings does not exist', async () => {
     scriptSession(t);
 

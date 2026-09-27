@@ -107,6 +107,25 @@ describe('depositFor', () => {
         expect(services.some((s) => depositFor(s))).toBe(true);
         expect(services.some((s) => !depositFor(s))).toBe(true);
     });
+
+    it('calculates deposit correctly when depositAmount is specified', () => {
+        const service = {
+            id: 99,
+            branchId: 1,
+            name: 'Masaje especial',
+            category: 'SPA' as const,
+            durationMinutes: 60,
+            price: 20000,
+            depositAmount: 5000,
+            employees: [],
+        };
+        const deposit = depositFor(service);
+        expect(deposit).toEqual({
+            percent: 25,
+            upfront: 5000,
+            rest: 15000,
+        });
+    });
 });
 
 describe('endTime', () => {

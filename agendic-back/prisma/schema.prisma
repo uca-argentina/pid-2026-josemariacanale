@@ -21,6 +21,11 @@ enum BookingStatus {
   UNVERIFIED
   BOOKED
   CANCELLED
+  PENDIENTE_SENA
+  CONFIRMADO
+  ATENDIDO
+  NO_PRESENTADO
+  CANCELADO
 }
 
 enum ServiceCategory {
@@ -75,6 +80,8 @@ model Service {
   category        ServiceCategory
   durationMinutes Int
   price           Decimal         @db.Decimal(10, 2)
+  depositPercent  Int?
+  depositAmount   Decimal?        @db.Decimal(10, 2)
   retiredAt       DateTime?       @db.Timestamptz(3) // when dado de baja; null while offered
 
   branch    Branch            @relation(fields: [branchId], references: [id])

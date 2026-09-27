@@ -1,6 +1,15 @@
 import { z } from 'zod';
 
-export const bookingStatusSchema = z.enum(['UNVERIFIED', 'BOOKED', 'CANCELLED']);
+export const bookingStatusSchema = z.enum([
+    'UNVERIFIED',
+    'BOOKED',
+    'CANCELLED',
+    'PENDIENTE_SENA',
+    'CONFIRMADO',
+    'ATENDIDO',
+    'NO_PRESENTADO',
+    'CANCELADO',
+]);
 export type BookingStatus = z.infer<typeof bookingStatusSchema>;
 
 export const bookingSchema = z.object({

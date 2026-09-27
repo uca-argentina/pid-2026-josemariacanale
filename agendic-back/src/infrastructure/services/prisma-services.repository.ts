@@ -44,13 +44,24 @@ export class PrismaServicesRepository implements ServicesRepository {
       | 'category'
       | 'durationMinutes'
       | 'price'
+      | 'depositPercent'
+      | 'depositAmount'
     > & { employees: Omit<EmployeeService, 'serviceId'>[] },
   ) {
     const { employees, ...service } = data;
     return toService(
       await this.prisma.service
         .create({
-          data: { ...service, employees: { create: employees } },
+          data: {
+            ...service,
+            ...(service.depositPercent != null
+              ? { depositPercent: service.depositPercent }
+              : {}),
+            ...(service.depositAmount != null
+              ? { depositAmount: service.depositAmount }
+              : {}),
+            employees: { create: employees },
+          },
           include: VISIBLE_EMPLOYEES,
         })
         .catch(translateError),
@@ -80,7 +91,13 @@ export class PrismaServicesRepository implements ServicesRepository {
     data: Partial<
       Pick<
         Service,
-        'name' | 'description' | 'category' | 'durationMinutes' | 'price'
+        | 'name'
+        | 'description'
+        | 'category'
+        | 'durationMinutes'
+        | 'price'
+        | 'depositPercent'
+        | 'depositAmount'
       >
     >,
   ) {
@@ -192,6 +209,10 @@ export const toService = (row: ServiceRowWithEmployees): Service => ({
   category: row.category as Service['category'],
   durationMinutes: row.durationMinutes,
   price: Number(row.price),
+  ...(row.depositPercent != null ? { depositPercent: row.depositPercent } : {}),
+  ...(row.depositAmount != null
+    ? { depositAmount: Number(row.depositAmount) }
+    : {}),
   retiredAt: row.retiredAt,
   employees: row.employees.map(({ employee }) => ({
     id: employee.id,

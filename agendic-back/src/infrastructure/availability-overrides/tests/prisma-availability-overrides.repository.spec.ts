@@ -137,7 +137,7 @@ describe('PrismaAvailabilityOverridesRepository', () => {
         expect.objectContaining({
           where: expect.objectContaining({
             employeeId: 7,
-            status: BookingStatus.BOOKED,
+            status: { in: [BookingStatus.BOOKED, BookingStatus.CONFIRMADO] },
           }),
         }),
       );

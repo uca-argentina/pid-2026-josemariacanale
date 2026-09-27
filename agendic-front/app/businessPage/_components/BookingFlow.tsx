@@ -580,7 +580,7 @@ export function BookingFlow({
             employee,
             date,
             time,
-            status: (result.booking.status as 'UNVERIFIED' | 'BOOKED') || 'UNVERIFIED',
+            status: result.booking.status as Booking['status'],
             client: { name: data.name, email: data.email },
             notes: data.notes || undefined,
             photo,

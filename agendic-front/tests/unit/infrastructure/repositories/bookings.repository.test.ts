@@ -1,6 +1,7 @@
 import { SlotConflictError } from '@/src/entities/errors/booking';
 import { ApiRequestError } from '@/src/entities/errors/common';
 import { BookingsRepository } from '@/src/infrastructure/repositories/bookings.repository';
+import { authWith } from '@/tests/unit/stubs';
 
 const booking = {
     id: 1,
@@ -9,6 +10,16 @@ const booking = {
     startsAt: '2026-10-01T10:00:00.000Z',
     endsAt: '2026-10-01T10:30:00.000Z',
     status: 'UNVERIFIED' as const,
+};
+
+const confirmedBooking = {
+    ...booking,
+    status: 'CONFIRMADO' as const,
+};
+
+const attendedBooking = {
+    ...booking,
+    status: 'ATENDIDO' as const,
 };
 
 const input = {
@@ -29,7 +40,8 @@ const slotsData = {
     ],
 };
 
-const repo = () => new BookingsRepository('http://api');
+const repo = (apiUrl: string | undefined = 'http://api') =>
+    new BookingsRepository(authWith({ getAccessToken: jest.fn().mockResolvedValue('tok') }), apiUrl);
 const respond = (status: number, body: unknown) =>
     jest.spyOn(global, 'fetch').mockResolvedValue(new Response(JSON.stringify(body), { status }));
 
@@ -80,5 +92,45 @@ describe('BookingsRepository.getServiceSlots', () => {
         respond(422, { statusCode: 422, message: 'Range too large' });
 
         await expect(repo().getServiceSlots(2, 3, '2026-10-01', '2026-12-01')).rejects.toMatchObject({ status: 422 });
+    });
+});
+
+describe('BookingsRepository.payDeposit', () => {
+    it('POSTs /bookings/:id/pay-deposit and returns the confirmed booking', async () => {
+        const fetchSpy = respond(200, confirmedBooking);
+
+        await expect(repo().payDeposit(1)).resolves.toEqual(confirmedBooking);
+        expect(fetchSpy).toHaveBeenCalledWith('http://api/bookings/1/pay-deposit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+        });
+    });
+
+    it('translates failure to ApiRequestError carrying status', async () => {
+        respond(400, { statusCode: 400, message: 'Deposit already paid' });
+
+        await expect(repo().payDeposit(1)).rejects.toMatchObject({ status: 400 });
+    });
+});
+
+describe('BookingsRepository.updateStatus', () => {
+    it('PATCHes /bookings/:id/status with bearer token and returns updated booking', async () => {
+        const fetchSpy = respond(200, attendedBooking);
+
+        await expect(repo().updateStatus(1, 'ATENDIDO')).resolves.toEqual(attendedBooking);
+        expect(fetchSpy).toHaveBeenCalledWith('http://api/bookings/1/status', {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: 'Bearer tok',
+            },
+            body: JSON.stringify({ status: 'ATENDIDO' }),
+        });
+    });
+
+    it('translates failure to ApiRequestError carrying status', async () => {
+        respond(403, { statusCode: 403, message: 'Forbidden' });
+
+        await expect(repo().updateStatus(1, 'ATENDIDO')).rejects.toMatchObject({ status: 403 });
     });
 });

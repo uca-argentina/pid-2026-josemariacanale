@@ -1,0 +1,10 @@
+-- AlterEnum
+ALTER TYPE "BookingStatus" ADD VALUE 'PENDIENTE_SENA';
+ALTER TYPE "BookingStatus" ADD VALUE 'CONFIRMADO';
+ALTER TYPE "BookingStatus" ADD VALUE 'ATENDIDO';
+ALTER TYPE "BookingStatus" ADD VALUE 'NO_PRESENTADO';
+ALTER TYPE "BookingStatus" ADD VALUE 'CANCELADO';
+
+-- AlterTable
+ALTER TABLE "Service" ADD COLUMN "depositPercent" INTEGER;
+ALTER TABLE "Service" ADD COLUMN "depositAmount" DECIMAL(10,2);

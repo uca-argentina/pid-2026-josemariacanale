@@ -3,7 +3,12 @@ import {
   BRANCHES_REPOSITORY,
   BranchesRepository,
 } from '../../domain/branches/branches.repository';
-import { Booking, bookingVerificationExpiresAt, CreateBookingInput } from '../../domain/bookings/booking';
+import {
+  Booking,
+  BookingStatus,
+  bookingVerificationExpiresAt,
+  CreateBookingInput,
+} from '../../domain/bookings/booking';
 import {
   BOOKINGS_REPOSITORY,
   BookingsRepository,
@@ -50,6 +55,11 @@ export class CreateBookingUseCase {
     )
       throw new ConflictError('Overlaps a booked Turno for this Employee');
 
+    const status =
+      service.depositPercent || service.depositAmount
+        ? BookingStatus.PENDIENTE_SENA
+        : BookingStatus.UNVERIFIED;
+
     const { booking, token } = await this.bookings.create(
       {
         serviceId: input.serviceId,
@@ -58,6 +68,7 @@ export class CreateBookingUseCase {
         clientEmail: input.clientEmail,
         startsAt: input.startsAt,
         endsAt,
+        ...(status !== BookingStatus.UNVERIFIED ? { status } : {}),
       },
       bookingVerificationExpiresAt(now),
     );

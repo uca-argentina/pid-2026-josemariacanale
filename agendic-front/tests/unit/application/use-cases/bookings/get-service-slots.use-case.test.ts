@@ -16,6 +16,8 @@ describe('getServiceSlotsUseCase', () => {
         const repo = {
             createBooking: jest.fn(),
             getServiceSlots: jest.fn().mockResolvedValue(slotsData),
+            payDeposit: jest.fn(),
+            updateStatus: jest.fn(),
         };
 
         const result = await getServiceSlotsUseCase(instrumentation, repo)({

@@ -28,13 +28,26 @@ export class PrismaBookingsRepository implements BookingsRepository {
     const row = await this.prisma.booking
       .create({
         data: {
-          ...data,
+          serviceId: data.serviceId,
+          employeeId: data.employeeId,
+          clientName: data.clientName,
+          clientEmail: data.clientEmail,
+          startsAt: data.startsAt,
+          endsAt: data.endsAt,
+          status: data.status,
           verificationTokenHash: hash(token),
           verificationTokenExpiresAt: expiresAt,
         },
       })
       .catch(translateError);
     return { booking: toBooking(row), token };
+  }
+
+  async findById(id: number) {
+    const row = await this.prisma.booking
+      .findUnique({ where: { id } })
+      .catch(translateError);
+    return row && toBooking(row);
   }
 
   async hasOverlappingBooked(
@@ -46,7 +59,7 @@ export class PrismaBookingsRepository implements BookingsRepository {
       .findFirst({
         where: {
           employeeId,
-          status: BookingStatus.BOOKED,
+          status: { in: [BookingStatus.BOOKED, BookingStatus.CONFIRMADO] },
           startsAt: { lt: endsAt },
           endsAt: { gt: startsAt },
         },
@@ -85,6 +98,17 @@ export class PrismaBookingsRepository implements BookingsRepository {
     );
   }
 
+  async updateStatus(id: number, status: BookingStatus) {
+    return toBooking(
+      await this.prisma.booking
+        .update({
+          where: { id },
+          data: { status },
+        })
+        .catch(translateError),
+    );
+  }
+
   async listByBusiness(businessId: number) {
     return (
       await this.prisma.booking
@@ -98,7 +122,7 @@ export class PrismaBookingsRepository implements BookingsRepository {
       .findMany({
         where: {
           employeeId,
-          status: BookingStatus.BOOKED,
+          status: { in: [BookingStatus.BOOKED, BookingStatus.CONFIRMADO] },
           startsAt: { lt: to },
           endsAt: { gt: from },
         },

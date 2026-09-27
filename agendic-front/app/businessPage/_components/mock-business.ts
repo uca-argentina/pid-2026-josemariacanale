@@ -279,9 +279,16 @@ export function endTime(time: string, durationMinutes: number) {
  * adelanta y lo que queda para pagar en el local; `null` cuando el Servicio no pide seña.
  */
 export function depositFor(service: Service) {
-    if (!service.depositPercent) return null;
-    const upfront = Math.round((service.price * service.depositPercent) / 100);
-    return { percent: service.depositPercent, upfront, rest: service.price - upfront };
+    if (service.depositAmount) {
+        const upfront = Number(service.depositAmount);
+        const percent = Math.round((upfront / service.price) * 100);
+        return { percent, upfront, rest: service.price - upfront };
+    }
+    if (service.depositPercent) {
+        const upfront = Math.round((service.price * service.depositPercent) / 100);
+        return { percent: service.depositPercent, upfront, rest: service.price - upfront };
+    }
+    return null;
 }
 
 /** Iniciales para el avatar, igual que en el panel. */

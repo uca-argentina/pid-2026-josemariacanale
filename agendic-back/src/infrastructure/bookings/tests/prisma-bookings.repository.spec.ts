@@ -113,7 +113,7 @@ describe('PrismaBookingsRepository', () => {
     expect(prisma.booking.findFirst).toHaveBeenCalledWith({
       where: {
         employeeId: 1,
-        status: BookingStatus.BOOKED,
+        status: { in: [BookingStatus.BOOKED, BookingStatus.CONFIRMADO] },
         startsAt: { lt: new Date('2026-01-01T12:30:00.000Z') },
         endsAt: { gt: new Date('2026-01-01T12:00:00.000Z') },
       },
