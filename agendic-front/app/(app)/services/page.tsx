@@ -1,5 +1,6 @@
-import { PlaceholderPage } from '../_components/PlaceholderPage';
+import { ServicesList } from './_components/ServicesList';
+import { groups } from './_components/mock-services';
 
 export default function ServicesPage() {
-    return <PlaceholderPage title="Servicios" />;
+    return <ServicesList initialGroups={groups} />;
 }
