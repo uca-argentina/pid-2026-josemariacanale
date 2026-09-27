@@ -6,6 +6,10 @@ import {
   AVAILABILITIES_REPOSITORY,
   AvailabilitiesRepository,
 } from './domain/availabilities/availabilities.repository';
+import {
+  AVAILABILITY_OVERRIDES_REPOSITORY,
+  AvailabilityOverridesRepository,
+} from './domain/availability-overrides/availability-overrides.repository';
 import { Branch } from './domain/branches/branch';
 import {
   BRANCHES_REPOSITORY,
@@ -128,6 +132,11 @@ export async function createTestApp() {
     countServices: jest.fn(),
     delete: jest.fn(),
   };
+  const overrides: jest.Mocked<AvailabilityOverridesRepository> = {
+    listByEmployee: jest.fn(),
+    replace: jest.fn(),
+    delete: jest.fn(),
+  };
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(CLOCK)
     .useValue(clock)
@@ -149,6 +158,8 @@ export async function createTestApp() {
     .useValue(bookings)
     .overrideProvider(AVAILABILITIES_REPOSITORY)
     .useValue(availabilities)
+    .overrideProvider(AVAILABILITY_OVERRIDES_REPOSITORY)
+    .useValue(overrides)
     .compile();
   const app = setupApp(moduleRef.createNestApplication());
   await app.init();
@@ -164,6 +175,7 @@ export async function createTestApp() {
     employees,
     bookings,
     availabilities,
+    overrides,
     http: request(app.getHttpServer()),
   };
 }

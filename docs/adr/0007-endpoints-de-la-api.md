@@ -135,6 +135,23 @@ Negocio del Empleado: cualquier otro Usuario recibe 403.
   - Empleado o Availability inexistente → 404
   - dos pedidos concurrentes que dejarían dos predeterminadas → 409
 
+## Anulaciones (AvailabilityOverride)
+
+Cuelgan del Empleado, no de una Availability: tapan todos sus Servicios. Todo es del Dueño del Negocio
+del Empleado: cualquier otro Usuario recibe 403.
+
+| Método | Ruta | Auth | Qué hace |
+|---|---|---|---|
+| GET | `/employees/:id/overrides` | sí | Las Anulaciones del Empleado, agrupadas por fecha |
+| PUT | `/employees/:id/overrides/:date` | sí | Reemplaza las Anulaciones de esa fecha; lista vacía es día libre; puede sumar `coveredByEmployeeId` para nombrar quién cubre |
+| DELETE | `/employees/:id/overrides/:date` | sí | Saca las Anulaciones de esa fecha; 204; esa fecha vuelve al horario semanal |
+
+- `:date` es `YYYY-MM-DD`; otro formato → 400
+- `ReplaceOverridesDto`: `{ intervals: [{ startTime: "HH:mm", endTime: "HH:mm" }], coveredByEmployeeId? }`; `intervals: []` es día libre
+- Respuesta (`presentOverride`): `{ date, intervals: [{ startTime, endTime }], coveredByEmployeeId }`; `intervals: []` es día libre. El GET devuelve un array de esos, ordenado por fecha
+- Las Franjas de una Anulación siguen las mismas reglas que las de una Availability (dos Franjas del mismo día que se solapan → 422 `Dos Franjas del mismo día se solapan`; una que termina antes o al mismo tiempo que empieza → 422 `Cada Franja tiene que terminar después de empezar`; dos que se tocan se aceptan)
+- **Cobertura**: `coveredByEmployeeId` tiene que ser un Empleado activo del mismo Negocio y atender todos los Servicios de quien se ausenta; si no, 422 `La Cobertura tiene que ser un Empleado activo del mismo Negocio` o `La Cobertura tiene que atender todos los Servicios de quien se ausenta`. Activarla reasigna, en la misma transacción, los Turnos `BOOKED` de quien se ausenta en esa fecha a quien cubre; si alguno choca con un Turno ya confirmado de quien cubre, 409 `El cubridor ya tiene un Turno a esa hora` y no se guarda nada. Sacar la Anulación (`DELETE`) no revierte los Turnos ya reasignados
+
 ## Bookings (Turno)
 
 | Método | Ruta | Auth | Qué hace |

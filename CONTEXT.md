@@ -89,6 +89,14 @@ _Avoid_: disponibilidad, horario (a secas), agenda
 Tramo de un día de la semana dentro de una Availability, con hora de inicio y de fin. Varias por día; un día sin Franjas es un día que no se trabaja. Nunca cruza la medianoche.
 _Avoid_: rango, bloque, slot
 
+**Anulación**:
+Reemplazo de las Franjas de un Empleado para una fecha concreta. Sin horas, es un día libre.
+_Avoid_: excepción, override, licencia
+
+**Cobertura**:
+El Empleado que atiende en lugar de otro durante una Anulación, para no dejar sus Servicios sin nadie. Opcional: una Anulación sin Cobertura simplemente deja esas fechas sin horarios para el Cliente.
+_Avoid_: reemplazo, suplente, backup
+
 **Categoría de Servicio**:
 Tipo de prestación al que pertenece un Servicio, elegido de una lista fija.
 _Avoid_: tipo de servicio, categoría (a secas)

@@ -5,6 +5,7 @@
 // - one active Employee (retiredAt null) per (userId, businessId): a User can be re-hired after being dado de baja
 // - no overlapping AvailabilityIntervals per (availabilityId, weekday), half-open so they can touch (exclusion constraint)
 // - at most one default Availability per Employee (partial unique index)
+// - no overlapping AvailabilityOverride Franjas per (employeeId, date), half-open, skipping día-libre rows (exclusion constraint)
 
 generator client {
   provider     = "prisma-client"
@@ -87,11 +88,13 @@ model Employee {
   businessId Int
   retiredAt  DateTime? @db.Timestamptz(3) // when dado de baja; null while employed
 
-  user           User              @relation(fields: [userId], references: [id])
-  business       Business          @relation(fields: [businessId], references: [id])
+  user           User                   @relation(fields: [userId], references: [id])
+  business       Business               @relation(fields: [businessId], references: [id])
   services       EmployeeService[]
   bookings       Booking[]
   availabilities Availability[]
+  overrides      AvailabilityOverride[] @relation("EmployeeOverrides")
+  coverages      AvailabilityOverride[] @relation("EmployeeCoverages")
 }
 
 /// An Empleado attending a Servicio with one of their own Availabilities. A reference: editing that Availability
@@ -130,6 +133,22 @@ model AvailabilityInterval {
   endTime        DateTime @db.Time(0)
 
   availability Availability @relation(fields: [availabilityId], references: [id], onDelete: Cascade)
+}
+
+/// Anulación: replaces an Employee's Franjas for one concrete date, for every Service they attend.
+/// Both times null is a día libre. Several rows for the same date are that date's own Franjas.
+model AvailabilityOverride {
+  id                  Int       @id @default(autoincrement())
+  employeeId          Int
+  date                DateTime  @db.Date
+  startTime           DateTime? @db.Time(0)
+  endTime             DateTime? @db.Time(0)
+  coveredByEmployeeId Int? // who attends in this Employee's place that date, if anyone
+
+  employee  Employee  @relation("EmployeeOverrides", fields: [employeeId], references: [id])
+  coveredBy Employee? @relation("EmployeeCoverages", fields: [coveredByEmployeeId], references: [id])
+
+  @@index([employeeId, date])
 }
 
 model Booking {

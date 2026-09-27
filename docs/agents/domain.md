@@ -31,6 +31,8 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | Empleado | `Employee` |
 | Availability | `Availability` (predeterminada → `isDefault`) |
 | Franja | `AvailabilityInterval` (día → `weekday`, 0 = domingo como `Date.getUTCDay()`; inicio/fin → `startTime`/`endTime`) |
+| Anulación | `AvailabilityOverride` |
+| Cobertura | `AvailabilityOverride.coveredByEmployeeId` |
 | Servicio | `Service` |
 | Categoría de Servicio | `ServiceCategory` (`Service.category`) |
 | Turno | `Booking` (inicio/fin → `startsAt`/`endsAt`; estado → `BookingStatus.UNVERIFIED \| BOOKED \| CANCELLED`) |

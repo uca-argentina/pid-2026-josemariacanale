@@ -12,7 +12,7 @@ import {
   NotFoundError,
 } from '../../domain/errors';
 import { Booking as BookingRow, Prisma } from '../../generated/prisma/client';
-import { isExclusionViolation } from '../prisma-errors';
+import { BOOKING_NO_OVERLAP, isExclusionViolation } from '../prisma-errors';
 import { PrismaService } from '../prisma.service';
 
 /** Stores only a hash of each verification token, so a leaked table can't be used to verify a Turno. */
@@ -109,7 +109,7 @@ const translateError = (error: unknown): never => {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     if (error.code === 'P2025')
       throw new NotFoundError('Booking not found', { cause: error });
-    if (isExclusionViolation(error, 'Booking_no_overlap'))
+    if (isExclusionViolation(error, BOOKING_NO_OVERLAP))
       throw new ConflictError('Overlaps a booked Turno for this Employee', {
         cause: error,
       });
