@@ -1,5 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
+  AVAILABILITIES_REPOSITORY,
+  AvailabilitiesRepository,
+} from '../../domain/availabilities/availabilities.repository';
+import {
   BRANCHES_REPOSITORY,
   BranchesRepository,
 } from '../../domain/branches/branches.repository';
@@ -17,7 +21,14 @@ import {
   SERVICES_REPOSITORY,
   ServicesRepository,
 } from '../../domain/services/services.repository';
+import { defaultAvailability } from '../availabilities/default-availability';
 import { assertBranchOwner } from '../branches/assert-branch-owner';
+
+export interface AssignEmployeeInput {
+  employeeId: number;
+  /** One of that Empleado's own; without it, their default. */
+  availabilityId?: number;
+}
 
 @Injectable()
 export class AssignEmployeeUseCase {
@@ -30,15 +41,20 @@ export class AssignEmployeeUseCase {
     private readonly services: ServicesRepository,
     @Inject(EMPLOYEES_REPOSITORY)
     private readonly employees: EmployeesRepository,
+    @Inject(AVAILABILITIES_REPOSITORY)
+    private readonly availabilities: AvailabilitiesRepository,
   ) {}
 
   async execute(
     userId: number,
     serviceId: number,
-    employeeId: number,
+    { employeeId, availabilityId }: AssignEmployeeInput,
   ): Promise<Service> {
     const service = await this.services.findById(serviceId);
     if (!service) throw new NotFoundError('Service not found');
+    // A Servicio dado de baja has no links: one here would keep its Availability from being deleted.
+    if (service.retiredAt)
+      throw new BusinessRuleError('The Service is retired');
     const branch = await assertBranchOwner(
       this.branches,
       this.businesses,
@@ -47,10 +63,26 @@ export class AssignEmployeeUseCase {
     );
     const employee = await this.employees.findById(employeeId);
     if (!employee) throw new NotFoundError('Employee not found');
-    if (employee.businessId !== branch.businessId || employee.retiredAt !== null)
+    if (
+      employee.businessId !== branch.businessId ||
+      employee.retiredAt !== null
+    )
       throw new BusinessRuleError(
         'The Employee must belong to this Business and not be retired',
       );
-    return this.services.addEmployee(serviceId, employeeId);
+    const availability =
+      availabilityId === undefined
+        ? await defaultAvailability(this.availabilities, employeeId)
+        : await this.availabilities.findById(availabilityId);
+    if (!availability) throw new NotFoundError('Availability not found');
+    if (availability.employeeId !== employeeId)
+      throw new BusinessRuleError(
+        'La Availability tiene que ser del mismo Empleado',
+      );
+    return this.services.addEmployee({
+      serviceId,
+      employeeId,
+      availabilityId: availability.id,
+    });
   }
 }

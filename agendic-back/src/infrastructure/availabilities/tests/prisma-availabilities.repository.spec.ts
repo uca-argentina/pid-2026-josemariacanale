@@ -65,6 +65,7 @@ describe('PrismaAvailabilitiesRepository', () => {
       create: jest.fn(),
       delete: jest.fn(),
     },
+    employeeService: { count: jest.fn() },
     $transaction: jest.fn((run: (client: typeof tx) => unknown) => run(tx)),
   };
   const repository = new PrismaAvailabilitiesRepository(
@@ -113,9 +114,7 @@ describe('PrismaAvailabilitiesRepository', () => {
   it("lists an Empleado's Availabilities", async () => {
     prisma.availability.findMany.mockResolvedValue([AVAILABILITY_ROW]);
 
-    await expect(repository.listByEmployee(7)).resolves.toEqual([
-      AVAILABILITY,
-    ]);
+    await expect(repository.listByEmployee(7)).resolves.toEqual([AVAILABILITY]);
     expect(prisma.availability.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: { employeeId: 7 } }),
     );
@@ -176,6 +175,15 @@ describe('PrismaAvailabilitiesRepository', () => {
     );
   });
 
+  it('counts the Services that use it', async () => {
+    prisma.employeeService.count.mockResolvedValue(2);
+
+    await expect(repository.countServices(1)).resolves.toBe(2);
+    expect(prisma.employeeService.count).toHaveBeenCalledWith({
+      where: { availabilityId: 1 },
+    });
+  });
+
   it('deletes the Availability, its Franjas going with it by cascade', async () => {
     prisma.availability.delete.mockResolvedValue(AVAILABILITY_ROW);
 
@@ -226,6 +234,26 @@ describe('PrismaAvailabilitiesRepository', () => {
       const error = await repository.create(data).catch((e: unknown) => e);
 
       expect(error).toBeInstanceOf(BusinessRuleError);
+    });
+
+    it('translates the foreign key of a Service still using it into ConflictError, when a link races the delete', async () => {
+      const cause = knownError('P2003');
+      prisma.availability.delete.mockRejectedValue(cause);
+
+      const error = await repository.delete(1).catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(ConflictError);
+      expect(error).toHaveProperty('cause', cause);
+    });
+
+    it('does not read a foreign key failing on create (an unknown Empleado) as a Service using it', async () => {
+      const cause = knownError('P2003');
+      prisma.availability.create.mockRejectedValue(cause);
+      const { id: _, ...data } = AVAILABILITY;
+
+      const error = await repository.create(data).catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(DatabaseOperationError);
     });
 
     it.each([

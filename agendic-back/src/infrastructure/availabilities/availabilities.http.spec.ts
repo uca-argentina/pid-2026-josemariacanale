@@ -113,8 +113,10 @@ describe('Availability', () => {
     it("makes the Empleado's first Availability the default, and answers 201", async () => {
       t.availabilities.listByEmployee.mockResolvedValue([]);
 
-      const res = await post({ name: 'Horario general', intervals: WEEKDAYS })
-        .expect(201);
+      const res = await post({
+        name: 'Horario general',
+        intervals: WEEKDAYS,
+      }).expect(201);
 
       expect(t.availabilities.create).toHaveBeenCalledWith({
         employeeId: ANAS_EMPLOYEE.id,
@@ -200,12 +202,27 @@ describe('Availability', () => {
     );
 
     it.each([
-      ['a weekday above 6', { weekday: 7, startTime: '09:00', endTime: '10:00' }],
-      ['a negative weekday', { weekday: -1, startTime: '09:00', endTime: '10:00' }],
-      ['a fractional weekday', { weekday: 1.5, startTime: '09:00', endTime: '10:00' }],
-      ['a time not in HH:mm', { weekday: 1, startTime: '9:00', endTime: '10:00' }],
+      [
+        'a weekday above 6',
+        { weekday: 7, startTime: '09:00', endTime: '10:00' },
+      ],
+      [
+        'a negative weekday',
+        { weekday: -1, startTime: '09:00', endTime: '10:00' },
+      ],
+      [
+        'a fractional weekday',
+        { weekday: 1.5, startTime: '09:00', endTime: '10:00' },
+      ],
+      [
+        'a time not in HH:mm',
+        { weekday: 1, startTime: '9:00', endTime: '10:00' },
+      ],
       ['a missing endTime', { weekday: 1, startTime: '09:00' }],
-      ['an extra field', { weekday: 1, startTime: '09:00', endTime: '10:00', id: 1 }],
+      [
+        'an extra field',
+        { weekday: 1, startTime: '09:00', endTime: '10:00', id: 1 },
+      ],
     ])(
       'rejects a Franja with %s with 400, without reaching the repositories',
       async (_, interval) => {
@@ -268,6 +285,20 @@ describe('Availability', () => {
       expect(res.body).toEqual({ ...presented(GENERAL), intervals });
     });
 
+    it('edits it in place: every Servicio using it sees the change, without touching their link', async () => {
+      await t.http
+        .patch(`/availabilities/${GENERAL.id}`)
+        .set(bearer(CLERK_TOKEN))
+        .send({ intervals: [] })
+        .expect(200);
+
+      expect(t.availabilities.update).toHaveBeenCalledWith(GENERAL.id, {
+        intervals: [],
+      });
+      expect(t.services.addEmployee).not.toHaveBeenCalled();
+      expect(t.services.removeEmployee).not.toHaveBeenCalled();
+    });
+
     it('renames it without touching its Franjas', async () => {
       await t.http
         .patch(`/availabilities/${GENERAL.id}`)
@@ -312,7 +343,9 @@ describe('Availability', () => {
       await t.http
         .patch(`/availabilities/${GENERAL.id}`)
         .set(bearer(CLERK_TOKEN))
-        .send({ intervals: [{ weekday: 1, startTime: '18:00', endTime: '09:00' }] })
+        .send({
+          intervals: [{ weekday: 1, startTime: '18:00', endTime: '09:00' }],
+        })
         .expect(422);
 
       expect(t.availabilities.update).not.toHaveBeenCalled();
@@ -379,6 +412,8 @@ describe('Availability', () => {
   });
 
   describe('DELETE /availabilities/:id', () => {
+    beforeEach(() => t.availabilities.countServices.mockResolvedValue(0));
+
     it('deletes one that is not the default, and answers 204', async () => {
       await t.http
         .delete(`/availabilities/${AFTERNOON.id}`)
@@ -399,6 +434,27 @@ describe('Availability', () => {
       );
       expect(t.availabilities.delete).not.toHaveBeenCalled();
     });
+
+    it.each([
+      [2, 'No se puede borrar la Availability: la usan 2 Servicios'],
+      [1, 'No se puede borrar la Availability: la usa 1 Servicio'],
+    ])(
+      'answers 409 when %i Servicios use it, saying how many, and deletes nothing',
+      async (count, message) => {
+        t.availabilities.countServices.mockResolvedValue(count);
+
+        const res = await t.http
+          .delete(`/availabilities/${AFTERNOON.id}`)
+          .set(bearer(CLERK_TOKEN))
+          .expect(409);
+
+        expect(res.body.message).toBe(message);
+        expect(t.availabilities.countServices).toHaveBeenCalledWith(
+          AFTERNOON.id,
+        );
+        expect(t.availabilities.delete).not.toHaveBeenCalled();
+      },
+    );
 
     it('answers 403 for a Usuario who is not the Dueño of the Empleado Negocio', async () => {
       await t.http

@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { DEFAULT_AVAILABILITY } from '../../domain/availabilities/availability';
 import {
   BUSINESSES_REPOSITORY,
   BusinessesRepository,
@@ -41,6 +42,10 @@ export class AddEmployeeUseCase {
       throw new BusinessRuleError(
         'Esa persona todavía no tiene cuenta en Agendic. Tiene que registrarse.',
       );
-    return this.employees.create({ userId: user.id, businessId });
+    return this.employees.create({
+      userId: user.id,
+      businessId,
+      availability: DEFAULT_AVAILABILITY,
+    });
   }
 }

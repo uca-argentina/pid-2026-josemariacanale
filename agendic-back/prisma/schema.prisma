@@ -76,8 +76,8 @@ model Service {
   price           Decimal         @db.Decimal(10, 2)
   retiredAt       DateTime?       @db.Timestamptz(3) // when dado de baja; null while offered
 
-  branch    Branch     @relation(fields: [branchId], references: [id])
-  employees Employee[]
+  branch    Branch            @relation(fields: [branchId], references: [id])
+  employees EmployeeService[]
   bookings  Booking[]
 }
 
@@ -87,11 +87,27 @@ model Employee {
   businessId Int
   retiredAt  DateTime? @db.Timestamptz(3) // when dado de baja; null while employed
 
-  user           User           @relation(fields: [userId], references: [id])
-  business       Business       @relation(fields: [businessId], references: [id])
-  services       Service[]
+  user           User              @relation(fields: [userId], references: [id])
+  business       Business          @relation(fields: [businessId], references: [id])
+  services       EmployeeService[]
   bookings       Booking[]
   availabilities Availability[]
+}
+
+/// An Empleado attending a Servicio with one of their own Availabilities. A reference: editing that Availability
+/// changes every Servicio using it at once. Only between an Empleado and a Servicio not dados de baja.
+model EmployeeService {
+  employeeId     Int
+  serviceId      Int
+  availabilityId Int // one of the Empleado's own; a Service using it keeps it from being deleted
+
+  employee     Employee     @relation(fields: [employeeId], references: [id])
+  service      Service      @relation(fields: [serviceId], references: [id])
+  availability Availability @relation(fields: [availabilityId], references: [id])
+
+  @@id([employeeId, serviceId])
+  @@index([serviceId])
+  @@index([availabilityId])
 }
 
 model Availability {
@@ -102,6 +118,7 @@ model Availability {
 
   employee  Employee               @relation(fields: [employeeId], references: [id])
   intervals AvailabilityInterval[]
+  services  EmployeeService[]
 }
 
 /// Franja. Never crosses midnight: endTime is always after startTime.

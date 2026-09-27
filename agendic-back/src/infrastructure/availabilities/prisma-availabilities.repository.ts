@@ -111,10 +111,26 @@ export class PrismaAvailabilitiesRepository implements AvailabilitiesRepository 
       .catch(translateError);
   }
 
+  async countServices(id: number) {
+    return this.prisma.employeeService
+      .count({ where: { availabilityId: id } })
+      .catch(translateError);
+  }
+
   async delete(id: number) {
     await this.prisma.availability
       .delete({ where: { id } })
-      .catch(translateError);
+      .catch((error: unknown) => {
+        // On a delete, the only foreign key that can fail is EmployeeService's (ADR 0004): a Servicio uses it.
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2003'
+        )
+          throw new ConflictError('Algún Servicio usa esta Availability', {
+            cause: error,
+          });
+        return translateError(error);
+      });
   }
 }
 

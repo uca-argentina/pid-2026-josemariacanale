@@ -11,6 +11,8 @@ export interface AvailabilitiesRepository {
   update(id: number, data: Partial<AvailabilityFields>): Promise<Availability>;
   /** Unmarks the Empleado's current default and marks this one, atomically. */
   makeDefault(id: number): Promise<Availability>;
-  /** Its Franjas go with it. */
+  /** How many Servicios use it. */
+  countServices(id: number): Promise<number>;
+  /** Its Franjas go with it. Throws ConflictError when a Servicio uses it. */
   delete(id: number): Promise<void>;
 }

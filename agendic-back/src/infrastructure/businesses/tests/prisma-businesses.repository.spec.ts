@@ -50,7 +50,11 @@ const SERVICE_ROW = {
   durationMinutes: 30,
   price: '20',
   retiredAt: null,
-  employees: [{ id: EMPLOYEE_ROW.id, user: { name: EMPLOYEE_ROW.user.name } }],
+  employees: [
+    {
+      employee: { id: EMPLOYEE_ROW.id, user: { name: EMPLOYEE_ROW.user.name } },
+    },
+  ],
 };
 
 const CREATE_DATA = {
@@ -111,6 +115,7 @@ describe('PrismaBusinessesRepository', () => {
   beforeEach(() => {
     jest.resetAllMocks();
     prisma.$transaction.mockImplementation((run) => run(tx));
+    tx.availability.create.mockResolvedValue({ id: 40 });
   });
 
   it('creates the Business, its Branch, its Service and the owner as its Employee, in one transaction', async () => {
@@ -156,7 +161,7 @@ describe('PrismaBusinessesRepository', () => {
     });
   });
 
-  it('puts the new Employee in charge of the new Service', async () => {
+  it('links the new Employee to the new Service with their default Availability, in the same transaction', async () => {
     tx.business.create.mockResolvedValue(ANAS_BUSINESS);
     tx.branch.create.mockResolvedValue(BRANCH_ROW);
     tx.employee.create.mockResolvedValue(EMPLOYEE_ROW);
@@ -168,7 +173,9 @@ describe('PrismaBusinessesRepository', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           branchId: BRANCH_ROW.id,
-          employees: { connect: { id: EMPLOYEE_ROW.id } },
+          employees: {
+            create: { employeeId: EMPLOYEE_ROW.id, availabilityId: 40 },
+          },
         }),
       }),
     );
@@ -225,7 +232,9 @@ describe('PrismaBusinessesRepository', () => {
   it('answers "Ya tenés un Negocio" when a race violates the owner uniqueness', async () => {
     const cause = knownError('P2002');
     cause.meta = {
-      driverAdapterError: { cause: { constraint: { index: 'Business_ownerId_key' } } },
+      driverAdapterError: {
+        cause: { constraint: { index: 'Business_ownerId_key' } },
+      },
     };
     tx.business.create.mockRejectedValue(cause);
 

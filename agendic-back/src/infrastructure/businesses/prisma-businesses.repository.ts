@@ -27,8 +27,8 @@ export class PrismaBusinessesRepository implements BusinessesRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * One interactive transaction rather than a nested create: the Servicio and the Empleado are linked to each
-   * other, and neither id exists until the other's row is written.
+   * One interactive transaction rather than a nested create: the Servicio links the Empleado with their
+   * Availability, and none of those ids exists until its row is written.
    */
   async create(data: CreateBusinessData) {
     return this.prisma
@@ -48,19 +48,26 @@ export class PrismaBusinessesRepository implements BusinessesRepository {
           data: { businessId: business.id, ...data.employee },
           include: WITH_USER,
         });
-        await tx.availability.create({
+        const availability = await tx.availability.create({
           data: {
             employeeId: employee.id,
             name: data.availability.name,
             isDefault: true,
-            intervals: { create: data.availability.intervals.map(toIntervalRow) },
+            intervals: {
+              create: data.availability.intervals.map(toIntervalRow),
+            },
           },
         });
         const service = await tx.service.create({
           data: {
             branchId: branch.id,
             ...data.service,
-            employees: { connect: { id: employee.id } },
+            employees: {
+              create: {
+                employeeId: employee.id,
+                availabilityId: availability.id,
+              },
+            },
           },
           include: VISIBLE_EMPLOYEES,
         });
@@ -120,7 +127,8 @@ const CONFLICT_BY_INDEX: Record<string, string> = {
   Business_slug_key: 'Booking link already in use',
   Business_ownerId_key: 'Ya tenés un Negocio',
   Service_branchId_name_ci_key: 'Service name already in use',
-  Employee_userId_businessId_key: 'User already an active Employee of this Business',
+  Employee_userId_businessId_key:
+    'User already an active Employee of this Business',
 };
 
 /** Where ADR 0004 says the violated index's name arrives through @prisma/adapter-pg. */

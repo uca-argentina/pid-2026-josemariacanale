@@ -1,3 +1,4 @@
+import { DEFAULT_AVAILABILITY } from '../../domain/availabilities/availability';
 import { ConflictError, DatabaseOperationError } from '../../domain/errors';
 import { ServiceCategory } from '../../domain/services/service';
 import {
@@ -36,7 +37,7 @@ describe('Empleado', () => {
       t.users.findByEmail.mockResolvedValue(BRUNO);
     });
 
-    it('creates the Empleado from the email of an existing Usuario, and answers 201', async () => {
+    it('creates the Empleado from the email of an existing Usuario, with the default Availability, and answers 201', async () => {
       t.employees.create.mockResolvedValue(OTHER_EMPLOYEE);
 
       const res = await t.http
@@ -49,6 +50,7 @@ describe('Empleado', () => {
       expect(t.employees.create).toHaveBeenCalledWith({
         userId: BRUNO.id,
         businessId: ANAS_BUSINESS.id,
+        availability: DEFAULT_AVAILABILITY,
       });
       expect(res.body).toEqual({
         id: OTHER_EMPLOYEE.id,
@@ -119,7 +121,10 @@ describe('Empleado', () => {
     it.each([
       ['a malformed email', { email: 'bruno@' }],
       ['a missing email', {}],
-      ['a name field: only email is accepted', { name: 'x', email: BRUNO.email }],
+      [
+        'a name field: only email is accepted',
+        { name: 'x', email: BRUNO.email },
+      ],
     ])(
       'rejects %s with 400, without reaching the repositories',
       async (_, body) => {
@@ -251,7 +256,10 @@ describe('Empleado', () => {
     it('answers 404 for an unknown Empleado', async () => {
       t.employees.findById.mockResolvedValue(null);
 
-      await t.http.delete('/employees/999').set(bearer(CLERK_TOKEN)).expect(404);
+      await t.http
+        .delete('/employees/999')
+        .set(bearer(CLERK_TOKEN))
+        .expect(404);
     });
   });
 

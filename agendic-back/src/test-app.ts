@@ -125,6 +125,7 @@ export async function createTestApp() {
     create: jest.fn(),
     update: jest.fn(),
     makeDefault: jest.fn(),
+    countServices: jest.fn(),
     delete: jest.fn(),
   };
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
@@ -233,9 +234,7 @@ export const OTHER_CLERK_TOKEN = 'clerk-jwt-2';
 export function scriptSession({ clerkAuth, users }: TestApp) {
   const verifyToken = clerkAuth.verifyToken.getMockImplementation()!;
   clerkAuth.verifyToken.mockImplementation(async (token) =>
-    token === CLERK_TOKEN
-      ? { clerkId: ANA.clerkId }
-      : verifyToken(token),
+    token === CLERK_TOKEN ? { clerkId: ANA.clerkId } : verifyToken(token),
   );
   const findByClerkId = users.findByClerkId.getMockImplementation();
   users.findByClerkId.mockImplementation(async (clerkId) =>

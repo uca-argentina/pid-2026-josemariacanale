@@ -75,11 +75,7 @@ export class ServicesController {
     @Body() dto: AssignEmployeeDto,
   ) {
     return presentService(
-      await this.assignEmployeeUseCase.execute(
-        userId,
-        serviceId,
-        dto.employeeId,
-      ),
+      await this.assignEmployeeUseCase.execute(userId, serviceId, dto),
     );
   }
 
@@ -95,8 +91,8 @@ export class ServicesController {
 
   @Get('branches/:id/services')
   async list(@Param('id', ParseIntPipe) branchId: number) {
-    return (
-      await this.listActiveServicesByBranchUseCase.execute(branchId)
-    ).map(presentService);
+    return (await this.listActiveServicesByBranchUseCase.execute(branchId)).map(
+      presentService,
+    );
   }
 }

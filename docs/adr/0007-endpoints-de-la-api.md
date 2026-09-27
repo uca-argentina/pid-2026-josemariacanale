@@ -47,7 +47,7 @@ actualizarlo a mano cuando se agregue, cambie o borre un endpoint.
 
 | Método | Ruta | Auth | Qué hace |
 |---|---|---|---|
-| POST | `/businesses` | sí | Crea un negocio junto con su primera sucursal, servicio y empleado (alta todo-en-uno); el Empleado creado es el propio Dueño (su Usuario de Sesión, ADR 0013), con su Availability predeterminada "Horario general": lunes a viernes de 09:00 a 18:00, sábado y domingo sin Franjas, en la misma transacción (no viene en la respuesta; se lee con `GET /employees/:id/availabilities`); 409 si el Usuario ya es Dueño de un Negocio (ADR 0012) |
+| POST | `/businesses` | sí | Crea un negocio junto con su primera sucursal, servicio y empleado (alta todo-en-uno); el Empleado creado es el propio Dueño (su Usuario de Sesión, ADR 0013), con su Availability predeterminada "Horario general": lunes a viernes de 09:00 a 18:00, sábado y domingo sin Franjas, y el primer servicio queda atendido por ese Empleado con esa Availability, todo en la misma transacción (no viene en la respuesta; se lee con `GET /employees/:id/availabilities`); 409 si el Usuario ya es Dueño de un Negocio (ADR 0012) |
 | PATCH | `/businesses/:id` | sí | Actualiza name/description/slug (solo el dueño); cambiar el slug deja de servir el Enlace de reserva anterior |
 | GET | `/businesses` | sí | Lista solo los negocios del Dueño de la sesión (0 o 1) |
 | GET | `/businesses/:id` | no | Detalle de un negocio |
@@ -76,16 +76,19 @@ actualizarlo a mano cuando se agregue, cambie o borre un endpoint.
 
 | Método | Ruta | Auth | Qué hace |
 |---|---|---|---|
-| POST | `/branches/:id/services` | sí | Crea un servicio bajo una sucursal, con asignación inicial de empleados (solo el dueño) |
+| POST | `/branches/:id/services` | sí | Crea un servicio bajo una sucursal, con asignación inicial de empleados (solo el dueño); cada empleado entra con su Availability predeterminada |
 | PATCH | `/services/:id` | sí | Actualiza un servicio (solo el dueño) |
 | DELETE | `/services/:id` | sí | Da de baja (soft-delete) un servicio (solo el dueño) |
-| POST | `/services/:id/employees` | sí | Asigna un empleado a un servicio (solo el dueño) |
+| POST | `/services/:id/employees` | sí | Asigna un empleado a un servicio con una Availability suya (solo el dueño); 201 con el servicio; 422 si la Availability es de otro Empleado o si el servicio está dado de baja; 404 si no existe; 409 si ya lo atiende |
 | DELETE | `/services/:id/employees/:employeeId` | sí | Quita un empleado de un servicio (solo el dueño) |
 | GET | `/branches/:id/services` | no | Lista servicios activos de una sucursal |
 
 - `CreateServiceDto`: `{ name, description?, category, durationMinutes (int ≥1), price (number ≥0), employeeIds: number[] (no vacío) }`
 - `UpdateServiceDto`: `{ name?, description?, category?, durationMinutes?, price? }`
-- `AssignEmployeeDto`: `{ employeeId }`
+- `AssignEmployeeDto`: `{ employeeId, availabilityId? }`; sin `availabilityId`, el empleado entra con su Availability predeterminada
+- Cada empleado atiende el servicio con una de sus Availability. Es una referencia: editar esa
+  Availability (`PATCH /availabilities/:id`) cambia en el acto todos los servicios que la usan. La
+  respuesta del servicio no dice cuál usa cada empleado.
 - Respuesta (`presentService`): `{ id, branchId, name, description, category, durationMinutes, price, employees: [{id, name}] }`
 - `category` es un enum fijo: `CLINICA | SPA | GIMNASIO | ACADEMIA | OTRO`, requerido en creación
 
@@ -95,7 +98,7 @@ Todo Empleado es un Usuario (ADR 0013): nombre y email los presta su cuenta, no 
 
 | Método | Ruta | Auth | Qué hace |
 |---|---|---|---|
-| POST | `/businesses/:id/employees` | sí | Agrega un empleado a un negocio por su email (solo el dueño); 201 con el empleado; 422 si ese email no tiene Usuario (mensaje: todavía no tiene cuenta en Agendic, tiene que registrarse); 409 si ya es empleado activo del negocio |
+| POST | `/businesses/:id/employees` | sí | Agrega un empleado a un negocio por su email (solo el dueño), con su Availability predeterminada "Horario general" (lunes a viernes de 09:00 a 18:00), así puede entrar a cualquier servicio; 201 con el empleado; 422 si ese email no tiene Usuario (mensaje: todavía no tiene cuenta en Agendic, tiene que registrarse); 409 si ya es empleado activo del negocio |
 | DELETE | `/employees/:id` | sí | Da de baja (soft-delete) un empleado (solo el dueño); 422 si es el Dueño dándose de baja a sí mismo |
 | GET | `/businesses/:id/employees` | sí | Lista empleados activos de un negocio (solo el dueño) |
 
@@ -115,7 +118,7 @@ Negocio del Empleado: cualquier otro Usuario recibe 403.
 | POST | `/employees/:id/availabilities` | sí | Crea una con sus Franjas; la primera del Empleado nace predeterminada; 201 |
 | PATCH | `/availabilities/:id` | sí | Cambia el nombre y/o reemplaza el set entero de Franjas; sin `intervals` no las toca |
 | POST | `/availabilities/:id/default` | sí | La marca predeterminada y desmarca la anterior; 200 con la Availability |
-| DELETE | `/availabilities/:id` | sí | La borra con sus Franjas; 204; 422 si es la predeterminada |
+| DELETE | `/availabilities/:id` | sí | La borra con sus Franjas; 204; 422 si es la predeterminada; 409 si algún servicio la usa |
 
 - `CreateAvailabilityDto`: `{ name, intervals: [{ weekday: 0-6, startTime: "HH:mm", endTime: "HH:mm" }] }`
 - `UpdateAvailabilityDto`: `{ name?, intervals? }`; `isDefault` no se acepta acá (400), va por `POST /availabilities/:id/default`
@@ -127,6 +130,7 @@ Negocio del Empleado: cualquier otro Usuario recibe 403.
   - dos Franjas del mismo día que se solapan → 422 `Dos Franjas del mismo día se solapan`; dos que se tocan (09:00–17:00 y 17:00–18:00) se aceptan
   - una Franja cuyo fin no es posterior al inicio → 422 `Cada Franja tiene que terminar después de empezar`
   - borrar la predeterminada → 422 `No se puede borrar la Availability predeterminada`
+  - borrar una que usa algún servicio → 409 `No se puede borrar la Availability: la usan 2 Servicios` (o `la usa 1 Servicio`); el front muestra el `message` tal cual. Un servicio dado de baja ya no la usa
   - `weekday` fuera de 0–6, hora que no es `HH:mm`, campo extra → 400
   - Empleado o Availability inexistente → 404
   - dos pedidos concurrentes que dejarían dos predeterminadas → 409

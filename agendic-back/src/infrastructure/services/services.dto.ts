@@ -32,6 +32,11 @@ export class CreateServiceDto extends ServiceFieldsDto {
 export class AssignEmployeeDto {
   @IsInt()
   employeeId!: number;
+
+  /** One of that Empleado's own; without it, their default. */
+  @IfPresent()
+  @IsInt()
+  availabilityId?: number;
 }
 
 export class UpdateServiceDto {
