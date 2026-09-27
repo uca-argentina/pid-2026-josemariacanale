@@ -7,7 +7,7 @@ export interface BranchesRepository {
   create(
     data: Pick<
       Branch,
-      'businessId' | 'name' | 'address' | 'opensAt' | 'closesAt'
+      'businessId' | 'name' | 'address' | 'opensAt' | 'closesAt' | 'timeZone'
     >,
   ): Promise<Branch>;
   findById(id: number): Promise<Branch | null>;
@@ -15,6 +15,8 @@ export interface BranchesRepository {
   /** Leaves undefined fields unchanged. */
   update(
     id: number,
-    data: Partial<Pick<Branch, 'name' | 'address' | 'opensAt' | 'closesAt'>>,
+    data: Partial<
+      Pick<Branch, 'name' | 'address' | 'opensAt' | 'closesAt' | 'timeZone'>
+    >,
   ): Promise<Branch>;
 }

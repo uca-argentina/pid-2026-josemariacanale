@@ -1,26 +1,23 @@
+import { AvailabilityFields } from '../availabilities/availability';
 import { Employee } from './employee';
 
 export const EMPLOYEES_REPOSITORY = Symbol('EmployeesRepository');
 
 export interface CreateEmployeeData {
+  userId: number;
   businessId: number;
-  name: string;
-  email: string;
+  /** The Empleado's default Availability, born with them so they can enter any Servicio. */
+  availability: AvailabilityFields;
 }
 
 export interface EmployeesRepository {
   /** Only the ids that exist, in no particular order. */
   listByIds(ids: number[]): Promise<Employee[]>;
-  /** Throws ConflictError when the email is already used by an Employee not dado de baja in the same Business. */
+  /** Throws ConflictError when the Usuario is already an active Empleado of the Negocio. */
   create(data: CreateEmployeeData): Promise<Employee>;
   findById(id: number): Promise<Employee | null>;
   /** The Business's Employees not dados de baja. */
   listActiveByBusiness(businessId: number): Promise<Employee[]>;
-  /** Leaves undefined fields unchanged. Throws ConflictError on an email clash. */
-  update(
-    id: number,
-    data: Partial<Pick<Employee, 'name' | 'email'>>,
-  ): Promise<Employee>;
   /** Dado de baja: sets retiredAt, takes the Employee off every Service, and cancels their future BOOKED Bookings, atomically. */
   retire(
     id: number,

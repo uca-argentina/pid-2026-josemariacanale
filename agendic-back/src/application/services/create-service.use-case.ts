@@ -1,5 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
+  AVAILABILITIES_REPOSITORY,
+  AvailabilitiesRepository,
+} from '../../domain/availabilities/availabilities.repository';
+import {
   BRANCHES_REPOSITORY,
   BranchesRepository,
 } from '../../domain/branches/branches.repository';
@@ -17,6 +21,7 @@ import {
   SERVICES_REPOSITORY,
   ServicesRepository,
 } from '../../domain/services/services.repository';
+import { defaultAvailability } from '../availabilities/default-availability';
 import { assertBranchOwner } from '../branches/assert-branch-owner';
 
 @Injectable()
@@ -30,6 +35,8 @@ export class CreateServiceUseCase {
     private readonly services: ServicesRepository,
     @Inject(EMPLOYEES_REPOSITORY)
     private readonly employees: EmployeesRepository,
+    @Inject(AVAILABILITIES_REPOSITORY)
+    private readonly availabilities: AvailabilitiesRepository,
   ) {}
 
   async execute(
@@ -44,6 +51,15 @@ export class CreateServiceUseCase {
       userId,
     );
     await this.assertCanAttend(branch.businessId, input.employeeIds);
+    // Each Empleado enters with their default Availability.
+    const employees = await Promise.all(
+      [...new Set(input.employeeIds)].map(async (employeeId) => ({
+        employeeId,
+        availabilityId: (
+          await defaultAvailability(this.availabilities, employeeId)
+        ).id,
+      })),
+    );
     return this.services.create({
       branchId,
       name: input.name,
@@ -51,7 +67,7 @@ export class CreateServiceUseCase {
       category: input.category,
       durationMinutes: input.durationMinutes,
       price: input.price,
-      employeeIds: input.employeeIds,
+      employees,
     });
   }
 

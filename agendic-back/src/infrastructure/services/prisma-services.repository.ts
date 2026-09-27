@@ -4,26 +4,31 @@ import {
   DatabaseOperationError,
   NotFoundError,
 } from '../../domain/errors';
-import { Service } from '../../domain/services/service';
+import { EmployeeService, Service } from '../../domain/services/service';
 import { ServicesRepository } from '../../domain/services/services.repository';
 import {
   Employee as EmployeeRow,
   Prisma,
   Service as ServiceRow,
+  User as UserRow,
 } from '../../generated/prisma/client';
 import { cancelFutureBooked } from '../bookings/cancel-future-booked';
 import { PrismaService } from '../prisma.service';
 
-/** Only the Empleados anyone browsing may see attending a Servicio: not dados de baja. */
+/** Only the Empleados anyone browsing may see attending a Servicio: not dados de baja. The name comes from the Usuario. */
 export const VISIBLE_EMPLOYEES = {
   employees: {
-    where: { retiredAt: null },
-    select: { id: true, name: true },
+    where: { employee: { retiredAt: null } },
+    select: {
+      employee: { select: { id: true, user: { select: { name: true } } } },
+    },
   },
 } satisfies Prisma.ServiceInclude;
 
 type ServiceRowWithEmployees = ServiceRow & {
-  employees: Pick<EmployeeRow, 'id' | 'name'>[];
+  employees: {
+    employee: Pick<EmployeeRow, 'id'> & { user: Pick<UserRow, 'name'> };
+  }[];
 };
 
 @Injectable()
@@ -39,16 +44,13 @@ export class PrismaServicesRepository implements ServicesRepository {
       | 'category'
       | 'durationMinutes'
       | 'price'
-    > & { employeeIds: number[] },
+    > & { employees: Omit<EmployeeService, 'serviceId'>[] },
   ) {
-    const { employeeIds, ...service } = data;
+    const { employees, ...service } = data;
     return toService(
       await this.prisma.service
         .create({
-          data: {
-            ...service,
-            employees: { connect: employeeIds.map((id) => ({ id })) },
-          },
+          data: { ...service, employees: { create: employees } },
           include: VISIBLE_EMPLOYEES,
         })
         .catch(translateError),
@@ -94,7 +96,7 @@ export class PrismaServicesRepository implements ServicesRepository {
       .$transaction(async (tx) => {
         const row = await tx.service.update({
           where: { id },
-          data: { retiredAt },
+          data: { retiredAt, employees: { deleteMany: {} } },
           include: VISIBLE_EMPLOYEES,
         });
         const cancelledBookings = await cancelFutureBooked(
@@ -107,11 +109,17 @@ export class PrismaServicesRepository implements ServicesRepository {
       .catch(translateError);
   }
 
-  async addEmployee(serviceId: number, employeeId: number) {
+  async addEmployee({
+    serviceId,
+    employeeId,
+    availabilityId,
+  }: EmployeeService) {
     const service = await this.prisma.service
       .findUnique({
         where: { id: serviceId },
-        select: { employees: { where: { id: employeeId }, select: { id: true } } },
+        select: {
+          employees: { where: { employeeId }, select: { employeeId: true } },
+        },
       })
       .catch(translateError);
     if (!service) throw new NotFoundError('Service not found');
@@ -121,10 +129,21 @@ export class PrismaServicesRepository implements ServicesRepository {
       await this.prisma.service
         .update({
           where: { id: serviceId },
-          data: { employees: { connect: { id: employeeId } } },
+          data: { employees: { create: { employeeId, availabilityId } } },
           include: VISIBLE_EMPLOYEES,
         })
-        .catch(translateError),
+        .catch((error: unknown) => {
+          // The (employeeId, serviceId) key catching two links racing, not a Service name.
+          if (
+            error instanceof Prisma.PrismaClientKnownRequestError &&
+            error.code === 'P2002'
+          )
+            throw new ConflictError(
+              'Employee already in charge of this Service',
+              { cause: error },
+            );
+          return translateError(error);
+        }),
     );
   }
 
@@ -133,7 +152,7 @@ export class PrismaServicesRepository implements ServicesRepository {
       .$transaction(async (tx) => {
         const row = await tx.service.update({
           where: { id: serviceId },
-          data: { employees: { disconnect: { id: employeeId } } },
+          data: { employees: { deleteMany: { employeeId } } },
           include: VISIBLE_EMPLOYEES,
         });
         const cancelledBookings = await cancelFutureBooked(
@@ -150,11 +169,18 @@ export class PrismaServicesRepository implements ServicesRepository {
     return (
       await this.prisma.service
         .findMany({
-          where: { retiredAt: null, employees: { some: { id: employeeId } } },
+          where: { retiredAt: null, employees: { some: { employeeId } } },
           include: VISIBLE_EMPLOYEES,
         })
         .catch(translateError)
     ).map(toService);
+  }
+
+  async findEmployeeLink(serviceId: number, employeeId: number) {
+    const row = await this.prisma.employeeService
+      .findUnique({ where: { employeeId_serviceId: { employeeId, serviceId } } })
+      .catch(translateError);
+    return row;
   }
 }
 
@@ -167,7 +193,10 @@ export const toService = (row: ServiceRowWithEmployees): Service => ({
   durationMinutes: row.durationMinutes,
   price: Number(row.price),
   retiredAt: row.retiredAt,
-  employees: row.employees.map(({ id, name }) => ({ id, name })),
+  employees: row.employees.map(({ employee }) => ({
+    id: employee.id,
+    name: employee.user.name,
+  })),
 });
 
 const translateError = (error: unknown): never => {

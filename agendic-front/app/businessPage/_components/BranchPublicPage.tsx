@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import { Clock, MapPin, Images, Building2 } from 'lucide-react';
 import { Button } from '@/app/_components/ui/button';
-import type { ServiceCategoryValue } from '@/app/onboarding/_components/schemas';
+import type { ServiceCategoryValue } from '@/app/_components/business-schemas';
 import { ChipTabs } from './ChipTabs';
 import { BookingFlow } from './BookingFlow';
 import { MyBookings } from './MyBookings';

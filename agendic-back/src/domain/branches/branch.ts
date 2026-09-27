@@ -7,6 +7,7 @@ export interface Branch {
   address: string;
   opensAt: string; // HH:mm
   closesAt: string; // HH:mm
+  timeZone: string; // IANA name, e.g. America/Argentina/Buenos_Aires
 }
 
 export interface CreateBranchInput {
@@ -14,6 +15,7 @@ export interface CreateBranchInput {
   address: string;
   opensAt: string;
   closesAt: string;
+  timeZone: string;
 }
 
 export interface UpdateBranchInput {
@@ -21,6 +23,7 @@ export interface UpdateBranchInput {
   address?: string;
   opensAt?: string;
   closesAt?: string;
+  timeZone?: string;
 }
 
 /** HH:mm strings are zero-padded and same length, so lexical comparison matches time-of-day order. */

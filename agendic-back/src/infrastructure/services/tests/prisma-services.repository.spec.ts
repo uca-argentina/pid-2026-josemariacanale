@@ -1,4 +1,8 @@
-import { ConflictError, DatabaseOperationError, NotFoundError } from '../../../domain/errors';
+import {
+  ConflictError,
+  DatabaseOperationError,
+  NotFoundError,
+} from '../../../domain/errors';
 import { Service, ServiceCategory } from '../../../domain/services/service';
 import { Prisma } from '../../../generated/prisma/client';
 import { PrismaService } from '../../prisma.service';
@@ -16,7 +20,7 @@ const SERVICE_ROW = {
   durationMinutes: 30,
   price: '20', // Prisma returns Decimal columns as a Decimal-like; Number() reads a numeric string just as well
   retiredAt: null,
-  employees: [{ id: 7, name: 'Ana Pérez' }],
+  employees: [{ employee: { id: 7, user: { name: 'Ana Pérez' } } }],
 };
 
 const SERVICE: Service = {
@@ -54,8 +58,8 @@ describe('PrismaServicesRepository', () => {
   const SERVICE_ROW_WITH_TWO: typeof SERVICE_ROW = {
     ...SERVICE_ROW,
     employees: [
-      { id: 7, name: 'Ana Pérez' },
-      { id: 8, name: 'Bruno Díaz' },
+      { employee: { id: 7, user: { name: 'Ana Pérez' } } },
+      { employee: { id: 8, user: { name: 'Bruno Díaz' } } },
     ],
   };
   const repository = new PrismaServicesRepository(
@@ -67,7 +71,7 @@ describe('PrismaServicesRepository', () => {
     prisma.$transaction.mockImplementation((run) => run(tx));
   });
 
-  it('creates a Service in charge of its Employees, converting its Decimal price to a number', async () => {
+  it('creates a Service linking each Employee to the Availability they attend it with, converting its Decimal price to a number', async () => {
     prisma.service.create.mockResolvedValue(SERVICE_ROW);
 
     await expect(
@@ -78,7 +82,10 @@ describe('PrismaServicesRepository', () => {
         category: ServiceCategory.SPA,
         durationMinutes: 30,
         price: 20,
-        employeeIds: [7, 8],
+        employees: [
+          { employeeId: 7, availabilityId: 70 },
+          { employeeId: 8, availabilityId: 80 },
+        ],
       }),
     ).resolves.toEqual(SERVICE);
     expect(prisma.service.create).toHaveBeenCalledWith({
@@ -89,7 +96,12 @@ describe('PrismaServicesRepository', () => {
         category: ServiceCategory.SPA,
         durationMinutes: 30,
         price: 20,
-        employees: { connect: [{ id: 7 }, { id: 8 }] },
+        employees: {
+          create: [
+            { employeeId: 7, availabilityId: 70 },
+            { employeeId: 8, availabilityId: 80 },
+          ],
+        },
       },
       include: VISIBLE_EMPLOYEES,
     });
@@ -98,9 +110,7 @@ describe('PrismaServicesRepository', () => {
   it('lists only active Services of a Branch', async () => {
     prisma.service.findMany.mockResolvedValue([SERVICE_ROW]);
 
-    await expect(repository.listActiveByBranch(1)).resolves.toEqual([
-      SERVICE,
-    ]);
+    await expect(repository.listActiveByBranch(1)).resolves.toEqual([SERVICE]);
     expect(prisma.service.findMany).toHaveBeenCalledWith({
       where: { branchId: 1, retiredAt: null },
       include: VISIBLE_EMPLOYEES,
@@ -108,43 +118,79 @@ describe('PrismaServicesRepository', () => {
   });
 
   describe('addEmployee', () => {
-    it('connects the Employee to the Service', async () => {
+    it('links the Employee to the Service with the given Availability', async () => {
       prisma.service.findUnique.mockResolvedValue({ employees: [] });
       prisma.service.update.mockResolvedValue(SERVICE_ROW_WITH_TWO);
 
-      await expect(repository.addEmployee(1, 8)).resolves.toEqual({
+      await expect(
+        repository.addEmployee({
+          serviceId: 1,
+          employeeId: 8,
+          availabilityId: 80,
+        }),
+      ).resolves.toEqual({
         ...SERVICE,
-        employees: SERVICE_ROW_WITH_TWO.employees,
+        employees: [
+          { id: 7, name: 'Ana Pérez' },
+          { id: 8, name: 'Bruno Díaz' },
+        ],
       });
       expect(prisma.service.update).toHaveBeenCalledWith({
         where: { id: 1 },
-        data: { employees: { connect: { id: 8 } } },
+        data: { employees: { create: { employeeId: 8, availabilityId: 80 } } },
         include: VISIBLE_EMPLOYEES,
       });
     });
 
-    it('throws ConflictError when the Employee is already connected, without updating', async () => {
-      prisma.service.findUnique.mockResolvedValue({ employees: [{ id: 7 }] });
+    it('throws ConflictError when the Employee is already linked, without updating', async () => {
+      prisma.service.findUnique.mockResolvedValue({
+        employees: [{ employeeId: 7 }],
+      });
 
-      await expect(repository.addEmployee(1, 7)).rejects.toBeInstanceOf(
-        ConflictError,
-      );
+      await expect(
+        repository.addEmployee({
+          serviceId: 1,
+          employeeId: 7,
+          availabilityId: 70,
+        }),
+      ).rejects.toBeInstanceOf(ConflictError);
       expect(prisma.service.update).not.toHaveBeenCalled();
+    });
+
+    it('translates the link key catching two links racing into ConflictError about the Employee, not the name', async () => {
+      const cause = knownError('P2002');
+      prisma.service.findUnique.mockResolvedValue({ employees: [] });
+      prisma.service.update.mockRejectedValue(cause);
+
+      const error = await repository
+        .addEmployee({ serviceId: 1, employeeId: 8, availabilityId: 80 })
+        .catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(ConflictError);
+      expect(error).toHaveProperty(
+        'message',
+        'Employee already in charge of this Service',
+      );
+      expect(error).toHaveProperty('cause', cause);
     });
 
     it('throws NotFoundError for an unknown Service', async () => {
       prisma.service.findUnique.mockResolvedValue(null);
 
-      await expect(repository.addEmployee(999, 7)).rejects.toBeInstanceOf(
-        NotFoundError,
-      );
+      await expect(
+        repository.addEmployee({
+          serviceId: 999,
+          employeeId: 7,
+          availabilityId: 70,
+        }),
+      ).rejects.toBeInstanceOf(NotFoundError);
     });
   });
 
   describe('removeEmployee', () => {
     const now = new Date('2026-02-01T00:00:00.000Z');
 
-    it('disconnects the Employee from the Service and cancels their future BOOKED Turnos for it, atomically', async () => {
+    it('unlinks the Employee from the Service and cancels their future BOOKED Turnos for it, atomically', async () => {
       tx.service.update.mockResolvedValue(SERVICE_ROW);
       tx.booking.updateMany.mockResolvedValue({ count: 2 });
 
@@ -156,7 +202,7 @@ describe('PrismaServicesRepository', () => {
       expect(prisma.$transaction).toHaveBeenCalledTimes(1);
       expect(tx.service.update).toHaveBeenCalledWith({
         where: { id: 1 },
-        data: { employees: { disconnect: { id: 7 } } },
+        data: { employees: { deleteMany: { employeeId: 7 } } },
         include: VISIBLE_EMPLOYEES,
       });
       expect(tx.booking.updateMany).toHaveBeenCalledWith({
@@ -178,7 +224,7 @@ describe('PrismaServicesRepository', () => {
       SERVICE,
     ]);
     expect(prisma.service.findMany).toHaveBeenCalledWith({
-      where: { retiredAt: null, employees: { some: { id: 7 } } },
+      where: { retiredAt: null, employees: { some: { employeeId: 7 } } },
       include: VISIBLE_EMPLOYEES,
     });
   });
@@ -186,7 +232,7 @@ describe('PrismaServicesRepository', () => {
   describe('retire', () => {
     const retiredAt = new Date('2026-02-01T00:00:00.000Z');
 
-    it('sets retiredAt and cancels the Service future BOOKED Turnos, atomically', async () => {
+    it('sets retiredAt, unlinks its Employees and cancels the Service future BOOKED Turnos, atomically', async () => {
       tx.service.update.mockResolvedValue({ ...SERVICE_ROW, retiredAt });
       tx.booking.updateMany.mockResolvedValue({ count: 3 });
 
@@ -198,7 +244,7 @@ describe('PrismaServicesRepository', () => {
       expect(prisma.$transaction).toHaveBeenCalledTimes(1);
       expect(tx.service.update).toHaveBeenCalledWith({
         where: { id: 1 },
-        data: { retiredAt },
+        data: { retiredAt, employees: { deleteMany: {} } },
         include: VISIBLE_EMPLOYEES,
       });
       expect(tx.booking.updateMany).toHaveBeenCalledWith({
@@ -222,7 +268,7 @@ describe('PrismaServicesRepository', () => {
           category: ServiceCategory.SPA,
           durationMinutes: 30,
           price: 20,
-          employeeIds: [7],
+          employees: [{ employeeId: 7, availabilityId: 70 }],
         }),
       findById: () => repository.findById(1),
       update: () => repository.update(1, { name: 'New name' }),

@@ -26,6 +26,7 @@ const BRANCH_PART = {
   address: ANAS_BRANCH.address,
   opensAt: ANAS_BRANCH.opensAt,
   closesAt: ANAS_BRANCH.closesAt,
+  timeZone: ANAS_BRANCH.timeZone,
 };
 
 const SERVICE_PART = {
@@ -79,7 +80,7 @@ describe('Negocio', () => {
       t.businesses.listByOwner.mockResolvedValue([]);
     });
 
-    it('creates the Negocio, its Sucursal, its Servicio and the Dueño as its Empleado', async () => {
+    it('creates the Negocio, its Sucursal, its Servicio and the Dueño as its Empleado, with a default Availability of Monday to Friday 09:00–18:00', async () => {
       t.businesses.create.mockResolvedValue(CREATED);
 
       const res = await t.http
@@ -92,7 +93,15 @@ describe('Negocio', () => {
         business: { ...BUSINESS_PART, ownerId: ANA.id },
         branch: BRANCH_PART,
         service: SERVICE_PART,
-        employee: { name: ANA.name, email: ANA.email },
+        employee: { userId: ANA.id },
+        availability: {
+          name: 'Horario general',
+          intervals: [1, 2, 3, 4, 5].map((weekday) => ({
+            weekday,
+            startTime: '09:00',
+            endTime: '18:00',
+          })),
+        },
       });
       expect(res.body).toEqual({
         business: PRESENTED_BUSINESS,
@@ -109,6 +118,7 @@ describe('Negocio', () => {
         },
         employee: {
           id: ANAS_EMPLOYEE.id,
+          userId: ANAS_EMPLOYEE.userId,
           name: ANAS_EMPLOYEE.name,
           email: ANAS_EMPLOYEE.email,
         },
@@ -245,6 +255,14 @@ describe('Negocio', () => {
         { branch: { ...BRANCH_PART, address: ' ' } },
       ],
       ['a malformed opensAt', { branch: { ...BRANCH_PART, opensAt: '9am' } }],
+      [
+        'a missing Sucursal timeZone',
+        { branch: { ...BRANCH_PART, timeZone: undefined } },
+      ],
+      [
+        'a UTC offset as Sucursal timeZone',
+        { branch: { ...BRANCH_PART, timeZone: '-03:00' } },
+      ],
       ['a missing Servicio', { service: undefined }],
       ['a blank Servicio name', { service: { ...SERVICE_PART, name: ' ' } }],
       [

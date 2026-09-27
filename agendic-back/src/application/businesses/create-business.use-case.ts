@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { DEFAULT_AVAILABILITY } from '../../domain/availabilities/availability';
 import { assertValidHours } from '../../domain/branches/branch';
 import { CreateBusinessInput } from '../../domain/businesses/business';
 import {
@@ -36,7 +37,8 @@ export class CreateBusinessUseCase {
         ...input.service,
         description: input.service.description ?? null,
       },
-      employee: { name: owner.name, email: owner.email },
+      employee: { userId: owner.id },
+      availability: DEFAULT_AVAILABILITY,
     });
   }
 }

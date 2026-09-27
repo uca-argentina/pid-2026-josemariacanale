@@ -1,3 +1,4 @@
+import { AvailabilityFields } from '../availabilities/availability';
 import { Branch } from '../branches/branch';
 import { Employee } from '../employees/employee';
 import { Service } from '../services/service';
@@ -8,13 +9,15 @@ export const BUSINESSES_REPOSITORY = Symbol('BusinessesRepository');
 /** Everything a Negocio needs to take Turnos, written at once. */
 export interface CreateBusinessData {
   business: Pick<Business, 'name' | 'description' | 'ownerId' | 'slug'>;
-  branch: Pick<Branch, 'name' | 'address' | 'opensAt' | 'closesAt'>;
+  branch: Pick<Branch, 'name' | 'address' | 'opensAt' | 'closesAt' | 'timeZone'>;
   service: Pick<
     Service,
     'name' | 'description' | 'category' | 'durationMinutes' | 'price'
   >;
   /** The Dueño, in charge of that first Servicio. */
-  employee: Pick<Employee, 'name' | 'email'>;
+  employee: Pick<Employee, 'userId'>;
+  /** That Empleado's default Availability, its Franjas written as real rows. */
+  availability: AvailabilityFields;
 }
 
 export interface CreatedBusiness {

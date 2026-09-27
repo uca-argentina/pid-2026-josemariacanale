@@ -1,14 +1,21 @@
 import { redirect, unstable_rethrow } from 'next/navigation';
+import { getCurrentUser } from '@/app/(public)/(auth)/current-user';
 import { isSessionExpired } from '@/app/api-error';
 import { BackendErrorNotice } from '@/app/_components/BackendErrorNotice';
-import { ONBOARDING_PATH, SIGN_IN_PATH } from '@/app/routes';
+import { SIGN_IN_PATH } from '@/app/routes';
 import { getInjection } from '@/di/container';
-import { Topbar } from '../_components/Topbar';
-import { BusinessForm } from './_components/BusinessForm';
+import { PageHeader } from './_components/business-ui';
+import { BusinessOverview } from './_components/BusinessOverview';
+import { NoBusinessView } from './_components/NoBusinessView';
 
 export const metadata = { title: 'Mi Negocio' };
 
 export default async function BusinessPage() {
+    // El layout ya exige Sesión, pero renderiza en paralelo con la página.
+    const user = await getCurrentUser();
+    if (!user) redirect(SIGN_IN_PATH);
+
+    // Si la consulta falla no se ofrece Crear Negocio: haría creer al Dueño que no tiene Negocio (ADR 0012).
     let business;
     try {
         business = await getInjection('IGetMyBusinessController')();
@@ -19,15 +26,14 @@ export default async function BusinessPage() {
         return <BackendErrorNotice />;
     }
 
-    // Un Usuario sin Negocio todavía no hizo Crear Negocio.
-    if (!business) redirect(ONBOARDING_PATH);
-
     return (
-        <>
-            <Topbar title="Mi Negocio" subtitle="Los datos que ven tus Clientes." />
-            <div className="w-full max-w-[560px] p-7">
-                <BusinessForm business={business} />
-            </div>
-        </>
+        <div className="flex flex-1 flex-col gap-8 bg-white px-4 py-8 text-[#0f1b2d] sm:px-8">
+            <PageHeader title="Mi Negocio" description="Tu Negocio, tus Empleados y cómo lo ven tus Clientes." />
+            {business ? (
+                <BusinessOverview business={business} />
+            ) : (
+                <NoBusinessView owner={{ name: user.name, email: user.email }} />
+            )}
+        </div>
     );
 }

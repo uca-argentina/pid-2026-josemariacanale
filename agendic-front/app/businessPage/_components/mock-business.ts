@@ -1,4 +1,4 @@
-import { SERVICE_CATEGORIES } from '@/app/onboarding/_components/schemas';
+import { SERVICE_CATEGORIES } from '@/app/_components/business-schemas';
 import type { AvailableDay, Business, Branch, Employee, Service } from './types';
 
 // ponytail: todo este archivo es mock. Cuando existan las llamadas de docs/adr/0007-endpoints-de-la-api.md

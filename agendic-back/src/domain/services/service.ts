@@ -21,6 +21,13 @@ export interface Service {
   employees: EmployeeSummary[];
 }
 
+/** An Empleado attending a Servicio with one of their own Availabilities: a reference, not a copy. */
+export interface EmployeeService {
+  serviceId: number;
+  employeeId: number;
+  availabilityId: number;
+}
+
 export interface CreateServiceInput {
   name: string;
   description?: string;

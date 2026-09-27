@@ -10,7 +10,7 @@ export interface Business {
   slug: string;
 }
 
-/** A Negocio is created complete: it, its first Sucursal, its first Servicio and the Dueño as its Empleado. */
+/** A Negocio is created complete: it, its first Sucursal, its first Servicio and the Dueño as its Empleado, with their default Availability. */
 export interface CreateBusinessInput {
   business: { name: string; description: string; slug: string };
   branch: CreateBranchInput;

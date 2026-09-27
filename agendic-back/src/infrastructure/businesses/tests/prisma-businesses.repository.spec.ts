@@ -30,14 +30,15 @@ const BRANCH_ROW = {
   address: '123 Main St',
   opensAt: new Date('1970-01-01T09:00:00.000Z'),
   closesAt: new Date('1970-01-01T18:00:00.000Z'),
+  timeZone: 'America/Argentina/Buenos_Aires',
 };
 
 const EMPLOYEE_ROW = {
   id: 20,
+  userId: ANAS_BUSINESS.ownerId,
   businessId: ANAS_BUSINESS.id,
-  name: 'Ana Pérez',
-  email: 'ana@example.com',
   retiredAt: null,
+  user: { name: 'Ana Pérez', email: 'ana@example.com' },
 };
 
 const SERVICE_ROW = {
@@ -49,7 +50,11 @@ const SERVICE_ROW = {
   durationMinutes: 30,
   price: '20',
   retiredAt: null,
-  employees: [{ id: EMPLOYEE_ROW.id, name: EMPLOYEE_ROW.name }],
+  employees: [
+    {
+      employee: { id: EMPLOYEE_ROW.id, user: { name: EMPLOYEE_ROW.user.name } },
+    },
+  ],
 };
 
 const CREATE_DATA = {
@@ -64,6 +69,7 @@ const CREATE_DATA = {
     address: '123 Main St',
     opensAt: '09:00',
     closesAt: '18:00',
+    timeZone: 'America/Argentina/Buenos_Aires',
   },
   service: {
     name: 'Haircut',
@@ -73,8 +79,14 @@ const CREATE_DATA = {
     price: 20,
   },
   employee: {
-    name: 'Ana Pérez',
-    email: 'ana@example.com',
+    userId: ANAS_BUSINESS.ownerId,
+  },
+  availability: {
+    name: 'Horario general',
+    intervals: [
+      { weekday: 1, startTime: '09:00', endTime: '18:00' },
+      { weekday: 5, startTime: '09:00', endTime: '18:00' },
+    ],
   },
 };
 
@@ -83,6 +95,7 @@ describe('PrismaBusinessesRepository', () => {
     business: { create: jest.fn() },
     branch: { create: jest.fn() },
     employee: { create: jest.fn() },
+    availability: { create: jest.fn() },
     service: { create: jest.fn() },
   };
   const prisma = {
@@ -102,6 +115,7 @@ describe('PrismaBusinessesRepository', () => {
   beforeEach(() => {
     jest.resetAllMocks();
     prisma.$transaction.mockImplementation((run) => run(tx));
+    tx.availability.create.mockResolvedValue({ id: 40 });
   });
 
   it('creates the Business, its Branch, its Service and the owner as its Employee, in one transaction', async () => {
@@ -124,9 +138,11 @@ describe('PrismaBusinessesRepository', () => {
       address: '123 Main St',
       opensAt: '09:00',
       closesAt: '18:00',
+      timeZone: 'America/Argentina/Buenos_Aires',
     });
     expect(created.employee).toEqual({
       id: EMPLOYEE_ROW.id,
+      userId: EMPLOYEE_ROW.userId,
       businessId: ANAS_BUSINESS.id,
       name: 'Ana Pérez',
       email: 'ana@example.com',
@@ -141,11 +157,11 @@ describe('PrismaBusinessesRepository', () => {
       durationMinutes: 30,
       price: 20,
       retiredAt: null,
-      employees: [{ id: EMPLOYEE_ROW.id, name: EMPLOYEE_ROW.name }],
+      employees: [{ id: EMPLOYEE_ROW.id, name: EMPLOYEE_ROW.user.name }],
     });
   });
 
-  it('puts the new Employee in charge of the new Service', async () => {
+  it('links the new Employee to the new Service with their default Availability, in the same transaction', async () => {
     tx.business.create.mockResolvedValue(ANAS_BUSINESS);
     tx.branch.create.mockResolvedValue(BRANCH_ROW);
     tx.employee.create.mockResolvedValue(EMPLOYEE_ROW);
@@ -157,10 +173,44 @@ describe('PrismaBusinessesRepository', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           branchId: BRANCH_ROW.id,
-          employees: { connect: { id: EMPLOYEE_ROW.id } },
+          employees: {
+            create: { employeeId: EMPLOYEE_ROW.id, availabilityId: 40 },
+          },
         }),
       }),
     );
+  });
+
+  it("gives the Dueño's Empleado its default Availability, with its Franjas as real rows, in the same transaction", async () => {
+    tx.business.create.mockResolvedValue(ANAS_BUSINESS);
+    tx.branch.create.mockResolvedValue(BRANCH_ROW);
+    tx.employee.create.mockResolvedValue(EMPLOYEE_ROW);
+    tx.service.create.mockResolvedValue(SERVICE_ROW);
+
+    await repository.create(CREATE_DATA);
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(tx.availability.create).toHaveBeenCalledWith({
+      data: {
+        employeeId: EMPLOYEE_ROW.id,
+        name: 'Horario general',
+        isDefault: true,
+        intervals: {
+          create: [
+            {
+              weekday: 1,
+              startTime: new Date('1970-01-01T09:00:00.000Z'),
+              endTime: new Date('1970-01-01T18:00:00.000Z'),
+            },
+            {
+              weekday: 5,
+              startTime: new Date('1970-01-01T09:00:00.000Z'),
+              endTime: new Date('1970-01-01T18:00:00.000Z'),
+            },
+          ],
+        },
+      },
+    });
   });
 
   it('names the Enlace de reserva in the ConflictError when two Businesses take the same slug', async () => {
@@ -182,7 +232,9 @@ describe('PrismaBusinessesRepository', () => {
   it('answers "Ya tenés un Negocio" when a race violates the owner uniqueness', async () => {
     const cause = knownError('P2002');
     cause.meta = {
-      driverAdapterError: { cause: { constraint: { index: 'Business_ownerId_key' } } },
+      driverAdapterError: {
+        cause: { constraint: { index: 'Business_ownerId_key' } },
+      },
     };
     tx.business.create.mockRejectedValue(cause);
 
@@ -194,8 +246,14 @@ describe('PrismaBusinessesRepository', () => {
 
   it.each([
     ['Service_branchId_name_ci_key', 'Service name already in use'],
-    ['Employee_businessId_email_ci_key', 'Employee email already in use'],
-    [undefined, 'Service name or Employee email already in use'],
+    [
+      'Employee_userId_businessId_key',
+      'User already an active Employee of this Business',
+    ],
+    [
+      undefined,
+      'Service name already in use, or User already an active Employee of this Business',
+    ],
   ])(
     'names the violated index %s in the ConflictError it throws',
     async (index, message) => {

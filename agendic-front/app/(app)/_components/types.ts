@@ -39,43 +39,6 @@ export interface TurnoGroup {
 
 export type TurnosByTab = Record<TabId, TurnoGroup[]>;
 
-export interface Schedule {
-    id: string;
-    name: string;
-    isDefault: boolean;
-    summary: string;
-    scope: string;
-    timezone: string;
-}
-
-export interface DaySchedule {
-    key: string;
-    label: string;
-    enabled: boolean;
-    from: string;
-    to: string;
-}
-
-export type ScheduleOverrideKind = 'feriado' | 'horario-reducido' | 'vacaciones';
-
-export interface ScheduleOverride {
-    date: string;
-    note: string;
-    kind: ScheduleOverrideKind;
-}
-
-export interface ScheduleBranch {
-    name: string;
-    active: boolean;
-}
-
-export interface ScheduleDetail {
-    days: DaySchedule[];
-    timezone: string;
-    overrides: ScheduleOverride[];
-    branches: ScheduleBranch[];
-}
-
 export interface CurrentBusinessUser {
     name: string;
     initials: string;

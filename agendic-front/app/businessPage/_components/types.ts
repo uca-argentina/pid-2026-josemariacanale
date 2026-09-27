@@ -4,7 +4,7 @@
 // Los campos que el dominio NO tiene van marcados uno por uno con `ponytail:`. Hoy son tres:
 // `Service.depositPercent`, `Booking.notes` y las fotos. El resto sale del contrato del back.
 
-import type { ServiceCategoryValue } from '@/app/onboarding/_components/schemas';
+import type { ServiceCategoryValue } from '@/app/_components/business-schemas';
 
 /** GET /businesses/by-slug/:slug */
 export interface Business {

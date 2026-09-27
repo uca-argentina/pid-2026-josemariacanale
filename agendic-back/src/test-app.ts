@@ -2,6 +2,14 @@ import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from './app.module';
 import { setupApp } from './setup-app';
+import {
+  AVAILABILITIES_REPOSITORY,
+  AvailabilitiesRepository,
+} from './domain/availabilities/availabilities.repository';
+import {
+  AVAILABILITY_OVERRIDES_REPOSITORY,
+  AvailabilityOverridesRepository,
+} from './domain/availability-overrides/availability-overrides.repository';
 import { Branch } from './domain/branches/branch';
 import {
   BRANCHES_REPOSITORY,
@@ -96,7 +104,6 @@ export async function createTestApp() {
     create: jest.fn(),
     findById: jest.fn(),
     listActiveByBusiness: jest.fn(),
-    update: jest.fn(),
     retire: jest.fn(),
   };
   const services: jest.Mocked<ServicesRepository> = {
@@ -108,6 +115,7 @@ export async function createTestApp() {
     addEmployee: jest.fn(),
     removeEmployee: jest.fn(),
     listActiveByEmployee: jest.fn(),
+    findEmployeeLink: jest.fn(),
   };
   const bookings: jest.Mocked<BookingsRepository> = {
     create: jest.fn(),
@@ -115,6 +123,21 @@ export async function createTestApp() {
     findByVerificationToken: jest.fn(),
     markBooked: jest.fn(),
     listByBusiness: jest.fn(),
+    listBookedByEmployee: jest.fn(),
+  };
+  const availabilities: jest.Mocked<AvailabilitiesRepository> = {
+    listByEmployee: jest.fn(),
+    findById: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    makeDefault: jest.fn(),
+    countServices: jest.fn(),
+    delete: jest.fn(),
+  };
+  const overrides: jest.Mocked<AvailabilityOverridesRepository> = {
+    listByEmployee: jest.fn(),
+    replace: jest.fn(),
+    delete: jest.fn(),
   };
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(CLOCK)
@@ -135,6 +158,10 @@ export async function createTestApp() {
     .useValue(employees)
     .overrideProvider(BOOKINGS_REPOSITORY)
     .useValue(bookings)
+    .overrideProvider(AVAILABILITIES_REPOSITORY)
+    .useValue(availabilities)
+    .overrideProvider(AVAILABILITY_OVERRIDES_REPOSITORY)
+    .useValue(overrides)
     .compile();
   const app = setupApp(moduleRef.createNestApplication());
   await app.init();
@@ -149,6 +176,8 @@ export async function createTestApp() {
     services,
     employees,
     bookings,
+    availabilities,
+    overrides,
     http: request(app.getHttpServer()),
   };
 }
@@ -186,11 +215,13 @@ export const ANAS_BRANCH: Branch = {
   address: '123 Main St',
   opensAt: '09:00',
   closesAt: '18:00',
+  timeZone: 'America/Argentina/Buenos_Aires',
 };
 
 /** Ana as the Empleado of her own Negocio. */
 export const ANAS_EMPLOYEE: Employee = {
   id: 1,
+  userId: ANA.id,
   businessId: ANAS_BUSINESS.id,
   name: ANA.name,
   email: ANA.email,
@@ -217,9 +248,7 @@ export const OTHER_CLERK_TOKEN = 'clerk-jwt-2';
 export function scriptSession({ clerkAuth, users }: TestApp) {
   const verifyToken = clerkAuth.verifyToken.getMockImplementation()!;
   clerkAuth.verifyToken.mockImplementation(async (token) =>
-    token === CLERK_TOKEN
-      ? { clerkId: ANA.clerkId }
-      : verifyToken(token),
+    token === CLERK_TOKEN ? { clerkId: ANA.clerkId } : verifyToken(token),
   );
   const findByClerkId = users.findByClerkId.getMockImplementation();
   users.findByClerkId.mockImplementation(async (clerkId) =>

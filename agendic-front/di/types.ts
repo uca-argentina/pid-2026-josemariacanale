@@ -12,6 +12,13 @@ import type { IUpdateBusinessController } from '@/src/interface-adapters/control
 import type { ICreateBusinessController } from '@/src/interface-adapters/controllers/businesses/create-business.controller';
 import type { IGetPublicBusinessController } from '@/src/interface-adapters/controllers/businesses/get-public-business.controller';
 import type { IGetCurrentUserController } from '@/src/interface-adapters/controllers/auth/get-current-user.controller';
+import type { IEmployeesRepository } from '@/src/application/repositories/employees.repository.interface';
+import type { IListEmployeesUseCase } from '@/src/application/use-cases/employees/list-employees.use-case';
+import type { IAddEmployeeUseCase } from '@/src/application/use-cases/employees/add-employee.use-case';
+import type { IRetireEmployeeUseCase } from '@/src/application/use-cases/employees/retire-employee.use-case';
+import type { IListMyEmployeesController } from '@/src/interface-adapters/controllers/employees/list-my-employees.controller';
+import type { IAddEmployeeController } from '@/src/interface-adapters/controllers/employees/add-employee.controller';
+import type { IRetireEmployeeController } from '@/src/interface-adapters/controllers/employees/retire-employee.controller';
 
 export const DI_SYMBOLS = {
     // Services
@@ -22,12 +29,16 @@ export const DI_SYMBOLS = {
     // Repositories
     IBusinessesRepository: Symbol.for('IBusinessesRepository'),
     IPublicBusinessRepository: Symbol.for('IPublicBusinessRepository'),
+    IEmployeesRepository: Symbol.for('IEmployeesRepository'),
 
     // Use cases
     ICreateBusinessUseCase: Symbol.for('ICreateBusinessUseCase'),
     IListBusinessesUseCase: Symbol.for('IListBusinessesUseCase'),
     IUpdateBusinessUseCase: Symbol.for('IUpdateBusinessUseCase'),
     IGetPublicBusinessUseCase: Symbol.for('IGetPublicBusinessUseCase'),
+    IListEmployeesUseCase: Symbol.for('IListEmployeesUseCase'),
+    IAddEmployeeUseCase: Symbol.for('IAddEmployeeUseCase'),
+    IRetireEmployeeUseCase: Symbol.for('IRetireEmployeeUseCase'),
 
     // Controllers
     IGetCurrentUserController: Symbol.for('IGetCurrentUserController'),
@@ -35,6 +46,9 @@ export const DI_SYMBOLS = {
     IGetMyBusinessController: Symbol.for('IGetMyBusinessController'),
     IUpdateBusinessController: Symbol.for('IUpdateBusinessController'),
     IGetPublicBusinessController: Symbol.for('IGetPublicBusinessController'),
+    IListMyEmployeesController: Symbol.for('IListMyEmployeesController'),
+    IAddEmployeeController: Symbol.for('IAddEmployeeController'),
+    IRetireEmployeeController: Symbol.for('IRetireEmployeeController'),
 };
 
 export interface DI_RETURN_TYPES {
@@ -46,12 +60,16 @@ export interface DI_RETURN_TYPES {
     // Repositories
     IBusinessesRepository: IBusinessesRepository;
     IPublicBusinessRepository: IPublicBusinessRepository;
+    IEmployeesRepository: IEmployeesRepository;
 
     // Use cases
     ICreateBusinessUseCase: ICreateBusinessUseCase;
     IListBusinessesUseCase: IListBusinessesUseCase;
     IUpdateBusinessUseCase: IUpdateBusinessUseCase;
     IGetPublicBusinessUseCase: IGetPublicBusinessUseCase;
+    IListEmployeesUseCase: IListEmployeesUseCase;
+    IAddEmployeeUseCase: IAddEmployeeUseCase;
+    IRetireEmployeeUseCase: IRetireEmployeeUseCase;
 
     // Controllers
     IGetCurrentUserController: IGetCurrentUserController;
@@ -59,4 +77,7 @@ export interface DI_RETURN_TYPES {
     IGetMyBusinessController: IGetMyBusinessController;
     IUpdateBusinessController: IUpdateBusinessController;
     IGetPublicBusinessController: IGetPublicBusinessController;
+    IListMyEmployeesController: IListMyEmployeesController;
+    IAddEmployeeController: IAddEmployeeController;
+    IRetireEmployeeController: IRetireEmployeeController;
 }

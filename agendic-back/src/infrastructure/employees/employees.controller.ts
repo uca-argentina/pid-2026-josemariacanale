@@ -5,23 +5,20 @@ import {
   Get,
   Param,
   ParseIntPipe,
-  Patch,
   Post,
   UseGuards,
 } from '@nestjs/common';
 import { AddEmployeeUseCase } from '../../application/employees/add-employee.use-case';
 import { ListEmployeesByBusinessUseCase } from '../../application/employees/list-employees-by-business.use-case';
 import { RetireEmployeeUseCase } from '../../application/employees/retire-employee.use-case';
-import { UpdateEmployeeUseCase } from '../../application/employees/update-employee.use-case';
 import { ClerkGuard, CurrentUser } from '../users/clerk.guard';
 import { presentEmployee } from './employee.presenter';
-import { CreateEmployeeDto, UpdateEmployeeDto } from './employees.dto';
+import { CreateEmployeeDto } from './employees.dto';
 
 @Controller()
 export class EmployeesController {
   constructor(
     private readonly addEmployeeUseCase: AddEmployeeUseCase,
-    private readonly updateEmployeeUseCase: UpdateEmployeeUseCase,
     private readonly listEmployeesByBusinessUseCase: ListEmployeesByBusinessUseCase,
     private readonly retireEmployeeUseCase: RetireEmployeeUseCase,
   ) {}
@@ -35,18 +32,6 @@ export class EmployeesController {
   ) {
     return presentEmployee(
       await this.addEmployeeUseCase.execute(userId, businessId, dto),
-    );
-  }
-
-  @Patch('employees/:id')
-  @UseGuards(ClerkGuard)
-  async update(
-    @CurrentUser() userId: number,
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: UpdateEmployeeDto,
-  ) {
-    return presentEmployee(
-      await this.updateEmployeeUseCase.execute(userId, id, dto.name),
     );
   }
 

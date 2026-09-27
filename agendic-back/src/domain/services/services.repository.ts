@@ -1,4 +1,4 @@
-import { Service } from './service';
+import { EmployeeService, Service } from './service';
 
 export const SERVICES_REPOSITORY = Symbol('ServicesRepository');
 
@@ -13,7 +13,7 @@ export interface ServicesRepository {
       | 'category'
       | 'durationMinutes'
       | 'price'
-    > & { employeeIds: number[] },
+    > & { employees: Omit<EmployeeService, 'serviceId'>[] },
   ): Promise<Service>;
   findById(id: number): Promise<Service | null>;
   listActiveByBranch(branchId: number): Promise<Service[]>;
@@ -27,13 +27,13 @@ export interface ServicesRepository {
       >
     >,
   ): Promise<Service>;
-  /** Also cancels the Service's future BOOKED Bookings, atomically. */
+  /** Also unlinks its Employees, freeing their Availabilities, and cancels its future BOOKED Bookings, atomically. */
   retire(
     id: number,
     retiredAt: Date,
   ): Promise<{ service: Service; cancelledBookings: number }>;
   /** Throws ConflictError when the Employee is already in charge of the Service. */
-  addEmployee(serviceId: number, employeeId: number): Promise<Service>;
+  addEmployee(link: EmployeeService): Promise<Service>;
   /** Also cancels that pair's future BOOKED Bookings, atomically. */
   removeEmployee(
     serviceId: number,
@@ -42,4 +42,9 @@ export interface ServicesRepository {
   ): Promise<{ service: Service; cancelledBookings: number }>;
   /** Services not dados de baja that this Employee is in charge of, verified or not. */
   listActiveByEmployee(employeeId: number): Promise<Service[]>;
+  /** The (Employee, Service) link, with the Availability the Employee uses for it. Null if they don't attend it. */
+  findEmployeeLink(
+    serviceId: number,
+    employeeId: number,
+  ): Promise<EmployeeService | null>;
 }

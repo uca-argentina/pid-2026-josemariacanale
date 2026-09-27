@@ -10,8 +10,12 @@ import {
   NotFoundError,
 } from '../../domain/errors';
 import { Business as BusinessRow, Prisma } from '../../generated/prisma/client';
+import { toIntervalRow } from '../availabilities/prisma-availabilities.repository';
 import { toBranch, toTime } from '../branches/prisma-branches.repository';
-import { toEmployee } from '../employees/prisma-employees.repository';
+import {
+  toEmployee,
+  WITH_USER,
+} from '../employees/prisma-employees.repository';
 import {
   toService,
   VISIBLE_EMPLOYEES,
@@ -23,8 +27,8 @@ export class PrismaBusinessesRepository implements BusinessesRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * One interactive transaction rather than a nested create: the Servicio and the Empleado are linked to each
-   * other, and neither id exists until the other's row is written.
+   * One interactive transaction rather than a nested create: the Servicio links the Empleado with their
+   * Availability, and none of those ids exists until its row is written.
    */
   async create(data: CreateBusinessData) {
     return this.prisma
@@ -37,16 +41,33 @@ export class PrismaBusinessesRepository implements BusinessesRepository {
             address: data.branch.address,
             opensAt: toTime(data.branch.opensAt),
             closesAt: toTime(data.branch.closesAt),
+            timeZone: data.branch.timeZone,
           },
         });
         const employee = await tx.employee.create({
           data: { businessId: business.id, ...data.employee },
+          include: WITH_USER,
+        });
+        const availability = await tx.availability.create({
+          data: {
+            employeeId: employee.id,
+            name: data.availability.name,
+            isDefault: true,
+            intervals: {
+              create: data.availability.intervals.map(toIntervalRow),
+            },
+          },
         });
         const service = await tx.service.create({
           data: {
             branchId: branch.id,
             ...data.service,
-            employees: { connect: { id: employee.id } },
+            employees: {
+              create: {
+                employeeId: employee.id,
+                availabilityId: availability.id,
+              },
+            },
           },
           include: VISIBLE_EMPLOYEES,
         });
@@ -106,7 +127,8 @@ const CONFLICT_BY_INDEX: Record<string, string> = {
   Business_slug_key: 'Booking link already in use',
   Business_ownerId_key: 'Ya tenés un Negocio',
   Service_branchId_name_ci_key: 'Service name already in use',
-  Employee_businessId_email_ci_key: 'Employee email already in use',
+  Employee_userId_businessId_key:
+    'User already an active Employee of this Business',
 };
 
 /** Where ADR 0004 says the violated index's name arrives through @prisma/adapter-pg. */
@@ -122,7 +144,7 @@ const translateError = (error: unknown): never => {
     if (error.code === 'P2002')
       throw new ConflictError(
         CONFLICT_BY_INDEX[violatedIndex(error) ?? ''] ??
-          'Service name or Employee email already in use',
+          'Service name already in use, or User already an active Employee of this Business',
         { cause: error },
       );
     if (error.code === 'P2025')

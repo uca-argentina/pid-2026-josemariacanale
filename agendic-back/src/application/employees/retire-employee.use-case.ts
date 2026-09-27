@@ -38,6 +38,11 @@ export class RetireEmployeeUseCase {
       employeeId,
       userId,
     );
+    // assertEmployeeOwner already proved userId owns this Business, so this catches the Dueño de-baja-ing themselves.
+    if (employee.userId === userId)
+      throw new BusinessRuleError(
+        'El Dueño no puede darse de baja como Empleado',
+      );
     const affected = await this.services.listActiveByEmployee(employeeId);
     if (affected.some((service) => isLastEmployee(service, employeeId)))
       throw new BusinessRuleError(

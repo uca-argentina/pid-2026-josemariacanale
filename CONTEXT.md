@@ -15,11 +15,11 @@ Persona que reserva Turnos dejando un nombre y un email. No hace falta que sea u
 _Avoid_: usuario final, paciente, consumidor
 
 **Sucursal**:
-Sede física de un Negocio, con horarios propios. Un Negocio puede tener varias.
+Sede física de un Negocio, con zona horaria propia. Un Negocio puede tener varias. Deja de ser la fuente de los horarios reservables.
 _Avoid_: sede, local
 
 **Empleado**:
-Persona que atiende los Servicios de un Negocio, identificada por su nombre y su email dentro de ese Negocio. No hace falta que sea un Usuario.
+Usuario que atiende los Servicios de un Negocio.
 _Avoid_: recurso
 
 **Staff**:
@@ -30,7 +30,7 @@ Persona identificada por Agendic, con contraseña o con un Proveedor de identida
 _Avoid_: cuenta, perfil
 
 **Dueño**:
-Usuario que creó un Negocio y lo gestiona. Un Usuario es Dueño de un solo Negocio; quien quiera otro Negocio se registra como otro Usuario con otro email.
+Usuario que creó un Negocio y lo gestiona. Un Usuario es Dueño de un solo Negocio; quien quiera otro Negocio se registra como otro Usuario con otro email. Es además Empleado de su propio Negocio.
 _Avoid_: owner, titular, admin
 
 **Crear Negocio**:
@@ -80,6 +80,26 @@ _Avoid_: link de verificación, link de confirmación, magic link
 **Servicio**:
 Prestación que ofrece una Sucursal, con duración y precio, atendida por uno o más Empleados. No confundir con los microservicios de la arquitectura.
 _Avoid_: prestación, tratamiento
+
+**Availability**:
+Conjunto de Franjas semanales con nombre que declara cuándo trabaja un Empleado. En pantalla se llama "Horas laborables". Un Empleado tiene una o más, exactamente una predeterminada. El término queda en inglés a pedido explícito: "Disponibilidad" ya se usa en el panel para otra cosa.
+_Avoid_: disponibilidad, horario (a secas), agenda
+
+**Franja**:
+Tramo de un día de la semana dentro de una Availability, con hora de inicio y de fin. Varias por día; un día sin Franjas es un día que no se trabaja. Nunca cruza la medianoche.
+_Avoid_: rango, bloque, slot
+
+**Anulación**:
+Reemplazo de las Franjas de un Empleado para una fecha concreta. Sin horas, es un día libre.
+_Avoid_: excepción, override, licencia
+
+**Cobertura**:
+El Empleado que atiende en lugar de otro durante una Anulación, para no dejar sus Servicios sin nadie. Opcional: una Anulación sin Cobertura simplemente deja esas fechas sin horarios para el Cliente.
+_Avoid_: reemplazo, suplente, backup
+
+**Horario reservable**:
+Hora concreta en la que un Cliente puede Reservar un Turno para un Servicio con un Empleado, ya descontadas las Anulaciones y los Turnos tomados.
+_Avoid_: slot, hueco, disponibilidad
 
 **Categoría de Servicio**:
 Tipo de prestación al que pertenece un Servicio, elegido de una lista fija.

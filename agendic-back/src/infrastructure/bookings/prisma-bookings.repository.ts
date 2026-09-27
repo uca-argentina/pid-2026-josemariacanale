@@ -12,6 +12,7 @@ import {
   NotFoundError,
 } from '../../domain/errors';
 import { Booking as BookingRow, Prisma } from '../../generated/prisma/client';
+import { BOOKING_NO_OVERLAP, isExclusionViolation } from '../prisma-errors';
 import { PrismaService } from '../prisma.service';
 
 /** Stores only a hash of each verification token, so a leaked table can't be used to verify a Turno. */
@@ -91,6 +92,20 @@ export class PrismaBookingsRepository implements BookingsRepository {
         .catch(translateError)
     ).map(toBooking);
   }
+
+  async listBookedByEmployee(employeeId: number, from: Date, to: Date) {
+    return this.prisma.booking
+      .findMany({
+        where: {
+          employeeId,
+          status: BookingStatus.BOOKED,
+          startsAt: { lt: to },
+          endsAt: { gt: from },
+        },
+        select: { startsAt: true, endsAt: true },
+      })
+      .catch(translateError);
+  }
 }
 
 const toBooking = (row: BookingRow): Booking => ({
@@ -104,21 +119,11 @@ const toBooking = (row: BookingRow): Booking => ({
   status: row.status as BookingStatus,
 });
 
-/** Postgres 23P01 (exclusion violation) arrives as the generic P2039, per ADR 0004. */
-const isOverlapViolation = (error: Prisma.PrismaClientKnownRequestError) => {
-  const cause = (
-    error.meta as { driverAdapterError?: { cause?: { originalCode?: string } } }
-  )?.driverAdapterError?.cause;
-  return (
-    cause?.originalCode === '23P01' || error.message.includes('Booking_no_overlap')
-  );
-};
-
 const translateError = (error: unknown): never => {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     if (error.code === 'P2025')
       throw new NotFoundError('Booking not found', { cause: error });
-    if (error.code === 'P2039' && isOverlapViolation(error))
+    if (isExclusionViolation(error, BOOKING_NO_OVERLAP))
       throw new ConflictError('Overlaps a booked Turno for this Employee', {
         cause: error,
       });
