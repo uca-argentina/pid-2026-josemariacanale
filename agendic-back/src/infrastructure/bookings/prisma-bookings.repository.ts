@@ -92,6 +92,20 @@ export class PrismaBookingsRepository implements BookingsRepository {
         .catch(translateError)
     ).map(toBooking);
   }
+
+  async listBookedByEmployee(employeeId: number, from: Date, to: Date) {
+    return this.prisma.booking
+      .findMany({
+        where: {
+          employeeId,
+          status: BookingStatus.BOOKED,
+          startsAt: { lt: to },
+          endsAt: { gt: from },
+        },
+        select: { startsAt: true, endsAt: true },
+      })
+      .catch(translateError);
+  }
 }
 
 const toBooking = (row: BookingRow): Booking => ({

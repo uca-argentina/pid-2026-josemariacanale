@@ -115,6 +115,7 @@ export async function createTestApp() {
     addEmployee: jest.fn(),
     removeEmployee: jest.fn(),
     listActiveByEmployee: jest.fn(),
+    findEmployeeLink: jest.fn(),
   };
   const bookings: jest.Mocked<BookingsRepository> = {
     create: jest.fn(),
@@ -122,6 +123,7 @@ export async function createTestApp() {
     findByVerificationToken: jest.fn(),
     markBooked: jest.fn(),
     listByBusiness: jest.fn(),
+    listBookedByEmployee: jest.fn(),
   };
   const availabilities: jest.Mocked<AvailabilitiesRepository> = {
     listByEmployee: jest.fn(),

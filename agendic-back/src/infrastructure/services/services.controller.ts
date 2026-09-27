@@ -7,6 +7,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { AssignEmployeeUseCase } from '../../application/services/assign-employee.use-case';
@@ -15,6 +16,8 @@ import { ListActiveServicesByBranchUseCase } from '../../application/services/li
 import { RemoveEmployeeUseCase } from '../../application/services/remove-employee.use-case';
 import { RetireServiceUseCase } from '../../application/services/retire-service.use-case';
 import { UpdateServiceUseCase } from '../../application/services/update-service.use-case';
+import { ListSlotsUseCase } from '../../application/slots/list-slots.use-case';
+import { ParseDatePipe } from '../parse-date.pipe';
 import { ClerkGuard, CurrentUser } from '../users/clerk.guard';
 import { presentService } from './service.presenter';
 import {
@@ -32,6 +35,7 @@ export class ServicesController {
     private readonly listActiveServicesByBranchUseCase: ListActiveServicesByBranchUseCase,
     private readonly assignEmployeeUseCase: AssignEmployeeUseCase,
     private readonly removeEmployeeUseCase: RemoveEmployeeUseCase,
+    private readonly listSlotsUseCase: ListSlotsUseCase,
   ) {}
 
   @Post('branches/:id/services')
@@ -94,5 +98,15 @@ export class ServicesController {
     return (await this.listActiveServicesByBranchUseCase.execute(branchId)).map(
       presentService,
     );
+  }
+
+  @Get('services/:id/slots')
+  async slots(
+    @Param('id', ParseIntPipe) serviceId: number,
+    @Query('employeeId', ParseIntPipe) employeeId: number,
+    @Query('from', ParseDatePipe) from: string,
+    @Query('to', ParseDatePipe) to: string,
+  ) {
+    return this.listSlotsUseCase.execute(serviceId, employeeId, from, to);
   }
 }

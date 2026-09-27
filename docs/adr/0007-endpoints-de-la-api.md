@@ -152,6 +152,24 @@ del Empleado: cualquier otro Usuario recibe 403.
 - Las Franjas de una Anulación siguen las mismas reglas que las de una Availability (dos Franjas del mismo día que se solapan → 422 `Dos Franjas del mismo día se solapan`; una que termina antes o al mismo tiempo que empieza → 422 `Cada Franja tiene que terminar después de empezar`; dos que se tocan se aceptan)
 - **Cobertura**: `coveredByEmployeeId` tiene que ser un Empleado activo del mismo Negocio y atender todos los Servicios de quien se ausenta; si no, 422 `La Cobertura tiene que ser un Empleado activo del mismo Negocio` o `La Cobertura tiene que atender todos los Servicios de quien se ausenta`. Activarla reasigna, en la misma transacción, los Turnos `BOOKED` de quien se ausenta en esa fecha a quien cubre; si alguno choca con un Turno ya confirmado de quien cubre, 409 `El cubridor ya tiene un Turno a esa hora` y no se guarda nada. Sacar la Anulación (`DELETE`) no revierte los Turnos ya reasignados
 
+## Slots (Horario reservable)
+
+| Método | Ruta | Auth | Qué hace |
+|---|---|---|---|
+| GET | `/services/:id/slots` | no | Los Horarios reservables de un Servicio con un Empleado, día por día, en un rango de fechas |
+
+- Query: `employeeId` (int, requerido), `from`/`to` (`YYYY-MM-DD`, fechas locales de la Sucursal, inclusive, requeridos); falta alguno o formato inválido → 400
+- Rango de hasta 31 días; más, o `to` anterior a `from` → 422
+- Servicio inexistente o dado de baja → 404; Empleado que no atiende ese Servicio → 404
+- Todo el cálculo corre en la zona horaria de la Sucursal del Servicio; la respuesta trae instantes UTC:
+  1. Arranca de las Franjas de la Availability con la que ese Empleado atiende ese Servicio, por día de la semana
+  2. Una Anulación de esa fecha reemplaza esas Franjas por completo (día sin horas = día libre)
+  3. Recorta contra `opensAt`/`closesAt` de la Sucursal (nunca toca la Availability)
+  4. Grilla de a 15 minutos fijos; entra el horario si el Servicio completo termina antes o al mismo tiempo que el fin de la Franja
+  5. Descuenta los Turnos `BOOKED` de ese Empleado que pisen el horario, en cualquiera de sus Servicios
+  6. Descarta lo que ya pasó según el reloj del sistema; un día ya pasado no viene
+- Respuesta: `{ timeZone, days: [{ date, slots: [ISO instants], reason?, coveredByEmployeeId? }] }`. `reason` solo aparece cuando `slots` está vacío: `NOT_WORKING` (sin Franjas, Anulación de día libre, o nada sobrevive el recorte), `FULLY_BOOKED` (había horarios pero los Turnos o el reloj se los llevaron todos), o `COVERED` (la fecha tiene una Anulación con Cobertura; no se calcula nada más y el día trae además `coveredByEmployeeId`)
+
 ## Bookings (Turno)
 
 | Método | Ruta | Auth | Qué hace |
