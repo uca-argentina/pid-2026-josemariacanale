@@ -13,17 +13,12 @@ import type { ICreateBusinessController } from '@/src/interface-adapters/control
 import type { IGetPublicBusinessController } from '@/src/interface-adapters/controllers/businesses/get-public-business.controller';
 import type { IGetCurrentUserController } from '@/src/interface-adapters/controllers/auth/get-current-user.controller';
 import type { IEmployeesRepository } from '@/src/application/repositories/employees.repository.interface';
-import type { IBookingsRepository } from '@/src/application/repositories/bookings.repository.interface';
 import type { IListEmployeesUseCase } from '@/src/application/use-cases/employees/list-employees.use-case';
 import type { IAddEmployeeUseCase } from '@/src/application/use-cases/employees/add-employee.use-case';
 import type { IRetireEmployeeUseCase } from '@/src/application/use-cases/employees/retire-employee.use-case';
-import type { ICreateBookingUseCase } from '@/src/application/use-cases/bookings/create-booking.use-case';
-import type { IGetServiceSlotsUseCase } from '@/src/application/use-cases/bookings/get-service-slots.use-case';
 import type { IListMyEmployeesController } from '@/src/interface-adapters/controllers/employees/list-my-employees.controller';
 import type { IAddEmployeeController } from '@/src/interface-adapters/controllers/employees/add-employee.controller';
 import type { IRetireEmployeeController } from '@/src/interface-adapters/controllers/employees/retire-employee.controller';
-import type { ICreateBookingController } from '@/src/interface-adapters/controllers/bookings/create-booking.controller';
-import type { IGetServiceSlotsController } from '@/src/interface-adapters/controllers/bookings/get-service-slots.controller';
 
 export const DI_SYMBOLS = {
     // Services
@@ -35,7 +30,6 @@ export const DI_SYMBOLS = {
     IBusinessesRepository: Symbol.for('IBusinessesRepository'),
     IPublicBusinessRepository: Symbol.for('IPublicBusinessRepository'),
     IEmployeesRepository: Symbol.for('IEmployeesRepository'),
-    IBookingsRepository: Symbol.for('IBookingsRepository'),
 
     // Use cases
     ICreateBusinessUseCase: Symbol.for('ICreateBusinessUseCase'),
@@ -45,8 +39,6 @@ export const DI_SYMBOLS = {
     IListEmployeesUseCase: Symbol.for('IListEmployeesUseCase'),
     IAddEmployeeUseCase: Symbol.for('IAddEmployeeUseCase'),
     IRetireEmployeeUseCase: Symbol.for('IRetireEmployeeUseCase'),
-    ICreateBookingUseCase: Symbol.for('ICreateBookingUseCase'),
-    IGetServiceSlotsUseCase: Symbol.for('IGetServiceSlotsUseCase'),
 
     // Controllers
     IGetCurrentUserController: Symbol.for('IGetCurrentUserController'),
@@ -57,8 +49,6 @@ export const DI_SYMBOLS = {
     IListMyEmployeesController: Symbol.for('IListMyEmployeesController'),
     IAddEmployeeController: Symbol.for('IAddEmployeeController'),
     IRetireEmployeeController: Symbol.for('IRetireEmployeeController'),
-    ICreateBookingController: Symbol.for('ICreateBookingController'),
-    IGetServiceSlotsController: Symbol.for('IGetServiceSlotsController'),
 };
 
 export interface DI_RETURN_TYPES {
@@ -71,7 +61,6 @@ export interface DI_RETURN_TYPES {
     IBusinessesRepository: IBusinessesRepository;
     IPublicBusinessRepository: IPublicBusinessRepository;
     IEmployeesRepository: IEmployeesRepository;
-    IBookingsRepository: IBookingsRepository;
 
     // Use cases
     ICreateBusinessUseCase: ICreateBusinessUseCase;
@@ -81,8 +70,6 @@ export interface DI_RETURN_TYPES {
     IListEmployeesUseCase: IListEmployeesUseCase;
     IAddEmployeeUseCase: IAddEmployeeUseCase;
     IRetireEmployeeUseCase: IRetireEmployeeUseCase;
-    ICreateBookingUseCase: ICreateBookingUseCase;
-    IGetServiceSlotsUseCase: IGetServiceSlotsUseCase;
 
     // Controllers
     IGetCurrentUserController: IGetCurrentUserController;
@@ -93,6 +80,4 @@ export interface DI_RETURN_TYPES {
     IListMyEmployeesController: IListMyEmployeesController;
     IAddEmployeeController: IAddEmployeeController;
     IRetireEmployeeController: IRetireEmployeeController;
-    ICreateBookingController: ICreateBookingController;
-    IGetServiceSlotsController: IGetServiceSlotsController;
 }
