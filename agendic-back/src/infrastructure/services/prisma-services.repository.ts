@@ -175,6 +175,13 @@ export class PrismaServicesRepository implements ServicesRepository {
         .catch(translateError)
     ).map(toService);
   }
+
+  async findEmployeeLink(serviceId: number, employeeId: number) {
+    const row = await this.prisma.employeeService
+      .findUnique({ where: { employeeId_serviceId: { employeeId, serviceId } } })
+      .catch(translateError);
+    return row;
+  }
 }
 
 export const toService = (row: ServiceRowWithEmployees): Service => ({

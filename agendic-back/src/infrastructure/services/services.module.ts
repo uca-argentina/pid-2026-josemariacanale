@@ -5,6 +5,7 @@ import { ListActiveServicesByBranchUseCase } from '../../application/services/li
 import { RemoveEmployeeUseCase } from '../../application/services/remove-employee.use-case';
 import { RetireServiceUseCase } from '../../application/services/retire-service.use-case';
 import { UpdateServiceUseCase } from '../../application/services/update-service.use-case';
+import { ListSlotsUseCase } from '../../application/slots/list-slots.use-case';
 import { UsersModule } from '../users/users.module';
 import { ServicesController } from './services.controller';
 
@@ -18,6 +19,7 @@ import { ServicesController } from './services.controller';
     ListActiveServicesByBranchUseCase,
     AssignEmployeeUseCase,
     RemoveEmployeeUseCase,
+    ListSlotsUseCase,
   ],
 })
 export class ServicesModule {}
