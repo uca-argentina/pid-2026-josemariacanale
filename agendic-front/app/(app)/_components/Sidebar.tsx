@@ -7,10 +7,6 @@ import {
     Calendar,
     Clock,
     LayoutGrid,
-    Users,
-    Building2,
-    UserRound,
-    BarChart3,
     Settings,
     Store,
     ExternalLink,
@@ -37,10 +33,6 @@ const ICONS: Record<SectionId, React.ComponentType<{ className?: string }>> = {
     bookings: Calendar,
     availability: Clock,
     services: LayoutGrid,
-    employees: Users,
-    branches: Building2,
-    clients: UserRound,
-    metrics: BarChart3,
     business: Store,
 };
 

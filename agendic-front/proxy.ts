@@ -12,10 +12,6 @@ const protectedRoutes = [
     '/bookings',
     '/availability',
     '/services',
-    '/employees',
-    '/branches',
-    '/clients',
-    '/metrics',
 ];
 const authRoutes = ['/sign-in', '/sign-up'];
 

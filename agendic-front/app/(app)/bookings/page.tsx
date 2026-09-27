@@ -1,12 +1,7 @@
-import { Topbar } from '../_components/Topbar';
-import { TurnosView } from './_components/TurnosView';
-import { turnosByTab, pendingCount } from '../_components/mock-turnos';
+import { BookingsView } from './_components/BookingsView';
+import { loadBookings } from '../_components/mock-bookings';
 
 export default function BookingsPage() {
-    return (
-        <>
-            <Topbar title="Turnos" subtitle="Gestioná la agenda de todas tus sucursales en tiempo real." />
-            <TurnosView turnosByTab={turnosByTab} pendingCount={pendingCount} />
-        </>
-    );
+    const { now, bookings } = loadBookings();
+    return <BookingsView initialBookings={bookings} now={now} />;
 }

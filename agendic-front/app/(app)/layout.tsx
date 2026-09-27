@@ -4,17 +4,13 @@ import { Toaster } from 'sonner';
 import { getCurrentUser } from '@/app/(public)/(auth)/current-user';
 import { SIGN_IN_PATH } from '@/app/routes';
 import { Sidebar } from './_components/Sidebar';
-import { pendingCount } from './_components/mock-turnos';
+import { loadPendingCount } from './_components/mock-bookings';
 import type { NavItem } from './_components/types';
 
 const navItems: NavItem[] = [
-    { id: 'bookings', label: 'Turnos', count: pendingCount },
+    { id: 'bookings', label: 'Turnos' },
     { id: 'availability', label: 'Disponibilidad' },
     { id: 'services', label: 'Servicios' },
-    { id: 'employees', label: 'Profesionales' },
-    { id: 'branches', label: 'Sucursales' },
-    { id: 'clients', label: 'Clientes' },
-    { id: 'metrics', label: 'Métricas' },
     { id: 'business', label: 'Mi Negocio' },
 ];
 
@@ -35,7 +31,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <div className="flex min-h-screen w-full bg-muted">
             <Sidebar
                 user={{ name: user.name, initials: initialsOf(user.name), imageUrl: user.imageUrl }}
-                navItems={navItems}
+                // ponytail: cuenta los pendientes del mock; no sigue los Aceptar/Rechazar de la lista hasta que persistan.
+                navItems={navItems.map((item) => (item.id === 'bookings' ? { ...item, count: loadPendingCount() } : item))}
             />
             <main className="flex min-w-0 flex-1 flex-col">{children}</main>
             <Toaster
