@@ -16,7 +16,7 @@ const SERVICE_ROW = {
   durationMinutes: 30,
   price: '20', // Prisma returns Decimal columns as a Decimal-like; Number() reads a numeric string just as well
   retiredAt: null,
-  employees: [{ id: 7, name: 'Ana Pérez' }],
+  employees: [{ id: 7, user: { name: 'Ana Pérez' } }],
 };
 
 const SERVICE: Service = {
@@ -54,8 +54,8 @@ describe('PrismaServicesRepository', () => {
   const SERVICE_ROW_WITH_TWO: typeof SERVICE_ROW = {
     ...SERVICE_ROW,
     employees: [
-      { id: 7, name: 'Ana Pérez' },
-      { id: 8, name: 'Bruno Díaz' },
+      { id: 7, user: { name: 'Ana Pérez' } },
+      { id: 8, user: { name: 'Bruno Díaz' } },
     ],
   };
   const repository = new PrismaServicesRepository(
@@ -114,7 +114,10 @@ describe('PrismaServicesRepository', () => {
 
       await expect(repository.addEmployee(1, 8)).resolves.toEqual({
         ...SERVICE,
-        employees: SERVICE_ROW_WITH_TWO.employees,
+        employees: [
+          { id: 7, name: 'Ana Pérez' },
+          { id: 8, name: 'Bruno Díaz' },
+        ],
       });
       expect(prisma.service.update).toHaveBeenCalledWith({
         where: { id: 1 },

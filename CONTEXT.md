@@ -19,7 +19,7 @@ Sede física de un Negocio, con horarios propios. Un Negocio puede tener varias.
 _Avoid_: sede, local
 
 **Empleado**:
-Persona que atiende los Servicios de un Negocio, identificada por su nombre y su email dentro de ese Negocio. No hace falta que sea un Usuario.
+Usuario que atiende los Servicios de un Negocio.
 _Avoid_: recurso
 
 **Staff**:
@@ -30,7 +30,7 @@ Persona identificada por Agendic, con contraseña o con un Proveedor de identida
 _Avoid_: cuenta, perfil
 
 **Dueño**:
-Usuario que creó un Negocio y lo gestiona. Un Usuario es Dueño de un solo Negocio; quien quiera otro Negocio se registra como otro Usuario con otro email.
+Usuario que creó un Negocio y lo gestiona. Un Usuario es Dueño de un solo Negocio; quien quiera otro Negocio se registra como otro Usuario con otro email. Es además Empleado de su propio Negocio.
 _Avoid_: owner, titular, admin
 
 **Crear Negocio**:

@@ -96,7 +96,6 @@ export async function createTestApp() {
     create: jest.fn(),
     findById: jest.fn(),
     listActiveByBusiness: jest.fn(),
-    update: jest.fn(),
     retire: jest.fn(),
   };
   const services: jest.Mocked<ServicesRepository> = {
@@ -191,6 +190,7 @@ export const ANAS_BRANCH: Branch = {
 /** Ana as the Empleado of her own Negocio. */
 export const ANAS_EMPLOYEE: Employee = {
   id: 1,
+  userId: ANA.id,
   businessId: ANAS_BUSINESS.id,
   name: ANA.name,
   email: ANA.email,

@@ -34,10 +34,10 @@ const BRANCH_ROW = {
 
 const EMPLOYEE_ROW = {
   id: 20,
+  userId: ANAS_BUSINESS.ownerId,
   businessId: ANAS_BUSINESS.id,
-  name: 'Ana Pérez',
-  email: 'ana@example.com',
   retiredAt: null,
+  user: { name: 'Ana Pérez', email: 'ana@example.com' },
 };
 
 const SERVICE_ROW = {
@@ -49,7 +49,7 @@ const SERVICE_ROW = {
   durationMinutes: 30,
   price: '20',
   retiredAt: null,
-  employees: [{ id: EMPLOYEE_ROW.id, name: EMPLOYEE_ROW.name }],
+  employees: [{ id: EMPLOYEE_ROW.id, user: { name: EMPLOYEE_ROW.user.name } }],
 };
 
 const CREATE_DATA = {
@@ -73,8 +73,7 @@ const CREATE_DATA = {
     price: 20,
   },
   employee: {
-    name: 'Ana Pérez',
-    email: 'ana@example.com',
+    userId: ANAS_BUSINESS.ownerId,
   },
 };
 
@@ -127,6 +126,7 @@ describe('PrismaBusinessesRepository', () => {
     });
     expect(created.employee).toEqual({
       id: EMPLOYEE_ROW.id,
+      userId: EMPLOYEE_ROW.userId,
       businessId: ANAS_BUSINESS.id,
       name: 'Ana Pérez',
       email: 'ana@example.com',
@@ -141,7 +141,7 @@ describe('PrismaBusinessesRepository', () => {
       durationMinutes: 30,
       price: 20,
       retiredAt: null,
-      employees: [{ id: EMPLOYEE_ROW.id, name: EMPLOYEE_ROW.name }],
+      employees: [{ id: EMPLOYEE_ROW.id, name: EMPLOYEE_ROW.user.name }],
     });
   });
 
@@ -194,8 +194,14 @@ describe('PrismaBusinessesRepository', () => {
 
   it.each([
     ['Service_branchId_name_ci_key', 'Service name already in use'],
-    ['Employee_businessId_email_ci_key', 'Employee email already in use'],
-    [undefined, 'Service name or Employee email already in use'],
+    [
+      'Employee_userId_businessId_key',
+      'User already an active Employee of this Business',
+    ],
+    [
+      undefined,
+      'Service name already in use, or User already an active Employee of this Business',
+    ],
   ])(
     'names the violated index %s in the ConflictError it throws',
     async (index, message) => {

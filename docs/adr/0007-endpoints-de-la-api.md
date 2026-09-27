@@ -47,7 +47,7 @@ actualizarlo a mano cuando se agregue, cambie o borre un endpoint.
 
 | Método | Ruta | Auth | Qué hace |
 |---|---|---|---|
-| POST | `/businesses` | sí | Crea un negocio junto con su primera sucursal, servicio y empleado (alta todo-en-uno); 409 si el Usuario ya es Dueño de un Negocio (ADR 0012) |
+| POST | `/businesses` | sí | Crea un negocio junto con su primera sucursal, servicio y empleado (alta todo-en-uno); el Empleado creado es el propio Dueño (su Usuario de Sesión, ADR 0013); 409 si el Usuario ya es Dueño de un Negocio (ADR 0012) |
 | PATCH | `/businesses/:id` | sí | Actualiza name/description/slug (solo el dueño); cambiar el slug deja de servir el Enlace de reserva anterior |
 | GET | `/businesses` | sí | Lista solo los negocios del Dueño de la sesión (0 o 1) |
 | GET | `/businesses/:id` | no | Detalle de un negocio |
@@ -90,17 +90,18 @@ actualizarlo a mano cuando se agregue, cambie o borre un endpoint.
 
 ## Employees (Empleado)
 
+Todo Empleado es un Usuario (ADR 0013): nombre y email los presta su cuenta, no se cargan a mano.
+
 | Método | Ruta | Auth | Qué hace |
 |---|---|---|---|
-| POST | `/businesses/:id/employees` | sí | Agrega un empleado a un negocio (solo el dueño); 201 con el empleado, 409 si su email ya está en el negocio |
-| PATCH | `/employees/:id` | sí | Actualiza el name del empleado (solo el dueño) |
-| DELETE | `/employees/:id` | sí | Da de baja (soft-delete) un empleado (solo el dueño) |
-| GET | `/businesses/:id/employees` | sí | Lista empleados de un negocio (solo el dueño) |
+| POST | `/businesses/:id/employees` | sí | Agrega un empleado a un negocio por su email (solo el dueño); 201 con el empleado; 422 si ese email no tiene Usuario (mensaje: todavía no tiene cuenta en Agendic, tiene que registrarse); 409 si ya es empleado activo del negocio |
+| DELETE | `/employees/:id` | sí | Da de baja (soft-delete) un empleado (solo el dueño); 422 si es el Dueño dándose de baja a sí mismo |
+| GET | `/businesses/:id/employees` | sí | Lista empleados activos de un negocio (solo el dueño) |
 
-- `CreateEmployeeDto`: `{ name, email }`
-- `UpdateEmployeeDto`: `{ name }`
-- Respuesta (`presentEmployee`): `{ id, name, email }` — vista del dueño; en el array
+- `CreateEmployeeDto`: `{ email }`
+- Respuesta (`presentEmployee`): `{ id, userId, name, email }` — vista del dueño; en el array
   `employees` de un Service la vista pública es solo `{ id, name }`.
+- Recontratar a alguien dado de baja crea una fila nueva: no hay `PATCH` para reactivarlo.
 
 ## Bookings (Turno)
 

@@ -2,7 +2,7 @@
 // Hand-written SQL in the migrations, not expressible here (ADR 0004):
 // - no overlapping BOOKED Bookings per Employee (exclusion constraint)
 // - Service name unique in any casing among a Branch's Services not retired
-// - Employee email unique in any casing among a Business's Employees not retired
+// - one active Employee (retiredAt null) per (userId, businessId): a User can be re-hired after being dado de baja
 
 generator client {
   provider     = "prisma-client"
@@ -36,6 +36,7 @@ model User {
   createdAt DateTime @default(now()) @db.Timestamptz(3)
 
   businesses Business[]
+  employees  Employee[]
 }
 
 model Business {
@@ -79,11 +80,11 @@ model Service {
 
 model Employee {
   id         Int       @id @default(autoincrement())
+  userId     Int
   businessId Int
-  name       String
-  email      String
-  retiredAt DateTime? @db.Timestamptz(3) // when dado de baja; null while employed
+  retiredAt  DateTime? @db.Timestamptz(3) // when dado de baja; null while employed
 
+  user     User      @relation(fields: [userId], references: [id])
   business Business  @relation(fields: [businessId], references: [id])
   services Service[]
   bookings Booking[]

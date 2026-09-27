@@ -14,7 +14,7 @@ export interface CreateBusinessData {
     'name' | 'description' | 'category' | 'durationMinutes' | 'price'
   >;
   /** The Dueño, in charge of that first Servicio. */
-  employee: Pick<Employee, 'name' | 'email'>;
+  employee: Pick<Employee, 'userId'>;
 }
 
 export interface CreatedBusiness {

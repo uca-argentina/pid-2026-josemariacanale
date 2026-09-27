@@ -1,6 +1,8 @@
 export interface Employee {
   id: number;
+  userId: number;
   businessId: number;
+  /** From the Usuario, not stored on the Empleado. */
   name: string;
   email: string;
   /** When dado de baja; null while employed. */

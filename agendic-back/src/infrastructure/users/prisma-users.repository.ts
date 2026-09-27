@@ -35,7 +35,7 @@ export class PrismaUsersRepository implements UsersRepository {
 
   async findByEmail(email: string) {
     const row = await this.prisma.user
-      .findFirst({ where: { email } })
+      .findFirst({ where: { email: { equals: email, mode: 'insensitive' } } })
       .catch(translateError);
     return row && toUser(row);
   }

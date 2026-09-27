@@ -92,7 +92,7 @@ describe('Negocio', () => {
         business: { ...BUSINESS_PART, ownerId: ANA.id },
         branch: BRANCH_PART,
         service: SERVICE_PART,
-        employee: { name: ANA.name, email: ANA.email },
+        employee: { userId: ANA.id },
       });
       expect(res.body).toEqual({
         business: PRESENTED_BUSINESS,
@@ -109,6 +109,7 @@ describe('Negocio', () => {
         },
         employee: {
           id: ANAS_EMPLOYEE.id,
+          userId: ANAS_EMPLOYEE.userId,
           name: ANAS_EMPLOYEE.name,
           email: ANAS_EMPLOYEE.email,
         },

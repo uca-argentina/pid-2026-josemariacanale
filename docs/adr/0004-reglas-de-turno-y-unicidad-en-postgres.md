@@ -4,7 +4,7 @@ Tres reglas las garantizan constraints escritas a mano en la migración `init`, 
 
 - dos Turnos `BOOKED` del mismo Empleado no se solapan, usando intervalos semiabiertos. Es una exclusion constraint sobre `tstzrange`, vía `btree_gist`;
 - el nombre de un Servicio es único, sin distinguir mayúsculas, entre los Servicios de una Sucursal que no están dados de baja (`retiredAt` en null);
-- el email de un Empleado es único, sin distinguir mayúsculas, entre los Empleados de un Negocio que no están dados de baja (`retiredAt` en null).
+- un Usuario es Empleado activo de a lo sumo un Negocio a la vez: único por `(userId, businessId)` entre los Empleados que no están dados de baja (`retiredAt` en null). Recontratar a alguien dado de baja crea una fila nueva (ADR 0013).
 
 Un chequeo que vive solo en la aplicación tiene una carrera: dos pedidos concurrentes ven el mismo horario libre y los dos escriben. Una constraint en la base hace la carrera imposible, y sale más barato que tomar locks. Prisma no puede expresar estas constraints en `schema.prisma`, así que viven solo en el SQL de la migración. El diff de Prisma las ignora, así que no va a intentar borrarlas. El precio es que `schema.prisma` no cuenta toda la verdad sobre la base, y el comentario del encabezado de `schema.prisma` apunta acá.
 

@@ -67,14 +67,14 @@ describe('PrismaUsersRepository', () => {
     });
   });
 
-  it('finds by email', async () => {
+  it('finds by email, without distinguishing casing', async () => {
     prisma.user.findFirst.mockResolvedValue(ANA);
 
-    await expect(repository.findByEmail('ana@example.com')).resolves.toEqual(
+    await expect(repository.findByEmail('Ana@Example.com')).resolves.toEqual(
       ANA,
     );
     expect(prisma.user.findFirst).toHaveBeenCalledWith({
-      where: { email: 'ana@example.com' },
+      where: { email: { equals: 'Ana@Example.com', mode: 'insensitive' } },
     });
   });
 

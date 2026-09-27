@@ -10,20 +10,21 @@ import {
   Employee as EmployeeRow,
   Prisma,
   Service as ServiceRow,
+  User as UserRow,
 } from '../../generated/prisma/client';
 import { cancelFutureBooked } from '../bookings/cancel-future-booked';
 import { PrismaService } from '../prisma.service';
 
-/** Only the Empleados anyone browsing may see attending a Servicio: not dados de baja. */
+/** Only the Empleados anyone browsing may see attending a Servicio: not dados de baja. The name comes from the Usuario. */
 export const VISIBLE_EMPLOYEES = {
   employees: {
     where: { retiredAt: null },
-    select: { id: true, name: true },
+    select: { id: true, user: { select: { name: true } } },
   },
 } satisfies Prisma.ServiceInclude;
 
 type ServiceRowWithEmployees = ServiceRow & {
-  employees: Pick<EmployeeRow, 'id' | 'name'>[];
+  employees: (Pick<EmployeeRow, 'id'> & { user: Pick<UserRow, 'name'> })[];
 };
 
 @Injectable()
@@ -167,7 +168,7 @@ export const toService = (row: ServiceRowWithEmployees): Service => ({
   durationMinutes: row.durationMinutes,
   price: Number(row.price),
   retiredAt: row.retiredAt,
-  employees: row.employees.map(({ id, name }) => ({ id, name })),
+  employees: row.employees.map(({ id, user }) => ({ id, name: user.name })),
 });
 
 const translateError = (error: unknown): never => {

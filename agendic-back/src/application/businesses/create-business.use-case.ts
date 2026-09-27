@@ -36,7 +36,7 @@ export class CreateBusinessUseCase {
         ...input.service,
         description: input.service.description ?? null,
       },
-      employee: { name: owner.name, email: owner.email },
+      employee: { userId: owner.id },
     });
   }
 }
