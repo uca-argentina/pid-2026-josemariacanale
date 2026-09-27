@@ -10,11 +10,12 @@ const usuario = {
 };
 
 describe('getCurrentUserController', () => {
-    it('returns the name and photo of the Usuario behind the Sesión', async () => {
+    it('returns the name, email and photo of the Usuario behind the Sesión', async () => {
         const getCurrentUser = jest.fn().mockResolvedValue(usuario);
 
         await expect(getCurrentUserController(instrumentation, authWith({ getCurrentUser }))()).resolves.toEqual({
             name: 'Ana Pérez',
+            email: 'ana@negocio.com',
             imageUrl: 'https://img.clerk.com/ana',
         });
     });

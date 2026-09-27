@@ -4,9 +4,10 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Clock, Copy, Loader2, MoreHorizontal, Plus, Search, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { slugify } from '@/app/onboarding/_components/schemas';
+import { slugify } from '@/app/_components/business-schemas';
 import { cn } from '@/app/_components/utils';
 import {
+    PanelAvatar,
     PanelBadge,
     PanelButton,
     PanelDialog,
@@ -21,14 +22,6 @@ import {
 } from '@/app/(app)/_components/panel-ui';
 import { OfferButton, PublicLinkButtons } from './service-actions';
 import { bookingLink, formatPrice, publicUrl, type ServiceGroup, type ServiceItem } from '@/app/(app)/_components/mock-services';
-
-const initials = (name: string) =>
-    name
-        .split(' ')
-        .slice(0, 2)
-        .map((w) => w[0])
-        .join('')
-        .toUpperCase();
 
 function ServiceRow({
     group,
@@ -109,9 +102,7 @@ function ServiceRow({
 function GroupHeader({ group }: { group: ServiceGroup }) {
     return (
         <div className="mb-3 flex items-center gap-3">
-            <span className="flex size-9 items-center justify-center rounded-full bg-[#0f1b2d] text-[12px] font-extrabold text-white">
-                {initials(group.business.name)}
-            </span>
+            <PanelAvatar name={group.business.name} />
             <div className="flex min-w-0 flex-col">
                 <span className="text-[14.5px] font-bold tracking-[-0.02em] text-[#0f1b2d]">{group.business.name}</span>
                 <span className="text-[12.5px] font-medium text-[#6b7280]">

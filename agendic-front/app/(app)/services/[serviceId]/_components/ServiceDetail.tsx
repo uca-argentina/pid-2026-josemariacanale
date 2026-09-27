@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Calendar, ChevronRight, Clock, ExternalLink, Globe, Info, Link2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { slugify } from '@/app/onboarding/_components/schemas';
+import { slugify } from '@/app/_components/business-schemas';
 import { cn } from '@/app/_components/utils';
 import {
     PanelButton,
@@ -18,6 +18,7 @@ import {
     PanelSelect,
     PanelSwitch,
     PanelTextarea,
+    PanelToggleRow,
 } from '@/app/(app)/_components/panel-ui';
 import { OfferButton, PublicLinkButtons } from '../../_components/service-actions';
 import {
@@ -36,34 +37,6 @@ const PREP_OPTIONS = [0, 5, 10, 15, 30, 60].map((m) => ({
     value: String(m),
     label: m === 0 ? 'Sin preparación' : `${m} minutos`,
 }));
-
-function ToggleRow({
-    id,
-    title,
-    description,
-    checked,
-    onCheckedChange,
-    disabled,
-}: {
-    id: string;
-    title: string;
-    description: string;
-    checked: boolean;
-    onCheckedChange: (checked: boolean) => void;
-    disabled?: boolean;
-}) {
-    return (
-        <div className="flex items-start gap-3">
-            <PanelSwitch id={id} checked={checked} onCheckedChange={onCheckedChange} disabled={disabled} />
-            <div className="flex flex-col gap-0.5">
-                <label htmlFor={id} className="text-[13.5px] font-bold tracking-[-0.01em] text-[#0f1b2d]">
-                    {title}
-                </label>
-                <p className="m-0 text-[12.5px] font-medium text-[#6b7280]">{description}</p>
-            </div>
-        </div>
-    );
-}
 
 function SetupTab({
     draft,
@@ -131,7 +104,7 @@ function SetupTab({
             </PanelCard>
 
             <PanelCard className="flex flex-col gap-5">
-                <ToggleRow
+                <PanelToggleRow
                     id="service-deposit"
                     title="Pedir seña"
                     description="El cliente paga un porcentaje del precio al reservar para asegurar el turno."
@@ -257,7 +230,7 @@ function LimitsTab({
             </PanelCard>
 
             <PanelCard className="flex flex-col gap-5">
-                <ToggleRow
+                <PanelToggleRow
                     id="service-daily-limit"
                     title="Limitar turnos por día"
                     description="Máximo de turnos de este servicio por día, aunque el horario tenga lugar."

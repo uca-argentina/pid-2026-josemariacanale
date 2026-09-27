@@ -9,7 +9,7 @@ import { Input } from '@/app/_components/ui/input';
 import { Label } from '@/app/_components/ui/label';
 import { Textarea } from '@/app/_components/ui/textarea';
 import { cn } from '@/app/_components/utils';
-import type { ServiceCategoryValue } from '@/app/onboarding/_components/schemas';
+import type { ServiceCategoryValue } from '@/app/_components/business-schemas';
 import { ChipTabs } from './ChipTabs';
 import { TimeStep } from './TimeStep';
 import {

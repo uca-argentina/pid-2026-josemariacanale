@@ -78,9 +78,16 @@ export const serviceSchema = z.object({
         .transform((d) => d || undefined),
 });
 
+// La forma de POST /businesses/:id/employees, sin el businessId del path.
+export const employeeSchema = z.object({
+    name: required('el nombre'),
+    email: required('el email').pipe(z.email('Ingresá un email válido.')),
+});
+
 export type BusinessFields = z.input<typeof businessSchema>;
 export type BranchFields = z.input<typeof branchSchema>;
 export type ServiceFields = z.input<typeof serviceSchema>;
+export type EmployeeFields = z.input<typeof employeeSchema>;
 
 export type CreateBusinessPayload = {
     business: z.output<typeof businessSchema>;

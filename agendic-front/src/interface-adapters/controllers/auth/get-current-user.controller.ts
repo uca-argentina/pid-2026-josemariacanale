@@ -5,6 +5,7 @@ import type { User } from '@/src/entities/models/user';
 function presenter(user: User, instrumentationService: IInstrumentationService) {
     return instrumentationService.startSpan({ name: 'getCurrentUser Presenter', op: 'serialize' }, () => ({
         name: user.name,
+        email: user.email,
         imageUrl: user.imageUrl,
     }));
 }

@@ -150,6 +150,30 @@ export function PanelBadge({ children, className }: { children: React.ReactNode;
     );
 }
 
+const initialsOf = (name: string) =>
+    name
+        .split(' ')
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((w) => w[0])
+        .join('')
+        .toUpperCase();
+
+/** Círculo navy con las iniciales de un Negocio o de una persona. */
+export function PanelAvatar({ name, className }: { name: string; className?: string }) {
+    return (
+        <span
+            aria-hidden
+            className={cn(
+                'flex size-9 shrink-0 items-center justify-center rounded-full bg-[#0f1b2d] text-[12px] font-extrabold text-white',
+                className,
+            )}
+        >
+            {initialsOf(name)}
+        </span>
+    );
+}
+
 export function PanelCard({ children, className }: { children: React.ReactNode; className?: string }) {
     return <section className={cn('rounded-md border border-[#e5e7eb] bg-white p-6', className)}>{children}</section>;
 }
@@ -157,11 +181,14 @@ export function PanelCard({ children, className }: { children: React.ReactNode; 
 export function PanelField({
     label,
     hint,
+    error,
     htmlFor,
     children,
 }: {
     label: string;
     hint?: string;
+    /** Reemplaza al hint. El input lo referencia con `aria-describedby={`${htmlFor}-error`}`. */
+    error?: string;
     htmlFor?: string;
     children: React.ReactNode;
 }) {
@@ -171,7 +198,42 @@ export function PanelField({
                 {label}
             </label>
             {children}
-            {hint && <p className="m-0 text-[12.5px] font-medium text-[#6b7280]">{hint}</p>}
+            {error ? (
+                <p id={htmlFor && `${htmlFor}-error`} role="alert" className="m-0 text-[12.5px] font-medium text-[#b91c1c]">
+                    {error}
+                </p>
+            ) : (
+                hint && <p className="m-0 text-[12.5px] font-medium text-[#6b7280]">{hint}</p>
+            )}
+        </div>
+    );
+}
+
+/** Switch con título y descripción al lado. */
+export function PanelToggleRow({
+    id,
+    title,
+    description,
+    checked,
+    onCheckedChange,
+    disabled,
+}: {
+    id: string;
+    title: string;
+    description: string;
+    checked: boolean;
+    onCheckedChange: (checked: boolean) => void;
+    disabled?: boolean;
+}) {
+    return (
+        <div className="flex items-start gap-3">
+            <PanelSwitch id={id} checked={checked} onCheckedChange={onCheckedChange} disabled={disabled} />
+            <div className="flex flex-col gap-0.5">
+                <label htmlFor={id} className="text-[13.5px] font-bold tracking-[-0.01em] text-[#0f1b2d]">
+                    {title}
+                </label>
+                <p className="m-0 text-[12.5px] font-medium text-[#6b7280]">{description}</p>
+            </div>
         </div>
     );
 }
@@ -223,6 +285,7 @@ export function PanelSelect({
     value,
     onValueChange,
     options,
+    placeholder,
     disabled,
     className,
     'aria-label': ariaLabel,
@@ -231,6 +294,8 @@ export function PanelSelect({
     value: string;
     onValueChange: (value: string) => void;
     options: PanelOption[];
+    /** Se ve mientras `value` es ''. */
+    placeholder?: string;
     disabled?: boolean;
     className?: string;
     'aria-label'?: string;
@@ -246,7 +311,7 @@ export function PanelSelect({
                     className,
                 )}
             >
-                <Select.Value />
+                <Select.Value placeholder={<span className="text-[#9ca3af]">{placeholder}</span>} />
                 <Select.Icon asChild>
                     <ChevronDown className="size-4 text-[#0f1b2d]" />
                 </Select.Icon>

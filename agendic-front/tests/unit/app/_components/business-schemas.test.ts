@@ -1,10 +1,11 @@
 import {
     businessSchema,
     branchSchema,
+    employeeSchema,
     fieldErrorsOf,
     serviceSchema,
     slugify,
-} from '@/app/onboarding/_components/schemas';
+} from '@/app/_components/business-schemas';
 
 describe('businessSchema', () => {
     const business = { name: 'Estudio Belgrano', description: 'Kinesiología', slug: 'estudio-belgrano' };
@@ -112,6 +113,28 @@ describe('serviceSchema', () => {
         expect(serviceSchema.parse({ ...service, description: 'Incluye evaluación' }).description).toBe(
             'Incluye evaluación',
         );
+    });
+});
+
+describe('employeeSchema', () => {
+    const employee = { name: 'Martina Fernández', email: 'martina@estudio.com' };
+
+    it('acepta un Empleado con nombre y email, sin espacios de más', () => {
+        expect(employeeSchema.parse({ name: ' Martina Fernández ', email: ' martina@estudio.com ' })).toEqual(employee);
+    });
+
+    it('rechaza un nombre en blanco', () => {
+        const result = employeeSchema.safeParse({ ...employee, name: '  ' });
+
+        expect(result.success).toBe(false);
+        expect(fieldErrorsOf(result.error!).name).toBe('Ingresá el nombre.');
+    });
+
+    it('rechaza un email inválido', () => {
+        const result = employeeSchema.safeParse({ ...employee, email: 'martina' });
+
+        expect(result.success).toBe(false);
+        expect(fieldErrorsOf(result.error!).email).toBe('Ingresá un email válido.');
     });
 });
 
