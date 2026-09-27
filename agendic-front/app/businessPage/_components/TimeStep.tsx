@@ -1,12 +1,13 @@
 'use client';
 
-import { useMemo } from 'react';
-import { CalendarX2 } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { CalendarX2, Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/app/_components/ui/avatar';
 import { Button } from '@/app/_components/ui/button';
 import { cn } from '@/app/_components/utils';
-import { availableDays, employeesWithSlots, endTime, formatDate, initials } from './mock-business';
-import type { Branch, Employee, Service } from './types';
+import { getServiceSlotsAction } from '../booking-actions';
+import { availableDays as mockAvailableDays, employeesWithSlots, endTime, formatDate, initials } from './mock-business';
+import type { AvailableDay, Branch, Employee, NoSlotsReason, Service } from './types';
 
 export function TimeStep({
     service,
@@ -22,20 +23,99 @@ export function TimeStep({
     branch: Branch;
     date: string | null;
     time: string | null;
-    onSelect: (date: string, time: string | null) => void;
+    onSelect: (date: string, time: string | null, startsAtIso?: string) => void;
     onSeeEmployees: () => void;
 }) {
-    // La duración del Servicio decide qué horarios entran antes del cierre, y cada Empleado tiene
-    // su propia agenda: los días se recalculan cuando cambia cualquiera de los dos.
-    const days = useMemo(
-        () => availableDays(service.durationMinutes, employee.id),
+    const [realDays, setRealDays] = useState<AvailableDay[] | null>(null);
+    const [isoMap, setIsoMap] = useState<Record<string, string>>({});
+    const [loadedKey, setLoadedKey] = useState<string | null>(null);
+
+    const currentKey = `${service.id}-${employee.id}`;
+    const loading = loadedKey !== currentKey;
+
+    useEffect(() => {
+        let active = true;
+
+        const today = new Date();
+        const from = today.toISOString().split('T')[0];
+        const in14Days = new Date(today.getTime() + 13 * 24 * 60 * 60 * 1000);
+        const to = in14Days.toISOString().split('T')[0];
+
+        getServiceSlotsAction({ serviceId: service.id, employeeId: employee.id, from, to })
+            .then((res) => {
+                if (!active) return;
+                if (!res.ok) {
+                    setRealDays(null);
+                    setLoadedKey(currentKey);
+                    return;
+                }
+
+                const formatter = new Intl.DateTimeFormat('es-AR', {
+                    timeZone: res.slots.timeZone || 'America/Argentina/Buenos_Aires',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false,
+                });
+                const weekdayFormatter = new Intl.DateTimeFormat('es-AR', {
+                    timeZone: res.slots.timeZone || 'America/Argentina/Buenos_Aires',
+                    weekday: 'short',
+                });
+                const dayNumberFormatter = new Intl.DateTimeFormat('es-AR', {
+                    timeZone: res.slots.timeZone || 'America/Argentina/Buenos_Aires',
+                    day: 'numeric',
+                });
+
+                const newIsoMap: Record<string, string> = {};
+
+                const parsed: AvailableDay[] = res.slots.days.map((d) => {
+                    const dateObj = new Date(d.date + 'T12:00:00Z');
+                    const dayOfMonth = Number(dayNumberFormatter.format(dateObj)) || Number(d.date.split('-')[2]);
+                    const rawWeekday = weekdayFormatter.format(dateObj).replace('.', '');
+
+                    const slotTimes = d.slots.map((iso) => {
+                        const display = formatter.format(new Date(iso));
+                        newIsoMap[`${d.date}_${display}`] = iso;
+                        return display;
+                    });
+
+                    let reason: NoSlotsReason | undefined;
+                    if (d.reason === 'NOT_WORKING') reason = 'branch-closed';
+                    else if (d.reason === 'FULLY_BOOKED' || d.reason === 'COVERED') reason = 'fully-booked';
+
+                    return {
+                        date: d.date,
+                        dayOfMonth,
+                        weekday: rawWeekday.charAt(0).toUpperCase() + rawWeekday.slice(1),
+                        slots: slotTimes,
+                        reason,
+                    };
+                });
+
+                setIsoMap(newIsoMap);
+                setRealDays(parsed);
+                setLoadedKey(currentKey);
+            })
+            .catch(() => {
+                if (active) {
+                    setRealDays(null);
+                    setLoadedKey(currentKey);
+                }
+            });
+
+        return () => {
+            active = false;
+        };
+    }, [service.id, employee.id, currentKey]);
+
+    const fallbackDays = useMemo(
+        () => mockAvailableDays(service.durationMinutes, employee.id),
         [service.durationMinutes, employee.id],
     );
 
+    const days = realDays ?? fallbackDays;
     const chosenDay = days.find((d) => d.date === date) ?? null;
     const nextWithSlots = days.find((d) => d.slots.length > 0);
 
-    // Solo para el caso "este profesional está completo, pero otro puede atenderte".
     const alternatives = chosenDay
         ? employeesWithSlots(service, chosenDay.date).filter((e) => e.id !== employee.id)
         : [];
@@ -49,6 +129,7 @@ export function TimeStep({
                     </AvatarFallback>
                 </Avatar>
                 <span className="text-[14px] font-bold tracking-[-0.02em]">{employee.name}</span>
+                {loading && <Loader2 className="ml-auto size-4 animate-spin text-muted-foreground" />}
             </div>
 
             <ol className="mt-6 flex flex-wrap gap-3" aria-label="Días disponibles">
@@ -67,7 +148,6 @@ export function TimeStep({
                                     active
                                         ? 'border-foreground bg-foreground text-white'
                                         : 'border-border hover:border-foreground/40',
-                                    // Sin `/50`: es un botón clickeable, tiene que pasar contraste AA.
                                     noSlots && !active && 'text-muted-foreground line-through',
                                 )}
                             >
@@ -99,7 +179,7 @@ export function TimeStep({
                                 <li key={slot}>
                                     <button
                                         type="button"
-                                        onClick={() => onSelect(chosenDay.date, slot)}
+                                        onClick={() => onSelect(chosenDay.date, slot, isoMap[`${chosenDay.date}_${slot}`])}
                                         aria-pressed={active}
                                         className={cn(
                                             'flex w-full items-center justify-between rounded-xl border px-4.5 py-3.5 text-left transition-colors',

@@ -76,6 +76,7 @@ export interface BookingDraft {
     employee: Employee | null;
     date: string | null;
     time: string | null;
+    startsAtIso?: string | null;
 }
 
 /**
