@@ -53,7 +53,7 @@ actualizarlo a mano cuando se agregue, cambie o borre un endpoint.
 | GET | `/businesses/:id` | no | Detalle de un negocio |
 | GET | `/businesses/by-slug/:slug` | no | Detalle de un negocio por su Enlace de reserva; el slug se compara en minúsculas; 404 si no existe |
 
-- `CreateBusinessDto`: `{ business: { name, description, slug }, branch: CreateBranchDto, service: ServiceFieldsDto }`
+- `CreateBusinessDto`: `{ business: { name, description, slug }, branch: CreateBranchDto, service: ServiceFieldsDto }`; `branch` usa el mismo `CreateBranchDto` del endpoint de Sucursales, así que también pide `timeZone`
 - `UpdateBusinessDto`: `{ name?, description?, slug? }`
 - `slug` (Enlace de reserva): se pasa a minúsculas, 3-40 caracteres, palabras de letras y dígitos unidas por guiones (`^[a-z0-9]+(-[a-z0-9]+)*$`); formato inválido → 400, slug ya tomado → 409
 - Respuesta (`presentBusiness`): `{ id, name, description, slug, ownerId }`
@@ -67,9 +67,10 @@ actualizarlo a mano cuando se agregue, cambie o borre un endpoint.
 | PATCH | `/branches/:id` | sí | Actualiza una sucursal (solo el dueño) |
 | GET | `/businesses/:businessId/branches` | no | Lista sucursales de un negocio |
 
-- `CreateBranchDto`: `{ name, address, opensAt: "HH:mm", closesAt: "HH:mm" }`
+- `CreateBranchDto`: `{ name, address, opensAt: "HH:mm", closesAt: "HH:mm", timeZone }`
+- `timeZone`: nombre IANA (por ejemplo `America/Argentina/Buenos_Aires`), nunca un offset; requerido en creación, opcional en `UpdateBranchDto`; inválido → 400
 - `UpdateBranchDto`: los mismos campos, todos opcionales
-- Respuesta (`presentBranch`): `{ id, businessId, name, address, opensAt, closesAt }`
+- Respuesta (`presentBranch`): `{ id, businessId, name, address, opensAt, closesAt, timeZone }`
 
 ## Services (Servicio)
 

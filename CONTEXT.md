@@ -15,7 +15,7 @@ Persona que reserva Turnos dejando un nombre y un email. No hace falta que sea u
 _Avoid_: usuario final, paciente, consumidor
 
 **Sucursal**:
-Sede física de un Negocio, con horarios propios. Un Negocio puede tener varias.
+Sede física de un Negocio, con zona horaria propia. Un Negocio puede tener varias. Deja de ser la fuente de los horarios reservables.
 _Avoid_: sede, local
 
 **Empleado**:

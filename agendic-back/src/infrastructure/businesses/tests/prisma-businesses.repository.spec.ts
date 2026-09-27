@@ -30,6 +30,7 @@ const BRANCH_ROW = {
   address: '123 Main St',
   opensAt: new Date('1970-01-01T09:00:00.000Z'),
   closesAt: new Date('1970-01-01T18:00:00.000Z'),
+  timeZone: 'America/Argentina/Buenos_Aires',
 };
 
 const EMPLOYEE_ROW = {
@@ -64,6 +65,7 @@ const CREATE_DATA = {
     address: '123 Main St',
     opensAt: '09:00',
     closesAt: '18:00',
+    timeZone: 'America/Argentina/Buenos_Aires',
   },
   service: {
     name: 'Haircut',
@@ -123,6 +125,7 @@ describe('PrismaBusinessesRepository', () => {
       address: '123 Main St',
       opensAt: '09:00',
       closesAt: '18:00',
+      timeZone: 'America/Argentina/Buenos_Aires',
     });
     expect(created.employee).toEqual({
       id: EMPLOYEE_ROW.id,

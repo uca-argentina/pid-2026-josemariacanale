@@ -26,6 +26,7 @@ const BRANCH_PART = {
   address: ANAS_BRANCH.address,
   opensAt: ANAS_BRANCH.opensAt,
   closesAt: ANAS_BRANCH.closesAt,
+  timeZone: ANAS_BRANCH.timeZone,
 };
 
 const SERVICE_PART = {
@@ -246,6 +247,14 @@ describe('Negocio', () => {
         { branch: { ...BRANCH_PART, address: ' ' } },
       ],
       ['a malformed opensAt', { branch: { ...BRANCH_PART, opensAt: '9am' } }],
+      [
+        'a missing Sucursal timeZone',
+        { branch: { ...BRANCH_PART, timeZone: undefined } },
+      ],
+      [
+        'a UTC offset as Sucursal timeZone',
+        { branch: { ...BRANCH_PART, timeZone: '-03:00' } },
+      ],
       ['a missing Servicio', { service: undefined }],
       ['a blank Servicio name', { service: { ...SERVICE_PART, name: ' ' } }],
       [

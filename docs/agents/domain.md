@@ -25,6 +25,7 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | Dueño | `owner` (`Business.ownerId`) |
 | Enlace de reserva | `Business.slug` (la URL del front es `/business/<slug>`) |
 | Sucursal | `Branch` (apertura/cierre → `opensAt`/`closesAt`) |
+| Zona horaria | `Branch.timeZone` |
 | Usuario | `User` |
 | Cliente | `Booking.clientName` / `Booking.clientEmail` |
 | Empleado | `Employee` |

@@ -40,6 +40,7 @@ export class PrismaBusinessesRepository implements BusinessesRepository {
             address: data.branch.address,
             opensAt: toTime(data.branch.opensAt),
             closesAt: toTime(data.branch.closesAt),
+            timeZone: data.branch.timeZone,
           },
         });
         const employee = await tx.employee.create({

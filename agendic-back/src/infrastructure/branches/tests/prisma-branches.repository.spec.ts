@@ -11,6 +11,7 @@ const BRANCH: Branch = {
   address: '123 Main St',
   opensAt: '09:00',
   closesAt: '18:00',
+  timeZone: 'America/Argentina/Buenos_Aires',
 };
 
 const BRANCH_ROW = {
@@ -20,6 +21,7 @@ const BRANCH_ROW = {
   address: '123 Main St',
   opensAt: new Date('1970-01-01T09:00:00.000Z'),
   closesAt: new Date('1970-01-01T18:00:00.000Z'),
+  timeZone: 'America/Argentina/Buenos_Aires',
 };
 
 const knownError = (code: string) =>
@@ -53,6 +55,7 @@ describe('PrismaBranchesRepository', () => {
         address: '123 Main St',
         opensAt: '09:00',
         closesAt: '18:00',
+        timeZone: 'America/Argentina/Buenos_Aires',
       }),
     ).resolves.toEqual(BRANCH);
     expect(prisma.branch.create).toHaveBeenCalledWith({
@@ -62,6 +65,7 @@ describe('PrismaBranchesRepository', () => {
         address: '123 Main St',
         opensAt: new Date('1970-01-01T09:00:00.000Z'),
         closesAt: new Date('1970-01-01T18:00:00.000Z'),
+        timeZone: 'America/Argentina/Buenos_Aires',
       },
     });
   });
@@ -90,6 +94,7 @@ describe('PrismaBranchesRepository', () => {
         address: undefined,
         opensAt: undefined,
         closesAt: undefined,
+        timeZone: undefined,
       },
     });
   });

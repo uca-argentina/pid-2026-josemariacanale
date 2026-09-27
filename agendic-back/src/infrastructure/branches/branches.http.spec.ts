@@ -14,6 +14,7 @@ const VALID_BRANCH = {
   address: '123 Main St',
   opensAt: '09:00',
   closesAt: '18:00',
+  timeZone: 'America/Argentina/Buenos_Aires',
 };
 
 const BRANCH = {
@@ -87,6 +88,9 @@ describe('Sucursal', () => {
       ['a malformed closesAt', { closesAt: '18:60' }],
       ['a missing opensAt', { opensAt: undefined }],
       ['a missing closesAt', { closesAt: undefined }],
+      ['a missing timeZone', { timeZone: undefined }],
+      ['a UTC offset as timeZone', { timeZone: '-03:00' }],
+      ['a nonsense timeZone', { timeZone: 'Marte/Olimpo' }],
     ])('rejects %s with 400, without reaching the repository', async (_, override) => {
       await t.http
         .post(`/businesses/${ANAS_BUSINESS.id}/branches`)
@@ -166,10 +170,30 @@ describe('Sucursal', () => {
         .expect(404);
     });
 
+    it('edits the timeZone, for the Dueño', async () => {
+      t.branches.update.mockResolvedValue({
+        ...BRANCH,
+        timeZone: 'America/Cordoba',
+      });
+
+      const res = await t.http
+        .patch(`/branches/${BRANCH.id}`)
+        .set(bearer(CLERK_TOKEN))
+        .send({ timeZone: 'America/Cordoba' })
+        .expect(200);
+
+      expect(t.branches.update).toHaveBeenCalledWith(BRANCH.id, {
+        timeZone: 'America/Cordoba',
+      });
+      expect(res.body.timeZone).toBe('America/Cordoba');
+    });
+
     it.each([
       ['a blank name', { name: ' ' }],
       ['a malformed opensAt', { opensAt: '25:00' }],
       ['a malformed closesAt', { closesAt: 'noon' }],
+      ['a UTC offset as timeZone', { timeZone: '-03:00' }],
+      ['a nonsense timeZone', { timeZone: 'Marte/Olimpo' }],
     ])('rejects %s with 400, without reaching the repository', async (_, body) => {
       await t.http
         .patch(`/branches/${BRANCH.id}`)
