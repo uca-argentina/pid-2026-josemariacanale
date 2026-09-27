@@ -7,20 +7,20 @@ import { toast } from 'sonner';
 import { slugify } from '@/app/onboarding/_components/schemas';
 import { cn } from '@/app/_components/utils';
 import {
-    CalBadge,
-    CalButton,
-    CalDialog,
-    CalDialogClose,
-    CalField,
-    CalIconButton,
-    CalIconGroup,
-    CalInput,
-    CalMenu,
-    CalSwitch,
-    CalTextarea,
-} from './cal-ui';
+    PanelBadge,
+    PanelButton,
+    PanelDialog,
+    PanelDialogClose,
+    PanelField,
+    PanelIconButton,
+    PanelIconGroup,
+    PanelInput,
+    PanelMenu,
+    PanelSwitch,
+    PanelTextarea,
+} from '@/app/(app)/_components/panel-ui';
 import { OfferButton, PublicLinkButtons } from './service-actions';
-import { bookingLink, formatPrice, publicUrl, type ServiceGroup, type ServiceItem } from './mock-services';
+import { bookingLink, formatPrice, publicUrl, type ServiceGroup, type ServiceItem } from '@/app/(app)/_components/mock-services';
 
 const initials = (name: string) =>
     name
@@ -56,11 +56,11 @@ function ServiceRow({
                 </p>
             )}
             <div className="mt-2 flex flex-wrap gap-1.5">
-                <CalBadge>
+                <PanelBadge>
                     <Clock />
                     {service.durationMinutes}m
-                </CalBadge>
-                <CalBadge>{formatPrice(service.price)}</CalBadge>
+                </PanelBadge>
+                <PanelBadge>{formatPrice(service.price)}</PanelBadge>
             </div>
         </>
     );
@@ -77,30 +77,30 @@ function ServiceRow({
             )}
 
             <div className="ml-auto flex items-center gap-4">
-                {service.offeredByMe && <CalBadge className="bg-[#e6f6ec] text-[#15803d]">Lo ofrecés</CalBadge>}
-                {isOwner && !service.visible && <CalBadge>Oculto</CalBadge>}
+                {service.offeredByMe && <PanelBadge className="bg-[#e6f6ec] text-[#15803d]">Lo ofrecés</PanelBadge>}
+                {isOwner && !service.visible && <PanelBadge>Oculto</PanelBadge>}
                 <OfferButton service={service} />
                 {isOwner && (
-                    <CalSwitch
+                    <PanelSwitch
                         checked={service.visible}
                         onCheckedChange={onToggleVisible}
                         aria-label={service.visible ? 'Ocultar del Enlace de reserva' : 'Mostrar en el Enlace de reserva'}
                     />
                 )}
-                <CalIconGroup>
+                <PanelIconGroup>
                     <PublicLinkButtons url={publicUrl(group.business.slug, service.slug)} />
-                    <CalMenu
+                    <PanelMenu
                         trigger={
-                            <CalIconButton label="Más acciones">
+                            <PanelIconButton label="Más acciones">
                                 <MoreHorizontal />
-                            </CalIconButton>
+                            </PanelIconButton>
                         }
                         items={[
                             { label: 'Duplicar', icon: <Copy />, disabled: true },
                             ...(isOwner ? [{ label: 'Dar de baja', icon: <Trash2 />, destructive: true, disabled: true }] : []),
                         ]}
                     />
-                </CalIconGroup>
+                </PanelIconGroup>
             </div>
         </li>
     );
@@ -118,7 +118,7 @@ function GroupHeader({ group }: { group: ServiceGroup }) {
                     {bookingLink(group.business.slug)}
                 </span>
             </div>
-            <CalBadge className="ml-1">{group.role === 'owner' ? 'Dueño' : 'Empleado'}</CalBadge>
+            <PanelBadge className="ml-1">{group.role === 'owner' ? 'Dueño' : 'Empleado'}</PanelBadge>
         </div>
     );
 }
@@ -165,7 +165,7 @@ function NewServiceDialog({
             deposit: { enabled: false, percent: 20 },
             prepMinutes: 0,
             dailyLimit: { enabled: false, max: 8 },
-            scheduleId: 'laboral',
+            availabilityId: 'laboral',
         });
         toast.success(`${form.name.trim()}: servicio creado`);
         setSaving(false);
@@ -174,25 +174,25 @@ function NewServiceDialog({
     };
 
     return (
-        <CalDialog
+        <PanelDialog
             open={open}
             onOpenChange={close}
             title="Agregar un nuevo servicio"
             description="Creá un servicio para que tus clientes reserven turnos."
             footer={
                 <>
-                    <CalDialogClose>
-                        <CalButton variant="ghost">Cerrar</CalButton>
-                    </CalDialogClose>
-                    <CalButton type="submit" form="new-service" disabled={!valid || saving} className="min-w-[104px]">
+                    <PanelDialogClose>
+                        <PanelButton variant="ghost">Cerrar</PanelButton>
+                    </PanelDialogClose>
+                    <PanelButton type="submit" form="new-service" disabled={!valid || saving} className="min-w-[104px]">
                         {saving ? <Loader2 className="size-4 animate-spin" /> : 'Continuar'}
-                    </CalButton>
+                    </PanelButton>
                 </>
             }
         >
             <form id="new-service" onSubmit={submit} className="flex flex-col gap-5">
-                <CalField label="Título" htmlFor="new-service-name">
-                    <CalInput
+                <PanelField label="Título" htmlFor="new-service-name">
+                    <PanelInput
                         id="new-service-name"
                         placeholder="Consulta inicial"
                         value={form.name}
@@ -204,25 +204,25 @@ function NewServiceDialog({
                             }))
                         }
                     />
-                </CalField>
-                <CalField label="URL" htmlFor="new-service-slug">
-                    <CalInput
+                </PanelField>
+                <PanelField label="URL" htmlFor="new-service-slug">
+                    <PanelInput
                         id="new-service-slug"
                         prefix={`https://${bookingLink(group.business.slug)}/`}
                         value={form.slug}
                         onChange={(e) => setForm((f) => ({ ...f, slug: slugify(e.target.value), slugEdited: true }))}
                     />
-                </CalField>
-                <CalField label="Descripción" htmlFor="new-service-description">
-                    <CalTextarea
+                </PanelField>
+                <PanelField label="Descripción" htmlFor="new-service-description">
+                    <PanelTextarea
                         id="new-service-description"
                         placeholder="Una primera evaluación para armar tu plan."
                         value={form.description}
                         onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                     />
-                </CalField>
-                <CalField label="Duración" htmlFor="new-service-duration">
-                    <CalInput
+                </PanelField>
+                <PanelField label="Duración" htmlFor="new-service-duration">
+                    <PanelInput
                         id="new-service-duration"
                         type="number"
                         min={1}
@@ -230,9 +230,9 @@ function NewServiceDialog({
                         value={form.duration}
                         onChange={(e) => setForm((f) => ({ ...f, duration: e.target.value }))}
                     />
-                </CalField>
-                <CalField label="Precio" htmlFor="new-service-price">
-                    <CalInput
+                </PanelField>
+                <PanelField label="Precio" htmlFor="new-service-price">
+                    <PanelInput
                         id="new-service-price"
                         type="number"
                         min={0}
@@ -242,9 +242,9 @@ function NewServiceDialog({
                         value={form.price}
                         onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
                     />
-                </CalField>
+                </PanelField>
             </form>
-        </CalDialog>
+        </PanelDialog>
     );
 }
 
@@ -254,7 +254,7 @@ export function ServicesList({ initialGroups }: { initialGroups: ServiceGroup[] 
     const [query, setQuery] = useState('');
     const [dialogOpen, setDialogOpen] = useState(false);
 
-    // ponytail: el mock tiene un solo Negocio propio. Con más de uno, "Nuevo" pasa a ser un menú para elegirlo, como en cal.com.
+    // ponytail: el mock tiene un solo Negocio propio. Con más de uno, "Nuevo" pasa a ser un menú para elegirlo.
     const ownGroup = groups.find((g) => g.role === 'owner');
     const q = query.trim().toLowerCase();
     const visibleGroups = groups
@@ -286,10 +286,10 @@ export function ServicesList({ initialGroups }: { initialGroups: ServiceGroup[] 
                     <p className="m-0 text-[13px] font-medium text-[#6b7280]">Creá servicios para que tus clientes reserven en tu agenda.</p>
                 </div>
                 {ownGroup && (
-                    <CalButton className="ml-auto" onClick={() => setDialogOpen(true)}>
+                    <PanelButton className="ml-auto" onClick={() => setDialogOpen(true)}>
                         <Plus className="size-4" />
                         Nuevo
-                    </CalButton>
+                    </PanelButton>
                 )}
             </header>
 

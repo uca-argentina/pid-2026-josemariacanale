@@ -3,14 +3,14 @@
 import { useState } from 'react';
 import { ExternalLink, Link2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { CalButton, CalConfirm, CalIconButton } from './cal-ui';
-import { canStopOffering, type ServiceItem } from './mock-services';
+import { PanelButton, PanelConfirm, PanelIconButton } from '@/app/(app)/_components/panel-ui';
+import { canStopOffering, type ServiceItem } from '@/app/(app)/_components/mock-services';
 
 // ponytail: la única página pública que existe es el mock de /businessPage; cuando haya Enlace de reserva
 // por Negocio y Servicio, esto abre `url`.
 const PUBLIC_PAGE_PATH = '/businessPage';
 
-/** Abrir el Enlace de reserva y copiarlo. Van dentro de un `CalIconGroup`. */
+/** Abrir el Enlace de reserva y copiarlo. Van dentro de un `PanelIconGroup`. */
 export function PublicLinkButtons({ url }: { url: string }) {
     const copy = async () => {
         try {
@@ -23,12 +23,12 @@ export function PublicLinkButtons({ url }: { url: string }) {
 
     return (
         <>
-            <CalIconButton label="Abrir Enlace de reserva" onClick={() => window.open(PUBLIC_PAGE_PATH, '_blank')}>
+            <PanelIconButton label="Abrir Enlace de reserva" onClick={() => window.open(PUBLIC_PAGE_PATH, '_blank')}>
                 <ExternalLink />
-            </CalIconButton>
-            <CalIconButton label="Copiar Enlace de reserva" onClick={copy}>
+            </PanelIconButton>
+            <PanelIconButton label="Copiar Enlace de reserva" onClick={copy}>
                 <Link2 />
-            </CalIconButton>
+            </PanelIconButton>
         </>
     );
 }
@@ -62,10 +62,10 @@ export function OfferButton({ service }: { service: OfferableService }) {
 
     return (
         <>
-            <CalButton variant="secondary" onClick={() => setOpen(true)}>
+            <PanelButton variant="secondary" onClick={() => setOpen(true)}>
                 {offered ? 'Dejar de ofrecer' : 'Ofrecer'}
-            </CalButton>
-            <CalConfirm
+            </PanelButton>
+            <PanelConfirm
                 open={open}
                 onOpenChange={setOpen}
                 {...dialog}

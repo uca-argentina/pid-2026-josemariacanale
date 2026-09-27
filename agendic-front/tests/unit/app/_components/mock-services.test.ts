@@ -1,4 +1,4 @@
-import { canStopOffering, depositAmount, findService, formatPrice, groups, publicUrl } from '@/app/(app)/services/_components/mock-services';
+import { canStopOffering, depositAmount, findService, formatPrice, groups, publicUrl } from '@/app/(app)/_components/mock-services';
 
 describe('depositAmount', () => {
     it('es el porcentaje del precio, redondeado a pesos enteros', () => {

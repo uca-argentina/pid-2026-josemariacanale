@@ -1,11 +1,11 @@
 'use client';
 
-import { AlertDialog, Dialog, DropdownMenu, Select, Switch } from 'radix-ui';
+import { AlertDialog, Checkbox, Dialog, DropdownMenu, Select, Switch } from 'radix-ui';
 import { Check, ChevronDown } from 'lucide-react';
 import { cn } from '@/app/_components/utils';
 
-// Primitivos con el look de cal.com (Event Types). Locales a /services a propósito: si el look se adopta
-// en el resto de la app, se promueven a app/_components/ui/ reemplazando los actuales.
+// Primitivos del panel (Servicios, Disponibilidad). Si el look se adopta en el resto de la app,
+// se promueven a app/_components/ui/ reemplazando los actuales.
 
 const FOCUS = 'outline-none focus-visible:ring-2 focus-visible:ring-[#0f1b2d] focus-visible:ring-offset-1';
 
@@ -16,7 +16,7 @@ const BUTTON_VARIANTS = {
     destructive: 'border border-[#e5e7eb] bg-white text-[#b91c1c] hover:bg-[#fef2f2]',
 };
 
-export function CalButton({
+export function PanelButton({
     variant = 'primary',
     className,
     ...props
@@ -35,8 +35,8 @@ export function CalButton({
     );
 }
 
-/** Botones de ícono pegados, con un solo borde y divisores, como las acciones de una fila de cal.com. */
-export function CalIconGroup({ children }: { children: React.ReactNode }) {
+/** Botones de ícono pegados, con un solo borde y divisores, para las acciones de una fila. */
+export function PanelIconGroup({ children }: { children: React.ReactNode }) {
     return (
         <div className="flex shrink-0 divide-x divide-[#e5e7eb] overflow-hidden rounded-md border border-[#e5e7eb] bg-white shadow-[0_1px_2px_rgba(15,27,45,0.05)]">
             {children}
@@ -44,22 +44,30 @@ export function CalIconGroup({ children }: { children: React.ReactNode }) {
     );
 }
 
-export function CalIconButton({
+export function PanelIconButton({
     label,
     destructive,
+    bordered,
     className,
     ...props
-}: React.ComponentProps<'button'> & { label: string; destructive?: boolean }) {
+}: React.ComponentProps<'button'> & {
+    label: string;
+    destructive?: boolean;
+    /** Suelto, con borde propio, en vez de dentro de un `PanelIconGroup`. */
+    bordered?: boolean;
+}) {
     return (
         <button
             type="button"
             aria-label={label}
             title={label}
             className={cn(
-                'flex size-9 items-center justify-center transition-colors hover:bg-[#f3f4f6] [&_svg]:size-4',
+                'flex size-9 items-center justify-center transition-colors hover:bg-[#f3f4f6] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent [&_svg]:size-4',
                 destructive ? 'text-[#b91c1c]' : 'text-[#374151]',
                 FOCUS,
-                'focus-visible:ring-inset focus-visible:ring-offset-0',
+                bordered
+                    ? 'size-8 rounded-md border border-[#e5e7eb] bg-white shadow-[0_1px_2px_rgba(15,27,45,0.05)] disabled:hover:bg-white'
+                    : 'focus-visible:ring-inset focus-visible:ring-offset-0',
                 className,
             )}
             {...props}
@@ -67,7 +75,37 @@ export function CalIconButton({
     );
 }
 
-export function CalSwitch({ className, ...props }: React.ComponentProps<typeof Switch.Root>) {
+/** Separador vertical entre grupos de acciones de un encabezado. */
+export const PanelDivider = () => <span aria-hidden className="h-6 w-px bg-[#e5e7eb]" />;
+
+/** Tarjeta con encabezado gris (título, descripción y acción) y el contenido en un panel blanco. */
+export function PanelSection({
+    title,
+    description,
+    action,
+    children,
+}: {
+    title: React.ReactNode;
+    description?: string;
+    action?: React.ReactNode;
+    /** Sin contenido, queda solo el encabezado. */
+    children?: React.ReactNode;
+}) {
+    return (
+        <section className="rounded-xl border border-[#e5e7eb] bg-[#f9fafb]">
+            <div className="flex flex-wrap items-center gap-3 px-6 py-4">
+                <div className="flex min-w-0 flex-col gap-0.5">
+                    <h2 className="m-0 flex items-center gap-1.5 text-[14.5px] font-bold tracking-[-0.02em] text-[#0f1b2d]">{title}</h2>
+                    {description && <p className="m-0 text-[13px] font-medium text-[#6b7280]">{description}</p>}
+                </div>
+                {action && <div className="ml-auto">{action}</div>}
+            </div>
+            {children && <div className="-mx-px -mb-px rounded-xl border border-[#e5e7eb] bg-white">{children}</div>}
+        </section>
+    );
+}
+
+export function PanelSwitch({ className, ...props }: React.ComponentProps<typeof Switch.Root>) {
     return (
         <Switch.Root
             className={cn(
@@ -82,7 +120,24 @@ export function CalSwitch({ className, ...props }: React.ComponentProps<typeof S
     );
 }
 
-export function CalBadge({ children, className }: { children: React.ReactNode; className?: string }) {
+export function PanelCheckbox({ className, ...props }: React.ComponentProps<typeof Checkbox.Root>) {
+    return (
+        <Checkbox.Root
+            className={cn(
+                'flex size-4 shrink-0 items-center justify-center rounded-[4px] border border-[#d1d5db] bg-white transition-colors data-[state=checked]:border-[#0f1b2d] data-[state=checked]:bg-[#0f1b2d] disabled:cursor-not-allowed disabled:opacity-50',
+                FOCUS,
+                className,
+            )}
+            {...props}
+        >
+            <Checkbox.Indicator>
+                <Check className="size-3 text-white" strokeWidth={3} />
+            </Checkbox.Indicator>
+        </Checkbox.Root>
+    );
+}
+
+export function PanelBadge({ children, className }: { children: React.ReactNode; className?: string }) {
     return (
         <span
             className={cn(
@@ -95,11 +150,11 @@ export function CalBadge({ children, className }: { children: React.ReactNode; c
     );
 }
 
-export function CalCard({ children, className }: { children: React.ReactNode; className?: string }) {
+export function PanelCard({ children, className }: { children: React.ReactNode; className?: string }) {
     return <section className={cn('rounded-md border border-[#e5e7eb] bg-white p-6', className)}>{children}</section>;
 }
 
-export function CalField({
+export function PanelField({
     label,
     hint,
     htmlFor,
@@ -124,7 +179,7 @@ export function CalField({
 const FIELD_BOX =
     'flex h-9 w-full items-center rounded-md border border-[#d1d5db] bg-white text-[13.5px] font-medium text-[#0f1b2d] transition-colors hover:border-[#9ca3af] focus-within:border-[#0f1b2d] focus-within:ring-1 focus-within:ring-[#0f1b2d] has-[:disabled]:cursor-not-allowed has-[:disabled]:bg-[#f9fafb] has-[:disabled]:text-[#6b7280] has-[:disabled]:hover:border-[#d1d5db]';
 
-export function CalInput({
+export function PanelInput({
     prefix,
     suffix,
     className,
@@ -145,7 +200,7 @@ export function CalInput({
     );
 }
 
-export function CalTextarea({ className, ...props }: React.ComponentProps<'textarea'>) {
+export function PanelTextarea({ className, ...props }: React.ComponentProps<'textarea'>) {
     return (
         <textarea
             className={cn(
@@ -157,28 +212,40 @@ export function CalTextarea({ className, ...props }: React.ComponentProps<'texta
     );
 }
 
-export interface CalOption {
+export interface PanelOption {
     value: string;
     label: string;
     badge?: string;
 }
 
-export function CalSelect({
+export function PanelSelect({
     id,
     value,
     onValueChange,
     options,
     disabled,
+    className,
+    'aria-label': ariaLabel,
 }: {
     id?: string;
     value: string;
     onValueChange: (value: string) => void;
-    options: CalOption[];
+    options: PanelOption[];
     disabled?: boolean;
+    className?: string;
+    'aria-label'?: string;
 }) {
     return (
         <Select.Root value={value} onValueChange={onValueChange} disabled={disabled}>
-            <Select.Trigger id={id} className={cn(FIELD_BOX, 'justify-between px-3 text-left data-[disabled]:cursor-not-allowed data-[disabled]:bg-[#f9fafb] data-[disabled]:text-[#6b7280]')}>
+            <Select.Trigger
+                id={id}
+                aria-label={ariaLabel}
+                className={cn(
+                    FIELD_BOX,
+                    'justify-between px-3 text-left data-[disabled]:cursor-not-allowed data-[disabled]:bg-[#f9fafb] data-[disabled]:text-[#6b7280]',
+                    className,
+                )}
+            >
                 <Select.Value />
                 <Select.Icon asChild>
                     <ChevronDown className="size-4 text-[#0f1b2d]" />
@@ -188,7 +255,7 @@ export function CalSelect({
                 <Select.Content
                     position="popper"
                     sideOffset={4}
-                    className="z-50 w-(--radix-select-trigger-width) overflow-hidden rounded-md border border-[#e5e7eb] bg-white p-1 shadow-[0_10px_30px_rgba(15,27,45,0.12)]"
+                    className="z-50 max-h-[min(288px,var(--radix-select-content-available-height))] w-(--radix-select-trigger-width) overflow-hidden rounded-md border border-[#e5e7eb] bg-white p-1 shadow-[0_10px_30px_rgba(15,27,45,0.12)]"
                 >
                     <Select.Viewport>
                         {options.map((o) => (
@@ -215,13 +282,14 @@ export function CalSelect({
     );
 }
 
-export function CalDialog({
+export function PanelDialog({
     open,
     onOpenChange,
     title,
     description,
     children,
     footer,
+    className,
 }: {
     open: boolean;
     onOpenChange: (open: boolean) => void;
@@ -229,12 +297,18 @@ export function CalDialog({
     description?: string;
     children: React.ReactNode;
     footer: React.ReactNode;
+    className?: string;
 }) {
     return (
         <Dialog.Root open={open} onOpenChange={onOpenChange}>
             <Dialog.Portal>
                 <Dialog.Overlay className="fixed inset-0 z-40 bg-[#0f1b2d]/50" />
-                <Dialog.Content className="fixed top-1/2 left-1/2 z-50 flex max-h-[90vh] w-[calc(100vw-32px)] max-w-[600px] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-xl bg-white shadow-[0_24px_60px_rgba(15,27,45,0.25)] outline-none">
+                <Dialog.Content
+                    className={cn(
+                        'fixed top-1/2 left-1/2 z-50 flex max-h-[90vh] w-[calc(100vw-32px)] max-w-[600px] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-xl bg-white shadow-[0_24px_60px_rgba(15,27,45,0.25)] outline-none',
+                        className,
+                    )}
+                >
                     <div className="flex flex-col gap-6 overflow-y-auto px-8 pt-8 pb-10">
                         <div className="flex flex-col gap-1">
                             <Dialog.Title className="m-0 text-[21px] font-extrabold tracking-[-0.035em] text-[#0f1b2d]">
@@ -253,11 +327,11 @@ export function CalDialog({
     );
 }
 
-export function CalDialogClose({ children }: { children: React.ReactNode }) {
+export function PanelDialogClose({ children }: { children: React.ReactNode }) {
     return <Dialog.Close asChild>{children}</Dialog.Close>;
 }
 
-export function CalConfirm({
+export function PanelConfirm({
     open,
     onOpenChange,
     title,
@@ -292,16 +366,16 @@ export function CalConfirm({
                     </div>
                     <div className="flex justify-end gap-2 border-t border-[#e5e7eb] bg-[#f9fafb] px-8 py-4">
                         <AlertDialog.Cancel asChild>
-                            <CalButton variant={confirmLabel ? 'ghost' : 'primary'}>{cancelLabel}</CalButton>
+                            <PanelButton variant={confirmLabel ? 'ghost' : 'primary'}>{cancelLabel}</PanelButton>
                         </AlertDialog.Cancel>
                         {confirmLabel && (
                             <AlertDialog.Action asChild>
-                                <CalButton
+                                <PanelButton
                                     onClick={onConfirm}
                                     className={cn(destructive && 'bg-[#b91c1c] hover:bg-[#991b1b]')}
                                 >
                                     {confirmLabel}
-                                </CalButton>
+                                </PanelButton>
                             </AlertDialog.Action>
                         )}
                     </div>
@@ -311,7 +385,7 @@ export function CalConfirm({
     );
 }
 
-export interface CalMenuItem {
+export interface PanelMenuItem {
     label: string;
     icon: React.ReactNode;
     destructive?: boolean;
@@ -319,9 +393,10 @@ export interface CalMenuItem {
     onSelect?: () => void;
 }
 
-export function CalMenu({ trigger, items }: { trigger: React.ReactNode; items: CalMenuItem[] }) {
+export function PanelMenu({ trigger, items }: { trigger: React.ReactNode; items: PanelMenuItem[] }) {
     return (
-        <DropdownMenu.Root>
+        // No modal: si un ítem abre un diálogo, el menú modal le deja `pointer-events: none` al body.
+        <DropdownMenu.Root modal={false}>
             <DropdownMenu.Trigger asChild>{trigger}</DropdownMenu.Trigger>
             <DropdownMenu.Portal>
                 <DropdownMenu.Content

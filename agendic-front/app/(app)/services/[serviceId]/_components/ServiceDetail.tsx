@@ -7,27 +7,28 @@ import { toast } from 'sonner';
 import { slugify } from '@/app/onboarding/_components/schemas';
 import { cn } from '@/app/_components/utils';
 import {
-    CalButton,
-    CalCard,
-    CalConfirm,
-    CalField,
-    CalIconButton,
-    CalIconGroup,
-    CalInput,
-    CalSelect,
-    CalSwitch,
-    CalTextarea,
-} from '../../_components/cal-ui';
+    PanelButton,
+    PanelCard,
+    PanelConfirm,
+    PanelDivider,
+    PanelField,
+    PanelIconButton,
+    PanelIconGroup,
+    PanelInput,
+    PanelSelect,
+    PanelSwitch,
+    PanelTextarea,
+} from '@/app/(app)/_components/panel-ui';
 import { OfferButton, PublicLinkButtons } from '../../_components/service-actions';
 import {
     depositAmount,
     formatPrice,
     bookingLink,
     publicUrl,
-    type MySchedule,
     type ServiceGroup,
     type ServiceItem,
-} from '../../_components/mock-services';
+} from '@/app/(app)/_components/mock-services';
+import { DAY_NAMES, type Availability } from '@/app/(app)/_components/mock-availability';
 
 type TabId = 'setup' | 'availability' | 'limits';
 
@@ -35,8 +36,6 @@ const PREP_OPTIONS = [0, 5, 10, 15, 30, 60].map((m) => ({
     value: String(m),
     label: m === 0 ? 'Sin preparación' : `${m} minutos`,
 }));
-
-const Divider = () => <span aria-hidden className="h-6 w-px bg-[#e5e7eb]" />;
 
 function ToggleRow({
     id,
@@ -55,7 +54,7 @@ function ToggleRow({
 }) {
     return (
         <div className="flex items-start gap-3">
-            <CalSwitch id={id} checked={checked} onCheckedChange={onCheckedChange} disabled={disabled} />
+            <PanelSwitch id={id} checked={checked} onCheckedChange={onCheckedChange} disabled={disabled} />
             <div className="flex flex-col gap-0.5">
                 <label htmlFor={id} className="text-[13.5px] font-bold tracking-[-0.01em] text-[#0f1b2d]">
                     {title}
@@ -81,33 +80,33 @@ function SetupTab({
 
     return (
         <>
-            <CalCard className="flex flex-col gap-6">
-                <CalField label="Título" htmlFor="service-name">
-                    <CalInput id="service-name" value={draft.name} disabled={readOnly} onChange={(e) => set({ name: e.target.value })} />
-                </CalField>
-                <CalField label="Descripción" htmlFor="service-description">
-                    <CalTextarea
+            <PanelCard className="flex flex-col gap-6">
+                <PanelField label="Título" htmlFor="service-name">
+                    <PanelInput id="service-name" value={draft.name} disabled={readOnly} onChange={(e) => set({ name: e.target.value })} />
+                </PanelField>
+                <PanelField label="Descripción" htmlFor="service-description">
+                    <PanelTextarea
                         id="service-description"
                         value={draft.description}
                         disabled={readOnly}
                         placeholder="Contale a tus clientes de qué se trata el servicio."
                         onChange={(e) => set({ description: e.target.value })}
                     />
-                </CalField>
-                <CalField label="URL" htmlFor="service-slug">
-                    <CalInput
+                </PanelField>
+                <PanelField label="URL" htmlFor="service-slug">
+                    <PanelInput
                         id="service-slug"
                         prefix={`${bookingLink(businessSlug)}/`}
                         value={draft.slug}
                         disabled={readOnly}
                         onChange={(e) => set({ slug: slugify(e.target.value) })}
                     />
-                </CalField>
-            </CalCard>
+                </PanelField>
+            </PanelCard>
 
-            <CalCard className="flex flex-col gap-6">
-                <CalField label="Duración" htmlFor="service-duration">
-                    <CalInput
+            <PanelCard className="flex flex-col gap-6">
+                <PanelField label="Duración" htmlFor="service-duration">
+                    <PanelInput
                         id="service-duration"
                         type="number"
                         min={1}
@@ -116,9 +115,9 @@ function SetupTab({
                         disabled={readOnly}
                         onChange={(e) => set({ durationMinutes: Number(e.target.value) })}
                     />
-                </CalField>
-                <CalField label="Precio" htmlFor="service-price">
-                    <CalInput
+                </PanelField>
+                <PanelField label="Precio" htmlFor="service-price">
+                    <PanelInput
                         id="service-price"
                         type="number"
                         min={0}
@@ -128,10 +127,10 @@ function SetupTab({
                         disabled={readOnly}
                         onChange={(e) => set({ price: Number(e.target.value) })}
                     />
-                </CalField>
-            </CalCard>
+                </PanelField>
+            </PanelCard>
 
-            <CalCard className="flex flex-col gap-5">
+            <PanelCard className="flex flex-col gap-5">
                 <ToggleRow
                     id="service-deposit"
                     title="Pedir seña"
@@ -142,7 +141,7 @@ function SetupTab({
                 />
                 {draft.deposit.enabled && (
                     <div className="flex flex-wrap items-center gap-3 pl-14">
-                        <CalInput
+                        <PanelInput
                             aria-label="Porcentaje de la seña"
                             type="number"
                             min={1}
@@ -159,48 +158,48 @@ function SetupTab({
                         </span>
                     </div>
                 )}
-            </CalCard>
+            </PanelCard>
         </>
     );
 }
 
 function AvailabilityTab({
-    schedule,
+    availability,
     set,
-    schedules,
+    availabilities,
 }: {
-    schedule: MySchedule;
+    availability: Availability;
     set: (patch: Partial<ServiceItem>) => void;
-    schedules: MySchedule[];
+    availabilities: Availability[];
 }) {
     return (
-        <CalCard className="overflow-hidden p-0">
+        <PanelCard className="overflow-hidden p-0">
             <div className="border-b border-[#e5e7eb] p-6">
-                <CalField label="Tu disponibilidad para este servicio" htmlFor="service-schedule">
-                    <CalSelect
-                        id="service-schedule"
-                        value={schedule.id}
-                        onValueChange={(scheduleId) => set({ scheduleId })}
-                        options={schedules.map((s) => ({
-                            value: s.id,
-                            label: s.name,
-                            badge: s.isDefault ? 'Predeterminado' : undefined,
+                <PanelField label="Tu disponibilidad para este servicio" htmlFor="service-availability">
+                    <PanelSelect
+                        id="service-availability"
+                        value={availability.id}
+                        onValueChange={(availabilityId) => set({ availabilityId })}
+                        options={availabilities.map((a) => ({
+                            value: a.id,
+                            label: a.name,
+                            badge: a.isDefault ? 'Predeterminado' : undefined,
                         }))}
                     />
-                </CalField>
+                </PanelField>
             </div>
 
             <div className="flex flex-col gap-5 p-6">
-                {schedule.days.map((day) => (
-                    <div key={day.label} className="grid grid-cols-[140px_1fr] items-start text-[13.5px] font-medium">
-                        <span className={cn('font-bold tracking-[-0.01em]', day.ranges.length === 0 && 'text-[#6b7280] line-through')}>
-                            {day.label}
+                {availability.days.map((intervals, i) => (
+                    <div key={DAY_NAMES[i]} className="grid grid-cols-[140px_1fr] items-start text-[13.5px] font-medium">
+                        <span className={cn('font-bold tracking-[-0.01em]', intervals.length === 0 && 'text-[#6b7280] line-through')}>
+                            {DAY_NAMES[i]}
                         </span>
-                        {day.ranges.length === 0 ? (
+                        {intervals.length === 0 ? (
                             <span className="text-[#6b7280]">No disponible</span>
                         ) : (
                             <div className="flex flex-col gap-2">
-                                {day.ranges.map(([from, to]) => (
+                                {intervals.map(([from, to]) => (
                                     <div key={from} className="grid w-fit grid-cols-[64px_32px_64px] tabular-nums">
                                         <span>{from}</span>
                                         <span className="text-[#6b7280]">-</span>
@@ -216,7 +215,7 @@ function AvailabilityTab({
             <div className="flex flex-wrap items-center gap-3 border-t border-[#e5e7eb] bg-[#f9fafb] px-6 py-5 text-[13px] font-medium">
                 <span className="flex items-center gap-2">
                     <Globe className="size-4 text-[#6b7280]" />
-                    {schedule.timezone}
+                    Hora local de cada Sucursal
                 </span>
                 <Link
                     href="/availability"
@@ -226,7 +225,7 @@ function AvailabilityTab({
                     <ExternalLink className="size-4" />
                 </Link>
             </div>
-        </CalCard>
+        </PanelCard>
     );
 }
 
@@ -241,23 +240,23 @@ function LimitsTab({
 }) {
     return (
         <>
-            <CalCard>
-                <CalField
+            <PanelCard>
+                <PanelField
                     label="Tiempo de preparación"
                     htmlFor="service-prep"
                     hint="Se bloquea antes de cada turno para preparar el espacio o el equipo."
                 >
-                    <CalSelect
+                    <PanelSelect
                         id="service-prep"
                         value={String(draft.prepMinutes)}
                         disabled={readOnly}
                         onValueChange={(v) => set({ prepMinutes: Number(v) })}
                         options={PREP_OPTIONS}
                     />
-                </CalField>
-            </CalCard>
+                </PanelField>
+            </PanelCard>
 
-            <CalCard className="flex flex-col gap-5">
+            <PanelCard className="flex flex-col gap-5">
                 <ToggleRow
                     id="service-daily-limit"
                     title="Limitar turnos por día"
@@ -268,7 +267,7 @@ function LimitsTab({
                 />
                 {draft.dailyLimit.enabled && (
                     <div className="pl-14">
-                        <CalInput
+                        <PanelInput
                             aria-label="Máximo de turnos por día"
                             type="number"
                             min={1}
@@ -280,7 +279,7 @@ function LimitsTab({
                         />
                     </div>
                 )}
-            </CalCard>
+            </PanelCard>
         </>
     );
 }
@@ -289,12 +288,12 @@ export function ServiceDetail({
     business,
     role,
     service,
-    schedules,
+    availabilities,
 }: {
     business: ServiceGroup['business'];
     role: ServiceGroup['role'];
     service: ServiceItem;
-    schedules: MySchedule[];
+    availabilities: Availability[];
 }) {
     const [saved, setSaved] = useState(service);
     const [draft, setDraft] = useState(service);
@@ -311,7 +310,7 @@ export function ServiceDetail({
         (!draft.dailyLimit.enabled || draft.dailyLimit.max >= 1);
     const set = (patch: Partial<ServiceItem>) => setDraft((d) => ({ ...d, ...patch }));
 
-    const schedule = schedules.find((s) => s.id === draft.scheduleId) ?? schedules[0];
+    const availability = availabilities.find((a) => a.id === draft.availabilityId) ?? availabilities[0];
     const limitsSummary = [
         draft.prepMinutes ? `Preparación ${draft.prepMinutes} min` : 'Sin preparación',
         draft.dailyLimit.enabled && `máx. ${draft.dailyLimit.max}/día`,
@@ -321,7 +320,7 @@ export function ServiceDetail({
 
     const tabs: { id: TabId; icon: typeof Link2; title: string; subtitle: string }[] = [
         { id: 'setup', icon: Link2, title: 'Configuración', subtitle: `${draft.durationMinutes} min · ${formatPrice(draft.price)}` },
-        { id: 'availability', icon: Calendar, title: 'Disponibilidad', subtitle: schedule.name },
+        { id: 'availability', icon: Calendar, title: 'Disponibilidad', subtitle: availability.name },
         { id: 'limits', icon: Clock, title: 'Límites', subtitle: limitsSummary },
     ];
 
@@ -345,26 +344,26 @@ export function ServiceDetail({
 
                 <div className="ml-auto flex items-center gap-3">
                     {isOwner && (
-                        <CalSwitch
+                        <PanelSwitch
                             checked={draft.visible}
                             onCheckedChange={(visible) => set({ visible })}
                             aria-label={draft.visible ? 'Ocultar del Enlace de reserva' : 'Mostrar en el Enlace de reserva'}
                         />
                     )}
                     <OfferButton service={saved} />
-                    <Divider />
-                    <CalIconGroup>
+                    <PanelDivider />
+                    <PanelIconGroup>
                         <PublicLinkButtons url={publicUrl(business.slug, saved.slug)} />
                         {isOwner && (
-                            <CalIconButton label="Dar de baja" destructive onClick={() => setConfirmRemove(true)}>
+                            <PanelIconButton label="Dar de baja" destructive onClick={() => setConfirmRemove(true)}>
                                 <Trash2 />
-                            </CalIconButton>
+                            </PanelIconButton>
                         )}
-                    </CalIconGroup>
-                    <Divider />
-                    <CalButton disabled={!dirty || !valid} onClick={save}>
+                    </PanelIconGroup>
+                    <PanelDivider />
+                    <PanelButton disabled={!dirty || !valid} onClick={save}>
                         Guardar
-                    </CalButton>
+                    </PanelButton>
                 </div>
             </header>
 
@@ -403,12 +402,12 @@ export function ServiceDetail({
                         </div>
                     )}
                     {tab === 'setup' && <SetupTab draft={draft} set={set} businessSlug={business.slug} readOnly={!isOwner} />}
-                    {tab === 'availability' && <AvailabilityTab schedule={schedule} set={set} schedules={schedules} />}
+                    {tab === 'availability' && <AvailabilityTab availability={availability} set={set} availabilities={availabilities} />}
                     {tab === 'limits' && <LimitsTab draft={draft} set={set} readOnly={!isOwner} />}
                 </div>
             </div>
 
-            <CalConfirm
+            <PanelConfirm
                 open={confirmRemove}
                 onOpenChange={setConfirmRemove}
                 title="¿Dar de baja este servicio?"

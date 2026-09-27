@@ -19,27 +19,13 @@ export interface ServiceItem {
     deposit: { enabled: boolean; percent: number };
     prepMinutes: number;
     dailyLimit: { enabled: boolean; max: number };
-    scheduleId: string;
+    availabilityId: string;
 }
 
 export interface ServiceGroup {
     business: { id: number; name: string; slug: string };
     role: ServiceRole;
     services: ServiceItem[];
-}
-
-export interface ScheduleDay {
-    label: string;
-    /** Rangos `desde–hasta`; vacío es "No disponible". */
-    ranges: [string, string][];
-}
-
-export interface MySchedule {
-    id: string;
-    name: string;
-    isDefault: boolean;
-    timezone: string;
-    days: ScheduleDay[];
 }
 
 export const groups: ServiceGroup[] = [
@@ -61,7 +47,7 @@ export const groups: ServiceGroup[] = [
                 deposit: { enabled: true, percent: 20 },
                 prepMinutes: 10,
                 dailyLimit: { enabled: true, max: 8 },
-                scheduleId: 'laboral',
+                availabilityId: 'laboral',
             },
             {
                 id: 'masaje-descontracturante',
@@ -76,7 +62,7 @@ export const groups: ServiceGroup[] = [
                 deposit: { enabled: false, percent: 30 },
                 prepMinutes: 15,
                 dailyLimit: { enabled: false, max: 6 },
-                scheduleId: 'laboral',
+                availabilityId: 'laboral',
             },
             {
                 id: 'evaluacion-postural',
@@ -91,7 +77,7 @@ export const groups: ServiceGroup[] = [
                 deposit: { enabled: false, percent: 20 },
                 prepMinutes: 0,
                 dailyLimit: { enabled: false, max: 4 },
-                scheduleId: 'laboral',
+                availabilityId: 'laboral',
             },
         ],
     },
@@ -113,7 +99,7 @@ export const groups: ServiceGroup[] = [
                 deposit: { enabled: true, percent: 30 },
                 prepMinutes: 10,
                 dailyLimit: { enabled: true, max: 6 },
-                scheduleId: 'tarde',
+                availabilityId: 'tarde',
             },
             {
                 id: 'rehabilitacion-deportiva',
@@ -128,39 +114,8 @@ export const groups: ServiceGroup[] = [
                 deposit: { enabled: false, percent: 20 },
                 prepMinutes: 15,
                 dailyLimit: { enabled: false, max: 5 },
-                scheduleId: 'laboral',
+                availabilityId: 'laboral',
             },
-        ],
-    },
-];
-
-const WEEKDAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
-
-export const mySchedules: MySchedule[] = [
-    {
-        id: 'laboral',
-        name: 'Horario laboral',
-        isDefault: true,
-        timezone: 'America/Argentina/Buenos_Aires',
-        days: [
-            { label: 'Domingo', ranges: [] },
-            ...WEEKDAYS.map((label): ScheduleDay => ({ label, ranges: [['09:00', '17:00']] })),
-            { label: 'Sábado', ranges: [] },
-        ],
-    },
-    {
-        id: 'tarde',
-        name: 'Horario de tarde',
-        isDefault: false,
-        timezone: 'America/Argentina/Buenos_Aires',
-        days: [
-            { label: 'Domingo', ranges: [] },
-            { label: 'Lunes', ranges: [['08:00', '13:00'], ['17:00', '20:00']] },
-            { label: 'Martes', ranges: [['14:00', '20:00']] },
-            { label: 'Miércoles', ranges: [['14:00', '20:00']] },
-            { label: 'Jueves', ranges: [['08:00', '13:00'], ['17:00', '20:00']] },
-            { label: 'Viernes', ranges: [['14:00', '20:00']] },
-            { label: 'Sábado', ranges: [['10:00', '13:00']] },
         ],
     },
 ];

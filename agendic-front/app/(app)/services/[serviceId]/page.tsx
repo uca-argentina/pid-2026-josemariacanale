@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
-import { findService, mySchedules } from '../_components/mock-services';
+import { myAvailabilities } from '@/app/(app)/_components/mock-availability';
+import { findService } from '@/app/(app)/_components/mock-services';
 import { ServiceDetail } from './_components/ServiceDetail';
 
 export default async function ServicePage({ params }: { params: Promise<{ serviceId: string }> }) {
@@ -12,7 +13,7 @@ export default async function ServicePage({ params }: { params: Promise<{ servic
             business={found.group.business}
             role={found.group.role}
             service={found.service}
-            schedules={mySchedules}
+            availabilities={myAvailabilities}
         />
     );
 }
