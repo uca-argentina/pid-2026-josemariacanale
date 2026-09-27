@@ -1,32 +1,21 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Delete,
   Get,
   HttpCode,
-  Injectable,
   Param,
   ParseIntPipe,
-  PipeTransform,
   Put,
   UseGuards,
 } from '@nestjs/common';
 import { DeleteOverridesUseCase } from '../../application/availability-overrides/delete-overrides.use-case';
 import { ListOverridesByEmployeeUseCase } from '../../application/availability-overrides/list-overrides-by-employee.use-case';
 import { ReplaceOverridesUseCase } from '../../application/availability-overrides/replace-overrides.use-case';
+import { ParseDatePipe } from '../parse-date.pipe';
 import { ClerkGuard, CurrentUser } from '../users/clerk.guard';
 import { presentOverride } from './availability-override.presenter';
 import { ReplaceOverridesDto } from './availability-overrides.dto';
-
-@Injectable()
-class ParseDatePipe implements PipeTransform<string, string> {
-  transform(value: string): string {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(value))
-      throw new BadRequestException('date must be YYYY-MM-DD');
-    return value;
-  }
-}
 
 @Controller()
 export class AvailabilityOverridesController {

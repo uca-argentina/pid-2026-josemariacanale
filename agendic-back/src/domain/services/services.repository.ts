@@ -42,4 +42,9 @@ export interface ServicesRepository {
   ): Promise<{ service: Service; cancelledBookings: number }>;
   /** Services not dados de baja that this Employee is in charge of, verified or not. */
   listActiveByEmployee(employeeId: number): Promise<Service[]>;
+  /** The (Employee, Service) link, with the Availability the Employee uses for it. Null if they don't attend it. */
+  findEmployeeLink(
+    serviceId: number,
+    employeeId: number,
+  ): Promise<EmployeeService | null>;
 }

@@ -28,4 +28,10 @@ export interface BookingsRepository {
   /** Moves an UNVERIFIED Booking to BOOKED. Throws ConflictError if it now overlaps a BOOKED Booking. */
   markBooked(id: number): Promise<Booking>;
   listByBusiness(businessId: number): Promise<Booking[]>;
+  /** BOOKED Turnos of this Empleado, in any of their Servicios, overlapping [from, to). */
+  listBookedByEmployee(
+    employeeId: number,
+    from: Date,
+    to: Date,
+  ): Promise<Pick<Booking, 'startsAt' | 'endsAt'>[]>;
 }

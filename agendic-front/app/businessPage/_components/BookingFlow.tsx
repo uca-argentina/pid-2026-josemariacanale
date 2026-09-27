@@ -12,6 +12,7 @@ import { cn } from '@/app/_components/utils';
 import type { ServiceCategoryValue } from '@/app/_components/business-schemas';
 import { ChipTabs } from './ChipTabs';
 import { TimeStep } from './TimeStep';
+import { createBookingAction } from '../booking-actions';
 import {
     availableDays,
     depositFor,
@@ -207,10 +208,14 @@ function EmployeeStep({
 function ConfirmStep({
     business,
     service,
+    submitting,
+    error,
     onSubmit,
 }: {
     business: Business;
     service: Service;
+    submitting: boolean;
+    error: string | null;
     onSubmit: (data: { name: string; email: string; notes: string }) => void;
 }) {
     const deposit = depositFor(service);
@@ -220,6 +225,7 @@ function ConfirmStep({
             id={CLIENT_FORM}
             onSubmit={(e) => {
                 e.preventDefault();
+                if (submitting) return;
                 const data = new FormData(e.currentTarget);
                 onSubmit({
                     name: String(data.get('nombre')).trim(),
@@ -230,6 +236,15 @@ function ConfirmStep({
             className="flex max-w-[560px] flex-col gap-4"
         >
             <h3 className="text-[17px] font-extrabold tracking-[-0.02em]">Tus datos</h3>
+
+            {error && (
+                <div
+                    role="alert"
+                    className="rounded-xl border border-destructive/40 bg-destructive/10 p-3.5 text-[14px] font-medium text-destructive"
+                >
+                    {error}
+                </div>
+            )}
 
             <div className="flex flex-col gap-2">
                 <Label htmlFor="nombre" className="text-[13.5px] font-bold">
@@ -304,11 +319,13 @@ function AdvanceButton({
     step,
     canAdvance,
     onAdvance,
+    submitting,
     className,
 }: {
     step: Step;
     canAdvance: boolean;
     onAdvance: () => void;
+    submitting?: boolean;
     className?: string;
 }) {
     const last = step === 'confirm';
@@ -317,13 +334,13 @@ function AdvanceButton({
             type={last ? 'submit' : 'button'}
             form={last ? CLIENT_FORM : undefined}
             onClick={last ? undefined : onAdvance}
-            disabled={!canAdvance}
+            disabled={!canAdvance || submitting}
             className={cn(
                 'h-auto w-full rounded-xl bg-foreground py-3.5 text-[15px] font-bold text-white hover:bg-foreground/90 disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100',
                 className,
             )}
         >
-            {last ? 'Confirmar turno' : 'Continuar'}
+            {last ? (submitting ? 'Confirmando...' : 'Confirmar turno') : 'Continuar'}
         </Button>
     );
 }
@@ -336,6 +353,7 @@ function SummaryPanel({
     step,
     canAdvance,
     onAdvance,
+    submitting,
 }: {
     business: Business;
     branch: Branch;
@@ -344,6 +362,7 @@ function SummaryPanel({
     step: Step;
     canAdvance: boolean;
     onAdvance: () => void;
+    submitting?: boolean;
 }) {
     const { service, employee, date, time } = draft;
     const deposit = service ? depositFor(service) : null;
@@ -429,6 +448,7 @@ function SummaryPanel({
                 step={step}
                 canAdvance={canAdvance}
                 onAdvance={onAdvance}
+                submitting={submitting}
                 className="mt-auto hidden lg:inline-flex"
             />
         </div>
@@ -460,7 +480,10 @@ export function BookingFlow({
         employee: null,
         date: null,
         time: null,
+        startsAtIso: null,
     });
+    const [submitting, setSubmitting] = useState(false);
+    const [bookingError, setBookingError] = useState<string | null>(null);
 
     useEffect(() => {
         const onKey = (e: KeyboardEvent) => {
@@ -474,55 +497,90 @@ export function BookingFlow({
 
     // Volver a elegir lo mismo no puede borrar lo que ya se eligió después: solo un cambio real
     // invalida los pasos siguientes.
-    const chooseService = (next: Service) =>
+    const chooseService = (next: Service) => {
+        setBookingError(null);
         setDraft((d) =>
             d.service?.id === next.id
                 ? d
-                : { service: next, employee: null, date: null, time: null },
+                : { service: next, employee: null, date: null, time: null, startsAtIso: null },
         );
+    };
 
     // Cada Empleado tiene su propia agenda, así que el horario elegido para otro no sirve.
-    const chooseEmployee = (next: Employee) =>
+    const chooseEmployee = (next: Employee) => {
+        setBookingError(null);
         setDraft((d) =>
-            d.employee?.id === next.id ? d : { ...d, employee: next, date: null, time: null },
+            d.employee?.id === next.id
+                ? d
+                : { ...d, employee: next, date: null, time: null, startsAtIso: null },
         );
+    };
 
     const canAdvance =
-        (step === 'service' && !!service) ||
-        (step === 'employee' && !!employee) ||
-        (step === 'time' && !!date && !!time) ||
-        step === 'confirm';
+        !submitting &&
+        ((step === 'service' && !!service) ||
+            (step === 'employee' && !!employee) ||
+            (step === 'time' && !!date && !!time) ||
+            step === 'confirm');
 
     const advance = () => {
         const next = STEPS[STEPS.indexOf(step) + 1];
         if (!next) return;
+        setBookingError(null);
         // Al entrar a Horario se abre el primer día, como la referencia: así se ve de entrada si
         // el profesional tiene lugar o tiene la agenda completa.
         if (next === 'time' && service && employee && !date) {
             const [first] = availableDays(service.durationMinutes, employee.id);
-            setDraft((d) => ({ ...d, date: first.date, time: null }));
+            setDraft((d) => ({ ...d, date: first.date, time: null, startsAtIso: null }));
         }
         setStep(next);
     };
 
     const back = () => {
+        setBookingError(null);
         const previous = STEPS[STEPS.indexOf(step) - 1];
         if (previous) setStep(previous);
         else onClose();
     };
 
-    const confirm = (data: { name: string; email: string; notes: string }) => {
-        if (!service || !employee || !date || !time) return;
-        // ponytail: acá va POST /bookings; nace UNVERIFIED hasta que el Cliente verifica el mail.
+    const goToStep = (target: Step) => {
+        setBookingError(null);
+        setStep(target);
+    };
+
+    const confirm = async (data: { name: string; email: string; notes: string }) => {
+        if (!service || !employee || !date || !time || submitting) return;
+        setSubmitting(true);
+        setBookingError(null);
+
+        const startsAt =
+            draft.startsAtIso ??
+            new Date(`${date}T${time}:00`).toISOString();
+
+        const result = await createBookingAction({
+            serviceId: service.id,
+            employeeId: employee.id,
+            startsAt,
+            clientName: data.name,
+            clientEmail: data.email,
+        });
+
+        if (!result.ok) {
+            setSubmitting(false);
+            setBookingError(result.message);
+            return;
+        }
+
+        setSubmitting(false);
         onBooked({
-            id: `b-${service.id}-${date}-${time}`,
+            id: String(result.booking.id),
             business,
             branch,
             service,
             employee,
             date,
             time,
-            status: 'UNVERIFIED',
+            status: (result.booking.status as 'UNVERIFIED' | 'BOOKED') || 'UNVERIFIED',
             client: { name: data.name, email: data.email },
             notes: data.notes || undefined,
             photo,
@@ -561,7 +619,7 @@ export function BookingFlow({
             <div className="mx-auto w-full max-w-[1400px] px-4 pb-32 sm:px-8 lg:px-16 lg:pb-24">
                 <div className="grid items-start gap-10 lg:grid-cols-[1fr_400px]">
                     <div>
-                        <Breadcrumb step={step} onGo={setStep} />
+                        <Breadcrumb step={step} onGo={goToStep} />
                         <h1 className="mt-4 mb-6 text-[34px] leading-none font-extrabold tracking-[-0.03em] sm:text-[44px]">
                             {TITLES[step]}
                         </h1>
@@ -590,10 +648,19 @@ export function BookingFlow({
                                 branch={branch}
                                 date={date}
                                 time={time}
-                                onSelect={(nextDate, nextTime) =>
-                                    setDraft((d) => ({ ...d, date: nextDate, time: nextTime }))
-                                }
-                                onSeeEmployees={() => setStep('employee')}
+                                onSelect={(nextDate, nextTime, nextStartsAtIso) => {
+                                    setBookingError(null);
+                                    setDraft((d) => ({
+                                        ...d,
+                                        date: nextDate,
+                                        time: nextTime,
+                                        startsAtIso: nextStartsAtIso ?? null,
+                                    }));
+                                }}
+                                onSeeEmployees={() => {
+                                    setBookingError(null);
+                                    setStep('employee');
+                                }}
                             />
                         )}
 
@@ -601,6 +668,8 @@ export function BookingFlow({
                             <ConfirmStep
                                 business={business}
                                 service={service}
+                                submitting={submitting}
+                                error={bookingError}
                                 onSubmit={confirm}
                             />
                         )}
@@ -615,6 +684,7 @@ export function BookingFlow({
                             step={step}
                             canAdvance={canAdvance}
                             onAdvance={advance}
+                            submitting={submitting}
                         />
                     </aside>
                 </div>
@@ -638,7 +708,12 @@ export function BookingFlow({
                         {formatPrice(depositFor(service)!.rest)} en el local
                     </p>
                 )}
-                <AdvanceButton step={step} canAdvance={canAdvance} onAdvance={advance} />
+                <AdvanceButton
+                    step={step}
+                    canAdvance={canAdvance}
+                    onAdvance={advance}
+                    submitting={submitting}
+                />
             </div>
         </div>
     );

@@ -97,6 +97,10 @@ _Avoid_: excepción, override, licencia
 El Empleado que atiende en lugar de otro durante una Anulación, para no dejar sus Servicios sin nadie. Opcional: una Anulación sin Cobertura simplemente deja esas fechas sin horarios para el Cliente.
 _Avoid_: reemplazo, suplente, backup
 
+**Horario reservable**:
+Hora concreta en la que un Cliente puede Reservar un Turno para un Servicio con un Empleado, ya descontadas las Anulaciones y los Turnos tomados.
+_Avoid_: slot, hueco, disponibilidad
+
 **Categoría de Servicio**:
 Tipo de prestación al que pertenece un Servicio, elegido de una lista fija.
 _Avoid_: tipo de servicio, categoría (a secas)
