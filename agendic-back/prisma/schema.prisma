@@ -3,6 +3,8 @@
 // - no overlapping BOOKED Bookings per Employee (exclusion constraint)
 // - Service name unique in any casing among a Branch's Services not retired
 // - one active Employee (retiredAt null) per (userId, businessId): a User can be re-hired after being dado de baja
+// - no overlapping AvailabilityIntervals per (availabilityId, weekday), half-open so they can touch (exclusion constraint)
+// - at most one default Availability per Employee (partial unique index)
 
 generator client {
   provider     = "prisma-client"
@@ -65,14 +67,14 @@ model Branch {
 }
 
 model Service {
-  id              Int       @id @default(autoincrement())
+  id              Int             @id @default(autoincrement())
   branchId        Int
   name            String
   description     String?
   category        ServiceCategory
   durationMinutes Int
-  price           Decimal   @db.Decimal(10, 2)
-  retiredAt       DateTime? @db.Timestamptz(3) // when dado de baja; null while offered
+  price           Decimal         @db.Decimal(10, 2)
+  retiredAt       DateTime?       @db.Timestamptz(3) // when dado de baja; null while offered
 
   branch    Branch     @relation(fields: [branchId], references: [id])
   employees Employee[]
@@ -85,10 +87,32 @@ model Employee {
   businessId Int
   retiredAt  DateTime? @db.Timestamptz(3) // when dado de baja; null while employed
 
-  user     User      @relation(fields: [userId], references: [id])
-  business Business  @relation(fields: [businessId], references: [id])
-  services Service[]
-  bookings Booking[]
+  user           User           @relation(fields: [userId], references: [id])
+  business       Business       @relation(fields: [businessId], references: [id])
+  services       Service[]
+  bookings       Booking[]
+  availabilities Availability[]
+}
+
+model Availability {
+  id         Int     @id @default(autoincrement())
+  employeeId Int
+  name       String
+  isDefault  Boolean // exactly one per Employee; no time zone of its own, the Branch's applies
+
+  employee  Employee               @relation(fields: [employeeId], references: [id])
+  intervals AvailabilityInterval[]
+}
+
+/// Franja. Never crosses midnight: endTime is always after startTime.
+model AvailabilityInterval {
+  id             Int      @id @default(autoincrement())
+  availabilityId Int
+  weekday        Int // 0 = Sunday … 6 = Saturday, same as Date.getUTCDay()
+  startTime      DateTime @db.Time(0) // read by Prisma as 1970-01-01T<HH:mm>Z
+  endTime        DateTime @db.Time(0)
+
+  availability Availability @relation(fields: [availabilityId], references: [id], onDelete: Cascade)
 }
 
 model Booking {

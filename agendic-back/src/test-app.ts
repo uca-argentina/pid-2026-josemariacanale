@@ -2,6 +2,10 @@ import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from './app.module';
 import { setupApp } from './setup-app';
+import {
+  AVAILABILITIES_REPOSITORY,
+  AvailabilitiesRepository,
+} from './domain/availabilities/availabilities.repository';
 import { Branch } from './domain/branches/branch';
 import {
   BRANCHES_REPOSITORY,
@@ -115,6 +119,14 @@ export async function createTestApp() {
     markBooked: jest.fn(),
     listByBusiness: jest.fn(),
   };
+  const availabilities: jest.Mocked<AvailabilitiesRepository> = {
+    listByEmployee: jest.fn(),
+    findById: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    makeDefault: jest.fn(),
+    delete: jest.fn(),
+  };
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(CLOCK)
     .useValue(clock)
@@ -134,6 +146,8 @@ export async function createTestApp() {
     .useValue(employees)
     .overrideProvider(BOOKINGS_REPOSITORY)
     .useValue(bookings)
+    .overrideProvider(AVAILABILITIES_REPOSITORY)
+    .useValue(availabilities)
     .compile();
   const app = setupApp(moduleRef.createNestApplication());
   await app.init();
@@ -148,6 +162,7 @@ export async function createTestApp() {
     services,
     employees,
     bookings,
+    availabilities,
     http: request(app.getHttpServer()),
   };
 }

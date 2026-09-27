@@ -81,6 +81,14 @@ _Avoid_: link de verificación, link de confirmación, magic link
 Prestación que ofrece una Sucursal, con duración y precio, atendida por uno o más Empleados. No confundir con los microservicios de la arquitectura.
 _Avoid_: prestación, tratamiento
 
+**Availability**:
+Conjunto de Franjas semanales con nombre que declara cuándo trabaja un Empleado. En pantalla se llama "Horas laborables". Un Empleado tiene una o más, exactamente una predeterminada. El término queda en inglés a pedido explícito: "Disponibilidad" ya se usa en el panel para otra cosa.
+_Avoid_: disponibilidad, horario (a secas), agenda
+
+**Franja**:
+Tramo de un día de la semana dentro de una Availability, con hora de inicio y de fin. Varias por día; un día sin Franjas es un día que no se trabaja. Nunca cruza la medianoche.
+_Avoid_: rango, bloque, slot
+
 **Categoría de Servicio**:
 Tipo de prestación al que pertenece un Servicio, elegido de una lista fija.
 _Avoid_: tipo de servicio, categoría (a secas)

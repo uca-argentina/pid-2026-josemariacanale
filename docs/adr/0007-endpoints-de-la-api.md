@@ -47,7 +47,7 @@ actualizarlo a mano cuando se agregue, cambie o borre un endpoint.
 
 | Método | Ruta | Auth | Qué hace |
 |---|---|---|---|
-| POST | `/businesses` | sí | Crea un negocio junto con su primera sucursal, servicio y empleado (alta todo-en-uno); el Empleado creado es el propio Dueño (su Usuario de Sesión, ADR 0013); 409 si el Usuario ya es Dueño de un Negocio (ADR 0012) |
+| POST | `/businesses` | sí | Crea un negocio junto con su primera sucursal, servicio y empleado (alta todo-en-uno); el Empleado creado es el propio Dueño (su Usuario de Sesión, ADR 0013), con su Availability predeterminada "Horario general": lunes a viernes de 09:00 a 18:00, sábado y domingo sin Franjas, en la misma transacción (no viene en la respuesta; se lee con `GET /employees/:id/availabilities`); 409 si el Usuario ya es Dueño de un Negocio (ADR 0012) |
 | PATCH | `/businesses/:id` | sí | Actualiza name/description/slug (solo el dueño); cambiar el slug deja de servir el Enlace de reserva anterior |
 | GET | `/businesses` | sí | Lista solo los negocios del Dueño de la sesión (0 o 1) |
 | GET | `/businesses/:id` | no | Detalle de un negocio |
@@ -103,6 +103,33 @@ Todo Empleado es un Usuario (ADR 0013): nombre y email los presta su cuenta, no 
 - Respuesta (`presentEmployee`): `{ id, userId, name, email }` — vista del dueño; en el array
   `employees` de un Service la vista pública es solo `{ id, name }`.
 - Recontratar a alguien dado de baja crea una fila nueva: no hay `PATCH` para reactivarlo.
+
+## Availability (Horas laborables)
+
+Cada Empleado tiene una o más Availability, exactamente una predeterminada. Todo es del Dueño del
+Negocio del Empleado: cualquier otro Usuario recibe 403.
+
+| Método | Ruta | Auth | Qué hace |
+|---|---|---|---|
+| GET | `/employees/:id/availabilities` | sí | Las Availability del Empleado con sus Franjas |
+| POST | `/employees/:id/availabilities` | sí | Crea una con sus Franjas; la primera del Empleado nace predeterminada; 201 |
+| PATCH | `/availabilities/:id` | sí | Cambia el nombre y/o reemplaza el set entero de Franjas; sin `intervals` no las toca |
+| POST | `/availabilities/:id/default` | sí | La marca predeterminada y desmarca la anterior; 200 con la Availability |
+| DELETE | `/availabilities/:id` | sí | La borra con sus Franjas; 204; 422 si es la predeterminada |
+
+- `CreateAvailabilityDto`: `{ name, intervals: [{ weekday: 0-6, startTime: "HH:mm", endTime: "HH:mm" }] }`
+- `UpdateAvailabilityDto`: `{ name?, intervals? }`; `isDefault` no se acepta acá (400), va por `POST /availabilities/:id/default`
+- `weekday`: 0 = domingo … 6 = sábado, igual que `Date.getUTCDay()`
+- Las Franjas no tienen endpoints propios: se mandan enteras dentro de la Availability. Un día sin
+  Franjas es un día que no se trabaja; `intervals: []` es válido.
+- Respuesta (`presentAvailability`): `{ id, employeeId, name, isDefault, intervals: [{ weekday, startTime, endTime }] }`, Franjas ordenadas por día y hora de inicio
+- Errores (el front muestra el `message` tal cual):
+  - dos Franjas del mismo día que se solapan → 422 `Dos Franjas del mismo día se solapan`; dos que se tocan (09:00–17:00 y 17:00–18:00) se aceptan
+  - una Franja cuyo fin no es posterior al inicio → 422 `Cada Franja tiene que terminar después de empezar`
+  - borrar la predeterminada → 422 `No se puede borrar la Availability predeterminada`
+  - `weekday` fuera de 0–6, hora que no es `HH:mm`, campo extra → 400
+  - Empleado o Availability inexistente → 404
+  - dos pedidos concurrentes que dejarían dos predeterminadas → 409
 
 ## Bookings (Turno)
 

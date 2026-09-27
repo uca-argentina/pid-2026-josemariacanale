@@ -29,6 +29,8 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | Usuario | `User` |
 | Cliente | `Booking.clientName` / `Booking.clientEmail` |
 | Empleado | `Employee` |
+| Availability | `Availability` (predeterminada → `isDefault`) |
+| Franja | `AvailabilityInterval` (día → `weekday`, 0 = domingo como `Date.getUTCDay()`; inicio/fin → `startTime`/`endTime`) |
 | Servicio | `Service` |
 | Categoría de Servicio | `ServiceCategory` (`Service.category`) |
 | Turno | `Booking` (inicio/fin → `startsAt`/`endsAt`; estado → `BookingStatus.UNVERIFIED \| BOOKED \| CANCELLED`) |

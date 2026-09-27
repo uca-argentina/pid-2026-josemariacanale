@@ -80,7 +80,7 @@ describe('Negocio', () => {
       t.businesses.listByOwner.mockResolvedValue([]);
     });
 
-    it('creates the Negocio, its Sucursal, its Servicio and the Dueño as its Empleado', async () => {
+    it('creates the Negocio, its Sucursal, its Servicio and the Dueño as its Empleado, with a default Availability of Monday to Friday 09:00–18:00', async () => {
       t.businesses.create.mockResolvedValue(CREATED);
 
       const res = await t.http
@@ -94,6 +94,14 @@ describe('Negocio', () => {
         branch: BRANCH_PART,
         service: SERVICE_PART,
         employee: { userId: ANA.id },
+        availability: {
+          name: 'Horario general',
+          intervals: [1, 2, 3, 4, 5].map((weekday) => ({
+            weekday,
+            startTime: '09:00',
+            endTime: '18:00',
+          })),
+        },
       });
       expect(res.body).toEqual({
         business: PRESENTED_BUSINESS,

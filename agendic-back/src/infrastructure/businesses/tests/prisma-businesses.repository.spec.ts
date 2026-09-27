@@ -77,6 +77,13 @@ const CREATE_DATA = {
   employee: {
     userId: ANAS_BUSINESS.ownerId,
   },
+  availability: {
+    name: 'Horario general',
+    intervals: [
+      { weekday: 1, startTime: '09:00', endTime: '18:00' },
+      { weekday: 5, startTime: '09:00', endTime: '18:00' },
+    ],
+  },
 };
 
 describe('PrismaBusinessesRepository', () => {
@@ -84,6 +91,7 @@ describe('PrismaBusinessesRepository', () => {
     business: { create: jest.fn() },
     branch: { create: jest.fn() },
     employee: { create: jest.fn() },
+    availability: { create: jest.fn() },
     service: { create: jest.fn() },
   };
   const prisma = {
@@ -164,6 +172,38 @@ describe('PrismaBusinessesRepository', () => {
         }),
       }),
     );
+  });
+
+  it("gives the Dueño's Empleado its default Availability, with its Franjas as real rows, in the same transaction", async () => {
+    tx.business.create.mockResolvedValue(ANAS_BUSINESS);
+    tx.branch.create.mockResolvedValue(BRANCH_ROW);
+    tx.employee.create.mockResolvedValue(EMPLOYEE_ROW);
+    tx.service.create.mockResolvedValue(SERVICE_ROW);
+
+    await repository.create(CREATE_DATA);
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(tx.availability.create).toHaveBeenCalledWith({
+      data: {
+        employeeId: EMPLOYEE_ROW.id,
+        name: 'Horario general',
+        isDefault: true,
+        intervals: {
+          create: [
+            {
+              weekday: 1,
+              startTime: new Date('1970-01-01T09:00:00.000Z'),
+              endTime: new Date('1970-01-01T18:00:00.000Z'),
+            },
+            {
+              weekday: 5,
+              startTime: new Date('1970-01-01T09:00:00.000Z'),
+              endTime: new Date('1970-01-01T18:00:00.000Z'),
+            },
+          ],
+        },
+      },
+    });
   });
 
   it('names the Enlace de reserva in the ConflictError when two Businesses take the same slug', async () => {

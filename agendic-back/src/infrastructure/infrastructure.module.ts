@@ -1,4 +1,5 @@
 import { Global, Module } from '@nestjs/common';
+import { AVAILABILITIES_REPOSITORY } from '../domain/availabilities/availabilities.repository';
 import { CLOCK } from '../domain/clock';
 import { MAILER } from '../domain/mailer';
 import { BOOKINGS_REPOSITORY } from '../domain/bookings/bookings.repository';
@@ -8,6 +9,8 @@ import { EMPLOYEES_REPOSITORY } from '../domain/employees/employees.repository';
 import { SERVICES_REPOSITORY } from '../domain/services/services.repository';
 import { CLERK_AUTH } from '../domain/users/clerk-auth';
 import { USERS_REPOSITORY } from '../domain/users/users.repository';
+import { AvailabilitiesModule } from './availabilities/availabilities.module';
+import { PrismaAvailabilitiesRepository } from './availabilities/prisma-availabilities.repository';
 import { PrismaBookingsRepository } from './bookings/prisma-bookings.repository';
 import { BookingsModule } from './bookings/bookings.module';
 import { PrismaBranchesRepository } from './branches/prisma-branches.repository';
@@ -35,6 +38,7 @@ import { UsersModule } from './users/users.module';
     ServicesModule,
     EmployeesModule,
     BookingsModule,
+    AvailabilitiesModule,
   ],
   providers: [
     PrismaService,
@@ -47,6 +51,10 @@ import { UsersModule } from './users/users.module';
     { provide: SERVICES_REPOSITORY, useClass: PrismaServicesRepository },
     { provide: EMPLOYEES_REPOSITORY, useClass: PrismaEmployeesRepository },
     { provide: BOOKINGS_REPOSITORY, useClass: PrismaBookingsRepository },
+    {
+      provide: AVAILABILITIES_REPOSITORY,
+      useClass: PrismaAvailabilitiesRepository,
+    },
   ],
   exports: [
     CLOCK,
@@ -58,6 +66,7 @@ import { UsersModule } from './users/users.module';
     SERVICES_REPOSITORY,
     EMPLOYEES_REPOSITORY,
     BOOKINGS_REPOSITORY,
+    AVAILABILITIES_REPOSITORY,
   ],
 })
 export class InfrastructureModule {}

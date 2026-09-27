@@ -10,6 +10,7 @@ import {
   NotFoundError,
 } from '../../domain/errors';
 import { Business as BusinessRow, Prisma } from '../../generated/prisma/client';
+import { toIntervalRow } from '../availabilities/prisma-availabilities.repository';
 import { toBranch, toTime } from '../branches/prisma-branches.repository';
 import {
   toEmployee,
@@ -46,6 +47,14 @@ export class PrismaBusinessesRepository implements BusinessesRepository {
         const employee = await tx.employee.create({
           data: { businessId: business.id, ...data.employee },
           include: WITH_USER,
+        });
+        await tx.availability.create({
+          data: {
+            employeeId: employee.id,
+            name: data.availability.name,
+            isDefault: true,
+            intervals: { create: data.availability.intervals.map(toIntervalRow) },
+          },
         });
         const service = await tx.service.create({
           data: {
