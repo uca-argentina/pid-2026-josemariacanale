@@ -63,7 +63,7 @@ export function CreateBusinessDialog({ owner, onClose }: { owner: Owner; onClose
     const [business, setBusiness] = useState<BusinessFields>({ name: '', description: '', slug: '' });
     // Una vez que el Dueño edita el Enlace de reserva a mano, deja de seguir al nombre.
     const [slugEdited, setSlugEdited] = useState(false);
-    const [branch, setBranch] = useState<BranchFields>({ name: '', address: '', opensAt: '', closesAt: '' });
+    const [branch, setBranch] = useState<BranchFields>({ name: '', address: '', opensAt: '', closesAt: '', timeZone: 'America/Argentina/Buenos_Aires' });
     const [employees, setEmployees] = useState<{ name: string; email: string }[]>([]);
     // El mini formulario de Agregar empleado; null mientras está cerrado.
     const [draft, setDraft] = useState<EmployeeFields | null>(null);
@@ -254,6 +254,8 @@ function BranchStep({
     onChange: (value: BranchFields) => void;
     errors: FieldErrors;
 }) {
+    const timeZones = Intl.supportedValuesOf('timeZone').map(tz => ({ value: tz, label: tz }));
+
     return (
         <>
             <PanelField label="Nombre de la Sucursal" htmlFor="branch-name" error={errors.name}>
@@ -272,6 +274,15 @@ function BranchStep({
                     value={value.address}
                     onChange={(e) => onChange({ ...value, address: e.target.value })}
                     {...invalid(errors, 'address', 'branch-address')}
+                />
+            </PanelField>
+            <PanelField label="Zona horaria" htmlFor="branch-timezone" error={errors.timeZone}>
+                <PanelSelect
+                    id="branch-timezone"
+                    value={value.timeZone}
+                    placeholder="Elegí una zona horaria"
+                    options={timeZones}
+                    onValueChange={(tz) => onChange({ ...value, timeZone: tz })}
                 />
             </PanelField>
             <div className="grid grid-cols-2 gap-4">
@@ -506,6 +517,7 @@ function SummaryStep({
                 <SummaryItem label="Nombre" value={branch.name} />
                 <SummaryItem label="Dirección" value={branch.address} />
                 <SummaryItem label="Horario" value={`${branch.opensAt} a ${branch.closesAt}`} />
+                <SummaryItem label="Zona horaria" value={branch.timeZone} />
             </SummaryBlock>
             <SummaryBlock title="Empleados" onEdit={() => onEdit(EMPLOYEES_STEP)}>
                 <SummaryItem label="Equipo" value={employees.length ? `Vos, ${employees.map((e) => e.name).join(', ')}` : 'Solo vos'} />
