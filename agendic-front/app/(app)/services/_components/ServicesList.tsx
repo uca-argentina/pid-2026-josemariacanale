@@ -81,7 +81,7 @@ function ServiceRow({
                     />
                 )}
                 <PanelIconGroup>
-                    <PublicLinkButtons url={publicUrl(group.business.slug, service.slug)} />
+                    <PublicLinkButtons url={publicUrl(group.business.slug, service.slug)} businessSlug={group.business.slug} />
                     <PanelMenu
                         trigger={
                             <PanelIconButton label="Más acciones">

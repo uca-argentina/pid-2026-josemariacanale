@@ -12,15 +12,8 @@ import { cn } from '@/app/_components/utils';
 import type { ServiceCategoryValue } from '@/app/_components/business-schemas';
 import { ChipTabs } from './ChipTabs';
 import { TimeStep } from './TimeStep';
-import {
-    availableDays,
-    depositFor,
-    endTime,
-    formatDate,
-    formatDuration,
-    formatPrice,
-    initials,
-} from './mock-business';
+import { depositFor, endTime, formatDate, formatDuration, formatPrice, initials } from './format';
+import { availableDays } from './mock-slots';
 import { STEPS } from './types';
 import type { Booking, BookingDraft, Branch, Business, Employee, Service, Step } from './types';
 
@@ -133,7 +126,7 @@ function ServiceStep({
                                     <span className="text-[15px] font-extrabold tracking-[-0.025em]">
                                         {formatPrice(service.price)}
                                     </span>
-                                    {service.depositPercent && (
+                                    {!!service.depositPercent && (
                                         <span className="text-[12.5px] font-semibold text-muted-foreground">
                                             {service.depositPercent}% de seña
                                         </span>
@@ -499,7 +492,7 @@ export function BookingFlow({
         // Al entrar a Horario se abre el primer día, como la referencia: así se ve de entrada si
         // el profesional tiene lugar o tiene la agenda completa.
         if (next === 'time' && service && employee && !date) {
-            const [first] = availableDays(service.durationMinutes, employee.id);
+            const [first] = availableDays(branch, service.durationMinutes, employee.id);
             setDraft((d) => ({ ...d, date: first.date, time: null }));
         }
         setStep(next);

@@ -1,53 +1,19 @@
-// Las formas que devuelve el back para la página pública, según docs/adr/0007-endpoints-de-la-api.md.
+// Las formas que la página de la Sucursal recibe por props: la salida del presenter de
+// getPublicBranchController, así el server nunca baja más de lo que la página muestra.
 // Identificadores en inglés, uno por término del glosario (ADR 0003, docs/agents/domain.md).
-//
-// Los campos que el dominio NO tiene van marcados uno por uno con `ponytail:`. Hoy son tres:
-// `Service.depositPercent`, `Booking.notes` y las fotos. El resto sale del contrato del back.
 
-import type { ServiceCategoryValue } from '@/app/_components/business-schemas';
+import type { DI_RETURN_TYPES } from '@/di/types';
 
-/** GET /businesses/by-slug/:slug */
-export interface Business {
-    id: number;
-    name: string;
-    description: string;
-    slug: string;
-}
+export type PublicBranchPage = Awaited<ReturnType<DI_RETURN_TYPES['IGetPublicBranchController']>>;
 
-/** GET /businesses/:businessId/branches */
-export interface Branch {
-    id: number;
-    businessId: number;
-    name: string;
-    address: string;
-    /** 'HH:mm' */
-    opensAt: string;
-    /** 'HH:mm' */
-    closesAt: string;
-}
-
-/** Lo único que la vista pública de un Servicio conoce de un Empleado: el email es solo del Dueño. */
-export interface Employee {
-    id: number;
-    name: string;
-}
-
-/** GET /branches/:id/services: solo los Servicios activos (retiredAt null). */
-export interface Service {
-    id: number;
-    branchId: number;
-    name: string;
-    description?: string;
-    category: ServiceCategoryValue;
-    durationMinutes: number;
-    price: number;
-    employees: Employee[];
-    /**
-     * ponytail: la Seña no existe en el dominio ni en el glosario. Porcentaje del precio que el
-     * Negocio cobra por adelantado; sin valor, el Servicio no pide seña.
-     */
-    depositPercent?: number;
-}
+export type Business = PublicBranchPage['business'];
+export type Branch = PublicBranchPage['branch'];
+/** Las demás Sucursales del mismo Negocio, con su tramo del Enlace de reserva. */
+export type OtherBranch = PublicBranchPage['otherBranches'][number];
+/** Solo los Servicios activos. `depositPercent` es la Seña; `null`, sin Seña. */
+export type Service = PublicBranchPage['services'][number];
+/** Lo único que la vista pública conoce de un Empleado: el email es solo del Dueño. */
+export type Employee = PublicBranchPage['employees'][number];
 
 /** Por qué un día no tiene horarios: cada motivo se resuelve distinto desde la UI. */
 export type NoSlotsReason = 'branch-closed' | 'fully-booked';
@@ -95,9 +61,9 @@ export interface Booking {
     status: 'UNVERIFIED' | 'BOOKED';
     /** El Cliente no tiene cuenta (ADR 0005): sus datos viven en el Turno. */
     client: { name: string; email: string };
-    /** ponytail: Booking no tiene campo de notas en el schema. */
+    /** Comentario del Turno. */
     notes?: string;
-    /** ponytail: ni Business ni Branch tienen campo de imagen; es un placeholder. */
+    /** ponytail: foto placeholder hasta el ticket 06 (Imágenes de Sucursal). */
     photo: string;
 }
 

@@ -6,12 +6,11 @@ import { toast } from 'sonner';
 import { PanelButton, PanelConfirm, PanelIconButton } from '@/app/(app)/_components/panel-ui';
 import { canStopOffering, type ServiceItem } from '@/app/(app)/_components/mock-services';
 
-// ponytail: la única página pública que existe es el mock de /businessPage; cuando haya Enlace de reserva
-// por Negocio y Servicio, esto abre `url`.
-const PUBLIC_PAGE_PATH = '/businessPage';
-
-/** Abrir el Enlace de reserva y copiarlo. Van dentro de un `PanelIconGroup`. */
-export function PublicLinkButtons({ url }: { url: string }) {
+/**
+ * Abrir el Enlace de reserva y copiarlo. Van dentro de un `PanelIconGroup`.
+ * ponytail: no hay Enlace de reserva por Servicio; abrir lleva a la página del Negocio, que elige la Sucursal.
+ */
+export function PublicLinkButtons({ url, businessSlug }: { url: string; businessSlug: string }) {
     const copy = async () => {
         try {
             await navigator.clipboard.writeText(url);
@@ -23,7 +22,7 @@ export function PublicLinkButtons({ url }: { url: string }) {
 
     return (
         <>
-            <PanelIconButton label="Abrir Enlace de reserva" onClick={() => window.open(PUBLIC_PAGE_PATH, '_blank')}>
+            <PanelIconButton label="Abrir Enlace de reserva" onClick={() => window.open(`/business/${businessSlug}`, '_blank')}>
                 <ExternalLink />
             </PanelIconButton>
             <PanelIconButton label="Copiar Enlace de reserva" onClick={copy}>

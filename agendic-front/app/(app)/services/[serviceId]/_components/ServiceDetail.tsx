@@ -326,7 +326,7 @@ export function ServiceDetail({
                     <OfferButton service={saved} />
                     <PanelDivider />
                     <PanelIconGroup>
-                        <PublicLinkButtons url={publicUrl(business.slug, saved.slug)} />
+                        <PublicLinkButtons url={publicUrl(business.slug, saved.slug)} businessSlug={business.slug} />
                         {isOwner && (
                             <PanelIconButton label="Dar de baja" destructive onClick={() => setConfirmRemove(true)}>
                                 <Trash2 />

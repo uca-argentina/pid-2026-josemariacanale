@@ -2,14 +2,16 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { Clock, MapPin, Images, Building2 } from 'lucide-react';
+import { Avatar, AvatarFallback } from '@/app/_components/ui/avatar';
 import { Button } from '@/app/_components/ui/button';
-import type { ServiceCategoryValue } from '@/app/_components/business-schemas';
+import { SERVICE_CATEGORIES, type ServiceCategoryValue } from '@/app/_components/business-schemas';
 import { ChipTabs } from './ChipTabs';
 import { BookingFlow } from './BookingFlow';
 import { MyBookings } from './MyBookings';
-import { formatDuration, formatPrice } from './mock-business';
-import type { Booking, Branch, Business, Service } from './types';
+import { formatDuration, formatPrice, initials } from './format';
+import type { Booking, Branch, Business, Employee, OtherBranch, Service } from './types';
 
 function ServiceCard({
     service,
@@ -34,7 +36,7 @@ function ServiceCard({
                     <span className="text-[15px] font-extrabold tracking-[-0.025em]">
                         {formatPrice(service.price)}
                     </span>
-                    {service.depositPercent && (
+                    {!!service.depositPercent && (
                         <span className="text-[12.5px] font-semibold text-muted-foreground">
                             {service.depositPercent}% de seña
                         </span>
@@ -55,19 +57,21 @@ function ServiceCard({
 export function BranchPublicPage({
     business,
     branch,
-    branches,
+    otherBranches,
     services,
-    categories,
+    employees,
     photos,
 }: {
     business: Business;
     branch: Branch;
-    branches: Branch[];
+    otherBranches: OtherBranch[];
     services: Service[];
-    categories: readonly { value: ServiceCategoryValue; label: string }[];
+    employees: Employee[];
     photos: string[];
 }) {
-    const [category, setCategory] = useState<ServiceCategoryValue>(categories[0].value);
+    // Solo las Categorías que esta Sucursal realmente ofrece, en el orden del enum.
+    const categories = SERVICE_CATEGORIES.filter((c) => services.some((s) => s.category === c.value));
+    const [category, setCategory] = useState<ServiceCategoryValue | undefined>(categories[0]?.value);
     const [initialService, setInitialService] = useState<Service | null>(null);
     const [flowOpen, setFlowOpen] = useState(false);
     const [booking, setBooking] = useState<Booking | null>(null);
@@ -81,7 +85,6 @@ export function BranchPublicPage({
         return <MyBookings booking={booking} onBackToBusiness={() => setBooking(null)} />;
     }
 
-    const otherBranches = branches.filter((b) => b.id !== branch.id);
     const shown = services.filter((s) => s.category === category);
 
     return (
@@ -145,20 +148,55 @@ export function BranchPublicPage({
                             Servicios
                         </h2>
 
-                        <div className="mt-5">
-                            <ChipTabs
-                                options={categories}
-                                value={category}
-                                onSelect={setCategory}
-                                label="Categoría de servicio"
-                            />
-                        </div>
+                        {category ? (
+                            <>
+                                <div className="mt-5">
+                                    <ChipTabs
+                                        options={categories}
+                                        value={category}
+                                        onSelect={setCategory}
+                                        label="Categoría de servicio"
+                                    />
+                                </div>
 
-                        <div className="mt-6 flex flex-col gap-3">
-                            {shown.map((service) => (
-                                <ServiceCard key={service.id} service={service} onBook={openFlow} />
-                            ))}
-                        </div>
+                                <div className="mt-6 flex flex-col gap-3">
+                                    {shown.map((service) => (
+                                        <ServiceCard key={service.id} service={service} onBook={openFlow} />
+                                    ))}
+                                </div>
+                            </>
+                        ) : (
+                            <p className="mt-5 text-[14.5px] text-muted-foreground">
+                                Esta sucursal todavía no tiene servicios para reservar.
+                            </p>
+                        )}
+
+                        {employees.length > 0 && (
+                            <section aria-labelledby="profesionales-titulo" className="mt-12">
+                                {/* Profesionales: mismo rótulo que el panel y el paso Profesional de la reserva. */}
+                                <h2
+                                    id="profesionales-titulo"
+                                    className="text-[24px] leading-none font-extrabold tracking-[-0.03em]"
+                                >
+                                    Profesionales
+                                </h2>
+                                <ul className="mt-5 flex flex-wrap gap-3">
+                                    {employees.map((employee) => (
+                                        <li
+                                            key={employee.id}
+                                            className="flex items-center gap-2.5 rounded-full border border-border py-1.5 pr-4 pl-1.5"
+                                        >
+                                            <Avatar>
+                                                <AvatarFallback className="bg-muted text-[10px] font-extrabold text-foreground">
+                                                    {initials(employee.name)}
+                                                </AvatarFallback>
+                                            </Avatar>
+                                            <span className="text-[14px] font-semibold">{employee.name}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </section>
+                        )}
                     </section>
 
                     <aside className="lg:sticky lg:top-6">
@@ -182,12 +220,14 @@ export function BranchPublicPage({
                                     </p>
                                 </div>
                             </div>
-                            <Button
-                                onClick={() => openFlow(null)}
-                                className="h-auto w-full rounded-xl bg-foreground py-3.5 text-[15px] font-bold text-white hover:bg-foreground/90"
-                            >
-                                Reservar un turno
-                            </Button>
+                            {services.length > 0 && (
+                                <Button
+                                    onClick={() => openFlow(null)}
+                                    className="h-auto w-full rounded-xl bg-foreground py-3.5 text-[15px] font-bold text-white hover:bg-foreground/90"
+                                >
+                                    Reservar un turno
+                                </Button>
+                            )}
                             <p className="mt-3.5 text-[13.5px] leading-relaxed text-muted-foreground">
                                 {business.description}
                             </p>
@@ -214,8 +254,12 @@ export function BranchPublicPage({
                                     <ul className="mt-2.5 flex flex-col gap-2">
                                         {otherBranches.map((b) => (
                                             <li key={b.id} className="text-[13.5px]">
-                                                {/* ponytail: Branch no tiene slug todavía; cuando lo tenga, esto es un Link a /{business.slug}/{b.slug}. */}
-                                                <span className="font-bold">{b.name}</span>
+                                                <Link
+                                                    href={`/business/${business.slug}/${b.slug}`}
+                                                    className="font-bold underline-offset-2 hover:underline"
+                                                >
+                                                    {b.name}
+                                                </Link>
                                                 <span className="text-muted-foreground">
                                                     {' '}
                                                     · {b.address}

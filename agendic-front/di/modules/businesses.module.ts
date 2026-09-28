@@ -7,6 +7,11 @@ import { updateBusinessUseCase } from '@/src/application/use-cases/businesses/up
 import { updateBusinessController } from '@/src/interface-adapters/controllers/businesses/update-business.controller';
 import { BusinessesRepository } from '@/src/infrastructure/repositories/businesses.repository';
 import { createBusinessController } from '@/src/interface-adapters/controllers/businesses/create-business.controller';
+import { PublicBusinessesRepository } from '@/src/infrastructure/repositories/public-businesses.repository';
+import { getPublicBusinessUseCase } from '@/src/application/use-cases/businesses/get-public-business.use-case';
+import { getPublicBranchUseCase } from '@/src/application/use-cases/businesses/get-public-branch.use-case';
+import { getPublicBusinessController } from '@/src/interface-adapters/controllers/businesses/get-public-business.controller';
+import { getPublicBranchController } from '@/src/interface-adapters/controllers/businesses/get-public-branch.controller';
 
 export function createBusinessesModule() {
     const businessesModule = createModule();
@@ -48,6 +53,25 @@ export function createBusinessesModule() {
             DI_SYMBOLS.IAuthenticationService,
             DI_SYMBOLS.IUpdateBusinessUseCase,
         ]);
+
+    // The page of the Enlace de reserva: public, so its repository takes no IAuthenticationService.
+    businessesModule.bind(DI_SYMBOLS.IPublicBusinessesRepository).toClass(PublicBusinessesRepository);
+
+    businessesModule
+        .bind(DI_SYMBOLS.IGetPublicBusinessUseCase)
+        .toHigherOrderFunction(getPublicBusinessUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IPublicBusinessesRepository]);
+
+    businessesModule
+        .bind(DI_SYMBOLS.IGetPublicBusinessController)
+        .toHigherOrderFunction(getPublicBusinessController, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IGetPublicBusinessUseCase]);
+
+    businessesModule
+        .bind(DI_SYMBOLS.IGetPublicBranchUseCase)
+        .toHigherOrderFunction(getPublicBranchUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IPublicBusinessesRepository]);
+
+    businessesModule
+        .bind(DI_SYMBOLS.IGetPublicBranchController)
+        .toHigherOrderFunction(getPublicBranchController, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IGetPublicBranchUseCase]);
 
     return businessesModule;
 }

@@ -1,7 +1,7 @@
 import Image from 'next/image';
 import { CalendarPlus, MailCheck, MapPin, CalendarCog } from 'lucide-react';
 import { Button } from '@/app/_components/ui/button';
-import { depositFor, endTime, formatDate, formatDuration, formatPrice } from './mock-business';
+import { depositFor, endTime, formatDate, formatDuration, formatPrice } from './format';
 import type { Booking } from './types';
 
 const ACTIONS = [

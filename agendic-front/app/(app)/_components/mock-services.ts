@@ -135,7 +135,7 @@ export const publicUrl = (businessSlug: string, serviceSlug: string) =>
 
 const THOUSANDS = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 0 });
 
-/** Mismo formato que la página pública (app/businessPage/_components/mock-business.ts). */
+/** Mismo formato que la página pública (app/business/[negocioSlug]/[sucursalSlug]/_components/format.ts). */
 export const formatPrice = (price: number) => `$${THOUSANDS.format(price)}`;
 
 export const depositAmount = (price: number, percent: number) => Math.round((price * percent) / 100);

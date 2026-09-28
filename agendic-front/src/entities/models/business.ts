@@ -2,6 +2,16 @@ import { z } from 'zod';
 
 export const SERVICE_CATEGORIES = ['CLINICA', 'SPA', 'GIMNASIO', 'ACADEMIA', 'OTRO'] as const;
 
+// A tramo of the Enlace de reserva, of a Negocio or of a Sucursal: the back's IsSlug rule. The
+// back compares it in lowercase, so it is lowercased before checking.
+export const slugSchema = z
+    .string()
+    .trim()
+    .toLowerCase()
+    .min(3)
+    .max(40)
+    .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/);
+
 export const businessSchema = z.object({
     id: z.number(),
     name: z.string(),

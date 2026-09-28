@@ -1,3 +1,4 @@
+import type { IPublicBusinessesRepository } from '@/src/application/repositories/public-businesses.repository.interface';
 import type { IAuthenticationService } from '@/src/application/services/authentication.service.interface';
 import type { IInstrumentationService } from '@/src/application/services/instrumentation.service.interface';
 
@@ -9,5 +10,12 @@ const notStubbed = (name: string) => () => Promise.reject(new Error(`${name} not
 export const authWith = (stubs: Partial<IAuthenticationService>): IAuthenticationService => ({
     getCurrentUser: notStubbed('getCurrentUser'),
     getAccessToken: notStubbed('getAccessToken'),
+    ...stubs,
+});
+
+export const publicBusinessesWith = (stubs: Partial<IPublicBusinessesRepository>): IPublicBusinessesRepository => ({
+    getBusinessBySlug: jest.fn(notStubbed('getBusinessBySlug')),
+    listBranches: jest.fn(notStubbed('listBranches')),
+    listServices: jest.fn(notStubbed('listServices')),
     ...stubs,
 });
