@@ -14,7 +14,7 @@ import {
     PanelInput,
     PanelMenu,
 } from '@/app/(app)/_components/panel-ui';
-import { BRANCH_TIME_ZONE, summarize, type Availability } from '@/app/(app)/_components/mock-availability';
+import { BRANCH_TIME_ZONE, summarize, type Availability } from '@/src/entities/models/availability';
 import { DeleteAvailabilityConfirm } from './DeleteAvailabilityConfirm';
 
 function NewAvailabilityDialog({ onClose, onCreate }: { onClose: () => void; onCreate: (name: string) => void }) {

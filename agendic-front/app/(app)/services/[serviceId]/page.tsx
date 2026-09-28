@@ -1,5 +1,7 @@
 import { notFound } from 'next/navigation';
-import { myAvailabilities } from '@/app/(app)/_components/mock-availability';
+// Since mock is gone and we don't have a real controller here yet, just pass empty array or mock it locally if needed.
+import { type Availability } from '@/src/entities/models/availability';
+const myAvailabilities: Availability[] = [];
 import { findService } from '@/app/(app)/_components/mock-services';
 import { ServiceDetail } from './_components/ServiceDetail';
 

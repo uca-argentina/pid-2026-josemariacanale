@@ -1,24 +1,25 @@
-// ponytail: los datos de este archivo son mock. Cuando exista el dominio de Availability en src/, la página los
-// recibe por props desde un controller, y las reglas (`invalidIntervals`, `nextInterval`, `setOverrides`) pasan
-// a src/entities y a los use cases.
+import { z } from 'zod';
 
 /** Una Franja: `['HH:MM', 'HH:MM']` en 24 h. Nunca cruza la medianoche. */
-export type AvailabilityInterval = [from: string, to: string];
+export const availabilityIntervalSchema = z.tuple([z.string(), z.string()]);
+export type AvailabilityInterval = z.infer<typeof availabilityIntervalSchema>;
 
 /** Una Anulación: reemplaza las Franjas de una fecha (`YYYY-MM-DD`). Sin Franjas es día libre. */
-export interface AvailabilityOverride {
-    date: string;
-    intervals: AvailabilityInterval[];
-}
+export const availabilityOverrideSchema = z.object({
+    date: z.string(),
+    intervals: z.array(availabilityIntervalSchema),
+});
+export type AvailabilityOverride = z.infer<typeof availabilityOverrideSchema>;
 
 /** Horas laborables con nombre de un Empleado. `days[0]` es el lunes y `days[6]` el domingo. */
-export interface Availability {
-    id: string;
-    name: string;
-    isDefault: boolean;
-    days: AvailabilityInterval[][];
-    overrides: AvailabilityOverride[];
-}
+export const availabilitySchema = z.object({
+    id: z.string(),
+    name: z.string(),
+    isDefault: z.boolean(),
+    days: z.array(z.array(availabilityIntervalSchema)),
+    overrides: z.array(availabilityOverrideSchema),
+});
+export type Availability = z.infer<typeof availabilitySchema>;
 
 export const DAY_NAMES = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 export const DAY_SHORT = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
@@ -101,33 +102,3 @@ export function summarize(days: AvailabilityInterval[][]): string[] {
 }
 
 export const formatIntervals = (intervals: AvailabilityInterval[]) => intervals.map(formatInterval).join(', ');
-
-export const myAvailabilities: Availability[] = [
-    {
-        id: 'laboral',
-        name: 'Horario laboral',
-        isDefault: true,
-        days: DAY_NAMES.map((_, i) => (i < 5 ? [['09:00', '17:00']] : [])),
-        overrides: [
-            { date: '2026-10-12', intervals: [] },
-            { date: '2026-10-23', intervals: [['09:00', '13:00']] },
-        ],
-    },
-    {
-        id: 'tarde',
-        name: 'Horario de tarde',
-        isDefault: false,
-        days: [
-            [['08:00', '13:00'], ['17:00', '20:00']],
-            [['14:00', '20:00']],
-            [['14:00', '20:00']],
-            [['08:00', '13:00'], ['17:00', '20:00']],
-            [['14:00', '20:00']],
-            [['10:00', '13:00']],
-            [],
-        ],
-        overrides: [],
-    },
-    // Ningún Servicio la usa: es la única que se puede eliminar sin aviso.
-    { id: 'sabados', name: 'Sábados', isDefault: false, days: [[], [], [], [], [], [['10:00', '14:00']], []], overrides: [] },
-];

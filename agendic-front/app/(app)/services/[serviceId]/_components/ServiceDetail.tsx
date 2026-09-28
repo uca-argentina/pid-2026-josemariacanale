@@ -29,7 +29,7 @@ import {
     type ServiceGroup,
     type ServiceItem,
 } from '@/app/(app)/_components/mock-services';
-import { DAY_NAMES, type Availability } from '@/app/(app)/_components/mock-availability';
+import { DAY_NAMES, type Availability } from '@/src/entities/models/availability';
 
 type TabId = 'setup' | 'availability' | 'limits';
 

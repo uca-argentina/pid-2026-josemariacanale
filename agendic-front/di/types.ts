@@ -1,3 +1,14 @@
+import type { IAvailabilityService } from '@/src/application/services/availability.service.interface';
+import type { IListAvailabilitiesUseCase } from '@/src/application/use-cases/availability/list-availabilities.use-case';
+import type { ICreateAvailabilityUseCase } from '@/src/application/use-cases/availability/create-availability.use-case';
+import type { IUpdateAvailabilityUseCase } from '@/src/application/use-cases/availability/update-availability.use-case';
+import type { ISetDefaultAvailabilityUseCase } from '@/src/application/use-cases/availability/set-default-availability.use-case';
+import type { IDeleteAvailabilityUseCase } from '@/src/application/use-cases/availability/delete-availability.use-case';
+import type { IListAvailabilitiesController } from '@/src/interface-adapters/controllers/availability/list-availabilities.controller';
+import type { ICreateAvailabilityController } from '@/src/interface-adapters/controllers/availability/create-availability.controller';
+import type { IUpdateAvailabilityController } from '@/src/interface-adapters/controllers/availability/update-availability.controller';
+import type { ISetDefaultAvailabilityController } from '@/src/interface-adapters/controllers/availability/set-default-availability.controller';
+import type { IDeleteAvailabilityController } from '@/src/interface-adapters/controllers/availability/delete-availability.controller';
 import type { IBusinessesRepository } from '@/src/application/repositories/businesses.repository.interface';
 import type { IAuthenticationService } from '@/src/application/services/authentication.service.interface';
 import type { ICrashReporterService } from '@/src/application/services/crash-reporter.service.interface';
@@ -23,6 +34,7 @@ export const DI_SYMBOLS = {
     ICrashReporterService: Symbol.for('ICrashReporterService'),
     IAuthenticationService: Symbol.for('IAuthenticationService'),
 
+    IAvailabilityService: Symbol.for('IAvailabilityService'),
     // Repositories
     IBusinessesRepository: Symbol.for('IBusinessesRepository'),
     IEmployeesRepository: Symbol.for('IEmployeesRepository'),
@@ -35,6 +47,12 @@ export const DI_SYMBOLS = {
     IAddEmployeeUseCase: Symbol.for('IAddEmployeeUseCase'),
     IRetireEmployeeUseCase: Symbol.for('IRetireEmployeeUseCase'),
 
+    IListAvailabilitiesUseCase: Symbol.for('IListAvailabilitiesUseCase'),
+    ICreateAvailabilityUseCase: Symbol.for('ICreateAvailabilityUseCase'),
+    IUpdateAvailabilityUseCase: Symbol.for('IUpdateAvailabilityUseCase'),
+    ISetDefaultAvailabilityUseCase: Symbol.for('ISetDefaultAvailabilityUseCase'),
+    IDeleteAvailabilityUseCase: Symbol.for('IDeleteAvailabilityUseCase'),
+
     // Controllers
     IGetCurrentUserController: Symbol.for('IGetCurrentUserController'),
     ICreateBusinessController: Symbol.for('ICreateBusinessController'),
@@ -43,6 +61,11 @@ export const DI_SYMBOLS = {
     IListMyEmployeesController: Symbol.for('IListMyEmployeesController'),
     IAddEmployeeController: Symbol.for('IAddEmployeeController'),
     IRetireEmployeeController: Symbol.for('IRetireEmployeeController'),
+IListAvailabilitiesController: Symbol.for('IListAvailabilitiesController'),
+    ICreateAvailabilityController: Symbol.for('ICreateAvailabilityController'),
+    IUpdateAvailabilityController: Symbol.for('IUpdateAvailabilityController'),
+    ISetDefaultAvailabilityController: Symbol.for('ISetDefaultAvailabilityController'),
+    IDeleteAvailabilityController: Symbol.for('IDeleteAvailabilityController'),
 };
 
 export interface DI_RETURN_TYPES {
@@ -71,4 +94,20 @@ export interface DI_RETURN_TYPES {
     IListMyEmployeesController: IListMyEmployeesController;
     IAddEmployeeController: IAddEmployeeController;
     IRetireEmployeeController: IRetireEmployeeController;
+    IListAvailabilitiesController: IListAvailabilitiesController;
+    ICreateAvailabilityController: ICreateAvailabilityController;
+    IUpdateAvailabilityController: IUpdateAvailabilityController;
+    ISetDefaultAvailabilityController: ISetDefaultAvailabilityController;
+    IDeleteAvailabilityController: IDeleteAvailabilityController;
+    IListAvailabilitiesController: IListAvailabilitiesController;
+    ICreateAvailabilityController: ICreateAvailabilityController;
+    IUpdateAvailabilityController: IUpdateAvailabilityController;
+    ISetDefaultAvailabilityController: ISetDefaultAvailabilityController;
+    IDeleteAvailabilityController: IDeleteAvailabilityController;
+    IListAvailabilitiesUseCase: IListAvailabilitiesUseCase;
+    ICreateAvailabilityUseCase: ICreateAvailabilityUseCase;
+    IUpdateAvailabilityUseCase: IUpdateAvailabilityUseCase;
+    ISetDefaultAvailabilityUseCase: ISetDefaultAvailabilityUseCase;
+    IDeleteAvailabilityUseCase: IDeleteAvailabilityUseCase;
+    IAvailabilityService: IAvailabilityService;
 }

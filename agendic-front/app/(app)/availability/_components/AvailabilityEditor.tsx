@@ -21,7 +21,7 @@ import {
     intervalsValid,
     type Availability,
     type AvailabilityInterval,
-} from '@/app/(app)/_components/mock-availability';
+} from '@/src/entities/models/availability';
 import { DeleteAvailabilityConfirm } from './DeleteAvailabilityConfirm';
 import { AddIntervalButton, IntervalsEditor } from './IntervalsEditor';
 import { OverridesSection } from './OverridesSection';

@@ -1,5 +1,5 @@
 import { PanelConfirm } from '@/app/(app)/_components/panel-ui';
-import type { Availability } from '@/app/(app)/_components/mock-availability';
+import type { Availability } from '@/src/entities/models/availability';
 
 /**
  * Confirma la baja de una Availability. La predeterminada y las que usa algún Servicio no se pueden eliminar:

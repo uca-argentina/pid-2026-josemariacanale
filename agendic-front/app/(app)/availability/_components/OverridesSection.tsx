@@ -20,7 +20,7 @@ import {
     setOverrides,
     type AvailabilityInterval,
     type AvailabilityOverride,
-} from '@/app/(app)/_components/mock-availability';
+} from '@/src/entities/models/availability';
 import { AddIntervalButton, IntervalsEditor } from './IntervalsEditor';
 
 const pad = (n: number) => String(n).padStart(2, '0');

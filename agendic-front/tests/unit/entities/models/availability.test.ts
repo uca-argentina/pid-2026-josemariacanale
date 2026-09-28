@@ -2,13 +2,12 @@ import {
     DEFAULT_DAYS,
     intervalsValid,
     invalidIntervals,
-    myAvailabilities,
     nextInterval,
     setOverrides,
     summarize,
     type AvailabilityInterval,
     type AvailabilityOverride,
-} from '@/app/(app)/_components/mock-availability';
+} from '@/src/entities/models/availability';
 
 const week = (byDay: Partial<Record<number, AvailabilityInterval[]>>): AvailabilityInterval[][] =>
     Array.from({ length: 7 }, (_, i) => byDay[i] ?? []);
@@ -102,19 +101,5 @@ describe('setOverrides', () => {
             off('2026-10-13'),
             off('2026-10-20'),
         ]);
-    });
-});
-
-describe('myAvailabilities', () => {
-    it('tiene exactamente una predeterminada', () => {
-        expect(myAvailabilities.filter((a) => a.isDefault)).toHaveLength(1);
-    });
-
-    it('trae los 7 días, de lunes a domingo, con Franjas válidas', () => {
-        for (const a of myAvailabilities) {
-            expect(a.days).toHaveLength(7);
-            expect(a.days.every(intervalsValid)).toBe(true);
-            expect(a.overrides.every((o) => intervalsValid(o.intervals))).toBe(true);
-        }
     });
 });
