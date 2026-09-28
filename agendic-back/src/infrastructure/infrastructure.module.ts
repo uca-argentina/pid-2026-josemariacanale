@@ -2,6 +2,7 @@ import { Global, Module } from '@nestjs/common';
 import { AVAILABILITIES_REPOSITORY } from '../domain/availabilities/availabilities.repository';
 import { AVAILABILITY_OVERRIDES_REPOSITORY } from '../domain/availability-overrides/availability-overrides.repository';
 import { CLOCK } from '../domain/clock';
+import { FILE_STORAGE } from '../domain/file-storage';
 import { MAILER } from '../domain/mailer';
 import { BOOKINGS_REPOSITORY } from '../domain/bookings/bookings.repository';
 import { BRANCHES_REPOSITORY } from '../domain/branches/branches.repository';
@@ -24,6 +25,7 @@ import { PrismaEmployeesRepository } from './employees/prisma-employees.reposito
 import { EmployeesModule } from './employees/employees.module';
 import { NodemailerMailer } from './nodemailer-mailer';
 import { PrismaService } from './prisma.service';
+import { readS3Config, S3FileStorage } from './s3-file-storage';
 import { PrismaServicesRepository } from './services/prisma-services.repository';
 import { ServicesModule } from './services/services.module';
 import { SystemClock } from './system-clock';
@@ -48,6 +50,10 @@ import { UsersModule } from './users/users.module';
     PrismaService,
     { provide: CLOCK, useClass: SystemClock },
     { provide: MAILER, useClass: NodemailerMailer },
+    {
+      provide: FILE_STORAGE,
+      useFactory: () => new S3FileStorage(readS3Config()),
+    },
     { provide: CLERK_AUTH, useClass: ClerkBackendAuth },
     { provide: USERS_REPOSITORY, useClass: PrismaUsersRepository },
     { provide: BUSINESSES_REPOSITORY, useClass: PrismaBusinessesRepository },
@@ -67,6 +73,7 @@ import { UsersModule } from './users/users.module';
   exports: [
     CLOCK,
     MAILER,
+    FILE_STORAGE,
     CLERK_AUTH,
     USERS_REPOSITORY,
     BUSINESSES_REPOSITORY,

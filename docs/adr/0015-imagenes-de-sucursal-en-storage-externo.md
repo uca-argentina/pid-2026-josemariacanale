@@ -4,5 +4,5 @@ La Sucursal necesita guardar varias imágenes que el Dueño sube y que el Enlace
 
 ## Consecuencias
 
-- Qué proveedor concreto de storage y sus credenciales quedan como decisión de infraestructura pendiente, a resolver antes de implementar el módulo de subida; esta ADR solo fija que no es disco local.
+- El back habla la API de S3, no la de un proveedor en particular: el proveedor concreto (sugerido Cloudflare R2) y sus credenciales se eligen con las variables `S3_*` documentadas en `agendic-back/README.md`, sin tocar código. Sin ellas el back no arranca.
 - El back gana una dependencia de red nueva (el storage externo) en el camino de subir una imagen; no la tiene hoy para nada más.

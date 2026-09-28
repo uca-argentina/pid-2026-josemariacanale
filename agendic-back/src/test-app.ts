@@ -26,6 +26,7 @@ import {
 } from './domain/businesses/businesses.repository';
 import { CLOCK, Clock } from './domain/clock';
 import { UnauthenticatedError } from './domain/errors';
+import { FILE_STORAGE, FileStorage } from './domain/file-storage';
 import { Employee } from './domain/employees/employee';
 import {
   EMPLOYEES_REPOSITORY,
@@ -77,6 +78,10 @@ export async function createTestApp() {
   };
   const mailer: jest.Mocked<Mailer> = {
     sendVerificationLink: jest.fn(),
+  };
+  const fileStorage: jest.Mocked<FileStorage> = {
+    upload: jest.fn(),
+    delete: jest.fn(),
   };
   const clerkAuth: jest.Mocked<ClerkAuth> = {
     verifyToken: jest.fn<Promise<ClerkIdentity>, [string | undefined]>(
@@ -148,6 +153,8 @@ export async function createTestApp() {
     .useValue(clerkAuth)
     .overrideProvider(MAILER)
     .useValue(mailer)
+    .overrideProvider(FILE_STORAGE)
+    .useValue(fileStorage)
     .overrideProvider(BUSINESSES_REPOSITORY)
     .useValue(businesses)
     .overrideProvider(BRANCHES_REPOSITORY)
@@ -171,6 +178,7 @@ export async function createTestApp() {
     users,
     clerkAuth,
     mailer,
+    fileStorage,
     businesses,
     branches,
     services,
