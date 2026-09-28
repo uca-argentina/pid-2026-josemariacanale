@@ -1,6 +1,7 @@
 import { deleteEmployeeOverrideController } from '@/src/interface-adapters/controllers/employees/delete-employee-override.controller';
 import { instrumentation, authWith } from '@/tests/unit/stubs';
-import { UnauthenticatedError, InputParseError } from '@/src/entities/errors/common';
+import { UnauthenticatedError } from '@/src/entities/errors/auth';
+import { InputParseError } from '@/src/entities/errors/common';
 
 describe('deleteEmployeeOverride Controller', () => {
     it('deletes override', async () => {
@@ -8,14 +9,14 @@ describe('deleteEmployeeOverride Controller', () => {
 
         const controller = deleteEmployeeOverrideController(
             instrumentation,
-            authWith({ validateSession: jest.fn().mockResolvedValue({ session: { userId: 'u1' } }) }),
+            authWith({ getCurrentUser: jest.fn().mockResolvedValue({ id: 'u1' } as any) }),
             deleteEmployeeOverrideUseCase,
         );
 
         await controller({
             employeeId: 1,
             date: '2026-10-10',
-        }, 'session-id');
+        });
 
         expect(deleteEmployeeOverrideUseCase).toHaveBeenCalledWith({
             employeeId: 1,
@@ -26,18 +27,18 @@ describe('deleteEmployeeOverride Controller', () => {
     it('throws UnauthenticatedError when unauthenticated', async () => {
         const controller = deleteEmployeeOverrideController(
             instrumentation,
-            authWith({}),
+            authWith({ getCurrentUser: jest.fn().mockRejectedValue(new UnauthenticatedError('No hay Sesión')) }),
             jest.fn(),
         );
-        await expect(controller({ employeeId: 1, date: '2026-10-10' }, undefined)).rejects.toThrow(UnauthenticatedError);
+        await expect(controller({ employeeId: 1, date: '2026-10-10' })).rejects.toThrow(UnauthenticatedError);
     });
 
     it('throws InputParseError for invalid input', async () => {
         const controller = deleteEmployeeOverrideController(
             instrumentation,
-            authWith({ validateSession: jest.fn().mockResolvedValue({ session: { userId: 'u1' } }) }),
+            authWith({ getCurrentUser: jest.fn().mockResolvedValue({ id: 'u1' } as any) }),
             jest.fn(),
         );
-        await expect(controller({}, 'session-id')).rejects.toThrow(InputParseError);
+        await expect(controller({})).rejects.toThrow(InputParseError);
     });
 });

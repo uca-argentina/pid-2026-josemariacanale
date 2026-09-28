@@ -1,6 +1,7 @@
 import { putEmployeeOverrideController } from '@/src/interface-adapters/controllers/employees/put-employee-override.controller';
 import { instrumentation, authWith } from '@/tests/unit/stubs';
-import { UnauthenticatedError, InputParseError } from '@/src/entities/errors/common';
+import { UnauthenticatedError } from '@/src/entities/errors/auth';
+import { InputParseError } from '@/src/entities/errors/common';
 
 describe('putEmployeeOverride Controller', () => {
     it('puts override', async () => {
@@ -8,7 +9,7 @@ describe('putEmployeeOverride Controller', () => {
 
         const controller = putEmployeeOverrideController(
             instrumentation,
-            authWith({ validateSession: jest.fn().mockResolvedValue({ session: { userId: 'u1' } }) }),
+            authWith({ getCurrentUser: jest.fn().mockResolvedValue({ id: 'u1' } as any) }),
             putEmployeeOverrideUseCase,
         );
 
@@ -16,7 +17,7 @@ describe('putEmployeeOverride Controller', () => {
             employeeId: 1,
             date: '2026-10-10',
             override: { intervals: [{ startTime: '09:00', endTime: '18:00' }] },
-        }, 'session-id');
+        });
 
         expect(putEmployeeOverrideUseCase).toHaveBeenCalledWith({
             employeeId: 1,
@@ -28,18 +29,18 @@ describe('putEmployeeOverride Controller', () => {
     it('throws UnauthenticatedError when unauthenticated', async () => {
         const controller = putEmployeeOverrideController(
             instrumentation,
-            authWith({}),
+            authWith({ getCurrentUser: jest.fn().mockRejectedValue(new UnauthenticatedError('No hay Sesión')) }),
             jest.fn(),
         );
-        await expect(controller({ employeeId: 1, date: '2026-10-10', override: { intervals: [] } }, undefined)).rejects.toThrow(UnauthenticatedError);
+        await expect(controller({ employeeId: 1, date: '2026-10-10', override: { intervals: [] } })).rejects.toThrow(UnauthenticatedError);
     });
 
     it('throws InputParseError for invalid input', async () => {
         const controller = putEmployeeOverrideController(
             instrumentation,
-            authWith({ validateSession: jest.fn().mockResolvedValue({ session: { userId: 'u1' } }) }),
+            authWith({ getCurrentUser: jest.fn().mockResolvedValue({ id: 'u1' } as any) }),
             jest.fn(),
         );
-        await expect(controller({}, 'session-id')).rejects.toThrow(InputParseError);
+        await expect(controller({})).rejects.toThrow(InputParseError);
     });
 });
