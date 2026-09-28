@@ -1,7 +1,7 @@
 import type { IEmployeesRepository } from '@/src/application/repositories/employees.repository.interface';
 import type { IAuthenticationService } from '@/src/application/services/authentication.service.interface';
 import { ApiRequestError } from '@/src/entities/errors/common';
-import { LastEmployeeError } from '@/src/entities/errors/employee';
+import { LastEmployeeError, EmployeeAlreadyExistsError, UserNotRegisteredError, CannotRetireOwnerError } from '@/src/entities/errors/employee';
 import { employeeSchema, type CreateEmployee, type Employee } from '@/src/entities/models/employee';
 
 // Same as in BusinessesRepository: the boundaries lint keeps adapters from importing each other.
@@ -13,7 +13,8 @@ function parseOrFail<T>(parse: () => T, what: string): T {
     }
 }
 
-type ErrorByStatus = Record<number, new (message: string) => Error>;
+// Support a function to return the error dynamically
+type ErrorByStatus = Record<number, (message: string) => Error>;
 
 export class EmployeesRepository implements IEmployeesRepository {
     constructor(
@@ -27,14 +28,23 @@ export class EmployeesRepository implements IEmployeesRepository {
     }
 
     async addEmployee({ businessId, ...employee }: CreateEmployee): Promise<Employee> {
-        const body = await this.request('POST', `/businesses/${businessId}/employees`, { body: employee });
+        const errors = { 
+            409: (msg: string) => new EmployeeAlreadyExistsError(msg), 
+            422: (msg: string) => new UserNotRegisteredError(msg) 
+        };
+        const body = await this.request('POST', `/businesses/${businessId}/employees`, { body: employee, errors });
         return parseOrFail(() => employeeSchema.parse(body), 'POST /businesses/:id/employees');
     }
 
     async retireEmployee(employeeId: number): Promise<void> {
-        await this.request('DELETE', `/employees/${employeeId}`, { errors: { 422: LastEmployeeError } });
+        const errors = { 
+            422: (msg: string) => {
+                if (msg.includes('Owner') || msg.includes('dueño')) return new CannotRetireOwnerError(msg);
+                return new LastEmployeeError(msg);
+            }
+        };
+        await this.request('DELETE', `/employees/${employeeId}`, { errors });
     }
-
     // Any status not in `errors` that is not ok becomes an ApiRequestError carrying it.
     private async request(method: string, path: string, { body, errors = {} }: { body?: unknown; errors?: ErrorByStatus } = {}) {
         const what = `${method} ${path}`;
@@ -54,8 +64,8 @@ export class EmployeesRepository implements IEmployeesRepository {
 
         const json = await response.json().catch(() => undefined);
         const message = String(json?.message ?? `${what} responded ${response.status}`);
-        const KnownError = errors[response.status];
-        if (KnownError) throw new KnownError(message);
+        const knownErrorFactory = errors[response.status];
+        if (knownErrorFactory) throw knownErrorFactory(message);
         if (!response.ok) throw new ApiRequestError(message, { status: response.status });
         return json;
     }

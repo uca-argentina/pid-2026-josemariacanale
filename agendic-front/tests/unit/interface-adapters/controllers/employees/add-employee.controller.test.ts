@@ -1,11 +1,11 @@
-import { UnauthenticatedError } from '@/src/entities/errors/auth';
+﻿import { UnauthenticatedError } from '@/src/entities/errors/auth';
 import { InputParseError } from '@/src/entities/errors/common';
 import { addEmployeeController } from '@/src/interface-adapters/controllers/employees/add-employee.controller';
 import { authWith, instrumentation } from '@/tests/unit/stubs';
 
 const user = { id: 'user_1', name: 'Ana', email: 'ana@estudio.com' };
 const signedIn = () => authWith({ getCurrentUser: jest.fn().mockResolvedValue(user) });
-const input = { businessId: 1, name: 'Martina', email: 'martina@estudio.com' };
+const input = { businessId: 1, email: 'martina@estudio.com' };
 
 describe('addEmployeeController', () => {
     it('returns the presented Empleado', async () => {
@@ -21,8 +21,7 @@ describe('addEmployeeController', () => {
 
     it.each([
         ['a missing businessId', { ...input, businessId: undefined }],
-        ['a blank name', { ...input, name: '  ' }],
-        ['an invalid email', { ...input, email: 'martina' }],
+                ['an invalid email', { ...input, email: 'martina' }],
         ['no input', undefined],
     ])('throws InputParseError for %s', async (_case, bad) => {
         const useCase = jest.fn();
@@ -31,11 +30,12 @@ describe('addEmployeeController', () => {
         expect(useCase).not.toHaveBeenCalled();
     });
 
-    it('throws UnauthenticatedError when there is no Sesión', async () => {
+    it('throws UnauthenticatedError when there is no SesiÃ³n', async () => {
         const useCase = jest.fn();
-        const auth = authWith({ getCurrentUser: jest.fn().mockRejectedValue(new UnauthenticatedError('No hay Sesión')) });
+        const auth = authWith({ getCurrentUser: jest.fn().mockRejectedValue(new UnauthenticatedError('No hay SesiÃ³n')) });
 
         await expect(addEmployeeController(instrumentation, auth, useCase)(input)).rejects.toBeInstanceOf(UnauthenticatedError);
         expect(useCase).not.toHaveBeenCalled();
     });
 });
+

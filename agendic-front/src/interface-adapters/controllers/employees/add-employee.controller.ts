@@ -13,7 +13,7 @@ function presenter(employee: Employee, instrumentationService: IInstrumentationS
     }));
 }
 
-const inputSchema = createEmployeeSchema.extend({ name: z.string().trim().min(1), email: z.email() });
+const inputSchema = createEmployeeSchema.extend({ email: z.string().trim().email() });
 
 export type IAddEmployeeController = ReturnType<typeof addEmployeeController>;
 export const addEmployeeController =

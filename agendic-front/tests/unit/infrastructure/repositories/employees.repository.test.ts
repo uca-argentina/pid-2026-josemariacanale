@@ -1,9 +1,9 @@
 import { ApiRequestError } from '@/src/entities/errors/common';
-import { LastEmployeeError } from '@/src/entities/errors/employee';
+import { LastEmployeeError, EmployeeAlreadyExistsError, UserNotRegisteredError, CannotRetireOwnerError } from '@/src/entities/errors/employee';
 import { EmployeesRepository } from '@/src/infrastructure/repositories/employees.repository';
 import { authWith } from '@/tests/unit/stubs';
 
-const employee = { id: 3, name: 'Martina', email: 'martina@estudio.com' };
+const employee = { id: 3, userId: 'user_123', name: 'Martina', email: 'martina@estudio.com' };
 
 const repo = (apiUrl: string | undefined = 'http://api') =>
     new EmployeesRepository(authWith({ getAccessToken: jest.fn().mockResolvedValue('tok') }), apiUrl);
@@ -54,23 +54,33 @@ describe('EmployeesRepository.listEmployees', () => {
 });
 
 describe('EmployeesRepository.addEmployee', () => {
-    it('POSTs name and email to the Negocio and returns the Empleado', async () => {
+    it('POSTs email to the Negocio and returns the Empleado', async () => {
         const fetchSpy = respond(201, employee);
 
-        await expect(repo().addEmployee({ businessId: 1, name: 'Martina', email: 'martina@estudio.com' })).resolves.toEqual(employee);
+        await expect(repo().addEmployee({ businessId: 1, email: 'martina@estudio.com' })).resolves.toEqual(employee);
         expect(fetchSpy).toHaveBeenCalledWith(
             'http://api/businesses/1/employees',
             expect.objectContaining({
                 method: 'POST',
                 headers: expect.objectContaining({ Authorization: 'Bearer tok' }),
-                body: JSON.stringify({ name: 'Martina', email: 'martina@estudio.com' }),
+                body: JSON.stringify({ email: 'martina@estudio.com' }),
             }),
         );
     });
 
+    it('translates a 409 to EmployeeAlreadyExistsError', async () => {
+        respond(409, { statusCode: 409, message: 'already employee' });
+        await expect(repo().addEmployee({ businessId: 1, email: 'x@estudio.com' })).rejects.toBeInstanceOf(EmployeeAlreadyExistsError);
+    });
+
+    it('translates a 422 to UserNotRegisteredError', async () => {
+        respond(422, { statusCode: 422, message: 'not registered' });
+        await expect(repo().addEmployee({ businessId: 1, email: 'x@estudio.com' })).rejects.toBeInstanceOf(UserNotRegisteredError);
+    });
+
     it('translates a 400 to ApiRequestError carrying the status', async () => {
         respond(400, { statusCode: 400, message: 'email must be an email' });
-        await expect(repo().addEmployee({ businessId: 1, name: 'M', email: 'x' })).rejects.toMatchObject({ status: 400 });
+        await expect(repo().addEmployee({ businessId: 1, email: 'x' })).rejects.toMatchObject({ status: 400 });
     });
 });
 
@@ -88,6 +98,11 @@ describe('EmployeesRepository.retireEmployee', () => {
     it('translates a 422 to LastEmployeeError', async () => {
         respond(422, { statusCode: 422, message: "Cannot retire the Employee: they are a Service's last Employee" });
         await expect(repo().retireEmployee(3)).rejects.toBeInstanceOf(LastEmployeeError);
+    });
+
+    it('translates a 422 about the Owner to CannotRetireOwnerError', async () => {
+        respond(422, { statusCode: 422, message: "Cannot retire Owner" });
+        await expect(repo().retireEmployee(3)).rejects.toBeInstanceOf(CannotRetireOwnerError);
     });
 
     it('translates other failures to ApiRequestError carrying the status', async () => {

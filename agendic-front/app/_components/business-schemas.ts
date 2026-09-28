@@ -81,7 +81,6 @@ export const serviceSchema = z.object({
 
 // La forma de POST /businesses/:id/employees, sin el businessId del path.
 export const employeeSchema = z.object({
-    name: required('el nombre'),
     email: required('el email').pipe(z.email('Ingresá un email válido.')),
 });
 

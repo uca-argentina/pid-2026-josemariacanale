@@ -24,7 +24,7 @@ import { EmployeeSheet } from './EmployeeSheet';
 export type EmployeeRow = { id: number; name: string; email: string; role: BusinessRole };
 
 function InviteEmployeeDialog({ businessId, onClose }: { businessId: number; onClose: () => void }) {
-    const [form, setForm] = useState<EmployeeFields>({ name: '', email: '' });
+    const [form, setForm] = useState<EmployeeFields>({ email: '' });
     const [errors, setErrors] = useState<FieldErrors>({});
     const [submitError, setSubmitError] = useState<string>();
     const [isPending, startTransition] = useTransition();
@@ -67,20 +67,10 @@ function InviteEmployeeDialog({ businessId, onClose }: { businessId: number; onC
             }
         >
             <form id="invite-employee" onSubmit={submit} noValidate className="flex flex-col gap-5">
-                <PanelField label="Nombre" htmlFor="invite-name" error={errors.name}>
-                    <PanelInput
-                        id="invite-name"
-                        autoFocus
-                        placeholder="Martina Fernández"
-                        value={form.name}
-                        onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                        aria-invalid={Boolean(errors.name)}
-                        aria-describedby={errors.name ? 'invite-name-error' : undefined}
-                    />
-                </PanelField>
                 <PanelField label="Email" htmlFor="invite-email" error={errors.email}>
                     <PanelInput
                         id="invite-email"
+                        autoFocus
                         type="email"
                         placeholder="email@ejemplo.com"
                         value={form.email}

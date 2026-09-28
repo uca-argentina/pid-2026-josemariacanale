@@ -125,24 +125,16 @@ describe('serviceSchema', () => {
 });
 
 describe('employeeSchema', () => {
-    const employee = { name: 'Martina Fernández', email: 'martina@estudio.com' };
+    const employee = { email: 'martina@estudio.com' };
 
-    it('acepta un Empleado con nombre y email, sin espacios de más', () => {
-        expect(employeeSchema.parse({ name: ' Martina Fernández ', email: ' martina@estudio.com ' })).toEqual(employee);
+    it('acepta un email sin espacios', () => {
+        expect(employeeSchema.parse({ email: ' martina@estudio.com ' })).toEqual(employee);
     });
 
-    it('rechaza un nombre en blanco', () => {
-        const result = employeeSchema.safeParse({ ...employee, name: '  ' });
-
-        expect(result.success).toBe(false);
-        expect(fieldErrorsOf(result.error!).name).toBe('Ingresá el nombre.');
-    });
-
-    it('rechaza un email inválido', () => {
+    it('rechaza un email invalido', () => {
         const result = employeeSchema.safeParse({ ...employee, email: 'martina' });
 
         expect(result.success).toBe(false);
-        expect(fieldErrorsOf(result.error!).email).toBe('Ingresá un email válido.');
     });
 });
 

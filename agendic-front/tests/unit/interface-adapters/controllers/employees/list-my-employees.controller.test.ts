@@ -5,8 +5,8 @@ import { authWith, instrumentation } from '@/tests/unit/stubs';
 const user = { id: 'user_1', name: 'Ana', email: 'ana@estudio.com' };
 const signedIn = () => authWith({ getCurrentUser: jest.fn().mockResolvedValue(user) });
 const business = { id: 1, name: 'Estudio', description: 'Desc', slug: 'estudio', ownerId: 7 };
-const martina = { id: 4, name: 'Martina', email: 'martina@estudio.com' };
-const ana = { id: 3, name: 'Ana', email: 'Ana@Estudio.com' };
+const martina = { id: 4, userId: 'user_4', name: 'Martina', email: 'martina@estudio.com' };
+const ana = { id: 3, userId: 'user_1', name: 'Ana', email: 'Ana@Estudio.com' };
 
 describe('listMyEmployeesController', () => {
     it('returns the Empleados of the Dueño’s Negocio, the Dueño first and marked by email', async () => {

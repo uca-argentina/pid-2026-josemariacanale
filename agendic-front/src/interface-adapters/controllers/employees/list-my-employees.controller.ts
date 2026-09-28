@@ -14,8 +14,7 @@ function presenter(
 ) {
     return instrumentationService.startSpan({ name: 'listMyEmployees Presenter', op: 'serialize' }, () => {
         if (!business) return null;
-        // ponytail: el back no vincula Empleado con Usuario; el Dueño se reconoce por email hasta que lo haga.
-        const isOwner = (employee: Employee) => employee.email.toLowerCase() === user.email.toLowerCase();
+        const isOwner = (employee: Employee) => employee.userId === user.id;
         return {
             businessId: business.id,
             employees: employees
