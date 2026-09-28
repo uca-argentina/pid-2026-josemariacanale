@@ -117,6 +117,7 @@ const toBooking = (row: BookingRow): Booking => ({
   startsAt: row.startsAt,
   endsAt: row.endsAt,
   status: row.status as BookingStatus,
+  notes: row.notes,
 });
 
 const translateError = (error: unknown): never => {

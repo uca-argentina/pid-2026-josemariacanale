@@ -7,6 +7,7 @@ export const presentBooking = (booking: Booking) => ({
   startsAt: booking.startsAt,
   endsAt: booking.endsAt,
   status: booking.status,
+  notes: booking.notes,
 });
 
 /** Adds what only the Dueño may see. */

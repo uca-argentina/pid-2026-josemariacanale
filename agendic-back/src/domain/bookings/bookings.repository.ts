@@ -9,6 +9,7 @@ export interface CreateBookingData {
   clientEmail: string;
   startsAt: Date;
   endsAt: Date;
+  notes: string | null;
 }
 
 export interface BookingsRepository {

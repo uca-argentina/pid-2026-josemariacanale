@@ -73,6 +73,7 @@ const SERVICE = {
   category: VALID_SERVICE.category,
   durationMinutes: VALID_SERVICE.durationMinutes,
   price: VALID_SERVICE.price,
+  depositPercent: null,
   retiredAt: null,
   employees: IN_CHARGE,
 };
@@ -85,6 +86,7 @@ const PRESENTED_SERVICE = {
   category: SERVICE.category,
   durationMinutes: SERVICE.durationMinutes,
   price: SERVICE.price,
+  depositPercent: SERVICE.depositPercent,
   employees: IN_CHARGE,
 };
 
@@ -117,9 +119,35 @@ describe('Servicio', () => {
       expect(t.services.create).toHaveBeenCalledWith({
         branchId: BRANCH.id,
         ...fields,
+        depositPercent: null,
         employees: [{ employeeId: ANAS_EMPLOYEE.id, availabilityId: 10 }],
       });
       expect(res.body).toEqual(PRESENTED_SERVICE);
+    });
+
+    it('creates a Servicio with a Seña', async () => {
+      t.services.create.mockResolvedValue({ ...SERVICE, depositPercent: 30 });
+
+      const res = await t.http
+        .post(`/branches/${BRANCH.id}/services`)
+        .set(bearer(CLERK_TOKEN))
+        .send({ ...VALID_SERVICE, depositPercent: 30 })
+        .expect(201);
+
+      expect(t.services.create).toHaveBeenCalledWith(
+        expect.objectContaining({ depositPercent: 30 }),
+      );
+      expect(res.body.depositPercent).toBe(30);
+    });
+
+    it.each([0, 100])('accepts a Seña of %i%%', async (depositPercent) => {
+      t.services.create.mockResolvedValue({ ...SERVICE, depositPercent });
+
+      await t.http
+        .post(`/branches/${BRANCH.id}/services`)
+        .set(bearer(CLERK_TOKEN))
+        .send({ ...VALID_SERVICE, depositPercent })
+        .expect(201);
     });
 
     it('creates a Servicio without a description', async () => {
@@ -138,6 +166,7 @@ describe('Servicio', () => {
         category: VALID_SERVICE.category,
         durationMinutes: VALID_SERVICE.durationMinutes,
         price: VALID_SERVICE.price,
+        depositPercent: null,
         employees: [{ employeeId: ANAS_EMPLOYEE.id, availabilityId: 10 }],
       });
     });
@@ -257,6 +286,10 @@ describe('Servicio', () => {
       ['missing employeeIds', { employeeIds: undefined }],
       ['empty employeeIds', { employeeIds: [] }],
       ['a non-numeric employeeId', { employeeIds: ['one'] }],
+      ['a negative depositPercent', { depositPercent: -1 }],
+      ['a depositPercent over 100', { depositPercent: 101 }],
+      ['a fractional depositPercent', { depositPercent: 12.5 }],
+      ['a null depositPercent', { depositPercent: null }],
     ])(
       'rejects %s with 400, without reaching the repository',
       async (_, override) => {
@@ -305,6 +338,36 @@ describe('Servicio', () => {
       expect(res.body.price).toBe(25);
     });
 
+    it('sets the Seña', async () => {
+      t.services.update.mockResolvedValue({ ...SERVICE, depositPercent: 50 });
+
+      const res = await t.http
+        .patch(`/services/${SERVICE.id}`)
+        .set(bearer(CLERK_TOKEN))
+        .send({ depositPercent: 50 })
+        .expect(200);
+
+      expect(t.services.update).toHaveBeenCalledWith(SERVICE.id, {
+        depositPercent: 50,
+      });
+      expect(res.body.depositPercent).toBe(50);
+    });
+
+    it('drops the Seña with a null depositPercent', async () => {
+      t.services.update.mockResolvedValue(SERVICE);
+
+      const res = await t.http
+        .patch(`/services/${SERVICE.id}`)
+        .set(bearer(CLERK_TOKEN))
+        .send({ depositPercent: null })
+        .expect(200);
+
+      expect(t.services.update).toHaveBeenCalledWith(SERVICE.id, {
+        depositPercent: null,
+      });
+      expect(res.body.depositPercent).toBeNull();
+    });
+
     it('answers 401 without a Sesión', async () => {
       await t.http
         .patch(`/services/${SERVICE.id}`)
@@ -349,6 +412,9 @@ describe('Servicio', () => {
       ['an invalid category', { category: 'NOT_A_CATEGORY' }],
       ['a zero durationMinutes', { durationMinutes: 0 }],
       ['a negative price', { price: -1 }],
+      ['a negative depositPercent', { depositPercent: -1 }],
+      ['a depositPercent over 100', { depositPercent: 101 }],
+      ['a fractional depositPercent', { depositPercent: 12.5 }],
     ])(
       'rejects %s with 400, without reaching the repository',
       async (_, body) => {

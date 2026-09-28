@@ -50,6 +50,7 @@ const SERVICE_ROW = {
   category: ServiceCategory.SPA,
   durationMinutes: 30,
   price: '20',
+  depositPercent: null,
   retiredAt: null,
   employees: [
     {
@@ -79,6 +80,7 @@ const CREATE_DATA = {
     category: ServiceCategory.SPA,
     durationMinutes: 30,
     price: 20,
+    depositPercent: null,
   },
   employee: {
     userId: ANAS_BUSINESS.ownerId,
@@ -159,6 +161,7 @@ describe('PrismaBusinessesRepository', () => {
       category: ServiceCategory.SPA,
       durationMinutes: 30,
       price: 20,
+      depositPercent: null,
       retiredAt: null,
       employees: [{ id: EMPLOYEE_ROW.id, name: EMPLOYEE_ROW.user.name }],
     });

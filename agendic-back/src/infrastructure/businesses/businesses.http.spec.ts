@@ -56,6 +56,7 @@ const ANAS_SERVICE = {
   id: 1,
   branchId: ANAS_BRANCH.id,
   ...SERVICE_PART,
+  depositPercent: null,
   retiredAt: null,
   employees: [{ id: ANAS_EMPLOYEE.id, name: ANAS_EMPLOYEE.name }],
 };
@@ -92,7 +93,7 @@ describe('Negocio', () => {
       expect(t.businesses.create).toHaveBeenCalledWith({
         business: { ...BUSINESS_PART, ownerId: ANA.id },
         branch: { ...BRANCH_PART, slug: ANAS_BUSINESS.slug },
-        service: SERVICE_PART,
+        service: { ...SERVICE_PART, depositPercent: null },
         employee: { userId: ANA.id },
         availability: {
           name: 'Horario general',
@@ -114,6 +115,7 @@ describe('Negocio', () => {
           category: ANAS_SERVICE.category,
           durationMinutes: ANAS_SERVICE.durationMinutes,
           price: ANAS_SERVICE.price,
+          depositPercent: null,
           employees: [{ id: ANAS_EMPLOYEE.id, name: ANAS_EMPLOYEE.name }],
         },
         employee: {
@@ -155,7 +157,26 @@ describe('Negocio', () => {
 
       expect(t.businesses.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          service: { ...SERVICE_PART, description: null },
+          service: { ...SERVICE_PART, description: null, depositPercent: null },
+        }),
+      );
+    });
+
+    it('creates the first Servicio with a Seña', async () => {
+      t.businesses.create.mockResolvedValue(CREATED);
+
+      await t.http
+        .post('/businesses')
+        .set(bearer(CLERK_TOKEN))
+        .send({
+          ...VALID_BODY,
+          service: { ...SERVICE_PART, depositPercent: 20 },
+        })
+        .expect(201);
+
+      expect(t.businesses.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          service: { ...SERVICE_PART, depositPercent: 20 },
         }),
       );
     });
@@ -290,6 +311,10 @@ describe('Negocio', () => {
         { service: { ...SERVICE_PART, durationMinutes: 1.5 } },
       ],
       ['a negative price', { service: { ...SERVICE_PART, price: -1 } }],
+      [
+        'a depositPercent over 100',
+        { service: { ...SERVICE_PART, depositPercent: 101 } },
+      ],
       [
         'employeeIds on the Servicio',
         { service: { ...SERVICE_PART, employeeIds: [1] } },

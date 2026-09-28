@@ -67,6 +67,7 @@ export class CreateServiceUseCase {
       category: input.category,
       durationMinutes: input.durationMinutes,
       price: input.price,
+      depositPercent: input.depositPercent ?? null,
       employees,
     });
   }

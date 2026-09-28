@@ -78,6 +78,7 @@ model Service {
   category        ServiceCategory
   durationMinutes Int
   price           Decimal         @db.Decimal(10, 2)
+  depositPercent  Int? // Seña: 0-100, symbolic (never charged); null when the Servicio asks for none
   retiredAt       DateTime?       @db.Timestamptz(3) // when dado de baja; null while offered
 
   branch    Branch            @relation(fields: [branchId], references: [id])
@@ -163,6 +164,7 @@ model Booking {
   startsAt                   DateTime      @db.Timestamptz(3)
   endsAt                     DateTime      @db.Timestamptz(3) // startsAt + Service.durationMinutes, fixed at booking
   status                     BookingStatus @default(UNVERIFIED)
+  notes                      String? // Comentario del Turno, up to 500 characters (checked by the API)
   verificationTokenHash      String? // sha256 of the token, never the token itself
   verificationTokenExpiresAt DateTime?     @db.Timestamptz(3)
   createdAt                  DateTime      @default(now()) @db.Timestamptz(3)

@@ -84,13 +84,17 @@ actualizarlo a mano cuando se agregue, cambie o borre un endpoint.
 | DELETE | `/services/:id/employees/:employeeId` | sí | Quita un empleado de un servicio (solo el dueño) |
 | GET | `/branches/:id/services` | no | Lista servicios activos de una sucursal |
 
-- `CreateServiceDto`: `{ name, description?, category, durationMinutes (int ≥1), price (number ≥0), employeeIds: number[] (no vacío) }`
-- `UpdateServiceDto`: `{ name?, description?, category?, durationMinutes?, price? }`
+- `CreateServiceDto`: `{ name, description?, category, durationMinutes (int ≥1), price (number ≥0), depositPercent?, employeeIds: number[] (no vacío) }`
+- `UpdateServiceDto`: `{ name?, description?, category?, durationMinutes?, price?, depositPercent? }`
+- `depositPercent` (Seña): entero de 0 a 100, porcentaje del precio. Es simbólica: se guarda y se
+  muestra, no dispara ningún cobro. Sin él, el Servicio no pide Seña (`null` en la respuesta). Fuera
+  de 0-100, con decimales o no numérico → 400. En creación no acepta `null`; en `PATCH`,
+  `depositPercent: null` le saca la Seña. También vale en el `service` de `POST /businesses`.
 - `AssignEmployeeDto`: `{ employeeId, availabilityId? }`; sin `availabilityId`, el empleado entra con su Availability predeterminada
 - Cada empleado atiende el servicio con una de sus Availability. Es una referencia: editar esa
   Availability (`PATCH /availabilities/:id`) cambia en el acto todos los servicios que la usan. La
   respuesta del servicio no dice cuál usa cada empleado.
-- Respuesta (`presentService`): `{ id, branchId, name, description, category, durationMinutes, price, employees: [{id, name}] }`
+- Respuesta (`presentService`): `{ id, branchId, name, description, category, durationMinutes, price, depositPercent, employees: [{id, name}] }`; `depositPercent` es `null` si el Servicio no pide Seña
 - `category` es un enum fijo: `CLINICA | SPA | GIMNASIO | ACADEMIA | OTRO`, requerido en creación
 
 ## Employees (Empleado)
@@ -179,7 +183,16 @@ del Empleado: cualquier otro Usuario recibe 403.
 | POST | `/bookings/verification` | no | Verifica un turno por token (del link del email); re-chequea todas las reglas, puede devolver 409 si el horario se ocupó mientras tanto |
 | GET | `/businesses/:id/bookings` | sí | Lista todos los turnos de un negocio (solo el dueño) |
 
-- `CreateBookingDto`: `{ serviceId, employeeId, startsAt: ISO date-string, clientName, clientEmail }`
+- `CreateBookingDto`: `{ serviceId, employeeId, startsAt: ISO date-string, clientName, clientEmail, notes? }`
+- `notes` (Comentario del Turno): texto libre, se recorta; hasta 500 caracteres. Vacío o solo espacios se guarda como sin Comentario (`null`). Más largo, no string o `null` → 400. No se valida el contenido
 - `VerifyBookingDto`: `{ token }`
-- Respuesta (`presentBooking`): `{ id, serviceId, employeeId, startsAt, endsAt, status }`
+- Respuesta (`presentBooking`): `{ id, serviceId, employeeId, startsAt, endsAt, status, notes }`; `notes` es `null` si el Cliente no dejó Comentario del Turno
 - Respuesta solo-dueño (`presentBookingForOwner`, usada en el listado): agrega `clientName, clientEmail`
+- **Horario ocupado (409 `Overlaps a booked Turno for this Employee`)**. Un Turno sin verificar no
+  mantiene reservado su horario: lo toma recién al verificarse. Por eso:
+  - `POST /bookings` → 409 si el horario pisa un Turno `BOOKED` del mismo Empleado.
+  - Dos `POST /bookings` para el mismo horario, aunque lleguen casi juntos, dan los dos 201: ninguno
+    ocupa el horario todavía.
+  - La carrera se decide al verificar: el primer `POST /bookings/verification` gana y el otro recibe
+    409, aunque los dos verifiquen casi al mismo tiempo. Lo garantiza la exclusion constraint
+    `Booking_no_overlap` de Postgres (ADR 0004), no solo el chequeo del caso de uso.

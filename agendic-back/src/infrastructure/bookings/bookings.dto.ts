@@ -1,5 +1,10 @@
-import { IsDateString, IsInt, IsString } from 'class-validator';
-import { IsName, IsNormalizedEmail } from '../users/users.dto';
+import { IsDateString, IsInt, IsString, MaxLength } from 'class-validator';
+import {
+  IfPresent,
+  IsName,
+  IsNormalizedEmail,
+  trimmed,
+} from '../users/users.dto';
 
 export class CreateBookingDto {
   @IsInt()
@@ -16,6 +21,13 @@ export class CreateBookingDto {
 
   @IsNormalizedEmail()
   clientEmail!: string;
+
+  /** Comentario del Turno: free text, only its length is checked. */
+  @IfPresent()
+  @trimmed()
+  @IsString()
+  @MaxLength(500)
+  notes?: string;
 }
 
 export class VerifyBookingDto {

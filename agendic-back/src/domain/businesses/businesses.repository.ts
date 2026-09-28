@@ -15,7 +15,12 @@ export interface CreateBusinessData {
   >;
   service: Pick<
     Service,
-    'name' | 'description' | 'category' | 'durationMinutes' | 'price'
+    | 'name'
+    | 'description'
+    | 'category'
+    | 'durationMinutes'
+    | 'price'
+    | 'depositPercent'
   >;
   /** The Dueño, in charge of that first Servicio. */
   employee: Pick<Employee, 'userId'>;

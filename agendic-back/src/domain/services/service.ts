@@ -16,6 +16,8 @@ export interface Service {
   category: ServiceCategory;
   durationMinutes: number;
   price: number;
+  /** Seña: symbolic, stored and shown, never charged. Null when the Servicio asks for none. */
+  depositPercent: number | null;
   retiredAt: Date | null;
   /** In charge of it: verified and not dados de baja. */
   employees: EmployeeSummary[];
@@ -34,6 +36,7 @@ export interface CreateServiceInput {
   category: ServiceCategory;
   durationMinutes: number;
   price: number;
+  depositPercent?: number;
   employeeIds: number[];
 }
 
@@ -43,4 +46,6 @@ export interface UpdateServiceInput {
   category?: ServiceCategory;
   durationMinutes?: number;
   price?: number;
+  /** Null drops the Seña. */
+  depositPercent?: number | null;
 }

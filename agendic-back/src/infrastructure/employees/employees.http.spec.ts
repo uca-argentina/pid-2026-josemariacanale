@@ -189,6 +189,7 @@ describe('Empleado', () => {
           category: ServiceCategory.SPA,
           durationMinutes: 30,
           price: 20,
+          depositPercent: null,
           retiredAt: null,
           employees: [{ id: OTHER_EMPLOYEE.id, name: OTHER_EMPLOYEE.name }],
         },
@@ -212,6 +213,7 @@ describe('Empleado', () => {
           category: ServiceCategory.SPA,
           durationMinutes: 30,
           price: 20,
+          depositPercent: null,
           retiredAt: null,
           employees: [
             { id: OTHER_EMPLOYEE.id, name: OTHER_EMPLOYEE.name },

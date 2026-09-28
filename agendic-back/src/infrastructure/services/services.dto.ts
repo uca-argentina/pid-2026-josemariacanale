@@ -1,6 +1,18 @@
-import { ArrayNotEmpty, IsEnum, IsInt, IsNumber, Min } from 'class-validator';
+import { applyDecorators } from '@nestjs/common';
+import {
+  ArrayNotEmpty,
+  IsEnum,
+  IsInt,
+  IsNumber,
+  IsOptional,
+  Max,
+  Min,
+} from 'class-validator';
 import { ServiceCategory } from '../../domain/services/service';
 import { IfPresent, IsName, IsText } from '../users/users.dto';
+
+/** Seña: a whole percentage of the price, 0 to 100. */
+const IsDepositPercent = () => applyDecorators(IsInt(), Min(0), Max(100));
 
 /** The Servicio's own fields, shared with the Servicio part of POST /businesses. */
 export class ServiceFieldsDto {
@@ -21,6 +33,10 @@ export class ServiceFieldsDto {
   @IsNumber()
   @Min(0)
   price!: number;
+
+  @IfPresent()
+  @IsDepositPercent()
+  depositPercent?: number;
 }
 
 export class CreateServiceDto extends ServiceFieldsDto {
@@ -61,4 +77,9 @@ export class UpdateServiceDto {
   @IsNumber()
   @Min(0)
   price?: number;
+
+  /** Null drops the Seña, so unlike the other fields it's @IsOptional rather than @IfPresent. */
+  @IsOptional()
+  @IsDepositPercent()
+  depositPercent?: number | null;
 }
