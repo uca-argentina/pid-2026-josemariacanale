@@ -31,6 +31,7 @@ const BRANCH_ROW = {
   opensAt: new Date('1970-01-01T09:00:00.000Z'),
   closesAt: new Date('1970-01-01T18:00:00.000Z'),
   timeZone: 'America/Argentina/Buenos_Aires',
+  slug: ANAS_BUSINESS.slug,
 };
 
 const EMPLOYEE_ROW = {
@@ -70,6 +71,7 @@ const CREATE_DATA = {
     opensAt: '09:00',
     closesAt: '18:00',
     timeZone: 'America/Argentina/Buenos_Aires',
+    slug: ANAS_BUSINESS.slug,
   },
   service: {
     name: 'Haircut',
@@ -139,6 +141,7 @@ describe('PrismaBusinessesRepository', () => {
       opensAt: '09:00',
       closesAt: '18:00',
       timeZone: 'America/Argentina/Buenos_Aires',
+      slug: ANAS_BUSINESS.slug,
     });
     expect(created.employee).toEqual({
       id: EMPLOYEE_ROW.id,

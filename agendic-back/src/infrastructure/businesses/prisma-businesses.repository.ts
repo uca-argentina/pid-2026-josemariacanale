@@ -20,6 +20,7 @@ import {
   toService,
   VISIBLE_EMPLOYEES,
 } from '../services/prisma-services.repository';
+import { violatedIndex } from '../prisma-errors';
 import { PrismaService } from '../prisma.service';
 
 @Injectable()
@@ -42,6 +43,7 @@ export class PrismaBusinessesRepository implements BusinessesRepository {
             opensAt: toTime(data.branch.opensAt),
             closesAt: toTime(data.branch.closesAt),
             timeZone: data.branch.timeZone,
+            slug: data.branch.slug,
           },
         });
         const employee = await tx.employee.create({
@@ -130,14 +132,6 @@ const CONFLICT_BY_INDEX: Record<string, string> = {
   Employee_userId_businessId_key:
     'User already an active Employee of this Business',
 };
-
-/** Where ADR 0004 says the violated index's name arrives through @prisma/adapter-pg. */
-const violatedIndex = (error: Prisma.PrismaClientKnownRequestError) =>
-  (
-    error.meta as
-      | { driverAdapterError?: { cause?: { constraint?: { index?: string } } } }
-      | undefined
-  )?.driverAdapterError?.cause?.constraint?.index;
 
 const translateError = (error: unknown): never => {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {

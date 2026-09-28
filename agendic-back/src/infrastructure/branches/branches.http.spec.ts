@@ -1,7 +1,9 @@
+import { ConflictError } from '../../domain/errors';
 import {
   ANAS_BUSINESS,
   bearer,
   createTestApp,
+  BRUNO,
   OTHER_CLERK_TOKEN,
   scriptOtherSession,
   scriptSession,
@@ -15,6 +17,16 @@ const VALID_BRANCH = {
   opensAt: '09:00',
   closesAt: '18:00',
   timeZone: 'America/Argentina/Buenos_Aires',
+  slug: 'downtown',
+};
+
+/** Bruno's Negocio, for checking that a Sucursal's slug is only unique within its own Negocio. */
+const BRUNOS_BUSINESS = {
+  id: 2,
+  name: "Bruno's Gym",
+  description: 'Weights',
+  ownerId: BRUNO.id,
+  slug: 'brunos-gym',
 };
 
 const BRANCH = {
@@ -50,6 +62,57 @@ describe('Sucursal', () => {
         ...VALID_BRANCH,
       });
       expect(res.body).toEqual(BRANCH);
+    });
+
+    it('stores the slug in lowercase', async () => {
+      t.branches.create.mockResolvedValue(BRANCH);
+
+      await t.http
+        .post(`/businesses/${ANAS_BUSINESS.id}/branches`)
+        .set(bearer(CLERK_TOKEN))
+        .send({ ...VALID_BRANCH, slug: 'DownTown' })
+        .expect(201);
+
+      expect(t.branches.create).toHaveBeenCalledWith(
+        expect.objectContaining({ slug: 'downtown' }),
+      );
+    });
+
+    it('answers 409 when the slug is already in use in the same Negocio', async () => {
+      t.branches.create.mockRejectedValue(
+        new ConflictError('Booking link already in use'),
+      );
+
+      const res = await t.http
+        .post(`/businesses/${ANAS_BUSINESS.id}/branches`)
+        .set(bearer(CLERK_TOKEN))
+        .send(VALID_BRANCH)
+        .expect(409);
+
+      expect(res.body.message).toBe('Booking link already in use');
+    });
+
+    it('creates Sucursales with the same slug in different Negocios', async () => {
+      t.businesses.findById.mockImplementation(async (id) =>
+        id === BRUNOS_BUSINESS.id ? BRUNOS_BUSINESS : ANAS_BUSINESS,
+      );
+      t.branches.create.mockImplementation(async (data) => ({ id: 1, ...data }));
+
+      await t.http
+        .post(`/businesses/${ANAS_BUSINESS.id}/branches`)
+        .set(bearer(CLERK_TOKEN))
+        .send(VALID_BRANCH)
+        .expect(201);
+      const res = await t.http
+        .post(`/businesses/${BRUNOS_BUSINESS.id}/branches`)
+        .set(bearer(OTHER_CLERK_TOKEN))
+        .send(VALID_BRANCH)
+        .expect(201);
+
+      expect(res.body).toMatchObject({
+        businessId: BRUNOS_BUSINESS.id,
+        slug: VALID_BRANCH.slug,
+      });
     });
 
     it('answers 401 without a Sesión', async () => {
@@ -91,6 +154,12 @@ describe('Sucursal', () => {
       ['a missing timeZone', { timeZone: undefined }],
       ['a UTC offset as timeZone', { timeZone: '-03:00' }],
       ['a nonsense timeZone', { timeZone: 'Marte/Olimpo' }],
+      ['a missing slug', { slug: undefined }],
+      ['a slug with spaces and symbols', { slug: 'down town!' }],
+      ['a slug with a leading hyphen', { slug: '-downtown' }],
+      ['a slug with a double hyphen', { slug: 'down--town' }],
+      ['a too short slug', { slug: 'ab' }],
+      ['a too long slug', { slug: 'a'.repeat(41) }],
     ])('rejects %s with 400, without reaching the repository', async (_, override) => {
       await t.http
         .post(`/businesses/${ANAS_BUSINESS.id}/branches`)
@@ -170,6 +239,45 @@ describe('Sucursal', () => {
         .expect(404);
     });
 
+    it('edits the slug in lowercase, for the Dueño', async () => {
+      t.branches.update.mockResolvedValue({ ...BRANCH, slug: 'centro' });
+
+      const res = await t.http
+        .patch(`/branches/${BRANCH.id}`)
+        .set(bearer(CLERK_TOKEN))
+        .send({ slug: 'Centro' })
+        .expect(200);
+
+      expect(t.branches.update).toHaveBeenCalledWith(BRANCH.id, {
+        slug: 'centro',
+      });
+      expect(res.body.slug).toBe('centro');
+    });
+
+    it('answers 403 when another Usuario edits the slug', async () => {
+      await t.http
+        .patch(`/branches/${BRANCH.id}`)
+        .set(bearer(OTHER_CLERK_TOKEN))
+        .send({ slug: 'centro' })
+        .expect(403);
+
+      expect(t.branches.update).not.toHaveBeenCalled();
+    });
+
+    it('answers 409 when the slug is already in use in the same Negocio', async () => {
+      t.branches.update.mockRejectedValue(
+        new ConflictError('Booking link already in use'),
+      );
+
+      const res = await t.http
+        .patch(`/branches/${BRANCH.id}`)
+        .set(bearer(CLERK_TOKEN))
+        .send({ slug: 'centro' })
+        .expect(409);
+
+      expect(res.body.message).toBe('Booking link already in use');
+    });
+
     it('edits the timeZone, for the Dueño', async () => {
       t.branches.update.mockResolvedValue({
         ...BRANCH,
@@ -194,6 +302,8 @@ describe('Sucursal', () => {
       ['a malformed closesAt', { closesAt: 'noon' }],
       ['a UTC offset as timeZone', { timeZone: '-03:00' }],
       ['a nonsense timeZone', { timeZone: 'Marte/Olimpo' }],
+      ['a malformed slug', { slug: 'down town!' }],
+      ['a null slug', { slug: null }],
     ])('rejects %s with 400, without reaching the repository', async (_, body) => {
       await t.http
         .patch(`/branches/${BRANCH.id}`)

@@ -62,9 +62,12 @@ model Branch {
   opensAt    DateTime @db.Time(0) // read by Prisma as 1970-01-01T<HH:mm>Z
   closesAt   DateTime @db.Time(0)
   timeZone   String // IANA name (e.g. America/Argentina/Buenos_Aires), never a UTC offset; the only source of time zone in the system
+  slug       String // Enlace de reserva's second tramo: /business/<business slug>/<slug>, always lowercase (ADR 0014)
 
   business Business  @relation(fields: [businessId], references: [id])
   services Service[]
+
+  @@unique([businessId, slug]) // unique within its Negocio only, unlike Business.slug
 }
 
 model Service {

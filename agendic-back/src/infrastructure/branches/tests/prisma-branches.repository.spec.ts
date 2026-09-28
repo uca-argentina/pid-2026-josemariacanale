@@ -1,5 +1,9 @@
 import { Branch } from '../../../domain/branches/branch';
-import { DatabaseOperationError, NotFoundError } from '../../../domain/errors';
+import {
+  ConflictError,
+  DatabaseOperationError,
+  NotFoundError,
+} from '../../../domain/errors';
 import { Prisma } from '../../../generated/prisma/client';
 import { PrismaService } from '../../prisma.service';
 import { PrismaBranchesRepository } from '../prisma-branches.repository';
@@ -12,6 +16,7 @@ const BRANCH: Branch = {
   opensAt: '09:00',
   closesAt: '18:00',
   timeZone: 'America/Argentina/Buenos_Aires',
+  slug: 'downtown',
 };
 
 const BRANCH_ROW = {
@@ -22,6 +27,7 @@ const BRANCH_ROW = {
   opensAt: new Date('1970-01-01T09:00:00.000Z'),
   closesAt: new Date('1970-01-01T18:00:00.000Z'),
   timeZone: 'America/Argentina/Buenos_Aires',
+  slug: 'downtown',
 };
 
 const knownError = (code: string) =>
@@ -56,6 +62,7 @@ describe('PrismaBranchesRepository', () => {
         opensAt: '09:00',
         closesAt: '18:00',
         timeZone: 'America/Argentina/Buenos_Aires',
+        slug: 'downtown',
       }),
     ).resolves.toEqual(BRANCH);
     expect(prisma.branch.create).toHaveBeenCalledWith({
@@ -66,6 +73,7 @@ describe('PrismaBranchesRepository', () => {
         opensAt: new Date('1970-01-01T09:00:00.000Z'),
         closesAt: new Date('1970-01-01T18:00:00.000Z'),
         timeZone: 'America/Argentina/Buenos_Aires',
+        slug: 'downtown',
       },
     });
   });
@@ -95,21 +103,26 @@ describe('PrismaBranchesRepository', () => {
         opensAt: undefined,
         closesAt: undefined,
         timeZone: undefined,
+        slug: undefined,
       },
     });
   });
 
   describe('translates Prisma errors, keeping the original as cause', () => {
     const calls = {
+      create: () => repository.create(BRANCH),
       findById: () => repository.findById(1),
       update: () => repository.update(1, { name: 'New name' }),
     };
     const prismaCall = {
+      create: prisma.branch.create,
       findById: prisma.branch.findUnique,
       update: prisma.branch.update,
     };
 
-    it.each([['update', 'P2025', NotFoundError]] as const)(
+    it.each([
+      ['update', 'P2025', NotFoundError],
+    ] as const)(
       '%s: %s into %p',
       async (method, code, domainError) => {
         const cause = knownError(code);
@@ -118,6 +131,26 @@ describe('PrismaBranchesRepository', () => {
         const error = await calls[method]().catch((e: unknown) => e);
 
         expect(error).toBeInstanceOf(domainError);
+        expect(error).toHaveProperty('cause', cause);
+      },
+    );
+
+    it.each(['create', 'update'] as const)(
+      '%s: P2002 on the slug index into a ConflictError naming the Enlace de reserva',
+      async (method) => {
+        const cause = knownError('P2002');
+        // Where ADR 0004 says @prisma/adapter-pg puts the violated index's name.
+        cause.meta = {
+          driverAdapterError: {
+            cause: { constraint: { index: 'Branch_businessId_slug_key' } },
+          },
+        };
+        prismaCall[method].mockRejectedValue(cause);
+
+        const error = await calls[method]().catch((e: unknown) => e);
+
+        expect(error).toBeInstanceOf(ConflictError);
+        expect(error).toHaveProperty('message', 'Booking link already in use');
         expect(error).toHaveProperty('cause', cause);
       },
     );

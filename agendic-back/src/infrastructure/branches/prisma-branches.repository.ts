@@ -1,8 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { Branch } from '../../domain/branches/branch';
 import { BranchesRepository } from '../../domain/branches/branches.repository';
-import { DatabaseOperationError, NotFoundError } from '../../domain/errors';
+import {
+  ConflictError,
+  DatabaseOperationError,
+  NotFoundError,
+} from '../../domain/errors';
 import { Branch as BranchRow, Prisma } from '../../generated/prisma/client';
+import { violatedIndex } from '../prisma-errors';
 import { PrismaService } from '../prisma.service';
 
 @Injectable()
@@ -12,7 +17,13 @@ export class PrismaBranchesRepository implements BranchesRepository {
   async create(
     data: Pick<
       Branch,
-      'businessId' | 'name' | 'address' | 'opensAt' | 'closesAt' | 'timeZone'
+      | 'businessId'
+      | 'name'
+      | 'address'
+      | 'opensAt'
+      | 'closesAt'
+      | 'timeZone'
+      | 'slug'
     >,
   ) {
     return toBranch(
@@ -25,6 +36,7 @@ export class PrismaBranchesRepository implements BranchesRepository {
             opensAt: toTime(data.opensAt),
             closesAt: toTime(data.closesAt),
             timeZone: data.timeZone,
+            slug: data.slug,
           },
         })
         .catch(translateError),
@@ -49,7 +61,10 @@ export class PrismaBranchesRepository implements BranchesRepository {
   async update(
     id: number,
     data: Partial<
-      Pick<Branch, 'name' | 'address' | 'opensAt' | 'closesAt' | 'timeZone'>
+      Pick<
+        Branch,
+        'name' | 'address' | 'opensAt' | 'closesAt' | 'timeZone' | 'slug'
+      >
     >,
   ) {
     return toBranch(
@@ -63,6 +78,7 @@ export class PrismaBranchesRepository implements BranchesRepository {
             closesAt:
               data.closesAt === undefined ? undefined : toTime(data.closesAt),
             timeZone: data.timeZone,
+            slug: data.slug,
           },
         })
         .catch(translateError),
@@ -81,14 +97,19 @@ export const toBranch = (row: BranchRow): Branch => ({
   opensAt: fromTime(row.opensAt),
   closesAt: fromTime(row.closesAt),
   timeZone: row.timeZone,
+  slug: row.slug,
 });
 
 const translateError = (error: unknown): never => {
-  if (
-    error instanceof Prisma.PrismaClientKnownRequestError &&
-    error.code === 'P2025'
-  )
-    throw new NotFoundError('Branch not found', { cause: error });
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    if (
+      error.code === 'P2002' &&
+      violatedIndex(error) === 'Branch_businessId_slug_key'
+    )
+      throw new ConflictError('Booking link already in use', { cause: error });
+    if (error.code === 'P2025')
+      throw new NotFoundError('Branch not found', { cause: error });
+  }
   throw new DatabaseOperationError('Database operation failed', {
     cause: error,
   });

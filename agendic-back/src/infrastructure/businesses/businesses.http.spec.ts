@@ -91,7 +91,7 @@ describe('Negocio', () => {
 
       expect(t.businesses.create).toHaveBeenCalledWith({
         business: { ...BUSINESS_PART, ownerId: ANA.id },
-        branch: BRANCH_PART,
+        branch: { ...BRANCH_PART, slug: ANAS_BUSINESS.slug },
         service: SERVICE_PART,
         employee: { userId: ANA.id },
         availability: {
@@ -123,6 +123,22 @@ describe('Negocio', () => {
           email: ANAS_EMPLOYEE.email,
         },
       });
+    });
+
+    it('gives the first Sucursal the slug it is sent, in lowercase', async () => {
+      t.businesses.create.mockResolvedValue(CREATED);
+
+      await t.http
+        .post('/businesses')
+        .set(bearer(CLERK_TOKEN))
+        .send({ ...VALID_BODY, branch: { ...BRANCH_PART, slug: 'Centro' } })
+        .expect(201);
+
+      expect(t.businesses.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          branch: { ...BRANCH_PART, slug: 'centro' },
+        }),
+      );
     });
 
     it('creates a Servicio without a description', async () => {
@@ -250,6 +266,10 @@ describe('Negocio', () => {
         { business: { ...BUSINESS_PART, slug: 'a'.repeat(41) } },
       ],
       ['a missing Sucursal', { branch: undefined }],
+      [
+        'a malformed Sucursal slug',
+        { branch: { ...BRANCH_PART, slug: 'centro!' } },
+      ],
       [
         'a blank Sucursal address',
         { branch: { ...BRANCH_PART, address: ' ' } },

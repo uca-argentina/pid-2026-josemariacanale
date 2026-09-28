@@ -1,6 +1,6 @@
 import { applyDecorators } from '@nestjs/common';
 import { Matches, registerDecorator } from 'class-validator';
-import { IfPresent, IsName, IsText } from '../users/users.dto';
+import { IfPresent, IsName, IsSlug, IsText } from '../users/users.dto';
 
 export const IsTimeOfDay = () =>
   applyDecorators(
@@ -37,7 +37,8 @@ export const IsTimeZone = () => (object: object, propertyName: string) =>
     },
   });
 
-export class CreateBranchDto {
+/** Every field of a new Sucursal but its slug, which Crear Negocio lets default. */
+export class BranchFieldsDto {
   @IsName()
   name!: string;
 
@@ -52,6 +53,11 @@ export class CreateBranchDto {
 
   @IsTimeZone()
   timeZone!: string;
+}
+
+export class CreateBranchDto extends BranchFieldsDto {
+  @IsSlug()
+  slug!: string;
 }
 
 export class UpdateBranchDto {
@@ -74,4 +80,8 @@ export class UpdateBranchDto {
   @IfPresent()
   @IsTimeZone()
   timeZone?: string;
+
+  @IfPresent()
+  @IsSlug()
+  slug?: string;
 }
