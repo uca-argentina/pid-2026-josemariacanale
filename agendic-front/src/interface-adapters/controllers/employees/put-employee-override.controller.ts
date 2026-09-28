@@ -10,7 +10,7 @@ const inputSchema = z.object({
     date: z.string(),
     override: z.object({
         intervals: z.array(employeeOverrideIntervalSchema),
-        coveredByEmployeeId: z.number().optional(),
+        coveredByEmployeeId: z.number().nullable().optional(),
     }),
 });
 

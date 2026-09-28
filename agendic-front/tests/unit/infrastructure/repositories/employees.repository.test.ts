@@ -7,8 +7,10 @@ const employee = { id: 3, userId: 123, name: 'Martina', email: 'martina@estudio.
 
 const repo = (apiUrl: string | undefined = 'http://api') =>
     new EmployeesRepository(authWith({ getAccessToken: jest.fn().mockResolvedValue('tok') }), apiUrl);
-const respond = (status: number, body: unknown) =>
-    jest.spyOn(global, 'fetch').mockResolvedValue(new Response(JSON.stringify(body), { status }));
+const respond = (status: number, body?: unknown) =>
+    jest.spyOn(global, 'fetch').mockResolvedValue(
+        status === 204 ? new Response(null, { status }) : new Response(JSON.stringify(body), { status }),
+    );
 
 afterEach(() => jest.restoreAllMocks());
 
@@ -108,5 +110,62 @@ describe('EmployeesRepository.retireEmployee', () => {
     it('translates other failures to ApiRequestError carrying the status', async () => {
         respond(500, { statusCode: 500, message: 'boom' });
         await expect(repo().retireEmployee(3)).rejects.toMatchObject({ status: 500 });
+    });
+});
+
+describe('EmployeesRepository.getOverrides', () => {
+    it('GETs the overrides of an employee, handling null coveredByEmployeeId', async () => {
+        respond(200, [{ date: '2026-10-10', intervals: [], coveredByEmployeeId: null }]);
+        const overrides = await repo().getOverrides(1);
+        expect(overrides).toEqual([{ date: '2026-10-10', intervals: [], coveredByEmployeeId: undefined }]);
+    });
+
+    it('translates invalid body to ApiRequestError without status', async () => {
+        respond(200, [{ date: 123 }]);
+        await expect(repo().getOverrides(1)).rejects.toBeInstanceOf(ApiRequestError);
+    });
+});
+
+describe('EmployeesRepository.putOverride', () => {
+    it('PUTs an override for 200 response', async () => {
+        const fetchSpy = respond(200, { date: '2026-10-10', intervals: [] });
+        await repo().putOverride(1, '2026-10-10', { intervals: [] });
+        expect(fetchSpy).toHaveBeenCalledWith(
+            'http://api/employees/1/overrides/2026-10-10',
+            expect.objectContaining({ method: 'PUT' }),
+        );
+    });
+
+    it('translates 422 to InvalidOverrideError', async () => {
+        const { InvalidOverrideError } = await import('@/src/entities/errors/employee');
+        respond(422, { statusCode: 422, message: 'Solapadas' });
+        await expect(repo().putOverride(1, '2026-10-10', { intervals: [] })).rejects.toBeInstanceOf(InvalidOverrideError);
+    });
+
+    it('translates 409 to OverrideConflictError', async () => {
+        const { OverrideConflictError } = await import('@/src/entities/errors/employee');
+        respond(409, { statusCode: 409, message: 'Conflicto' });
+        await expect(repo().putOverride(1, '2026-10-10', { intervals: [] })).rejects.toBeInstanceOf(OverrideConflictError);
+    });
+
+    it('translates 500 to ApiRequestError carrying status', async () => {
+        respond(500, { statusCode: 500, message: 'boom' });
+        await expect(repo().putOverride(1, '2026-10-10', { intervals: [] })).rejects.toMatchObject({ status: 500 });
+    });
+});
+
+describe('EmployeesRepository.deleteOverride', () => {
+    it('DELETEs an override for 204 response', async () => {
+        const fetchSpy = respond(204, null);
+        await repo().deleteOverride(1, '2026-10-10');
+        expect(fetchSpy).toHaveBeenCalledWith(
+            'http://api/employees/1/overrides/2026-10-10',
+            expect.objectContaining({ method: 'DELETE' }),
+        );
+    });
+
+    it('translates 500 to ApiRequestError carrying status', async () => {
+        respond(500, { statusCode: 500, message: 'boom' });
+        await expect(repo().deleteOverride(1, '2026-10-10')).rejects.toMatchObject({ status: 500 });
     });
 });
