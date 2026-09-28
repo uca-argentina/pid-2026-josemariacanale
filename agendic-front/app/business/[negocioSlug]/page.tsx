@@ -6,6 +6,7 @@ import { MapPin } from 'lucide-react';
 import { BackendErrorNotice } from '@/app/_components/BackendErrorNotice';
 import { Footer } from '@/app/_components/Footer';
 import { Header } from '@/app/_components/Header';
+import { bookingLinkPath } from '@/app/routes';
 import { getInjection } from '@/di/container';
 import { InputParseError, NotFoundError } from '@/src/entities/errors/common';
 
@@ -44,7 +45,7 @@ export default async function PublicBusinessPage({ params }: { params: Promise<P
     }
 
     const { business, branches } = page ?? {};
-    if (business && branches?.length === 1) redirect(`/business/${business.slug}/${branches[0].slug}`);
+    if (business && branches?.length === 1) redirect(bookingLinkPath(business.slug, branches[0].slug));
 
     return (
         <>
@@ -71,7 +72,7 @@ export default async function PublicBusinessPage({ params }: { params: Promise<P
                                     {branches.map((branch) => (
                                         <li key={branch.id}>
                                             <Link
-                                                href={`/business/${business.slug}/${branch.slug}`}
+                                                href={bookingLinkPath(business.slug, branch.slug)}
                                                 className="flex flex-col gap-1 rounded-2xl border border-border p-4.5 transition-colors hover:border-foreground/20"
                                             >
                                                 <span className="text-[15.5px] font-bold tracking-[-0.02em]">

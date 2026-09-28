@@ -256,7 +256,7 @@ function ConfirmStep({
                 </p>
             </div>
 
-            {/* ponytail: maqueta. La Seña no existe ni en el schema, ni en ADR 0007, ni en el glosario. */}
+            {/* ponytail: la Seña es real (Service.depositPercent); la política de devolución es texto de maqueta. */}
             {deposit && (
                 <section className="mt-2 flex flex-col gap-2 border-t border-border pt-5">
                     <h3 className="text-[17px] font-extrabold tracking-[-0.02em]">
@@ -275,7 +275,7 @@ function ConfirmStep({
             )}
 
             <section className="mt-2 flex flex-col gap-2 border-t border-border pt-5">
-                {/* ponytail: maqueta. Booking no tiene campo de notas todavía. */}
+                {/* ponytail: el Comentario del Turno (Booking.notes) todavía no viaja al back: se conecta en el ticket 07. */}
                 <Label htmlFor="notas" className="text-[17px] font-extrabold tracking-[-0.02em]">
                     Notas para el negocio
                 </Label>

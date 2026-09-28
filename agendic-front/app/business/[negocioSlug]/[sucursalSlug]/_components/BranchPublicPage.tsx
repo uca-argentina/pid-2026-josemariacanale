@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Clock, MapPin, Images, Building2 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/app/_components/ui/avatar';
 import { Button } from '@/app/_components/ui/button';
+import { bookingLinkPath } from '@/app/routes';
 import { SERVICE_CATEGORIES, type ServiceCategoryValue } from '@/app/_components/business-schemas';
 import { ChipTabs } from './ChipTabs';
 import { BookingFlow } from './BookingFlow';
@@ -255,7 +256,7 @@ export function BranchPublicPage({
                                         {otherBranches.map((b) => (
                                             <li key={b.id} className="text-[13.5px]">
                                                 <Link
-                                                    href={`/business/${business.slug}/${b.slug}`}
+                                                    href={bookingLinkPath(business.slug, b.slug)}
                                                     className="font-bold underline-offset-2 hover:underline"
                                                 >
                                                     {b.name}

@@ -5,6 +5,7 @@ import { ExternalLink, Link2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PanelButton, PanelConfirm, PanelIconButton } from '@/app/(app)/_components/panel-ui';
 import { canStopOffering, type ServiceItem } from '@/app/(app)/_components/mock-services';
+import { bookingLinkPath } from '@/app/routes';
 
 /**
  * Abrir el Enlace de reserva y copiarlo. Van dentro de un `PanelIconGroup`.
@@ -22,7 +23,7 @@ export function PublicLinkButtons({ url, businessSlug }: { url: string; business
 
     return (
         <>
-            <PanelIconButton label="Abrir Enlace de reserva" onClick={() => window.open(`/business/${businessSlug}`, '_blank')}>
+            <PanelIconButton label="Abrir Enlace de reserva" onClick={() => window.open(bookingLinkPath(businessSlug), '_blank')}>
                 <ExternalLink />
             </PanelIconButton>
             <PanelIconButton label="Copiar Enlace de reserva" onClick={copy}>
