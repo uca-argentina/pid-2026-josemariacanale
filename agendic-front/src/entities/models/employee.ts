@@ -3,7 +3,7 @@ import { z } from 'zod';
 // The Dueño's view of an Empleado, as GET /businesses/:id/employees returns it.
 export const employeeSchema = z.object({
     id: z.number(),
-    userId: z.string(),
+    userId: z.number(),
     name: z.string(),
     email: z.string(),
 });

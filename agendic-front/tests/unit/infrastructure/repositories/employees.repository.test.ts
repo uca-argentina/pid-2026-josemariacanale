@@ -3,7 +3,7 @@ import { LastEmployeeError, EmployeeAlreadyExistsError, UserNotRegisteredError, 
 import { EmployeesRepository } from '@/src/infrastructure/repositories/employees.repository';
 import { authWith } from '@/tests/unit/stubs';
 
-const employee = { id: 3, userId: 'user_123', name: 'Martina', email: 'martina@estudio.com' };
+const employee = { id: 3, userId: 123, name: 'Martina', email: 'martina@estudio.com' };
 
 const repo = (apiUrl: string | undefined = 'http://api') =>
     new EmployeesRepository(authWith({ getAccessToken: jest.fn().mockResolvedValue('tok') }), apiUrl);
