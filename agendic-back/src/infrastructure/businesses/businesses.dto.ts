@@ -1,24 +1,8 @@
-import { applyDecorators } from '@nestjs/common';
 import { Type } from 'class-transformer';
-import {
-  IsObject,
-  IsString,
-  Length,
-  Matches,
-  ValidateNested,
-} from 'class-validator';
-import { CreateBranchDto } from '../branches/branches.dto';
+import { IsObject, ValidateNested } from 'class-validator';
+import { BranchFieldsDto } from '../branches/branches.dto';
 import { ServiceFieldsDto } from '../services/services.dto';
-import { IfPresent, IsName, IsText, trimmed } from '../users/users.dto';
-
-/** The Enlace de reserva's address: lowercased on the way in, then words of letters and digits joined by hyphens. */
-const IsSlug = () =>
-  applyDecorators(
-    trimmed((value) => value.toLowerCase()),
-    IsString(),
-    Length(3, 40),
-    Matches(/^[a-z0-9]+(-[a-z0-9]+)*$/),
-  );
+import { IfPresent, IsName, IsSlug, IsText } from '../users/users.dto';
 
 class BusinessFieldsDto {
   @IsName()
@@ -31,6 +15,13 @@ class BusinessFieldsDto {
   slug!: string;
 }
 
+/** Its `slug` may be left out: the first Sucursal then takes the Negocio's. */
+class FirstBranchDto extends BranchFieldsDto {
+  @IfPresent()
+  @IsSlug()
+  slug?: string;
+}
+
 /** The three parts a Negocio is created with, each validated as its own endpoint validates it. */
 export class CreateBusinessDto {
   @IsObject()
@@ -40,8 +31,8 @@ export class CreateBusinessDto {
 
   @IsObject()
   @ValidateNested()
-  @Type(() => CreateBranchDto)
-  branch!: CreateBranchDto;
+  @Type(() => FirstBranchDto)
+  branch!: FirstBranchDto;
 
   @IsObject()
   @ValidateNested()

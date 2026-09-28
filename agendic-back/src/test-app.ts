@@ -216,6 +216,7 @@ export const ANAS_BRANCH: Branch = {
   opensAt: '09:00',
   closesAt: '18:00',
   timeZone: 'America/Argentina/Buenos_Aires',
+  slug: 'downtown',
 };
 
 /** Ana as the Empleado of her own Negocio. */

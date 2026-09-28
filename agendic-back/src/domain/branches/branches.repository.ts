@@ -7,7 +7,13 @@ export interface BranchesRepository {
   create(
     data: Pick<
       Branch,
-      'businessId' | 'name' | 'address' | 'opensAt' | 'closesAt' | 'timeZone'
+      | 'businessId'
+      | 'name'
+      | 'address'
+      | 'opensAt'
+      | 'closesAt'
+      | 'timeZone'
+      | 'slug'
     >,
   ): Promise<Branch>;
   findById(id: number): Promise<Branch | null>;
@@ -16,7 +22,10 @@ export interface BranchesRepository {
   update(
     id: number,
     data: Partial<
-      Pick<Branch, 'name' | 'address' | 'opensAt' | 'closesAt' | 'timeZone'>
+      Pick<
+        Branch,
+        'name' | 'address' | 'opensAt' | 'closesAt' | 'timeZone' | 'slug'
+      >
     >,
   ): Promise<Branch>;
 }

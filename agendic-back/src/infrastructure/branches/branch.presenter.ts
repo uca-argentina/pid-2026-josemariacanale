@@ -8,4 +8,5 @@ export const presentBranch = (branch: Branch) => ({
   opensAt: branch.opensAt,
   closesAt: branch.closesAt,
   timeZone: branch.timeZone,
+  slug: branch.slug,
 });
