@@ -23,8 +23,9 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | --- | --- |
 | Negocio | `Business` |
 | Dueño | `owner` (`Business.ownerId`) |
-| Enlace de reserva | `Business.slug` (la URL del front es `/business/<slug>`) |
+| Enlace de reserva | `Business.slug` (tramo del Negocio) + `Branch.slug` (tramo de la Sucursal, único por `businessId`); la URL del front es `/business/<negocio-slug>/<sucursal-slug>` |
 | Sucursal | `Branch` (apertura/cierre → `opensAt`/`closesAt`) |
+| Imágenes de Sucursal | `BranchImage` (`url`, `order`) |
 | Zona horaria | `Branch.timeZone` |
 | Usuario | `User` |
 | Cliente | `Booking.clientName` / `Booking.clientEmail` |
@@ -36,8 +37,15 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | Horario reservable | `Slot` (`GET /services/:id/slots`) |
 | Servicio | `Service` |
 | Categoría de Servicio | `ServiceCategory` (`Service.category`) |
-| Turno | `Booking` (inicio/fin → `startsAt`/`endsAt`; estado → `BookingStatus.UNVERIFIED \| BOOKED \| CANCELLED`) |
+| Aprobación manual | `Service.requiresApproval` |
+| Seña | `Service.depositPercent` (opcional) |
+| Turno | `Booking` (inicio/fin → `startsAt`/`endsAt`; estado → `BookingStatus.UNVERIFIED \| PENDING \| BOOKED \| REJECTED \| CANCELLED`) |
+| Comentario del Turno | `Booking.notes` (opcional) |
 | Turno sin verificar | `BookingStatus.UNVERIFIED` |
+| Turno pendiente | `BookingStatus.PENDING` |
+| Aceptar turno | `accept` (`PENDING` → `BOOKED`) |
+| Rechazar turno | `reject` (`PENDING` → `REJECTED`) |
+| Ausencia | `Booking.noShowAt` (marcado a mano; no reemplaza `status`) |
 | Reservar | `book` |
 | Cancelar | `cancel` |
 | Dar de baja | `retire` (`Service.retiredAt`, `Employee.retiredAt`) |

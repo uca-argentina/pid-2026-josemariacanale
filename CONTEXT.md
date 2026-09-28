@@ -105,6 +105,14 @@ _Avoid_: slot, hueco, disponibilidad
 Tipo de prestación al que pertenece un Servicio, elegido de una lista fija.
 _Avoid_: tipo de servicio, categoría (a secas)
 
+**Aprobación manual**:
+Atributo de un Servicio que hace que sus Turnos nazcan como Turno pendiente en vez de aceptarse solos al Reservar. Un Servicio sin Aprobación manual acepta sus Turnos automáticamente.
+_Avoid_: auto-aceptación, requiere aprobación (a secas)
+
+**Seña**:
+Porcentaje del precio de un Servicio que el Negocio puede pedir declarar como adelanto al Reservar. Opcional: un Servicio sin Seña no pide nada por adelantado.
+_Avoid_: depósito, anticipo, deposit
+
 **Turno**:
 Reserva concreta de un Cliente con un Empleado, para un Servicio y un horario determinados. Es el sustantivo; "reservar" es el verbo.
 _Avoid_: cita, reserva (como sustantivo), appointment
@@ -113,8 +121,12 @@ _Avoid_: cita, reserva (como sustantivo), appointment
 Acción del Cliente de tomar un turno disponible.
 _Avoid_: agendar, sacar turno, pedir turno
 
+**Comentario del Turno**:
+Texto libre que el Cliente puede dejar al Reservar, para contarle algo al Negocio sobre ese Turno.
+_Avoid_: notas, observaciones, comment
+
 **Enlace de reserva**:
-Dirección pública y única que un Negocio comparte para que un Cliente entre a Reservar. La elige el Dueño al Crear Negocio y puede cambiarla; al cambiarla, la anterior deja de funcionar.
+Dirección pública que un Negocio comparte para que un Cliente entre a Reservar. La elige el Dueño al Crear Negocio y puede cambiarla; al cambiarla, la anterior deja de funcionar. Si el Negocio tiene más de una Sucursal, cada una agrega su propio tramo a esa dirección para llegar directo a ella; con una sola Sucursal, el Enlace de reserva del Negocio ya lleva ahí.
 _Avoid_: link del negocio, perfil público, página pública, slug (eso es el identificador en el código)
 
 **Reagendar**:
@@ -130,12 +142,16 @@ Retirar un Servicio de la agenda de un Negocio, o retirar a un Empleado de un Ne
 _Avoid_: eliminar, borrar, desactivar
 
 **Ausencia**:
-Turno al que el Cliente no se presentó sin cancelarlo.
+Turno al que el Cliente no se presentó sin cancelarlo. El Empleado la marca a mano, solo en Turnos ya aceptados cuyo horario ya pasó.
 _Avoid_: inasistencia, no-show
 
 **Turno sin verificar**:
 Turno cuyo Cliente todavía no verificó su email. No mantiene reservado su horario.
 _Avoid_: pendiente (ese término queda reservado para Aceptar turno y Rechazar turno)
+
+**Turno pendiente**:
+Turno ya verificado por su Cliente, de un Servicio con Aprobación manual, que todavía espera que el Empleado lo Acepte o lo Rechace. Mientras tanto ocupa su Horario reservable igual que uno aceptado.
+_Avoid_: turno sin verificar (eso es otra cosa, ver arriba)
 
 **Aceptar turno**:
 Acción del Negocio de dar por válido un Turno pendiente, es decir, uno que no quedó aceptado automáticamente al reservarse.
