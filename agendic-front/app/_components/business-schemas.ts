@@ -31,6 +31,7 @@ export const branchSchema = z
         address: required('la dirección'),
         opensAt: required('el horario de apertura'),
         closesAt: required('el horario de cierre'),
+        timeZone: required('la zona horaria'),
     })
     .refine((s) => s.closesAt > s.opensAt, {
         message: 'El cierre tiene que ser posterior a la apertura.',

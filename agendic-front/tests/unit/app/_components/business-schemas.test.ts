@@ -54,6 +54,7 @@ describe('branchSchema', () => {
         address: 'Av. Cabildo 1234',
         opensAt: '09:00',
         closesAt: '18:00',
+        timeZone: 'America/Argentina/Buenos_Aires',
     };
 
     it('acepta una Sucursal que cierra después de abrir', () => {
@@ -67,6 +68,13 @@ describe('branchSchema', () => {
         expect(fieldErrorsOf(result.error!).closesAt).toBe(
             'El cierre tiene que ser posterior a la apertura.',
         );
+    });
+
+    it('rechaza una zona horaria vacía', () => {
+        const result = branchSchema.safeParse({ ...branch, timeZone: ' ' });
+        
+        expect(result.success).toBe(false);
+        expect(fieldErrorsOf(result.error!).timeZone).toBe('Ingresá la zona horaria.');
     });
 });
 
