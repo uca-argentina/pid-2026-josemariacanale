@@ -8,4 +8,9 @@ export interface IEmployeesRepository {
     addEmployee(input: CreateEmployee): Promise<Employee>;
     // Throws LastEmployeeError (422) when they are the last Empleado of a Servicio, or CannotRetireOwnerError (422) if trying to retire the owner.
     retireEmployee(employeeId: number): Promise<void>;
+
+    // Overrides
+    getOverrides(employeeId: number): Promise<import('@/src/entities/models/employee-override').EmployeeOverride[]>;
+    putOverride(employeeId: number, date: string, override: import('@/src/entities/models/employee-override').PutEmployeeOverride): Promise<void>;
+    deleteOverride(employeeId: number, date: string): Promise<void>;
 }

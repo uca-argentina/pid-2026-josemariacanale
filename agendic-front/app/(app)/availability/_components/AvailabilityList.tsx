@@ -139,6 +139,7 @@ export function AvailabilityList({
     onMakeDefault: (id: string) => void;
     onDuplicate: (id: string) => void;
     onDelete: (id: string) => void;
+    onOpenOverrides?: () => void;
 }) {
     const [creating, setCreating] = useState(false);
 
@@ -191,10 +192,11 @@ export function AvailabilityList({
                 </ul>
                 <p className="m-0 border-t border-[#e5e7eb] bg-[#f9fafb] px-6 py-3.5 text-center text-[13px] font-medium text-[#6b7280]">
                     ¿Te vas a tomar unos días?{' '}
-                    {/* ponytail: los días libres que redirigen tus turnos a otro Empleado llegan en otro ticket. */}
                     <button
                         type="button"
-                        onClick={() => toast('Muy pronto vas a poder redirigir tus días libres a otro empleado.')}
+                        onClick={() => {
+                            if (onOpenOverrides) onOpenOverrides();
+                        }}
                         className="font-semibold text-[#0f1b2d] underline underline-offset-2 hover:text-[#1c2b44]"
                     >
                         Redirigí tus turnos a otro empleado

@@ -28,6 +28,13 @@ import type { IListMyEmployeesController } from '@/src/interface-adapters/contro
 import type { IAddEmployeeController } from '@/src/interface-adapters/controllers/employees/add-employee.controller';
 import type { IRetireEmployeeController } from '@/src/interface-adapters/controllers/employees/retire-employee.controller';
 
+import type { IGetEmployeeOverridesUseCase } from '@/src/application/use-cases/employees/get-employee-overrides.use-case';
+import type { IPutEmployeeOverrideUseCase } from '@/src/application/use-cases/employees/put-employee-override.use-case';
+import type { IDeleteEmployeeOverrideUseCase } from '@/src/application/use-cases/employees/delete-employee-override.use-case';
+import type { IGetEmployeeOverridesController } from '@/src/interface-adapters/controllers/employees/get-employee-overrides.controller';
+import type { IPutEmployeeOverrideController } from '@/src/interface-adapters/controllers/employees/put-employee-override.controller';
+import type { IDeleteEmployeeOverrideController } from '@/src/interface-adapters/controllers/employees/delete-employee-override.controller';
+
 export const DI_SYMBOLS = {
     // Services
     IInstrumentationService: Symbol.for('IInstrumentationService'),
@@ -46,6 +53,9 @@ export const DI_SYMBOLS = {
     IListEmployeesUseCase: Symbol.for('IListEmployeesUseCase'),
     IAddEmployeeUseCase: Symbol.for('IAddEmployeeUseCase'),
     IRetireEmployeeUseCase: Symbol.for('IRetireEmployeeUseCase'),
+    IGetEmployeeOverridesUseCase: Symbol.for('IGetEmployeeOverridesUseCase'),
+    IPutEmployeeOverrideUseCase: Symbol.for('IPutEmployeeOverrideUseCase'),
+    IDeleteEmployeeOverrideUseCase: Symbol.for('IDeleteEmployeeOverrideUseCase'),
 
     IListAvailabilitiesUseCase: Symbol.for('IListAvailabilitiesUseCase'),
     ICreateAvailabilityUseCase: Symbol.for('ICreateAvailabilityUseCase'),
@@ -61,7 +71,10 @@ export const DI_SYMBOLS = {
     IListMyEmployeesController: Symbol.for('IListMyEmployeesController'),
     IAddEmployeeController: Symbol.for('IAddEmployeeController'),
     IRetireEmployeeController: Symbol.for('IRetireEmployeeController'),
-IListAvailabilitiesController: Symbol.for('IListAvailabilitiesController'),
+    IGetEmployeeOverridesController: Symbol.for('IGetEmployeeOverridesController'),
+    IPutEmployeeOverrideController: Symbol.for('IPutEmployeeOverrideController'),
+    IDeleteEmployeeOverrideController: Symbol.for('IDeleteEmployeeOverrideController'),
+    IListAvailabilitiesController: Symbol.for('IListAvailabilitiesController'),
     ICreateAvailabilityController: Symbol.for('ICreateAvailabilityController'),
     IUpdateAvailabilityController: Symbol.for('IUpdateAvailabilityController'),
     ISetDefaultAvailabilityController: Symbol.for('ISetDefaultAvailabilityController'),
@@ -85,6 +98,9 @@ export interface DI_RETURN_TYPES {
     IListEmployeesUseCase: IListEmployeesUseCase;
     IAddEmployeeUseCase: IAddEmployeeUseCase;
     IRetireEmployeeUseCase: IRetireEmployeeUseCase;
+    IGetEmployeeOverridesUseCase: IGetEmployeeOverridesUseCase;
+    IPutEmployeeOverrideUseCase: IPutEmployeeOverrideUseCase;
+    IDeleteEmployeeOverrideUseCase: IDeleteEmployeeOverrideUseCase;
 
     // Controllers
     IGetCurrentUserController: IGetCurrentUserController;
@@ -94,11 +110,10 @@ export interface DI_RETURN_TYPES {
     IListMyEmployeesController: IListMyEmployeesController;
     IAddEmployeeController: IAddEmployeeController;
     IRetireEmployeeController: IRetireEmployeeController;
-    IListAvailabilitiesController: IListAvailabilitiesController;
-    ICreateAvailabilityController: ICreateAvailabilityController;
-    IUpdateAvailabilityController: IUpdateAvailabilityController;
-    ISetDefaultAvailabilityController: ISetDefaultAvailabilityController;
-    IDeleteAvailabilityController: IDeleteAvailabilityController;
+    IGetEmployeeOverridesController: IGetEmployeeOverridesController;
+    IPutEmployeeOverrideController: IPutEmployeeOverrideController;
+    IDeleteEmployeeOverrideController: IDeleteEmployeeOverrideController;
+    
     IListAvailabilitiesController: IListAvailabilitiesController;
     ICreateAvailabilityController: ICreateAvailabilityController;
     IUpdateAvailabilityController: IUpdateAvailabilityController;

@@ -45,6 +45,27 @@ export class EmployeesRepository implements IEmployeesRepository {
         };
         await this.request('DELETE', `/employees/${employeeId}`, { errors });
     }
+
+    async getOverrides(employeeId: number): Promise<import('@/src/entities/models/employee-override').EmployeeOverride[]> {
+        const body = await this.request('GET', `/employees/${employeeId}/overrides`);
+        const { employeeOverrideSchema } = await import('@/src/entities/models/employee-override');
+        return parseOrFail(() => employeeOverrideSchema.array().parse(body), `GET /employees/${employeeId}/overrides`);
+    }
+
+    async putOverride(employeeId: number, date: string, override: import('@/src/entities/models/employee-override').PutEmployeeOverride): Promise<void> {
+        const { InvalidOverrideError, OverrideConflictError } = await import('@/src/entities/errors/employee');
+        const errors = {
+            422: (msg: string) => new InvalidOverrideError(msg),
+            409: (msg: string) => new OverrideConflictError(msg),
+            400: (msg: string) => new InvalidOverrideError(msg),
+        };
+        await this.request('PUT', `/employees/${employeeId}/overrides/${date}`, { body: override, errors });
+    }
+
+    async deleteOverride(employeeId: number, date: string): Promise<void> {
+        await this.request('DELETE', `/employees/${employeeId}/overrides/${date}`);
+    }
+
     // Any status not in `errors` that is not ok becomes an ApiRequestError carrying it.
     private async request(method: string, path: string, { body, errors = {} }: { body?: unknown; errors?: ErrorByStatus } = {}) {
         const what = `${method} ${path}`;

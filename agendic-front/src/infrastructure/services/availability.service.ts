@@ -4,12 +4,12 @@ import { Availability, availabilitySchema } from '@/src/entities/models/availabi
 import { ApiRequestError, NotFoundError, ConflictError, ValidationError } from '@/src/entities/errors/common';
 import { z } from 'zod';
 
-function mapToFrontend(data: any): Availability {
-    const days: any[] = [[], [], [], [], [], [], []];
+function mapToFrontend(data: Record<string, unknown>): Availability {
+    const days: Array<Array<[string, string]>> = [[], [], [], [], [], [], []];
     if (Array.isArray(data.intervals)) {
         for (const interval of data.intervals) {
             const index = interval.weekday === 0 ? 6 : interval.weekday - 1;
-            days[index].push([interval.startTime, interval.endTime]);
+            days[index].push([interval.startTime as string, interval.endTime as string]);
         }
     }
     return {
@@ -21,8 +21,8 @@ function mapToFrontend(data: any): Availability {
     };
 }
 
-function mapToBackend(data: Omit<Availability, 'id' | 'isDefault'>): any {
-    const intervals: any[] = [];
+function mapToBackend(data: Omit<Availability, 'id' | 'isDefault'>): Record<string, unknown> {
+    const intervals: Record<string, unknown>[] = [];
     data.days.forEach((dayIntervals, i) => {
         const weekday = i === 6 ? 0 : i + 1;
         dayIntervals.forEach(([startTime, endTime]) => {

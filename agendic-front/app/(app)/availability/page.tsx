@@ -25,9 +25,13 @@ export default async function AvailabilityPage({ searchParams }: { searchParams:
     const listAvailabilitiesController = getInjection('IListAvailabilitiesController');
     const availabilities = await listAvailabilitiesController({ employeeId: selectedEmployee.id });
 
+    const getEmployeeOverridesController = getInjection('IGetEmployeeOverridesController');
+    const overrides = await getEmployeeOverridesController({ employeeId: selectedEmployee.id });
+
     return <AvailabilityView 
         initialAvailabilities={availabilities} 
         initialServices={offeredServices} 
+        initialOverrides={overrides}
         employees={employees}
         selectedEmployeeId={selectedEmployee.id}
     />;

@@ -25,3 +25,17 @@ export class CannotRetireOwnerError extends Error {
         super(message, options);
     }
 }
+
+// 422: intervals overlap, are reversed, or other validation fails.
+export class InvalidOverrideError extends Error {
+    constructor(message: string, options?: ErrorOptions) {
+        super(message, options);
+    }
+}
+
+// 409: coverage conflict (the covering employee is busy or has no availability).
+export class OverrideConflictError extends Error {
+    constructor(message: string, options?: ErrorOptions) {
+        super(message, options);
+    }
+}

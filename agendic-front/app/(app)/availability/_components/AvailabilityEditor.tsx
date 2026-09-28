@@ -24,7 +24,6 @@ import {
 } from '@/src/entities/models/availability';
 import { DeleteAvailabilityConfirm } from './DeleteAvailabilityConfirm';
 import { AddIntervalButton, IntervalsEditor } from './IntervalsEditor';
-import { OverridesSection } from './OverridesSection';
 
 function CopyIntervals({
     fromDay,
@@ -261,8 +260,6 @@ export function AvailabilityEditor({
                         ))}
                     </div>
                 </PanelSection>
-
-                <OverridesSection overrides={draft.overrides} onChange={(overrides) => setDraft((d) => ({ ...d, overrides }))} />
             </div>
 
             <PanelConfirm

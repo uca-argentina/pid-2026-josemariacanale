@@ -1,23 +1,27 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useRef } from 'react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { DEFAULT_DAYS, type Availability } from '@/src/entities/models/availability';
 import { AvailabilityEditor } from './AvailabilityEditor';
 import { AvailabilityList } from './AvailabilityList';
 import { UpdateServicesDialog, type OfferedService } from './UpdateServicesDialog';
-import { createAvailabilityAction, updateAvailabilityAction, deleteAvailabilityAction, setDefaultAvailabilityAction } from '../_actions';
+import { createAvailabilityAction, updateAvailabilityAction, deleteAvailabilityAction, setDefaultAvailabilityAction, putEmployeeOverrideAction, deleteEmployeeOverrideAction } from '../_actions';
 import { Employee } from '@/src/entities/models/employee';
+import { type EmployeeOverride } from '@/src/entities/models/employee-override';
+import { OverridesSection } from './OverridesSection';
 
 export function AvailabilityView({
     initialAvailabilities,
     initialServices,
+    initialOverrides,
     employees,
     selectedEmployeeId,
 }: {
     initialAvailabilities: Availability[];
     initialServices: OfferedService[];
+    initialOverrides: EmployeeOverride[];
     employees: Employee[];
     selectedEmployeeId: number;
 }) {
@@ -28,6 +32,9 @@ export function AvailabilityView({
     const [openId, setOpenId] = useState<string | null>(null);
     const [draftAvailability, setDraftAvailability] = useState<Availability | null>(null);
     const [newDefaultId, setNewDefaultId] = useState<string | null>(null);
+
+    const [overrides, setOverrides] = useState<EmployeeOverride[]>(initialOverrides);
+    const overridesRef = useRef<HTMLDivElement>(null);
 
     const byId = (id: string) => initialAvailabilities.find((a) => a.id === id);
     const servicesUsing = (id: string) => services.filter((s) => s.availabilityId === id).length;
@@ -55,6 +62,38 @@ export function AvailabilityView({
                 handleActionError(err);
             }
         });
+    };
+
+    const handleOverridesChange = (newOverrides: EmployeeOverride[]) => {
+        setOverrides(newOverrides);
+        
+        // Find deleted overrides
+        const deleted = overrides.filter(o => !newOverrides.find(n => n.date === o.date));
+        for (const d of deleted) {
+            startTransition(async () => {
+                try {
+                    await deleteEmployeeOverrideAction(selectedEmployeeId, d.date);
+                } catch (err: unknown) {
+                    handleActionError(err);
+                }
+            });
+        }
+
+        // Find added or modified overrides
+        const upserted = newOverrides.filter(n => {
+            const old = overrides.find(o => o.date === n.date);
+            return !old || JSON.stringify(old) !== JSON.stringify(n);
+        });
+
+        for (const u of upserted) {
+            startTransition(async () => {
+                try {
+                    await putEmployeeOverrideAction(selectedEmployeeId, u.date, { intervals: u.intervals, coveredByEmployeeId: u.coveredByEmployeeId });
+                } catch (err: unknown) {
+                    handleActionError(err);
+                }
+            });
+        }
     };
 
     const remove = (id: string) => {
@@ -144,7 +183,18 @@ export function AvailabilityView({
                         });
                     }}
                     onDelete={remove}
+                    onOpenOverrides={() => overridesRef.current?.scrollIntoView({ behavior: 'smooth' })}
                 />
+            )}
+
+            {!open && (
+                <div className="mt-8" ref={overridesRef}>
+                    <OverridesSection
+                        overrides={overrides}
+                        employees={employees}
+                        onChange={handleOverridesChange}
+                    />
+                </div>
             )}
 
             {newDefaultId && (
