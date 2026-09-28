@@ -3,7 +3,7 @@
 import { useState, useTransition, useRef } from 'react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
-import { DEFAULT_DAYS, type Availability } from '@/src/entities/models/availability';
+import { DEFAULT_DAYS, type Availability, type AvailabilityInterval } from '@/src/entities/models/availability';
 import { AvailabilityEditor } from './AvailabilityEditor';
 import { AvailabilityList } from './AvailabilityList';
 import { UpdateServicesDialog, type OfferedService } from './UpdateServicesDialog';
@@ -64,36 +64,48 @@ export function AvailabilityView({
         });
     };
 
-    const handleOverridesChange = (newOverrides: EmployeeOverride[]) => {
-        setOverrides(newOverrides);
-        
-        // Find deleted overrides
-        const deleted = overrides.filter(o => !newOverrides.find(n => n.date === o.date));
-        for (const d of deleted) {
-            startTransition(async () => {
-                try {
-                    await deleteEmployeeOverrideAction(selectedEmployeeId, d.date);
-                } catch (err: unknown) {
-                    handleActionError(err);
-                }
+    const handleSaveOverride = async (
+        dates: string[],
+        intervals: AvailabilityInterval[],
+        coveredByEmployeeId: number | undefined,
+        replacedDate?: string,
+    ): Promise<boolean> => {
+        const mappedIntervals = intervals.map(i => ({ startTime: i[0], endTime: i[1] }));
+        try {
+            if (replacedDate && !dates.includes(replacedDate)) {
+                await deleteEmployeeOverrideAction(selectedEmployeeId, replacedDate);
+            }
+            for (const date of dates) {
+                await putEmployeeOverrideAction(selectedEmployeeId, date, {
+                    intervals: mappedIntervals,
+                    coveredByEmployeeId,
+                });
+            }
+            setOverrides(prev => {
+                const next = [
+                    ...prev.filter(o => o.date !== replacedDate && !dates.includes(o.date)),
+                    ...dates.map(date => ({ date, intervals: mappedIntervals, coveredByEmployeeId }))
+                ].sort((a, b) => a.date.localeCompare(b.date));
+                return next;
             });
+            toast.success('Anulación guardada');
+            return true;
+        } catch (err: unknown) {
+            handleActionError(err);
+            return false;
         }
+    };
 
-        // Find added or modified overrides
-        const upserted = newOverrides.filter(n => {
-            const old = overrides.find(o => o.date === n.date);
-            return !old || JSON.stringify(old) !== JSON.stringify(n);
+    const handleDeleteOverride = async (date: string) => {
+        startTransition(async () => {
+            try {
+                await deleteEmployeeOverrideAction(selectedEmployeeId, date);
+                setOverrides(prev => prev.filter(o => o.date !== date));
+                toast.success('Anulación eliminada');
+            } catch (err: unknown) {
+                handleActionError(err);
+            }
         });
-
-        for (const u of upserted) {
-            startTransition(async () => {
-                try {
-                    await putEmployeeOverrideAction(selectedEmployeeId, u.date, { intervals: u.intervals, coveredByEmployeeId: u.coveredByEmployeeId });
-                } catch (err: unknown) {
-                    handleActionError(err);
-                }
-            });
-        }
     };
 
     const remove = (id: string) => {
@@ -192,7 +204,8 @@ export function AvailabilityView({
                     <OverridesSection
                         overrides={overrides}
                         employees={employees}
-                        onChange={handleOverridesChange}
+                        onSaveOverride={handleSaveOverride}
+                        onDeleteOverride={handleDeleteOverride}
                     />
                 </div>
             )}

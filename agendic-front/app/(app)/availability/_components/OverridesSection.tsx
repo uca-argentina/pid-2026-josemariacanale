@@ -132,7 +132,7 @@ function OverrideDialog({
     taken: string[];
     employees: Employee[];
     onClose: () => void;
-    onSave: (dates: string[], intervals: AvailabilityInterval[], coveredByEmployeeId?: number) => void;
+    onSave: (dates: string[], intervals: AvailabilityInterval[], coveredByEmployeeId?: number) => Promise<boolean>;
 }) {
     const [selected, setSelected] = useState<string[]>(editing ? [editing.date] : []);
     const [coveredByEmployeeId, setCoveredByEmployeeId] = useState<number | undefined>(editing?.coveredByEmployeeId);
@@ -140,23 +140,34 @@ function OverrideDialog({
     const [intervals, setIntervals] = useState<AvailabilityInterval[]>(
         editing ? editing.intervals.map(i => [i.startTime, i.endTime] as AvailabilityInterval) : [DEFAULT_INTERVAL]
     );
+    const [submitting, setSubmitting] = useState(false);
     const dayOff = intervals.length === 0;
     const valid = selected.length > 0 && intervalsValid(intervals);
+
+    const handleSubmit = async () => {
+        if (!valid || submitting) return;
+        setSubmitting(true);
+        const success = await onSave([...selected].sort(), intervals, coveredByEmployeeId);
+        setSubmitting(false);
+        if (success) {
+            onClose();
+        }
+    };
 
     return (
         <PanelDialog
             open
-            onOpenChange={(open) => !open && onClose()}
+            onOpenChange={(open) => !open && !submitting && onClose()}
             title="Elegí las fechas a anular"
             description="Reemplazan estas horas laborables esos días."
             className="max-w-[860px]"
             footer={
                 <>
-                    <PanelDialogClose>
-                        <PanelButton variant="ghost">Cerrar</PanelButton>
+                    <PanelDialogClose disabled={submitting}>
+                        <PanelButton variant="ghost" disabled={submitting}>Cerrar</PanelButton>
                     </PanelDialogClose>
-                    <PanelButton disabled={!valid} onClick={() => onSave([...selected].sort(), intervals, coveredByEmployeeId)}>
-                        Guardar anulación
+                    <PanelButton disabled={!valid || submitting} onClick={handleSubmit}>
+                        {submitting ? 'Guardando...' : 'Guardar anulación'}
                     </PanelButton>
                 </>
             }
@@ -213,27 +224,27 @@ function OverrideDialog({
     );
 }
 
-/** Las Anulaciones de una Availability. Se guardan junto con el resto, con "Guardar". */
+/** Las Anulaciones de un Empleado. */
 export function OverridesSection({
     overrides,
     employees,
-    onChange,
+    onSaveOverride,
+    onDeleteOverride,
 }: {
     overrides: EmployeeOverride[];
     employees: Employee[];
-    onChange: (overrides: EmployeeOverride[]) => void;
+    onSaveOverride: (dates: string[], intervals: AvailabilityInterval[], coveredByEmployeeId?: number, replacedDate?: string) => Promise<boolean>;
+    onDeleteOverride: (date: string) => Promise<void>;
 }) {
     const [editing, setEditing] = useState<EmployeeOverride | 'new' | null>(null);
 
-    const handleSave = (dates: string[], newIntervals: AvailabilityInterval[], coveredByEmployeeId: number | undefined) => {
-        const mappedIntervals = newIntervals.map(i => ({ startTime: i[0], endTime: i[1] }));
+    const handleSave = async (dates: string[], newIntervals: AvailabilityInterval[], coveredByEmployeeId: number | undefined) => {
         const replaced = editing === 'new' ? undefined : editing?.date;
-        const newOverrides = [
-            ...overrides.filter(o => o.date !== replaced && !dates.includes(o.date)),
-            ...dates.map(date => ({ date, intervals: mappedIntervals, coveredByEmployeeId }))
-        ].sort((a, b) => a.date.localeCompare(b.date));
-        onChange(newOverrides);
-        setEditing(null);
+        const success = await onSaveOverride(dates, newIntervals, coveredByEmployeeId, replaced);
+        if (success) {
+            setEditing(null);
+        }
+        return success;
     };
 
     return (
@@ -274,7 +285,7 @@ export function OverridesSection({
                                         bordered
                                         destructive
                                         label="Quitar anulación"
-                                        onClick={() => onChange(overrides.filter((x) => x.date !== o.date))}
+                                        onClick={() => onDeleteOverride(o.date)}
                                     >
                                         <Trash2 />
                                     </PanelIconButton>

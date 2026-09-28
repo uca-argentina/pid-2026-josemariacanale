@@ -29,6 +29,7 @@ export default async function AvailabilityPage({ searchParams }: { searchParams:
     const overrides = await getEmployeeOverridesController({ employeeId: selectedEmployee.id });
 
     return <AvailabilityView 
+        key={selectedEmployee.id}
         initialAvailabilities={availabilities} 
         initialServices={offeredServices} 
         initialOverrides={overrides}
