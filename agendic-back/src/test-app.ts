@@ -10,6 +10,10 @@ import {
   AVAILABILITY_OVERRIDES_REPOSITORY,
   AvailabilityOverridesRepository,
 } from './domain/availability-overrides/availability-overrides.repository';
+import {
+  BRANCH_IMAGES_REPOSITORY,
+  BranchImagesRepository,
+} from './domain/branch-images/branch-images.repository';
 import { Branch } from './domain/branches/branch';
 import {
   BRANCHES_REPOSITORY,
@@ -104,6 +108,13 @@ export async function createTestApp() {
     listByBusiness: jest.fn(),
     update: jest.fn(),
   };
+  const branchImages: jest.Mocked<BranchImagesRepository> = {
+    listByBranch: jest.fn(),
+    findById: jest.fn(),
+    append: jest.fn(),
+    delete: jest.fn(),
+    reorder: jest.fn(),
+  };
   const employees: jest.Mocked<EmployeesRepository> = {
     listByIds: jest.fn(),
     create: jest.fn(),
@@ -159,6 +170,8 @@ export async function createTestApp() {
     .useValue(businesses)
     .overrideProvider(BRANCHES_REPOSITORY)
     .useValue(branches)
+    .overrideProvider(BRANCH_IMAGES_REPOSITORY)
+    .useValue(branchImages)
     .overrideProvider(SERVICES_REPOSITORY)
     .useValue(services)
     .overrideProvider(EMPLOYEES_REPOSITORY)
@@ -181,6 +194,7 @@ export async function createTestApp() {
     fileStorage,
     businesses,
     branches,
+    branchImages,
     services,
     employees,
     bookings,

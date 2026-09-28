@@ -64,10 +64,23 @@ model Branch {
   timeZone   String // IANA name (e.g. America/Argentina/Buenos_Aires), never a UTC offset; the only source of time zone in the system
   slug       String // Enlace de reserva's second tramo: /business/<business slug>/<slug>, always lowercase (ADR 0014)
 
-  business Business  @relation(fields: [businessId], references: [id])
+  business Business      @relation(fields: [businessId], references: [id])
   services Service[]
+  images   BranchImage[]
 
   @@unique([businessId, slug]) // unique within its Negocio only, unlike Business.slug
+}
+
+/// Imagen de Sucursal: the file lives in the external storage (ADR 0015), this row only points to it.
+model BranchImage {
+  id       Int    @id @default(autoincrement())
+  branchId Int
+  url      String // public URL the storage handed out; also how the file is deleted from it
+  order    Int // ascending; not necessarily contiguous after a delete
+
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@index([branchId, order])
 }
 
 model Service {
