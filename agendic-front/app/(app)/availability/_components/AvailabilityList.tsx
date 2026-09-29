@@ -129,6 +129,7 @@ export function AvailabilityList({
     onMakeDefault,
     onDuplicate,
     onDelete,
+    onOpenOverrides,
 }: {
     availabilities: Availability[];
     /** Cuántos Servicios usan cada Availability. */

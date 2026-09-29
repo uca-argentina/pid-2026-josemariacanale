@@ -130,7 +130,7 @@ function OverrideDialog({
     editing?: EmployeeOverride;
     /** Fechas que ya tienen una Anulación. */
     taken: string[];
-    employees: Employee[];
+    employees: { id: number; name: string }[];
     onClose: () => void;
     onSave: (dates: string[], intervals: AvailabilityInterval[], coveredByEmployeeId?: number) => Promise<boolean>;
 }) {
@@ -163,7 +163,7 @@ function OverrideDialog({
             className="max-w-[860px]"
             footer={
                 <>
-                    <PanelDialogClose disabled={submitting}>
+                    <PanelDialogClose>
                         <PanelButton variant="ghost" disabled={submitting}>Cerrar</PanelButton>
                     </PanelDialogClose>
                     <PanelButton disabled={!valid || submitting} onClick={handleSubmit}>
@@ -232,7 +232,7 @@ export function OverridesSection({
     onDeleteOverride,
 }: {
     overrides: EmployeeOverride[];
-    employees: Employee[];
+    employees: { id: number; name: string }[];
     onSaveOverride: (dates: string[], intervals: AvailabilityInterval[], coveredByEmployeeId?: number, replacedDate?: string) => Promise<boolean>;
     onDeleteOverride: (date: string) => Promise<void>;
 }) {

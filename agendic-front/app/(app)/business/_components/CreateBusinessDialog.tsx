@@ -64,7 +64,7 @@ export function CreateBusinessDialog({ owner, onClose }: { owner: Owner; onClose
     // Una vez que el Dueño edita el Enlace de reserva a mano, deja de seguir al nombre.
     const [slugEdited, setSlugEdited] = useState(false);
     const [branch, setBranch] = useState<BranchFields>({ name: '', address: '', opensAt: '', closesAt: '', timeZone: 'America/Argentina/Buenos_Aires' });
-    const [employees, setEmployees] = useState<{ name: string; email: string }[]>([]);
+    const [employees, setEmployees] = useState<EmployeeFields[]>([]);
     // El mini formulario de Agregar empleado; null mientras está cerrado.
     const [draft, setDraft] = useState<EmployeeFields | null>(null);
     const [service, setService] = useState<ServiceStepFields>({
@@ -108,7 +108,7 @@ export function CreateBusinessDialog({ owner, onClose }: { owner: Owner; onClose
         if (step < SUMMARY_STEP) {
             // Lo que quedó escrito en Agregar empleado se suma antes de avanzar, para no perderlo.
             if (step === EMPLOYEES_STEP) {
-                if (draft && (draft.name.trim() || draft.email.trim()) && !addDraft()) return;
+                if (draft && draft.email.trim() && !addDraft()) return;
                 setDraft(null);
             } else {
                 const result =
@@ -335,7 +335,7 @@ function EmployeesStep({
     errors,
 }: {
     owner: Owner;
-    employees: { name: string; email: string }[];
+    employees: EmployeeFields[];
     onRemove: (email: string) => void;
     draft: EmployeeFields | null;
     onDraftChange: (draft: EmployeeFields | null) => void;
@@ -365,11 +365,11 @@ function EmployeesStep({
                 {employees.map((e) => (
                     <PersonRow
                         key={e.email}
-                        name={e.name}
+                        name={e.email}
                         email={e.email}
                         badges={<RoleBadge role="employee" />}
                         action={
-                            <PanelIconButton bordered label={`Quitar a ${e.name}`} onClick={() => onRemove(e.email)}>
+                            <PanelIconButton bordered label={`Quitar a ${e.email}`} onClick={() => onRemove(e.email)}>
                                 <X />
                             </PanelIconButton>
                         }
@@ -380,24 +380,14 @@ function EmployeesStep({
 
             {draft ? (
                 <div className="flex flex-col gap-4 rounded-md border border-[#e5e7eb] bg-[#f9fafb] p-4">
-                    <PanelField label="Nombre" htmlFor="employee-name" error={errors.name}>
-                        <PanelInput
-                            id="employee-name"
-                            autoFocus
-                            placeholder="Martina Fernández"
-                            value={draft.name}
-                            onChange={(e) => onDraftChange({ ...draft, name: e.target.value })}
-                            onKeyDown={addOnEnter}
-                            {...invalid(errors, 'name', 'employee-name')}
-                        />
-                    </PanelField>
                     <PanelField label="Email" htmlFor="employee-email" error={errors.email}>
                         <PanelInput
                             id="employee-email"
                             type="email"
+                            autoFocus
                             placeholder="email@ejemplo.com"
                             value={draft.email}
-                            onChange={(e) => onDraftChange({ ...draft, email: e.target.value })}
+                            onChange={(e) => onDraftChange({ email: e.target.value })}
                             onKeyDown={addOnEnter}
                             {...invalid(errors, 'email', 'employee-email')}
                         />
@@ -412,7 +402,7 @@ function EmployeesStep({
                     </div>
                 </div>
             ) : (
-                <PanelButton variant="secondary" className="w-full" onClick={() => onDraftChange({ name: '', email: '' })}>
+                <PanelButton variant="secondary" className="w-full" onClick={() => onDraftChange({ email: '' })}>
                     <Plus className="size-4" />
                     Agregar empleado
                 </PanelButton>
@@ -500,7 +490,7 @@ function SummaryStep({
 }: {
     business: BusinessFields;
     branch: BranchFields;
-    employees: { name: string }[];
+    employees: EmployeeFields[];
     service: ServiceStepFields;
     onEdit: (step: number) => void;
 }) {
@@ -520,7 +510,7 @@ function SummaryStep({
                 <SummaryItem label="Zona horaria" value={branch.timeZone} />
             </SummaryBlock>
             <SummaryBlock title="Empleados" onEdit={() => onEdit(EMPLOYEES_STEP)}>
-                <SummaryItem label="Equipo" value={employees.length ? `Vos, ${employees.map((e) => e.name).join(', ')}` : 'Solo vos'} />
+                <SummaryItem label="Equipo" value={employees.length ? `Vos, ${employees.map((e) => e.email).join(', ')}` : 'Solo vos'} />
             </SummaryBlock>
             <SummaryBlock title="Servicio" onEdit={() => onEdit(4)}>
                 <SummaryItem label="Nombre" value={service.name} />

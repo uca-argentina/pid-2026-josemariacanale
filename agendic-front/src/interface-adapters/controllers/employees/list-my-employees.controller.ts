@@ -14,7 +14,9 @@ function presenter(
 ) {
     return instrumentationService.startSpan({ name: 'listMyEmployees Presenter', op: 'serialize' }, () => {
         if (!business) return null;
-        const isOwner = (employee: Employee) => employee.userId === user.id;
+        const isOwner = (employee: Employee) =>
+            String(employee.userId) === String(business.ownerId) ||
+            employee.email.toLowerCase() === user.email.toLowerCase();
         return {
             businessId: business.id,
             employees: employees

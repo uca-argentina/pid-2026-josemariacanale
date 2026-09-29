@@ -7,6 +7,9 @@ const repoWith = (retireEmployee: jest.Mock): IEmployeesRepository => ({
     listEmployees: jest.fn(),
     addEmployee: jest.fn(),
     retireEmployee,
+    getOverrides: jest.fn(),
+    putOverride: jest.fn(),
+    deleteOverride: jest.fn(),
 });
 
 describe('retireEmployeeUseCase', () => {

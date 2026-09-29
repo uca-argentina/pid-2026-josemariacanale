@@ -14,8 +14,8 @@ function mapToFrontend(data: Record<string, unknown>): Availability {
     }
     return {
         id: String(data.id),
-        name: data.name,
-        isDefault: data.isDefault,
+        name: String(data.name ?? ''),
+        isDefault: Boolean(data.isDefault),
         days,
         overrides: []
     };

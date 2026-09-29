@@ -14,7 +14,7 @@ export type CreateBusinessResult = { ok: true; failedEmployees: string[] } | { o
 // un Empleado, el Negocio ya existe y el Dueño lo agrega después desde Empleados.
 export async function createBusinessAction(
     payload: unknown,
-    employees: { name: string; email: string }[],
+    employees: { email: string }[],
 ): Promise<CreateBusinessResult> {
     let business;
     try {
@@ -41,7 +41,7 @@ export async function createBusinessAction(
         } catch (error) {
             unstable_rethrow(error);
             getInjection('ICrashReporterService').report(error);
-            failedEmployees.push(employee.name);
+            failedEmployees.push(employee.email);
         }
     }
     refresh();

@@ -22,7 +22,7 @@ export function AvailabilityView({
     initialAvailabilities: Availability[];
     initialServices: OfferedService[];
     initialOverrides: EmployeeOverride[];
-    employees: Employee[];
+    employees: { id: number; name: string; email: string }[];
     selectedEmployeeId: number;
 }) {
     const router = useRouter();
