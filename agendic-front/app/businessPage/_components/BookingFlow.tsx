@@ -13,7 +13,6 @@ import type { ServiceCategoryValue } from '@/app/_components/business-schemas';
 import { ChipTabs } from './ChipTabs';
 import { TimeStep } from './TimeStep';
 import {
-    availableDays,
     depositFor,
     endTime,
     formatDate,
@@ -496,12 +495,6 @@ export function BookingFlow({
     const advance = () => {
         const next = STEPS[STEPS.indexOf(step) + 1];
         if (!next) return;
-        // Al entrar a Horario se abre el primer día, como la referencia: así se ve de entrada si
-        // el profesional tiene lugar o tiene la agenda completa.
-        if (next === 'time' && service && employee && !date) {
-            const [first] = availableDays(service.durationMinutes, employee.id);
-            setDraft((d) => ({ ...d, date: first.date, time: null }));
-        }
         setStep(next);
     };
 

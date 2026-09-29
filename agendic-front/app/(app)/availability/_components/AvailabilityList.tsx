@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { Copy, Globe, MoreHorizontal, Plus, Star, Trash2 } from 'lucide-react';
-import { toast } from 'sonner';
 import {
     PanelBadge,
     PanelButton,

@@ -24,6 +24,7 @@ export interface Branch {
     opensAt: string;
     /** 'HH:mm' */
     closesAt: string;
+    timeZone?: string;
 }
 
 /** Lo único que la vista pública de un Servicio conoce de un Empleado: el email es solo del Dueño. */
@@ -50,7 +51,7 @@ export interface Service {
 }
 
 /** Por qué un día no tiene horarios: cada motivo se resuelve distinto desde la UI. */
-export type NoSlotsReason = 'branch-closed' | 'fully-booked';
+export type NoSlotsReason = 'NOT_WORKING' | 'FULLY_BOOKED' | 'COVERED';
 
 /** Un día de la tira del paso Horario. */
 export interface AvailableDay {

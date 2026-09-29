@@ -35,6 +35,10 @@ import type { IGetEmployeeOverridesController } from '@/src/interface-adapters/c
 import type { IPutEmployeeOverrideController } from '@/src/interface-adapters/controllers/employees/put-employee-override.controller';
 import type { IDeleteEmployeeOverrideController } from '@/src/interface-adapters/controllers/employees/delete-employee-override.controller';
 
+import type { ISlotsRepository } from '@/src/application/repositories/slots.repository.interface';
+import type { IGetSlotsUseCase } from '@/src/application/use-cases/slots/get-slots.use-case';
+import type { IGetSlotsController } from '@/src/interface-adapters/controllers/slots/get-slots.controller';
+
 export const DI_SYMBOLS = {
     // Services
     IInstrumentationService: Symbol.for('IInstrumentationService'),
@@ -45,6 +49,7 @@ export const DI_SYMBOLS = {
     // Repositories
     IBusinessesRepository: Symbol.for('IBusinessesRepository'),
     IEmployeesRepository: Symbol.for('IEmployeesRepository'),
+    ISlotsRepository: Symbol.for('ISlotsRepository'),
 
     // Use cases
     ICreateBusinessUseCase: Symbol.for('ICreateBusinessUseCase'),
@@ -62,6 +67,7 @@ export const DI_SYMBOLS = {
     IUpdateAvailabilityUseCase: Symbol.for('IUpdateAvailabilityUseCase'),
     ISetDefaultAvailabilityUseCase: Symbol.for('ISetDefaultAvailabilityUseCase'),
     IDeleteAvailabilityUseCase: Symbol.for('IDeleteAvailabilityUseCase'),
+    IGetSlotsUseCase: Symbol.for('IGetSlotsUseCase'),
 
     // Controllers
     IGetCurrentUserController: Symbol.for('IGetCurrentUserController'),
@@ -79,6 +85,7 @@ export const DI_SYMBOLS = {
     IUpdateAvailabilityController: Symbol.for('IUpdateAvailabilityController'),
     ISetDefaultAvailabilityController: Symbol.for('ISetDefaultAvailabilityController'),
     IDeleteAvailabilityController: Symbol.for('IDeleteAvailabilityController'),
+    IGetSlotsController: Symbol.for('IGetSlotsController'),
 };
 
 export interface DI_RETURN_TYPES {
@@ -90,6 +97,7 @@ export interface DI_RETURN_TYPES {
     // Repositories
     IBusinessesRepository: IBusinessesRepository;
     IEmployeesRepository: IEmployeesRepository;
+    ISlotsRepository: ISlotsRepository;
 
     // Use cases
     ICreateBusinessUseCase: ICreateBusinessUseCase;
@@ -125,4 +133,6 @@ export interface DI_RETURN_TYPES {
     ISetDefaultAvailabilityUseCase: ISetDefaultAvailabilityUseCase;
     IDeleteAvailabilityUseCase: IDeleteAvailabilityUseCase;
     IAvailabilityService: IAvailabilityService;
+    IGetSlotsUseCase: IGetSlotsUseCase;
+    IGetSlotsController: IGetSlotsController;
 }

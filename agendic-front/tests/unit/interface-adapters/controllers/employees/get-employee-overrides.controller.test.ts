@@ -3,6 +3,8 @@ import { instrumentation, authWith } from '@/tests/unit/stubs';
 import { UnauthenticatedError } from '@/src/entities/errors/auth';
 import { InputParseError } from '@/src/entities/errors/common';
 
+const mockUser = { id: 'u1', email: 'u1@test.com', name: 'User 1' };
+
 describe('getEmployeeOverrides Controller', () => {
     it('returns overrides for authenticated user', async () => {
         const getEmployeeOverridesUseCase = jest.fn().mockResolvedValue([
@@ -11,7 +13,7 @@ describe('getEmployeeOverrides Controller', () => {
 
         const controller = getEmployeeOverridesController(
             instrumentation,
-            authWith({ getCurrentUser: jest.fn().mockResolvedValue({ id: 'u1' } as any) }),
+            authWith({ getCurrentUser: jest.fn().mockResolvedValue(mockUser) }),
             getEmployeeOverridesUseCase,
         );
 
@@ -33,7 +35,7 @@ describe('getEmployeeOverrides Controller', () => {
     it('throws InputParseError for invalid input', async () => {
         const controller = getEmployeeOverridesController(
             instrumentation,
-            authWith({ getCurrentUser: jest.fn().mockResolvedValue({ id: 'u1' } as any) }),
+            authWith({ getCurrentUser: jest.fn().mockResolvedValue(mockUser) }),
             jest.fn(),
         );
         await expect(controller({})).rejects.toThrow(InputParseError);
