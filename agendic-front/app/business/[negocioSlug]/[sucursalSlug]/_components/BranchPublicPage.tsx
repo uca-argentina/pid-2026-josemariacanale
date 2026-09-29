@@ -76,6 +76,7 @@ export function BranchPublicPage({
     const [initialService, setInitialService] = useState<Service | null>(null);
     const [flowOpen, setFlowOpen] = useState(false);
     const [booking, setBooking] = useState<Booking | null>(null);
+    const [allImagesOpen, setAllImagesOpen] = useState(false);
 
     const openFlow = (service: Service | null) => {
         setInitialService(service);
@@ -89,7 +90,9 @@ export function BranchPublicPage({
     const shown = services.filter((s) => s.category === category);
     // La primera Imagen es la de portada: la del resumen, de la reserva y de Mis turnos.
     const cover = images[0]?.url;
+    // Desde md se ven la portada y hasta dos más al costado; en mobile, solo la portada.
     const sideImages = images.slice(1, 3);
+    const hasSide = sideImages.length > 0;
 
     return (
         <>
@@ -116,37 +119,46 @@ export function BranchPublicPage({
 
                 {/* Sin Imágenes no hay galería: la página arranca directo en los Servicios. */}
                 {cover && (
-                    <section
-                        aria-label="Fotos de la sucursal"
-                        className={`grid gap-3 ${sideImages.length > 0 ? 'md:grid-cols-[2fr_1fr]' : ''}`}
-                    >
-                        <div className="relative aspect-[4/3] overflow-hidden rounded-2xl md:aspect-auto md:min-h-[420px]">
-                            <BranchPhoto
-                                src={cover}
-                                alt={`Sucursal ${branch.name} de ${business.name}`}
-                                priority
-                                sizes={sideImages.length > 0 ? '(max-width: 768px) 100vw, 66vw' : '100vw'}
-                            />
-                        </div>
-                        {sideImages.length > 0 && (
-                            <div
-                                className={`hidden gap-3 md:grid ${sideImages.length > 1 ? 'grid-rows-2' : 'grid-rows-1'}`}
-                            >
-                                {sideImages.map((image, i) => (
-                                    <div key={image.id} className="relative overflow-hidden rounded-2xl">
-                                        <BranchPhoto src={image.url} sizes="33vw" />
-                                        {i === 1 && images.length > 3 && (
-                                            <Button
-                                                variant="outline"
-                                                className="absolute right-4 bottom-4 h-auto gap-1.5 rounded-full bg-white px-3.5 py-2 text-[13px] font-bold shadow-sm"
-                                            >
-                                                <Images className="size-4" />
-                                                Ver todas las fotos
-                                            </Button>
-                                        )}
-                                    </div>
-                                ))}
+                    <section aria-label="Fotos de la sucursal">
+                        <div className={`grid gap-3 ${hasSide ? 'md:grid-cols-[2fr_1fr]' : ''}`}>
+                            <div className="relative aspect-[4/3] overflow-hidden rounded-2xl md:aspect-auto md:min-h-[420px]">
+                                <BranchPhoto
+                                    src={cover}
+                                    alt={`Sucursal ${branch.name} de ${business.name}`}
+                                    priority
+                                    sizes={hasSide ? '(max-width: 768px) 100vw, 66vw' : '100vw'}
+                                />
+                                {/* Solo cuando quedan Imágenes sin ver: en mobile desde la segunda, desde md desde la cuarta. */}
+                                {images.length > 1 && (
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => setAllImagesOpen((open) => !open)}
+                                        aria-expanded={allImagesOpen}
+                                        className={`absolute right-4 bottom-4 h-auto gap-1.5 rounded-full bg-white px-3.5 py-2 text-[13px] font-bold shadow-sm ${images.length <= 3 ? 'md:hidden' : ''}`}
+                                    >
+                                        <Images className="size-4" />
+                                        {allImagesOpen ? 'Ver menos fotos' : 'Ver todas las fotos'}
+                                    </Button>
+                                )}
                             </div>
+                            {hasSide && (
+                                <div className={`hidden gap-3 md:grid ${sideImages.length > 1 ? 'grid-rows-2' : 'grid-rows-1'}`}>
+                                    {sideImages.map((image) => (
+                                        <div key={image.id} className="relative overflow-hidden rounded-2xl">
+                                            <BranchPhoto src={image.url} sizes="33vw" />
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                        {allImagesOpen && (
+                            <ul className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-3">
+                                {images.map((image) => (
+                                    <li key={image.id} className="relative aspect-[4/3] overflow-hidden rounded-2xl">
+                                        <BranchPhoto src={image.url} sizes="(max-width: 768px) 50vw, 33vw" />
+                                    </li>
+                                ))}
+                            </ul>
                         )}
                     </section>
                 )}
@@ -286,7 +298,7 @@ export function BranchPublicPage({
                     branch={branch}
                     services={services}
                     categories={categories}
-                    photo={cover}
+                    coverUrl={cover}
                     initialService={initialService}
                     onClose={() => setFlowOpen(false)}
                     onBooked={(created) => {

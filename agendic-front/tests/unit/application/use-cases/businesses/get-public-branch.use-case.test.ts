@@ -50,6 +50,24 @@ describe('getPublicBranchUseCase', () => {
         ).resolves.toMatchObject({ branch: centro, services: [], employees: [], images: [] });
     });
 
+    // ADR 0007: `order` is ascending but may have gaps, and the front sorts by it.
+    it('sorts the Imágenes by order', async () => {
+        const business = { id: 1, name: 'Vitalia', description: 'Desc', slug: 'vitalia', ownerId: 7 };
+        const centro = { id: 10, businessId: 1, name: 'Centro', address: 'Av. 1', opensAt: '09:00', closesAt: '18:00', timeZone: TZ, slug: 'centro' };
+        const first = { id: 7, branchId: 10, url: 'https://img.example/a.jpg', order: 2 };
+        const second = { id: 3, branchId: 10, url: 'https://img.example/b.jpg', order: 5 };
+        const repo = publicBusinessesWith({
+            getBusinessBySlug: jest.fn().mockResolvedValue(business),
+            listBranches: jest.fn().mockResolvedValue([centro]),
+            listServices: jest.fn().mockResolvedValue([]),
+            listBranchImages: jest.fn().mockResolvedValue([second, first]),
+        });
+
+        await expect(
+            getPublicBranchUseCase(instrumentation, repo)({ businessSlug: 'vitalia', branchSlug: 'centro' }),
+        ).resolves.toMatchObject({ images: [first, second] });
+    });
+
     it('propagates NotFoundError when no Negocio has that Enlace de reserva', async () => {
         const repo = publicBusinessesWith({ getBusinessBySlug: jest.fn().mockRejectedValue(new NotFoundError('Business not found')) });
 

@@ -324,7 +324,7 @@ function AdvanceButton({
 function SummaryPanel({
     business,
     branch,
-    photo,
+    coverUrl,
     draft,
     step,
     canAdvance,
@@ -332,7 +332,7 @@ function SummaryPanel({
 }: {
     business: Business;
     branch: Branch;
-    photo: string | undefined;
+    coverUrl: string | undefined;
     draft: BookingDraft;
     step: Step;
     canAdvance: boolean;
@@ -345,7 +345,7 @@ function SummaryPanel({
         <div className="flex flex-col gap-4 rounded-2xl border border-border p-5 lg:min-h-[560px]">
             <div className="flex items-center gap-3">
                 <div className="relative size-[58px] shrink-0 overflow-hidden rounded-xl">
-                    <BranchPhoto src={photo} sizes="58px" />
+                    <BranchPhoto src={coverUrl} sizes="58px" />
                 </div>
                 <div className="min-w-0">
                     <h2 className="text-[15px] font-extrabold tracking-[-0.02em]">
@@ -433,7 +433,7 @@ export function BookingFlow({
     branch,
     services,
     categories,
-    photo,
+    coverUrl,
     initialService,
     onClose,
     onBooked,
@@ -442,7 +442,7 @@ export function BookingFlow({
     branch: Branch;
     services: Service[];
     categories: readonly { value: ServiceCategoryValue; label: string }[];
-    photo: string | undefined;
+    coverUrl: string | undefined;
     initialService: Service | null;
     onClose: () => void;
     onBooked: (booking: Booking) => void;
@@ -518,7 +518,7 @@ export function BookingFlow({
             status: 'UNVERIFIED',
             client: { name: data.name, email: data.email },
             notes: data.notes || undefined,
-            photo,
+            coverUrl,
         });
     };
 
@@ -603,7 +603,7 @@ export function BookingFlow({
                         <SummaryPanel
                             business={business}
                             branch={branch}
-                            photo={photo}
+                            coverUrl={coverUrl}
                             draft={draft}
                             step={step}
                             canAdvance={canAdvance}

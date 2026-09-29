@@ -39,7 +39,7 @@ export function MyBookings({
 
                 <article className="mt-3 flex gap-3 rounded-2xl border border-foreground p-3 ring-1 ring-foreground">
                     <div className="relative size-[86px] shrink-0 overflow-hidden rounded-xl">
-                        <BranchPhoto src={booking.photo} sizes="86px" />
+                        <BranchPhoto src={booking.coverUrl} sizes="86px" />
                     </div>
                     <div className="flex min-w-0 flex-col gap-0.5">
                         <p className="truncate text-[14.5px] font-bold tracking-[-0.02em]">
@@ -69,7 +69,7 @@ export function MyBookings({
             >
                 <div className="relative h-[240px] sm:h-[320px]">
                     <BranchPhoto
-                        src={booking.photo}
+                        src={booking.coverUrl}
                         alt={`Sucursal ${branch.name} de ${business.name}`}
                         sizes="(max-width: 1024px) 100vw, 60vw"
                     />

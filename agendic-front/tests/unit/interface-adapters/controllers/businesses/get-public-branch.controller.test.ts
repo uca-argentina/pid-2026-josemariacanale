@@ -41,6 +41,22 @@ describe('getPublicBranchController', () => {
         expect(useCase).toHaveBeenCalledWith({ businessSlug: 'vitalia', branchSlug: 'centro' });
     });
 
+    it('presents a Sucursal without Imágenes as an empty list', async () => {
+        const centro = { id: 10, businessId: 1, name: 'Centro', address: 'Av. 1', opensAt: '09:00', closesAt: '18:00', timeZone: TZ, slug: 'centro' };
+        const useCase = jest.fn().mockResolvedValue({
+            business: { id: 1, name: 'Vitalia', description: 'Desc', slug: 'vitalia', ownerId: 7 },
+            branch: centro,
+            branches: [centro],
+            services: [],
+            employees: [],
+            images: [],
+        });
+
+        await expect(
+            getPublicBranchController(instrumentation, useCase)({ businessSlug: 'vitalia', branchSlug: 'centro' }),
+        ).resolves.toMatchObject({ images: [] });
+    });
+
     it('lowercases both tramos', async () => {
         const centro = { id: 10, businessId: 1, name: 'Centro', address: 'Av. 1', opensAt: '09:00', closesAt: '18:00', timeZone: TZ, slug: 'centro' };
         const useCase = jest.fn().mockResolvedValue({

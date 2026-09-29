@@ -66,7 +66,7 @@ export interface Booking {
     /** Comentario del Turno. */
     notes?: string;
     /** La Imagen de portada de la Sucursal; sin Imágenes, no hay. */
-    photo: string | undefined;
+    coverUrl: string | undefined;
 }
 
 export const STEPS = ['service', 'employee', 'time', 'confirm'] as const;

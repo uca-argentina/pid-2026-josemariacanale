@@ -15,7 +15,7 @@ export interface PublicBranch {
     // The Empleados who attend the Sucursal: there is no endpoint for them, they are whoever
     // attends one of its Servicios.
     employees: ServiceEmployee[];
-    // In gallery order, as the back returns them.
+    // In gallery order.
     images: BranchImage[];
 }
 
@@ -31,10 +31,12 @@ export const getPublicBranchUseCase =
             const branch = branches.find((b) => b.slug === input.branchSlug);
             if (!branch) throw new NotFoundError(`Business '${business.slug}' has no branch '${input.branchSlug}'`);
 
-            const [services, images] = await Promise.all([
+            const [services, unsortedImages] = await Promise.all([
                 publicBusinessesRepository.listServices(branch.id),
                 publicBusinessesRepository.listBranchImages(branch.id),
             ]);
+            // ADR 0007: `order` is ascending but may have gaps, so it sorts, never indexes.
+            const images = [...unsortedImages].sort((a, b) => a.order - b.order);
             const employees = [...new Map(services.flatMap((s) => s.employees).map((e) => [e.id, e])).values()];
             return { business, branch, branches, services, employees, images };
         });
