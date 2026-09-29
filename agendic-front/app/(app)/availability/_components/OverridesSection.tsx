@@ -12,7 +12,6 @@ import {
     PanelSection,
     PanelSwitch,
 } from '@/app/(app)/_components/panel-ui';
-import { Employee } from '@/src/entities/models/employee';
 import { type EmployeeOverride } from '@/src/entities/models/employee-override';
 import {
     DAY_SHORT,

@@ -8,7 +8,6 @@ import { AvailabilityEditor } from './AvailabilityEditor';
 import { AvailabilityList } from './AvailabilityList';
 import { UpdateServicesDialog, type OfferedService } from './UpdateServicesDialog';
 import { createAvailabilityAction, updateAvailabilityAction, deleteAvailabilityAction, setDefaultAvailabilityAction, putEmployeeOverrideAction, deleteEmployeeOverrideAction } from '../_actions';
-import { Employee } from '@/src/entities/models/employee';
 import { type EmployeeOverride } from '@/src/entities/models/employee-override';
 import { OverridesSection } from './OverridesSection';
 
