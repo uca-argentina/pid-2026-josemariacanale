@@ -7,7 +7,6 @@ import { Header } from '@/app/_components/Header';
 import { getInjection } from '@/di/container';
 import { InputParseError, NotFoundError } from '@/src/entities/errors/common';
 import { BranchPublicPage } from './_components/BranchPublicPage';
-import { PLACEHOLDER_PHOTOS } from './_components/mock-photos';
 
 type Params = { negocioSlug: string; sucursalSlug: string };
 
@@ -53,7 +52,7 @@ export default async function PublicBranchPage({ params }: { params: Promise<Par
                         otherBranches={page.otherBranches}
                         services={page.services}
                         employees={page.employees}
-                        photos={PLACEHOLDER_PHOTOS}
+                        images={page.images}
                     />
                 ) : (
                     <BackendErrorNotice />

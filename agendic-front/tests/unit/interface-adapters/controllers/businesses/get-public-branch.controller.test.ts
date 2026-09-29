@@ -17,6 +17,10 @@ describe('getPublicBranchController', () => {
                 { id: 100, branchId: 10, name: 'Masaje', description: null, category: 'SPA', durationMinutes: 60, price: 20000, depositPercent: 20, employees: [ana] },
             ],
             employees: [ana],
+            images: [
+                { id: 5, branchId: 10, url: 'https://img.example/b.jpg', order: 0 },
+                { id: 4, branchId: 10, url: 'https://img.example/a.jpg', order: 1 },
+            ],
         });
 
         await expect(
@@ -29,6 +33,10 @@ describe('getPublicBranchController', () => {
                 { id: 100, name: 'Masaje', description: null, category: 'SPA', durationMinutes: 60, price: 20000, depositPercent: 20, employees: [ana] },
             ],
             employees: [ana],
+            images: [
+                { id: 5, url: 'https://img.example/b.jpg' },
+                { id: 4, url: 'https://img.example/a.jpg' },
+            ],
         });
         expect(useCase).toHaveBeenCalledWith({ businessSlug: 'vitalia', branchSlug: 'centro' });
     });
@@ -41,6 +49,7 @@ describe('getPublicBranchController', () => {
             branches: [centro],
             services: [],
             employees: [],
+            images: [],
         });
 
         await getPublicBranchController(instrumentation, useCase)({ businessSlug: 'VITALIA', branchSlug: 'Centro' });

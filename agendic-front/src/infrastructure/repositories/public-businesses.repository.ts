@@ -1,6 +1,7 @@
 import type { IPublicBusinessesRepository } from '@/src/application/repositories/public-businesses.repository.interface';
 import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
 import { branchSchema, type Branch } from '@/src/entities/models/branch';
+import { branchImageSchema, type BranchImage } from '@/src/entities/models/branch-image';
 import { businessSchema, type Business } from '@/src/entities/models/business';
 import { serviceSchema, type Service } from '@/src/entities/models/service';
 
@@ -30,6 +31,11 @@ export class PublicBusinessesRepository implements IPublicBusinessesRepository {
     async listServices(branchId: number): Promise<Service[]> {
         const body = await this.get(`/branches/${branchId}/services`, 'GET /branches/:id/services');
         return parseOrFail(() => serviceSchema.array().parse(body), 'GET /branches/:id/services');
+    }
+
+    async listBranchImages(branchId: number): Promise<BranchImage[]> {
+        const body = await this.get(`/branches/${branchId}/images`, 'GET /branches/:id/images');
+        return parseOrFail(() => branchImageSchema.array().parse(body), 'GET /branches/:id/images');
     }
 
     // A 404 becomes NotFoundError; any other status that is not ok, an ApiRequestError carrying it.

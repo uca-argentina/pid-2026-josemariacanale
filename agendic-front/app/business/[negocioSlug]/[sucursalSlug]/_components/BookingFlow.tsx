@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Image from 'next/image';
 import { ArrowLeft, Check, ChevronRight, X } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/app/_components/ui/avatar';
 import { Button } from '@/app/_components/ui/button';
@@ -10,6 +9,7 @@ import { Label } from '@/app/_components/ui/label';
 import { Textarea } from '@/app/_components/ui/textarea';
 import { cn } from '@/app/_components/utils';
 import type { ServiceCategoryValue } from '@/app/_components/business-schemas';
+import { BranchPhoto } from './BranchPhoto';
 import { ChipTabs } from './ChipTabs';
 import { TimeStep } from './TimeStep';
 import { depositFor, endTime, formatDate, formatDuration, formatPrice, initials } from './format';
@@ -332,7 +332,7 @@ function SummaryPanel({
 }: {
     business: Business;
     branch: Branch;
-    photo: string;
+    photo: string | undefined;
     draft: BookingDraft;
     step: Step;
     canAdvance: boolean;
@@ -345,7 +345,7 @@ function SummaryPanel({
         <div className="flex flex-col gap-4 rounded-2xl border border-border p-5 lg:min-h-[560px]">
             <div className="flex items-center gap-3">
                 <div className="relative size-[58px] shrink-0 overflow-hidden rounded-xl">
-                    <Image src={photo} alt="" fill sizes="58px" className="object-cover" />
+                    <BranchPhoto src={photo} sizes="58px" />
                 </div>
                 <div className="min-w-0">
                     <h2 className="text-[15px] font-extrabold tracking-[-0.02em]">
@@ -442,7 +442,7 @@ export function BookingFlow({
     branch: Branch;
     services: Service[];
     categories: readonly { value: ServiceCategoryValue; label: string }[];
-    photo: string;
+    photo: string | undefined;
     initialService: Service | null;
     onClose: () => void;
     onBooked: (booking: Booking) => void;

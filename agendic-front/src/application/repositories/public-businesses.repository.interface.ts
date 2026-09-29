@@ -1,4 +1,5 @@
 import type { Branch } from '@/src/entities/models/branch';
+import type { BranchImage } from '@/src/entities/models/branch-image';
 import type { Business } from '@/src/entities/models/business';
 import type { Service } from '@/src/entities/models/service';
 
@@ -9,4 +10,6 @@ export interface IPublicBusinessesRepository {
     listBranches(businessId: number): Promise<Branch[]>;
     // Only the active Servicios of the Sucursal.
     listServices(branchId: number): Promise<Service[]>;
+    // Already in gallery order; empty when the Sucursal has no Imágenes yet.
+    listBranchImages(branchId: number): Promise<BranchImage[]>;
 }
