@@ -18,6 +18,10 @@ _Avoid_: usuario final, paciente, consumidor
 Sede física de un Negocio, con zona horaria propia. Un Negocio puede tener varias. Deja de ser la fuente de los horarios reservables.
 _Avoid_: sede, local
 
+**Imagen de Sucursal**:
+URL de una imagen previamente hosteada que el Negocio agrega a una Sucursal para mostrar en la galería de su página de reserva.
+_Avoid_: foto, archivo adjunto
+
 **Empleado**:
 Usuario que atiende los Servicios de un Negocio.
 _Avoid_: recurso

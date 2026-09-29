@@ -24,6 +24,7 @@ export class PrismaBranchesRepository implements BranchesRepository {
       | 'closesAt'
       | 'timeZone'
       | 'slug'
+      | 'images'
     >,
   ) {
     return toBranch(
@@ -37,6 +38,7 @@ export class PrismaBranchesRepository implements BranchesRepository {
             closesAt: toTime(data.closesAt),
             timeZone: data.timeZone,
             slug: data.slug,
+            images: data.images,
           },
         })
         .catch(translateError),
@@ -63,7 +65,13 @@ export class PrismaBranchesRepository implements BranchesRepository {
     data: Partial<
       Pick<
         Branch,
-        'name' | 'address' | 'opensAt' | 'closesAt' | 'timeZone' | 'slug'
+        | 'name'
+        | 'address'
+        | 'opensAt'
+        | 'closesAt'
+        | 'timeZone'
+        | 'slug'
+        | 'images'
       >
     >,
   ) {
@@ -79,6 +87,7 @@ export class PrismaBranchesRepository implements BranchesRepository {
               data.closesAt === undefined ? undefined : toTime(data.closesAt),
             timeZone: data.timeZone,
             slug: data.slug,
+            images: data.images,
           },
         })
         .catch(translateError),
@@ -98,6 +107,7 @@ export const toBranch = (row: BranchRow): Branch => ({
   closesAt: fromTime(row.closesAt),
   timeZone: row.timeZone,
   slug: row.slug,
+  images: row.images,
 });
 
 const translateError = (error: unknown): never => {

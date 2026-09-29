@@ -22,6 +22,11 @@ export const branches: Branch[] = [
         opensAt: '09:00',
         closesAt: '20:00',
         timeZone: 'America/Argentina/Buenos_Aires',
+        images: [
+            'https://picsum.photos/seed/vitalia-centro-recepcion/1200/900',
+            'https://picsum.photos/seed/vitalia-centro-camilla/800/600',
+            'https://picsum.photos/seed/vitalia-centro-sala/800/600',
+        ],
     },
     {
         id: 2,
@@ -31,6 +36,7 @@ export const branches: Branch[] = [
         opensAt: '10:00',
         closesAt: '19:00',
         timeZone: 'America/Argentina/Buenos_Aires',
+        images: [],
     },
 ];
 

@@ -1,5 +1,5 @@
 import { applyDecorators } from '@nestjs/common';
-import { Matches, registerDecorator } from 'class-validator';
+import { Matches, registerDecorator, IsArray, IsUrl } from 'class-validator';
 import { IfPresent, IsName, IsSlug, IsText } from '../users/users.dto';
 
 export const IsTimeOfDay = () =>
@@ -58,6 +58,10 @@ export class BranchFieldsDto {
 export class CreateBranchDto extends BranchFieldsDto {
   @IsSlug()
   slug!: string;
+
+  @IsArray()
+  @IsUrl({}, { each: true })
+  images!: string[];
 }
 
 export class UpdateBranchDto {
@@ -84,4 +88,9 @@ export class UpdateBranchDto {
   @IfPresent()
   @IsSlug()
   slug?: string;
+
+  @IfPresent()
+  @IsArray()
+  @IsUrl({}, { each: true })
+  images?: string[];
 }

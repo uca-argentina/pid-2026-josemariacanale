@@ -67,11 +67,12 @@ actualizarlo a mano cuando se agregue, cambie o borre un endpoint.
 | PATCH | `/branches/:id` | sí | Actualiza una sucursal (solo el dueño); 409 si su `slug` ya está en uso en ese negocio; cambiar el `slug` deja de servir el Enlace de reserva anterior de esa sucursal |
 | GET | `/businesses/:businessId/branches` | no | Lista sucursales de un negocio |
 
-- `CreateBranchDto`: `{ name, address, opensAt: "HH:mm", closesAt: "HH:mm", timeZone, slug }`
+- `CreateBranchDto`: `{ name, address, opensAt: "HH:mm", closesAt: "HH:mm", timeZone, slug, images: string[] }`
 - `slug` (tramo de Sucursal del Enlace de reserva, ADR 0014: `/business/<slug del negocio>/<slug de la sucursal>`): mismo formato que el `slug` del Negocio (se pasa a minúsculas, 3-40 caracteres, `^[a-z0-9]+(-[a-z0-9]+)*$`); requerido en creación, opcional en `UpdateBranchDto`; formato inválido → 400; ya usado por otra sucursal del mismo negocio → 409 `Booking link already in use` (dos negocios distintos sí pueden repetirlo)
 - `timeZone`: nombre IANA (por ejemplo `America/Argentina/Buenos_Aires`), nunca un offset; requerido en creación, opcional en `UpdateBranchDto`; inválido → 400
+- `images`: lista ordenada de URLs de imágenes alojadas (ej. para la galería), cada una debe ser `http(s)`; requerido en creación, opcional en `UpdateBranchDto` (se reemplaza completa al actualizar)
 - `UpdateBranchDto`: los mismos campos, todos opcionales
-- Respuesta (`presentBranch`): `{ id, businessId, name, address, opensAt, closesAt, timeZone, slug }`
+- Respuesta (`presentBranch`): `{ id, businessId, name, address, opensAt, closesAt, timeZone, slug, images }`
 
 ## Services (Servicio)
 

@@ -25,6 +25,7 @@ export interface Branch {
     /** 'HH:mm' */
     closesAt: string;
     timeZone?: string;
+    images: string[];
 }
 
 /** Lo único que la vista pública de un Servicio conoce de un Empleado: el email es solo del Dueño. */

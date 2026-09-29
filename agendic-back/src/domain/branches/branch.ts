@@ -10,6 +10,8 @@ export interface Branch {
   timeZone: string; // IANA name, e.g. America/Argentina/Buenos_Aires
   /** Enlace de reserva's second tramo, lowercase: /business/<business slug>/<slug>. Unique within its Business only. */
   slug: string;
+  /** Ordered list of hosted image URLs for the Galería. */
+  images: string[];
 }
 
 export interface CreateBranchInput {
@@ -19,6 +21,7 @@ export interface CreateBranchInput {
   closesAt: string;
   timeZone: string;
   slug: string;
+  images: string[];
 }
 
 export interface UpdateBranchInput {
@@ -28,6 +31,7 @@ export interface UpdateBranchInput {
   closesAt?: string;
   timeZone?: string;
   slug?: string;
+  images?: string[];
 }
 
 /** HH:mm strings are zero-padded and same length, so lexical comparison matches time-of-day order. */

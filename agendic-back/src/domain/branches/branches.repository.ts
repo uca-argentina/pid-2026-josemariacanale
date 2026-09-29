@@ -14,6 +14,7 @@ export interface BranchesRepository {
       | 'closesAt'
       | 'timeZone'
       | 'slug'
+      | 'images'
     >,
   ): Promise<Branch>;
   findById(id: number): Promise<Branch | null>;
@@ -24,7 +25,13 @@ export interface BranchesRepository {
     data: Partial<
       Pick<
         Branch,
-        'name' | 'address' | 'opensAt' | 'closesAt' | 'timeZone' | 'slug'
+        | 'name'
+        | 'address'
+        | 'opensAt'
+        | 'closesAt'
+        | 'timeZone'
+        | 'slug'
+        | 'images'
       >
     >,
   ): Promise<Branch>;

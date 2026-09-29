@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { Clock, MapPin, Images, Building2 } from 'lucide-react';
+import { Clock, MapPin, Images, Building2, X } from 'lucide-react';
 import { Button } from '@/app/_components/ui/button';
 import type { ServiceCategoryValue } from '@/app/_components/business-schemas';
 import { ChipTabs } from './ChipTabs';
@@ -58,19 +58,20 @@ export function BranchPublicPage({
     branches,
     services,
     categories,
-    photos,
 }: {
     business: Business;
     branch: Branch;
     branches: Branch[];
     services: Service[];
     categories: readonly { value: ServiceCategoryValue; label: string }[];
-    photos: string[];
 }) {
     const [category, setCategory] = useState<ServiceCategoryValue>(categories[0].value);
     const [initialService, setInitialService] = useState<Service | null>(null);
     const [flowOpen, setFlowOpen] = useState(false);
     const [booking, setBooking] = useState<Booking | null>(null);
+    const [galleryOpen, setGalleryOpen] = useState(false);
+
+    const photos = branch.images?.length > 0 ? branch.images : ['https://picsum.photos/seed/placeholder-branch/1200/900'];
 
     const openFlow = (service: Service | null) => {
         setInitialService(service);
@@ -116,15 +117,17 @@ export function BranchPublicPage({
                             priority
                             sizes="(max-width: 768px) 100vw, 66vw"
                             className="object-cover"
+                            unoptimized
                         />
                     </div>
                     <div className="hidden grid-rows-2 gap-3 md:grid">
                         {photos.slice(1, 3).map((src, i) => (
                             <div key={src} className="relative overflow-hidden rounded-2xl">
-                                <Image src={src} alt="" fill sizes="33vw" className="object-cover" />
+                                <Image src={src} alt="" fill sizes="33vw" className="object-cover" unoptimized />
                                 {i === 1 && (
                                     <Button
                                         variant="outline"
+                                        onClick={() => setGalleryOpen(true)}
                                         className="absolute right-4 bottom-4 h-auto gap-1.5 rounded-full bg-white px-3.5 py-2 text-[13px] font-bold shadow-sm"
                                     >
                                         <Images className="size-4" />
@@ -171,6 +174,7 @@ export function BranchPublicPage({
                                         fill
                                         sizes="58px"
                                         className="object-cover"
+                                        unoptimized
                                     />
                                 </div>
                                 <div className="min-w-0">
@@ -244,6 +248,30 @@ export function BranchPublicPage({
                         setBooking(created);
                     }}
                 />
+            )}
+
+            {galleryOpen && (
+                <div className="fixed inset-0 z-50 flex flex-col bg-background">
+                    <header className="flex h-14 shrink-0 items-center justify-between border-b px-4">
+                        <span className="font-semibold">Fotos de la sucursal</span>
+                        <Button variant="ghost" size="icon" onClick={() => setGalleryOpen(false)}>
+                            <X className="size-5" />
+                        </Button>
+                    </header>
+                    <div className="flex-1 overflow-y-auto p-4 md:p-8">
+                        <div className="mx-auto max-w-4xl space-y-8">
+                            {branch.images.length > 0 ? branch.images.map((src) => (
+                                <div key={src} className="relative aspect-[4/3] w-full overflow-hidden rounded-xl bg-muted">
+                                    <Image src={src} alt="" fill className="object-contain" unoptimized />
+                                </div>
+                            )) : (
+                                <div className="flex aspect-[4/3] w-full items-center justify-center rounded-xl bg-muted text-muted-foreground">
+                                    <Images className="size-16 opacity-20" />
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
             )}
         </>
     );
