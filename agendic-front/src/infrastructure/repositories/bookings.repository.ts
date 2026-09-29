@@ -24,7 +24,7 @@ export class BookingsRepository implements IBookingsRepository {
         return parseOrFail(() => slotsSchema.parse(body), what);
     }
 
-    async createBooking(input: CreateBooking): Promise<Booking> {
+    async book(input: CreateBooking): Promise<Booking> {
         const what = 'POST /bookings';
         const body = await this.request(
             '/bookings',

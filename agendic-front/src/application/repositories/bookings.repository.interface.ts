@@ -8,5 +8,5 @@ export interface IBookingsRepository {
     listSlots(query: SlotsQuery): Promise<Slots>;
     // Throws SlotTakenError (409) if the Horario reservable was taken meanwhile, NotFoundError (404)
     // if the Servicio is gone.
-    createBooking(input: CreateBooking): Promise<Booking>;
+    book(input: CreateBooking): Promise<Booking>;
 }

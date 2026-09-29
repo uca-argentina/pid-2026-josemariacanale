@@ -61,7 +61,7 @@ describe('BookingsRepository.listSlots', () => {
     });
 });
 
-describe('BookingsRepository.createBooking', () => {
+describe('BookingsRepository.book', () => {
     const input = {
         serviceId: 100,
         employeeId: 1,
@@ -83,7 +83,7 @@ describe('BookingsRepository.createBooking', () => {
     it('POSTs the Turno as JSON, without a Sesión, and returns it as created', async () => {
         const fetchSpy = respond(201, booking);
 
-        await expect(repo().createBooking(input)).resolves.toEqual(booking);
+        await expect(repo().book(input)).resolves.toEqual(booking);
         expect(fetchSpy).toHaveBeenCalledWith('http://api/bookings', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -94,29 +94,29 @@ describe('BookingsRepository.createBooking', () => {
     it('accepts a Turno whose back does not return notes yet', async () => {
         const withoutNotes = { ...booking, notes: undefined };
         respond(201, withoutNotes);
-        await expect(repo().createBooking(input)).resolves.toEqual(withoutNotes);
+        await expect(repo().book(input)).resolves.toEqual(withoutNotes);
     });
 
     it('translates a 409 to SlotTakenError', async () => {
         respond(409, { statusCode: 409, message: 'Overlaps a booked Turno for this Employee' });
-        await expect(repo().createBooking(input)).rejects.toBeInstanceOf(SlotTakenError);
+        await expect(repo().book(input)).rejects.toBeInstanceOf(SlotTakenError);
     });
 
     it('translates a 404 to NotFoundError', async () => {
         respond(404, { statusCode: 404, message: 'Service not found' });
-        await expect(repo().createBooking(input)).rejects.toBeInstanceOf(NotFoundError);
+        await expect(repo().book(input)).rejects.toBeInstanceOf(NotFoundError);
     });
 
     it.each([400, 422, 500])('translates a %i to ApiRequestError carrying the status', async (status) => {
         respond(status, { statusCode: status, message: 'boom' });
-        const error = await repo().createBooking(input).catch((e) => e);
+        const error = await repo().book(input).catch((e) => e);
         expect(error).toBeInstanceOf(ApiRequestError);
         expect(error.status).toBe(status);
     });
 
     it('translates a body that does not match the schema to ApiRequestError with the cause', async () => {
         respond(201, { ...booking, status: 'SOMETHING' });
-        const error = await repo().createBooking(input).catch((e) => e);
+        const error = await repo().book(input).catch((e) => e);
         expect(error).toBeInstanceOf(ApiRequestError);
         expect(error.cause).toBeDefined();
     });
@@ -124,7 +124,7 @@ describe('BookingsRepository.createBooking', () => {
     it('translates a network failure to ApiRequestError without status, keeping the cause', async () => {
         const cause = new TypeError('offline');
         jest.spyOn(global, 'fetch').mockRejectedValue(cause);
-        const error = await repo().createBooking(input).catch((e) => e);
+        const error = await repo().book(input).catch((e) => e);
         expect(error).toBeInstanceOf(ApiRequestError);
         expect(error.status).toBeUndefined();
         expect(error.cause).toBe(cause);

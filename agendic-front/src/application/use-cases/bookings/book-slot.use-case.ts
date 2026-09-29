@@ -9,5 +9,5 @@ export const bookSlotUseCase =
     ({ notes, ...input }: CreateBooking): Promise<Booking> =>
         instrumentationService.startSpan({ name: 'bookSlot Use Case', op: 'function' }, () =>
             // A Comentario del Turno is only sent when the Cliente wrote one.
-            bookingsRepository.createBooking(notes ? { ...input, notes } : input),
+            bookingsRepository.book(notes ? { ...input, notes } : input),
         );

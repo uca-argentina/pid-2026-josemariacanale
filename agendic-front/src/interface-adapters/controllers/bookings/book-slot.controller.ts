@@ -20,7 +20,7 @@ const inputSchema = z.object({
     startsAt: z.iso.datetime(),
     clientName: z.string().trim().min(1),
     clientEmail: z.string().trim().pipe(z.email()),
-    // Comentario del Turno: the back's limit (ADR 0007). Blank is sent as no Comentario.
+    // Comentario del Turno: the back's limit (ticket 03, back PR #37). Blank is sent as no Comentario.
     notes: z.string().trim().max(500).optional(),
 });
 

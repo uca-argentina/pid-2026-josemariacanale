@@ -63,7 +63,11 @@ export function TimeStep({
                 if (!date) {
                     const first = result.days.find((d) => d.slots.length > 0) ?? result.days[0];
                     if (first) onSelect(first.date, null);
+                    return;
                 }
+                // Al volver de Confirmar, el horario elegido puede haberse ocupado mientras tanto.
+                const day = result.days.find((d) => d.date === date);
+                if (slot && !day?.slots.some((s) => s.startsAt === slot.startsAt)) onSelect(date, null);
             },
             () => current && setLoad({ status: 'error', message: 'No pudimos cargar los horarios. Intentá de nuevo.' }),
         );

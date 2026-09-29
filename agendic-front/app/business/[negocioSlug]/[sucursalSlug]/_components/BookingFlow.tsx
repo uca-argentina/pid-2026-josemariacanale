@@ -514,16 +514,22 @@ export function BookingFlow({
         (step === 'time' && !!date && !!slot) ||
         step === 'confirm';
 
+    // Los avisos son del paso en que aparecieron: al cambiar de paso ya no dicen nada.
+    const goTo = (next: Step) => {
+        setSlotNotice(null);
+        setConfirmError(null);
+        setStep(next);
+    };
+
     const advance = () => {
         const next = STEPS[STEPS.indexOf(step) + 1];
         if (!next) return;
-        setSlotNotice(null);
-        setStep(next);
+        goTo(next);
     };
 
     const back = () => {
         const previous = STEPS[STEPS.indexOf(step) - 1];
-        if (previous) setStep(previous);
+        if (previous) goTo(previous);
         else onClose();
     };
 
@@ -538,7 +544,7 @@ export function BookingFlow({
                 startsAt: slot.startsAt,
                 clientName: data.name,
                 clientEmail: data.email,
-                notes: data.notes || undefined,
+                notes: data.notes,
             });
             if (result.ok) {
                 onBooked({
@@ -597,7 +603,7 @@ export function BookingFlow({
             <div className="mx-auto w-full max-w-[1400px] px-4 pb-32 sm:px-8 lg:px-16 lg:pb-24">
                 <div className="grid items-start gap-10 lg:grid-cols-[1fr_400px]">
                     <div>
-                        <Breadcrumb step={step} onGo={setStep} />
+                        <Breadcrumb step={step} onGo={goTo} />
                         <h1 className="mt-4 mb-6 text-[34px] leading-none font-extrabold tracking-[-0.03em] sm:text-[44px]">
                             {TITLES[step]}
                         </h1>
@@ -632,7 +638,7 @@ export function BookingFlow({
                                     setDraft((d) => ({ ...d, date: nextDate, slot: nextSlot }))
                                 }
                                 onChooseEmployee={chooseCovering}
-                                onSeeEmployees={() => setStep('employee')}
+                                onSeeEmployees={() => goTo('employee')}
                             />
                         )}
 

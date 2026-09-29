@@ -24,6 +24,6 @@ export const publicBusinessesWith = (stubs: Partial<IPublicBusinessesRepository>
 
 export const bookingsWith = (stubs: Partial<IBookingsRepository>): IBookingsRepository => ({
     listSlots: jest.fn(notStubbed('listSlots')),
-    createBooking: jest.fn(notStubbed('createBooking')),
+    book: jest.fn(notStubbed('book')),
     ...stubs,
 });
