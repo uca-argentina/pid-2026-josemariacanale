@@ -27,7 +27,7 @@ describe('getPublicBranchController', () => {
             getPublicBranchController(instrumentation, useCase)({ businessSlug: 'vitalia', branchSlug: 'centro' }),
         ).resolves.toEqual({
             business: { name: 'Vitalia', description: 'Desc', slug: 'vitalia' },
-            branch: { id: 10, name: 'Centro', address: 'Av. 1', opensAt: '09:00', closesAt: '18:00', slug: 'centro' },
+            branch: { id: 10, name: 'Centro', address: 'Av. 1', opensAt: '09:00', closesAt: '18:00', timeZone: TZ, slug: 'centro' },
             otherBranches: [{ id: 11, name: 'Palermo', address: 'Thames 1', slug: 'palermo' }],
             services: [
                 { id: 100, name: 'Masaje', description: null, category: 'SPA', durationMinutes: 60, price: 20000, depositPercent: 20, employees: [ana] },

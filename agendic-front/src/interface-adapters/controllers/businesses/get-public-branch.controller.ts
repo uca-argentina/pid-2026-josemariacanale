@@ -13,6 +13,7 @@ function presenter({ business, branch, branches, services, employees, images }: 
             address: branch.address,
             opensAt: branch.opensAt,
             closesAt: branch.closesAt,
+            timeZone: branch.timeZone,
             slug: branch.slug,
         },
         otherBranches: branches

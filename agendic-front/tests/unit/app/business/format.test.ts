@@ -1,4 +1,4 @@
-import { depositFor, endTime, formatDuration } from '@/app/business/[negocioSlug]/[sucursalSlug]/_components/format';
+import { addDays, depositFor, endTime, formatDuration, shortWeekday, todayIn } from '@/app/business/[negocioSlug]/[sucursalSlug]/_components/format';
 
 describe('depositFor', () => {
     it('reparte el precio entre lo que se adelanta y lo que resta', () => {
@@ -28,5 +28,29 @@ describe('formatDuration', () => {
         expect(formatDuration(45)).toBe('45 min');
         expect(formatDuration(60)).toBe('1 h');
         expect(formatDuration(90)).toBe('1 h 30 min');
+    });
+});
+
+describe('todayIn', () => {
+    afterEach(() => jest.useRealTimers());
+
+    it('es la fecha local de la zona horaria, no la del reloj en UTC', () => {
+        jest.useFakeTimers({ now: new Date('2026-09-29T02:00:00Z') });
+        expect(todayIn('America/Argentina/Buenos_Aires')).toBe('2026-09-28');
+        expect(todayIn('UTC')).toBe('2026-09-29');
+    });
+});
+
+describe('addDays', () => {
+    it('cruza meses y años', () => {
+        expect(addDays('2026-09-28', 13)).toBe('2026-10-11');
+        expect(addDays('2026-12-31', 1)).toBe('2027-01-01');
+    });
+});
+
+describe('shortWeekday', () => {
+    it('nombra el día de la fecha sin depender de la zona horaria', () => {
+        expect(shortWeekday('2026-09-28')).toBe('Lun');
+        expect(shortWeekday('2026-10-04')).toBe('Dom');
     });
 });

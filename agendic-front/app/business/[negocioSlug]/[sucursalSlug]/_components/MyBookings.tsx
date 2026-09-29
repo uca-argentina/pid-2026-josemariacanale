@@ -1,4 +1,5 @@
-import { CalendarPlus, MailCheck, MapPin, CalendarCog } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { Ban, CalendarCheck, CalendarPlus, CalendarCog, Hourglass, MailCheck, MapPin, type LucideIcon } from 'lucide-react';
 import { Button } from '@/app/_components/ui/button';
 import { BranchPhoto } from './BranchPhoto';
 import { depositFor, endTime, formatDate, formatDuration, formatPrice } from './format';
@@ -10,6 +11,55 @@ const ACTIONS = [
     { icon: CalendarCog, title: 'Gestionar turno', detail: 'Reagendá o cancelá tu turno' },
 ];
 
+/**
+ * Cómo se ve el Turno según el estado en que lo creó el back. Hoy nace sin verificar (ADR 0005),
+ * pero el mensaje sale del estado real: un Servicio con Aprobación manual o un back que acepte
+ * solo tienen el suyo.
+ */
+const STATUS: Record<Booking['status'], { icon: LucideIcon; badge: string; detail: (b: Booking) => ReactNode }> = {
+    UNVERIFIED: {
+        icon: MailCheck,
+        badge: 'Falta verificar tu email',
+        detail: ({ client }) => (
+            <>
+                Te mandamos un mail a <strong className="font-bold">{client.email}</strong> para que
+                verifiques tu email, {client.name.split(' ')[0]}. Hasta que lo verifiques, el horario
+                sigue disponible para otras personas.
+            </>
+        ),
+    },
+    PENDING: {
+        icon: Hourglass,
+        badge: 'Esperando que lo acepten',
+        detail: ({ business }) => (
+            <>
+                {business.name} tiene que aceptar tu turno. Mientras tanto, el horario queda reservado
+                para vos.
+            </>
+        ),
+    },
+    BOOKED: {
+        icon: CalendarCheck,
+        badge: 'Turno reservado',
+        detail: ({ client, branch }) => (
+            <>
+                Listo, {client.name.split(' ')[0]}: tu turno quedó reservado. Te esperamos en{' '}
+                {branch.address}.
+            </>
+        ),
+    },
+    REJECTED: {
+        icon: Ban,
+        badge: 'Turno rechazado',
+        detail: ({ business }) => <>{business.name} no aceptó este turno. Podés reservar otro horario.</>,
+    },
+    CANCELLED: {
+        icon: Ban,
+        badge: 'Turno cancelado',
+        detail: () => <>Este turno está cancelado. Podés reservar otro horario.</>,
+    },
+};
+
 export function MyBookings({
     booking,
     onBackToBusiness,
@@ -17,8 +67,9 @@ export function MyBookings({
     booking: Booking;
     onBackToBusiness: () => void;
 }) {
-    const { business, branch, service, employee, date, time, client, notes } = booking;
+    const { business, branch, service, employee, date, time, notes } = booking;
     const deposit = depositFor(service);
+    const status = STATUS[booking.status];
 
     return (
         <div className="mx-auto grid w-full max-w-[1400px] flex-1 items-start gap-10 px-4 pt-6 pb-20 sm:px-8 lg:grid-cols-[340px_1fr] lg:px-16">
@@ -80,10 +131,9 @@ export function MyBookings({
                 </div>
 
                 <div className="p-6">
-                    {/* El Turno nace UNVERIFIED y no retiene el horario hasta que el Cliente verifica (ADR 0005). */}
                     <span className="inline-flex items-center gap-2 rounded-full bg-foreground px-3.5 py-1.5 text-[13px] font-bold text-white">
-                        <MailCheck className="size-4" />
-                        Falta confirmar por mail
+                        <status.icon className="size-4" />
+                        {status.badge}
                     </span>
 
                     <h3 className="mt-4 text-[26px] leading-tight font-extrabold tracking-[-0.03em] first-letter:uppercase sm:text-[32px]">
@@ -95,9 +145,7 @@ export function MyBookings({
                     </p>
 
                     <p className="mt-4 max-w-[62ch] rounded-xl bg-muted p-4 text-[13.5px] leading-relaxed">
-                        Te mandamos un mail a <strong className="font-bold">{client.email}</strong>{' '}
-                        para que confirmes el turno, {client.name.split(' ')[0]}. Hasta que lo
-                        confirmes, el horario sigue disponible para otras personas.
+                        {status.detail(booking)}
                     </p>
 
                     <ul className="mt-6 flex flex-col">
@@ -138,7 +186,7 @@ export function MyBookings({
                         </span>
                     </div>
 
-                    {/* ponytail: maqueta, igual que en Revisá y confirmá. La Seña no existe todavía. */}
+                    {/* La Seña es real (Service.depositPercent); cómo se paga sigue siendo de maqueta. */}
                     {deposit && (
                         <dl className="mt-2.5 flex flex-col gap-1.5 text-[13.5px]">
                             <div className="flex items-center justify-between">
@@ -157,7 +205,7 @@ export function MyBookings({
                     {notes && (
                         <>
                             <h4 className="mt-7 text-[19px] font-extrabold tracking-[-0.02em]">
-                                Tu nota
+                                Tu comentario
                             </h4>
                             <p className="mt-2 max-w-[62ch] rounded-xl bg-muted p-4 text-[13.5px] leading-relaxed">
                                 {notes}

@@ -23,6 +23,21 @@ const LONG_DATE = new Intl.DateTimeFormat('es-AR', {
 /** 'sábado 3 de octubre' */
 export const formatDate = (date: string) => LONG_DATE.format(new Date(`${date}T00:00:00Z`));
 
+const WEEKDAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+
+/** 'Lun', 'Mar', …, para la tira de días. */
+export const shortWeekday = (date: string) => WEEKDAYS[new Date(`${date}T00:00:00Z`).getUTCDay()];
+
+/** 'YYYY-MM-DD' de hoy en esa zona horaria: el día de la Sucursal, no el del Cliente. */
+export const todayIn = (timeZone: string) => new Intl.DateTimeFormat('en-CA', { timeZone }).format(new Date());
+
+/** La fecha 'YYYY-MM-DD' corrida `days` días. */
+export function addDays(date: string, days: number) {
+    const d = new Date(`${date}T00:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + days);
+    return d.toISOString().slice(0, 10);
+}
+
 export const toMinutes = (hhmm: string) => {
     const [h, m] = hhmm.split(':').map(Number);
     return h * 60 + m;
