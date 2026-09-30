@@ -47,6 +47,8 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | Rechazar turno | `reject` (`PENDING` → `REJECTED`) |
 | Ausencia | `Booking.noShowAt` (marcado a mano; no reemplaza `status`) |
 | Reservar | `book` |
+| Reagendar | `reschedule` (`RescheduleBookingUseCase`) |
+| Mis turnos del Empleado | `EmployeeBooking` (`GET /employees/me/bookings`) |
 | Cancelar | `cancel` |
 | Dar de baja | `retire` (`Service.retiredAt`, `Employee.retiredAt`) |
 | Sesión / Iniciar sesión / Cerrar sesión | `Session` / `signIn` / `signOut` |

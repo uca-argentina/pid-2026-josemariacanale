@@ -18,7 +18,11 @@ export class ListMyBookingsUseCase {
     private readonly employees: EmployeesRepository,
   ) {}
 
-  /** Vacío si el Usuario no es Empleado activo de ningún Negocio. */
+  /**
+   * Vacío si el Usuario no es Empleado activo de ningún Negocio.
+   *
+   * @throws {DatabaseOperationError} falló la base
+   */
   async execute(userId: number): Promise<EmployeeBooking[]> {
     const employees = await this.employees.listActiveByUser(userId);
     if (employees.length === 0) return [];

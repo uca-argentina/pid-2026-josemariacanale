@@ -3,7 +3,13 @@ import { BookingsRepository } from '../../domain/bookings/bookings.repository';
 import { EmployeesRepository } from '../../domain/employees/employees.repository';
 import { BusinessRuleError, ForbiddenError } from '../../domain/errors';
 
-/** Shared by Cancelar, Reagendar and Ausencia: only the assigned Empleado, only on a BOOKED Turno. */
+/**
+ * Devuelve el Turno aceptado del Empleado asignado; lo comparten Cancelar, Reagendar y Ausencia.
+ *
+ * @throws {NotFoundError} el Turno no existe
+ * @throws {ForbiddenError} el Usuario no es el Empleado asignado al Turno
+ * @throws {BusinessRuleError} el Turno no está aceptado
+ */
 export async function findOwnBookedBooking(
   bookings: BookingsRepository,
   employees: EmployeesRepository,

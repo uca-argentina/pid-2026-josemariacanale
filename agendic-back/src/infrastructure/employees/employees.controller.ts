@@ -47,6 +47,7 @@ export class EmployeesController {
     return this.retireEmployeeUseCase.execute(userId, id);
   }
 
+  /** Mis turnos: los Turnos del Usuario como Empleado activo, en todos sus Negocios. */
   @Get('employees/me/bookings')
   @UseGuards(ClerkGuard)
   async listMyBookings(@CurrentUser() userId: number) {

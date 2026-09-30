@@ -154,6 +154,9 @@ export class PrismaBookingsRepository implements BookingsRepository {
       .catch(translateError);
   }
 
+  /**
+   * @throws {DatabaseOperationError} falló la base
+   */
   async listByEmployees(employeeIds: number[]): Promise<EmployeeBooking[]> {
     const rows = await this.prisma.booking
       .findMany({

@@ -35,6 +35,7 @@ export class VerifyBookingDto {
   token!: string;
 }
 
+/** Body de Reagendar: el nuevo horario de inicio del Turno. */
 export class RescheduleBookingDto {
   @IsDateString()
   startsAt!: string;
