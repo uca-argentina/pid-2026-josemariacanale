@@ -13,13 +13,14 @@ import {
 import { AssignEmployeeUseCase } from '../../application/services/assign-employee.use-case';
 import { CreateServiceUseCase } from '../../application/services/create-service.use-case';
 import { ListActiveServicesByBranchUseCase } from '../../application/services/list-active-services-by-branch.use-case';
+import { ListMyServicesUseCase } from '../../application/services/list-my-services.use-case';
 import { RemoveEmployeeUseCase } from '../../application/services/remove-employee.use-case';
 import { RetireServiceUseCase } from '../../application/services/retire-service.use-case';
 import { UpdateServiceUseCase } from '../../application/services/update-service.use-case';
 import { ListSlotsUseCase } from '../../application/slots/list-slots.use-case';
 import { ParseDatePipe } from '../parse-date.pipe';
 import { ClerkGuard, CurrentUser } from '../users/clerk.guard';
-import { presentService } from './service.presenter';
+import { presentCatalogGroup, presentService } from './service.presenter';
 import {
   AssignEmployeeDto,
   CreateServiceDto,
@@ -36,7 +37,17 @@ export class ServicesController {
     private readonly assignEmployeeUseCase: AssignEmployeeUseCase,
     private readonly removeEmployeeUseCase: RemoveEmployeeUseCase,
     private readonly listSlotsUseCase: ListSlotsUseCase,
+    private readonly listMyServicesUseCase: ListMyServicesUseCase,
   ) {}
+
+  /** Catálogo del panel: un grupo por Negocio donde el Usuario es Empleado activo. */
+  @Get('employees/me/services')
+  @UseGuards(ClerkGuard)
+  async listMine(@CurrentUser() userId: number) {
+    return (await this.listMyServicesUseCase.execute(userId)).map(
+      presentCatalogGroup,
+    );
+  }
 
   @Post('branches/:id/services')
   @UseGuards(ClerkGuard)

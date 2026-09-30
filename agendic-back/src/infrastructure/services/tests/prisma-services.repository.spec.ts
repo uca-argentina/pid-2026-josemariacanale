@@ -22,7 +22,11 @@ const SERVICE_ROW = {
   depositPercent: 30,
   requiresApproval: false,
   retiredAt: null,
-  employees: [{ employee: { id: 7, user: { name: 'Ana Pérez' } } }],
+  slug: 'haircut',
+  hidden: false,
+  employees: [
+    { availabilityId: 10, employee: { id: 7, user: { name: 'Ana Pérez' } } },
+  ],
 };
 
 const SERVICE: Service = {
@@ -36,7 +40,9 @@ const SERVICE: Service = {
   depositPercent: 30,
   requiresApproval: false,
   retiredAt: null,
-  employees: [{ id: 7, name: 'Ana Pérez' }],
+  slug: 'haircut',
+  hidden: false,
+  employees: [{ id: 7, name: 'Ana Pérez', availabilityId: 10 }],
 };
 
 const knownError = (code: string) =>
@@ -62,8 +68,8 @@ describe('PrismaServicesRepository', () => {
   const SERVICE_ROW_WITH_TWO: typeof SERVICE_ROW = {
     ...SERVICE_ROW,
     employees: [
-      { employee: { id: 7, user: { name: 'Ana Pérez' } } },
-      { employee: { id: 8, user: { name: 'Bruno Díaz' } } },
+      { availabilityId: 10, employee: { id: 7, user: { name: 'Ana Pérez' } } },
+      { availabilityId: 11, employee: { id: 8, user: { name: 'Bruno Díaz' } } },
     ],
   };
   const repository = new PrismaServicesRepository(
@@ -88,6 +94,8 @@ describe('PrismaServicesRepository', () => {
         price: 20,
         depositPercent: 30,
         requiresApproval: false,
+        slug: 'haircut',
+        hidden: false,
         employees: [
           { employeeId: 7, availabilityId: 70 },
           { employeeId: 8, availabilityId: 80 },
@@ -104,6 +112,8 @@ describe('PrismaServicesRepository', () => {
         price: 20,
         depositPercent: 30,
         requiresApproval: false,
+        slug: 'haircut',
+        hidden: false,
         employees: {
           create: [
             { employeeId: 7, availabilityId: 70 },
@@ -139,8 +149,8 @@ describe('PrismaServicesRepository', () => {
       ).resolves.toEqual({
         ...SERVICE,
         employees: [
-          { id: 7, name: 'Ana Pérez' },
-          { id: 8, name: 'Bruno Díaz' },
+          { id: 7, name: 'Ana Pérez', availabilityId: 10 },
+          { id: 8, name: 'Bruno Díaz', availabilityId: 11 },
         ],
       });
       expect(prisma.service.update).toHaveBeenCalledWith({
@@ -266,6 +276,49 @@ describe('PrismaServicesRepository', () => {
     });
   });
 
+  describe('the partial unique index on (branchId, slug)', () => {
+    const slugViolation = new Prisma.PrismaClientKnownRequestError('vendor', {
+      code: 'P2002',
+      clientVersion: '7.10.0',
+      meta: {
+        driverAdapterError: {
+          cause: { constraint: { index: 'Service_branchId_slug_key' } },
+        },
+      },
+    });
+
+    it.each(['create', 'update'] as const)(
+      '%s: a violation becomes a ConflictError about the booking link, not the name',
+      async (method) => {
+        prisma.service[method].mockRejectedValue(slugViolation);
+
+        const error = await (
+          method === 'create'
+            ? repository.create({
+                branchId: 1,
+                name: 'Haircut',
+                description: null,
+                category: ServiceCategory.SPA,
+                durationMinutes: 30,
+                price: 20,
+                depositPercent: null,
+                requiresApproval: false,
+                slug: 'haircut',
+                hidden: false,
+                employees: [],
+              })
+            : repository.update(1, { slug: 'haircut' })
+        ).catch((e: unknown) => e);
+
+        expect(error).toBeInstanceOf(ConflictError);
+        expect(error).toHaveProperty(
+          'message',
+          'Service booking link already in use',
+        );
+      },
+    );
+  });
+
   describe('translates Prisma errors, keeping the original as cause', () => {
     const calls = {
       create: () =>
@@ -278,6 +331,8 @@ describe('PrismaServicesRepository', () => {
           price: 20,
           depositPercent: null,
           requiresApproval: false,
+          slug: 'haircut',
+          hidden: false,
           employees: [{ employeeId: 7, availabilityId: 70 }],
         }),
       findById: () => repository.findById(1),

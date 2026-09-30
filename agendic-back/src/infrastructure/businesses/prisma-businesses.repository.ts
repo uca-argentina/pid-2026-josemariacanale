@@ -129,6 +129,7 @@ const CONFLICT_BY_INDEX: Record<string, string> = {
   Business_slug_key: 'Booking link already in use',
   Business_ownerId_key: 'Ya tenés un Negocio',
   Service_branchId_name_ci_key: 'Service name already in use',
+  Service_branchId_slug_key: 'Service booking link already in use',
   Employee_userId_businessId_key:
     'User already an active Employee of this Business',
 };

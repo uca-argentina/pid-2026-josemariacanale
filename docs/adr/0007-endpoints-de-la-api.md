@@ -96,14 +96,16 @@ una Sucursal); sus archivos en el storage no.
 
 | Método | Ruta | Auth | Qué hace |
 |---|---|---|---|
-| POST | `/branches/:id/services` | sí | Crea un servicio bajo una sucursal, con asignación inicial de empleados (solo el dueño); cada empleado entra con su Availability predeterminada |
-| PATCH | `/services/:id` | sí | Actualiza un servicio (solo el dueño) |
+| POST | `/branches/:id/services` | sí | Crea un servicio bajo una sucursal, con asignación inicial de empleados (solo el dueño); cada empleado entra con su Availability predeterminada; 409 si el tramo (`slug`) ya lo usa otro servicio activo de esa sucursal |
+| PATCH | `/services/:id` | sí | Actualiza un servicio (solo el dueño), incluidos `slug` y `hidden`; 409 si el tramo ya está en uso en esa sucursal |
 | DELETE | `/services/:id` | sí | Da de baja (soft-delete) un servicio (solo el dueño) |
 | POST | `/services/:id/employees` | sí | Asigna un empleado a un servicio con una Availability suya (solo el dueño); 201 con el servicio; 422 si la Availability es de otro Empleado o si el servicio está dado de baja; 404 si no existe; 409 si ya lo atiende |
 | DELETE | `/services/:id/employees/:employeeId` | sí | Quita un empleado de un servicio (solo el dueño) |
 | GET | `/branches/:id/services` | no | Lista servicios activos de una sucursal |
 
-- `CreateServiceDto`: `{ name, description?, category, durationMinutes (int ≥1), price (number ≥0), depositPercent?, requiresApproval?, employeeIds: number[] (no vacío) }`
+- `CreateServiceDto`: `{ name, description?, category, durationMinutes (int ≥1), price (number ≥0), depositPercent?, requiresApproval?, slug, hidden?, employeeIds: number[] (no vacío) }`
+- `slug` es el tramo del Servicio en el Enlace de reserva (ADR 0018): obligatorio al crear, en minúsculas, mismas reglas que el de Sucursal; único por sucursal entre los servicios no dados de baja (índice parcial, ADR 0004; un tramo de un servicio dado de baja queda libre). `hidden` (por defecto `false`) es el Servicio oculto. El servicio del body de `POST /businesses` también exige `slug` y acepta `hidden`.
+- Respuesta del servicio (`presentService`): suma `slug`, `hidden` y, en cada elemento de `employees`, `availabilityId`: `{ id, name, availabilityId }`
 - `UpdateServiceDto`: `{ name?, description?, category?, durationMinutes?, price?, depositPercent?, requiresApproval? }`
 - `depositPercent` (Seña): entero de 0 a 100, porcentaje del precio. Es simbólica: se guarda y se
   muestra, no dispara ningún cobro. Sin él, el Servicio no pide Seña (`null` en la respuesta). Fuera
@@ -128,8 +130,10 @@ Todo Empleado es un Usuario (ADR 0013): nombre y email los presta su cuenta, no 
 | POST | `/businesses/:id/employees` | sí | Agrega un empleado a un negocio por su email (solo el dueño), con su Availability predeterminada "Horario general" (lunes a viernes de 09:00 a 18:00), así puede entrar a cualquier servicio; 201 con el empleado; 422 si ese email no tiene Usuario (mensaje: todavía no tiene cuenta en Agendic, tiene que registrarse); 409 si ya es empleado activo del negocio |
 | DELETE | `/employees/:id` | sí | Da de baja (soft-delete) un empleado (solo el dueño); 422 si es el Dueño dándose de baja a sí mismo |
 | GET | `/businesses/:id/employees` | sí | Lista empleados activos de un negocio (solo el dueño) |
+| GET | `/employees/me/services` | sí | Catálogo de Servicios del panel: un grupo por cada Negocio del que el Usuario es Empleado activo; `[]` (200) si no lo es de ninguno |
 | GET | `/employees/me/bookings` | sí | Mis turnos: todos los Turnos, en cualquier estado, del Usuario de la Sesión como Empleado activo, en todos los Negocios donde lo es; lista vacía (200) si no es Empleado activo de ninguno |
 
+- Respuesta de `GET /employees/me/services` (`presentCatalogGroup`): `[{ business: { id, name, slug }, role: "owner" | "employee", employeeId, branches: [{ id, name, slug, services: [Servicio] }] }]`. `employeeId` es el Empleado del Usuario en ese Negocio; `role` es `owner` si es su Dueño. Las sucursales van ordenadas por `slug` y aparecen aunque no tengan servicios; no trae servicios dados de baja; un servicio oculto sale solo si el Usuario es Dueño del Negocio o lo atiende. Un Empleado dado de baja de un Negocio deja de recibir ese grupo.
 - Respuesta de `GET /employees/me/bookings` (`presentEmployeeBooking`), un elemento por Turno, del más próximo al más lejano: `{ id, status, startsAt, endsAt, clientName, clientEmail, noShowAt, serviceId, serviceName, businessId, businessName, branchId, branchName }`; `noShowAt` es `null` mientras el Turno no tiene Ausencia
 
 - `CreateEmployeeDto`: `{ email }`

@@ -3,7 +3,7 @@ import { EmployeeService, Service } from './service';
 export const SERVICES_REPOSITORY = Symbol('ServicesRepository');
 
 export interface ServicesRepository {
-  /** Throws ConflictError when the name is taken by another active Service of the same Branch, in any casing. */
+  /** Throws ConflictError when the name (in any casing) or the slug is taken by another active Service of the same Branch. */
   create(
     data: Pick<
       Service,
@@ -15,11 +15,13 @@ export interface ServicesRepository {
       | 'price'
       | 'depositPercent'
       | 'requiresApproval'
+      | 'slug'
+      | 'hidden'
     > & { employees: Omit<EmployeeService, 'serviceId'>[] },
   ): Promise<Service>;
   findById(id: number): Promise<Service | null>;
   listActiveByBranch(branchId: number): Promise<Service[]>;
-  /** Leaves undefined fields unchanged. Throws ConflictError on a rename to a taken name. */
+  /** Leaves undefined fields unchanged. Throws ConflictError on a rename to a taken name or slug. */
   update(
     id: number,
     data: Partial<
@@ -32,6 +34,8 @@ export interface ServicesRepository {
         | 'price'
         | 'depositPercent'
         | 'requiresApproval'
+        | 'slug'
+        | 'hidden'
       >
     >,
   ): Promise<Service>;

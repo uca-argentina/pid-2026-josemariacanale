@@ -53,8 +53,11 @@ const SERVICE_ROW = {
   depositPercent: null,
   requiresApproval: false,
   retiredAt: null,
+  slug: 'haircut',
+  hidden: false,
   employees: [
     {
+      availabilityId: 40,
       employee: { id: EMPLOYEE_ROW.id, user: { name: EMPLOYEE_ROW.user.name } },
     },
   ],
@@ -83,6 +86,8 @@ const CREATE_DATA = {
     price: 20,
     depositPercent: null,
     requiresApproval: false,
+    slug: 'haircut',
+    hidden: false,
   },
   employee: {
     userId: ANAS_BUSINESS.ownerId,
@@ -166,7 +171,15 @@ describe('PrismaBusinessesRepository', () => {
       depositPercent: null,
       requiresApproval: false,
       retiredAt: null,
-      employees: [{ id: EMPLOYEE_ROW.id, name: EMPLOYEE_ROW.user.name }],
+      slug: 'haircut',
+      hidden: false,
+      employees: [
+        {
+          id: EMPLOYEE_ROW.id,
+          name: EMPLOYEE_ROW.user.name,
+          availabilityId: 40,
+        },
+      ],
     });
   });
 

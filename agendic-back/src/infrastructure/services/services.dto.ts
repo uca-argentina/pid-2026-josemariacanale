@@ -10,7 +10,7 @@ import {
   Min,
 } from 'class-validator';
 import { ServiceCategory } from '../../domain/services/service';
-import { IfPresent, IsName, IsText } from '../users/users.dto';
+import { IfPresent, IsName, IsSlug, IsText } from '../users/users.dto';
 
 /** Seña: a whole percentage of the price, 0 to 100. */
 const IsDepositPercent = () => applyDecorators(IsInt(), Min(0), Max(100));
@@ -42,6 +42,13 @@ export class ServiceFieldsDto {
   @IfPresent()
   @IsBoolean()
   requiresApproval?: boolean;
+
+  @IsSlug()
+  slug!: string;
+
+  @IfPresent()
+  @IsBoolean()
+  hidden?: boolean;
 }
 
 export class CreateServiceDto extends ServiceFieldsDto {
@@ -91,4 +98,12 @@ export class UpdateServiceDto {
   @IfPresent()
   @IsBoolean()
   requiresApproval?: boolean;
+
+  @IfPresent()
+  @IsSlug()
+  slug?: string;
+
+  @IfPresent()
+  @IsBoolean()
+  hidden?: boolean;
 }

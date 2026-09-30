@@ -2,6 +2,7 @@
 // Hand-written SQL in the migrations, not expressible here (ADR 0004):
 // - no overlapping PENDING or BOOKED Bookings per Employee (exclusion constraint)
 // - Service name unique in any casing among a Branch's Services not retired
+// - Service slug unique per Branch among its Services not retired (partial unique index, ADR 0018)
 // - one active Employee (retiredAt null) per (userId, businessId): a User can be re-hired after being dado de baja
 // - no overlapping AvailabilityIntervals per (availabilityId, weekday), half-open so they can touch (exclusion constraint)
 // - at most one default Availability per Employee (partial unique index)
@@ -96,6 +97,8 @@ model Service {
   depositPercent   Int? // Seña: 0-100, symbolic (never charged); null when the Servicio asks for none
   requiresApproval Boolean         @default(false) // Aprobación manual: verified Turnos are born PENDING instead of BOOKED
   retiredAt        DateTime?       @db.Timestamptz(3) // when dado de baja; null while offered
+  slug             String // Enlace de reserva's last tramo, always lowercase (ADR 0018)
+  hidden           Boolean         @default(false) // Servicio oculto: off the Sucursal's page, reachable only by its own Enlace de reserva
 
   branch    Branch            @relation(fields: [branchId], references: [id])
   employees EmployeeService[]

@@ -270,7 +270,11 @@ export const ANAS_SERVICE: Service = {
   depositPercent: null,
   requiresApproval: false,
   retiredAt: null,
-  employees: [{ id: ANAS_EMPLOYEE.id, name: ANAS_EMPLOYEE.name }],
+  slug: 'haircut',
+  hidden: false,
+  employees: [
+    { id: ANAS_EMPLOYEE.id, name: ANAS_EMPLOYEE.name, availabilityId: 10 },
+  ],
 };
 
 export const CLERK_TOKEN = 'clerk-jwt-1';

@@ -21,9 +21,16 @@ export interface Service {
   /** Aprobación manual: its verified Turnos are born PENDING instead of BOOKED. */
   requiresApproval: boolean;
   retiredAt: Date | null;
+  /** Enlace de reserva's last tramo, lowercase; unique per Sucursal among Servicios not dados de baja. */
+  slug: string;
+  /** Servicio oculto: off the Sucursal's page, reachable only by its own Enlace de reserva. */
+  hidden: boolean;
   /** In charge of it: verified and not dados de baja. */
-  employees: EmployeeSummary[];
+  employees: ServiceEmployee[];
 }
+
+/** An Empleado in charge of a Servicio, with the Availability they attend it with. */
+export type ServiceEmployee = EmployeeSummary & { availabilityId: number };
 
 /** An Empleado attending a Servicio with one of their own Availabilities: a reference, not a copy. */
 export interface EmployeeService {
@@ -40,6 +47,8 @@ export interface CreateServiceInput {
   price: number;
   depositPercent?: number;
   requiresApproval?: boolean;
+  slug: string;
+  hidden?: boolean;
   employeeIds: number[];
 }
 
@@ -52,4 +61,6 @@ export interface UpdateServiceInput {
   /** Null drops the Seña. */
   depositPercent?: number | null;
   requiresApproval?: boolean;
+  slug?: string;
+  hidden?: boolean;
 }

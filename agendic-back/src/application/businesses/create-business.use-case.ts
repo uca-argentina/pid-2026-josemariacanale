@@ -32,12 +32,16 @@ export class CreateBusinessUseCase {
       throw new ConflictError('Ya tenés un Negocio');
     return this.businesses.create({
       business: { ...input.business, ownerId },
-      branch: { ...input.branch, slug: input.branch.slug ?? input.business.slug },
+      branch: {
+        ...input.branch,
+        slug: input.branch.slug ?? input.business.slug,
+      },
       service: {
         ...input.service,
         description: input.service.description ?? null,
         depositPercent: input.service.depositPercent ?? null,
         requiresApproval: input.service.requiresApproval ?? false,
+        hidden: input.service.hidden ?? false,
       },
       employee: { userId: owner.id },
       availability: DEFAULT_AVAILABILITY,

@@ -22,6 +22,8 @@ export interface CreateBusinessData {
     | 'price'
     | 'depositPercent'
     | 'requiresApproval'
+    | 'slug'
+    | 'hidden'
   >;
   /** The Dueño, in charge of that first Servicio. */
   employee: Pick<Employee, 'userId'>;

@@ -13,6 +13,7 @@ import {
   User as UserRow,
 } from '../../generated/prisma/client';
 import { cancelFutureBooked } from '../bookings/cancel-future-booked';
+import { violatedIndex } from '../prisma-errors';
 import { PrismaService } from '../prisma.service';
 
 /** Only the Empleados anyone browsing may see attending a Servicio: not dados de baja. The name comes from the Usuario. */
@@ -20,6 +21,7 @@ export const VISIBLE_EMPLOYEES = {
   employees: {
     where: { employee: { retiredAt: null } },
     select: {
+      availabilityId: true,
       employee: { select: { id: true, user: { select: { name: true } } } },
     },
   },
@@ -27,6 +29,7 @@ export const VISIBLE_EMPLOYEES = {
 
 type ServiceRowWithEmployees = ServiceRow & {
   employees: {
+    availabilityId: number;
     employee: Pick<EmployeeRow, 'id'> & { user: Pick<UserRow, 'name'> };
   }[];
 };
@@ -46,6 +49,8 @@ export class PrismaServicesRepository implements ServicesRepository {
       | 'price'
       | 'depositPercent'
       | 'requiresApproval'
+      | 'slug'
+      | 'hidden'
     > & { employees: Omit<EmployeeService, 'serviceId'>[] },
   ) {
     const { employees, ...service } = data;
@@ -89,6 +94,8 @@ export class PrismaServicesRepository implements ServicesRepository {
         | 'price'
         | 'depositPercent'
         | 'requiresApproval'
+        | 'slug'
+        | 'hidden'
       >
     >,
   ) {
@@ -186,7 +193,9 @@ export class PrismaServicesRepository implements ServicesRepository {
 
   async findEmployeeLink(serviceId: number, employeeId: number) {
     const row = await this.prisma.employeeService
-      .findUnique({ where: { employeeId_serviceId: { employeeId, serviceId } } })
+      .findUnique({
+        where: { employeeId_serviceId: { employeeId, serviceId } },
+      })
       .catch(translateError);
     return row;
   }
@@ -203,18 +212,24 @@ export const toService = (row: ServiceRowWithEmployees): Service => ({
   depositPercent: row.depositPercent,
   requiresApproval: row.requiresApproval,
   retiredAt: row.retiredAt,
-  employees: row.employees.map(({ employee }) => ({
+  slug: row.slug,
+  hidden: row.hidden,
+  employees: row.employees.map(({ employee, availabilityId }) => ({
     id: employee.id,
     name: employee.user.name,
+    availabilityId,
   })),
 });
 
 const translateError = (error: unknown): never => {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     if (error.code === 'P2002')
-      throw new ConflictError('Service name already in use', {
-        cause: error,
-      });
+      throw new ConflictError(
+        violatedIndex(error) === 'Service_branchId_slug_key'
+          ? 'Service booking link already in use'
+          : 'Service name already in use',
+        { cause: error },
+      );
     if (error.code === 'P2025')
       throw new NotFoundError('Service not found', { cause: error });
   }

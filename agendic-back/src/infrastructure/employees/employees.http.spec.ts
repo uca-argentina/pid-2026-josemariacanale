@@ -192,7 +192,15 @@ describe('Empleado', () => {
           depositPercent: null,
           requiresApproval: false,
           retiredAt: null,
-          employees: [{ id: OTHER_EMPLOYEE.id, name: OTHER_EMPLOYEE.name }],
+          slug: 'haircut',
+          hidden: false,
+          employees: [
+            {
+              id: OTHER_EMPLOYEE.id,
+              name: OTHER_EMPLOYEE.name,
+              availabilityId: 20,
+            },
+          ],
         },
       ]);
 
@@ -217,9 +225,15 @@ describe('Empleado', () => {
           depositPercent: null,
           requiresApproval: false,
           retiredAt: null,
+          slug: 'haircut',
+          hidden: false,
           employees: [
-            { id: OTHER_EMPLOYEE.id, name: OTHER_EMPLOYEE.name },
-            { id: 99, name: 'Someone Else' },
+            {
+              id: OTHER_EMPLOYEE.id,
+              name: OTHER_EMPLOYEE.name,
+              availabilityId: 20,
+            },
+            { id: 99, name: 'Someone Else', availabilityId: 990 },
           ],
         },
       ]);

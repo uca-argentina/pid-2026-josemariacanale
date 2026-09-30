@@ -35,6 +35,7 @@ const SERVICE_PART = {
   category: ServiceCategory.SPA,
   durationMinutes: 30,
   price: 20,
+  slug: 'haircut',
 };
 
 const VALID_BODY = {
@@ -59,7 +60,10 @@ const ANAS_SERVICE = {
   depositPercent: null,
   requiresApproval: false,
   retiredAt: null,
-  employees: [{ id: ANAS_EMPLOYEE.id, name: ANAS_EMPLOYEE.name }],
+  hidden: false,
+  employees: [
+    { id: ANAS_EMPLOYEE.id, name: ANAS_EMPLOYEE.name, availabilityId: 10 },
+  ],
 };
 
 const CREATED = {
@@ -94,7 +98,12 @@ describe('Negocio', () => {
       expect(t.businesses.create).toHaveBeenCalledWith({
         business: { ...BUSINESS_PART, ownerId: ANA.id },
         branch: { ...BRANCH_PART, slug: ANAS_BUSINESS.slug },
-        service: { ...SERVICE_PART, depositPercent: null, requiresApproval: false },
+        service: {
+          ...SERVICE_PART,
+          depositPercent: null,
+          requiresApproval: false,
+          hidden: false,
+        },
         employee: { userId: ANA.id },
         availability: {
           name: 'Horario general',
@@ -118,7 +127,15 @@ describe('Negocio', () => {
           price: ANAS_SERVICE.price,
           depositPercent: null,
           requiresApproval: false,
-          employees: [{ id: ANAS_EMPLOYEE.id, name: ANAS_EMPLOYEE.name }],
+          slug: ANAS_SERVICE.slug,
+          hidden: false,
+          employees: [
+            {
+              id: ANAS_EMPLOYEE.id,
+              name: ANAS_EMPLOYEE.name,
+              availabilityId: 10,
+            },
+          ],
         },
         employee: {
           id: ANAS_EMPLOYEE.id,
@@ -159,7 +176,13 @@ describe('Negocio', () => {
 
       expect(t.businesses.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          service: { ...SERVICE_PART, description: null, depositPercent: null, requiresApproval: false },
+          service: {
+            ...SERVICE_PART,
+            description: null,
+            depositPercent: null,
+            requiresApproval: false,
+            hidden: false,
+          },
         }),
       );
     });
@@ -178,7 +201,12 @@ describe('Negocio', () => {
 
       expect(t.businesses.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          service: { ...SERVICE_PART, depositPercent: 20, requiresApproval: false },
+          service: {
+            ...SERVICE_PART,
+            depositPercent: 20,
+            requiresApproval: false,
+            hidden: false,
+          },
         }),
       );
     });

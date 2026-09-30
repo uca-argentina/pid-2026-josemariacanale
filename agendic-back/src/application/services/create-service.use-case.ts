@@ -69,6 +69,8 @@ export class CreateServiceUseCase {
       price: input.price,
       depositPercent: input.depositPercent ?? null,
       requiresApproval: input.requiresApproval ?? false,
+      slug: input.slug,
+      hidden: input.hidden ?? false,
       employees,
     });
   }

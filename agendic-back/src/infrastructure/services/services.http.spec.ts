@@ -54,7 +54,9 @@ const scriptAvailabilities = ({ availabilities }: TestApp) => {
   );
 };
 
-const IN_CHARGE = [{ id: ANAS_EMPLOYEE.id, name: ANAS_EMPLOYEE.name }];
+const IN_CHARGE = [
+  { id: ANAS_EMPLOYEE.id, name: ANAS_EMPLOYEE.name, availabilityId: 10 },
+];
 
 const VALID_SERVICE = {
   name: 'Haircut',
@@ -62,6 +64,7 @@ const VALID_SERVICE = {
   category: ServiceCategory.SPA,
   durationMinutes: 30,
   price: 20,
+  slug: 'haircut',
   employeeIds: [ANAS_EMPLOYEE.id],
 };
 
@@ -76,6 +79,8 @@ const SERVICE = {
   depositPercent: null,
   requiresApproval: false,
   retiredAt: null,
+  slug: VALID_SERVICE.slug,
+  hidden: false,
   employees: IN_CHARGE,
 };
 
@@ -89,6 +94,8 @@ const PRESENTED_SERVICE = {
   price: SERVICE.price,
   depositPercent: SERVICE.depositPercent,
   requiresApproval: SERVICE.requiresApproval,
+  slug: SERVICE.slug,
+  hidden: SERVICE.hidden,
   employees: IN_CHARGE,
 };
 
@@ -123,6 +130,7 @@ describe('Servicio', () => {
         ...fields,
         depositPercent: null,
         requiresApproval: false,
+        hidden: false,
         employees: [{ employeeId: ANAS_EMPLOYEE.id, availabilityId: 10 }],
       });
       expect(res.body).toEqual(PRESENTED_SERVICE);
@@ -144,7 +152,10 @@ describe('Servicio', () => {
     });
 
     it('creates a Servicio with Aprobación manual', async () => {
-      t.services.create.mockResolvedValue({ ...SERVICE, requiresApproval: true });
+      t.services.create.mockResolvedValue({
+        ...SERVICE,
+        requiresApproval: true,
+      });
 
       const res = await t.http
         .post(`/branches/${BRANCH.id}/services`)
@@ -186,6 +197,8 @@ describe('Servicio', () => {
         price: VALID_SERVICE.price,
         depositPercent: null,
         requiresApproval: false,
+        slug: VALID_SERVICE.slug,
+        hidden: false,
         employees: [{ employeeId: ANAS_EMPLOYEE.id, availabilityId: 10 }],
       });
     });
@@ -292,6 +305,52 @@ describe('Servicio', () => {
         .expect(409);
     });
 
+    it('creates a hidden Servicio with its slug in lowercase', async () => {
+      t.services.create.mockResolvedValue({
+        ...SERVICE,
+        slug: 'corte-de-pelo',
+        hidden: true,
+      });
+
+      const res = await t.http
+        .post(`/branches/${BRANCH.id}/services`)
+        .set(bearer(CLERK_TOKEN))
+        .send({ ...VALID_SERVICE, slug: 'Corte-De-Pelo', hidden: true })
+        .expect(201);
+
+      expect(t.services.create).toHaveBeenCalledWith(
+        expect.objectContaining({ slug: 'corte-de-pelo', hidden: true }),
+      );
+      expect(res.body).toMatchObject({ slug: 'corte-de-pelo', hidden: true });
+    });
+
+    it('answers 409 when the slug is already used by an active Servicio in the same Sucursal', async () => {
+      t.services.create.mockRejectedValue(
+        new ConflictError('Service booking link already in use'),
+      );
+
+      const res = await t.http
+        .post(`/branches/${BRANCH.id}/services`)
+        .set(bearer(CLERK_TOKEN))
+        .send(VALID_SERVICE)
+        .expect(409);
+
+      expect(res.body.message).toBe('Service booking link already in use');
+    });
+
+    it.each([
+      ['a missing slug', { slug: undefined }],
+      ['a malformed slug', { slug: 'corte de pelo!' }],
+      ['a non-boolean hidden', { hidden: 'yes' }],
+    ])('answers 400 for %s', async (_, patch) => {
+      await t.http
+        .post(`/branches/${BRANCH.id}/services`)
+        .set(bearer(CLERK_TOKEN))
+        .send({ ...VALID_SERVICE, ...patch })
+        .expect(400);
+      expect(t.services.create).not.toHaveBeenCalled();
+    });
+
     it.each([
       ['a blank name', { name: ' ' }],
       ['a missing name', { name: undefined }],
@@ -359,7 +418,10 @@ describe('Servicio', () => {
     });
 
     it('turns on Aprobación manual', async () => {
-      t.services.update.mockResolvedValue({ ...SERVICE, requiresApproval: true });
+      t.services.update.mockResolvedValue({
+        ...SERVICE,
+        requiresApproval: true,
+      });
 
       const res = await t.http
         .patch(`/services/${SERVICE.id}`)
@@ -399,7 +461,6 @@ describe('Servicio', () => {
 
       expect(t.services.update).toHaveBeenCalledWith(SERVICE.id, {
         depositPercent: null,
-
       });
       expect(res.body.depositPercent).toBeNull();
     });
@@ -429,6 +490,38 @@ describe('Servicio', () => {
         .set(bearer(CLERK_TOKEN))
         .send({ price: 25 })
         .expect(404);
+    });
+
+    it('changes the slug and hides the Servicio', async () => {
+      t.services.update.mockResolvedValue({
+        ...SERVICE,
+        slug: 'nuevo',
+        hidden: true,
+      });
+
+      const res = await t.http
+        .patch(`/services/${SERVICE.id}`)
+        .set(bearer(CLERK_TOKEN))
+        .send({ slug: 'Nuevo', hidden: true })
+        .expect(200);
+
+      expect(t.services.update).toHaveBeenCalledWith(SERVICE.id, {
+        slug: 'nuevo',
+        hidden: true,
+      });
+      expect(res.body).toMatchObject({ slug: 'nuevo', hidden: true });
+    });
+
+    it('answers 409 on a slug already in use in the Sucursal', async () => {
+      t.services.update.mockRejectedValue(
+        new ConflictError('Service booking link already in use'),
+      );
+
+      await t.http
+        .patch(`/services/${SERVICE.id}`)
+        .set(bearer(CLERK_TOKEN))
+        .send({ slug: 'taken' })
+        .expect(409);
     });
 
     it('answers 409 on a rename to a taken name', async () => {
@@ -552,7 +645,11 @@ describe('Servicio', () => {
         ...SERVICE,
         employees: [
           ...IN_CHARGE,
-          { id: OTHER_EMPLOYEE.id, name: OTHER_EMPLOYEE.name },
+          {
+            id: OTHER_EMPLOYEE.id,
+            name: OTHER_EMPLOYEE.name,
+            availabilityId: 20,
+          },
         ],
       });
 
@@ -570,6 +667,7 @@ describe('Servicio', () => {
       expect(res.body.employees).toContainEqual({
         id: OTHER_EMPLOYEE.id,
         name: OTHER_EMPLOYEE.name,
+        availabilityId: 20,
       });
     });
 
@@ -841,6 +939,111 @@ describe('Servicio', () => {
       t.branches.findById.mockResolvedValue(null);
 
       await t.http.get('/branches/999/services').expect(404);
+    });
+  });
+
+  describe('GET /employees/me/services', () => {
+    const BRUNOS_BUSINESS = {
+      ...ANAS_BUSINESS,
+      id: 2,
+      ownerId: 2,
+      slug: 'brunos',
+    };
+    const BRANCH_B = { ...ANAS_BRANCH, id: 3, businessId: 2, slug: 'b-sur' };
+    const BRANCH_A = { ...ANAS_BRANCH, id: 4, businessId: 2, slug: 'a-norte' };
+    const ANAS_SEAT_AT_BRUNOS = { ...ANAS_EMPLOYEE, id: 5, businessId: 2 };
+    const brunosService = (
+      id: number,
+      hidden: boolean,
+      attendedBy: number[],
+    ) => ({
+      ...SERVICE,
+      id,
+      branchId: BRANCH_B.id,
+      slug: `s${id}`,
+      hidden,
+      employees: attendedBy.map((employeeId) => ({
+        id: employeeId,
+        name: 'x',
+        availabilityId: 99,
+      })),
+    });
+    const ids = (services: { id: number }[]) => services.map(({ id }) => id);
+
+    beforeEach(() => {
+      scriptSession(t);
+      t.businesses.findById.mockImplementation(
+        async (id) =>
+          [ANAS_BUSINESS, BRUNOS_BUSINESS].find((b) => b.id === id) ?? null,
+      );
+      t.branches.listByBusiness.mockImplementation(async (id) =>
+        id === ANAS_BUSINESS.id ? [ANAS_BRANCH] : [BRANCH_B, BRANCH_A],
+      );
+    });
+
+    it('answers a group per Negocio, as Dueño of one and Empleado of another, branches by slug, hidden Servicios only when allowed', async () => {
+      t.employees.listActiveByUser.mockResolvedValue([
+        ANAS_EMPLOYEE,
+        ANAS_SEAT_AT_BRUNOS,
+      ]);
+      const hiddenOfMine = {
+        ...SERVICE,
+        id: 8,
+        slug: 'mine',
+        hidden: true,
+        employees: [],
+      };
+      t.services.listActiveByBranch.mockImplementation(async (branchId) => {
+        if (branchId === ANAS_BRANCH.id) return [hiddenOfMine];
+        if (branchId === BRANCH_B.id)
+          return [
+            brunosService(10, false, [9]),
+            brunosService(11, true, [9]),
+            brunosService(12, true, [ANAS_SEAT_AT_BRUNOS.id]),
+          ];
+        return [];
+      });
+
+      const res = await t.http
+        .get('/employees/me/services')
+        .set(bearer(CLERK_TOKEN))
+        .expect(200);
+
+      expect(res.body).toHaveLength(2);
+      expect(res.body[0]).toMatchObject({
+        business: {
+          id: ANAS_BUSINESS.id,
+          name: ANAS_BUSINESS.name,
+          slug: ANAS_BUSINESS.slug,
+        },
+        role: 'owner',
+        employeeId: ANAS_EMPLOYEE.id,
+      });
+      expect(ids(res.body[0].branches[0].services)).toEqual([8]);
+      expect(res.body[1]).toMatchObject({
+        role: 'employee',
+        employeeId: ANAS_SEAT_AT_BRUNOS.id,
+      });
+      expect(res.body[1].branches.map((b: { slug: string }) => b.slug)).toEqual(
+        ['a-norte', 'b-sur'],
+      );
+      expect(res.body[1].branches[0].services).toEqual([]);
+      expect(ids(res.body[1].branches[1].services)).toEqual([10, 12]);
+    });
+
+    it('answers [] for a Usuario who is not Empleado of anything', async () => {
+      t.employees.listActiveByUser.mockResolvedValue([]);
+
+      const res = await t.http
+        .get('/employees/me/services')
+        .set(bearer(CLERK_TOKEN))
+        .expect(200);
+
+      expect(res.body).toEqual([]);
+    });
+
+    it('answers 401 without a Sesión', async () => {
+      await t.http.get('/employees/me/services').expect(401);
     });
   });
 });
