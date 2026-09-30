@@ -70,8 +70,9 @@ export function BranchPublicPage({
     const [flowOpen, setFlowOpen] = useState(false);
     const [booking, setBooking] = useState<Booking | null>(null);
     const [galleryOpen, setGalleryOpen] = useState(false);
+    const [currentBranch, setCurrentBranch] = useState(branch);
 
-    const photos = branch.images?.length > 0 ? branch.images : ['https://picsum.photos/seed/placeholder-branch/1200/900'];
+    const photos = currentBranch.images?.length > 0 ? currentBranch.images : ['https://picsum.photos/seed/placeholder-currentBranch/1200/900'];
 
     const openFlow = (service: Service | null) => {
         setInitialService(service);
@@ -82,7 +83,7 @@ export function BranchPublicPage({
         return <MyBookings booking={booking} onBackToBusiness={() => setBooking(null)} />;
     }
 
-    const otherBranches = branches.filter((b) => b.id !== branch.id);
+    const otherBranches = branches.filter((b) => b.id !== currentBranch.id);
     const shown = services.filter((s) => s.category === category);
 
     return (
@@ -95,15 +96,15 @@ export function BranchPublicPage({
                     <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-[14.5px] font-medium text-muted-foreground">
                         <span className="flex items-center gap-1.5">
                             <Building2 className="size-4" />
-                            Sucursal {branch.name}
+                            Sucursal {currentBranch.name}
                         </span>
                         <span className="flex items-center gap-1.5">
                             <Clock className="size-4" />
-                            Atiende de {branch.opensAt} a {branch.closesAt}
+                            Atiende de {currentBranch.opensAt} a {currentBranch.closesAt}
                         </span>
                         <span className="flex items-center gap-1.5">
                             <MapPin className="size-4" />
-                            {branch.address}
+                            {currentBranch.address}
                         </span>
                     </div>
                 </header>
@@ -112,7 +113,7 @@ export function BranchPublicPage({
                     <div className="relative aspect-[4/3] overflow-hidden rounded-2xl md:aspect-auto md:min-h-[420px]">
                         <Image
                             src={photos[0]}
-                            alt={`Sucursal ${branch.name} de ${business.name}`}
+                            alt={`Sucursal ${currentBranch.name} de ${business.name}`}
                             fill
                             priority
                             sizes="(max-width: 768px) 100vw, 66vw"
@@ -182,7 +183,7 @@ export function BranchPublicPage({
                                         {business.name}
                                     </h2>
                                     <p className="mt-0.5 text-[13px] text-muted-foreground">
-                                        {branch.name} · {branch.address}
+                                        {currentBranch.name} · {currentBranch.address}
                                     </p>
                                 </div>
                             </div>
@@ -200,13 +201,13 @@ export function BranchPublicPage({
                                     <dt className="sr-only">Horario</dt>
                                     <Clock className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
                                     <dd className="font-medium">
-                                        {branch.opensAt} a {branch.closesAt}
+                                        {currentBranch.opensAt} a {currentBranch.closesAt}
                                     </dd>
                                 </div>
                                 <div className="flex gap-2">
                                     <dt className="sr-only">Dirección</dt>
                                     <MapPin className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-                                    <dd className="font-medium">{branch.address}</dd>
+                                    <dd className="font-medium">{currentBranch.address}</dd>
                                 </div>
                             </dl>
 
@@ -219,7 +220,7 @@ export function BranchPublicPage({
                                         {otherBranches.map((b) => (
                                             <li key={b.id} className="text-[13.5px]">
                                                 {/* ponytail: Branch no tiene slug todavía; cuando lo tenga, esto es un Link a /{business.slug}/{b.slug}. */}
-                                                <span className="font-bold">{b.name}</span>
+                                                <button onClick={() => setCurrentBranch(b)} className="font-bold text-left hover:underline">{b.name}</button>
                                                 <span className="text-muted-foreground">
                                                     {' '}
                                                     · {b.address}
@@ -237,7 +238,7 @@ export function BranchPublicPage({
             {flowOpen && (
                 <BookingFlow
                     business={business}
-                    branch={branch}
+                    branch={currentBranch}
                     services={services}
                     categories={categories}
                     photo={photos[0]}
@@ -260,7 +261,7 @@ export function BranchPublicPage({
                     </header>
                     <div className="flex-1 overflow-y-auto p-4 md:p-8">
                         <div className="mx-auto max-w-4xl space-y-8">
-                            {branch.images.length > 0 ? branch.images.map((src) => (
+                            {currentBranch.images.length > 0 ? currentBranch.images.map((src) => (
                                 <div key={src} className="relative aspect-[4/3] w-full overflow-hidden rounded-xl bg-muted">
                                     <Image src={src} alt="" fill className="object-contain" unoptimized />
                                 </div>
