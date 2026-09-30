@@ -87,6 +87,7 @@ describe('Mis turnos del Empleado', () => {
       expect(res.body).toEqual([
         {
           id: 1,
+          employeeId: 1,
           status: 'BOOKED',
           startsAt: BOOKED.startsAt.toISOString(),
           endsAt: BOOKED.endsAt.toISOString(),

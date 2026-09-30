@@ -26,6 +26,7 @@ export const presentBookingWithNoShow = (booking: Booking) => ({
 /** Mis turnos: the Cliente's data and where the Turno happens, for the assigned Empleado. */
 export const presentEmployeeBooking = (booking: EmployeeBooking) => ({
   id: booking.id,
+  employeeId: booking.employeeId,
   status: booking.status,
   startsAt: booking.startsAt,
   endsAt: booking.endsAt,
