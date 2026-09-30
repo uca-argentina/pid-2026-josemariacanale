@@ -3,7 +3,9 @@ import type { AvailabilityInterval as ApiInterval } from '@/src/entities/models/
 /** Una Franja en el editor: `['HH:mm', 'HH:mm']` en 24 h. Nunca cruza la medianoche. */
 export type AvailabilityInterval = [from: string, to: string];
 
+/** Nombres de los días, lunes primero. */
 export const DAY_NAMES = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+/** Nombres cortos de los días, lunes primero. */
 export const DAY_SHORT = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
 export const DEFAULT_INTERVAL: AvailabilityInterval = ['09:00', '18:00'];
@@ -36,6 +38,7 @@ export function invalidIntervals(intervals: AvailabilityInterval[]): number[] {
     );
 }
 
+/** Si ninguna Franja del día es vacía, invertida ni solapada. */
 export const intervalsValid = (intervals: AvailabilityInterval[]) => invalidIntervals(intervals).length === 0;
 
 const formatInterval = ([from, to]: AvailabilityInterval) => `${from} - ${to}`;
@@ -64,6 +67,7 @@ export function summarize(days: AvailabilityInterval[][]): string[] {
     return [...daysByInterval].map(([interval, ds]) => `${dayRuns(ds)}, ${interval}`);
 }
 
+/** Las Franjas de un día en una línea: `"09:00 - 13:00, 14:00 - 18:00"`. */
 export const formatIntervals = (intervals: AvailabilityInterval[]) => intervals.map(formatInterval).join(', ');
 
 /** Los días del editor, lunes primero: la Franja que manda el back (`weekday` 0 = domingo) cae en el índice `(weekday + 6) % 7`. */

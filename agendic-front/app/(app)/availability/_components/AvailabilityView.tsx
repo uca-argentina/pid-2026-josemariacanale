@@ -18,6 +18,7 @@ import {
 import { AvailabilityEditor } from './AvailabilityEditor';
 import { AvailabilityList } from './AvailabilityList';
 
+/** Horas laborables tal como las presenta el controller. */
 export interface AvailabilityItem {
     id: number;
     name: string;
@@ -25,6 +26,7 @@ export interface AvailabilityItem {
     intervals: ApiInterval[];
 }
 
+/** Un Empleado del Staff para el selector; `isOwner` marca al Dueño. */
 export interface StaffMember {
     id: number;
     name: string;
