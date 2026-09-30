@@ -36,6 +36,7 @@ function assertValidRange(from: string, to: string): void {
     );
 }
 
+/** Lista los Horarios reservables de un Empleado para un Servicio; `excludeBookingId` deja libre el horario de un Turno que se está Reagendando. */
 @Injectable()
 export class ListSlotsUseCase {
   constructor(
@@ -54,6 +55,7 @@ export class ListSlotsUseCase {
     employeeId: number,
     from: string,
     to: string,
+    excludeBookingId?: number,
   ): Promise<{ timeZone: string; days: DaySlots[] }> {
     assertValidRange(from, to);
 
@@ -77,6 +79,7 @@ export class ListSlotsUseCase {
       employeeId,
       new Date(new Date(`${from}T00:00:00.000Z`).getTime() - 86_400_000),
       new Date(new Date(`${to}T00:00:00.000Z`).getTime() + 2 * 86_400_000),
+      excludeBookingId,
     );
 
     return {

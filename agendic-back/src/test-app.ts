@@ -120,6 +120,7 @@ export async function createTestApp() {
     create: jest.fn(),
     findById: jest.fn(),
     listActiveByBusiness: jest.fn(),
+    listActiveByUser: jest.fn(),
     retire: jest.fn(),
   };
   const services: jest.Mocked<ServicesRepository> = {
@@ -142,6 +143,10 @@ export async function createTestApp() {
     resolvePending: jest.fn(),
     listByBusiness: jest.fn(),
     listOccupiedByEmployee: jest.fn(),
+    listByEmployees: jest.fn(),
+    cancel: jest.fn(),
+    reschedule: jest.fn(),
+    markNoShow: jest.fn(),
   };
   const availabilities: jest.Mocked<AvailabilitiesRepository> = {
     listByEmployee: jest.fn(),

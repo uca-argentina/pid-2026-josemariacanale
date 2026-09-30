@@ -128,6 +128,9 @@ Todo Empleado es un Usuario (ADR 0013): nombre y email los presta su cuenta, no 
 | POST | `/businesses/:id/employees` | sí | Agrega un empleado a un negocio por su email (solo el dueño), con su Availability predeterminada "Horario general" (lunes a viernes de 09:00 a 18:00), así puede entrar a cualquier servicio; 201 con el empleado; 422 si ese email no tiene Usuario (mensaje: todavía no tiene cuenta en Agendic, tiene que registrarse); 409 si ya es empleado activo del negocio |
 | DELETE | `/employees/:id` | sí | Da de baja (soft-delete) un empleado (solo el dueño); 422 si es el Dueño dándose de baja a sí mismo |
 | GET | `/businesses/:id/employees` | sí | Lista empleados activos de un negocio (solo el dueño) |
+| GET | `/employees/me/bookings` | sí | Mis turnos: todos los Turnos, en cualquier estado, del Usuario de la Sesión como Empleado activo, en todos los Negocios donde lo es; lista vacía (200) si no es Empleado activo de ninguno |
+
+- Respuesta de `GET /employees/me/bookings` (`presentEmployeeBooking`), un elemento por Turno, del más próximo al más lejano: `{ id, status, startsAt, endsAt, clientName, clientEmail, noShowAt, serviceId, serviceName, businessId, businessName, branchId, branchName }`; `noShowAt` es `null` mientras el Turno no tiene Ausencia
 
 - `CreateEmployeeDto`: `{ email }`
 - Respuesta (`presentEmployee`): `{ id, userId, name, email }` — vista del dueño; en el array
@@ -205,6 +208,9 @@ del Empleado: cualquier otro Usuario recibe 403.
 | POST | `/bookings/verification` | no | Verifica un turno por token (del link del email); re-chequea todas las reglas, puede devolver 409 si el horario se ocupó mientras tanto. Queda `BOOKED`, o `PENDING` si el Servicio tiene `requiresApproval` |
 | PATCH | `/bookings/:id/accept` | sí | Acepta un Turno pendiente: `PENDING` → `BOOKED` (solo el Empleado asignado) |
 | PATCH | `/bookings/:id/reject` | sí | Rechaza un Turno pendiente: `PENDING` → `REJECTED`, libera el horario (solo el Empleado asignado) |
+| PATCH | `/bookings/:id/cancel` | sí | Cancela un Turno aceptado: `BOOKED` → `CANCELLED`, libera el horario (solo el Empleado asignado) |
+| PATCH | `/bookings/:id/reschedule` | sí | Reagenda un Turno aceptado a otro Horario reservable del mismo Servicio y Empleado; sigue `BOOKED` y no repite la Verificación de email (solo el Empleado asignado) |
+| PATCH | `/bookings/:id/no-show` | sí | Marca la Ausencia de un Turno aceptado cuyo horario ya pasó: guarda `noShowAt` con la hora actual, sin cambiar `status` (solo el Empleado asignado) |
 | GET | `/businesses/:id/bookings` | sí | Lista todos los turnos de un negocio (solo el dueño) |
 
 - `CreateBookingDto`: `{ serviceId, employeeId, startsAt: ISO date-string, clientName, clientEmail, notes? }`
@@ -217,6 +223,9 @@ del Empleado: cualquier otro Usuario recibe 403.
   `UNVERIFIED`, con o sin `requiresApproval`.
 - **Aceptar / Rechazar**: exigen Sesión y que el usuario sea el Empleado asignado al Turno (403 `Only the assigned Employee can accept or reject this Turno` si no; 404 si el Turno no existe). Un Turno que no
   está `PENDING` da 422 `Turno is not pending`. Responden el Turno (`presentBooking`).
+- **Cancelar / Reagendar / Ausencia**: exigen Sesión y ser el Empleado asignado al Turno (403 `Only the assigned Employee can act on this Turno`; 404 si el Turno no existe). Un Turno que no está `BOOKED` da 422 `Turno is not booked`. Responden el Turno (`presentBooking`); Ausencia le suma `noShowAt`.
+  - `RescheduleBookingDto`: `{ startsAt: ISO date-string }`; la duración se conserva. `startsAt` inválido → 400. Si pisa otro Turno `PENDING` o `BOOKED` del Empleado (sin contar el propio) → 409 `Overlaps a booked Turno for this Employee`; si no es un Horario reservable según las mismas reglas que `GET /services/:id/slots` (Franjas, Anulaciones, Sucursal, reloj) → 422 `startsAt is not a Horario reservable`. El horario que el Turno ya ocupaba cuenta como libre.
+  - Ausencia: 422 si el Turno no terminó todavía (`Turno has not ended yet`) o ya tiene Ausencia (`Turno already has an Ausencia`).
 - **Horario ocupado (409 `Overlaps a booked Turno for this Employee`)**. Un Turno sin verificar no
   mantiene reservado su horario: lo toma recién al verificarse. Por eso:
   - `POST /bookings` → 409 si el horario pisa un Turno `PENDING` o `BOOKED` del mismo Empleado.

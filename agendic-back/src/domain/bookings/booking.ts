@@ -17,6 +17,17 @@ export interface Booking {
   status: BookingStatus;
   /** Comentario del Turno. */
   notes: string | null;
+  /** Ausencia: when the Empleado marked it; null while not marked. */
+  noShowAt: Date | null;
+}
+
+/** A Turno as its Empleado sees it in Mis turnos: with the names of where it happens. */
+export interface EmployeeBooking extends Booking {
+  serviceName: string;
+  businessId: number;
+  businessName: string;
+  branchId: number;
+  branchName: string;
 }
 
 export interface CreateBookingInput {

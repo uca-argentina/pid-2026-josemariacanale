@@ -39,6 +39,7 @@ const BOOKING: Booking = {
   endsAt: new Date('2026-01-01T12:30:00.000Z'),
   status: BookingStatus.UNVERIFIED,
   notes: null,
+  noShowAt: null,
 };
 
 describe('Turno', () => {

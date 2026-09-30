@@ -34,3 +34,8 @@ export class VerifyBookingDto {
   @IsString()
   token!: string;
 }
+
+export class RescheduleBookingDto {
+  @IsDateString()
+  startsAt!: string;
+}

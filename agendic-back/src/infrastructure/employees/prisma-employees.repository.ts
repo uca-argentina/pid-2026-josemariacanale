@@ -68,6 +68,14 @@ export class PrismaEmployeesRepository implements EmployeesRepository {
     return row && toEmployee(row);
   }
 
+  async listActiveByUser(userId: number) {
+    return (
+      await this.prisma.employee
+        .findMany({ where: { userId, retiredAt: null }, include: WITH_USER })
+        .catch(translateError)
+    ).map(toEmployee);
+  }
+
   async listActiveByBusiness(businessId: number) {
     return (
       await this.prisma.employee

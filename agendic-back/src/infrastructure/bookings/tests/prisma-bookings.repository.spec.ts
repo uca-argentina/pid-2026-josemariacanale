@@ -27,6 +27,8 @@ const BOOKING_ROW = {
   verificationTokenHash: 'hash',
   verificationTokenExpiresAt: new Date('2026-01-02T12:00:00.000Z'),
   createdAt: new Date('2026-01-01T12:00:00.000Z'),
+  notes: null,
+  noShowAt: null,
 };
 
 describe('PrismaBookingsRepository', () => {
@@ -84,6 +86,8 @@ describe('PrismaBookingsRepository', () => {
       startsAt: BOOKING_ROW.startsAt,
       endsAt: BOOKING_ROW.endsAt,
       status: BOOKING_ROW.status,
+      notes: null,
+      noShowAt: null,
     });
   });
 
@@ -208,6 +212,70 @@ describe('PrismaBookingsRepository', () => {
 
       expect(error).toBeInstanceOf(DatabaseOperationError);
       expect(error).toHaveProperty('cause', cause);
+    });
+  });
+
+  describe('acting on BOOKED Turnos', () => {
+    const NOW = new Date('2026-01-02T12:00:00.000Z');
+
+    beforeEach(() => prisma.booking.findUnique.mockResolvedValue(BOOKING_ROW));
+
+    it('cancel only touches a BOOKED Turno', async () => {
+      prisma.booking.updateMany.mockResolvedValue({ count: 1 });
+
+      await repository.cancel(1);
+
+      expect(prisma.booking.updateMany).toHaveBeenCalledWith({
+        where: { id: 1, status: BookingStatus.BOOKED },
+        data: { status: BookingStatus.CANCELLED },
+      });
+    });
+
+    it('answers BusinessRuleError when the Turno stopped being BOOKED', async () => {
+      prisma.booking.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(repository.cancel(1)).rejects.toBeInstanceOf(BusinessRuleError);
+      await expect(
+        repository.reschedule(1, NOW, NOW),
+      ).rejects.toBeInstanceOf(BusinessRuleError);
+    });
+
+    it('translates the overlap exclusion violation into ConflictError on reschedule', async () => {
+      const cause = knownError('P2039');
+      cause.meta = { driverAdapterError: { cause: { originalCode: '23P01' } } };
+      prisma.booking.updateMany.mockRejectedValue(cause);
+
+      await expect(repository.reschedule(1, NOW, NOW)).rejects.toBeInstanceOf(
+        ConflictError,
+      );
+    });
+
+    it('markNoShow requires an ended Turno without an Ausencia', async () => {
+      prisma.booking.updateMany.mockResolvedValue({ count: 1 });
+
+      await repository.markNoShow(1, NOW);
+
+      expect(prisma.booking.updateMany).toHaveBeenCalledWith({
+        where: {
+          id: 1,
+          status: BookingStatus.BOOKED,
+          endsAt: { lte: NOW },
+          noShowAt: null,
+        },
+        data: { noShowAt: NOW },
+      });
+    });
+
+    it('excludes the given Turno from the occupied horarios', async () => {
+      prisma.booking.findMany.mockResolvedValue([]);
+
+      await repository.listOccupiedByEmployee(1, NOW, NOW, 9);
+
+      expect(prisma.booking.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ id: { not: 9 } }),
+        }),
+      );
     });
   });
 });

@@ -1,4 +1,4 @@
-import { Booking, BookingStatus } from './booking';
+import { Booking, BookingStatus, EmployeeBooking } from './booking';
 
 export const BOOKINGS_REPOSITORY = Symbol('BookingsRepository');
 
@@ -18,11 +18,12 @@ export interface BookingsRepository {
     data: CreateBookingData,
     expiresAt: Date,
   ): Promise<{ booking: Booking; token: string }>;
-  /** Whether a PENDING or BOOKED Booking of the same Empleado overlaps [startsAt, endsAt). */
+  /** Whether a PENDING or BOOKED Booking of the same Empleado overlaps [startsAt, endsAt), leaving out `excludeBookingId`. */
   hasOverlappingOccupied(
     employeeId: number,
     startsAt: Date,
     endsAt: Date,
+    excludeBookingId?: number,
   ): Promise<boolean>;
   /** Throws BusinessRuleError for an unknown, used or expired token. */
   findByVerificationToken(token: string, now: Date): Promise<Booking>;
@@ -39,10 +40,19 @@ export interface BookingsRepository {
     status: BookingStatus.BOOKED | BookingStatus.REJECTED,
   ): Promise<Booking>;
   listByBusiness(businessId: number): Promise<Booking[]>;
-  /** PENDING and BOOKED Turnos of this Empleado, in any of their Servicios, overlapping [from, to). */
+  /** PENDING and BOOKED Turnos of this Empleado, in any of their Servicios, overlapping [from, to), leaving out `excludeBookingId`. */
   listOccupiedByEmployee(
     employeeId: number,
     from: Date,
     to: Date,
+    excludeBookingId?: number,
   ): Promise<Pick<Booking, 'startsAt' | 'endsAt'>[]>;
+  /** Every Turno, in any status, of these Empleados. */
+  listByEmployees(employeeIds: number[]): Promise<EmployeeBooking[]>;
+  /** Moves a BOOKED Booking to CANCELLED. Throws BusinessRuleError if it is no longer BOOKED. */
+  cancel(id: number): Promise<Booking>;
+  /** Moves a BOOKED Booking to [startsAt, endsAt). Throws BusinessRuleError if it is no longer BOOKED, ConflictError if it now overlaps another. */
+  reschedule(id: number, startsAt: Date, endsAt: Date): Promise<Booking>;
+  /** Sets noShowAt on a BOOKED Booking whose endsAt has passed and has none yet. Throws BusinessRuleError otherwise. */
+  markNoShow(id: number, now: Date): Promise<Booking>;
 }

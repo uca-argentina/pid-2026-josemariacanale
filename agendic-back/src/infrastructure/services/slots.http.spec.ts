@@ -90,6 +90,7 @@ describe('GET /services/:id/slots', () => {
       ANAS_EMPLOYEE.id,
       expect.any(Date),
       expect.any(Date),
+      undefined,
     );
   });
 

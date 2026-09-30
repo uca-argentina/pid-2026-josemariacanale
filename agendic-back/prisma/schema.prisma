@@ -181,6 +181,7 @@ model Booking {
   endsAt                     DateTime      @db.Timestamptz(3) // startsAt + Service.durationMinutes, fixed at booking
   status                     BookingStatus @default(UNVERIFIED)
   notes                      String? // Comentario del Turno, up to 500 characters (checked by the API)
+  noShowAt                   DateTime?     @db.Timestamptz(3) // Ausencia: when the Empleado marked it; never replaces status
   verificationTokenHash      String? // sha256 of the token, never the token itself
   verificationTokenExpiresAt DateTime?     @db.Timestamptz(3)
   createdAt                  DateTime      @default(now()) @db.Timestamptz(3)

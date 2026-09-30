@@ -8,10 +8,12 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { ListMyBookingsUseCase } from '../../application/bookings/list-my-bookings.use-case';
 import { AddEmployeeUseCase } from '../../application/employees/add-employee.use-case';
 import { ListEmployeesByBusinessUseCase } from '../../application/employees/list-employees-by-business.use-case';
 import { RetireEmployeeUseCase } from '../../application/employees/retire-employee.use-case';
 import { ClerkGuard, CurrentUser } from '../users/clerk.guard';
+import { presentEmployeeBooking } from '../bookings/booking.presenter';
 import { presentEmployee } from './employee.presenter';
 import { CreateEmployeeDto } from './employees.dto';
 
@@ -21,6 +23,7 @@ export class EmployeesController {
     private readonly addEmployeeUseCase: AddEmployeeUseCase,
     private readonly listEmployeesByBusinessUseCase: ListEmployeesByBusinessUseCase,
     private readonly retireEmployeeUseCase: RetireEmployeeUseCase,
+    private readonly listMyBookingsUseCase: ListMyBookingsUseCase,
   ) {}
 
   @Post('businesses/:id/employees')
@@ -42,6 +45,14 @@ export class EmployeesController {
     @Param('id', ParseIntPipe) id: number,
   ) {
     return this.retireEmployeeUseCase.execute(userId, id);
+  }
+
+  @Get('employees/me/bookings')
+  @UseGuards(ClerkGuard)
+  async listMyBookings(@CurrentUser() userId: number) {
+    return (await this.listMyBookingsUseCase.execute(userId)).map(
+      presentEmployeeBooking,
+    );
   }
 
   @Get('businesses/:id/employees')
