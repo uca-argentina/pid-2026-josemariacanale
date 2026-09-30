@@ -2,17 +2,15 @@
 
 import { useId, useState } from 'react';
 import { Popover } from 'radix-ui';
-import { AtSign, ChevronDown, Layers, MapPin, Plus, SlidersHorizontal, User, UserRound, X } from 'lucide-react';
+import { AtSign, ChevronDown, Layers, MapPin, Plus, SlidersHorizontal, User, X } from 'lucide-react';
 import { cn } from '@/app/_components/utils';
 import { PanelButton, PanelCheckbox, PanelInput, PanelSelect } from '@/app/(app)/_components/panel-ui';
-import type { BookingFilter, FilterField, ListField, TextField, TextOp } from '@/app/(app)/_components/mock-bookings';
+import type { BookingFilter, FilterField, ListField, TextField, TextOp } from './booking-helpers';
 
 type Field = { label: string; icon: typeof Layers } & ({ id: ListField; kind: 'list' } | { id: TextField; kind: 'text' });
 
-// ponytail: el glosario dice Empleado; el panel ya rotula "Profesional" (ver BookingFlow.tsx).
 const FIELDS: Field[] = [
     { id: 'service', kind: 'list', label: 'Servicio', icon: Layers },
-    { id: 'employee', kind: 'list', label: 'Profesional', icon: UserRound },
     { id: 'branch', kind: 'list', label: 'Sucursal', icon: MapPin },
     { id: 'clientName', kind: 'text', label: 'Nombre del cliente', icon: User },
     { id: 'clientEmail', kind: 'text', label: 'Email del cliente', icon: AtSign },

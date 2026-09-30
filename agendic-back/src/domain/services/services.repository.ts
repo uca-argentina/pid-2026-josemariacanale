@@ -14,6 +14,7 @@ export interface ServicesRepository {
       | 'durationMinutes'
       | 'price'
       | 'depositPercent'
+      | 'requiresApproval'
     > & { employees: Omit<EmployeeService, 'serviceId'>[] },
   ): Promise<Service>;
   findById(id: number): Promise<Service | null>;
@@ -30,6 +31,7 @@ export interface ServicesRepository {
         | 'durationMinutes'
         | 'price'
         | 'depositPercent'
+        | 'requiresApproval'
       >
     >,
   ): Promise<Service>;

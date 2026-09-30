@@ -18,6 +18,8 @@ export interface Service {
   price: number;
   /** Seña: symbolic, stored and shown, never charged. Null when the Servicio asks for none. */
   depositPercent: number | null;
+  /** Aprobación manual: its verified Turnos are born PENDING instead of BOOKED. */
+  requiresApproval: boolean;
   retiredAt: Date | null;
   /** In charge of it: verified and not dados de baja. */
   employees: EmployeeSummary[];
@@ -37,6 +39,7 @@ export interface CreateServiceInput {
   durationMinutes: number;
   price: number;
   depositPercent?: number;
+  requiresApproval?: boolean;
   employeeIds: number[];
 }
 
@@ -48,4 +51,5 @@ export interface UpdateServiceInput {
   price?: number;
   /** Null drops the Seña. */
   depositPercent?: number | null;
+  requiresApproval?: boolean;
 }

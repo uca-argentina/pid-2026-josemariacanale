@@ -34,6 +34,7 @@ const OTHER_SERVICE: Service = {
   durationMinutes: 30,
   price: 15,
   depositPercent: null,
+  requiresApproval: false,
   retiredAt: null,
   employees: [{ id: ANAS_EMPLOYEE.id, name: ANAS_EMPLOYEE.name }],
 };

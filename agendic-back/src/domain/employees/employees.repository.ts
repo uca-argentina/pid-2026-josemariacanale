@@ -16,6 +16,8 @@ export interface EmployeesRepository {
   /** Throws ConflictError when the Usuario is already an active Empleado of the Negocio. */
   create(data: CreateEmployeeData): Promise<Employee>;
   findById(id: number): Promise<Employee | null>;
+  /** The Usuario's Employees not dados de baja: one per Negocio they work at. */
+  listActiveByUser(userId: number): Promise<Employee[]>;
   /** The Business's Employees not dados de baja. */
   listActiveByBusiness(businessId: number): Promise<Employee[]>;
   /** Dado de baja: sets retiredAt, takes the Employee off every Service, and cancels their future BOOKED Bookings, atomically. */

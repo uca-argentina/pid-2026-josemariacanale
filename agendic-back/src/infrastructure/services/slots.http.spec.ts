@@ -53,7 +53,7 @@ describe('GET /services/:id/slots', () => {
     t.branches.findById.mockResolvedValue(BRANCH);
     t.availabilities.findById.mockResolvedValue(AVAILABILITY);
     t.overrides.listByEmployee.mockResolvedValue([]);
-    t.bookings.listBookedByEmployee.mockResolvedValue([]);
+    t.bookings.listOccupiedByEmployee.mockResolvedValue([]);
   });
   afterEach(() => t.app.close());
 
@@ -75,7 +75,7 @@ describe('GET /services/:id/slots', () => {
   });
 
   it('descuenta un Turno tomado, en cualquier Servicio del mismo Empleado', async () => {
-    t.bookings.listBookedByEmployee.mockResolvedValue([
+    t.bookings.listOccupiedByEmployee.mockResolvedValue([
       { startsAt: new Date('2026-01-02T14:00:00.000Z'), endsAt: new Date('2026-01-02T14:30:00.000Z') },
     ]);
 
@@ -86,10 +86,11 @@ describe('GET /services/:id/slots', () => {
     expect(day.slots).not.toContain('2026-01-02T14:15:00.000Z'); // would end inside the booking
     expect(day.slots).toContain('2026-01-02T13:15:00.000Z'); // ends exactly when the booking starts
     expect(day.slots).toContain('2026-01-02T14:30:00.000Z'); // starts exactly when the booking ends
-    expect(t.bookings.listBookedByEmployee).toHaveBeenCalledWith(
+    expect(t.bookings.listOccupiedByEmployee).toHaveBeenCalledWith(
       ANAS_EMPLOYEE.id,
       expect.any(Date),
       expect.any(Date),
+      undefined,
     );
   });
 
@@ -164,7 +165,7 @@ describe('GET /services/:id/slots', () => {
     ['completamente reservado', '2026-01-02', 'FULLY_BOOKED'],
   ])('un día sin horarios trae su motivo: %s', async (_, date, reason) => {
     if (reason === 'FULLY_BOOKED')
-      t.bookings.listBookedByEmployee.mockResolvedValue([
+      t.bookings.listOccupiedByEmployee.mockResolvedValue([
         { startsAt: new Date('2026-01-02T00:00:00.000Z'), endsAt: new Date('2026-01-03T00:00:00.000Z') },
       ]);
 

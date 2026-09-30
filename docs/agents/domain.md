@@ -23,7 +23,7 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | --- | --- |
 | Negocio | `Business` |
 | Dueño | `owner` (`Business.ownerId`) |
-| Enlace de reserva | `Business.slug` (tramo del Negocio) + `Branch.slug` (tramo de la Sucursal, único por `businessId`); la URL del front es `/business/<negocio-slug>/<sucursal-slug>` |
+| Enlace de reserva | `Business.slug` (tramo del Negocio) + `Branch.slug` (tramo de la Sucursal, único por `businessId`); la URL del front es `/business/<negocio-slug>/<sucursal-slug>`, y `/business/<negocio-slug>/<sucursal-slug>/<servicio-slug>` con el tramo del Servicio (`Service.slug`, único por `branchId` entre los no dados de baja) |
 | Sucursal | `Branch` (apertura/cierre → `opensAt`/`closesAt`) |
 | Imágenes de Sucursal | `BranchImage` (`url`, `order`) |
 | Zona horaria | `Branch.timeZone` |
@@ -39,6 +39,10 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | Categoría de Servicio | `ServiceCategory` (`Service.category`) |
 | Aprobación manual | `Service.requiresApproval` |
 | Seña | `Service.depositPercent` (opcional) |
+| Servicio oculto | `Service.hidden` |
+| Tiempo de preparación | `Service.prepMinutes` (0 = sin preparación) |
+| Límite diario | `Service.dailyLimit` (opcional) |
+| Ofrecer un Servicio / dejar de ofrecerlo | `assignEmployee` / `removeEmployee` (`EmployeeService`) |
 | Turno | `Booking` (inicio/fin → `startsAt`/`endsAt`; estado → `BookingStatus.UNVERIFIED \| PENDING \| BOOKED \| REJECTED \| CANCELLED`) |
 | Comentario del Turno | `Booking.notes` (opcional) |
 | Turno sin verificar | `BookingStatus.UNVERIFIED` |
@@ -47,6 +51,8 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | Rechazar turno | `reject` (`PENDING` → `REJECTED`) |
 | Ausencia | `Booking.noShowAt` (marcado a mano; no reemplaza `status`) |
 | Reservar | `book` |
+| Reagendar | `reschedule` (`RescheduleBookingUseCase`) |
+| Mis turnos del Empleado | `EmployeeBooking` (`GET /employees/me/bookings`) |
 | Cancelar | `cancel` |
 | Dar de baja | `retire` (`Service.retiredAt`, `Employee.retiredAt`) |
 | Sesión / Iniciar sesión / Cerrar sesión | `Session` / `signIn` / `signOut` |

@@ -1,0 +1,1 @@
+ALTER TABLE "Booking" ADD COLUMN "noShowAt" TIMESTAMPTZ(3);

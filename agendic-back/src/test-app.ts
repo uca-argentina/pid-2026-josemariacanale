@@ -120,6 +120,7 @@ export async function createTestApp() {
     create: jest.fn(),
     findById: jest.fn(),
     listActiveByBusiness: jest.fn(),
+    listActiveByUser: jest.fn(),
     retire: jest.fn(),
   };
   const services: jest.Mocked<ServicesRepository> = {
@@ -135,11 +136,17 @@ export async function createTestApp() {
   };
   const bookings: jest.Mocked<BookingsRepository> = {
     create: jest.fn(),
-    hasOverlappingBooked: jest.fn(),
+    hasOverlappingOccupied: jest.fn(),
     findByVerificationToken: jest.fn(),
-    markBooked: jest.fn(),
+    markVerified: jest.fn(),
+    findById: jest.fn(),
+    resolvePending: jest.fn(),
     listByBusiness: jest.fn(),
-    listBookedByEmployee: jest.fn(),
+    listOccupiedByEmployee: jest.fn(),
+    listByEmployees: jest.fn(),
+    cancel: jest.fn(),
+    reschedule: jest.fn(),
+    markNoShow: jest.fn(),
   };
   const availabilities: jest.Mocked<AvailabilitiesRepository> = {
     listByEmployee: jest.fn(),
@@ -261,6 +268,7 @@ export const ANAS_SERVICE: Service = {
   durationMinutes: 30,
   price: 20,
   depositPercent: null,
+  requiresApproval: false,
   retiredAt: null,
   employees: [{ id: ANAS_EMPLOYEE.id, name: ANAS_EMPLOYEE.name }],
 };

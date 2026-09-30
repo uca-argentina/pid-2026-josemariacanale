@@ -1,6 +1,7 @@
 import { applyDecorators } from '@nestjs/common';
 import {
   ArrayNotEmpty,
+  IsBoolean,
   IsEnum,
   IsInt,
   IsNumber,
@@ -37,6 +38,10 @@ export class ServiceFieldsDto {
   @IfPresent()
   @IsDepositPercent()
   depositPercent?: number;
+
+  @IfPresent()
+  @IsBoolean()
+  requiresApproval?: boolean;
 }
 
 export class CreateServiceDto extends ServiceFieldsDto {
@@ -82,4 +87,8 @@ export class UpdateServiceDto {
   @IsOptional()
   @IsDepositPercent()
   depositPercent?: number | null;
+
+  @IfPresent()
+  @IsBoolean()
+  requiresApproval?: boolean;
 }

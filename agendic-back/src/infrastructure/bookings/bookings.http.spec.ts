@@ -1,5 +1,9 @@
 import { Booking, BookingStatus } from '../../domain/bookings/booking';
-import { BusinessRuleError, ConflictError } from '../../domain/errors';
+import {
+  BusinessRuleError,
+  ConflictError,
+  NotFoundError,
+} from '../../domain/errors';
 import {
   ANAS_BRANCH,
   ANAS_BUSINESS,
@@ -35,6 +39,7 @@ const BOOKING: Booking = {
   endsAt: new Date('2026-01-01T12:30:00.000Z'),
   status: BookingStatus.UNVERIFIED,
   notes: null,
+  noShowAt: null,
 };
 
 describe('Turno', () => {
@@ -47,7 +52,7 @@ describe('Turno', () => {
     beforeEach(() => {
       t.services.findById.mockResolvedValue(SERVICE);
       t.branches.findById.mockResolvedValue(BRANCH);
-      t.bookings.hasOverlappingBooked.mockResolvedValue(false);
+      t.bookings.hasOverlappingOccupied.mockResolvedValue(false);
       t.bookings.create.mockResolvedValue({ booking: BOOKING, token: 'a-token' });
     });
 
@@ -198,7 +203,7 @@ describe('Turno', () => {
     });
 
     it('answers 409 when the slot overlaps a BOOKED Turno of the same Empleado', async () => {
-      t.bookings.hasOverlappingBooked.mockResolvedValue(true);
+      t.bookings.hasOverlappingOccupied.mockResolvedValue(true);
 
       await t.http.post('/bookings').send(VALID_BOOKING).expect(409);
       expect(t.bookings.create).not.toHaveBeenCalled();
@@ -241,7 +246,7 @@ describe('Turno', () => {
       t.bookings.findByVerificationToken.mockResolvedValue(BOOKING);
       t.services.findById.mockResolvedValue(SERVICE);
       t.branches.findById.mockResolvedValue(BRANCH);
-      t.bookings.markBooked.mockResolvedValue({
+      t.bookings.markVerified.mockResolvedValue({
         ...BOOKING,
         status: BookingStatus.BOOKED,
       });
@@ -253,8 +258,30 @@ describe('Turno', () => {
         .send({ token: 'a-token' })
         .expect(201);
 
-      expect(t.bookings.markBooked).toHaveBeenCalledWith(BOOKING.id);
+      expect(t.bookings.markVerified).toHaveBeenCalledWith(BOOKING.id, BookingStatus.BOOKED);
       expect(res.body).toMatchObject({ id: BOOKING.id, status: 'BOOKED' });
+    });
+
+    it('leaves the Turno PENDING when the Servicio requires approval', async () => {
+      t.services.findById.mockResolvedValue({
+        ...SERVICE,
+        requiresApproval: true,
+      });
+      t.bookings.markVerified.mockResolvedValue({
+        ...BOOKING,
+        status: BookingStatus.PENDING,
+      });
+
+      const res = await t.http
+        .post('/bookings/verification')
+        .send({ token: 'a-token' })
+        .expect(201);
+
+      expect(t.bookings.markVerified).toHaveBeenCalledWith(
+        BOOKING.id,
+        BookingStatus.PENDING,
+      );
+      expect(res.body).toMatchObject({ status: 'PENDING' });
     });
 
     it('answers 422 for an unknown, used or expired token', async () => {
@@ -266,7 +293,7 @@ describe('Turno', () => {
         .post('/bookings/verification')
         .send({ token: 'stale-token' })
         .expect(422);
-      expect(t.bookings.markBooked).not.toHaveBeenCalled();
+      expect(t.bookings.markVerified).not.toHaveBeenCalled();
     });
 
     it('answers 422 when the Servicio was dado de baja meanwhile', async () => {
@@ -279,7 +306,7 @@ describe('Turno', () => {
         .post('/bookings/verification')
         .send({ token: 'a-token' })
         .expect(422);
-      expect(t.bookings.markBooked).not.toHaveBeenCalled();
+      expect(t.bookings.markVerified).not.toHaveBeenCalled();
     });
 
     it('answers 422 when the Empleado was taken off the Servicio or dado de baja meanwhile', async () => {
@@ -289,7 +316,7 @@ describe('Turno', () => {
         .post('/bookings/verification')
         .send({ token: 'a-token' })
         .expect(422);
-      expect(t.bookings.markBooked).not.toHaveBeenCalled();
+      expect(t.bookings.markVerified).not.toHaveBeenCalled();
     });
 
     it('answers 422 when the time is now past', async () => {
@@ -299,11 +326,11 @@ describe('Turno', () => {
         .post('/bookings/verification')
         .send({ token: 'a-token' })
         .expect(422);
-      expect(t.bookings.markBooked).not.toHaveBeenCalled();
+      expect(t.bookings.markVerified).not.toHaveBeenCalled();
     });
 
     it('answers 409 when an overlapping Turno of the same Empleado was verified first', async () => {
-      t.bookings.markBooked.mockRejectedValue(
+      t.bookings.markVerified.mockRejectedValue(
         new ConflictError('Overlaps a booked Turno for this Employee'),
       );
 
@@ -316,6 +343,62 @@ describe('Turno', () => {
     it('rejects a missing token with 400', async () => {
       await t.http.post('/bookings/verification').send({}).expect(400);
       expect(t.bookings.findByVerificationToken).not.toHaveBeenCalled();
+    });
+  });
+
+  describe.each([
+    ['accept', BookingStatus.BOOKED],
+    ['reject', BookingStatus.REJECTED],
+  ] as const)('PATCH /bookings/:id/%s', (action, status) => {
+    const PENDING: Booking = { ...BOOKING, status: BookingStatus.PENDING };
+    const patch = (token?: string) => {
+      const req = t.http.patch(`/bookings/${BOOKING.id}/${action}`);
+      return token ? req.set(bearer(token)) : req;
+    };
+
+    beforeEach(() => {
+      scriptSession(t);
+      scriptOtherSession(t);
+      t.bookings.findById.mockResolvedValue(PENDING);
+      t.employees.findById.mockResolvedValue(ANAS_EMPLOYEE);
+      t.bookings.resolvePending.mockResolvedValue({ ...PENDING, status });
+    });
+
+    it(`moves a PENDING Turno to ${status} for the assigned Empleado`, async () => {
+      const res = await patch(CLERK_TOKEN).expect(200);
+
+      expect(t.bookings.resolvePending).toHaveBeenCalledWith(BOOKING.id, status);
+      expect(res.body).toMatchObject({ id: BOOKING.id, status });
+    });
+
+    it('answers 422 when the Turno is not PENDING', async () => {
+      t.bookings.findById.mockResolvedValue(BOOKING);
+
+      await patch(CLERK_TOKEN).expect(422);
+      expect(t.bookings.resolvePending).not.toHaveBeenCalled();
+    });
+
+    it('answers 422 when it stopped being PENDING meanwhile', async () => {
+      t.bookings.resolvePending.mockRejectedValue(
+        new BusinessRuleError('Turno is not pending'),
+      );
+
+      await patch(CLERK_TOKEN).expect(422);
+    });
+
+    it('answers 403 for a Usuario who is not the assigned Empleado', async () => {
+      await patch(OTHER_CLERK_TOKEN).expect(403);
+      expect(t.bookings.resolvePending).not.toHaveBeenCalled();
+    });
+
+    it('answers 404 for an unknown Turno', async () => {
+      t.bookings.findById.mockRejectedValue(new NotFoundError('Booking not found'));
+
+      await patch(CLERK_TOKEN).expect(404);
+    });
+
+    it('answers 401 without a Sesión', async () => {
+      await patch().expect(401);
     });
   });
 

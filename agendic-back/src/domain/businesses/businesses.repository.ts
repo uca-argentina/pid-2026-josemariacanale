@@ -21,6 +21,7 @@ export interface CreateBusinessData {
     | 'durationMinutes'
     | 'price'
     | 'depositPercent'
+    | 'requiresApproval'
   >;
   /** The Dueño, in charge of that first Servicio. */
   employee: Pick<Employee, 'userId'>;

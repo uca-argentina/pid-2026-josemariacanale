@@ -2,7 +2,7 @@
 
 Cinco reglas las garantizan constraints escritas a mano en el SQL de las migraciones, no el código de la aplicación por sí solo:
 
-- dos Turnos `BOOKED` del mismo Empleado no se solapan, usando intervalos semiabiertos. Es una exclusion constraint sobre `tstzrange`, vía `btree_gist`;
+- dos Turnos `PENDING` o `BOOKED` del mismo Empleado no se solapan (un Turno pendiente ocupa su horario igual que uno aceptado; como no se puede usar un valor de enum en la misma transacción que lo agrega, la constraint se recrea en una migración aparte), usando intervalos semiabiertos. Es una exclusion constraint sobre `tstzrange`, vía `btree_gist`;
 - el nombre de un Servicio es único, sin distinguir mayúsculas, entre los Servicios de una Sucursal que no están dados de baja (`retiredAt` en null);
 - un Usuario es Empleado activo de a lo sumo un Negocio a la vez: único por `(userId, businessId)` entre los Empleados que no están dados de baja (`retiredAt` en null). Recontratar a alguien dado de baja crea una fila nueva (ADR 0013);
 - dos Franjas de la misma Availability y el mismo día de la semana no se solapan, usando intervalos semiabiertos, así que dos que se tocan (09:00–17:00 y 17:00–18:00) sí entran. Es la exclusion constraint `AvailabilityInterval_no_overlap`, por `(availabilityId, weekday)`; como Postgres no tiene rango de `time`, cada hora se fija a una fecha arbitraria para compararla como `tsrange`;

@@ -51,6 +51,7 @@ const SERVICE_ROW = {
   durationMinutes: 30,
   price: '20',
   depositPercent: null,
+  requiresApproval: false,
   retiredAt: null,
   employees: [
     {
@@ -81,6 +82,7 @@ const CREATE_DATA = {
     durationMinutes: 30,
     price: 20,
     depositPercent: null,
+    requiresApproval: false,
   },
   employee: {
     userId: ANAS_BUSINESS.ownerId,
@@ -162,6 +164,7 @@ describe('PrismaBusinessesRepository', () => {
       durationMinutes: 30,
       price: 20,
       depositPercent: null,
+      requiresApproval: false,
       retiredAt: null,
       employees: [{ id: EMPLOYEE_ROW.id, name: EMPLOYEE_ROW.user.name }],
     });

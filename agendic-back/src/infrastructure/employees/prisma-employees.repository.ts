@@ -68,6 +68,17 @@ export class PrismaEmployeesRepository implements EmployeesRepository {
     return row && toEmployee(row);
   }
 
+  /**
+   * @throws {DatabaseOperationError} falló la base
+   */
+  async listActiveByUser(userId: number) {
+    return (
+      await this.prisma.employee
+        .findMany({ where: { userId, retiredAt: null }, include: WITH_USER })
+        .catch(translateError)
+    ).map(toEmployee);
+  }
+
   async listActiveByBusiness(businessId: number) {
     return (
       await this.prisma.employee

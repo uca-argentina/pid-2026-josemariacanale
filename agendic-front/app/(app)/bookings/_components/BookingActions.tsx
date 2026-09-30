@@ -14,7 +14,7 @@ import {
     PanelMenu,
     PanelTextarea,
 } from '@/app/(app)/_components/panel-ui';
-import { dayKey, formatTime, localInstant, TIME_ZONE_LABEL, type Booking, type BookingTab } from '@/app/(app)/_components/mock-bookings';
+import { dayKey, formatTime, localInstant, TIME_ZONE_LABEL, type Booking, type BookingTab } from './booking-helpers';
 
 type OnChange = (patch: Partial<Booking>) => void;
 
@@ -62,7 +62,6 @@ function RescheduleDialog({ booking, now, onOpenChange, onChange }: DialogProps)
                     onChange({
                         startsAt: startsAt.toISOString(),
                         endsAt: new Date(startsAt.getTime() + duration).toISOString(),
-                        rescheduled: true,
                     });
                     toast.success(`Turno de ${booking.clientName} reagendado`);
                     onOpenChange(false);
@@ -97,7 +96,7 @@ function RequestRescheduleDialog({ booking, onOpenChange, onChange }: DialogProp
                     </PanelDialogClose>
                     <PanelButton
                         onClick={() => {
-                            onChange({ status: 'cancelled', rescheduleRequested: true, cancelReason: reason.trim() || undefined });
+                            onChange({ status: 'CANCELLED' });
                             toast.success('Pedido de reagendamiento enviado');
                             onOpenChange(false);
                         }}
@@ -125,7 +124,7 @@ export function BookingActions({ booking, tab, now, onChange }: { booking: Booki
             <>
                 <PanelButton
                     onClick={() => {
-                        onChange({ status: 'booked' });
+                        onChange({ status: 'BOOKED' });
                         toast.success(`Turno de ${booking.clientName} aceptado`);
                     }}
                 >
@@ -142,7 +141,7 @@ export function BookingActions({ booking, tab, now, onChange }: { booking: Booki
                     confirmLabel="Rechazar turno"
                     destructive
                     onConfirm={() => {
-                        onChange({ status: 'rejected' });
+                        onChange({ status: 'REJECTED' });
                         toast.success(`Turno de ${booking.clientName} rechazado`);
                     }}
                 />

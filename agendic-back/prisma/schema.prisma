@@ -1,6 +1,6 @@
 // Identifiers follow docs/agents/domain.md (ADR 0003).
 // Hand-written SQL in the migrations, not expressible here (ADR 0004):
-// - no overlapping BOOKED Bookings per Employee (exclusion constraint)
+// - no overlapping PENDING or BOOKED Bookings per Employee (exclusion constraint)
 // - Service name unique in any casing among a Branch's Services not retired
 // - one active Employee (retiredAt null) per (userId, businessId): a User can be re-hired after being dado de baja
 // - no overlapping AvailabilityIntervals per (availabilityId, weekday), half-open so they can touch (exclusion constraint)
@@ -19,7 +19,9 @@ datasource db {
 
 enum BookingStatus {
   UNVERIFIED
+  PENDING
   BOOKED
+  REJECTED
   CANCELLED
 }
 
@@ -84,15 +86,16 @@ model BranchImage {
 }
 
 model Service {
-  id              Int             @id @default(autoincrement())
-  branchId        Int
-  name            String
-  description     String?
-  category        ServiceCategory
-  durationMinutes Int
-  price           Decimal         @db.Decimal(10, 2)
-  depositPercent  Int? // Seña: 0-100, symbolic (never charged); null when the Servicio asks for none
-  retiredAt       DateTime?       @db.Timestamptz(3) // when dado de baja; null while offered
+  id               Int             @id @default(autoincrement())
+  branchId         Int
+  name             String
+  description      String?
+  category         ServiceCategory
+  durationMinutes  Int
+  price            Decimal         @db.Decimal(10, 2)
+  depositPercent   Int? // Seña: 0-100, symbolic (never charged); null when the Servicio asks for none
+  requiresApproval Boolean         @default(false) // Aprobación manual: verified Turnos are born PENDING instead of BOOKED
+  retiredAt        DateTime?       @db.Timestamptz(3) // when dado de baja; null while offered
 
   branch    Branch            @relation(fields: [branchId], references: [id])
   employees EmployeeService[]
@@ -178,6 +181,7 @@ model Booking {
   endsAt                     DateTime      @db.Timestamptz(3) // startsAt + Service.durationMinutes, fixed at booking
   status                     BookingStatus @default(UNVERIFIED)
   notes                      String? // Comentario del Turno, up to 500 characters (checked by the API)
+  noShowAt                   DateTime?     @db.Timestamptz(3) // Ausencia: when the Empleado marked it; never replaces status
   verificationTokenHash      String? // sha256 of the token, never the token itself
   verificationTokenExpiresAt DateTime?     @db.Timestamptz(3)
   createdAt                  DateTime      @default(now()) @db.Timestamptz(3)

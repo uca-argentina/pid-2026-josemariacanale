@@ -190,6 +190,7 @@ describe('Empleado', () => {
           durationMinutes: 30,
           price: 20,
           depositPercent: null,
+          requiresApproval: false,
           retiredAt: null,
           employees: [{ id: OTHER_EMPLOYEE.id, name: OTHER_EMPLOYEE.name }],
         },
@@ -214,6 +215,7 @@ describe('Empleado', () => {
           durationMinutes: 30,
           price: 20,
           depositPercent: null,
+          requiresApproval: false,
           retiredAt: null,
           employees: [
             { id: OTHER_EMPLOYEE.id, name: OTHER_EMPLOYEE.name },

@@ -7,7 +7,7 @@ const localDate = (instant: Date, timeZone: string) =>
   new Intl.DateTimeFormat('en-CA', { timeZone }).format(instant);
 
 /**
- * Reassigns an Empleado's BOOKED Turnos of one date to a cubridor, inside a caller-owned transaction so
+ * Reassigns an Empleado's PENDING and BOOKED Turnos of one date to a cubridor, inside a caller-owned transaction so
  * it commits atomically with the Anulación that activates the Cobertura (ADR 0004: a colliding Turno of
  * the cubridor rolls both back). Same shape as cancelFutureBooked, for the same reason it lives here
  * instead of behind a domain port: it must share the caller's transaction, which a port can't be typed
@@ -28,7 +28,7 @@ export async function reassignBookedOnDate(
   const candidates = await tx.booking.findMany({
     where: {
       employeeId,
-      status: BookingStatus.BOOKED,
+      status: { in: [BookingStatus.PENDING, BookingStatus.BOOKED] },
       startsAt: {
         gte: new Date(start.getTime() - DAY_MS),
         lt: new Date(start.getTime() + 2 * DAY_MS),

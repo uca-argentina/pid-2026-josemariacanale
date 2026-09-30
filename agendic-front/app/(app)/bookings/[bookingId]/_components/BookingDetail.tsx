@@ -5,8 +5,8 @@ import Link from 'next/link';
 import { Check, ChevronLeft, Clock, Info, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/app/_components/utils';
-import { PanelBadge, PanelButton, PanelField, PanelTextarea } from '@/app/(app)/_components/panel-ui';
-import { formatLongDate, formatTimeRange, isClosed, TIME_ZONE_LABEL, type Booking } from '@/app/(app)/_components/mock-bookings';
+import { PanelButton } from '@/app/(app)/_components/panel-ui';
+import { formatLongDate, formatTimeRange, isClosed, TIME_ZONE_LABEL, type Booking } from '@/app/(app)/bookings/_components/booking-helpers';
 
 const GREEN = 'bg-[#e6f6ec] text-[#15803d]';
 const RED = 'bg-[#fdecec] text-[#b91c1c]';
@@ -15,17 +15,18 @@ const GRAY = 'bg-[#f3f4f6] text-[#374151]';
 
 function headerOf(b: Booking, past: boolean) {
     switch (b.status) {
-        case 'cancelled':
-            return { icon: X, tone: RED, title: 'Este turno está cancelado', subtitle: b.rescheduleRequested ? `Le pedimos a ${b.clientName} que elija otro horario.` : undefined };
-        case 'rejected':
+        case 'CANCELLED':
+            return { icon: X, tone: RED, title: 'Este turno está cancelado' };
+        case 'REJECTED':
             return { icon: X, tone: RED, title: 'Este turno fue rechazado' };
-        case 'no-show':
-            return { icon: X, tone: RED, title: `${b.clientName} no se presentó` };
-        case 'pending':
+        case 'UNVERIFIED':
+            return { icon: Clock, tone: GRAY, title: `${b.clientName} todavía no verificó su email` };
+        case 'PENDING':
             return past
                 ? { icon: Clock, tone: GRAY, title: 'Este turno quedó sin respuesta' }
                 : { icon: Clock, tone: AMBER, title: 'Este turno espera tu respuesta', subtitle: 'Aceptalo o rechazalo desde la lista de Turnos.' };
-        case 'booked':
+        case 'BOOKED':
+            if (b.noShowAt !== null) return { icon: X, tone: RED, title: `${b.clientName} no se presentó` };
             return past
                 ? { icon: Check, tone: GRAY, title: 'Este turno ya pasó' }
                 : { icon: Check, tone: GREEN, title: 'Este turno está aceptado', subtitle: `Le enviamos la Confirmación de reserva a ${b.clientName}.` };
@@ -42,17 +43,17 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 }
 
 // ponytail: cancelar no persiste ni se ve en la lista; se reemplaza por la server action cuando exista el endpoint.
+/** Detalle de un Turno del Empleado. Cancelar cambia solo el estado local hasta que el endpoint esté conectado. */
 export function BookingDetail({ booking: initial, now, startCancelling }: { booking: Booking; now: number; startCancelling: boolean }) {
     const [booking, setBooking] = useState(initial);
     const past = Date.parse(booking.endsAt) < now;
-    const cancellable = booking.status === 'booked' && !past;
+    const cancellable = booking.status === 'BOOKED' && booking.noShowAt === null && !past;
     const [cancelling, setCancelling] = useState(startCancelling && cancellable);
-    const [reason, setReason] = useState('');
     const closed = isClosed(booking);
     const header = headerOf(booking, past);
 
     const cancel = () => {
-        setBooking((b) => ({ ...b, status: 'cancelled', cancelReason: reason.trim() || undefined }));
+        setBooking((b) => ({ ...b, status: 'CANCELLED' }));
         setCancelling(false);
         toast.success('Turno cancelado');
     };
@@ -77,8 +78,7 @@ export function BookingDetail({ booking: initial, now, startCancelling }: { book
                 </div>
 
                 <dl className="mt-8 grid grid-cols-[110px_1fr] gap-x-6 gap-y-5 border-t border-[#e5e7eb] pt-8 text-[13.5px] sm:grid-cols-[140px_1fr]">
-                    {closed && booking.cancelReason && <Row label="Motivo">{booking.cancelReason}</Row>}
-                    <Row label="Qué">{booking.service}</Row>
+                    <Row label="Qué">{booking.serviceName}</Row>
                     <Row label="Cuándo">
                         <span className={cn('first-letter:uppercase', closed && 'line-through')}>{formatLongDate(booking.startsAt)}</span>
                         <span className={cn(closed && 'line-through')}>
@@ -86,33 +86,19 @@ export function BookingDetail({ booking: initial, now, startCancelling }: { book
                         </span>
                     </Row>
                     <Row label="Quién">
-                        <span className="flex items-center gap-2">
-                            {booking.employee}
-                            <PanelBadge className="bg-[#e0e7ff] text-[#3730a3]">Profesional</PanelBadge>
-                        </span>
-                        <span className="mt-3">{booking.clientName}</span>
+                        <span>{booking.clientName}</span>
                         <a href={`mailto:${booking.clientEmail}`} className="text-[#6b7280] hover:text-[#0f1b2d] hover:underline">
                             {booking.clientEmail}
                         </a>
                     </Row>
-                    <Row label="Dónde">Sucursal {booking.branch}</Row>
-                    {booking.notes && <Row label="Notas">{booking.notes}</Row>}
+                    <Row label="Dónde">{booking.businessName} · Sucursal {booking.branchName}</Row>
                 </dl>
 
                 {cancelling ? (
                     <div className="mt-8 flex flex-col gap-3 border-t border-[#e5e7eb] pt-8">
-                        <PanelField label="Motivo de la cancelación" htmlFor="cancel-reason">
-                            <PanelTextarea
-                                id="cancel-reason"
-                                placeholder="¿Por qué cancelás?"
-                                value={reason}
-                                onChange={(e) => setReason(e.target.value)}
-                                autoFocus
-                            />
-                        </PanelField>
-                        <p className="m-0 flex items-center gap-1.5 text-[12.5px] font-medium text-[#6b7280]">
+                        <p className="m-0 flex items-center gap-1.5 text-[13.5px] font-medium text-[#374151]">
                             <Info className="size-4" />
-                            El motivo se comparte con el cliente.
+                            ¿Cancelar este turno? El horario queda libre.
                         </p>
                         <div className="mt-2 flex justify-end gap-2">
                             <PanelButton variant="secondary" onClick={() => setCancelling(false)}>

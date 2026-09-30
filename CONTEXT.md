@@ -19,7 +19,7 @@ Sede física de un Negocio, con zona horaria propia. Un Negocio puede tener vari
 _Avoid_: sede, local
 
 **Empleado**:
-Usuario que atiende los Servicios de un Negocio.
+Usuario que atiende los Servicios de un Negocio. Puede atender cualquiera de ellos. Un Usuario puede ser Empleado de varios Negocios a la vez, sea o no Dueño de otro.
 _Avoid_: recurso
 
 **Staff**:
@@ -81,6 +81,22 @@ _Avoid_: link de verificación, link de confirmación, magic link
 Prestación que ofrece una Sucursal, con duración y precio, atendida por uno o más Empleados. No confundir con los microservicios de la arquitectura.
 _Avoid_: prestación, tratamiento
 
+**Ofrecer un Servicio**:
+Acción de un Empleado de empezar a atender un Servicio de su Negocio, con una de sus Availability. La hace él mismo o el Dueño por él. Su contraria es dejar de ofrecerlo, que no se puede si es el último Empleado del Servicio.
+_Avoid_: asignarse, tomar un servicio
+
+**Servicio oculto**:
+Servicio que el Dueño sacó de la página de su Sucursal. Se puede Reservar solo entrando por su propio Enlace de reserva. Sus Turnos siguen en pie. En el panel lo ven el Dueño y los Empleados que lo atienden.
+_Avoid_: servicio inactivo, desactivado, privado, dado de baja (eso es otra cosa)
+
+**Tiempo de preparación**:
+Minutos que el Empleado necesita libres justo antes de cada Turno de un Servicio. Nadie puede Reservar con él en ese tramo.
+_Avoid_: buffer, margen, preparación (a secas)
+
+**Límite diario**:
+Máximo de Turnos de un Servicio en un mismo día, sumando a todos sus Empleados. Opcional. Alcanzado, ese día no tiene Horarios reservables para el Servicio.
+_Avoid_: cupo, tope
+
 **Availability**:
 Conjunto de Franjas semanales con nombre que declara cuándo trabaja un Empleado. En pantalla se llama "Horas laborables". Un Empleado tiene una o más, exactamente una predeterminada. El término queda en inglés a pedido explícito: "Disponibilidad" ya se usa en el panel para otra cosa.
 _Avoid_: disponibilidad, horario (a secas), agenda
@@ -126,7 +142,7 @@ Texto libre que el Cliente puede dejar al Reservar, para contarle algo al Negoci
 _Avoid_: notas, observaciones, comment
 
 **Enlace de reserva**:
-Dirección pública que un Negocio comparte para que un Cliente entre a Reservar. La elige el Dueño al Crear Negocio y puede cambiarla; al cambiarla, la anterior deja de funcionar. Si el Negocio tiene más de una Sucursal, cada una agrega su propio tramo a esa dirección para llegar directo a ella; con una sola Sucursal, el Enlace de reserva del Negocio ya lleva ahí.
+Dirección pública que un Negocio comparte para que un Cliente entre a Reservar. La elige el Dueño al Crear Negocio y puede cambiarla; al cambiarla, la anterior deja de funcionar. Si el Negocio tiene más de una Sucursal, cada una agrega su propio tramo a esa dirección para llegar directo a ella; con una sola Sucursal, el Enlace de reserva del Negocio ya lleva ahí. Cada Servicio agrega un último tramo que abre la página de su Sucursal con ese Servicio ya elegido.
 _Avoid_: link del negocio, perfil público, página pública, slug (eso es el identificador en el código)
 
 **Reagendar**:

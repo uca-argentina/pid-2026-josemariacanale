@@ -68,6 +68,7 @@ export class CreateServiceUseCase {
       durationMinutes: input.durationMinutes,
       price: input.price,
       depositPercent: input.depositPercent ?? null,
+      requiresApproval: input.requiresApproval ?? false,
       employees,
     });
   }

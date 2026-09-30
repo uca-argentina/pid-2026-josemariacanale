@@ -1,26 +1,39 @@
 'use client';
 
-import { AlertDialog, Checkbox, Dialog, DropdownMenu, Select, Switch } from 'radix-ui';
+import {
+    AlertDialog,
+    Checkbox,
+    Dialog,
+    DropdownMenu,
+    Select,
+    Switch,
+} from 'radix-ui';
 import { Check, ChevronDown } from 'lucide-react';
 import { cn } from '@/app/_components/utils';
 
 // Primitivos del panel (Servicios, Disponibilidad). Si el look se adopta en el resto de la app,
 // se promueven a app/_components/ui/ reemplazando los actuales.
 
-const FOCUS = 'outline-none focus-visible:ring-2 focus-visible:ring-[#0f1b2d] focus-visible:ring-offset-1';
+const FOCUS =
+    'outline-none focus-visible:ring-2 focus-visible:ring-[#0f1b2d] focus-visible:ring-offset-1';
 
 const BUTTON_VARIANTS = {
-    primary: 'bg-[#0f1b2d] text-white shadow-[0_1px_2px_rgba(15,27,45,0.25)] hover:bg-[#1c2b44] disabled:bg-[#d1d5db] disabled:text-white disabled:shadow-none',
-    secondary: 'border border-[#e5e7eb] bg-white text-[#0f1b2d] hover:bg-[#f3f4f6]',
+    primary:
+        'bg-[#0f1b2d] text-white shadow-[0_1px_2px_rgba(15,27,45,0.25)] hover:bg-[#1c2b44] disabled:bg-[#d1d5db] disabled:text-white disabled:shadow-none',
+    secondary:
+        'border border-[#e5e7eb] bg-white text-[#0f1b2d] hover:bg-[#f3f4f6]',
     ghost: 'text-[#374151] hover:bg-[#f3f4f6] hover:text-[#0f1b2d]',
-    destructive: 'border border-[#e5e7eb] bg-white text-[#b91c1c] hover:bg-[#fef2f2]',
+    destructive:
+        'border border-[#e5e7eb] bg-white text-[#b91c1c] hover:bg-[#fef2f2]',
 };
 
 export function PanelButton({
     variant = 'primary',
     className,
     ...props
-}: React.ComponentProps<'button'> & { variant?: keyof typeof BUTTON_VARIANTS }) {
+}: React.ComponentProps<'button'> & {
+    variant?: keyof typeof BUTTON_VARIANTS;
+}) {
     return (
         <button
             type="button"
@@ -76,7 +89,9 @@ export function PanelIconButton({
 }
 
 /** Separador vertical entre grupos de acciones de un encabezado. */
-export const PanelDivider = () => <span aria-hidden className="h-6 w-px bg-[#e5e7eb]" />;
+export const PanelDivider = () => (
+    <span aria-hidden className="h-6 w-px bg-[#e5e7eb]" />
+);
 
 /** Tarjeta con encabezado gris (título, descripción y acción) y el contenido en un panel blanco. */
 export function PanelSection({
@@ -95,17 +110,30 @@ export function PanelSection({
         <section className="rounded-xl border border-[#e5e7eb] bg-[#f9fafb]">
             <div className="flex flex-wrap items-center gap-3 px-6 py-4">
                 <div className="flex min-w-0 flex-col gap-0.5">
-                    <h2 className="m-0 flex items-center gap-1.5 text-[14.5px] font-bold tracking-[-0.02em] text-[#0f1b2d]">{title}</h2>
-                    {description && <p className="m-0 text-[13px] font-medium text-[#6b7280]">{description}</p>}
+                    <h2 className="m-0 flex items-center gap-1.5 text-[14.5px] font-bold tracking-[-0.02em] text-[#0f1b2d]">
+                        {title}
+                    </h2>
+                    {description && (
+                        <p className="m-0 text-[13px] font-medium text-[#6b7280]">
+                            {description}
+                        </p>
+                    )}
                 </div>
                 {action && <div className="ml-auto">{action}</div>}
             </div>
-            {children && <div className="-mx-px -mb-px rounded-xl border border-[#e5e7eb] bg-white">{children}</div>}
+            {children && (
+                <div className="-mx-px -mb-px rounded-xl border border-[#e5e7eb] bg-white">
+                    {children}
+                </div>
+            )}
         </section>
     );
 }
 
-export function PanelSwitch({ className, ...props }: React.ComponentProps<typeof Switch.Root>) {
+export function PanelSwitch({
+    className,
+    ...props
+}: React.ComponentProps<typeof Switch.Root>) {
     return (
         <Switch.Root
             className={cn(
@@ -120,7 +148,10 @@ export function PanelSwitch({ className, ...props }: React.ComponentProps<typeof
     );
 }
 
-export function PanelCheckbox({ className, ...props }: React.ComponentProps<typeof Checkbox.Root>) {
+export function PanelCheckbox({
+    className,
+    ...props
+}: React.ComponentProps<typeof Checkbox.Root>) {
     return (
         <Checkbox.Root
             className={cn(
@@ -137,7 +168,13 @@ export function PanelCheckbox({ className, ...props }: React.ComponentProps<type
     );
 }
 
-export function PanelBadge({ children, className }: { children: React.ReactNode; className?: string }) {
+export function PanelBadge({
+    children,
+    className,
+}: {
+    children: React.ReactNode;
+    className?: string;
+}) {
     return (
         <span
             className={cn(
@@ -160,7 +197,13 @@ const initialsOf = (name: string) =>
         .toUpperCase();
 
 /** Círculo navy con las iniciales de un Negocio o de una persona. */
-export function PanelAvatar({ name, className }: { name: string; className?: string }) {
+export function PanelAvatar({
+    name,
+    className,
+}: {
+    name: string;
+    className?: string;
+}) {
     return (
         <span
             aria-hidden
@@ -174,8 +217,23 @@ export function PanelAvatar({ name, className }: { name: string; className?: str
     );
 }
 
-export function PanelCard({ children, className }: { children: React.ReactNode; className?: string }) {
-    return <section className={cn('rounded-md border border-[#e5e7eb] bg-white p-6', className)}>{children}</section>;
+export function PanelCard({
+    children,
+    className,
+}: {
+    children: React.ReactNode;
+    className?: string;
+}) {
+    return (
+        <section
+            className={cn(
+                'rounded-md border border-[#e5e7eb] bg-white p-6',
+                className,
+            )}
+        >
+            {children}
+        </section>
+    );
 }
 
 export function PanelField({
@@ -194,16 +252,27 @@ export function PanelField({
 }) {
     return (
         <div className="flex flex-col gap-2">
-            <label htmlFor={htmlFor} className="text-[13.5px] font-bold tracking-[-0.01em] text-[#0f1b2d]">
+            <label
+                htmlFor={htmlFor}
+                className="text-[13.5px] font-bold tracking-[-0.01em] text-[#0f1b2d]"
+            >
                 {label}
             </label>
             {children}
             {error ? (
-                <p id={htmlFor && `${htmlFor}-error`} role="alert" className="m-0 text-[12.5px] font-medium text-[#b91c1c]">
+                <p
+                    id={htmlFor && `${htmlFor}-error`}
+                    role="alert"
+                    className="m-0 text-[12.5px] font-medium text-[#b91c1c]"
+                >
                     {error}
                 </p>
             ) : (
-                hint && <p className="m-0 text-[12.5px] font-medium text-[#6b7280]">{hint}</p>
+                hint && (
+                    <p className="m-0 text-[12.5px] font-medium text-[#6b7280]">
+                        {hint}
+                    </p>
+                )
             )}
         </div>
     );
@@ -227,12 +296,22 @@ export function PanelToggleRow({
 }) {
     return (
         <div className="flex items-start gap-3">
-            <PanelSwitch id={id} checked={checked} onCheckedChange={onCheckedChange} disabled={disabled} />
+            <PanelSwitch
+                id={id}
+                checked={checked}
+                onCheckedChange={onCheckedChange}
+                disabled={disabled}
+            />
             <div className="flex flex-col gap-0.5">
-                <label htmlFor={id} className="text-[13.5px] font-bold tracking-[-0.01em] text-[#0f1b2d]">
+                <label
+                    htmlFor={id}
+                    className="text-[13.5px] font-bold tracking-[-0.01em] text-[#0f1b2d]"
+                >
                     {title}
                 </label>
-                <p className="m-0 text-[12.5px] font-medium text-[#6b7280]">{description}</p>
+                <p className="m-0 text-[12.5px] font-medium text-[#6b7280]">
+                    {description}
+                </p>
             </div>
         </div>
     );
@@ -246,10 +325,17 @@ export function PanelInput({
     suffix,
     className,
     ...props
-}: Omit<React.ComponentProps<'input'>, 'prefix'> & { prefix?: string; suffix?: string }) {
+}: Omit<React.ComponentProps<'input'>, 'prefix'> & {
+    prefix?: string;
+    suffix?: string;
+}) {
     return (
         <div className={cn(FIELD_BOX, className)}>
-            {prefix && <span className="shrink-0 pl-3 text-[#9ca3af] select-none">{prefix}</span>}
+            {prefix && (
+                <span className="shrink-0 pl-3 text-[#9ca3af] select-none">
+                    {prefix}
+                </span>
+            )}
             <input
                 className={cn(
                     'h-full min-w-0 flex-1 bg-transparent px-3 outline-none placeholder:text-[#9ca3af] disabled:cursor-not-allowed',
@@ -257,12 +343,19 @@ export function PanelInput({
                 )}
                 {...props}
             />
-            {suffix && <span className="shrink-0 pr-3 text-[#9ca3af] select-none">{suffix}</span>}
+            {suffix && (
+                <span className="shrink-0 pr-3 text-[#9ca3af] select-none">
+                    {suffix}
+                </span>
+            )}
         </div>
     );
 }
 
-export function PanelTextarea({ className, ...props }: React.ComponentProps<'textarea'>) {
+export function PanelTextarea({
+    className,
+    ...props
+}: React.ComponentProps<'textarea'>) {
     return (
         <textarea
             className={cn(
@@ -301,7 +394,11 @@ export function PanelSelect({
     'aria-label'?: string;
 }) {
     return (
-        <Select.Root value={value} onValueChange={onValueChange} disabled={disabled}>
+        <Select.Root
+            value={value}
+            onValueChange={onValueChange}
+            disabled={disabled}
+        >
             <Select.Trigger
                 id={id}
                 aria-label={ariaLabel}
@@ -311,7 +408,11 @@ export function PanelSelect({
                     className,
                 )}
             >
-                <Select.Value placeholder={<span className="text-[#9ca3af]">{placeholder}</span>} />
+                <Select.Value
+                    placeholder={
+                        <span className="text-[#9ca3af]">{placeholder}</span>
+                    }
+                />
                 <Select.Icon asChild>
                     <ChevronDown className="size-4 text-[#0f1b2d]" />
                 </Select.Icon>
@@ -380,12 +481,16 @@ export function PanelDialog({
                                 {title}
                             </Dialog.Title>
                             {description && (
-                                <Dialog.Description className="m-0 text-[13px] font-medium text-[#6b7280]">{description}</Dialog.Description>
+                                <Dialog.Description className="m-0 text-[13px] font-medium text-[#6b7280]">
+                                    {description}
+                                </Dialog.Description>
                             )}
                         </div>
                         {children}
                     </div>
-                    <div className="flex justify-end gap-2 border-t border-[#e5e7eb] bg-[#f9fafb] px-8 py-4">{footer}</div>
+                    <div className="flex justify-end gap-2 border-t border-[#e5e7eb] bg-[#f9fafb] px-8 py-4">
+                        {footer}
+                    </div>
                 </Dialog.Content>
             </Dialog.Portal>
         </Dialog.Root>
@@ -431,13 +536,20 @@ export function PanelConfirm({
                     </div>
                     <div className="flex justify-end gap-2 border-t border-[#e5e7eb] bg-[#f9fafb] px-8 py-4">
                         <AlertDialog.Cancel asChild>
-                            <PanelButton variant={confirmLabel ? 'ghost' : 'primary'}>{cancelLabel}</PanelButton>
+                            <PanelButton
+                                variant={confirmLabel ? 'ghost' : 'primary'}
+                            >
+                                {cancelLabel}
+                            </PanelButton>
                         </AlertDialog.Cancel>
                         {confirmLabel && (
                             <AlertDialog.Action asChild>
                                 <PanelButton
                                     onClick={onConfirm}
-                                    className={cn(destructive && 'bg-[#b91c1c] hover:bg-[#991b1b]')}
+                                    className={cn(
+                                        destructive &&
+                                            'bg-[#b91c1c] hover:bg-[#991b1b]',
+                                    )}
                                 >
                                     {confirmLabel}
                                 </PanelButton>
@@ -458,7 +570,13 @@ export interface PanelMenuItem {
     onSelect?: () => void;
 }
 
-export function PanelMenu({ trigger, items }: { trigger: React.ReactNode; items: PanelMenuItem[] }) {
+export function PanelMenu({
+    trigger,
+    items,
+}: {
+    trigger: React.ReactNode;
+    items: PanelMenuItem[];
+}) {
     return (
         // No modal: si un ítem abre un diálogo, el menú modal le deja `pointer-events: none` al body.
         <DropdownMenu.Root modal={false}>
@@ -476,7 +594,9 @@ export function PanelMenu({ trigger, items }: { trigger: React.ReactNode; items:
                             onSelect={item.onSelect}
                             className={cn(
                                 'flex cursor-pointer items-center gap-2 rounded px-2.5 py-2 text-[13px] font-semibold outline-none data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50 data-[highlighted]:bg-[#f3f4f6] [&_svg]:size-4',
-                                item.destructive ? 'text-[#b91c1c]' : 'text-[#0f1b2d]',
+                                item.destructive
+                                    ? 'text-[#b91c1c]'
+                                    : 'text-[#0f1b2d]',
                             )}
                         >
                             {item.icon}

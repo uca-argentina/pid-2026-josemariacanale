@@ -37,6 +37,7 @@ export class CreateBusinessUseCase {
         ...input.service,
         description: input.service.description ?? null,
         depositPercent: input.service.depositPercent ?? null,
+        requiresApproval: input.service.requiresApproval ?? false,
       },
       employee: { userId: owner.id },
       availability: DEFAULT_AVAILABILITY,
