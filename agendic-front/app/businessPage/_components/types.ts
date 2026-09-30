@@ -47,6 +47,8 @@ export interface Service {
      * Negocio cobra por adelantado; sin valor, el Servicio no pide seña.
      */
     depositPercent?: number;
+    servicePolicy?: string;
+    cancellationPolicy?: string;
 }
 
 /** Por qué un día no tiene horarios: cada motivo se resuelve distinto desde la UI. */

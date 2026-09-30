@@ -148,3 +148,10 @@ export const depositAmount = (price: number, percent: number) => Math.round((pri
 
 /** Un Servicio no puede quedar sin nadie que lo atienda: solo lo dejás si otro Empleado lo sigue ofreciendo. */
 export const canStopOffering = (service: Pick<ServiceItem, 'offeredByMe' | 'otherEmployees'>) => service.offeredByMe && service.otherEmployees.length > 0;
+
+export async function updateMockService(serviceId: string, updates: Partial<ServiceItem>) {
+    const found = findService(serviceId);
+    if (found) {
+        Object.assign(found.service, updates);
+    }
+}

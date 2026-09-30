@@ -134,6 +134,16 @@ function SetupTab({
             </PanelCard>
 
             <PanelCard className="flex flex-col gap-5">
+                <PanelField label="Política del servicio (opcional)" htmlFor="service-policy">
+                    <PanelTextarea
+                        id="service-policy"
+                        value={draft.servicePolicy}
+                        disabled={readOnly}
+                        maxLength={500}
+                        placeholder="Ej: Qué incluye, qué traer, cómo llegar..."
+                        onChange={(e) => set({ servicePolicy: e.target.value })}
+                    />
+                </PanelField>
                 <PanelField label="Política de cancelación (opcional)" htmlFor="service-cancellation">
                     <PanelTextarea
                         id="service-cancellation"
@@ -310,8 +320,11 @@ export function ServiceDetail({
         { id: 'limits', icon: Clock, title: 'Límites', subtitle: limitsSummary },
     ];
 
-    const save = () => {
+    const save = async () => {
         // ponytail: no persiste; se reemplaza por la server action cuando exista el endpoint.
+        // MOCK SAVE for local testing
+        const { saveServiceAction } = await import('../actions');
+        await saveServiceAction(draft.id, draft);
         setSaved(draft);
         toast.success(`${draft.name}: servicio actualizado`);
     };

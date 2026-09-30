@@ -264,20 +264,34 @@ function ConfirmStep({
             </div>
 
             {/* ponytail: maqueta. La Seña no existe ni en el schema, ni en ADR 0007, ni en el glosario. */}
-            {deposit && (
-                <section className="mt-2 flex flex-col gap-2 border-t border-border pt-5">
-                    <h3 className="text-[17px] font-extrabold tracking-[-0.02em]">
-                        Política de seña
-                    </h3>
-                    <p className="text-[13.5px] leading-relaxed text-muted-foreground">
-                        {business.name} pide una seña de {formatPrice(deposit.upfront)} (
-                        {deposit.percent}% de {formatPrice(service.price)}) para sostener el turno.
-                        El resto, {formatPrice(deposit.rest)}, lo pagás en el local.
-                    </p>
-                    <p className="text-[13.5px] leading-relaxed text-muted-foreground">
-                        Si cancelás con más de 24 horas de anticipación, la seña se devuelve. Si
-                        reagendás, se traslada al nuevo turno.
-                    </p>
+            {(deposit || service.cancellationPolicy || service.servicePolicy) && (
+                <section className="mt-2 flex flex-col gap-4 border-t border-border pt-5">
+                    {service.servicePolicy && (
+                        <div>
+                            <h3 className="text-[17px] font-extrabold tracking-[-0.02em]">Política del servicio</h3>
+                            <p className="mt-1 text-[13.5px] leading-relaxed text-muted-foreground whitespace-pre-wrap">
+                                {service.servicePolicy}
+                            </p>
+                        </div>
+                    )}
+                    {deposit && (
+                        <div>
+                            <h3 className="text-[17px] font-extrabold tracking-[-0.02em]">Política de seña</h3>
+                            <p className="mt-1 text-[13.5px] leading-relaxed text-muted-foreground">
+                                {business.name} pide una seña de {formatPrice(deposit.upfront)} (
+                                {deposit.percent}% de {formatPrice(service.price)}) para sostener el turno.
+                                El resto, {formatPrice(deposit.rest)}, lo pagás en el local.
+                            </p>
+                        </div>
+                    )}
+                    {service.cancellationPolicy && (
+                        <div>
+                            <h3 className="text-[17px] font-extrabold tracking-[-0.02em]">Política de cancelación</h3>
+                            <p className="mt-1 text-[13.5px] leading-relaxed text-muted-foreground whitespace-pre-wrap">
+                                {service.cancellationPolicy}
+                            </p>
+                        </div>
+                    )}
                 </section>
             )}
 
