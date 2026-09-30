@@ -17,6 +17,10 @@ describe('getPublicBranchController', () => {
                 { id: 100, branchId: 10, name: 'Masaje', description: null, category: 'SPA', durationMinutes: 60, price: 20000, depositPercent: 20, employees: [ana] },
             ],
             employees: [ana],
+            images: [
+                { id: 5, branchId: 10, url: 'https://img.example/b.jpg', order: 0 },
+                { id: 4, branchId: 10, url: 'https://img.example/a.jpg', order: 1 },
+            ],
         });
 
         await expect(
@@ -29,8 +33,28 @@ describe('getPublicBranchController', () => {
                 { id: 100, name: 'Masaje', description: null, category: 'SPA', durationMinutes: 60, price: 20000, depositPercent: 20, employees: [ana] },
             ],
             employees: [ana],
+            images: [
+                { id: 5, url: 'https://img.example/b.jpg' },
+                { id: 4, url: 'https://img.example/a.jpg' },
+            ],
         });
         expect(useCase).toHaveBeenCalledWith({ businessSlug: 'vitalia', branchSlug: 'centro' });
+    });
+
+    it('presents a Sucursal without Imágenes as an empty list', async () => {
+        const centro = { id: 10, businessId: 1, name: 'Centro', address: 'Av. 1', opensAt: '09:00', closesAt: '18:00', timeZone: TZ, slug: 'centro' };
+        const useCase = jest.fn().mockResolvedValue({
+            business: { id: 1, name: 'Vitalia', description: 'Desc', slug: 'vitalia', ownerId: 7 },
+            branch: centro,
+            branches: [centro],
+            services: [],
+            employees: [],
+            images: [],
+        });
+
+        await expect(
+            getPublicBranchController(instrumentation, useCase)({ businessSlug: 'vitalia', branchSlug: 'centro' }),
+        ).resolves.toMatchObject({ images: [] });
     });
 
     it('lowercases both tramos', async () => {
@@ -41,6 +65,7 @@ describe('getPublicBranchController', () => {
             branches: [centro],
             services: [],
             employees: [],
+            images: [],
         });
 
         await getPublicBranchController(instrumentation, useCase)({ businessSlug: 'VITALIA', branchSlug: 'Centro' });

@@ -17,5 +17,6 @@ export const publicBusinessesWith = (stubs: Partial<IPublicBusinessesRepository>
     getBusinessBySlug: jest.fn(notStubbed('getBusinessBySlug')),
     listBranches: jest.fn(notStubbed('listBranches')),
     listServices: jest.fn(notStubbed('listServices')),
+    listBranchImages: jest.fn(notStubbed('listBranchImages')),
     ...stubs,
 });

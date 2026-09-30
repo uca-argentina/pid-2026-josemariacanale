@@ -85,3 +85,31 @@ describe('PublicBusinessesRepository.listServices', () => {
         await expect(repo().listServices(10)).rejects.toMatchObject({ status: 500 });
     });
 });
+
+describe('PublicBusinessesRepository.listBranchImages', () => {
+    it('GETs the Imágenes of the Sucursal in the order they come', async () => {
+        const images = [
+            { id: 2, branchId: 10, url: 'https://img.example/b.jpg', order: 0 },
+            { id: 1, branchId: 10, url: 'https://img.example/a.jpg', order: 1 },
+        ];
+        const fetchSpy = respond(200, images);
+
+        await expect(repo().listBranchImages(10)).resolves.toEqual(images);
+        expect(fetchSpy).toHaveBeenCalledWith('http://api/branches/10/images');
+    });
+
+    it('returns an empty list when the Sucursal has no Imágenes yet', async () => {
+        respond(200, []);
+        await expect(repo().listBranchImages(10)).resolves.toEqual([]);
+    });
+
+    it('translates an Imagen without url to ApiRequestError', async () => {
+        respond(200, [{ id: 1, branchId: 10, order: 0 }]);
+        await expect(repo().listBranchImages(10)).rejects.toBeInstanceOf(ApiRequestError);
+    });
+
+    it('translates a 500 to ApiRequestError carrying the status', async () => {
+        respond(500, { statusCode: 500, message: 'boom' });
+        await expect(repo().listBranchImages(10)).rejects.toMatchObject({ status: 500 });
+    });
+});
