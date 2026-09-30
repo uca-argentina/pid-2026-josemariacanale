@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { ArrowLeft, Check, ChevronRight, X } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/app/_components/ui/avatar';
 import { Button } from '@/app/_components/ui/button';
@@ -11,11 +11,11 @@ import { cn } from '@/app/_components/utils';
 import type { ServiceCategoryValue } from '@/app/_components/business-schemas';
 import { BranchPhoto } from './BranchPhoto';
 import { ChipTabs } from './ChipTabs';
+import { bookSlotAction } from '../actions';
 import { TimeStep } from './TimeStep';
 import { depositFor, endTime, formatDate, formatDuration, formatPrice, initials } from './format';
-import { availableDays } from './mock-slots';
 import { STEPS } from './types';
-import type { Booking, BookingDraft, Branch, Business, Employee, Service, Step } from './types';
+import type { Booking, BookingDraft, Branch, Business, ClientData, Employee, Service, Step } from './types';
 
 const TITLES: Record<Step, string> = {
     service: 'Elegí un servicio',
@@ -200,11 +200,15 @@ function EmployeeStep({
 function ConfirmStep({
     business,
     service,
+    defaults,
+    error,
     onSubmit,
 }: {
     business: Business;
     service: Service;
-    onSubmit: (data: { name: string; email: string; notes: string }) => void;
+    defaults: ClientData;
+    error: string | null;
+    onSubmit: (data: ClientData) => void;
 }) {
     const deposit = depositFor(service);
 
@@ -217,7 +221,7 @@ function ConfirmStep({
                 onSubmit({
                     name: String(data.get('nombre')).trim(),
                     email: String(data.get('email')).trim(),
-                    notes: String(data.get('notas') ?? '').trim(),
+                    notes: String(data.get('comentario') ?? '').trim(),
                 });
             }}
             className="flex max-w-[560px] flex-col gap-4"
@@ -234,6 +238,7 @@ function ConfirmStep({
                     required
                     autoComplete="name"
                     placeholder="Tu nombre completo"
+                    defaultValue={defaults.name}
                 />
             </div>
 
@@ -249,9 +254,10 @@ function ConfirmStep({
                     autoComplete="email"
                     placeholder="tunombre@email.com"
                     aria-describedby="email-ayuda"
+                    defaultValue={defaults.email}
                 />
                 <p id="email-ayuda" className="text-[13px] leading-relaxed text-muted-foreground">
-                    Te mandamos un mail para que confirmes el turno. Hasta que lo confirmes, el
+                    Te mandamos un mail para que verifiques tu email. Hasta que lo verifiques, el
                     horario no te queda reservado.
                 </p>
             </div>
@@ -275,19 +281,27 @@ function ConfirmStep({
             )}
 
             <section className="mt-2 flex flex-col gap-2 border-t border-border pt-5">
-                {/* ponytail: el Comentario del Turno (Booking.notes) todavía no viaja al back: se conecta en el ticket 07. */}
-                <Label htmlFor="notas" className="text-[17px] font-extrabold tracking-[-0.02em]">
-                    Notas para el negocio
+                {/* El Comentario del Turno (Booking.notes): solo viaja si el Cliente escribió algo. */}
+                <Label htmlFor="comentario" className="text-[17px] font-extrabold tracking-[-0.02em]">
+                    Comentario para el negocio
                 </Label>
                 <p className="text-[13.5px] text-muted-foreground">Opcional.</p>
                 <Textarea
-                    id="notas"
-                    name="notas"
+                    id="comentario"
+                    name="comentario"
                     rows={4}
+                    maxLength={500}
                     placeholder="Contanos algo que el profesional tenga que saber antes del turno."
+                    defaultValue={defaults.notes}
                     className="mt-1 rounded-xl"
                 />
             </section>
+
+            {error && (
+                <p role="alert" className="rounded-xl bg-muted p-4 text-[13.5px] font-semibold">
+                    {error}
+                </p>
+            )}
         </form>
     );
 }
@@ -296,11 +310,14 @@ function ConfirmStep({
 function AdvanceButton({
     step,
     canAdvance,
+    booking,
     onAdvance,
     className,
 }: {
     step: Step;
     canAdvance: boolean;
+    /** Mientras se crea el Turno: evita un segundo envío. */
+    booking: boolean;
     onAdvance: () => void;
     className?: string;
 }) {
@@ -310,13 +327,13 @@ function AdvanceButton({
             type={last ? 'submit' : 'button'}
             form={last ? CLIENT_FORM : undefined}
             onClick={last ? undefined : onAdvance}
-            disabled={!canAdvance}
+            disabled={!canAdvance || booking}
             className={cn(
                 'h-auto w-full rounded-xl bg-foreground py-3.5 text-[15px] font-bold text-white hover:bg-foreground/90 disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100',
                 className,
             )}
         >
-            {last ? 'Confirmar turno' : 'Continuar'}
+            {last ? (booking ? 'Reservando…' : 'Confirmar turno') : 'Continuar'}
         </Button>
     );
 }
@@ -328,6 +345,7 @@ function SummaryPanel({
     draft,
     step,
     canAdvance,
+    booking,
     onAdvance,
 }: {
     business: Business;
@@ -336,9 +354,10 @@ function SummaryPanel({
     draft: BookingDraft;
     step: Step;
     canAdvance: boolean;
+    booking: boolean;
     onAdvance: () => void;
 }) {
-    const { service, employee, date, time } = draft;
+    const { service, employee, date, slot } = draft;
     const deposit = service ? depositFor(service) : null;
 
     return (
@@ -357,7 +376,7 @@ function SummaryPanel({
                 </div>
             </div>
 
-            {date && time && service && (
+            {date && slot && service && (
                 <dl className="flex flex-col gap-1.5 border-t border-border pt-4 text-[13.5px]">
                     <div className="flex gap-2">
                         <dt className="sr-only">Fecha</dt>
@@ -366,7 +385,7 @@ function SummaryPanel({
                     <div className="flex gap-2">
                         <dt className="sr-only">Horario</dt>
                         <dd className="text-muted-foreground">
-                            {time} a {endTime(time, service.durationMinutes)} (
+                            {slot.time} a {endTime(slot.time, service.durationMinutes)} (
                             {formatDuration(service.durationMinutes)})
                         </dd>
                     </div>
@@ -421,6 +440,7 @@ function SummaryPanel({
             <AdvanceButton
                 step={step}
                 canAdvance={canAdvance}
+                booking={booking}
                 onAdvance={onAdvance}
                 className="mt-auto hidden lg:inline-flex"
             />
@@ -452,8 +472,13 @@ export function BookingFlow({
         service: initialService,
         employee: null,
         date: null,
-        time: null,
+        slot: null,
     });
+    const [client, setClient] = useState<ClientData>({ name: '', email: '', notes: '' });
+    /** El 409 de horario ocupado: se muestra en el paso Horario, que es donde se resuelve. */
+    const [slotNotice, setSlotNotice] = useState<string | null>(null);
+    const [confirmError, setConfirmError] = useState<string | null>(null);
+    const [booking, startBooking] = useTransition();
 
     useEffect(() => {
         const onKey = (e: KeyboardEvent) => {
@@ -463,7 +488,7 @@ export function BookingFlow({
         return () => document.removeEventListener('keydown', onKey);
     }, [onClose]);
 
-    const { service, employee, date, time } = draft;
+    const { service, employee, date, slot } = draft;
 
     // Volver a elegir lo mismo no puede borrar lo que ya se eligió después: solo un cambio real
     // invalida los pasos siguientes.
@@ -471,54 +496,78 @@ export function BookingFlow({
         setDraft((d) =>
             d.service?.id === next.id
                 ? d
-                : { service: next, employee: null, date: null, time: null },
+                : { service: next, employee: null, date: null, slot: null },
         );
 
     // Cada Empleado tiene su propia agenda, así que el horario elegido para otro no sirve.
     const chooseEmployee = (next: Employee) =>
         setDraft((d) =>
-            d.employee?.id === next.id ? d : { ...d, employee: next, date: null, time: null },
+            d.employee?.id === next.id ? d : { ...d, employee: next, date: null, slot: null },
         );
+
+    // Quien cubre una Anulación atiende justo ese día: se lo elige sin perder la fecha.
+    const chooseCovering = (next: Employee) => setDraft((d) => ({ ...d, employee: next, slot: null }));
 
     const canAdvance =
         (step === 'service' && !!service) ||
         (step === 'employee' && !!employee) ||
-        (step === 'time' && !!date && !!time) ||
+        (step === 'time' && !!date && !!slot) ||
         step === 'confirm';
+
+    // Los avisos son del paso en que aparecieron: al cambiar de paso ya no dicen nada.
+    const goTo = (next: Step) => {
+        setSlotNotice(null);
+        setConfirmError(null);
+        setStep(next);
+    };
 
     const advance = () => {
         const next = STEPS[STEPS.indexOf(step) + 1];
         if (!next) return;
-        // Al entrar a Horario se abre el primer día, como la referencia: así se ve de entrada si
-        // el profesional tiene lugar o tiene la agenda completa.
-        if (next === 'time' && service && employee && !date) {
-            const [first] = availableDays(branch, service.durationMinutes, employee.id);
-            setDraft((d) => ({ ...d, date: first.date, time: null }));
-        }
-        setStep(next);
+        goTo(next);
     };
 
     const back = () => {
         const previous = STEPS[STEPS.indexOf(step) - 1];
-        if (previous) setStep(previous);
+        if (previous) goTo(previous);
         else onClose();
     };
 
-    const confirm = (data: { name: string; email: string; notes: string }) => {
-        if (!service || !employee || !date || !time) return;
-        // ponytail: acá va POST /bookings; nace UNVERIFIED hasta que el Cliente verifica el mail.
-        onBooked({
-            id: `b-${service.id}-${date}-${time}`,
-            business,
-            branch,
-            service,
-            employee,
-            date,
-            time,
-            status: 'UNVERIFIED',
-            client: { name: data.name, email: data.email },
-            notes: data.notes || undefined,
-            coverUrl,
+    const confirm = (data: ClientData) => {
+        if (!service || !employee || !date || !slot) return;
+        setClient(data);
+        setConfirmError(null);
+        startBooking(async () => {
+            const result = await bookSlotAction({
+                serviceId: service.id,
+                employeeId: employee.id,
+                startsAt: slot.startsAt,
+                clientName: data.name,
+                clientEmail: data.email,
+                notes: data.notes,
+            });
+            if (result.ok) {
+                onBooked({
+                    id: result.booking.id,
+                    business,
+                    branch,
+                    service,
+                    employee,
+                    date,
+                    time: slot.time,
+                    status: result.booking.status,
+                    client: { name: data.name, email: data.email },
+                    notes: result.booking.notes,
+                    coverUrl,
+                });
+            } else if (result.slotTaken) {
+                // Recuperable: de vuelta a Horario, que vuelve a pedir los horarios libres.
+                setDraft((d) => ({ ...d, slot: null }));
+                setSlotNotice(result.message);
+                setStep('time');
+            } else {
+                setConfirmError(result.message);
+            }
         });
     };
 
@@ -554,7 +603,7 @@ export function BookingFlow({
             <div className="mx-auto w-full max-w-[1400px] px-4 pb-32 sm:px-8 lg:px-16 lg:pb-24">
                 <div className="grid items-start gap-10 lg:grid-cols-[1fr_400px]">
                     <div>
-                        <Breadcrumb step={step} onGo={setStep} />
+                        <Breadcrumb step={step} onGo={goTo} />
                         <h1 className="mt-4 mb-6 text-[34px] leading-none font-extrabold tracking-[-0.03em] sm:text-[44px]">
                             {TITLES[step]}
                         </h1>
@@ -578,15 +627,18 @@ export function BookingFlow({
 
                         {step === 'time' && service && employee && (
                             <TimeStep
+                                key={`${service.id}-${employee.id}`}
                                 service={service}
                                 employee={employee}
                                 branch={branch}
                                 date={date}
-                                time={time}
-                                onSelect={(nextDate, nextTime) =>
-                                    setDraft((d) => ({ ...d, date: nextDate, time: nextTime }))
+                                slot={slot}
+                                notice={slotNotice}
+                                onSelect={(nextDate, nextSlot) =>
+                                    setDraft((d) => ({ ...d, date: nextDate, slot: nextSlot }))
                                 }
-                                onSeeEmployees={() => setStep('employee')}
+                                onChooseEmployee={chooseCovering}
+                                onSeeEmployees={() => goTo('employee')}
                             />
                         )}
 
@@ -594,6 +646,8 @@ export function BookingFlow({
                             <ConfirmStep
                                 business={business}
                                 service={service}
+                                defaults={client}
+                                error={confirmError}
                                 onSubmit={confirm}
                             />
                         )}
@@ -607,6 +661,7 @@ export function BookingFlow({
                             draft={draft}
                             step={step}
                             canAdvance={canAdvance}
+                            booking={booking}
                             onAdvance={advance}
                         />
                     </aside>
@@ -631,7 +686,7 @@ export function BookingFlow({
                         {formatPrice(depositFor(service)!.rest)} en el local
                     </p>
                 )}
-                <AdvanceButton step={step} canAdvance={canAdvance} onAdvance={advance} />
+                <AdvanceButton step={step} canAdvance={canAdvance} booking={booking} onAdvance={advance} />
             </div>
         </div>
     );

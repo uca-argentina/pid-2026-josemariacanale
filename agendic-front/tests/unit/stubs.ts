@@ -1,3 +1,4 @@
+import type { IBookingsRepository } from '@/src/application/repositories/bookings.repository.interface';
 import type { IPublicBusinessesRepository } from '@/src/application/repositories/public-businesses.repository.interface';
 import type { IAuthenticationService } from '@/src/application/services/authentication.service.interface';
 import type { IInstrumentationService } from '@/src/application/services/instrumentation.service.interface';
@@ -18,5 +19,11 @@ export const publicBusinessesWith = (stubs: Partial<IPublicBusinessesRepository>
     listBranches: jest.fn(notStubbed('listBranches')),
     listServices: jest.fn(notStubbed('listServices')),
     listBranchImages: jest.fn(notStubbed('listBranchImages')),
+    ...stubs,
+});
+
+export const bookingsWith = (stubs: Partial<IBookingsRepository>): IBookingsRepository => ({
+    listSlots: jest.fn(notStubbed('listSlots')),
+    book: jest.fn(notStubbed('book')),
     ...stubs,
 });

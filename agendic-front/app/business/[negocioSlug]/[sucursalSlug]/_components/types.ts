@@ -17,54 +17,49 @@ export type Employee = PublicBranchPage['employees'][number];
 /** Imágenes de Sucursal, ya en el orden de la galería. */
 export type BranchImage = PublicBranchPage['images'][number];
 
-/** Por qué un día no tiene horarios: cada motivo se resuelve distinto desde la UI. */
-export type NoSlotsReason = 'branch-closed' | 'fully-booked';
-
-/** Un día de la tira del paso Horario. */
-export interface AvailableDay {
-    /** 'YYYY-MM-DD', la clave del día. */
-    date: string;
-    /** Número del día del mes, para el círculo de la tira. */
-    dayOfMonth: number;
-    /** 'Lun', 'Mar', … */
-    weekday: string;
-    /** 'HH:mm' libres, ya filtrados por duración del Servicio y por la agenda del Empleado. */
-    slots: string[];
-    /** Presente solo cuando `slots` está vacío. */
-    reason?: NoSlotsReason;
-}
+/** Un día de la tira del paso Horario, como lo devuelve listSlotsController. */
+export type SlotDay = Awaited<ReturnType<DI_RETURN_TYPES['IListSlotsController']>>['days'][number];
+/** Un Horario reservable: el instante que viaja a POST /bookings y su hora local en la Sucursal. */
+export type Slot = SlotDay['slots'][number];
 
 /**
  * Lo que el Cliente lleva elegido. `POST /bookings` necesita serviceId + employeeId + startsAt
- * + clientName + clientEmail; acá la fecha y la hora viajan separadas porque la UI las elige
- * en dos gestos, y se unen recién al reservar.
+ * + clientName + clientEmail; el día se guarda aparte porque la UI lo elige antes que el horario.
  */
 export interface BookingDraft {
     service: Service | null;
     employee: Employee | null;
     date: string | null;
-    time: string | null;
+    slot: Slot | null;
+}
+
+/** Los datos que el Cliente escribió en Revisá y confirmá, para no perderlos si vuelve atrás. */
+export interface ClientData {
+    name: string;
+    email: string;
+    /** Comentario del Turno; vacío si no escribió nada. */
+    notes: string;
 }
 
 /**
- * Un Turno ya reservado, como lo muestra Mis turnos. `UNVERIFIED` es el estado en que nace
- * (ADR 0005): hasta que el Cliente verifica su email, el Turno no le reserva el horario.
+ * Un Turno recién reservado, como lo muestra Mis turnos. `status` es el estado real en que lo
+ * creó el back: no siempre nace sin verificar.
  */
 export interface Booking {
-    id: string;
+    id: number;
     business: Business;
     branch: Branch;
     service: Service;
     employee: Employee;
-    /** 'YYYY-MM-DD' */
+    /** 'YYYY-MM-DD', local de la Sucursal. */
     date: string;
-    /** 'HH:mm' */
+    /** 'HH:mm', local de la Sucursal. */
     time: string;
-    status: 'UNVERIFIED' | 'BOOKED';
+    status: Awaited<ReturnType<DI_RETURN_TYPES['IBookSlotController']>>['status'];
     /** El Cliente no tiene cuenta (ADR 0005): sus datos viven en el Turno. */
     client: { name: string; email: string };
-    /** Comentario del Turno. */
-    notes?: string;
+    /** Comentario del Turno; `null` si no dejó ninguno. */
+    notes: string | null;
     /** La Imagen de portada de la Sucursal; sin Imágenes, no hay. */
     coverUrl: string | undefined;
 }
