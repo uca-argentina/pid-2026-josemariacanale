@@ -5,7 +5,8 @@ import { CalendarX2 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/app/_components/ui/avatar';
 import { Button } from '@/app/_components/ui/button';
 import { cn } from '@/app/_components/utils';
-import { availableDays, employeesWithSlots, endTime, formatDate, initials } from './mock-business';
+import { endTime, formatDate, initials } from './format';
+import { availableDays, employeesWithSlots } from './mock-slots';
 import type { Branch, Employee, Service } from './types';
 
 export function TimeStep({
@@ -28,8 +29,8 @@ export function TimeStep({
     // La duración del Servicio decide qué horarios entran antes del cierre, y cada Empleado tiene
     // su propia agenda: los días se recalculan cuando cambia cualquiera de los dos.
     const days = useMemo(
-        () => availableDays(service.durationMinutes, employee.id),
-        [service.durationMinutes, employee.id],
+        () => availableDays(branch, service.durationMinutes, employee.id),
+        [branch, service.durationMinutes, employee.id],
     );
 
     const chosenDay = days.find((d) => d.date === date) ?? null;
@@ -37,7 +38,7 @@ export function TimeStep({
 
     // Solo para el caso "este profesional está completo, pero otro puede atenderte".
     const alternatives = chosenDay
-        ? employeesWithSlots(service, chosenDay.date).filter((e) => e.id !== employee.id)
+        ? employeesWithSlots(branch, service, chosenDay.date).filter((e) => e.id !== employee.id)
         : [];
 
     return (
