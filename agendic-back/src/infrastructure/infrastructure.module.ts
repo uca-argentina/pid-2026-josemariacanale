@@ -4,6 +4,7 @@ import { AVAILABILITY_OVERRIDES_REPOSITORY } from '../domain/availability-overri
 import { CLOCK } from '../domain/clock';
 import { FILE_STORAGE } from '../domain/file-storage';
 import { MAILER } from '../domain/mailer';
+import { BRANCH_IMAGES_REPOSITORY } from '../domain/branch-images/branch-images.repository';
 import { BOOKINGS_REPOSITORY } from '../domain/bookings/bookings.repository';
 import { BRANCHES_REPOSITORY } from '../domain/branches/branches.repository';
 import { BUSINESSES_REPOSITORY } from '../domain/businesses/businesses.repository';
@@ -17,6 +18,8 @@ import { AvailabilityOverridesModule } from './availability-overrides/availabili
 import { PrismaAvailabilityOverridesRepository } from './availability-overrides/prisma-availability-overrides.repository';
 import { PrismaBookingsRepository } from './bookings/prisma-bookings.repository';
 import { BookingsModule } from './bookings/bookings.module';
+import { BranchImagesModule } from './branch-images/branch-images.module';
+import { PrismaBranchImagesRepository } from './branch-images/prisma-branch-images.repository';
 import { PrismaBranchesRepository } from './branches/prisma-branches.repository';
 import { BranchesModule } from './branches/branches.module';
 import { PrismaBusinessesRepository } from './businesses/prisma-businesses.repository';
@@ -40,6 +43,7 @@ import { UsersModule } from './users/users.module';
     UsersModule,
     BusinessesModule,
     BranchesModule,
+    BranchImagesModule,
     ServicesModule,
     EmployeesModule,
     BookingsModule,
@@ -58,6 +62,10 @@ import { UsersModule } from './users/users.module';
     { provide: USERS_REPOSITORY, useClass: PrismaUsersRepository },
     { provide: BUSINESSES_REPOSITORY, useClass: PrismaBusinessesRepository },
     { provide: BRANCHES_REPOSITORY, useClass: PrismaBranchesRepository },
+    {
+      provide: BRANCH_IMAGES_REPOSITORY,
+      useClass: PrismaBranchImagesRepository,
+    },
     { provide: SERVICES_REPOSITORY, useClass: PrismaServicesRepository },
     { provide: EMPLOYEES_REPOSITORY, useClass: PrismaEmployeesRepository },
     { provide: BOOKINGS_REPOSITORY, useClass: PrismaBookingsRepository },
@@ -78,6 +86,7 @@ import { UsersModule } from './users/users.module';
     USERS_REPOSITORY,
     BUSINESSES_REPOSITORY,
     BRANCHES_REPOSITORY,
+    BRANCH_IMAGES_REPOSITORY,
     SERVICES_REPOSITORY,
     EMPLOYEES_REPOSITORY,
     BOOKINGS_REPOSITORY,

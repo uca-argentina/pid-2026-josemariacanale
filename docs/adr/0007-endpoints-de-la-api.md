@@ -73,6 +73,25 @@ actualizarlo a mano cuando se agregue, cambie o borre un endpoint.
 - `UpdateBranchDto`: los mismos campos, todos opcionales
 - Respuesta (`presentBranch`): `{ id, businessId, name, address, opensAt, closesAt, timeZone, slug }`
 
+## Imágenes de Sucursal (BranchImage)
+
+Los archivos viven en el storage externo (ADR 0015); cada imagen es una URL pública. Listarlas es
+público; subir, borrar y ordenar es solo del Dueño del Negocio de la Sucursal: cualquier otro
+Usuario recibe 403. Las filas se borran en cascada con la Sucursal (hoy no hay endpoint que borre
+una Sucursal); sus archivos en el storage no.
+
+| Método | Ruta | Auth | Qué hace |
+|---|---|---|---|
+| GET | `/branches/:id/images` | no | Las imágenes de la Sucursal, ordenadas por `order`; 404 si la Sucursal no existe |
+| POST | `/branches/:id/images` | sí | Sube una imagen y la agrega al final; 201 con la imagen |
+| DELETE | `/branches/:id/images/:imageId` | sí | Borra la imagen y su archivo; 204 |
+| PUT | `/branches/:id/images/order` | sí | Reemplaza el orden de todas las imágenes; 200 con la lista ya ordenada |
+
+- POST: `multipart/form-data` con la imagen en el campo `file`. Sin archivo → 400 `file is required`; tipo que no es `image/jpeg`, `image/png`, `image/webp` o `image/gif` → 400 `La imagen tiene que ser JPEG, PNG, WebP o GIF`; más de 5 MB → 413
+- `ReorderBranchImagesDto`: `{ imageIds: number[] }`, la lista completa de imágenes de la Sucursal en el orden deseado (mismo criterio de reemplazo total que `PUT /employees/:id/overrides/:date`). Falta `imageIds`, id repetido o que no es entero → 400; algún id que no es una imagen de esa Sucursal → 404; lista que deja afuera alguna → 422 `El orden tiene que incluir todas las imágenes de la Sucursal`
+- DELETE de una imagen que no es de esa Sucursal (o no existe) → 404; si el archivo no se puede borrar del storage igual responde 204 (queda un archivo sin uso, nunca una imagen rota)
+- Respuesta (`presentBranchImage`): `{ id, branchId, url, order }`. `order` es ascendente pero no necesariamente contiguo (borrar deja huecos); el front ordena por él, no lo usa como índice
+
 ## Services (Servicio)
 
 | Método | Ruta | Auth | Qué hace |
