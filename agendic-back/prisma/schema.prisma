@@ -71,14 +71,16 @@ model Branch {
 }
 
 model Service {
-  id              Int             @id @default(autoincrement())
-  branchId        Int
-  name            String
-  description     String?
-  category        ServiceCategory
-  durationMinutes Int
-  price           Decimal         @db.Decimal(10, 2)
-  retiredAt       DateTime?       @db.Timestamptz(3) // when dado de baja; null while offered
+  id                       Int             @id @default(autoincrement())
+  branchId                 Int
+  name                     String
+  description              String?
+  category                 ServiceCategory
+  durationMinutes          Int
+  price                    Decimal         @db.Decimal(10, 2)
+  cancellationPolicy       String?         @db.VarChar(500)
+  advancePaymentPercentage Int?
+  retiredAt                DateTime?       @db.Timestamptz(3) // when dado de baja; null while offered
 
   branch    Branch            @relation(fields: [branchId], references: [id])
   employees EmployeeService[]
@@ -160,6 +162,7 @@ model Booking {
   employeeId                 Int
   clientName                 String
   clientEmail                String
+  note                       String?       @db.VarChar(500)
   startsAt                   DateTime      @db.Timestamptz(3)
   endsAt                     DateTime      @db.Timestamptz(3) // startsAt + Service.durationMinutes, fixed at booking
   status                     BookingStatus @default(UNVERIFIED)

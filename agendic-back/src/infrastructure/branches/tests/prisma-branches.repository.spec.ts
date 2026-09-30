@@ -120,9 +120,7 @@ describe('PrismaBranchesRepository', () => {
       update: prisma.branch.update,
     };
 
-    it.each([
-      ['update', 'P2025', NotFoundError],
-    ] as const)(
+    it.each([['update', 'P2025', NotFoundError]] as const)(
       '%s: %s into %p',
       async (method, code, domainError) => {
         const cause = knownError(code);

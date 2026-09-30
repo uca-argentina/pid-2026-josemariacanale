@@ -74,7 +74,8 @@ export class PrismaBranchesRepository implements BranchesRepository {
           data: {
             name: data.name,
             address: data.address,
-            opensAt: data.opensAt === undefined ? undefined : toTime(data.opensAt),
+            opensAt:
+              data.opensAt === undefined ? undefined : toTime(data.opensAt),
             closesAt:
               data.closesAt === undefined ? undefined : toTime(data.closesAt),
             timeZone: data.timeZone,

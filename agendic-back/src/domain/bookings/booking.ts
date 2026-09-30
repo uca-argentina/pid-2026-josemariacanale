@@ -10,6 +10,7 @@ export interface Booking {
   employeeId: number;
   clientName: string;
   clientEmail: string;
+  note?: string | null;
   startsAt: Date;
   endsAt: Date;
   status: BookingStatus;
@@ -21,6 +22,7 @@ export interface CreateBookingInput {
   startsAt: Date;
   clientName: string;
   clientEmail: string;
+  note?: string | null;
 }
 
 const VERIFICATION_TOKEN_LIFETIME_MS = 24 * 60 * 60 * 1000;

@@ -44,6 +44,8 @@ export class PrismaServicesRepository implements ServicesRepository {
       | 'category'
       | 'durationMinutes'
       | 'price'
+      | 'cancellationPolicy'
+      | 'advancePaymentPercentage'
     > & { employees: Omit<EmployeeService, 'serviceId'>[] },
   ) {
     const { employees, ...service } = data;
@@ -80,7 +82,13 @@ export class PrismaServicesRepository implements ServicesRepository {
     data: Partial<
       Pick<
         Service,
-        'name' | 'description' | 'category' | 'durationMinutes' | 'price'
+        | 'name'
+        | 'description'
+        | 'category'
+        | 'durationMinutes'
+        | 'price'
+        | 'cancellationPolicy'
+        | 'advancePaymentPercentage'
       >
     >,
   ) {
@@ -178,7 +186,9 @@ export class PrismaServicesRepository implements ServicesRepository {
 
   async findEmployeeLink(serviceId: number, employeeId: number) {
     const row = await this.prisma.employeeService
-      .findUnique({ where: { employeeId_serviceId: { employeeId, serviceId } } })
+      .findUnique({
+        where: { employeeId_serviceId: { employeeId, serviceId } },
+      })
       .catch(translateError);
     return row;
   }
@@ -192,6 +202,8 @@ export const toService = (row: ServiceRowWithEmployees): Service => ({
   category: row.category as Service['category'],
   durationMinutes: row.durationMinutes,
   price: Number(row.price),
+  cancellationPolicy: row.cancellationPolicy,
+  advancePaymentPercentage: row.advancePaymentPercentage,
   retiredAt: row.retiredAt,
   employees: row.employees.map(({ employee }) => ({
     id: employee.id,

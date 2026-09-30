@@ -96,7 +96,10 @@ describe('Sucursal', () => {
       t.businesses.findById.mockImplementation(async (id) =>
         id === BRUNOS_BUSINESS.id ? BRUNOS_BUSINESS : ANAS_BUSINESS,
       );
-      t.branches.create.mockImplementation(async (data) => ({ id: 1, ...data }));
+      t.branches.create.mockImplementation(async (data) => ({
+        id: 1,
+        ...data,
+      }));
 
       await t.http
         .post(`/businesses/${ANAS_BUSINESS.id}/branches`)
@@ -160,15 +163,18 @@ describe('Sucursal', () => {
       ['a slug with a double hyphen', { slug: 'down--town' }],
       ['a too short slug', { slug: 'ab' }],
       ['a too long slug', { slug: 'a'.repeat(41) }],
-    ])('rejects %s with 400, without reaching the repository', async (_, override) => {
-      await t.http
-        .post(`/businesses/${ANAS_BUSINESS.id}/branches`)
-        .set(bearer(CLERK_TOKEN))
-        .send({ ...VALID_BRANCH, ...override })
-        .expect(400);
+    ])(
+      'rejects %s with 400, without reaching the repository',
+      async (_, override) => {
+        await t.http
+          .post(`/businesses/${ANAS_BUSINESS.id}/branches`)
+          .set(bearer(CLERK_TOKEN))
+          .send({ ...VALID_BRANCH, ...override })
+          .expect(400);
 
-      expect(t.branches.create).not.toHaveBeenCalled();
-    });
+        expect(t.branches.create).not.toHaveBeenCalled();
+      },
+    );
 
     it('answers 422 when closesAt is not after opensAt', async () => {
       await t.http
@@ -304,15 +310,18 @@ describe('Sucursal', () => {
       ['a nonsense timeZone', { timeZone: 'Marte/Olimpo' }],
       ['a malformed slug', { slug: 'down town!' }],
       ['a null slug', { slug: null }],
-    ])('rejects %s with 400, without reaching the repository', async (_, body) => {
-      await t.http
-        .patch(`/branches/${BRANCH.id}`)
-        .set(bearer(CLERK_TOKEN))
-        .send(body)
-        .expect(400);
+    ])(
+      'rejects %s with 400, without reaching the repository',
+      async (_, body) => {
+        await t.http
+          .patch(`/branches/${BRANCH.id}`)
+          .set(bearer(CLERK_TOKEN))
+          .send(body)
+          .expect(400);
 
-      expect(t.branches.update).not.toHaveBeenCalled();
-    });
+        expect(t.branches.update).not.toHaveBeenCalled();
+      },
+    );
 
     it('answers 422 when editing only opensAt crosses the existing closesAt', async () => {
       await t.http
@@ -340,7 +349,7 @@ describe('Sucursal', () => {
   });
 
   describe('GET /businesses/:id/branches', () => {
-    it('lists a Negocio\'s Sucursales without a Sesión', async () => {
+    it("lists a Negocio's Sucursales without a Sesión", async () => {
       t.businesses.findById.mockResolvedValue(ANAS_BUSINESS);
       t.branches.listByBusiness.mockResolvedValue([BRANCH]);
 

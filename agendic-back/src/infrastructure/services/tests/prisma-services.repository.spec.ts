@@ -19,6 +19,8 @@ const SERVICE_ROW = {
   category: ServiceCategory.SPA,
   durationMinutes: 30,
   price: '20', // Prisma returns Decimal columns as a Decimal-like; Number() reads a numeric string just as well
+  cancellationPolicy: null,
+  advancePaymentPercentage: null,
   retiredAt: null,
   employees: [{ employee: { id: 7, user: { name: 'Ana Pérez' } } }],
 };
@@ -31,6 +33,8 @@ const SERVICE: Service = {
   category: ServiceCategory.SPA,
   durationMinutes: 30,
   price: 20,
+  cancellationPolicy: null,
+  advancePaymentPercentage: null,
   retiredAt: null,
   employees: [{ id: 7, name: 'Ana Pérez' }],
 };
@@ -82,6 +86,8 @@ describe('PrismaServicesRepository', () => {
         category: ServiceCategory.SPA,
         durationMinutes: 30,
         price: 20,
+        cancellationPolicy: null,
+        advancePaymentPercentage: null,
         employees: [
           { employeeId: 7, availabilityId: 70 },
           { employeeId: 8, availabilityId: 80 },
@@ -96,6 +102,8 @@ describe('PrismaServicesRepository', () => {
         category: ServiceCategory.SPA,
         durationMinutes: 30,
         price: 20,
+        cancellationPolicy: null,
+        advancePaymentPercentage: null,
         employees: {
           create: [
             { employeeId: 7, availabilityId: 70 },
@@ -268,6 +276,8 @@ describe('PrismaServicesRepository', () => {
           category: ServiceCategory.SPA,
           durationMinutes: 30,
           price: 20,
+          cancellationPolicy: null,
+          advancePaymentPercentage: null,
           employees: [{ employeeId: 7, availabilityId: 70 }],
         }),
       findById: () => repository.findById(1),

@@ -1,5 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Business, UpdateBusinessInput } from '../../domain/businesses/business';
+import {
+  Business,
+  UpdateBusinessInput,
+} from '../../domain/businesses/business';
 import {
   BUSINESSES_REPOSITORY,
   BusinessesRepository,

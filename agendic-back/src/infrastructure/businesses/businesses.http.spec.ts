@@ -56,6 +56,8 @@ const ANAS_SERVICE = {
   id: 1,
   branchId: ANAS_BRANCH.id,
   ...SERVICE_PART,
+  cancellationPolicy: null,
+  advancePaymentPercentage: null,
   retiredAt: null,
   employees: [{ id: ANAS_EMPLOYEE.id, name: ANAS_EMPLOYEE.name }],
 };
@@ -114,6 +116,8 @@ describe('Negocio', () => {
           category: ANAS_SERVICE.category,
           durationMinutes: ANAS_SERVICE.durationMinutes,
           price: ANAS_SERVICE.price,
+          cancellationPolicy: ANAS_SERVICE.cancellationPolicy,
+          advancePaymentPercentage: ANAS_SERVICE.advancePaymentPercentage,
           employees: [{ id: ANAS_EMPLOYEE.id, name: ANAS_EMPLOYEE.name }],
         },
         employee: {

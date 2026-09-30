@@ -40,7 +40,12 @@ const slotsPath = (params: Record<string, string | number>) =>
 
 const query = (t: TestApp, params: Record<string, string | number>) =>
   t.http.get(
-    slotsPath({ employeeId: ANAS_EMPLOYEE.id, from: '2026-01-02', to: '2026-01-02', ...params }),
+    slotsPath({
+      employeeId: ANAS_EMPLOYEE.id,
+      from: '2026-01-02',
+      to: '2026-01-02',
+      ...params,
+    }),
   );
 
 describe('GET /services/:id/slots', () => {
@@ -76,7 +81,10 @@ describe('GET /services/:id/slots', () => {
 
   it('descuenta un Turno tomado, en cualquier Servicio del mismo Empleado', async () => {
     t.bookings.listBookedByEmployee.mockResolvedValue([
-      { startsAt: new Date('2026-01-02T14:00:00.000Z'), endsAt: new Date('2026-01-02T14:30:00.000Z') },
+      {
+        startsAt: new Date('2026-01-02T14:00:00.000Z'),
+        endsAt: new Date('2026-01-02T14:30:00.000Z'),
+      },
     ]);
 
     const res = await query(t, {}).expect(200);
@@ -148,13 +156,17 @@ describe('GET /services/:id/slots', () => {
     t.clock.advance(2 * 60 * 60 * 1000); // now: 2026-01-01T14:00:00.000Z = 11:00 ARG
     t.availabilities.findById.mockResolvedValue(AVAILABILITY);
 
-    const res = await query(t, { from: '2025-12-31', to: '2026-01-02' }).expect(200);
+    const res = await query(t, { from: '2025-12-31', to: '2026-01-02' }).expect(
+      200,
+    );
 
     expect(res.body.days.map((d: { date: string }) => d.date)).toEqual([
       '2026-01-01',
       '2026-01-02',
     ]);
-    const today = res.body.days.find((d: { date: string }) => d.date === '2026-01-01');
+    const today = res.body.days.find(
+      (d: { date: string }) => d.date === '2026-01-01',
+    );
     expect(today.slots).not.toContain('2026-01-01T13:45:00.000Z'); // 10:45 ARG, before now
     expect(today.slots[0]).toBe('2026-01-01T14:00:00.000Z'); // 11:00 ARG, exactly now
   });
@@ -165,7 +177,10 @@ describe('GET /services/:id/slots', () => {
   ])('un día sin horarios trae su motivo: %s', async (_, date, reason) => {
     if (reason === 'FULLY_BOOKED')
       t.bookings.listBookedByEmployee.mockResolvedValue([
-        { startsAt: new Date('2026-01-02T00:00:00.000Z'), endsAt: new Date('2026-01-03T00:00:00.000Z') },
+        {
+          startsAt: new Date('2026-01-02T00:00:00.000Z'),
+          endsAt: new Date('2026-01-03T00:00:00.000Z'),
+        },
       ]);
 
     const res = await query(t, { from: date, to: date }).expect(200);
@@ -185,7 +200,12 @@ describe('GET /services/:id/slots', () => {
     const res = await query(t, {}).expect(200);
 
     expect(res.body.days).toEqual([
-      { date: '2026-01-02', slots: [], reason: 'COVERED', coveredByEmployeeId: 7 },
+      {
+        date: '2026-01-02',
+        slots: [],
+        reason: 'COVERED',
+        coveredByEmployeeId: 7,
+      },
     ]);
     expect(t.availabilities.findById).toHaveBeenCalled(); // fetched, but never used to compute this day
   });
@@ -210,10 +230,15 @@ describe('GET /services/:id/slots', () => {
         new Date('2026-01-01T12:00:00.000Z').getTime(),
     );
 
-    const res = await query(t, { from: '2026-03-27', to: '2026-03-30' }).expect(200);
+    const res = await query(t, { from: '2026-03-27', to: '2026-03-30' }).expect(
+      200,
+    );
 
     const byDate = Object.fromEntries(
-      res.body.days.map((d: { date: string; slots: string[] }) => [d.date, d.slots]),
+      res.body.days.map((d: { date: string; slots: string[] }) => [
+        d.date,
+        d.slots,
+      ]),
     );
     expect(byDate['2026-03-27'][0]).toBe('2026-03-27T08:00:00.000Z'); // 09:00 CET = UTC+1
     expect(byDate['2026-03-30'][0]).toBe('2026-03-30T07:00:00.000Z'); // 09:00 CEST = UTC+2

@@ -1,5 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Branch, assertValidHours, CreateBranchInput } from '../../domain/branches/branch';
+import {
+  Branch,
+  assertValidHours,
+  CreateBranchInput,
+} from '../../domain/branches/branch';
 import {
   BRANCHES_REPOSITORY,
   BranchesRepository,

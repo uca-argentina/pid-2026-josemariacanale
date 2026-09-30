@@ -49,8 +49,8 @@ export class BranchesController {
 
   @Get('businesses/:businessId/branches')
   async list(@Param('businessId', ParseIntPipe) businessId: number) {
-    return (
-      await this.listBranchesByBusinessUseCase.execute(businessId)
-    ).map(presentBranch);
+    return (await this.listBranchesByBusinessUseCase.execute(businessId)).map(
+      presentBranch,
+    );
   }
 }

@@ -49,7 +49,9 @@ export class ClerkBackendAuth implements ClerkAuth {
 }
 
 /** Reads the `name`/`email` session token custom claims, absent unless both are set. */
-function profileClaims(payload: Record<string, unknown>): ClerkProfile | undefined {
+function profileClaims(
+  payload: Record<string, unknown>,
+): ClerkProfile | undefined {
   const { name, email } = payload;
   if (typeof name !== 'string' || typeof email !== 'string') return undefined;
   return { name, email };

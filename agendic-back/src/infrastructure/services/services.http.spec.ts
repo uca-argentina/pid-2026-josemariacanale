@@ -73,6 +73,8 @@ const SERVICE = {
   category: VALID_SERVICE.category,
   durationMinutes: VALID_SERVICE.durationMinutes,
   price: VALID_SERVICE.price,
+  cancellationPolicy: null,
+  advancePaymentPercentage: null,
   retiredAt: null,
   employees: IN_CHARGE,
 };
@@ -85,6 +87,8 @@ const PRESENTED_SERVICE = {
   category: SERVICE.category,
   durationMinutes: SERVICE.durationMinutes,
   price: SERVICE.price,
+  cancellationPolicy: SERVICE.cancellationPolicy,
+  advancePaymentPercentage: SERVICE.advancePaymentPercentage,
   employees: IN_CHARGE,
 };
 
@@ -117,6 +121,8 @@ describe('Servicio', () => {
       expect(t.services.create).toHaveBeenCalledWith({
         branchId: BRANCH.id,
         ...fields,
+        cancellationPolicy: null,
+        advancePaymentPercentage: null,
         employees: [{ employeeId: ANAS_EMPLOYEE.id, availabilityId: 10 }],
       });
       expect(res.body).toEqual(PRESENTED_SERVICE);
@@ -138,6 +144,8 @@ describe('Servicio', () => {
         category: VALID_SERVICE.category,
         durationMinutes: VALID_SERVICE.durationMinutes,
         price: VALID_SERVICE.price,
+        cancellationPolicy: null,
+        advancePaymentPercentage: null,
         employees: [{ employeeId: ANAS_EMPLOYEE.id, availabilityId: 10 }],
       });
     });

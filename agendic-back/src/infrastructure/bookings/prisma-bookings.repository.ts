@@ -37,11 +37,7 @@ export class PrismaBookingsRepository implements BookingsRepository {
     return { booking: toBooking(row), token };
   }
 
-  async hasOverlappingBooked(
-    employeeId: number,
-    startsAt: Date,
-    endsAt: Date,
-  ) {
+  async hasOverlappingBooked(employeeId: number, startsAt: Date, endsAt: Date) {
     const overlapping = await this.prisma.booking
       .findFirst({
         where: {
@@ -114,6 +110,7 @@ const toBooking = (row: BookingRow): Booking => ({
   employeeId: row.employeeId,
   clientName: row.clientName,
   clientEmail: row.clientEmail,
+  note: row.note,
   startsAt: row.startsAt,
   endsAt: row.endsAt,
   status: row.status as BookingStatus,

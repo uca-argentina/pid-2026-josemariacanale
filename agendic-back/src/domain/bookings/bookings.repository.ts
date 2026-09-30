@@ -7,6 +7,7 @@ export interface CreateBookingData {
   employeeId: number;
   clientName: string;
   clientEmail: string;
+  note?: string | null;
   startsAt: Date;
   endsAt: Date;
 }

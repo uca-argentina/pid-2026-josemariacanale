@@ -96,7 +96,7 @@ export function BookingDetail({ booking: initial, now, startCancelling }: { book
                         </a>
                     </Row>
                     <Row label="Dónde">Sucursal {booking.branch}</Row>
-                    {booking.notes && <Row label="Notas">{booking.notes}</Row>}
+                    {booking.note && <Row label="Notas">{booking.note}</Row>}
                 </dl>
 
                 {cancelling ? (

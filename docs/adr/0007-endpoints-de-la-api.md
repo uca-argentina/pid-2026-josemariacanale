@@ -84,13 +84,13 @@ actualizarlo a mano cuando se agregue, cambie o borre un endpoint.
 | DELETE | `/services/:id/employees/:employeeId` | sí | Quita un empleado de un servicio (solo el dueño) |
 | GET | `/branches/:id/services` | no | Lista servicios activos de una sucursal |
 
-- `CreateServiceDto`: `{ name, description?, category, durationMinutes (int ≥1), price (number ≥0), employeeIds: number[] (no vacío) }`
-- `UpdateServiceDto`: `{ name?, description?, category?, durationMinutes?, price? }`
+- `CreateServiceDto`: `{ name, description?, category, durationMinutes (int ≥1), price (number ≥0), cancellationPolicy?, advancePaymentPercentage?, employeeIds: number[] (no vacío) }`
+- `UpdateServiceDto`: `{ name?, description?, category?, durationMinutes?, price?, cancellationPolicy?, advancePaymentPercentage? }`
 - `AssignEmployeeDto`: `{ employeeId, availabilityId? }`; sin `availabilityId`, el empleado entra con su Availability predeterminada
 - Cada empleado atiende el servicio con una de sus Availability. Es una referencia: editar esa
   Availability (`PATCH /availabilities/:id`) cambia en el acto todos los servicios que la usan. La
   respuesta del servicio no dice cuál usa cada empleado.
-- Respuesta (`presentService`): `{ id, branchId, name, description, category, durationMinutes, price, employees: [{id, name}] }`
+- Respuesta (`presentService`): `{ id, branchId, name, description, category, durationMinutes, price, cancellationPolicy, advancePaymentPercentage, employees: [{id, name}] }`
 - `category` es un enum fijo: `CLINICA | SPA | GIMNASIO | ACADEMIA | OTRO`, requerido en creación
 
 ## Employees (Empleado)
@@ -179,7 +179,7 @@ del Empleado: cualquier otro Usuario recibe 403.
 | POST | `/bookings/verification` | no | Verifica un turno por token (del link del email); re-chequea todas las reglas, puede devolver 409 si el horario se ocupó mientras tanto |
 | GET | `/businesses/:id/bookings` | sí | Lista todos los turnos de un negocio (solo el dueño) |
 
-- `CreateBookingDto`: `{ serviceId, employeeId, startsAt: ISO date-string, clientName, clientEmail }`
+- `CreateBookingDto`: `{ serviceId, employeeId, startsAt: ISO date-string, clientName, clientEmail, note? }`
 - `VerifyBookingDto`: `{ token }`
-- Respuesta (`presentBooking`): `{ id, serviceId, employeeId, startsAt, endsAt, status }`
+- Respuesta (`presentBooking`): `{ id, serviceId, employeeId, startsAt, endsAt, status, note }`
 - Respuesta solo-dueño (`presentBookingForOwner`, usada en el listado): agrega `clientName, clientEmail`

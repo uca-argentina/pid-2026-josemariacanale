@@ -2,7 +2,6 @@ import { DEFAULT_AVAILABILITY } from '../../domain/availabilities/availability';
 import { ConflictError, DatabaseOperationError } from '../../domain/errors';
 import { ServiceCategory } from '../../domain/services/service';
 import {
-  ANA,
   ANAS_BUSINESS,
   ANAS_EMPLOYEE,
   bearer,
@@ -189,6 +188,8 @@ describe('Empleado', () => {
           category: ServiceCategory.SPA,
           durationMinutes: 30,
           price: 20,
+          cancellationPolicy: null,
+          advancePaymentPercentage: null,
           retiredAt: null,
           employees: [{ id: OTHER_EMPLOYEE.id, name: OTHER_EMPLOYEE.name }],
         },
@@ -212,6 +213,8 @@ describe('Empleado', () => {
           category: ServiceCategory.SPA,
           durationMinutes: 30,
           price: 20,
+          cancellationPolicy: null,
+          advancePaymentPercentage: null,
           retiredAt: null,
           employees: [
             { id: OTHER_EMPLOYEE.id, name: OTHER_EMPLOYEE.name },

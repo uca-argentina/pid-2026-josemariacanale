@@ -59,7 +59,8 @@ const partsFormatter = (timeZone: string): Intl.DateTimeFormat => {
 /** The wall-clock instant would show in timeZone, as milliseconds since epoch of that same wall clock read as UTC. */
 const wallClockMsInZone = (instant: Date, timeZone: string): number => {
   const parts = partsFormatter(timeZone).formatToParts(instant);
-  const get = (type: string) => Number(parts.find((p) => p.type === type)!.value);
+  const get = (type: string) =>
+    Number(parts.find((p) => p.type === type)!.value);
   return Date.UTC(
     get('year'),
     get('month') - 1,

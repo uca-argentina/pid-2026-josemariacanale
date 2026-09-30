@@ -17,6 +17,7 @@ export interface ServiceItem {
     /** Los otros Empleados que ofrecen este Servicio. */
     otherEmployees: string[];
     deposit: { enabled: boolean; percent: number };
+    cancellationPolicy: string;
     prepMinutes: number;
     dailyLimit: { enabled: boolean; max: number };
     availabilityId: string;
@@ -45,6 +46,7 @@ export const groups: ServiceGroup[] = [
                 offeredByMe: true,
                 otherEmployees: ['Nicolás Rivas'],
                 deposit: { enabled: true, percent: 20 },
+                cancellationPolicy: '',
                 prepMinutes: 10,
                 dailyLimit: { enabled: true, max: 8 },
                 availabilityId: 'laboral',
@@ -60,6 +62,7 @@ export const groups: ServiceGroup[] = [
                 offeredByMe: false,
                 otherEmployees: ['Sofía Ledesma', 'Camila Ortega'],
                 deposit: { enabled: false, percent: 30 },
+                cancellationPolicy: '',
                 prepMinutes: 15,
                 dailyLimit: { enabled: false, max: 6 },
                 availabilityId: 'laboral',
@@ -75,6 +78,7 @@ export const groups: ServiceGroup[] = [
                 offeredByMe: true,
                 otherEmployees: [],
                 deposit: { enabled: false, percent: 20 },
+                cancellationPolicy: '',
                 prepMinutes: 0,
                 dailyLimit: { enabled: false, max: 4 },
                 availabilityId: 'laboral',
@@ -97,6 +101,7 @@ export const groups: ServiceGroup[] = [
                 offeredByMe: true,
                 otherEmployees: [],
                 deposit: { enabled: true, percent: 30 },
+                cancellationPolicy: '',
                 prepMinutes: 10,
                 dailyLimit: { enabled: true, max: 6 },
                 availabilityId: 'tarde',
@@ -112,6 +117,7 @@ export const groups: ServiceGroup[] = [
                 offeredByMe: false,
                 otherEmployees: ['Julián Paz'],
                 deposit: { enabled: false, percent: 20 },
+                cancellationPolicy: '',
                 prepMinutes: 15,
                 dailyLimit: { enabled: false, max: 5 },
                 availabilityId: 'laboral',

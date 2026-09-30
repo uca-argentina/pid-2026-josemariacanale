@@ -43,8 +43,7 @@ export function assertValidIntervals(intervals: AvailabilityInterval[]): void {
       'Cada Franja tiene que terminar después de empezar',
     );
   const sorted = [...intervals].sort(
-    (a, b) =>
-      a.weekday - b.weekday || a.startTime.localeCompare(b.startTime),
+    (a, b) => a.weekday - b.weekday || a.startTime.localeCompare(b.startTime),
   );
   if (
     sorted.some(

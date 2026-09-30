@@ -21,7 +21,7 @@ export interface Booking {
     employee: string;
     branch: string;
     status: BookingStatus;
-    notes?: string;
+    note?: string;
     cancelReason?: string;
     rescheduled?: boolean;
     rescheduleRequested?: boolean;
@@ -118,14 +118,14 @@ export function mockBookings(now: number): Booking[] {
     };
 
     return [
-        { id: 't1', ...slot(0, '23:00', 45), service: 'Consulta inicial de kinesiología', ...LUCIA, employee: 'Martina Fernández', branch: 'Centro', status: 'booked', notes: 'Vengo por una molestia en la rodilla derecha desde hace dos semanas, ¿tengo que llevar estudios?' },
+        { id: 't1', ...slot(0, '23:00', 45), service: 'Consulta inicial de kinesiología', ...LUCIA, employee: 'Martina Fernández', branch: 'Centro', status: 'booked', note: 'Vengo por una molestia en la rodilla derecha desde hace dos semanas, ¿tengo que llevar estudios?' },
         { id: 't2', ...slot(1, '09:00', 60), service: 'Masaje descontracturante', ...EMILIANO, employee: 'Nicolás Rivas', branch: 'Centro', status: 'booked' },
         { id: 't3', ...slot(1, '11:30', 45), service: 'Consulta inicial de kinesiología', ...CAROLINA, employee: 'Martina Fernández', branch: 'Palermo', status: 'booked', rescheduled: true },
         { id: 't4', ...slot(2, '15:00', 30), service: 'Control de seguimiento', clientName: 'Tomás Villalba', clientEmail: 'tvillalba@gmail.com', employee: 'Sofía Luna', branch: 'Centro', status: 'booked' },
-        { id: 't5', ...slot(3, '08:30', 60), service: 'Masaje descontracturante', clientName: 'Rocío Alfonso', clientEmail: 'rocio.alfonso@yahoo.com', employee: 'Nicolás Rivas', branch: 'Palermo', status: 'booked', notes: 'Prefiero presión suave.' },
+        { id: 't5', ...slot(3, '08:30', 60), service: 'Masaje descontracturante', clientName: 'Rocío Alfonso', clientEmail: 'rocio.alfonso@yahoo.com', employee: 'Nicolás Rivas', branch: 'Palermo', status: 'booked', note: 'Prefiero presión suave.' },
         { id: 't6', ...slot(5, '12:00', 30), service: 'Control de seguimiento', ...LUCIA, employee: 'Martina Fernández', branch: 'Centro', status: 'booked' },
         { id: 't7', ...slot(1, '17:00', 45), service: 'Consulta inicial de kinesiología', clientName: 'Damián Sosa', clientEmail: 'damian.sosa@gmail.com', employee: 'Martina Fernández', branch: 'Centro', status: 'pending' },
-        { id: 't8', ...slot(2, '18:30', 60), service: 'Masaje descontracturante', clientName: 'Valentina Ortiz', clientEmail: 'valen.ortiz@gmail.com', employee: 'Sofía Luna', branch: 'Palermo', status: 'pending', notes: 'Es para regalar, ¿se puede pagar en el local?' },
+        { id: 't8', ...slot(2, '18:30', 60), service: 'Masaje descontracturante', clientName: 'Valentina Ortiz', clientEmail: 'valen.ortiz@gmail.com', employee: 'Sofía Luna', branch: 'Palermo', status: 'pending', note: 'Es para regalar, ¿se puede pagar en el local?' },
         { id: 't9', ...slot(-1, '09:30', 45), service: 'Consulta inicial de kinesiología', clientName: 'Bruno Cabrera', clientEmail: 'bcabrera@gmail.com', employee: 'Martina Fernández', branch: 'Centro', status: 'booked' },
         { id: 't10', ...slot(-1, '11:00', 30), service: 'Control de seguimiento', clientName: 'Ailén Moreno', clientEmail: 'ailen.moreno@gmail.com', employee: 'Sofía Luna', branch: 'Centro', status: 'no-show' },
         { id: 't11', ...slot(-3, '16:00', 60), service: 'Masaje descontracturante', ...EMILIANO, employee: 'Nicolás Rivas', branch: 'Palermo', status: 'booked' },

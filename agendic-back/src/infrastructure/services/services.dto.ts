@@ -21,6 +21,15 @@ export class ServiceFieldsDto {
   @IsNumber()
   @Min(0)
   price!: number;
+
+  @IfPresent()
+  @IsText()
+  cancellationPolicy?: string;
+
+  @IfPresent()
+  @IsInt()
+  @Min(0)
+  advancePaymentPercentage?: number;
 }
 
 export class CreateServiceDto extends ServiceFieldsDto {
@@ -61,4 +70,13 @@ export class UpdateServiceDto {
   @IsNumber()
   @Min(0)
   price?: number;
+
+  @IfPresent()
+  @IsText()
+  cancellationPolicy?: string;
+
+  @IfPresent()
+  @IsInt()
+  @Min(0)
+  advancePaymentPercentage?: number;
 }

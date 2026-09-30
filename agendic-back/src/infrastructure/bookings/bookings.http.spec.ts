@@ -47,11 +47,17 @@ describe('Turno', () => {
       t.services.findById.mockResolvedValue(SERVICE);
       t.branches.findById.mockResolvedValue(BRANCH);
       t.bookings.hasOverlappingBooked.mockResolvedValue(false);
-      t.bookings.create.mockResolvedValue({ booking: BOOKING, token: 'a-token' });
+      t.bookings.create.mockResolvedValue({
+        booking: BOOKING,
+        token: 'a-token',
+      });
     });
 
     it('books a Turno as UNVERIFIED, without a Sesión, and sends a verification link', async () => {
-      const res = await t.http.post('/bookings').send(VALID_BOOKING).expect(201);
+      const res = await t.http
+        .post('/bookings')
+        .send(VALID_BOOKING)
+        .expect(201);
 
       expect(res.body).toEqual({
         id: BOOKING.id,
@@ -183,14 +189,17 @@ describe('Turno', () => {
       ['a missing startsAt', { startsAt: undefined }],
       ['a missing serviceId', { serviceId: undefined }],
       ['a missing employeeId', { employeeId: undefined }],
-    ])('rejects %s with 400, without reaching the repository', async (_, override) => {
-      await t.http
-        .post('/bookings')
-        .send({ ...VALID_BOOKING, ...override })
-        .expect(400);
+    ])(
+      'rejects %s with 400, without reaching the repository',
+      async (_, override) => {
+        await t.http
+          .post('/bookings')
+          .send({ ...VALID_BOOKING, ...override })
+          .expect(400);
 
-      expect(t.bookings.create).not.toHaveBeenCalled();
-    });
+        expect(t.bookings.create).not.toHaveBeenCalled();
+      },
+    );
   });
 
   describe('POST /bookings/verification', () => {

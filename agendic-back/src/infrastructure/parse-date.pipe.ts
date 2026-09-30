@@ -1,8 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-  PipeTransform,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, PipeTransform } from '@nestjs/common';
 
 /** A path or query param shaped like YYYY-MM-DD; anything else is a 400. */
 @Injectable()

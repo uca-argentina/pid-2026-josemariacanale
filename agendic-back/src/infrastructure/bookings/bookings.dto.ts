@@ -1,5 +1,10 @@
 import { IsDateString, IsInt, IsString } from 'class-validator';
-import { IsName, IsNormalizedEmail } from '../users/users.dto';
+import {
+  IfPresent,
+  IsName,
+  IsNormalizedEmail,
+  IsText,
+} from '../users/users.dto';
 
 export class CreateBookingDto {
   @IsInt()
@@ -16,6 +21,10 @@ export class CreateBookingDto {
 
   @IsNormalizedEmail()
   clientEmail!: string;
+
+  @IfPresent()
+  @IsText()
+  note?: string;
 }
 
 export class VerifyBookingDto {

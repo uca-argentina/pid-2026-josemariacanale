@@ -50,9 +50,7 @@ export class RemoveEmployeeUseCase {
     const employee = await this.employees.findById(employeeId);
     if (!employee) throw new NotFoundError('Employee not found');
     if (isLastEmployee(service, employeeId))
-      throw new BusinessRuleError(
-        "Cannot remove the Service's last Employee",
-      );
+      throw new BusinessRuleError("Cannot remove the Service's last Employee");
     const { cancelledBookings } = await this.services.removeEmployee(
       serviceId,
       employeeId,

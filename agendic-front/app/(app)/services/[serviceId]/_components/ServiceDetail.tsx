@@ -132,6 +132,19 @@ function SetupTab({
                     </div>
                 )}
             </PanelCard>
+
+            <PanelCard className="flex flex-col gap-5">
+                <PanelField label="Política de cancelación (opcional)" htmlFor="service-cancellation">
+                    <PanelTextarea
+                        id="service-cancellation"
+                        value={draft.cancellationPolicy}
+                        disabled={readOnly}
+                        maxLength={500}
+                        placeholder="Ej: Si cancelás con menos de 24hs de anticipación, la seña no se devuelve."
+                        onChange={(e) => set({ cancellationPolicy: e.target.value })}
+                    />
+                </PanelField>
+            </PanelCard>
         </>
     );
 }

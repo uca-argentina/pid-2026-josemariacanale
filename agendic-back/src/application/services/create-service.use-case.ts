@@ -67,6 +67,8 @@ export class CreateServiceUseCase {
       category: input.category,
       durationMinutes: input.durationMinutes,
       price: input.price,
+      cancellationPolicy: input.cancellationPolicy ?? null,
+      advancePaymentPercentage: input.advancePaymentPercentage ?? null,
       employees,
     });
   }

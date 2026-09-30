@@ -211,7 +211,7 @@ function ConfirmStep({
 }: {
     business: Business;
     service: Service;
-    onSubmit: (data: { name: string; email: string; notes: string }) => void;
+    onSubmit: (data: { name: string; email: string; note: string }) => void;
 }) {
     const deposit = depositFor(service);
 
@@ -224,7 +224,7 @@ function ConfirmStep({
                 onSubmit({
                     name: String(data.get('nombre')).trim(),
                     email: String(data.get('email')).trim(),
-                    notes: String(data.get('notas') ?? '').trim(),
+                    note: String(data.get('note') ?? '').trim(),
                 });
             }}
             className="flex max-w-[560px] flex-col gap-4"
@@ -282,15 +282,15 @@ function ConfirmStep({
             )}
 
             <section className="mt-2 flex flex-col gap-2 border-t border-border pt-5">
-                {/* ponytail: maqueta. Booking no tiene campo de notas todavía. */}
-                <Label htmlFor="notas" className="text-[17px] font-extrabold tracking-[-0.02em]">
+                <Label htmlFor="note" className="text-[17px] font-extrabold tracking-[-0.02em]">
                     Notas para el negocio
                 </Label>
                 <p className="text-[13.5px] text-muted-foreground">Opcional.</p>
                 <Textarea
-                    id="notas"
-                    name="notas"
+                    id="note"
+                    name="note"
                     rows={4}
+                    maxLength={500}
                     placeholder="Contanos algo que el profesional tenga que saber antes del turno."
                     className="mt-1 rounded-xl"
                 />
@@ -511,7 +511,7 @@ export function BookingFlow({
         else onClose();
     };
 
-    const confirm = (data: { name: string; email: string; notes: string }) => {
+    const confirm = (data: { name: string; email: string; note: string }) => {
         if (!service || !employee || !date || !time) return;
         // ponytail: acá va POST /bookings; nace UNVERIFIED hasta que el Cliente verifica el mail.
         onBooked({
@@ -524,7 +524,7 @@ export function BookingFlow({
             time,
             status: 'UNVERIFIED',
             client: { name: data.name, email: data.email },
-            notes: data.notes || undefined,
+            note: data.note || undefined,
             photo,
         });
     };

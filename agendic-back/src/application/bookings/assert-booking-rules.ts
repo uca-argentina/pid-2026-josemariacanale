@@ -15,7 +15,8 @@ const timeFormatter = new Intl.DateTimeFormat('en-GB', {
 });
 
 // ponytail: every Sucursal is assumed to be in Argentina; add a per-Sucursal timezone if the business expands abroad.
-const localTime = (date: Date) => timeFormatter.format(date).replace('24:', '00:');
+const localTime = (date: Date) =>
+  timeFormatter.format(date).replace('24:', '00:');
 
 export function assertServiceBookable(
   service: Service | null,
@@ -45,10 +46,11 @@ export function assertWithinHours(
   startsAt: Date,
   endsAt: Date,
 ): void {
-  if (localTime(startsAt) < branch.opensAt || localTime(endsAt) > branch.closesAt)
-    throw new BusinessRuleError(
-      "Booking must fit within the Sucursal's hours",
-    );
+  if (
+    localTime(startsAt) < branch.opensAt ||
+    localTime(endsAt) > branch.closesAt
+  )
+    throw new BusinessRuleError("Booking must fit within the Sucursal's hours");
 }
 
 /**

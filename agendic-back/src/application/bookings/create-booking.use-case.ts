@@ -3,7 +3,11 @@ import {
   BRANCHES_REPOSITORY,
   BranchesRepository,
 } from '../../domain/branches/branches.repository';
-import { Booking, bookingVerificationExpiresAt, CreateBookingInput } from '../../domain/bookings/booking';
+import {
+  Booking,
+  bookingVerificationExpiresAt,
+  CreateBookingInput,
+} from '../../domain/bookings/booking';
 import {
   BOOKINGS_REPOSITORY,
   BookingsRepository,
@@ -56,6 +60,7 @@ export class CreateBookingUseCase {
         employeeId: input.employeeId,
         clientName: input.clientName,
         clientEmail: input.clientEmail,
+        note: input.note,
         startsAt: input.startsAt,
         endsAt,
       },

@@ -87,7 +87,13 @@ describe('PrismaBookingsRepository', () => {
 
   it.each([
     ['an unknown token', null],
-    ['an expired token', { ...BOOKING_ROW, verificationTokenExpiresAt: new Date('2026-01-01T11:00:00.000Z') }],
+    [
+      'an expired token',
+      {
+        ...BOOKING_ROW,
+        verificationTokenExpiresAt: new Date('2026-01-01T11:00:00.000Z'),
+      },
+    ],
     ['a used token', { ...BOOKING_ROW, verificationTokenExpiresAt: null }],
   ])('throws BusinessRuleError for %s', async (_, row) => {
     prisma.booking.findFirst.mockResolvedValue(row);

@@ -8,5 +8,7 @@ export const presentService = (service: Service) => ({
   category: service.category,
   durationMinutes: service.durationMinutes,
   price: service.price,
+  cancellationPolicy: service.cancellationPolicy,
+  advancePaymentPercentage: service.advancePaymentPercentage,
   employees: service.employees.map(({ id, name }) => ({ id, name })),
 });
