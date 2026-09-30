@@ -4,7 +4,7 @@ import { Toaster } from 'sonner';
 import { getCurrentUser } from '@/app/(public)/(auth)/current-user';
 import { SIGN_IN_PATH } from '@/app/routes';
 import { Sidebar } from './_components/Sidebar';
-import { loadPendingCount } from './_components/mock-bookings';
+import { getInjection } from '@/di/container';
 import type { NavItem } from './_components/types';
 
 const navItems: NavItem[] = [
@@ -23,16 +23,26 @@ function initialsOf(name: string) {
         .toUpperCase();
 }
 
+/** Cuántos Turnos esperan respuesta del Empleado; si la consulta falla, 0: el contador no vale un error de página. */
+async function countPendingBookings() {
+    try {
+        const bookings = await getInjection('IListMyBookingsController')();
+        return bookings.filter((b) => b.status === 'PENDING').length;
+    } catch {
+        return 0;
+    }
+}
+
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
     const user = await getCurrentUser();
     if (!user) redirect(SIGN_IN_PATH);
+    const pendingCount = await countPendingBookings();
 
     return (
         <div className="flex min-h-screen w-full bg-muted">
             <Sidebar
                 user={{ name: user.name, initials: initialsOf(user.name), imageUrl: user.imageUrl }}
-                // ponytail: cuenta los pendientes del mock; no sigue los Aceptar/Rechazar de la lista hasta que persistan.
-                navItems={navItems.map((item) => (item.id === 'bookings' ? { ...item, count: loadPendingCount() } : item))}
+                navItems={navItems.map((item) => (item.id === 'bookings' ? { ...item, count: pendingCount } : item))}
             />
             <main className="flex min-w-0 flex-1 flex-col">{children}</main>
             <Toaster

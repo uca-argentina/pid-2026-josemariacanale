@@ -26,6 +26,9 @@ import type { IBookSlotUseCase } from '@/src/application/use-cases/bookings/book
 import type { IListSlotsController } from '@/src/interface-adapters/controllers/bookings/list-slots.controller';
 import type { IBookSlotController } from '@/src/interface-adapters/controllers/bookings/book-slot.controller';
 import type { IRetireEmployeeController } from '@/src/interface-adapters/controllers/employees/retire-employee.controller';
+import type { IEmployeeBookingsRepository } from '@/src/application/repositories/employee-bookings.repository.interface';
+import type { IListMyBookingsUseCase } from '@/src/application/use-cases/bookings/list-my-bookings.use-case';
+import type { IListMyBookingsController } from '@/src/interface-adapters/controllers/bookings/list-my-bookings.controller';
 
 export const DI_SYMBOLS = {
     // Services
@@ -38,6 +41,7 @@ export const DI_SYMBOLS = {
     IPublicBusinessesRepository: Symbol.for('IPublicBusinessesRepository'),
     IEmployeesRepository: Symbol.for('IEmployeesRepository'),
     IBookingsRepository: Symbol.for('IBookingsRepository'),
+    IEmployeeBookingsRepository: Symbol.for('IEmployeeBookingsRepository'),
 
     // Use cases
     ICreateBusinessUseCase: Symbol.for('ICreateBusinessUseCase'),
@@ -50,6 +54,7 @@ export const DI_SYMBOLS = {
     IRetireEmployeeUseCase: Symbol.for('IRetireEmployeeUseCase'),
     IListSlotsUseCase: Symbol.for('IListSlotsUseCase'),
     IBookSlotUseCase: Symbol.for('IBookSlotUseCase'),
+    IListMyBookingsUseCase: Symbol.for('IListMyBookingsUseCase'),
 
     // Controllers
     IGetCurrentUserController: Symbol.for('IGetCurrentUserController'),
@@ -63,6 +68,7 @@ export const DI_SYMBOLS = {
     IRetireEmployeeController: Symbol.for('IRetireEmployeeController'),
     IListSlotsController: Symbol.for('IListSlotsController'),
     IBookSlotController: Symbol.for('IBookSlotController'),
+    IListMyBookingsController: Symbol.for('IListMyBookingsController'),
 };
 
 export interface DI_RETURN_TYPES {
@@ -76,6 +82,7 @@ export interface DI_RETURN_TYPES {
     IPublicBusinessesRepository: IPublicBusinessesRepository;
     IEmployeesRepository: IEmployeesRepository;
     IBookingsRepository: IBookingsRepository;
+    IEmployeeBookingsRepository: IEmployeeBookingsRepository;
 
     // Use cases
     ICreateBusinessUseCase: ICreateBusinessUseCase;
@@ -88,6 +95,7 @@ export interface DI_RETURN_TYPES {
     IRetireEmployeeUseCase: IRetireEmployeeUseCase;
     IListSlotsUseCase: IListSlotsUseCase;
     IBookSlotUseCase: IBookSlotUseCase;
+    IListMyBookingsUseCase: IListMyBookingsUseCase;
 
     // Controllers
     IGetCurrentUserController: IGetCurrentUserController;
@@ -101,4 +109,5 @@ export interface DI_RETURN_TYPES {
     IRetireEmployeeController: IRetireEmployeeController;
     IListSlotsController: IListSlotsController;
     IBookSlotController: IBookSlotController;
+    IListMyBookingsController: IListMyBookingsController;
 }

@@ -11,6 +11,7 @@ import {
     formatTimeRange,
     groupByDay,
     isClosed,
+    listValueOf,
     matches,
     sortForTab,
     tabOf,
@@ -18,7 +19,7 @@ import {
     type BookingFilter,
     type BookingTab,
     type ListField,
-} from '@/app/(app)/_components/mock-bookings';
+} from './booking-helpers';
 import { BookingActions } from './BookingActions';
 import { BookingFilters } from './BookingFilters';
 
@@ -52,11 +53,10 @@ const AMBER = 'bg-[#fff4e5] text-[#b45309]';
 
 function badgesOf(b: Booking): { label: string; className: string }[] {
     return [
-        b.status === 'pending' && { label: 'Pendiente', className: AMBER },
-        b.status === 'no-show' && { label: 'Ausencia', className: RED },
-        b.status === 'rejected' && { label: 'Rechazado', className: RED },
-        b.status === 'cancelled' && { label: b.rescheduleRequested ? 'Reagendamiento pedido' : 'Cancelado', className: RED },
-        b.rescheduled && b.status !== 'cancelled' && { label: 'Reagendado', className: AMBER },
+        b.status === 'PENDING' && { label: 'Pendiente', className: AMBER },
+        b.status === 'BOOKED' && b.noShowAt !== null && { label: 'Ausencia', className: RED },
+        b.status === 'REJECTED' && { label: 'Rechazado', className: RED },
+        b.status === 'CANCELLED' && { label: 'Cancelado', className: RED },
     ].filter((badge) => !!badge);
 }
 
@@ -73,15 +73,14 @@ function BookingRow({ booking, tab, now, onChange }: { booking: Booking; tab: Bo
                     <span className={cn('text-[13px] font-medium text-[#6b7280]', isClosed(booking) && 'line-through')}>{formatTimeRange(booking)}</span>
                     <span className="mt-1 flex items-center gap-1 text-[12.5px] font-semibold text-[#6b7280]">
                         <MapPin className="size-3.5" />
-                        {booking.branch}
+                        {booking.businessName} · {booking.branchName}
                     </span>
                 </div>
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
                     <span className="text-[14.5px] font-bold tracking-[-0.02em] text-[#0f1b2d]">
-                        {booking.service} con {booking.clientName}
+                        {booking.serviceName} con {booking.clientName}
                     </span>
-                    {booking.notes && <span className="max-w-[520px] truncate text-[13px] font-medium text-[#6b7280]">“{booking.notes}”</span>}
-                    <span className="text-[13px] font-medium text-[#374151]">Atiende {booking.employee}</span>
+                    <span className="text-[13px] font-medium text-[#374151]">{booking.clientEmail}</span>
                     {badges.length > 0 && (
                         <div className="mt-1 flex flex-wrap gap-1.5">
                             {badges.map((badge) => (
@@ -102,7 +101,11 @@ function BookingRow({ booking, tab, now, onChange }: { booking: Booking; tab: Bo
 
 const unique = (list: string[]) => [...new Set(list)].sort((a, b) => a.localeCompare(b, 'es'));
 
-export function BookingsView({ initialBookings, now }: { initialBookings: Booking[]; now: number }) {
+/**
+ * Lista de Turnos del Empleado. Aceptar, Rechazar y demás acciones cambian solo el estado local hasta que
+ * sus endpoints estén conectados.
+ */
+export function BookingsView({ bookings: initialBookings, now }: { bookings: Booking[]; now: number }) {
     const [bookings, setBookings] = useState(initialBookings);
     const [tab, setTab] = useState<BookingTab>('upcoming');
     const [filters, setFilters] = useState<BookingFilter[]>([]);
@@ -110,9 +113,8 @@ export function BookingsView({ initialBookings, now }: { initialBookings: Bookin
     const [page, setPage] = useState(0);
 
     const options: Record<ListField, string[]> = {
-        service: unique(initialBookings.map((b) => b.service)),
-        employee: unique(initialBookings.map((b) => b.employee)),
-        branch: unique(initialBookings.map((b) => b.branch)),
+        service: unique(initialBookings.map((b) => listValueOf('service', b))),
+        branch: unique(initialBookings.map((b) => listValueOf('branch', b))),
     };
 
     const pendingCount = bookings.filter((b) => tabOf(b, now) === 'pending').length;
@@ -123,7 +125,7 @@ export function BookingsView({ initialBookings, now }: { initialBookings: Bookin
     const pageItems = inTab.slice(from, from + pageSize);
     const empty = TABS.find((t) => t.id === tab)!.empty;
 
-    const update = (id: string) => (patch: Partial<Booking>) =>
+    const update = (id: number) => (patch: Partial<Booking>) =>
         setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, ...patch } : b)));
 
     return (
