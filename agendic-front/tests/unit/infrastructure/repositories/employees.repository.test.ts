@@ -1,9 +1,9 @@
 import { ApiRequestError } from '@/src/entities/errors/common';
-import { LastEmployeeError } from '@/src/entities/errors/employee';
+import { EmployeeAlreadyExistsError, EmployeeUserNotFoundError, LastEmployeeError } from '@/src/entities/errors/employee';
 import { EmployeesRepository } from '@/src/infrastructure/repositories/employees.repository';
 import { authWith } from '@/tests/unit/stubs';
 
-const employee = { id: 3, name: 'Martina', email: 'martina@estudio.com' };
+const employee = { id: 3, userId: 9, name: 'Martina', email: 'martina@estudio.com' };
 
 const repo = (apiUrl: string | undefined = 'http://api') =>
     new EmployeesRepository(authWith({ getAccessToken: jest.fn().mockResolvedValue('tok') }), apiUrl);
@@ -54,23 +54,40 @@ describe('EmployeesRepository.listEmployees', () => {
 });
 
 describe('EmployeesRepository.addEmployee', () => {
-    it('POSTs name and email to the Negocio and returns the Empleado', async () => {
+    it('POSTs the email to the Negocio and returns the Empleado', async () => {
         const fetchSpy = respond(201, employee);
 
-        await expect(repo().addEmployee({ businessId: 1, name: 'Martina', email: 'martina@estudio.com' })).resolves.toEqual(employee);
+        await expect(repo().addEmployee({ businessId: 1, email: 'martina@estudio.com' })).resolves.toEqual(employee);
         expect(fetchSpy).toHaveBeenCalledWith(
             'http://api/businesses/1/employees',
             expect.objectContaining({
                 method: 'POST',
                 headers: expect.objectContaining({ Authorization: 'Bearer tok' }),
-                body: JSON.stringify({ name: 'Martina', email: 'martina@estudio.com' }),
+                body: JSON.stringify({ email: 'martina@estudio.com' }),
             }),
         );
     });
 
-    it('translates a 400 to ApiRequestError carrying the status', async () => {
-        respond(400, { statusCode: 400, message: 'email must be an email' });
-        await expect(repo().addEmployee({ businessId: 1, name: 'M', email: 'x' })).rejects.toMatchObject({ status: 400 });
+    it('translates a 422 to EmployeeUserNotFoundError keeping the back message', async () => {
+        respond(422, { statusCode: 422, message: 'todavía no tiene cuenta en Agendic' });
+        const error = await repo().addEmployee({ businessId: 1, email: 'x@y.com' }).catch((e) => e);
+        expect(error).toBeInstanceOf(EmployeeUserNotFoundError);
+        expect(error.message).toBe('todavía no tiene cuenta en Agendic');
+    });
+
+    it('translates a 409 to EmployeeAlreadyExistsError', async () => {
+        respond(409, { statusCode: 409, message: 'ya es parte del Staff' });
+        await expect(repo().addEmployee({ businessId: 1, email: 'x@y.com' })).rejects.toBeInstanceOf(EmployeeAlreadyExistsError);
+    });
+
+    it('translates a 500 to ApiRequestError carrying the status', async () => {
+        respond(500, { statusCode: 500, message: 'boom' });
+        await expect(repo().addEmployee({ businessId: 1, email: 'x@y.com' })).rejects.toMatchObject({ status: 500 });
+    });
+
+    it('translates an invalid JSON response to ApiRequestError', async () => {
+        jest.spyOn(global, 'fetch').mockResolvedValue(new Response('no json', { status: 201 }));
+        await expect(repo().addEmployee({ businessId: 1, email: 'x@y.com' })).rejects.toBeInstanceOf(ApiRequestError);
     });
 });
 

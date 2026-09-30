@@ -6,9 +6,9 @@ import { isSessionExpired } from '@/app/api-error';
 import { SIGN_IN_PATH } from '@/app/routes';
 import { getInjection } from '@/di/container';
 import { InputParseError } from '@/src/entities/errors/common';
-import { LastEmployeeError } from '@/src/entities/errors/employee';
+import { EmployeeAlreadyExistsError, EmployeeUserNotFoundError, LastEmployeeError } from '@/src/entities/errors/employee';
 
-export type EmployeeActionResult = { ok: true } | { ok: false; message: string };
+export type EmployeeActionResult = { ok: true } | { ok: false; message: string; field?: 'email' };
 
 // Las dos refrescan la página: la tabla sale siempre de lo que devuelve el back.
 
@@ -20,6 +20,8 @@ export async function addEmployeeAction(payload: unknown): Promise<EmployeeActio
     } catch (error) {
         unstable_rethrow(error); // redirect/notFound/dynamic usage are Next's control flow, not failures
         // La Sesión vencida la resuelve el Usuario solo: se lo manda a Iniciar sesión.
+        if (error instanceof EmployeeUserNotFoundError || error instanceof EmployeeAlreadyExistsError)
+            return { ok: false, message: error.message, field: 'email' };
         if (isSessionExpired(error)) redirect(SIGN_IN_PATH);
         if (error instanceof InputParseError) return { ok: false, message: 'Revisá los datos e intentá de nuevo.' };
         getInjection('ICrashReporterService').report(error);
@@ -35,7 +37,7 @@ export async function retireEmployeeAction(payload: unknown): Promise<EmployeeAc
     } catch (error) {
         unstable_rethrow(error); // redirect/notFound/dynamic usage are Next's control flow, not failures
         if (error instanceof LastEmployeeError)
-            return { ok: false, message: 'Es el único Empleado de un Servicio. Sumá a otro a ese Servicio antes de darlo de baja.' };
+            return { ok: false, message: error.message };
         if (isSessionExpired(error)) redirect(SIGN_IN_PATH);
         if (error instanceof InputParseError) return { ok: false, message: 'Revisá los datos e intentá de nuevo.' };
         getInjection('ICrashReporterService').report(error);

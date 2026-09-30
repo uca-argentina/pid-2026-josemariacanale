@@ -16,7 +16,7 @@ import {
     PanelMenu,
 } from '@/app/(app)/_components/panel-ui';
 import { cn } from '@/app/_components/utils';
-import { employeeSchema, fieldErrorsOf, type EmployeeFields, type FieldErrors } from '@/app/_components/business-schemas';
+import { addEmployeeSchema, fieldErrorsOf, type AddEmployeeFields, type FieldErrors } from '@/app/_components/business-schemas';
 import { RoleBadge, type BusinessRole } from '../../_components/business-ui';
 import { addEmployeeAction, retireEmployeeAction } from '../actions';
 import { EmployeeSheet } from './EmployeeSheet';
@@ -24,7 +24,7 @@ import { EmployeeSheet } from './EmployeeSheet';
 export type EmployeeRow = { id: number; name: string; email: string; role: BusinessRole };
 
 function InviteEmployeeDialog({ businessId, onClose }: { businessId: number; onClose: () => void }) {
-    const [form, setForm] = useState<EmployeeFields>({ name: '', email: '' });
+    const [form, setForm] = useState<AddEmployeeFields>({ email: '' });
     const [errors, setErrors] = useState<FieldErrors>({});
     const [submitError, setSubmitError] = useState<string>();
     const [isPending, startTransition] = useTransition();
@@ -32,7 +32,7 @@ function InviteEmployeeDialog({ businessId, onClose }: { businessId: number; onC
     const submit = (event: React.FormEvent) => {
         event.preventDefault();
         setSubmitError(undefined);
-        const result = employeeSchema.safeParse(form);
+        const result = addEmployeeSchema.safeParse(form);
         if (!result.success) {
             setErrors(fieldErrorsOf(result.error));
             return;
@@ -41,10 +41,11 @@ function InviteEmployeeDialog({ businessId, onClose }: { businessId: number; onC
         startTransition(async () => {
             const response = await addEmployeeAction({ businessId, ...result.data });
             if (!response.ok) {
-                setSubmitError(response.message);
+                if (response.field) setErrors({ [response.field]: response.message });
+                else setSubmitError(response.message);
                 return;
             }
-            toast.success(`${result.data.email}: invitado a tu Negocio`);
+            toast.success(`${result.data.email}: agregado a tu Negocio`);
             onClose();
         });
     };
@@ -53,35 +54,25 @@ function InviteEmployeeDialog({ businessId, onClose }: { businessId: number; onC
         <PanelDialog
             open
             onOpenChange={(open) => !open && !isPending && onClose()}
-            title="Invitar empleado"
-            description="Va a poder atender turnos de tu Negocio."
+            title="Agregar empleado"
+            description="Tiene que tener cuenta en Agendic. Va a poder atender Turnos de tu Negocio."
             footer={
                 <>
                     <PanelDialogClose>
                         <PanelButton variant="ghost">Cancelar</PanelButton>
                     </PanelDialogClose>
                     <PanelButton type="submit" form="invite-employee" disabled={isPending} className="min-w-[124px]">
-                        {isPending ? <Loader2 className="size-4 animate-spin" /> : 'Enviar invitación'}
+                        {isPending ? <Loader2 className="size-4 animate-spin" /> : 'Agregar'}
                     </PanelButton>
                 </>
             }
         >
             <form id="invite-employee" onSubmit={submit} noValidate className="flex flex-col gap-5">
-                <PanelField label="Nombre" htmlFor="invite-name" error={errors.name}>
-                    <PanelInput
-                        id="invite-name"
-                        autoFocus
-                        placeholder="Martina Fernández"
-                        value={form.name}
-                        onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                        aria-invalid={Boolean(errors.name)}
-                        aria-describedby={errors.name ? 'invite-name-error' : undefined}
-                    />
-                </PanelField>
                 <PanelField label="Email" htmlFor="invite-email" error={errors.email}>
                     <PanelInput
                         id="invite-email"
                         type="email"
+                        autoFocus
                         placeholder="email@ejemplo.com"
                         value={form.email}
                         onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
@@ -132,7 +123,7 @@ export function EmployeesView({ businessId, employees }: { businessId: number; e
                 </div>
                 <PanelButton onClick={() => setInviting(true)}>
                     <Plus className="size-4" />
-                    Invitar
+                    Agregar
                 </PanelButton>
             </div>
 

@@ -85,10 +85,14 @@ export const employeeSchema = z.object({
     email: required('el email').pipe(z.email('Ingresá un email válido.')),
 });
 
+/** La forma de POST /businesses/:id/employees desde el panel de Staff: solo el email. */
+export const addEmployeeSchema = employeeSchema.pick({ email: true });
+
 export type BusinessFields = z.input<typeof businessSchema>;
 export type BranchFields = z.input<typeof branchSchema>;
 export type ServiceFields = z.input<typeof serviceSchema>;
 export type EmployeeFields = z.input<typeof employeeSchema>;
+export type AddEmployeeFields = z.input<typeof addEmployeeSchema>;
 
 export type CreateBusinessPayload = {
     business: z.output<typeof businessSchema>;

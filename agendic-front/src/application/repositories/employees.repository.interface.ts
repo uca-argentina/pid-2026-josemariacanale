@@ -4,7 +4,8 @@ import type { CreateEmployee, Employee } from '@/src/entities/models/employee';
 export interface IEmployeesRepository {
     // The Empleados of the Negocio that are not dados de baja.
     listEmployees(businessId: number): Promise<Employee[]>;
+    // Throws EmployeeUserNotFoundError (422) or EmployeeAlreadyExistsError (409).
     addEmployee(input: CreateEmployee): Promise<Employee>;
-    // Throws LastEmployeeError (422) when they are the last Empleado of a Servicio.
+    // Throws LastEmployeeError (422) when they are the Dueño or the last Empleado of a Servicio.
     retireEmployee(employeeId: number): Promise<void>;
 }

@@ -1,7 +1,7 @@
 import type { IEmployeesRepository } from '@/src/application/repositories/employees.repository.interface';
 import type { IAuthenticationService } from '@/src/application/services/authentication.service.interface';
 import { ApiRequestError } from '@/src/entities/errors/common';
-import { LastEmployeeError } from '@/src/entities/errors/employee';
+import { EmployeeAlreadyExistsError, EmployeeUserNotFoundError, LastEmployeeError } from '@/src/entities/errors/employee';
 import { employeeSchema, type CreateEmployee, type Employee } from '@/src/entities/models/employee';
 
 // Same as in BusinessesRepository: the boundaries lint keeps adapters from importing each other.
@@ -27,7 +27,10 @@ export class EmployeesRepository implements IEmployeesRepository {
     }
 
     async addEmployee({ businessId, ...employee }: CreateEmployee): Promise<Employee> {
-        const body = await this.request('POST', `/businesses/${businessId}/employees`, { body: employee });
+        const body = await this.request('POST', `/businesses/${businessId}/employees`, {
+            body: employee,
+            errors: { 409: EmployeeAlreadyExistsError, 422: EmployeeUserNotFoundError },
+        });
         return parseOrFail(() => employeeSchema.parse(body), 'POST /businesses/:id/employees');
     }
 

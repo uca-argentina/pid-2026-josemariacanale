@@ -37,7 +37,7 @@ export async function createBusinessAction(
     const failedEmployees: string[] = [];
     for (const employee of employees) {
         try {
-            await getInjection('IAddEmployeeController')({ ...employee, businessId: business.id });
+            await getInjection('IAddEmployeeController')({ email: employee.email, businessId: business.id });
         } catch (error) {
             unstable_rethrow(error);
             getInjection('ICrashReporterService').report(error);
