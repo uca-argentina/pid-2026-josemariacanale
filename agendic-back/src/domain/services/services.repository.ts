@@ -13,6 +13,7 @@ export interface ServicesRepository {
       | 'category'
       | 'durationMinutes'
       | 'price'
+      | 'depositPercent'
     > & { employees: Omit<EmployeeService, 'serviceId'>[] },
   ): Promise<Service>;
   findById(id: number): Promise<Service | null>;
@@ -23,7 +24,12 @@ export interface ServicesRepository {
     data: Partial<
       Pick<
         Service,
-        'name' | 'description' | 'category' | 'durationMinutes' | 'price'
+        | 'name'
+        | 'description'
+        | 'category'
+        | 'durationMinutes'
+        | 'price'
+        | 'depositPercent'
       >
     >,
   ): Promise<Service>;

@@ -34,6 +34,7 @@ const BOOKING: Booking = {
   startsAt: new Date(VALID_BOOKING.startsAt),
   endsAt: new Date('2026-01-01T12:30:00.000Z'),
   status: BookingStatus.UNVERIFIED,
+  notes: null,
 };
 
 describe('Turno', () => {
@@ -60,6 +61,7 @@ describe('Turno', () => {
         startsAt: BOOKING.startsAt.toISOString(),
         endsAt: BOOKING.endsAt.toISOString(),
         status: 'UNVERIFIED',
+        notes: null,
       });
       expect(t.bookings.create).toHaveBeenCalledWith(
         {
@@ -69,6 +71,7 @@ describe('Turno', () => {
           clientEmail: VALID_BOOKING.clientEmail,
           startsAt: new Date(VALID_BOOKING.startsAt),
           endsAt: new Date('2026-01-01T12:30:00.000Z'),
+          notes: null,
         },
         new Date('2026-01-02T12:00:00.000Z'),
       );
@@ -95,6 +98,43 @@ describe('Turno', () => {
         }),
         expect.any(Date),
       );
+    });
+
+    it('keeps the Comentario del Turno, trimmed, and returns it', async () => {
+      t.bookings.create.mockResolvedValue({
+        booking: { ...BOOKING, notes: 'Llego 5 minutos tarde' },
+        token: 'a-token',
+      });
+
+      const res = await t.http
+        .post('/bookings')
+        .send({ ...VALID_BOOKING, notes: '  Llego 5 minutos tarde ' })
+        .expect(201);
+
+      expect(t.bookings.create).toHaveBeenCalledWith(
+        expect.objectContaining({ notes: 'Llego 5 minutos tarde' }),
+        expect.any(Date),
+      );
+      expect(res.body.notes).toBe('Llego 5 minutos tarde');
+    });
+
+    it('keeps no Comentario del Turno when it is blank', async () => {
+      await t.http
+        .post('/bookings')
+        .send({ ...VALID_BOOKING, notes: '   ' })
+        .expect(201);
+
+      expect(t.bookings.create).toHaveBeenCalledWith(
+        expect.objectContaining({ notes: null }),
+        expect.any(Date),
+      );
+    });
+
+    it('accepts a Comentario del Turno of exactly 500 characters', async () => {
+      await t.http
+        .post('/bookings')
+        .send({ ...VALID_BOOKING, notes: 'a'.repeat(500) })
+        .expect(201);
     });
 
     it('accepts a Turno ending exactly at closing time', async () => {
@@ -183,6 +223,9 @@ describe('Turno', () => {
       ['a missing startsAt', { startsAt: undefined }],
       ['a missing serviceId', { serviceId: undefined }],
       ['a missing employeeId', { employeeId: undefined }],
+      ['a Comentario del Turno over 500 characters', { notes: 'a'.repeat(501) }],
+      ['a non-string Comentario del Turno', { notes: 42 }],
+      ['a null Comentario del Turno', { notes: null }],
     ])('rejects %s with 400, without reaching the repository', async (_, override) => {
       await t.http
         .post('/bookings')
@@ -298,6 +341,7 @@ describe('Turno', () => {
           startsAt: BOOKING.startsAt.toISOString(),
           endsAt: BOOKING.endsAt.toISOString(),
           status: BOOKING.status,
+          notes: BOOKING.notes,
           clientName: BOOKING.clientName,
           clientEmail: BOOKING.clientEmail,
         },

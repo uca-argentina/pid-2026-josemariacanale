@@ -58,6 +58,7 @@ export class CreateBookingUseCase {
         clientEmail: input.clientEmail,
         startsAt: input.startsAt,
         endsAt,
+        notes: input.notes || null, // a blank Comentario del Turno is no Comentario
       },
       bookingVerificationExpiresAt(now),
     );

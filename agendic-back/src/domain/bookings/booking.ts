@@ -13,6 +13,8 @@ export interface Booking {
   startsAt: Date;
   endsAt: Date;
   status: BookingStatus;
+  /** Comentario del Turno. */
+  notes: string | null;
 }
 
 export interface CreateBookingInput {
@@ -21,6 +23,7 @@ export interface CreateBookingInput {
   startsAt: Date;
   clientName: string;
   clientEmail: string;
+  notes?: string;
 }
 
 const VERIFICATION_TOKEN_LIFETIME_MS = 24 * 60 * 60 * 1000;

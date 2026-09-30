@@ -246,6 +246,7 @@ export const ANAS_SERVICE: Service = {
   category: ServiceCategory.SPA,
   durationMinutes: 30,
   price: 20,
+  depositPercent: null,
   retiredAt: null,
   employees: [{ id: ANAS_EMPLOYEE.id, name: ANAS_EMPLOYEE.name }],
 };

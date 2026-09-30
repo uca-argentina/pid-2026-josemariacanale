@@ -31,6 +31,7 @@ export class BookingsController {
         startsAt: new Date(dto.startsAt),
         clientName: dto.clientName,
         clientEmail: dto.clientEmail,
+        notes: dto.notes,
       }),
     );
   }

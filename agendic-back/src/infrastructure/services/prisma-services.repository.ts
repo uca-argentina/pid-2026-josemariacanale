@@ -44,6 +44,7 @@ export class PrismaServicesRepository implements ServicesRepository {
       | 'category'
       | 'durationMinutes'
       | 'price'
+      | 'depositPercent'
     > & { employees: Omit<EmployeeService, 'serviceId'>[] },
   ) {
     const { employees, ...service } = data;
@@ -80,7 +81,12 @@ export class PrismaServicesRepository implements ServicesRepository {
     data: Partial<
       Pick<
         Service,
-        'name' | 'description' | 'category' | 'durationMinutes' | 'price'
+        | 'name'
+        | 'description'
+        | 'category'
+        | 'durationMinutes'
+        | 'price'
+        | 'depositPercent'
       >
     >,
   ) {
@@ -192,6 +198,7 @@ export const toService = (row: ServiceRowWithEmployees): Service => ({
   category: row.category as Service['category'],
   durationMinutes: row.durationMinutes,
   price: Number(row.price),
+  depositPercent: row.depositPercent,
   retiredAt: row.retiredAt,
   employees: row.employees.map(({ employee }) => ({
     id: employee.id,

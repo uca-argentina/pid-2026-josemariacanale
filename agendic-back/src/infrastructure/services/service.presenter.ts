@@ -8,5 +8,6 @@ export const presentService = (service: Service) => ({
   category: service.category,
   durationMinutes: service.durationMinutes,
   price: service.price,
+  depositPercent: service.depositPercent,
   employees: service.employees.map(({ id, name }) => ({ id, name })),
 });
