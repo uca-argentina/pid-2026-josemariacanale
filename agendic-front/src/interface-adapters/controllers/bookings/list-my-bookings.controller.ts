@@ -20,6 +20,7 @@ function presenter(bookings: EmployeeBooking[], instrumentationService: IInstrum
     );
 }
 
+/** Tipo del controller ya compuesto, como lo consume `app/`. */
 export type IListMyBookingsController = ReturnType<typeof listMyBookingsController>;
 
 /**

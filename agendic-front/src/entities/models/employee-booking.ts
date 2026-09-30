@@ -17,4 +17,5 @@ export const employeeBookingSchema = z.object({
     branchId: z.number(),
     branchName: z.string(),
 });
+/** Turno de "mis turnos del Empleado". */
 export type EmployeeBooking = z.infer<typeof employeeBookingSchema>;

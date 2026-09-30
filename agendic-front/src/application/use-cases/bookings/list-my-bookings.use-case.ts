@@ -2,6 +2,7 @@ import type { IEmployeeBookingsRepository } from '@/src/application/repositories
 import type { IInstrumentationService } from '@/src/application/services/instrumentation.service.interface';
 import type { EmployeeBooking } from '@/src/entities/models/employee-booking';
 
+/** Tipo del caso de uso ya compuesto, como lo consumen los controllers. */
 export type IListMyBookingsUseCase = ReturnType<typeof listMyBookingsUseCase>;
 
 /**

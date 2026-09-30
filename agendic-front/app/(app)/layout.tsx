@@ -5,6 +5,8 @@ import { getCurrentUser } from '@/app/(public)/(auth)/current-user';
 import { SIGN_IN_PATH } from '@/app/routes';
 import { Sidebar } from './_components/Sidebar';
 import { getInjection } from '@/di/container';
+import { isSessionExpired } from '@/app/api-error';
+import { loadMyBookings } from '@/app/(app)/bookings/load-my-bookings';
 import type { NavItem } from './_components/types';
 
 const navItems: NavItem[] = [
@@ -26,9 +28,10 @@ function initialsOf(name: string) {
 /** Cuántos Turnos esperan respuesta del Empleado; si la consulta falla, 0: el contador no vale un error de página. */
 async function countPendingBookings() {
     try {
-        const bookings = await getInjection('IListMyBookingsController')();
+        const bookings = await loadMyBookings();
         return bookings.filter((b) => b.status === 'PENDING').length;
-    } catch {
+    } catch (error) {
+        if (!isSessionExpired(error)) getInjection('ICrashReporterService').report(error);
         return 0;
     }
 }

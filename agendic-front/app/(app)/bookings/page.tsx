@@ -4,6 +4,7 @@ import { isSessionExpired } from '@/app/api-error';
 import { BackendErrorNotice } from '@/app/_components/BackendErrorNotice';
 import { SIGN_IN_PATH } from '@/app/routes';
 import { getInjection } from '@/di/container';
+import { loadMyBookings } from '@/app/(app)/bookings/load-my-bookings';
 import { BookingsView } from './_components/BookingsView';
 import { readClock } from './_components/booking-helpers';
 
@@ -16,7 +17,7 @@ export default async function BookingsPage() {
     const now = readClock();
     let bookings;
     try {
-        bookings = await getInjection('IListMyBookingsController')();
+        bookings = await loadMyBookings();
     } catch (error) {
         unstable_rethrow(error);
         if (isSessionExpired(error)) redirect(SIGN_IN_PATH);

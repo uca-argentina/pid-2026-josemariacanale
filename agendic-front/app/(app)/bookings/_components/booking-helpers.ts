@@ -3,6 +3,7 @@ import type { DI_RETURN_TYPES } from '@/di/types';
 /** Un Turno de la lista "mis turnos" del Empleado, como lo arma el controller. */
 export type Booking = Awaited<ReturnType<DI_RETURN_TYPES['IListMyBookingsController']>>[number];
 
+/** Pestañas de la lista de Turnos. */
 export type BookingTab = 'upcoming' | 'pending' | 'past' | 'cancelled';
 
 /**
@@ -10,6 +11,7 @@ export type BookingTab = 'upcoming' | 'pending' | 'past' | 'cancelled';
  * cada Turno formatea y arma horarios con el `Branch.timeZone` de su Sucursal.
  */
 export const TIME_ZONE = 'America/Argentina/Buenos_Aires';
+/** Cómo se rotula la zona horaria en pantalla. */
 export const TIME_ZONE_LABEL = 'hora de Argentina';
 const UTC_OFFSET = '-03:00';
 
@@ -41,15 +43,19 @@ export const dayKey = (at: string | number) => dayKeyFormat.format(new Date(at))
 const timeFormat = new Intl.DateTimeFormat('es-AR', { timeZone: TIME_ZONE, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
 /** `HH:MM`, 00–23. */
 export const formatTime = (at: string | number) => timeFormat.format(new Date(at));
+/** `HH:MM – HH:MM` del Turno. */
 export const formatTimeRange = (b: Booking) => `${formatTime(b.startsAt)} – ${formatTime(b.endsAt)}`;
 
 const shortDayFormat = new Intl.DateTimeFormat('es-AR', { timeZone: TIME_ZONE, weekday: 'short', day: 'numeric', month: 'short' });
+/** Día corto, ej. `mar 15 sep`. */
 export const formatShortDay = (at: string) => shortDayFormat.format(new Date(at)).replace(/\./g, '');
 
 const longDayFormat = new Intl.DateTimeFormat('es-AR', { timeZone: TIME_ZONE, weekday: 'long', day: 'numeric', month: 'long' });
 const longDateFormat = new Intl.DateTimeFormat('es-AR', { timeZone: TIME_ZONE, dateStyle: 'full' });
+/** Fecha completa, ej. `martes, 15 de septiembre de 2026`. */
 export const formatLongDate = (at: string) => longDateFormat.format(new Date(at));
 
+/** `Hoy`, `Mañana`, `Ayer` o el día largo. */
 export function dayLabel(at: string, now: number) {
     const key = dayKey(at);
     if (key === dayKey(now)) return 'Hoy';
@@ -70,11 +76,16 @@ export function groupByDay(list: Booking[], now: number) {
     return groups;
 }
 
+/** Campos de filtro de lista: se eligen entre los valores presentes. */
 export type ListField = 'service' | 'branch';
+/** Campos de filtro de texto libre sobre el Cliente. */
 export type TextField = 'clientName' | 'clientEmail';
+/** Cualquier campo filtrable. */
 export type FilterField = ListField | TextField;
+/** `is`: igual; `contains`: incluye. */
 export type TextOp = 'is' | 'contains';
 
+/** Un filtro activo de la lista. */
 export type BookingFilter = { field: ListField; values: string[] } | { field: TextField; op: TextOp; value: string };
 
 const LIST_VALUE: Record<ListField, (b: Booking) => string> = {
