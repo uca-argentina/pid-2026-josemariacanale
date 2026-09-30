@@ -46,6 +46,11 @@ export class BookingsController {
     return presentBooking(await this.verifyBookingUseCase.execute(dto.token));
   }
 
+  /**
+   * @throws {NotFoundError} el Turno no existe
+   * @throws {ForbiddenError} el Usuario no es el Empleado asignado
+   * @throws {BusinessRuleError} el Turno no está pendiente
+   */
   @Patch('bookings/:id/accept')
   @UseGuards(ClerkGuard)
   async accept(
@@ -55,6 +60,11 @@ export class BookingsController {
     return presentBooking(await this.acceptBookingUseCase.execute(userId, id));
   }
 
+  /**
+   * @throws {NotFoundError} el Turno no existe
+   * @throws {ForbiddenError} el Usuario no es el Empleado asignado
+   * @throws {BusinessRuleError} el Turno no está pendiente
+   */
   @Patch('bookings/:id/reject')
   @UseGuards(ClerkGuard)
   async reject(

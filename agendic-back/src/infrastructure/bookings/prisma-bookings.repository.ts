@@ -73,6 +73,10 @@ export class PrismaBookingsRepository implements BookingsRepository {
     return toBooking(row);
   }
 
+  /**
+   * @throws {ConflictError} el horario ya lo ocupa otro Turno pendiente o aceptado del Empleado
+   * @throws {NotFoundError} el Turno no existe
+   */
   async markVerified(
     id: number,
     status: BookingStatus.PENDING | BookingStatus.BOOKED,
@@ -99,6 +103,9 @@ export class PrismaBookingsRepository implements BookingsRepository {
     ).map(toBooking);
   }
 
+  /**
+   * @throws {NotFoundError} el Turno no existe
+   */
   async findById(id: number) {
     const row = await this.prisma.booking
       .findUnique({ where: { id } })
@@ -107,6 +114,10 @@ export class PrismaBookingsRepository implements BookingsRepository {
     return toBooking(row);
   }
 
+  /**
+   * @throws {BusinessRuleError} el Turno ya no está pendiente
+   * @throws {NotFoundError} el Turno no existe
+   */
   async resolvePending(
     id: number,
     status: BookingStatus.BOOKED | BookingStatus.REJECTED,

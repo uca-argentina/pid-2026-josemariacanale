@@ -19,6 +19,11 @@ export class AcceptBookingUseCase {
     private readonly employees: EmployeesRepository,
   ) {}
 
+  /**
+   * @throws {NotFoundError} el Turno no existe
+   * @throws {ForbiddenError} el Usuario no es el Empleado asignado al Turno
+   * @throws {BusinessRuleError} el Turno no está pendiente
+   */
   async execute(userId: number, bookingId: number): Promise<Booking> {
     return resolvePendingBooking(
       this.bookings,

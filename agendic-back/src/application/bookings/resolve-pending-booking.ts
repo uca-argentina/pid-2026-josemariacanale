@@ -13,7 +13,7 @@ export async function resolvePendingBooking(
 ): Promise<Booking> {
   const booking = await bookings.findById(bookingId);
   const employee = await employees.findById(booking.employeeId);
-  if (employee?.userId !== userId)
+  if (!employee || employee.retiredAt || employee.userId !== userId)
     throw new ForbiddenError(
       'Only the assigned Employee can accept or reject this Turno',
     );
