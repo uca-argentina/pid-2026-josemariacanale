@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { Check, ChevronLeft, Clock, Info, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/app/_components/utils';
 import { PanelButton } from '@/app/(app)/_components/panel-ui';
+import { cancelBookingAction } from '@/app/(app)/bookings/actions';
 import { formatLongDate, formatTimeRange, isClosed, TIME_ZONE_LABEL, type Booking } from '@/app/(app)/bookings/_components/booking-helpers';
 
 const GREEN = 'bg-[#e6f6ec] text-[#15803d]';
@@ -42,21 +43,22 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
     );
 }
 
-// ponytail: cancelar no persiste ni se ve en la lista; se reemplaza por la server action cuando exista el endpoint.
-/** Detalle de un Turno del Empleado. Cancelar cambia solo el estado local hasta que el endpoint esté conectado. */
-export function BookingDetail({ booking: initial, now, startCancelling }: { booking: Booking; now: number; startCancelling: boolean }) {
-    const [booking, setBooking] = useState(initial);
+/** Detalle de un Turno del Empleado; Cancelar pega contra el back y la página se refresca con el Turno cancelado. */
+export function BookingDetail({ booking, now, startCancelling }: { booking: Booking; now: number; startCancelling: boolean }) {
     const past = Date.parse(booking.endsAt) < now;
     const cancellable = booking.status === 'BOOKED' && booking.noShowAt === null && !past;
     const [cancelling, setCancelling] = useState(startCancelling && cancellable);
     const closed = isClosed(booking);
     const header = headerOf(booking, past);
 
-    const cancel = () => {
-        setBooking((b) => ({ ...b, status: 'CANCELLED' }));
-        setCancelling(false);
-        toast.success('Turno cancelado');
-    };
+    const [pending, startTransition] = useTransition();
+    const cancel = () =>
+        startTransition(async () => {
+            const result = await cancelBookingAction(booking.id);
+            if (result.ok) toast.success('Turno cancelado');
+            else toast.error(result.message);
+            setCancelling(false);
+        });
 
     return (
         <div className="flex-1 bg-[#f9fafb] px-4 py-6 text-[#0f1b2d] sm:px-8">
@@ -101,10 +103,10 @@ export function BookingDetail({ booking: initial, now, startCancelling }: { book
                             ¿Cancelar este turno? El horario queda libre.
                         </p>
                         <div className="mt-2 flex justify-end gap-2">
-                            <PanelButton variant="secondary" onClick={() => setCancelling(false)}>
+                            <PanelButton variant="secondary" disabled={pending} onClick={() => setCancelling(false)}>
                                 Volver
                             </PanelButton>
-                            <PanelButton onClick={cancel}>Cancelar turno</PanelButton>
+                            <PanelButton disabled={pending} onClick={cancel}>Cancelar turno</PanelButton>
                         </div>
                     </div>
                 ) : (

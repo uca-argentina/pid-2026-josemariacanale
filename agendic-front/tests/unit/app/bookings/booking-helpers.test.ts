@@ -10,6 +10,7 @@ const booking = (patch: Partial<Booking>): Booking => ({
     clientName: 'Lucía Bermúdez',
     clientEmail: 'lucia@gmail.com',
     noShowAt: null,
+    serviceId: 2,
     serviceName: 'Masaje',
     businessName: 'Spa',
     branchName: 'Centro',

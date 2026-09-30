@@ -12,6 +12,8 @@ export const employeeBookingSchema = z.object({
     noShowAt: z.iso.datetime().nullable(),
     serviceId: z.number(),
     serviceName: z.string(),
+    /** El Empleado del Turno; el back todavía no lo devuelve, hace falta para pedir los Horarios reservables al Reagendar. */
+    employeeId: z.number().optional(),
     businessId: z.number(),
     businessName: z.string(),
     branchId: z.number(),

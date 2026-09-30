@@ -5,3 +5,20 @@ export class SlotTakenError extends Error {
         super(message, options);
     }
 }
+
+/** 403: el Usuario logueado no es el Empleado asignado a ese Turno. */
+export class BookingNotAllowedError extends Error {
+    constructor(message: string, options?: ErrorOptions) {
+        super(message, options);
+    }
+}
+
+/**
+ * 422: el Turno no está en el estado que la acción pide (Aceptar y Rechazar piden pendiente; Cancelar,
+ * Reagendar y Ausencia, aceptado) o, para Ausencia, su horario todavía no pasó o ya la tiene marcada.
+ */
+export class BookingStateError extends Error {
+    constructor(message: string, options?: ErrorOptions) {
+        super(message, options);
+    }
+}

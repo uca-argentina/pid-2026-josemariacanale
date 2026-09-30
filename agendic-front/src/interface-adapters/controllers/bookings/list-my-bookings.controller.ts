@@ -13,6 +13,8 @@ function presenter(bookings: EmployeeBooking[], instrumentationService: IInstrum
             clientName: b.clientName,
             clientEmail: b.clientEmail,
             noShowAt: b.noShowAt,
+            serviceId: b.serviceId,
+            ...(b.employeeId !== undefined && { employeeId: b.employeeId }),
             serviceName: b.serviceName,
             businessName: b.businessName,
             branchName: b.branchName,

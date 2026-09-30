@@ -1,5 +1,6 @@
 import { UnauthenticatedError } from '@/src/entities/errors/auth';
-import { ApiRequestError } from '@/src/entities/errors/common';
+import { BookingNotAllowedError, BookingStateError, SlotTakenError } from '@/src/entities/errors/booking';
+import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
 import { EmployeeBookingsRepository } from '@/src/infrastructure/repositories/employee-bookings.repository';
 import { authWith } from '@/tests/unit/stubs';
 
@@ -72,5 +73,52 @@ describe('EmployeeBookingsRepository.listMyBookings', () => {
         const fetchSpy = jest.spyOn(global, 'fetch');
         await expect(repo('').listMyBookings()).rejects.toBeInstanceOf(ApiRequestError);
         expect(fetchSpy).not.toHaveBeenCalled();
+    });
+});
+
+describe('EmployeeBookingsRepository actions', () => {
+    const actions = [
+        ['accept', 'accept', () => repo().accept(7)],
+        ['reject', 'reject', () => repo().reject(7)],
+        ['cancel', 'cancel', () => repo().cancel(7)],
+        ['markNoShow', 'no-show', () => repo().markNoShow(7)],
+    ] as const;
+
+    it.each(actions)('%s PATCHes /bookings/:id/%s with the bearer token and no body', async (_method, route, run) => {
+        const fetchSpy = respond(200, {});
+        await run();
+        expect(fetchSpy).toHaveBeenCalledWith(
+            `http://api/bookings/7/${route}`,
+            expect.objectContaining({ method: 'PATCH', headers: { Authorization: 'Bearer tok' }, body: undefined }),
+        );
+    });
+
+    it('reschedule PATCHes /bookings/:id/reschedule with the chosen startsAt', async () => {
+        const fetchSpy = respond(200, {});
+        await repo().reschedule(7, '2026-10-02T15:00:00.000Z');
+        expect(fetchSpy).toHaveBeenCalledWith(
+            'http://api/bookings/7/reschedule',
+            expect.objectContaining({
+                method: 'PATCH',
+                headers: { Authorization: 'Bearer tok', 'Content-Type': 'application/json' },
+                body: JSON.stringify({ startsAt: '2026-10-02T15:00:00.000Z' }),
+            }),
+        );
+    });
+
+    it.each([
+        [401, UnauthenticatedError],
+        [403, BookingNotAllowedError],
+        [404, NotFoundError],
+        [409, SlotTakenError],
+        [422, BookingStateError],
+    ])('translates a %i to its domain error', async (status, DomainError) => {
+        respond(status, { message: 'no' });
+        await expect(repo().reschedule(7, '2026-10-02T15:00:00.000Z')).rejects.toBeInstanceOf(DomainError);
+    });
+
+    it('translates another status to ApiRequestError carrying it', async () => {
+        respond(500, { message: 'boom' });
+        await expect(repo().accept(7)).rejects.toMatchObject({ status: 500 });
     });
 });

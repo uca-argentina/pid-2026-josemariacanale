@@ -29,6 +29,16 @@ import type { IRetireEmployeeController } from '@/src/interface-adapters/control
 import type { IEmployeeBookingsRepository } from '@/src/application/repositories/employee-bookings.repository.interface';
 import type { IListMyBookingsUseCase } from '@/src/application/use-cases/bookings/list-my-bookings.use-case';
 import type { IListMyBookingsController } from '@/src/interface-adapters/controllers/bookings/list-my-bookings.controller';
+import type { IMarkBookingNoShowUseCase } from '@/src/application/use-cases/bookings/mark-booking-no-show.use-case';
+import type { IMarkBookingNoShowController } from '@/src/interface-adapters/controllers/bookings/mark-booking-no-show.controller';
+import type { IRescheduleBookingUseCase } from '@/src/application/use-cases/bookings/reschedule-booking.use-case';
+import type { IRescheduleBookingController } from '@/src/interface-adapters/controllers/bookings/reschedule-booking.controller';
+import type { ICancelBookingUseCase } from '@/src/application/use-cases/bookings/cancel-booking.use-case';
+import type { ICancelBookingController } from '@/src/interface-adapters/controllers/bookings/cancel-booking.controller';
+import type { IRejectBookingUseCase } from '@/src/application/use-cases/bookings/reject-booking.use-case';
+import type { IRejectBookingController } from '@/src/interface-adapters/controllers/bookings/reject-booking.controller';
+import type { IAcceptBookingUseCase } from '@/src/application/use-cases/bookings/accept-booking.use-case';
+import type { IAcceptBookingController } from '@/src/interface-adapters/controllers/bookings/accept-booking.controller';
 
 export const DI_SYMBOLS = {
     // Services
@@ -55,6 +65,11 @@ export const DI_SYMBOLS = {
     IListSlotsUseCase: Symbol.for('IListSlotsUseCase'),
     IBookSlotUseCase: Symbol.for('IBookSlotUseCase'),
     IListMyBookingsUseCase: Symbol.for('IListMyBookingsUseCase'),
+    IMarkBookingNoShowUseCase: Symbol.for('IMarkBookingNoShowUseCase'),
+    IRescheduleBookingUseCase: Symbol.for('IRescheduleBookingUseCase'),
+    ICancelBookingUseCase: Symbol.for('ICancelBookingUseCase'),
+    IRejectBookingUseCase: Symbol.for('IRejectBookingUseCase'),
+    IAcceptBookingUseCase: Symbol.for('IAcceptBookingUseCase'),
 
     // Controllers
     IGetCurrentUserController: Symbol.for('IGetCurrentUserController'),
@@ -69,6 +84,11 @@ export const DI_SYMBOLS = {
     IListSlotsController: Symbol.for('IListSlotsController'),
     IBookSlotController: Symbol.for('IBookSlotController'),
     IListMyBookingsController: Symbol.for('IListMyBookingsController'),
+    IMarkBookingNoShowController: Symbol.for('IMarkBookingNoShowController'),
+    IRescheduleBookingController: Symbol.for('IRescheduleBookingController'),
+    ICancelBookingController: Symbol.for('ICancelBookingController'),
+    IRejectBookingController: Symbol.for('IRejectBookingController'),
+    IAcceptBookingController: Symbol.for('IAcceptBookingController'),
 };
 
 export interface DI_RETURN_TYPES {
@@ -96,6 +116,11 @@ export interface DI_RETURN_TYPES {
     IListSlotsUseCase: IListSlotsUseCase;
     IBookSlotUseCase: IBookSlotUseCase;
     IListMyBookingsUseCase: IListMyBookingsUseCase;
+    IMarkBookingNoShowUseCase: IMarkBookingNoShowUseCase;
+    IRescheduleBookingUseCase: IRescheduleBookingUseCase;
+    ICancelBookingUseCase: ICancelBookingUseCase;
+    IRejectBookingUseCase: IRejectBookingUseCase;
+    IAcceptBookingUseCase: IAcceptBookingUseCase;
 
     // Controllers
     IGetCurrentUserController: IGetCurrentUserController;
@@ -110,4 +135,9 @@ export interface DI_RETURN_TYPES {
     IListSlotsController: IListSlotsController;
     IBookSlotController: IBookSlotController;
     IListMyBookingsController: IListMyBookingsController;
+    IMarkBookingNoShowController: IMarkBookingNoShowController;
+    IRescheduleBookingController: IRescheduleBookingController;
+    ICancelBookingController: ICancelBookingController;
+    IRejectBookingController: IRejectBookingController;
+    IAcceptBookingController: IAcceptBookingController;
 }

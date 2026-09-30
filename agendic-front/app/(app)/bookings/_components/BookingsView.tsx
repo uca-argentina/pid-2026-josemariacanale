@@ -60,7 +60,7 @@ function badgesOf(b: Booking): { label: string; className: string }[] {
     ].filter((badge) => !!badge);
 }
 
-function BookingRow({ booking, tab, now, onChange }: { booking: Booking; tab: BookingTab; now: number; onChange: (patch: Partial<Booking>) => void }) {
+function BookingRow({ booking, tab, now }: { booking: Booking; tab: BookingTab; now: number }) {
     const badges = badgesOf(booking);
     return (
         <li className="flex flex-wrap items-start gap-4 px-6 py-5 transition-colors hover:bg-[#f9fafb]">
@@ -93,7 +93,7 @@ function BookingRow({ booking, tab, now, onChange }: { booking: Booking; tab: Bo
                 </div>
             </Link>
             <div className="ml-auto flex items-center gap-2">
-                <BookingActions booking={booking} tab={tab} now={now} onChange={onChange} />
+                <BookingActions booking={booking} tab={tab} now={now} />
             </div>
         </li>
     );
@@ -102,19 +102,17 @@ function BookingRow({ booking, tab, now, onChange }: { booking: Booking; tab: Bo
 const unique = (list: string[]) => [...new Set(list)].sort((a, b) => a.localeCompare(b, 'es'));
 
 /**
- * Lista de Turnos del Empleado. Aceptar, Rechazar y demás acciones cambian solo el estado local hasta que
- * sus endpoints estén conectados.
+ * Lista de Turnos del Empleado, tal como la devuelve el back; las acciones de cada Turno refrescan la página.
  */
-export function BookingsView({ bookings: initialBookings, now }: { bookings: Booking[]; now: number }) {
-    const [bookings, setBookings] = useState(initialBookings);
+export function BookingsView({ bookings, now }: { bookings: Booking[]; now: number }) {
     const [tab, setTab] = useState<BookingTab>('upcoming');
     const [filters, setFilters] = useState<BookingFilter[]>([]);
     const [pageSize, setPageSize] = useState(10);
     const [page, setPage] = useState(0);
 
     const options: Record<ListField, string[]> = {
-        service: unique(initialBookings.map((b) => listValueOf('service', b))),
-        branch: unique(initialBookings.map((b) => listValueOf('branch', b))),
+        service: unique(bookings.map((b) => listValueOf('service', b))),
+        branch: unique(bookings.map((b) => listValueOf('branch', b))),
     };
 
     const pendingCount = bookings.filter((b) => tabOf(b, now) === 'pending').length;
@@ -125,8 +123,6 @@ export function BookingsView({ bookings: initialBookings, now }: { bookings: Boo
     const pageItems = inTab.slice(from, from + pageSize);
     const empty = TABS.find((t) => t.id === tab)!.empty;
 
-    const update = (id: number) => (patch: Partial<Booking>) =>
-        setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, ...patch } : b)));
 
     return (
         <div className="flex-1 bg-white px-4 py-8 text-[#0f1b2d] sm:px-8">
@@ -181,7 +177,7 @@ export function BookingsView({ bookings: initialBookings, now }: { bookings: Boo
                                 </h2>
                                 <ul className="m-0 list-none divide-y divide-[#e5e7eb] p-0">
                                     {group.items.map((b) => (
-                                        <BookingRow key={b.id} booking={b} tab={tab} now={now} onChange={update(b.id)} />
+                                        <BookingRow key={b.id} booking={b} tab={tab} now={now} />
                                     ))}
                                 </ul>
                             </section>

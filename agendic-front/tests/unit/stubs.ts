@@ -1,4 +1,5 @@
 import type { IBookingsRepository } from '@/src/application/repositories/bookings.repository.interface';
+import type { IEmployeeBookingsRepository } from '@/src/application/repositories/employee-bookings.repository.interface';
 import type { IPublicBusinessesRepository } from '@/src/application/repositories/public-businesses.repository.interface';
 import type { IAuthenticationService } from '@/src/application/services/authentication.service.interface';
 import type { IInstrumentationService } from '@/src/application/services/instrumentation.service.interface';
@@ -25,5 +26,15 @@ export const publicBusinessesWith = (stubs: Partial<IPublicBusinessesRepository>
 export const bookingsWith = (stubs: Partial<IBookingsRepository>): IBookingsRepository => ({
     listSlots: jest.fn(notStubbed('listSlots')),
     book: jest.fn(notStubbed('book')),
+    ...stubs,
+});
+
+export const employeeBookingsWith = (stubs: Partial<IEmployeeBookingsRepository>): IEmployeeBookingsRepository => ({
+    listMyBookings: jest.fn(notStubbed('listMyBookings')),
+    accept: jest.fn(notStubbed('accept')),
+    reject: jest.fn(notStubbed('reject')),
+    cancel: jest.fn(notStubbed('cancel')),
+    reschedule: jest.fn(notStubbed('reschedule')),
+    markNoShow: jest.fn(notStubbed('markNoShow')),
     ...stubs,
 });

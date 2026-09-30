@@ -19,7 +19,7 @@ const booking = {
 };
 
 describe('listMyBookingsController', () => {
-    it('presents the Turnos without the ids of Servicio, Negocio and Sucursal', async () => {
+    it('presents the Turnos without the ids of Negocio and Sucursal', async () => {
         const auth = authWith({ getCurrentUser: jest.fn().mockResolvedValue({}) });
         const [presented] = await listMyBookingsController(instrumentation, auth, jest.fn().mockResolvedValue([booking]))();
         expect(presented).toEqual({
@@ -30,6 +30,7 @@ describe('listMyBookingsController', () => {
             clientName: 'Lucía',
             clientEmail: 'lucia@gmail.com',
             noShowAt: null,
+            serviceId: 2,
             serviceName: 'Masaje',
             businessName: 'Spa',
             branchName: 'Centro',
