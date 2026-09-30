@@ -73,7 +73,7 @@ export class ListSlotsUseCase {
     if (!availability) throw new NotFoundError('Availability not found');
 
     // A day of slack either side (wider than any UTC offset) keeps every local date in [from, to] covered.
-    const bookedRanges = await this.bookings.listBookedByEmployee(
+    const bookedRanges = await this.bookings.listOccupiedByEmployee(
       employeeId,
       new Date(new Date(`${from}T00:00:00.000Z`).getTime() - 86_400_000),
       new Date(new Date(`${to}T00:00:00.000Z`).getTime() + 2 * 86_400_000),

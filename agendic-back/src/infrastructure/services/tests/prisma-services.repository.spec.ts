@@ -20,6 +20,7 @@ const SERVICE_ROW = {
   durationMinutes: 30,
   price: '20', // Prisma returns Decimal columns as a Decimal-like; Number() reads a numeric string just as well
   depositPercent: 30,
+  requiresApproval: false,
   retiredAt: null,
   employees: [{ employee: { id: 7, user: { name: 'Ana Pérez' } } }],
 };
@@ -33,6 +34,7 @@ const SERVICE: Service = {
   durationMinutes: 30,
   price: 20,
   depositPercent: 30,
+  requiresApproval: false,
   retiredAt: null,
   employees: [{ id: 7, name: 'Ana Pérez' }],
 };
@@ -85,6 +87,7 @@ describe('PrismaServicesRepository', () => {
         durationMinutes: 30,
         price: 20,
         depositPercent: 30,
+        requiresApproval: false,
         employees: [
           { employeeId: 7, availabilityId: 70 },
           { employeeId: 8, availabilityId: 80 },
@@ -100,6 +103,7 @@ describe('PrismaServicesRepository', () => {
         durationMinutes: 30,
         price: 20,
         depositPercent: 30,
+        requiresApproval: false,
         employees: {
           create: [
             { employeeId: 7, availabilityId: 70 },
@@ -213,7 +217,7 @@ describe('PrismaServicesRepository', () => {
         where: {
           serviceId: 1,
           employeeId: 7,
-          status: 'BOOKED',
+          status: { in: ['PENDING', 'BOOKED'] },
           startsAt: { gt: now },
         },
         data: { status: 'CANCELLED' },
@@ -254,7 +258,7 @@ describe('PrismaServicesRepository', () => {
       expect(tx.booking.updateMany).toHaveBeenCalledWith({
         where: {
           serviceId: 1,
-          status: 'BOOKED',
+          status: { in: ['PENDING', 'BOOKED'] },
           startsAt: { gt: retiredAt },
         },
         data: { status: 'CANCELLED' },
@@ -273,6 +277,7 @@ describe('PrismaServicesRepository', () => {
           durationMinutes: 30,
           price: 20,
           depositPercent: null,
+          requiresApproval: false,
           employees: [{ employeeId: 7, availabilityId: 70 }],
         }),
       findById: () => repository.findById(1),

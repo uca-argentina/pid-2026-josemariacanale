@@ -4,9 +4,12 @@ import {
   Get,
   Param,
   ParseIntPipe,
+  Patch,
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { AcceptBookingUseCase } from '../../application/bookings/accept-booking.use-case';
+import { RejectBookingUseCase } from '../../application/bookings/reject-booking.use-case';
 import { CreateBookingUseCase } from '../../application/bookings/create-booking.use-case';
 import { ListBookingsByBusinessUseCase } from '../../application/bookings/list-bookings-by-business.use-case';
 import { VerifyBookingUseCase } from '../../application/bookings/verify-booking.use-case';
@@ -20,6 +23,8 @@ export class BookingsController {
     private readonly createBookingUseCase: CreateBookingUseCase,
     private readonly verifyBookingUseCase: VerifyBookingUseCase,
     private readonly listBookingsByBusinessUseCase: ListBookingsByBusinessUseCase,
+    private readonly acceptBookingUseCase: AcceptBookingUseCase,
+    private readonly rejectBookingUseCase: RejectBookingUseCase,
   ) {}
 
   @Post('bookings')
@@ -39,6 +44,24 @@ export class BookingsController {
   @Post('bookings/verification')
   async verify(@Body() dto: VerifyBookingDto) {
     return presentBooking(await this.verifyBookingUseCase.execute(dto.token));
+  }
+
+  @Patch('bookings/:id/accept')
+  @UseGuards(ClerkGuard)
+  async accept(
+    @CurrentUser() userId: number,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return presentBooking(await this.acceptBookingUseCase.execute(userId, id));
+  }
+
+  @Patch('bookings/:id/reject')
+  @UseGuards(ClerkGuard)
+  async reject(
+    @CurrentUser() userId: number,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return presentBooking(await this.rejectBookingUseCase.execute(userId, id));
   }
 
   @Get('businesses/:id/bookings')

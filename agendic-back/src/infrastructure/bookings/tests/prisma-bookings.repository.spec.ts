@@ -36,6 +36,8 @@ describe('PrismaBookingsRepository', () => {
       findFirst: jest.fn(),
       update: jest.fn(),
       findMany: jest.fn(),
+      findUnique: jest.fn(),
+      updateMany: jest.fn(),
     },
   };
   const repository = new PrismaBookingsRepository(
@@ -44,12 +46,12 @@ describe('PrismaBookingsRepository', () => {
 
   beforeEach(() => jest.resetAllMocks());
 
-  it('translates the overlap exclusion violation into ConflictError on markBooked', async () => {
+  it('translates the overlap exclusion violation into ConflictError on markVerified', async () => {
     const cause = knownError('P2039');
     cause.meta = { driverAdapterError: { cause: { originalCode: '23P01' } } };
     prisma.booking.update.mockRejectedValue(cause);
 
-    const error = await repository.markBooked(1).catch((e: unknown) => e);
+    const error = await repository.markVerified(1, BookingStatus.BOOKED).catch((e: unknown) => e);
 
     expect(error).toBeInstanceOf(ConflictError);
     expect(error).toHaveProperty('cause', cause);
@@ -60,7 +62,7 @@ describe('PrismaBookingsRepository', () => {
     cause.message = 'exclusion constraint "Booking_no_overlap" violated';
     prisma.booking.update.mockRejectedValue(cause);
 
-    const error = await repository.markBooked(1).catch((e: unknown) => e);
+    const error = await repository.markVerified(1, BookingStatus.BOOKED).catch((e: unknown) => e);
 
     expect(error).toBeInstanceOf(ConflictError);
   });
@@ -103,7 +105,7 @@ describe('PrismaBookingsRepository', () => {
   it('reports whether a BOOKED Booking overlaps the given window', async () => {
     prisma.booking.findFirst.mockResolvedValue(BOOKING_ROW);
 
-    const overlaps = await repository.hasOverlappingBooked(
+    const overlaps = await repository.hasOverlappingOccupied(
       1,
       new Date('2026-01-01T12:00:00.000Z'),
       new Date('2026-01-01T12:30:00.000Z'),
@@ -113,19 +115,86 @@ describe('PrismaBookingsRepository', () => {
     expect(prisma.booking.findFirst).toHaveBeenCalledWith({
       where: {
         employeeId: 1,
-        status: BookingStatus.BOOKED,
+        status: { in: [BookingStatus.PENDING, BookingStatus.BOOKED] },
         startsAt: { lt: new Date('2026-01-01T12:30:00.000Z') },
         endsAt: { gt: new Date('2026-01-01T12:00:00.000Z') },
       },
     });
   });
 
+  describe('PENDING Turnos hold their horario', () => {
+    const OCCUPYING = { in: [BookingStatus.PENDING, BookingStatus.BOOKED] };
+
+    it('hasOverlappingOccupied looks at PENDING and BOOKED', async () => {
+      prisma.booking.findFirst.mockResolvedValue(null);
+
+      await repository.hasOverlappingOccupied(1, new Date(), new Date());
+
+      expect(prisma.booking.findFirst).toHaveBeenCalledWith({
+        where: expect.objectContaining({ status: OCCUPYING }),
+      });
+    });
+
+    it('listOccupiedByEmployee looks at PENDING and BOOKED', async () => {
+      prisma.booking.findMany.mockResolvedValue([]);
+
+      await repository.listOccupiedByEmployee(1, new Date(), new Date());
+
+      expect(prisma.booking.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ status: OCCUPYING }),
+        }),
+      );
+    });
+
+    it('markVerified stores the given status', async () => {
+      prisma.booking.update.mockResolvedValue({
+        ...BOOKING_ROW,
+        status: BookingStatus.PENDING,
+      });
+
+      await repository.markVerified(1, BookingStatus.PENDING);
+
+      expect(prisma.booking.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ status: BookingStatus.PENDING }),
+        }),
+      );
+    });
+  });
+
+  describe('resolvePending', () => {
+    it('only touches a Turno that is still PENDING', async () => {
+      prisma.booking.updateMany.mockResolvedValue({ count: 1 });
+      prisma.booking.findUnique.mockResolvedValue({
+        ...BOOKING_ROW,
+        status: BookingStatus.REJECTED,
+      });
+
+      const booking = await repository.resolvePending(1, BookingStatus.REJECTED);
+
+      expect(prisma.booking.updateMany).toHaveBeenCalledWith({
+        where: { id: 1, status: BookingStatus.PENDING },
+        data: { status: BookingStatus.REJECTED },
+      });
+      expect(booking.status).toBe(BookingStatus.REJECTED);
+    });
+
+    it('throws BusinessRuleError when it is no longer PENDING', async () => {
+      prisma.booking.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(
+        repository.resolvePending(1, BookingStatus.BOOKED),
+      ).rejects.toBeInstanceOf(BusinessRuleError);
+    });
+  });
+
   describe('translates other Prisma errors, keeping the original as cause', () => {
-    it('P2025 on markBooked into NotFoundError', async () => {
+    it('P2025 on markVerified into NotFoundError', async () => {
       const cause = knownError('P2025');
       prisma.booking.update.mockRejectedValue(cause);
 
-      const error = await repository.markBooked(1).catch((e: unknown) => e);
+      const error = await repository.markVerified(1, BookingStatus.BOOKED).catch((e: unknown) => e);
 
       expect(error).toBeInstanceOf(NotFoundError);
       expect(error).toHaveProperty('cause', cause);
@@ -135,7 +204,7 @@ describe('PrismaBookingsRepository', () => {
       const cause = new Error('connection refused at 10.0.0.1');
       prisma.booking.update.mockRejectedValue(cause);
 
-      const error = await repository.markBooked(1).catch((e: unknown) => e);
+      const error = await repository.markVerified(1, BookingStatus.BOOKED).catch((e: unknown) => e);
 
       expect(error).toBeInstanceOf(DatabaseOperationError);
       expect(error).toHaveProperty('cause', cause);

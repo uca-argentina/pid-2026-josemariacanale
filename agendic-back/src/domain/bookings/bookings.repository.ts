@@ -1,4 +1,4 @@
-import { Booking } from './booking';
+import { Booking, BookingStatus } from './booking';
 
 export const BOOKINGS_REPOSITORY = Symbol('BookingsRepository');
 
@@ -18,19 +18,29 @@ export interface BookingsRepository {
     data: CreateBookingData,
     expiresAt: Date,
   ): Promise<{ booking: Booking; token: string }>;
-  /** Whether a BOOKED Booking of the same Empleado overlaps [startsAt, endsAt). */
-  hasOverlappingBooked(
+  /** Whether a PENDING or BOOKED Booking of the same Empleado overlaps [startsAt, endsAt). */
+  hasOverlappingOccupied(
     employeeId: number,
     startsAt: Date,
     endsAt: Date,
   ): Promise<boolean>;
   /** Throws BusinessRuleError for an unknown, used or expired token. */
   findByVerificationToken(token: string, now: Date): Promise<Booking>;
-  /** Moves an UNVERIFIED Booking to BOOKED. Throws ConflictError if it now overlaps a BOOKED Booking. */
-  markBooked(id: number): Promise<Booking>;
+  /** Moves an UNVERIFIED Booking to PENDING or BOOKED. Throws ConflictError if it now overlaps a PENDING or BOOKED Booking. */
+  markVerified(
+    id: number,
+    status: BookingStatus.PENDING | BookingStatus.BOOKED,
+  ): Promise<Booking>;
+  /** Throws NotFoundError for an unknown id. */
+  findById(id: number): Promise<Booking>;
+  /** Moves a PENDING Booking to BOOKED or REJECTED. Throws BusinessRuleError if it is no longer PENDING. */
+  resolvePending(
+    id: number,
+    status: BookingStatus.BOOKED | BookingStatus.REJECTED,
+  ): Promise<Booking>;
   listByBusiness(businessId: number): Promise<Booking[]>;
-  /** BOOKED Turnos of this Empleado, in any of their Servicios, overlapping [from, to). */
-  listBookedByEmployee(
+  /** PENDING and BOOKED Turnos of this Empleado, in any of their Servicios, overlapping [from, to). */
+  listOccupiedByEmployee(
     employeeId: number,
     from: Date,
     to: Date,

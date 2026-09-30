@@ -162,7 +162,7 @@ describe('PrismaEmployeesRepository', () => {
       expect(tx.booking.updateMany).toHaveBeenCalledWith({
         where: {
           employeeId: 1,
-          status: 'BOOKED',
+          status: { in: ['PENDING', 'BOOKED'] },
           startsAt: { gt: retiredAt },
         },
         data: { status: 'CANCELLED' },

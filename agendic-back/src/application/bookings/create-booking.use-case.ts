@@ -42,7 +42,7 @@ export class CreateBookingUseCase {
     );
     assertWithinHours(branch, input.startsAt, endsAt);
     if (
-      await this.bookings.hasOverlappingBooked(
+      await this.bookings.hasOverlappingOccupied(
         input.employeeId,
         input.startsAt,
         endsAt,

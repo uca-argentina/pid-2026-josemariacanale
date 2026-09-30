@@ -15,6 +15,9 @@ import { Booking as BookingRow, Prisma } from '../../generated/prisma/client';
 import { BOOKING_NO_OVERLAP, isExclusionViolation } from '../prisma-errors';
 import { PrismaService } from '../prisma.service';
 
+/** Statuses that hold an Empleado's horario, as the Booking_no_overlap constraint does. */
+const OCCUPYING = [BookingStatus.PENDING, BookingStatus.BOOKED];
+
 /** Stores only a hash of each verification token, so a leaked table can't be used to verify a Turno. */
 const hash = (token: string) =>
   createHash('sha256').update(token).digest('base64url');
@@ -37,7 +40,7 @@ export class PrismaBookingsRepository implements BookingsRepository {
     return { booking: toBooking(row), token };
   }
 
-  async hasOverlappingBooked(
+  async hasOverlappingOccupied(
     employeeId: number,
     startsAt: Date,
     endsAt: Date,
@@ -46,7 +49,7 @@ export class PrismaBookingsRepository implements BookingsRepository {
       .findFirst({
         where: {
           employeeId,
-          status: BookingStatus.BOOKED,
+          status: { in: OCCUPYING },
           startsAt: { lt: endsAt },
           endsAt: { gt: startsAt },
         },
@@ -70,13 +73,16 @@ export class PrismaBookingsRepository implements BookingsRepository {
     return toBooking(row);
   }
 
-  async markBooked(id: number) {
+  async markVerified(
+    id: number,
+    status: BookingStatus.PENDING | BookingStatus.BOOKED,
+  ) {
     return toBooking(
       await this.prisma.booking
         .update({
           where: { id },
           data: {
-            status: BookingStatus.BOOKED,
+            status,
             verificationTokenHash: null,
             verificationTokenExpiresAt: null,
           },
@@ -93,12 +99,34 @@ export class PrismaBookingsRepository implements BookingsRepository {
     ).map(toBooking);
   }
 
-  async listBookedByEmployee(employeeId: number, from: Date, to: Date) {
+  async findById(id: number) {
+    const row = await this.prisma.booking
+      .findUnique({ where: { id } })
+      .catch(translateError);
+    if (!row) throw new NotFoundError('Booking not found');
+    return toBooking(row);
+  }
+
+  async resolvePending(
+    id: number,
+    status: BookingStatus.BOOKED | BookingStatus.REJECTED,
+  ) {
+    const { count } = await this.prisma.booking
+      .updateMany({
+        where: { id, status: BookingStatus.PENDING },
+        data: { status },
+      })
+      .catch(translateError);
+    if (count === 0) throw new BusinessRuleError('Turno is not pending');
+    return this.findById(id);
+  }
+
+  async listOccupiedByEmployee(employeeId: number, from: Date, to: Date) {
     return this.prisma.booking
       .findMany({
         where: {
           employeeId,
-          status: BookingStatus.BOOKED,
+          status: { in: OCCUPYING },
           startsAt: { lt: to },
           endsAt: { gt: from },
         },

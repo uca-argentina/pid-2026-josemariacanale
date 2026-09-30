@@ -103,17 +103,20 @@ una Sucursal); sus archivos en el storage no.
 | DELETE | `/services/:id/employees/:employeeId` | sí | Quita un empleado de un servicio (solo el dueño) |
 | GET | `/branches/:id/services` | no | Lista servicios activos de una sucursal |
 
-- `CreateServiceDto`: `{ name, description?, category, durationMinutes (int ≥1), price (number ≥0), depositPercent?, employeeIds: number[] (no vacío) }`
-- `UpdateServiceDto`: `{ name?, description?, category?, durationMinutes?, price?, depositPercent? }`
+- `CreateServiceDto`: `{ name, description?, category, durationMinutes (int ≥1), price (number ≥0), depositPercent?, requiresApproval?, employeeIds: number[] (no vacío) }`
+- `UpdateServiceDto`: `{ name?, description?, category?, durationMinutes?, price?, depositPercent?, requiresApproval? }`
 - `depositPercent` (Seña): entero de 0 a 100, porcentaje del precio. Es simbólica: se guarda y se
   muestra, no dispara ningún cobro. Sin él, el Servicio no pide Seña (`null` en la respuesta). Fuera
   de 0-100, con decimales o no numérico → 400. En creación no acepta `null`; en `PATCH`,
   `depositPercent: null` le saca la Seña. También vale en el `service` de `POST /businesses`.
+- `requiresApproval` (Aprobación manual): booleano, `false` por defecto. Con `true`, los Turnos del Servicio
+  no quedan `BOOKED` al verificarse sino `PENDING`, hasta que el Empleado los Acepta o los Rechaza.
+  No booleano → 400. También vale en el `service` de `POST /businesses`.
 - `AssignEmployeeDto`: `{ employeeId, availabilityId? }`; sin `availabilityId`, el empleado entra con su Availability predeterminada
 - Cada empleado atiende el servicio con una de sus Availability. Es una referencia: editar esa
   Availability (`PATCH /availabilities/:id`) cambia en el acto todos los servicios que la usan. La
   respuesta del servicio no dice cuál usa cada empleado.
-- Respuesta (`presentService`): `{ id, branchId, name, description, category, durationMinutes, price, depositPercent, employees: [{id, name}] }`; `depositPercent` es `null` si el Servicio no pide Seña
+- Respuesta (`presentService`): `{ id, branchId, name, description, category, durationMinutes, price, depositPercent, requiresApproval, employees: [{id, name}] }`; `depositPercent` es `null` si el Servicio no pide Seña
 - `category` es un enum fijo: `CLINICA | SPA | GIMNASIO | ACADEMIA | OTRO`, requerido en creación
 
 ## Employees (Empleado)
@@ -174,7 +177,7 @@ del Empleado: cualquier otro Usuario recibe 403.
 - `ReplaceOverridesDto`: `{ intervals: [{ startTime: "HH:mm", endTime: "HH:mm" }], coveredByEmployeeId? }`; `intervals: []` es día libre
 - Respuesta (`presentOverride`): `{ date, intervals: [{ startTime, endTime }], coveredByEmployeeId }`; `intervals: []` es día libre. El GET devuelve un array de esos, ordenado por fecha
 - Las Franjas de una Anulación siguen las mismas reglas que las de una Availability (dos Franjas del mismo día que se solapan → 422 `Dos Franjas del mismo día se solapan`; una que termina antes o al mismo tiempo que empieza → 422 `Cada Franja tiene que terminar después de empezar`; dos que se tocan se aceptan)
-- **Cobertura**: `coveredByEmployeeId` tiene que ser un Empleado activo del mismo Negocio y atender todos los Servicios de quien se ausenta; si no, 422 `La Cobertura tiene que ser un Empleado activo del mismo Negocio` o `La Cobertura tiene que atender todos los Servicios de quien se ausenta`. Activarla reasigna, en la misma transacción, los Turnos `BOOKED` de quien se ausenta en esa fecha a quien cubre; si alguno choca con un Turno ya confirmado de quien cubre, 409 `El cubridor ya tiene un Turno a esa hora` y no se guarda nada. Sacar la Anulación (`DELETE`) no revierte los Turnos ya reasignados
+- **Cobertura**: `coveredByEmployeeId` tiene que ser un Empleado activo del mismo Negocio y atender todos los Servicios de quien se ausenta; si no, 422 `La Cobertura tiene que ser un Empleado activo del mismo Negocio` o `La Cobertura tiene que atender todos los Servicios de quien se ausenta`. Activarla reasigna, en la misma transacción, los Turnos `PENDING` y `BOOKED` de quien se ausenta en esa fecha a quien cubre; si alguno choca con un Turno ya confirmado de quien cubre, 409 `El cubridor ya tiene un Turno a esa hora` y no se guarda nada. Sacar la Anulación (`DELETE`) no revierte los Turnos ya reasignados
 
 ## Slots (Horario reservable)
 
@@ -190,7 +193,7 @@ del Empleado: cualquier otro Usuario recibe 403.
   2. Una Anulación de esa fecha reemplaza esas Franjas por completo (día sin horas = día libre)
   3. Recorta contra `opensAt`/`closesAt` de la Sucursal (nunca toca la Availability)
   4. Grilla de a 15 minutos fijos; entra el horario si el Servicio completo termina antes o al mismo tiempo que el fin de la Franja
-  5. Descuenta los Turnos `BOOKED` de ese Empleado que pisen el horario, en cualquiera de sus Servicios
+  5. Descuenta los Turnos `PENDING` y `BOOKED` de ese Empleado (un Turno pendiente ocupa su horario igual que uno aceptado) que pisen el horario, en cualquiera de sus Servicios
   6. Descarta lo que ya pasó según el reloj del sistema; un día ya pasado no viene
 - Respuesta: `{ timeZone, days: [{ date, slots: [ISO instants], reason?, coveredByEmployeeId? }] }`. `reason` solo aparece cuando `slots` está vacío: `NOT_WORKING` (sin Franjas, Anulación de día libre, o nada sobrevive el recorte), `FULLY_BOOKED` (había horarios pero los Turnos o el reloj se los llevaron todos), o `COVERED` (la fecha tiene una Anulación con Cobertura; no se calcula nada más y el día trae además `coveredByEmployeeId`)
 
@@ -199,7 +202,9 @@ del Empleado: cualquier otro Usuario recibe 403.
 | Método | Ruta | Auth | Qué hace |
 |---|---|---|---|
 | POST | `/bookings` | no | Crea un turno (el cliente reserva un horario); queda `UNVERIFIED` y se envía email de verificación |
-| POST | `/bookings/verification` | no | Verifica un turno por token (del link del email); re-chequea todas las reglas, puede devolver 409 si el horario se ocupó mientras tanto |
+| POST | `/bookings/verification` | no | Verifica un turno por token (del link del email); re-chequea todas las reglas, puede devolver 409 si el horario se ocupó mientras tanto. Queda `BOOKED`, o `PENDING` si el Servicio tiene `requiresApproval` |
+| PATCH | `/bookings/:id/accept` | sí | Acepta un Turno pendiente: `PENDING` → `BOOKED` (solo el Empleado asignado) |
+| PATCH | `/bookings/:id/reject` | sí | Rechaza un Turno pendiente: `PENDING` → `REJECTED`, libera el horario (solo el Empleado asignado) |
 | GET | `/businesses/:id/bookings` | sí | Lista todos los turnos de un negocio (solo el dueño) |
 
 - `CreateBookingDto`: `{ serviceId, employeeId, startsAt: ISO date-string, clientName, clientEmail, notes? }`
@@ -207,9 +212,14 @@ del Empleado: cualquier otro Usuario recibe 403.
 - `VerifyBookingDto`: `{ token }`
 - Respuesta (`presentBooking`): `{ id, serviceId, employeeId, startsAt, endsAt, status, notes }`; `notes` es `null` si el Cliente no dejó Comentario del Turno
 - Respuesta solo-dueño (`presentBookingForOwner`, usada en el listado): agrega `clientName, clientEmail`
+- **Ciclo de vida**: `UNVERIFIED` → (verificar) → `BOOKED`, o `PENDING` si el Servicio tiene Aprobación
+  manual; de `PENDING`, Aceptar → `BOOKED` y Rechazar → `REJECTED`. `POST /bookings` siempre crea
+  `UNVERIFIED`, con o sin `requiresApproval`.
+- **Aceptar / Rechazar**: exigen Sesión y que el usuario sea el Empleado asignado al Turno (403 `Only the assigned Employee can accept or reject this Turno` si no; 404 si el Turno no existe). Un Turno que no
+  está `PENDING` da 422 `Turno is not pending`. Responden el Turno (`presentBooking`).
 - **Horario ocupado (409 `Overlaps a booked Turno for this Employee`)**. Un Turno sin verificar no
   mantiene reservado su horario: lo toma recién al verificarse. Por eso:
-  - `POST /bookings` → 409 si el horario pisa un Turno `BOOKED` del mismo Empleado.
+  - `POST /bookings` → 409 si el horario pisa un Turno `PENDING` o `BOOKED` del mismo Empleado.
   - Dos `POST /bookings` para el mismo horario, aunque lleguen casi juntos, dan los dos 201: ninguno
     ocupa el horario todavía.
   - La carrera se decide al verificar: el primer `POST /bookings/verification` gana y el otro recibe

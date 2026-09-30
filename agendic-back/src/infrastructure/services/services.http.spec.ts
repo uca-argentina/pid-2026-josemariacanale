@@ -74,6 +74,7 @@ const SERVICE = {
   durationMinutes: VALID_SERVICE.durationMinutes,
   price: VALID_SERVICE.price,
   depositPercent: null,
+  requiresApproval: false,
   retiredAt: null,
   employees: IN_CHARGE,
 };
@@ -87,6 +88,7 @@ const PRESENTED_SERVICE = {
   durationMinutes: SERVICE.durationMinutes,
   price: SERVICE.price,
   depositPercent: SERVICE.depositPercent,
+  requiresApproval: SERVICE.requiresApproval,
   employees: IN_CHARGE,
 };
 
@@ -120,6 +122,7 @@ describe('Servicio', () => {
         branchId: BRANCH.id,
         ...fields,
         depositPercent: null,
+        requiresApproval: false,
         employees: [{ employeeId: ANAS_EMPLOYEE.id, availabilityId: 10 }],
       });
       expect(res.body).toEqual(PRESENTED_SERVICE);
@@ -138,6 +141,21 @@ describe('Servicio', () => {
         expect.objectContaining({ depositPercent: 30 }),
       );
       expect(res.body.depositPercent).toBe(30);
+    });
+
+    it('creates a Servicio with Aprobación manual', async () => {
+      t.services.create.mockResolvedValue({ ...SERVICE, requiresApproval: true });
+
+      const res = await t.http
+        .post(`/branches/${BRANCH.id}/services`)
+        .set(bearer(CLERK_TOKEN))
+        .send({ ...VALID_SERVICE, requiresApproval: true })
+        .expect(201);
+
+      expect(t.services.create).toHaveBeenCalledWith(
+        expect.objectContaining({ requiresApproval: true }),
+      );
+      expect(res.body.requiresApproval).toBe(true);
     });
 
     it.each([0, 100])('accepts a Seña of %i%%', async (depositPercent) => {
@@ -167,6 +185,7 @@ describe('Servicio', () => {
         durationMinutes: VALID_SERVICE.durationMinutes,
         price: VALID_SERVICE.price,
         depositPercent: null,
+        requiresApproval: false,
         employees: [{ employeeId: ANAS_EMPLOYEE.id, availabilityId: 10 }],
       });
     });
@@ -290,6 +309,7 @@ describe('Servicio', () => {
       ['a depositPercent over 100', { depositPercent: 101 }],
       ['a fractional depositPercent', { depositPercent: 12.5 }],
       ['a null depositPercent', { depositPercent: null }],
+      ['a non-boolean requiresApproval', { requiresApproval: 'yes' }],
     ])(
       'rejects %s with 400, without reaching the repository',
       async (_, override) => {
@@ -338,6 +358,21 @@ describe('Servicio', () => {
       expect(res.body.price).toBe(25);
     });
 
+    it('turns on Aprobación manual', async () => {
+      t.services.update.mockResolvedValue({ ...SERVICE, requiresApproval: true });
+
+      const res = await t.http
+        .patch(`/services/${SERVICE.id}`)
+        .set(bearer(CLERK_TOKEN))
+        .send({ requiresApproval: true })
+        .expect(200);
+
+      expect(t.services.update).toHaveBeenCalledWith(SERVICE.id, {
+        requiresApproval: true,
+      });
+      expect(res.body.requiresApproval).toBe(true);
+    });
+
     it('sets the Seña', async () => {
       t.services.update.mockResolvedValue({ ...SERVICE, depositPercent: 50 });
 
@@ -364,6 +399,7 @@ describe('Servicio', () => {
 
       expect(t.services.update).toHaveBeenCalledWith(SERVICE.id, {
         depositPercent: null,
+
       });
       expect(res.body.depositPercent).toBeNull();
     });

@@ -57,6 +57,7 @@ const ANAS_SERVICE = {
   branchId: ANAS_BRANCH.id,
   ...SERVICE_PART,
   depositPercent: null,
+  requiresApproval: false,
   retiredAt: null,
   employees: [{ id: ANAS_EMPLOYEE.id, name: ANAS_EMPLOYEE.name }],
 };
@@ -93,7 +94,7 @@ describe('Negocio', () => {
       expect(t.businesses.create).toHaveBeenCalledWith({
         business: { ...BUSINESS_PART, ownerId: ANA.id },
         branch: { ...BRANCH_PART, slug: ANAS_BUSINESS.slug },
-        service: { ...SERVICE_PART, depositPercent: null },
+        service: { ...SERVICE_PART, depositPercent: null, requiresApproval: false },
         employee: { userId: ANA.id },
         availability: {
           name: 'Horario general',
@@ -116,6 +117,7 @@ describe('Negocio', () => {
           durationMinutes: ANAS_SERVICE.durationMinutes,
           price: ANAS_SERVICE.price,
           depositPercent: null,
+          requiresApproval: false,
           employees: [{ id: ANAS_EMPLOYEE.id, name: ANAS_EMPLOYEE.name }],
         },
         employee: {
@@ -157,7 +159,7 @@ describe('Negocio', () => {
 
       expect(t.businesses.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          service: { ...SERVICE_PART, description: null, depositPercent: null },
+          service: { ...SERVICE_PART, description: null, depositPercent: null, requiresApproval: false },
         }),
       );
     });
@@ -176,7 +178,7 @@ describe('Negocio', () => {
 
       expect(t.businesses.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          service: { ...SERVICE_PART, depositPercent: 20 },
+          service: { ...SERVICE_PART, depositPercent: 20, requiresApproval: false },
         }),
       );
     });

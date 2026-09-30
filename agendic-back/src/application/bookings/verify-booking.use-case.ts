@@ -3,7 +3,7 @@ import {
   BRANCHES_REPOSITORY,
   BranchesRepository,
 } from '../../domain/branches/branches.repository';
-import { Booking } from '../../domain/bookings/booking';
+import { Booking, BookingStatus } from '../../domain/bookings/booking';
 import {
   BOOKINGS_REPOSITORY,
   BookingsRepository,
@@ -28,7 +28,7 @@ export class VerifyBookingUseCase {
   async execute(token: string): Promise<Booking> {
     const now = this.clock.now();
     const booking = await this.bookings.findByVerificationToken(token, now);
-    const { branch } = await assertBookable(
+    const { service, branch } = await assertBookable(
       this.services,
       this.branches,
       booking.serviceId,
@@ -37,6 +37,9 @@ export class VerifyBookingUseCase {
       now,
     );
     assertWithinHours(branch, booking.startsAt, booking.endsAt);
-    return this.bookings.markBooked(booking.id);
+    return this.bookings.markVerified(
+      booking.id,
+      service.requiresApproval ? BookingStatus.PENDING : BookingStatus.BOOKED,
+    );
   }
 }
