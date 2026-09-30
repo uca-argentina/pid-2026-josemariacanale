@@ -14,6 +14,8 @@ export type OtherBranch = PublicBranchPage['otherBranches'][number];
 export type Service = PublicBranchPage['services'][number];
 /** Lo único que la vista pública conoce de un Empleado: el email es solo del Dueño. */
 export type Employee = PublicBranchPage['employees'][number];
+/** Imágenes de Sucursal, ya en el orden de la galería. */
+export type BranchImage = PublicBranchPage['images'][number];
 
 /** Por qué un día no tiene horarios: cada motivo se resuelve distinto desde la UI. */
 export type NoSlotsReason = 'branch-closed' | 'fully-booked';
@@ -63,8 +65,8 @@ export interface Booking {
     client: { name: string; email: string };
     /** Comentario del Turno. */
     notes?: string;
-    /** ponytail: foto placeholder hasta el ticket 06 (Imágenes de Sucursal). */
-    photo: string;
+    /** La Imagen de portada de la Sucursal; sin Imágenes, no hay. */
+    coverUrl: string | undefined;
 }
 
 export const STEPS = ['service', 'employee', 'time', 'confirm'] as const;

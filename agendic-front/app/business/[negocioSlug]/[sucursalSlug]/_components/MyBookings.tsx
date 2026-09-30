@@ -1,6 +1,6 @@
-import Image from 'next/image';
 import { CalendarPlus, MailCheck, MapPin, CalendarCog } from 'lucide-react';
 import { Button } from '@/app/_components/ui/button';
+import { BranchPhoto } from './BranchPhoto';
 import { depositFor, endTime, formatDate, formatDuration, formatPrice } from './format';
 import type { Booking } from './types';
 
@@ -39,7 +39,7 @@ export function MyBookings({
 
                 <article className="mt-3 flex gap-3 rounded-2xl border border-foreground p-3 ring-1 ring-foreground">
                     <div className="relative size-[86px] shrink-0 overflow-hidden rounded-xl">
-                        <Image src={booking.photo} alt="" fill sizes="86px" className="object-cover" />
+                        <BranchPhoto src={booking.coverUrl} sizes="86px" />
                     </div>
                     <div className="flex min-w-0 flex-col gap-0.5">
                         <p className="truncate text-[14.5px] font-bold tracking-[-0.02em]">
@@ -68,12 +68,10 @@ export function MyBookings({
                 className="overflow-hidden rounded-2xl border border-border"
             >
                 <div className="relative h-[240px] sm:h-[320px]">
-                    <Image
-                        src={booking.photo}
+                    <BranchPhoto
+                        src={booking.coverUrl}
                         alt={`Sucursal ${branch.name} de ${business.name}`}
-                        fill
                         sizes="(max-width: 1024px) 100vw, 60vw"
-                        className="object-cover"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-foreground/70 to-transparent" />
                     <h2 className="absolute bottom-6 left-6 max-w-[80%] text-[32px] leading-tight font-extrabold tracking-[-0.03em] text-white">

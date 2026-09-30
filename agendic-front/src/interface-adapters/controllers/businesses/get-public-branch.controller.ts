@@ -4,7 +4,7 @@ import type { IGetPublicBranchUseCase, PublicBranch } from '@/src/application/us
 import { InputParseError } from '@/src/entities/errors/common';
 import { slugSchema } from '@/src/entities/models/business';
 
-function presenter({ business, branch, branches, services, employees }: PublicBranch, instrumentationService: IInstrumentationService) {
+function presenter({ business, branch, branches, services, employees, images }: PublicBranch, instrumentationService: IInstrumentationService) {
     return instrumentationService.startSpan({ name: 'getPublicBranch Presenter', op: 'serialize' }, () => ({
         business: { name: business.name, description: business.description, slug: business.slug },
         branch: {
@@ -29,6 +29,7 @@ function presenter({ business, branch, branches, services, employees }: PublicBr
             employees: s.employees.map((e) => ({ id: e.id, name: e.name })),
         })),
         employees: employees.map((e) => ({ id: e.id, name: e.name })),
+        images: images.map((i) => ({ id: i.id, url: i.url })),
     }));
 }
 
