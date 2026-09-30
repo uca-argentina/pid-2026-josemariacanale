@@ -37,9 +37,16 @@ describe('BusinessesRepository.createBusiness', () => {
         await expect(repo().createBusiness(input)).rejects.toBeInstanceOf(SlugTakenError);
     });
 
-    it('translates 400 to InvalidSlugError', async () => {
-        respond(400, { statusCode: 400, message: 'bad' });
+    it('translates a 400 about the slug to InvalidSlugError', async () => {
+        respond(400, { statusCode: 400, message: ['business.slug must match /^[a-z0-9]+$/'] });
         await expect(repo().createBusiness(input)).rejects.toBeInstanceOf(InvalidSlugError);
+    });
+
+    it('keeps a 400 about another field as ApiRequestError, with its message', async () => {
+        respond(400, { statusCode: 400, message: ['branch.timeZone must be a valid IANA time zone name'] });
+        const error = await repo().createBusiness(input).catch((e) => e);
+        expect(error).toBeInstanceOf(ApiRequestError);
+        expect(error.message).toContain('timeZone');
     });
 
     it('translates other failures to ApiRequestError carrying the status', async () => {
@@ -149,8 +156,8 @@ describe('BusinessesRepository.updateBusiness', () => {
         await expect(repo().updateBusiness(update)).rejects.toBeInstanceOf(SlugTakenError);
     });
 
-    it('translates 400 to InvalidSlugError', async () => {
-        respond(400, { statusCode: 400, message: 'bad' });
+    it('translates a 400 about the slug to InvalidSlugError', async () => {
+        respond(400, { statusCode: 400, message: ['slug must be longer than 3 characters'] });
         await expect(repo().updateBusiness(update)).rejects.toBeInstanceOf(InvalidSlugError);
     });
 

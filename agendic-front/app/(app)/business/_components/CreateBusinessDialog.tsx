@@ -154,6 +154,11 @@ export function CreateBusinessDialog({ owner, onClose }: { owner: Owner; onClose
             description={copy.description}
             footer={
                 <>
+                    {submitError && (
+                        <p role="alert" className="m-0 mr-auto self-center text-[13px] font-semibold text-[#b91c1c]">
+                            {submitError}
+                        </p>
+                    )}
                     {step === 1 ? (
                         <PanelDialogClose>
                             <PanelButton variant="ghost">Cerrar</PanelButton>
@@ -216,11 +221,6 @@ export function CreateBusinessDialog({ owner, onClose }: { owner: Owner; onClose
                     <SummaryStep business={business} branch={branch} employees={employees} service={service} onEdit={goTo} />
                 )}
 
-                {submitError && (
-                    <p role="alert" className="m-0 text-[13px] font-semibold text-[#b91c1c]">
-                        {submitError}
-                    </p>
-                )}
             </form>
         </PanelDialog>
     );

@@ -39,6 +39,10 @@ export class BusinessesRepository implements IBusinessesRepository {
         return parseOrFail(() => businessSchema.array().parse(body), 'GET /businesses');
     }
 
+    /**
+     * Solo un 400 que habla del slug se traduce a `InvalidSlugError`; cualquier otro campo inválido sale
+     * como `ApiRequestError` con su mensaje real, para no disfrazarlo de slug.
+     */
     async createBusiness(input: CreateBusiness): Promise<Business> {
         const token = await this.authenticationService.getAccessToken();
 
@@ -61,7 +65,7 @@ export class BusinessesRepository implements IBusinessesRepository {
                 ? new AlreadyOwnerError(String(message))
                 : new SlugTakenError(String(message));
         }
-        if (response.status === 400) throw new InvalidSlugError(String(message));
+        if (response.status === 400 && /slug/i.test(String(message))) throw new InvalidSlugError(String(message));
         if (!response.ok) throw new ApiRequestError(String(message), { status: response.status });
 
         return parseOrFail(() => businessSchema.parse(body?.business), 'POST /businesses');
@@ -84,7 +88,7 @@ export class BusinessesRepository implements IBusinessesRepository {
         const body = await response.json().catch(() => undefined);
         const message = String(body?.message ?? `PATCH /businesses/:id responded ${response.status}`);
         if (response.status === 409) throw new SlugTakenError(message);
-        if (response.status === 400) throw new InvalidSlugError(message);
+        if (response.status === 400 && /slug/i.test(message)) throw new InvalidSlugError(message);
         if (!response.ok) throw new ApiRequestError(message, { status: response.status });
 
         return parseOrFail(() => businessSchema.parse(body), 'PATCH /businesses/:id');

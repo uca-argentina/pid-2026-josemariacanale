@@ -13,13 +13,12 @@ export default async function EmployeesPage() {
     try {
         staff = await getInjection('IListMyEmployeesController')();
     } catch (error) {
-        unstable_rethrow(error); // redirect/notFound/dynamic usage are Next's control flow, not failures
+        unstable_rethrow(error);
         if (isSessionExpired(error)) redirect(SIGN_IN_PATH);
         getInjection('ICrashReporterService').report(error);
         return <BackendErrorNotice />;
     }
 
-    // Sin Negocio no hay Staff: Mi Negocio ofrece Crear Negocio.
     if (!staff) redirect(BUSINESS_PATH);
 
     return (
@@ -30,7 +29,10 @@ export default async function EmployeesPage() {
                 backHref={BUSINESS_PATH}
                 backLabel="Volver a Mi Negocio"
             />
-            <EmployeesView businessId={staff.businessId} employees={staff.employees} />
+            <EmployeesView
+                businessId={staff.businessId}
+                employees={staff.employees}
+            />
         </div>
     );
 }
