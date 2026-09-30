@@ -2,96 +2,111 @@
 
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { DEFAULT_DAYS, type Availability } from '@/app/(app)/_components/mock-availability';
+import {
+    DEFAULT_DAYS,
+    toIntervals,
+    type AvailabilityInterval,
+} from '@/app/(app)/_components/availability-week';
+import type { AvailabilityInterval as ApiInterval } from '@/src/entities/models/availability';
+import {
+    createAvailabilityAction,
+    deleteAvailabilityAction,
+    makeAvailabilityDefaultAction,
+    saveAvailabilityAction,
+    type AvailabilityActionResult,
+} from '../actions';
 import { AvailabilityEditor } from './AvailabilityEditor';
 import { AvailabilityList } from './AvailabilityList';
-import { UpdateServicesDialog, type OfferedService } from './UpdateServicesDialog';
 
-// ponytail: una sola ruta con estado local; nada persiste. Con backend, el detalle pasa a
-// /availability/[id] y cada acción llama a su server action.
+export interface AvailabilityItem {
+    id: number;
+    name: string;
+    isDefault: boolean;
+    intervals: ApiInterval[];
+}
+
+export interface StaffMember {
+    id: number;
+    name: string;
+    isOwner: boolean;
+}
+
+/** Lo que el editor guarda: nombre, semana (lunes primero) y si pasan a ser las predeterminadas. */
+export interface AvailabilityDraft {
+    name: string;
+    days: AvailabilityInterval[][];
+    isDefault: boolean;
+}
+
+/**
+ * Horas laborables de un Empleado del Staff: la lista y, al abrir una, su editor. Todo sale de las
+ * props que trae el server; cada acción las refresca.
+ */
 export function AvailabilityView({
-    initialAvailabilities,
-    initialServices,
+    employees,
+    employeeId,
+    availabilities,
 }: {
-    initialAvailabilities: Availability[];
-    initialServices: OfferedService[];
+    employees: StaffMember[];
+    employeeId: number;
+    availabilities: AvailabilityItem[];
 }) {
-    const [availabilities, setAvailabilities] = useState(initialAvailabilities);
-    const [services, setServices] = useState(initialServices);
-    const [openId, setOpenId] = useState<string | null>(null);
-    /** La Availability recién marcada predeterminada, a la que se le ofrece pasar los Servicios. */
-    const [newDefaultId, setNewDefaultId] = useState<string | null>(null);
-    const byId = (id: string) => availabilities.find((a) => a.id === id)!;
-    const servicesUsing = (id: string) => services.filter((s) => s.availabilityId === id).length;
-    const open = openId ? byId(openId) : undefined;
+    const [openId, setOpenId] = useState<number | null>(null);
+    const [busy, setBusy] = useState(false);
+    const open = availabilities.find((a) => a.id === openId);
 
-    /** Reemplaza una Availability; si pasa a ser la predeterminada, desmarca la anterior y ofrece pasarle los Servicios. */
-    const save = (next: Availability) => {
-        const becameDefault = next.isDefault && !byId(next.id).isDefault;
-        setAvailabilities((prev) =>
-            prev.map((a) => (a.id === next.id ? next : next.isDefault ? { ...a, isDefault: false } : a)),
-        );
-        if (becameDefault && services.length > 0) setNewDefaultId(next.id);
+    /** Corre una acción sin dejar que se dispare otra a la vez; muestra el mensaje del back si falla. */
+    const run = async (action: () => Promise<AvailabilityActionResult>, success: string) => {
+        setBusy(true);
+        const result = await action();
+        setBusy(false);
+        if (result.ok) toast.success(success);
+        else toast.error(result.message);
+        return result.ok;
     };
 
-    const remove = (id: string) => {
-        const { name } = byId(id);
-        setAvailabilities((prev) => prev.filter((a) => a.id !== id));
-        setOpenId(null);
-        toast.success(`${name}: horas laborables eliminadas`);
+    const remove = async (item: AvailabilityItem) => {
+        if (await run(() => deleteAvailabilityAction(item.id), `${item.name}: horas laborables eliminadas`)) setOpenId(null);
     };
 
-    return (
-        <>
-            {open ? (
-                <AvailabilityEditor
-                    key={open.id}
-                    availability={open}
-                    usedBy={servicesUsing(open.id)}
-                    onBack={() => setOpenId(null)}
-                    onSave={save}
-                    onDelete={() => remove(open.id)}
-                />
-            ) : (
-                <AvailabilityList
-                    availabilities={availabilities}
-                    servicesUsing={servicesUsing}
-                    onOpen={setOpenId}
-                    onCreate={(name) => {
-                        const id = crypto.randomUUID();
-                        setAvailabilities((prev) => [
-                            ...prev,
-                            { id, name, isDefault: prev.length === 0, days: DEFAULT_DAYS, overrides: [] },
-                        ]);
-                        setOpenId(id);
-                    }}
-                    onMakeDefault={(id) => {
-                        save({ ...byId(id), isDefault: true });
-                        toast.success(`${byId(id).name}: ahora son tus horas laborables predeterminadas`);
-                    }}
-                    onDuplicate={(id) => {
-                        const original = byId(id);
-                        const copy = { ...original, id: crypto.randomUUID(), name: `${original.name} (copia)`, isDefault: false };
-                        setAvailabilities((prev) => prev.flatMap((a) => (a.id === id ? [a, copy] : [a])));
-                        toast.success(`${copy.name}: horas laborables creadas`);
-                    }}
-                    onDelete={remove}
-                />
-            )}
-
-            {newDefaultId && (
-                <UpdateServicesDialog
-                    services={services}
-                    onClose={() => setNewDefaultId(null)}
-                    onUpdate={(serviceIds) => {
-                        setServices((prev) =>
-                            prev.map((s) => (serviceIds.includes(s.id) ? { ...s, availabilityId: newDefaultId } : s)),
-                        );
-                        setNewDefaultId(null);
-                        toast.success(serviceIds.length === 1 ? '1 servicio actualizado' : `${serviceIds.length} servicios actualizados`);
-                    }}
-                />
-            )}
-        </>
+    return open ? (
+        <AvailabilityEditor
+            key={open.id}
+            availability={open}
+            busy={busy}
+            onBack={() => setOpenId(null)}
+            onSave={(draft) =>
+                run(
+                    () =>
+                        saveAvailabilityAction({
+                            availabilityId: open.id,
+                            name: draft.name,
+                            intervals: toIntervals(draft.days),
+                            makeDefault: draft.isDefault && !open.isDefault,
+                        }),
+                    `${draft.name}: horas laborables actualizadas`,
+                )
+            }
+            onDelete={() => remove(open)}
+        />
+    ) : (
+        <AvailabilityList
+            employees={employees}
+            employeeId={employeeId}
+            availabilities={availabilities}
+            busy={busy}
+            onOpen={setOpenId}
+            onCreate={(name) =>
+                run(() => createAvailabilityAction(employeeId, name, toIntervals(DEFAULT_DAYS)), `${name}: horas laborables creadas`)
+            }
+            onMakeDefault={(item) =>
+                run(() => makeAvailabilityDefaultAction(item.id), `${item.name}: ahora son las horas laborables predeterminadas`)
+            }
+            onDuplicate={(item) => {
+                const name = `${item.name} (copia)`;
+                return run(() => createAvailabilityAction(employeeId, name, item.intervals), `${name}: horas laborables creadas`);
+            }}
+            onDelete={remove}
+        />
     );
 }

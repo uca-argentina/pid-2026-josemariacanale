@@ -11,7 +11,7 @@ import type { NavItem } from './_components/types';
 
 const navItems: NavItem[] = [
     { id: 'bookings', label: 'Turnos' },
-    { id: 'availability', label: 'Disponibilidad' },
+    { id: 'availability', label: 'Horas laborables' },
     { id: 'services', label: 'Servicios' },
     { id: 'business', label: 'Mi Negocio' },
 ];

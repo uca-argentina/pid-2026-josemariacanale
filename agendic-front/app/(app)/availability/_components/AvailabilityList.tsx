@@ -1,11 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { Copy, Globe, MoreHorizontal, Plus, Star, Trash2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
+import { Copy, MoreHorizontal, Plus, Star, Trash2 } from 'lucide-react';
 import {
     PanelBadge,
     PanelButton,
+    PanelConfirm,
     PanelDialog,
     PanelDialogClose,
     PanelField,
@@ -13,9 +14,10 @@ import {
     PanelIconGroup,
     PanelInput,
     PanelMenu,
+    PanelSelect,
 } from '@/app/(app)/_components/panel-ui';
-import { BRANCH_TIME_ZONE, summarize, type Availability } from '@/app/(app)/_components/mock-availability';
-import { DeleteAvailabilityConfirm } from './DeleteAvailabilityConfirm';
+import { summarize, toWeek } from '@/app/(app)/_components/availability-week';
+import type { AvailabilityItem, StaffMember } from './AvailabilityView';
 
 function NewAvailabilityDialog({ onClose, onCreate }: { onClose: () => void; onCreate: (name: string) => void }) {
     const [name, setName] = useState('');
@@ -32,7 +34,7 @@ function NewAvailabilityDialog({ onClose, onCreate }: { onClose: () => void; onC
                         <PanelButton variant="ghost">Cerrar</PanelButton>
                     </PanelDialogClose>
                     <PanelButton type="submit" form="new-availability" disabled={!name.trim()}>
-                        Continuar
+                        Agregar
                     </PanelButton>
                 </>
             }
@@ -60,21 +62,21 @@ function NewAvailabilityDialog({ onClose, onCreate }: { onClose: () => void; onC
 
 function AvailabilityRow({
     availability,
-    usedBy,
+    busy,
     onOpen,
     onMakeDefault,
     onDuplicate,
     onDelete,
 }: {
-    availability: Availability;
-    usedBy: number;
+    availability: AvailabilityItem;
+    busy: boolean;
     onOpen: () => void;
     onMakeDefault: () => void;
     onDuplicate: () => void;
     onDelete: () => void;
 }) {
     const [confirmDelete, setConfirmDelete] = useState(false);
-    const lines = summarize(availability.days);
+    const lines = summarize(toWeek(availability.intervals));
 
     return (
         <li className="flex items-center gap-4 px-6 py-5 transition-colors hover:bg-[#f9fafb]">
@@ -90,16 +92,12 @@ function AvailabilityRow({
                 <span className="flex flex-col text-[13px] font-medium text-[#6b7280]">
                     {lines.length ? lines.map((line) => <span key={line}>{line}</span>) : <span>Sin Franjas</span>}
                 </span>
-                <span className="mt-2 flex items-center gap-1.5 text-[13px] font-medium text-[#374151]">
-                    <Globe className="size-4 text-[#6b7280]" />
-                    {BRANCH_TIME_ZONE}
-                </span>
             </button>
 
             <PanelIconGroup>
                 <PanelMenu
                     trigger={
-                        <PanelIconButton label="Más acciones">
+                        <PanelIconButton label="Más acciones" disabled={busy}>
                             <MoreHorizontal />
                         </PanelIconButton>
                     }
@@ -111,64 +109,65 @@ function AvailabilityRow({
                 />
             </PanelIconGroup>
 
-            <DeleteAvailabilityConfirm
+            <PanelConfirm
                 open={confirmDelete}
                 onOpenChange={setConfirmDelete}
-                availability={availability}
-                usedBy={usedBy}
+                title="¿Eliminar estas horas laborables?"
+                description={`"${availability.name}" se elimina para siempre.`}
+                confirmLabel="Eliminar"
+                destructive
                 onConfirm={onDelete}
             />
         </li>
     );
 }
 
+/**
+ * Las Horas laborables del Empleado elegido, con la predeterminada marcada. El selector cambia de
+ * Empleado del Staff recargando la página con `?empleado=`.
+ */
 export function AvailabilityList({
+    employees,
+    employeeId,
     availabilities,
-    servicesUsing,
+    busy,
     onOpen,
     onCreate,
     onMakeDefault,
     onDuplicate,
     onDelete,
 }: {
-    availabilities: Availability[];
-    /** Cuántos Servicios usan cada Availability. */
-    servicesUsing: (id: string) => number;
-    onOpen: (id: string) => void;
-    onCreate: (name: string) => void;
-    onMakeDefault: (id: string) => void;
-    onDuplicate: (id: string) => void;
-    onDelete: (id: string) => void;
+    employees: StaffMember[];
+    employeeId: number;
+    availabilities: AvailabilityItem[];
+    busy: boolean;
+    onOpen: (id: number) => void;
+    onCreate: (name: string) => Promise<boolean>;
+    onMakeDefault: (availability: AvailabilityItem) => void;
+    onDuplicate: (availability: AvailabilityItem) => void;
+    onDelete: (availability: AvailabilityItem) => void;
 }) {
+    const router = useRouter();
     const [creating, setCreating] = useState(false);
 
     return (
         <div className="flex-1 bg-white px-4 py-8 text-[#0f1b2d] sm:px-8">
             <header className="flex flex-wrap items-start gap-4">
                 <div className="flex min-w-0 flex-col gap-1">
-                    <h1 className="m-0 text-[21px] font-extrabold tracking-[-0.035em]">Disponibilidad</h1>
+                    <h1 className="m-0 text-[21px] font-extrabold tracking-[-0.035em]">Horas laborables</h1>
                     <p className="m-0 text-[13px] font-medium text-[#6b7280]">
-                        Configurá los horarios en los que estás disponible para recibir reservas.
+                        Los horarios en los que atiende cada Empleado para recibir Turnos.
                     </p>
                 </div>
                 <div className="ml-auto flex items-center gap-3">
-                    {/* ponytail: la vista del equipo (el Dueño viendo las Availability de su Staff) todavía no existe. */}
-                    <div role="tablist" className="flex rounded-md bg-[#f3f4f6] p-1 text-[13px] font-semibold">
-                        <button type="button" role="tab" aria-selected className="rounded bg-white px-3 py-1.5 text-[#0f1b2d] shadow-[0_1px_2px_rgba(15,27,45,0.08)]">
-                            Mi disponibilidad
-                        </button>
-                        <button
-                            type="button"
-                            role="tab"
-                            aria-selected={false}
-                            disabled
-                            title="Próximamente"
-                            className="cursor-not-allowed rounded px-3 py-1.5 text-[#9ca3af]"
-                        >
-                            Disponibilidad del equipo
-                        </button>
-                    </div>
-                    <PanelButton onClick={() => setCreating(true)}>
+                    <PanelSelect
+                        aria-label="Empleado"
+                        value={String(employeeId)}
+                        onValueChange={(id) => router.push(`/availability?empleado=${id}`)}
+                        options={employees.map((e) => ({ value: String(e.id), label: e.isOwner ? `${e.name} (vos)` : e.name }))}
+                        className="w-[220px]"
+                    />
+                    <PanelButton disabled={busy} onClick={() => setCreating(true)}>
                         <Plus className="size-4" />
                         Nuevo
                     </PanelButton>
@@ -176,38 +175,32 @@ export function AvailabilityList({
             </header>
 
             <div className="mt-8 overflow-hidden rounded-xl border border-[#e5e7eb]">
-                <ul className="m-0 list-none divide-y divide-[#e5e7eb] p-0">
-                    {availabilities.map((a) => (
-                        <AvailabilityRow
-                            key={a.id}
-                            availability={a}
-                            usedBy={servicesUsing(a.id)}
-                            onOpen={() => onOpen(a.id)}
-                            onMakeDefault={() => onMakeDefault(a.id)}
-                            onDuplicate={() => onDuplicate(a.id)}
-                            onDelete={() => onDelete(a.id)}
-                        />
-                    ))}
-                </ul>
-                <p className="m-0 border-t border-[#e5e7eb] bg-[#f9fafb] px-6 py-3.5 text-center text-[13px] font-medium text-[#6b7280]">
-                    ¿Te vas a tomar unos días?{' '}
-                    {/* ponytail: los días libres que redirigen tus turnos a otro Empleado llegan en otro ticket. */}
-                    <button
-                        type="button"
-                        onClick={() => toast('Muy pronto vas a poder redirigir tus días libres a otro empleado.')}
-                        className="font-semibold text-[#0f1b2d] underline underline-offset-2 hover:text-[#1c2b44]"
-                    >
-                        Redirigí tus turnos a otro empleado
-                    </button>
-                </p>
+                {availabilities.length > 0 ? (
+                    <ul className="m-0 list-none divide-y divide-[#e5e7eb] p-0">
+                        {availabilities.map((a) => (
+                            <AvailabilityRow
+                                key={a.id}
+                                availability={a}
+                                busy={busy}
+                                onOpen={() => onOpen(a.id)}
+                                onMakeDefault={() => onMakeDefault(a)}
+                                onDuplicate={() => onDuplicate(a)}
+                                onDelete={() => onDelete(a)}
+                            />
+                        ))}
+                    </ul>
+                ) : (
+                    <p className="m-0 px-6 py-8 text-center text-[13px] font-medium text-[#6b7280]">
+                        Este Empleado todavía no tiene horas laborables.
+                    </p>
+                )}
             </div>
 
             {creating && (
                 <NewAvailabilityDialog
                     onClose={() => setCreating(false)}
-                    onCreate={(name) => {
-                        setCreating(false);
-                        onCreate(name);
+                    onCreate={async (name) => {
+                        if (await onCreate(name)) setCreating(false);
                     }}
                 />
             )}

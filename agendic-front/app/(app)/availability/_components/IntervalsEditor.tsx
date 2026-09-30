@@ -3,7 +3,7 @@
 import { Plus, X } from 'lucide-react';
 import { cn } from '@/app/_components/utils';
 import { PanelIconButton, PanelSelect } from '@/app/(app)/_components/panel-ui';
-import { TIME_OPTIONS, invalidIntervals, nextInterval, type AvailabilityInterval } from '@/app/(app)/_components/mock-availability';
+import { TIME_OPTIONS, invalidIntervals, nextInterval, type AvailabilityInterval } from '@/app/(app)/_components/availability-week';
 
 const TIMES = TIME_OPTIONS.map((t) => ({ value: t, label: t }));
 

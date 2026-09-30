@@ -39,6 +39,17 @@ import type { IRejectBookingUseCase } from '@/src/application/use-cases/bookings
 import type { IRejectBookingController } from '@/src/interface-adapters/controllers/bookings/reject-booking.controller';
 import type { IAcceptBookingUseCase } from '@/src/application/use-cases/bookings/accept-booking.use-case';
 import type { IAcceptBookingController } from '@/src/interface-adapters/controllers/bookings/accept-booking.controller';
+import type { IAvailabilitiesRepository } from '@/src/application/repositories/availabilities.repository.interface';
+import type { IListAvailabilitiesUseCase } from '@/src/application/use-cases/availabilities/list-availabilities.use-case';
+import type { ICreateAvailabilityUseCase } from '@/src/application/use-cases/availabilities/create-availability.use-case';
+import type { IUpdateAvailabilityUseCase } from '@/src/application/use-cases/availabilities/update-availability.use-case';
+import type { IMakeAvailabilityDefaultUseCase } from '@/src/application/use-cases/availabilities/make-availability-default.use-case';
+import type { IDeleteAvailabilityUseCase } from '@/src/application/use-cases/availabilities/delete-availability.use-case';
+import type { IListStaffAvailabilitiesController } from '@/src/interface-adapters/controllers/availabilities/list-staff-availabilities.controller';
+import type { ICreateAvailabilityController } from '@/src/interface-adapters/controllers/availabilities/create-availability.controller';
+import type { IUpdateAvailabilityController } from '@/src/interface-adapters/controllers/availabilities/update-availability.controller';
+import type { IMakeAvailabilityDefaultController } from '@/src/interface-adapters/controllers/availabilities/make-availability-default.controller';
+import type { IDeleteAvailabilityController } from '@/src/interface-adapters/controllers/availabilities/delete-availability.controller';
 
 export const DI_SYMBOLS = {
     // Services
@@ -52,6 +63,7 @@ export const DI_SYMBOLS = {
     IEmployeesRepository: Symbol.for('IEmployeesRepository'),
     IBookingsRepository: Symbol.for('IBookingsRepository'),
     IEmployeeBookingsRepository: Symbol.for('IEmployeeBookingsRepository'),
+    IAvailabilitiesRepository: Symbol.for('IAvailabilitiesRepository'),
 
     // Use cases
     ICreateBusinessUseCase: Symbol.for('ICreateBusinessUseCase'),
@@ -70,6 +82,11 @@ export const DI_SYMBOLS = {
     ICancelBookingUseCase: Symbol.for('ICancelBookingUseCase'),
     IRejectBookingUseCase: Symbol.for('IRejectBookingUseCase'),
     IAcceptBookingUseCase: Symbol.for('IAcceptBookingUseCase'),
+    IListAvailabilitiesUseCase: Symbol.for('IListAvailabilitiesUseCase'),
+    ICreateAvailabilityUseCase: Symbol.for('ICreateAvailabilityUseCase'),
+    IUpdateAvailabilityUseCase: Symbol.for('IUpdateAvailabilityUseCase'),
+    IMakeAvailabilityDefaultUseCase: Symbol.for('IMakeAvailabilityDefaultUseCase'),
+    IDeleteAvailabilityUseCase: Symbol.for('IDeleteAvailabilityUseCase'),
 
     // Controllers
     IGetCurrentUserController: Symbol.for('IGetCurrentUserController'),
@@ -89,6 +106,11 @@ export const DI_SYMBOLS = {
     ICancelBookingController: Symbol.for('ICancelBookingController'),
     IRejectBookingController: Symbol.for('IRejectBookingController'),
     IAcceptBookingController: Symbol.for('IAcceptBookingController'),
+    IListStaffAvailabilitiesController: Symbol.for('IListStaffAvailabilitiesController'),
+    ICreateAvailabilityController: Symbol.for('ICreateAvailabilityController'),
+    IUpdateAvailabilityController: Symbol.for('IUpdateAvailabilityController'),
+    IMakeAvailabilityDefaultController: Symbol.for('IMakeAvailabilityDefaultController'),
+    IDeleteAvailabilityController: Symbol.for('IDeleteAvailabilityController'),
 };
 
 export interface DI_RETURN_TYPES {
@@ -103,6 +125,7 @@ export interface DI_RETURN_TYPES {
     IEmployeesRepository: IEmployeesRepository;
     IBookingsRepository: IBookingsRepository;
     IEmployeeBookingsRepository: IEmployeeBookingsRepository;
+    IAvailabilitiesRepository: IAvailabilitiesRepository;
 
     // Use cases
     ICreateBusinessUseCase: ICreateBusinessUseCase;
@@ -121,6 +144,11 @@ export interface DI_RETURN_TYPES {
     ICancelBookingUseCase: ICancelBookingUseCase;
     IRejectBookingUseCase: IRejectBookingUseCase;
     IAcceptBookingUseCase: IAcceptBookingUseCase;
+    IListAvailabilitiesUseCase: IListAvailabilitiesUseCase;
+    ICreateAvailabilityUseCase: ICreateAvailabilityUseCase;
+    IUpdateAvailabilityUseCase: IUpdateAvailabilityUseCase;
+    IMakeAvailabilityDefaultUseCase: IMakeAvailabilityDefaultUseCase;
+    IDeleteAvailabilityUseCase: IDeleteAvailabilityUseCase;
 
     // Controllers
     IGetCurrentUserController: IGetCurrentUserController;
@@ -140,4 +168,9 @@ export interface DI_RETURN_TYPES {
     ICancelBookingController: ICancelBookingController;
     IRejectBookingController: IRejectBookingController;
     IAcceptBookingController: IAcceptBookingController;
+    IListStaffAvailabilitiesController: IListStaffAvailabilitiesController;
+    ICreateAvailabilityController: ICreateAvailabilityController;
+    IUpdateAvailabilityController: IUpdateAvailabilityController;
+    IMakeAvailabilityDefaultController: IMakeAvailabilityDefaultController;
+    IDeleteAvailabilityController: IDeleteAvailabilityController;
 }

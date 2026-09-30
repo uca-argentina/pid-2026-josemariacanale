@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { Popover } from 'radix-ui';
 import { ArrowLeft, Copy, Pencil, Trash2 } from 'lucide-react';
-import { toast } from 'sonner';
 import { cn } from '@/app/_components/utils';
 import {
     PanelButton,
@@ -18,13 +17,12 @@ import {
 import {
     DAY_NAMES,
     DEFAULT_INTERVAL,
-    intervalsValid,
-    type Availability,
+    toWeek,
+    weekValid,
     type AvailabilityInterval,
-} from '@/app/(app)/_components/mock-availability';
-import { DeleteAvailabilityConfirm } from './DeleteAvailabilityConfirm';
+} from '@/app/(app)/_components/availability-week';
+import type { AvailabilityDraft, AvailabilityItem } from './AvailabilityView';
 import { AddIntervalButton, IntervalsEditor } from './IntervalsEditor';
-import { OverridesSection } from './OverridesSection';
 
 function CopyIntervals({
     fromDay,
@@ -132,7 +130,7 @@ function DayRow({
                 {intervals.length > 0 ? (
                     <IntervalsEditor intervals={intervals} onChange={onChange} />
                 ) : (
-                    <span className="flex h-9 items-center text-[13.5px] font-medium text-[#6b7280]">No disponible</span>
+                    <span className="flex h-9 items-center text-[13.5px] font-medium text-[#6b7280]">No se trabaja</span>
                 )}
             </div>
             <div className="flex h-9 items-center gap-2">
@@ -177,36 +175,44 @@ function NameField({ name, onChange }: { name: string; onChange: (name: string) 
     );
 }
 
+/**
+ * Edita el nombre, las Franjas por día y si son las predeterminadas. "Guardar" manda el set entero
+ * de Franjas; no deja guardar si alguna es vacía, invertida o se solapa con otra del mismo día.
+ */
 export function AvailabilityEditor({
     availability,
-    usedBy,
+    busy,
     onBack,
     onSave,
     onDelete,
 }: {
-    availability: Availability;
-    /** Cuántos Servicios la usan: si alguno, no se puede eliminar. */
-    usedBy: number;
+    availability: AvailabilityItem;
+    busy: boolean;
     onBack: () => void;
-    onSave: (availability: Availability) => void;
+    onSave: (draft: AvailabilityDraft) => Promise<boolean>;
     onDelete: () => void;
 }) {
-    const [saved, setSaved] = useState(availability);
-    const [draft, setDraft] = useState(availability);
+    const initial: AvailabilityDraft = {
+        name: availability.name,
+        days: toWeek(availability.intervals),
+        isDefault: availability.isDefault,
+    };
+    const [saved, setSaved] = useState(initial);
+    const [draft, setDraft] = useState(initial);
     const [confirmDelete, setConfirmDelete] = useState(false);
     const [confirmLeave, setConfirmLeave] = useState(false);
     const dirty = JSON.stringify(draft) !== JSON.stringify(saved);
-    const valid = draft.name.trim() !== '' && draft.days.every(intervalsValid);
+    const valid = draft.name.trim() !== '' && weekValid(draft.days);
 
     const setDay = (day: number, intervals: AvailabilityInterval[]) =>
         setDraft((d) => ({ ...d, days: d.days.map((current, i) => (i === day ? intervals : current)) }));
 
-    const save = () => {
+    const save = async () => {
         const next = { ...draft, name: draft.name.trim() };
-        onSave(next);
-        setSaved(next);
-        setDraft(next);
-        toast.success(`${next.name}: horas laborables actualizadas`);
+        if (await onSave(next)) {
+            setSaved(next);
+            setDraft(next);
+        }
     };
 
     return (
@@ -215,7 +221,7 @@ export function AvailabilityEditor({
                 <button
                     type="button"
                     onClick={() => (dirty ? setConfirmLeave(true) : onBack())}
-                    aria-label="Volver a Disponibilidad"
+                    aria-label="Volver a Horas laborables"
                     className="rounded-md p-1.5 text-[#6b7280] transition-colors hover:bg-[#f3f4f6] hover:text-[#0f1b2d]"
                 >
                     <ArrowLeft className="size-5" />
@@ -234,19 +240,19 @@ export function AvailabilityEditor({
                     />
                     <PanelDivider />
                     <PanelIconGroup>
-                        <PanelIconButton label="Eliminar" destructive onClick={() => setConfirmDelete(true)}>
+                        <PanelIconButton label="Eliminar" destructive disabled={busy} onClick={() => setConfirmDelete(true)}>
                             <Trash2 />
                         </PanelIconButton>
                     </PanelIconGroup>
                     <PanelDivider />
-                    <PanelButton disabled={!dirty || !valid} onClick={save}>
+                    <PanelButton disabled={!dirty || !valid || busy} onClick={save}>
                         Guardar
                     </PanelButton>
                 </div>
             </header>
 
             <div className="mt-8 flex max-w-[1080px] flex-col gap-6">
-                <PanelSection title="Horas semanales" description="Establecé los horarios en los que atendés cada día.">
+                <PanelSection title="Horas semanales" description="Establecé los horarios en los que atiende cada día.">
                     <div className="divide-y divide-[#e5e7eb]">
                         {draft.days.map((intervals, day) => (
                             <DayRow
@@ -261,8 +267,6 @@ export function AvailabilityEditor({
                         ))}
                     </div>
                 </PanelSection>
-
-                <OverridesSection overrides={draft.overrides} onChange={(overrides) => setDraft((d) => ({ ...d, overrides }))} />
             </div>
 
             <PanelConfirm
@@ -275,11 +279,13 @@ export function AvailabilityEditor({
                 destructive
                 onConfirm={onBack}
             />
-            <DeleteAvailabilityConfirm
+            <PanelConfirm
                 open={confirmDelete}
                 onOpenChange={setConfirmDelete}
-                availability={saved}
-                usedBy={usedBy}
+                title="¿Eliminar estas horas laborables?"
+                description={`"${saved.name}" se elimina para siempre.`}
+                confirmLabel="Eliminar"
+                destructive
                 onConfirm={onDelete}
             />
         </div>

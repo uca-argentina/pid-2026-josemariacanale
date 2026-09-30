@@ -2,13 +2,13 @@ import {
     DEFAULT_DAYS,
     intervalsValid,
     invalidIntervals,
-    myAvailabilities,
     nextInterval,
-    setOverrides,
     summarize,
+    toIntervals,
+    toWeek,
+    weekValid,
     type AvailabilityInterval,
-    type AvailabilityOverride,
-} from '@/app/(app)/_components/mock-availability';
+} from '@/app/(app)/_components/availability-week';
 
 const week = (byDay: Partial<Record<number, AvailabilityInterval[]>>): AvailabilityInterval[][] =>
     Array.from({ length: 7 }, (_, i) => byDay[i] ?? []);
@@ -80,41 +80,59 @@ describe('invalidIntervals / intervalsValid', () => {
     });
 });
 
-describe('setOverrides', () => {
-    const off = (date: string): AvailabilityOverride => ({ date, intervals: [] });
-
-    it('agrega una Anulación por fecha, ordenadas', () => {
-        expect(setOverrides([off('2026-10-20')], ['2026-10-12', '2026-10-30'], [['09:00', '13:00']])).toEqual([
-            { date: '2026-10-12', intervals: [['09:00', '13:00']] },
-            off('2026-10-20'),
-            { date: '2026-10-30', intervals: [['09:00', '13:00']] },
+describe('toWeek', () => {
+    it('arranca la semana el lunes: weekday 1 cae en el índice 0 y weekday 0 (domingo) en el 6', () => {
+        const result = toWeek([
+            { weekday: 0, startTime: '10:00', endTime: '12:00' },
+            { weekday: 1, startTime: '09:00', endTime: '13:00' },
         ]);
+        expect(result[0]).toEqual([['09:00', '13:00']]);
+        expect(result[6]).toEqual([['10:00', '12:00']]);
+        expect(result[1]).toEqual([]);
     });
 
-    it('reemplaza la Anulación de una fecha que ya tenía', () => {
-        expect(setOverrides([off('2026-10-12')], ['2026-10-12'], [['10:00', '12:00']])).toEqual([
-            { date: '2026-10-12', intervals: [['10:00', '12:00']] },
+    it('ordena las Franjas de un día por hora de inicio', () => {
+        const result = toWeek([
+            { weekday: 2, startTime: '17:00', endTime: '20:00' },
+            { weekday: 2, startTime: '08:00', endTime: '13:00' },
         ]);
+        expect(result[1]).toEqual([['08:00', '13:00'], ['17:00', '20:00']]);
     });
 
-    it('al editar, saca la fecha original aunque ya no esté elegida', () => {
-        expect(setOverrides([off('2026-10-12'), off('2026-10-20')], ['2026-10-13'], [], '2026-10-12')).toEqual([
-            off('2026-10-13'),
-            off('2026-10-20'),
-        ]);
+    it('sin Franjas devuelve los 7 días vacíos', () => {
+        expect(toWeek([])).toEqual(week({}));
     });
 });
 
-describe('myAvailabilities', () => {
-    it('tiene exactamente una predeterminada', () => {
-        expect(myAvailabilities.filter((a) => a.isDefault)).toHaveLength(1);
+describe('toIntervals', () => {
+    it('manda el set entero con weekday 0 = domingo, y los días sin Franjas no aparecen', () => {
+        expect(toIntervals(week({ 0: [['09:00', '13:00']], 6: [['10:00', '12:00']] }))).toEqual([
+            { weekday: 1, startTime: '09:00', endTime: '13:00' },
+            { weekday: 0, startTime: '10:00', endTime: '12:00' },
+        ]);
     });
 
-    it('trae los 7 días, de lunes a domingo, con Franjas válidas', () => {
-        for (const a of myAvailabilities) {
-            expect(a.days).toHaveLength(7);
-            expect(a.days.every(intervalsValid)).toBe(true);
-            expect(a.overrides.every((o) => intervalsValid(o.intervals))).toBe(true);
-        }
+    it('es la inversa de toWeek', () => {
+        const days = week({ 2: [['08:00', '13:00'], ['17:00', '20:00']], 6: [['10:00', '12:00']] });
+        expect(toWeek(toIntervals(days))).toEqual(days);
+    });
+});
+
+describe('weekValid', () => {
+    it('acepta una semana con días sin Franjas y Franjas pegadas', () => {
+        expect(weekValid(week({ 0: [['09:00', '17:00'], ['17:00', '18:00']] }))).toBe(true);
+    });
+
+    it('rechaza la semana si un solo día tiene Franjas solapadas', () => {
+        expect(weekValid(week({ 0: [['09:00', '17:00']], 3: [['09:00', '12:00'], ['11:00', '13:00']] }))).toBe(false);
+    });
+
+    it('rechaza la semana si un día tiene una Franja vacía o invertida', () => {
+        expect(weekValid(week({ 4: [['09:00', '09:00']] }))).toBe(false);
+        expect(weekValid(week({ 4: [['18:00', '14:00']] }))).toBe(false);
+    });
+
+    it('acepta la Availability por defecto', () => {
+        expect(weekValid(DEFAULT_DAYS)).toBe(true);
     });
 });
