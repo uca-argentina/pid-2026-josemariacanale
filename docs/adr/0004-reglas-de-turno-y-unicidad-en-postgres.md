@@ -18,8 +18,8 @@ igual que `endsAt`, y `Booking_no_overlap` compara `[prepStartsAt, endsAt)` en v
 `[startsAt, endsAt)`. Así la preparación queda protegida en la base, también entre Servicios distintos
 del mismo Empleado y con dos reservas concurrentes, sin que la constraint tenga que leer el Servicio
 (una exclusion constraint no puede mirar otra tabla). Cambiar `prepMinutes` no toca los Turnos ya
-tomados: cada uno conserva la preparación con la que se reservó, y Reagendar la conserva igual que la
-duración. Los Turnos anteriores a la columna se migraron con `prepStartsAt = startsAt`.
+tomados: cada uno conserva la preparación con la que se reservó. Reagendar sí la recalcula con la del
+Servicio de ese momento, porque valida el horario nuevo contra las Franjas con esa misma preparación. Los Turnos anteriores a la columna se migraron con `prepStartsAt = startsAt`.
 
 ## El Límite diario no es una constraint
 
@@ -28,7 +28,9 @@ y el cálculo de Horarios reservables (que también usa Reagendar), y la carrera
 verificaciones del mismo Servicio que pasarían el límite juntas, se cierra en la verificación: cuenta
 y verifica dentro de una transacción que toma `pg_advisory_xact_lock` por Servicio, así la segunda
 espera a que la primera confirme y la cuenta. Reservar no necesita el lock porque un Turno sin
-verificar no ocupa lugar.
+verificar no ocupa lugar. Reagendar no lo toma: un Reagendar y una verificación del mismo Servicio
+casi juntos pueden pasar el límite por uno. Se acepta porque Reagendar lo hace el Empleado a mano, y
+el costo es un Turno de más ese día, no dos Turnos en el mismo horario.
 
 ## Consecuencias
 

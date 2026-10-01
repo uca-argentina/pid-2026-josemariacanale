@@ -9,6 +9,10 @@ import {
   EmployeesRepository,
 } from '../../domain/employees/employees.repository';
 import { ConflictError, BusinessRuleError } from '../../domain/errors';
+import {
+  SERVICES_REPOSITORY,
+  ServicesRepository,
+} from '../../domain/services/services.repository';
 import { ListSlotsUseCase } from '../slots/list-slots.use-case';
 import { findOwnBookedBooking } from './find-own-booked-booking';
 
@@ -22,12 +26,15 @@ export class RescheduleBookingUseCase {
     @Inject(BOOKINGS_REPOSITORY) private readonly bookings: BookingsRepository,
     @Inject(EMPLOYEES_REPOSITORY)
     private readonly employees: EmployeesRepository,
+    @Inject(SERVICES_REPOSITORY) private readonly services: ServicesRepository,
     private readonly listSlots: ListSlotsUseCase,
   ) {}
 
   /**
-   * Conserva la duración y la preparación fijadas al reservar, y no repite la Verificación de email. El Límite
-   * diario del día de destino lo descuenta el cálculo de Horarios reservables, sin contar a este mismo Turno.
+   * Conserva la duración fijada al reservar y no repite la Verificación de email. La preparación es la que el
+   * Servicio tiene hoy, la misma con la que el cálculo de Horarios reservables valida el horario nuevo, así nunca
+   * queda fuera de la Franja. El Límite diario del día de destino también lo descuenta ese cálculo, sin contar a
+   * este mismo Turno.
    *
    * @throws {NotFoundError} el Turno no existe
    * @throws {ForbiddenError} el Usuario no es el Empleado asignado al Turno
@@ -48,9 +55,9 @@ export class RescheduleBookingUseCase {
     const endsAt = new Date(
       startsAt.getTime() + (booking.endsAt.getTime() - booking.startsAt.getTime()),
     );
+    const service = await this.services.findById(booking.serviceId);
     const prepStartsAt = new Date(
-      startsAt.getTime() -
-        (booking.startsAt.getTime() - booking.prepStartsAt.getTime()),
+      startsAt.getTime() - (service?.prepMinutes ?? 0) * 60_000,
     );
     if (
       await this.bookings.hasOverlappingOccupied(

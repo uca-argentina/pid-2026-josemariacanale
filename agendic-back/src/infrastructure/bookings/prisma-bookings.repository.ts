@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { createHash, randomBytes } from 'node:crypto';
-import { Booking, BookingStatus, EmployeeBooking } from '../../domain/bookings/booking';
+import {
+  Booking,
+  BookingStatus,
+  DAILY_LIMIT_REACHED,
+  EmployeeBooking,
+} from '../../domain/bookings/booking';
 import {
   BookingsRepository,
   CreateBookingData,
@@ -19,10 +24,11 @@ import { PrismaService } from '../prisma.service';
 /** Statuses that hold an Empleado's horario, as the Booking_no_overlap constraint does. */
 const OCCUPYING = [BookingStatus.PENDING, BookingStatus.BOOKED];
 
-/** Namespace of the advisory locks that serialize verifications per Servicio (first key), so no other lock collides. */
+/**
+ * First key of the advisory locks that serialize verifications per Servicio: an arbitrary namespace (the issue that
+ * introduced them) so a lock taken for anything else never collides with these.
+ */
 const DAILY_LIMIT_LOCK = 61;
-
-const DAILY_LIMIT_REACHED = 'The Service reached its Límite diario that day';
 
 /** Stores only a hash of each verification token, so a leaked table can't be used to verify a Turno. */
 const hash = (token: string) =>
@@ -46,7 +52,11 @@ export class PrismaBookingsRepository implements BookingsRepository {
     return { booking: toBooking(row), token };
   }
 
-  /** The occupied range of a Turno is [prepStartsAt, endsAt), as in the Booking_no_overlap constraint. */
+  /**
+   * Checks the occupied range of each Turno, [prepStartsAt, endsAt), as the Booking_no_overlap constraint does.
+   *
+   * @throws {DatabaseOperationError} falló la base
+   */
   async hasOverlappingOccupied(
     employeeId: number,
     from: Date,
@@ -68,6 +78,8 @@ export class PrismaBookingsRepository implements BookingsRepository {
   }
 
   /**
+   * Lists when the Servicio's PENDING and BOOKED Turnos start, to count them against its Límite diario.
+   *
    * @throws {DatabaseOperationError} falló la base
    */
   async listOccupiedStartsByService(
@@ -106,8 +118,8 @@ export class PrismaBookingsRepository implements BookingsRepository {
   }
 
   /**
-   * With a Límite diario, an advisory lock per Servicio makes counting and verifying one step: a second
-   * verification of the same Servicio waits for the first to commit, then counts it.
+   * Verifies the Turno. With a Límite diario, an advisory lock per Servicio makes counting and verifying one step: a
+   * second verification of the same Servicio waits for the first to commit, then counts it.
    *
    * @throws {ConflictError} el horario ya lo ocupa otro Turno pendiente o aceptado del Empleado, o el Servicio ya alcanzó su Límite diario ese día
    * @throws {NotFoundError} el Turno no existe
