@@ -1,5 +1,5 @@
 import { ApiRequestError } from '@/src/entities/errors/common';
-import { AlreadyEmployeeError, InvitationNotAcceptableError, LastEmployeeError } from '@/src/entities/errors/employee';
+import { AlreadyEmployeeError, InvitationNotAcceptableError, InvitationNotPendingError, LastEmployeeError } from '@/src/entities/errors/employee';
 import { EmployeesRepository } from '@/src/infrastructure/repositories/employees.repository';
 import { authWith } from '@/tests/unit/stubs';
 
@@ -169,5 +169,38 @@ describe('EmployeesRepository.rejectInvitation', () => {
 
         await expect(repo().rejectInvitation(5)).resolves.toBeUndefined();
         expect(fetchSpy).toHaveBeenCalledWith('http://api/invitations/5/reject', expect.objectContaining({ method: 'POST' }));
+    });
+});
+
+describe('EmployeesRepository.resendInvitation', () => {
+    it('POSTs the resend and returns the renewed Invitación', async () => {
+        const fetchSpy = respond(200, invitation);
+
+        await expect(repo().resendInvitation(5)).resolves.toEqual(invitation);
+        expect(fetchSpy).toHaveBeenCalledWith('http://api/invitations/5/resend', expect.objectContaining({ method: 'POST' }));
+    });
+
+    it('translates a 422 to InvitationNotPendingError with the back message', async () => {
+        respond(422, { statusCode: 422, message: 'La invitación ya fue respondida' });
+        await expect(repo().resendInvitation(5)).rejects.toThrow(InvitationNotPendingError);
+    });
+
+    it('translates a 404 to ApiRequestError carrying the status', async () => {
+        respond(404, { statusCode: 404, message: 'no' });
+        await expect(repo().resendInvitation(5)).rejects.toMatchObject({ status: 404 });
+    });
+});
+
+describe('EmployeesRepository.cancelInvitation', () => {
+    it('DELETEs the Invitación and accepts the empty 204', async () => {
+        const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue(new Response(null, { status: 204 }));
+
+        await expect(repo().cancelInvitation(5)).resolves.toBeUndefined();
+        expect(fetchSpy).toHaveBeenCalledWith('http://api/invitations/5', expect.objectContaining({ method: 'DELETE' }));
+    });
+
+    it('translates a 422 to InvitationNotPendingError', async () => {
+        respond(422, { statusCode: 422, message: 'x' });
+        await expect(repo().cancelInvitation(5)).rejects.toThrow(InvitationNotPendingError);
     });
 });

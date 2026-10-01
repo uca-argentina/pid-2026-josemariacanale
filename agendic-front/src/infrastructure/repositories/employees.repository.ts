@@ -1,7 +1,7 @@
 import type { IEmployeesRepository } from '@/src/application/repositories/employees.repository.interface';
 import type { IAuthenticationService } from '@/src/application/services/authentication.service.interface';
 import { ApiRequestError } from '@/src/entities/errors/common';
-import { AlreadyEmployeeError, InvitationNotAcceptableError, LastEmployeeError } from '@/src/entities/errors/employee';
+import { AlreadyEmployeeError, InvitationNotAcceptableError, InvitationNotPendingError, LastEmployeeError } from '@/src/entities/errors/employee';
 import { employeeSchema, invitationSchema, myInvitationSchema, type CreateEmployee, type Employee, type Invitation, type MyInvitation } from '@/src/entities/models/employee';
 
 // Same as in BusinessesRepository: the boundaries lint keeps adapters from importing each other.
@@ -56,6 +56,23 @@ export class EmployeesRepository implements IEmployeesRepository {
     /** @throws {ApiRequestError} la API respondió con error */
     async rejectInvitation(invitationId: number): Promise<void> {
         await this.request('POST', `/invitations/${invitationId}/reject`);
+    }
+
+    /**
+     * @throws {InvitationNotPendingError} ya se aceptó o rechazó (422)
+     * @throws {ApiRequestError} la API respondió con otro error o con un cuerpo inesperado
+     */
+    async resendInvitation(invitationId: number): Promise<Invitation> {
+        const body = await this.request('POST', `/invitations/${invitationId}/resend`, { errors: { 422: InvitationNotPendingError } });
+        return parseOrFail(() => invitationSchema.parse(body), 'POST /invitations/:id/resend');
+    }
+
+    /**
+     * @throws {InvitationNotPendingError} ya se aceptó o rechazó (422)
+     * @throws {ApiRequestError} la API respondió con otro error
+     */
+    async cancelInvitation(invitationId: number): Promise<void> {
+        await this.request('DELETE', `/invitations/${invitationId}`, { errors: { 422: InvitationNotPendingError } });
     }
 
     async retireEmployee(employeeId: number): Promise<void> {

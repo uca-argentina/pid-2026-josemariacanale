@@ -23,7 +23,7 @@ function presenter(
             employees: employees
                 .map((e) => ({ id: e.id, name: e.name, email: e.email, role: isOwner(e) ? ('owner' as const) : ('employee' as const) }))
                 .sort((a, b) => Number(b.role === 'owner') - Number(a.role === 'owner')),
-            invitations: invitations.map((i) => ({ id: i.id, email: i.email })),
+            invitations: invitations.map((i) => ({ id: i.id, email: i.email, expiresAt: i.expiresAt })),
         };
     });
 }

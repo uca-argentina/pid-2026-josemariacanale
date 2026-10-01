@@ -21,7 +21,7 @@ describe('listMyEmployeesController', () => {
                 { id: 3, name: 'Ana', email: 'Ana@Estudio.com', role: 'owner' },
                 { id: 4, name: 'Martina', email: 'martina@estudio.com', role: 'employee' },
             ],
-            invitations: [{ id: 5, email: 'nuevo@estudio.com' }],
+            invitations: [{ id: 5, email: 'nuevo@estudio.com', expiresAt: 'x' }],
         });
         expect(listEmployees).toHaveBeenCalledWith(1);
     });

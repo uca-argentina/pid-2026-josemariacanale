@@ -23,6 +23,10 @@ import type { IListMyEmployeesController } from '@/src/interface-adapters/contro
 import type { IAddEmployeeController } from '@/src/interface-adapters/controllers/employees/add-employee.controller';
 import type { IListMyInvitationsUseCase } from '@/src/application/use-cases/employees/list-my-invitations.use-case';
 import type { IAcceptInvitationUseCase } from '@/src/application/use-cases/employees/accept-invitation.use-case';
+import type { IResendInvitationUseCase } from '@/src/application/use-cases/employees/resend-invitation.use-case';
+import type { ICancelInvitationUseCase } from '@/src/application/use-cases/employees/cancel-invitation.use-case';
+import type { IResendInvitationController } from '@/src/interface-adapters/controllers/employees/resend-invitation.controller';
+import type { ICancelInvitationController } from '@/src/interface-adapters/controllers/employees/cancel-invitation.controller';
 import type { IRejectInvitationUseCase } from '@/src/application/use-cases/employees/reject-invitation.use-case';
 import type { IListMyInvitationsController } from '@/src/interface-adapters/controllers/employees/list-my-invitations.controller';
 import type { IAcceptInvitationController } from '@/src/interface-adapters/controllers/employees/accept-invitation.controller';
@@ -90,6 +94,8 @@ export const DI_SYMBOLS = {
     IListInvitationsUseCase: Symbol.for('IListInvitationsUseCase'),
     IRetireEmployeeUseCase: Symbol.for('IRetireEmployeeUseCase'),
     IRejectInvitationUseCase: Symbol.for('IRejectInvitationUseCase'),
+    IResendInvitationUseCase: Symbol.for('IResendInvitationUseCase'),
+    ICancelInvitationUseCase: Symbol.for('ICancelInvitationUseCase'),
     IAcceptInvitationUseCase: Symbol.for('IAcceptInvitationUseCase'),
     IListMyInvitationsUseCase: Symbol.for('IListMyInvitationsUseCase'),
     IListSlotsUseCase: Symbol.for('IListSlotsUseCase'),
@@ -120,6 +126,8 @@ export const DI_SYMBOLS = {
     IAddEmployeeController: Symbol.for('IAddEmployeeController'),
     IRetireEmployeeController: Symbol.for('IRetireEmployeeController'),
     IRejectInvitationController: Symbol.for('IRejectInvitationController'),
+    IResendInvitationController: Symbol.for('IResendInvitationController'),
+    ICancelInvitationController: Symbol.for('ICancelInvitationController'),
     IAcceptInvitationController: Symbol.for('IAcceptInvitationController'),
     IListMyInvitationsController: Symbol.for('IListMyInvitationsController'),
     IListSlotsController: Symbol.for('IListSlotsController'),
@@ -165,6 +173,8 @@ export interface DI_RETURN_TYPES {
     IListInvitationsUseCase: IListInvitationsUseCase;
     IRetireEmployeeUseCase: IRetireEmployeeUseCase;
     IRejectInvitationUseCase: IRejectInvitationUseCase;
+    IResendInvitationUseCase: IResendInvitationUseCase;
+    ICancelInvitationUseCase: ICancelInvitationUseCase;
     IAcceptInvitationUseCase: IAcceptInvitationUseCase;
     IListMyInvitationsUseCase: IListMyInvitationsUseCase;
     IListSlotsUseCase: IListSlotsUseCase;
@@ -195,6 +205,8 @@ export interface DI_RETURN_TYPES {
     IAddEmployeeController: IAddEmployeeController;
     IRetireEmployeeController: IRetireEmployeeController;
     IRejectInvitationController: IRejectInvitationController;
+    IResendInvitationController: IResendInvitationController;
+    ICancelInvitationController: ICancelInvitationController;
     IAcceptInvitationController: IAcceptInvitationController;
     IListMyInvitationsController: IListMyInvitationsController;
     IListSlotsController: IListSlotsController;

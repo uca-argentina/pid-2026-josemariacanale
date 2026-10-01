@@ -18,3 +18,10 @@ export class InvitationNotAcceptableError extends Error {
         super(message, options);
     }
 }
+
+/** 422: la Invitación ya se aceptó o rechazó, así que no se puede reenviar ni cancelar. */
+export class InvitationNotPendingError extends Error {
+    constructor(message: string, options?: ErrorOptions) {
+        super(message, options);
+    }
+}

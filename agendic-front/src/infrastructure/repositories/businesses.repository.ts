@@ -40,7 +40,7 @@ export class BusinessesRepository implements IBusinessesRepository {
     }
 
     /**
-     * Solo un 400 que habla del slug se traduce a `InvalidSlugError`; cualquier otro campo inválido sale
+     * Solo un 400 que habla del `business.slug` se traduce a `InvalidSlugError`; cualquier otro campo inválido sale
      * como `ApiRequestError` con su mensaje real, para no disfrazarlo de slug.
      */
     async createBusiness(input: CreateBusiness): Promise<Business> {
@@ -65,7 +65,7 @@ export class BusinessesRepository implements IBusinessesRepository {
                 ? new AlreadyOwnerError(String(message))
                 : new SlugTakenError(String(message));
         }
-        if (response.status === 400 && /slug/i.test(String(message))) throw new InvalidSlugError(String(message));
+        if (response.status === 400 && /business\.slug/i.test(String(message))) throw new InvalidSlugError(String(message));
         if (!response.ok) throw new ApiRequestError(String(message), { status: response.status });
 
         return parseOrFail(() => businessSchema.parse(body?.business), 'POST /businesses');
