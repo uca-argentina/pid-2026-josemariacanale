@@ -2,13 +2,19 @@ import type { IServicesRepository } from '@/src/application/repositories/service
 import type { IAuthenticationService } from '@/src/application/services/authentication.service.interface';
 import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
 import { LastEmployeeError } from '@/src/entities/errors/employee';
-import { EmployeeNotAssignableError, ServiceNameTakenError, ServiceSlugTakenError } from '@/src/entities/errors/service';
+import {
+    AvailabilityNotOfEmployeeError,
+    EmployeeNotAssignableError,
+    ServiceNameTakenError,
+    ServiceSlugTakenError,
+} from '@/src/entities/errors/service';
 import {
     catalogServiceSchema,
     removedEmployeeSchema,
     retiredServiceSchema,
     serviceCatalogGroupSchema,
     type CatalogService,
+    type ServiceEmployeeAvailability,
     type CreateService,
     type RemovedEmployee,
     type RetiredService,
@@ -124,6 +130,28 @@ export class ServicesRepository implements IServicesRepository {
         if (status === 404) throw new NotFoundError(messageOf(json, what, status));
         if (status >= 400) throw apiError(what, status, json);
         return parseOrFail(() => removedEmployeeSchema.parse(json), what);
+    }
+
+    /**
+     * Changes the Availability of the Empleado in the Servicio: `PATCH /services/:id/employees/:employeeId`.
+     *
+     * @throws {AvailabilityNotOfEmployeeError} the Availability belongs to another Empleado (422)
+     * @throws {NotFoundError} the Empleado does not attend the Servicio (404)
+     * @throws {ApiRequestError} any other failure, or a body that is not a Servicio
+     */
+    async changeEmployeeAvailability({
+        serviceId,
+        employeeId,
+        availabilityId,
+    }: ServiceEmployeeAvailability): Promise<CatalogService> {
+        const what = 'PATCH /services/:id/employees/:employeeId';
+        const { status, json } = await this.request('PATCH', `/services/${serviceId}/employees/${employeeId}`, {
+            availabilityId,
+        });
+        if (status === 422) throw new AvailabilityNotOfEmployeeError(messageOf(json, what, status));
+        if (status === 404) throw new NotFoundError(messageOf(json, what, status));
+        if (status >= 400) throw apiError(what, status, json);
+        return parseOrFail(() => catalogServiceSchema.parse(json), what);
     }
 
     private async request(method: string, path: string, body?: unknown) {

@@ -32,14 +32,21 @@ const staff = [
     { id: 3, userId: 13, name: 'Sofía', email: 'sofia@estudio.com' },
 ];
 const noStaff = () => jest.fn().mockRejectedValue(new Error('only the Dueño lists the Staff'));
+const availabilities = [
+    { id: 7, employeeId: 2, name: 'Mañanas', isDefault: true, intervals: [{ weekday: 1, startTime: '09:00', endTime: '13:00' }] },
+    { id: 8, employeeId: 2, name: 'Tardes', isDefault: false, intervals: [] },
+];
+const mine = () => jest.fn().mockResolvedValue(availabilities);
+const noAvailabilities = () => jest.fn().mockRejectedValue(new Error('not attending: no Availability to load'));
 
 describe('getMyServiceController', () => {
     it('finds the Servicio by the id of the path and presents it with its Negocio, its Sucursal and the Staff', async () => {
         const useCase = jest.fn().mockResolvedValue({ group, branch, service });
         const listEmployees = jest.fn().mockResolvedValue(staff);
+        const listAvailabilities = mine();
 
         await expect(
-            getMyServiceController(instrumentation, signedIn(), useCase, listEmployees)({ serviceId: '100' }),
+            getMyServiceController(instrumentation, signedIn(), useCase, listEmployees, listAvailabilities)({ serviceId: '100' }),
         ).resolves.toEqual({
             business: { id: 1, name: 'Vitalia', slug: 'vitalia' },
             role: 'owner',
@@ -70,16 +77,40 @@ describe('getMyServiceController', () => {
                 { id: 2, name: 'Juan' },
                 { id: 3, name: 'Sofía' },
             ],
+            myAvailabilityId: 8,
+            availabilities: [
+                { id: 7, name: 'Mañanas', isDefault: true, intervals: [{ weekday: 1, startTime: '09:00', endTime: '13:00' }] },
+                { id: 8, name: 'Tardes', isDefault: false, intervals: [] },
+            ],
         });
         expect(useCase).toHaveBeenCalledWith({ serviceId: 100 });
         expect(listEmployees).toHaveBeenCalledWith(1);
+        expect(listAvailabilities).toHaveBeenCalledWith(2);
+    });
+
+    it('does not load Availability when the Usuario does not attend the Servicio', async () => {
+        const useCase = jest.fn().mockResolvedValue({ group: { ...group, employeeId: 3 }, branch, service });
+        const listAvailabilities = noAvailabilities();
+
+        const detail = await getMyServiceController(
+            instrumentation,
+            signedIn(),
+            useCase,
+            jest.fn().mockResolvedValue(staff),
+            listAvailabilities,
+        )({ serviceId: '100' });
+        expect(detail.myAvailabilityId).toBeNull();
+        expect(detail.availabilities).toBeNull();
+        expect(listAvailabilities).not.toHaveBeenCalled();
     });
 
     it('does not list the Staff for an Empleado who is not the Dueño', async () => {
         const useCase = jest.fn().mockResolvedValue({ group: { ...group, role: 'employee' }, branch, service });
         const listEmployees = noStaff();
 
-        const detail = await getMyServiceController(instrumentation, signedIn(), useCase, listEmployees)({ serviceId: '100' });
+        const detail = await getMyServiceController(instrumentation, signedIn(), useCase, listEmployees, mine())({
+            serviceId: '100',
+        });
         expect(detail.staff).toBeNull();
         expect(listEmployees).not.toHaveBeenCalled();
     });
@@ -93,7 +124,7 @@ describe('getMyServiceController', () => {
     ])('throws InputParseError for %s, without calling the use case', async (_case, bad) => {
         const useCase = jest.fn();
 
-        await expect(getMyServiceController(instrumentation, signedIn(), useCase, noStaff())(bad)).rejects.toBeInstanceOf(InputParseError);
+        await expect(getMyServiceController(instrumentation, signedIn(), useCase, noStaff(), noAvailabilities())(bad)).rejects.toBeInstanceOf(InputParseError);
         expect(useCase).not.toHaveBeenCalled();
     });
 
@@ -101,7 +132,7 @@ describe('getMyServiceController', () => {
         const useCase = jest.fn();
         const auth = authWith({ getCurrentUser: jest.fn().mockRejectedValue(new UnauthenticatedError('No hay Sesión')) });
 
-        await expect(getMyServiceController(instrumentation, auth, useCase, noStaff())({ serviceId: '100' })).rejects.toBeInstanceOf(
+        await expect(getMyServiceController(instrumentation, auth, useCase, noStaff(), noAvailabilities())({ serviceId: '100' })).rejects.toBeInstanceOf(
             UnauthenticatedError,
         );
         expect(useCase).not.toHaveBeenCalled();

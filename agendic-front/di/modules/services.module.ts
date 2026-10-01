@@ -1,5 +1,6 @@
 import { createModule } from '@evyweb/ioctopus';
 import { DI_SYMBOLS } from '@/di/types';
+import { changeEmployeeAvailabilityUseCase } from '@/src/application/use-cases/services/change-employee-availability.use-case';
 import { assignEmployeeUseCase } from '@/src/application/use-cases/services/assign-employee.use-case';
 import { createServiceUseCase } from '@/src/application/use-cases/services/create-service.use-case';
 import { getMyServiceUseCase } from '@/src/application/use-cases/services/get-my-service.use-case';
@@ -8,6 +9,7 @@ import { removeEmployeeUseCase } from '@/src/application/use-cases/services/remo
 import { retireServiceUseCase } from '@/src/application/use-cases/services/retire-service.use-case';
 import { updateServiceUseCase } from '@/src/application/use-cases/services/update-service.use-case';
 import { ServicesRepository } from '@/src/infrastructure/repositories/services.repository';
+import { changeEmployeeAvailabilityController } from '@/src/interface-adapters/controllers/services/change-employee-availability.controller';
 import { assignEmployeeController } from '@/src/interface-adapters/controllers/services/assign-employee.controller';
 import { createServiceController } from '@/src/interface-adapters/controllers/services/create-service.controller';
 import { getMyServiceController } from '@/src/interface-adapters/controllers/services/get-my-service.controller';
@@ -16,7 +18,10 @@ import { removeEmployeeController } from '@/src/interface-adapters/controllers/s
 import { retireServiceController } from '@/src/interface-adapters/controllers/services/retire-service.controller';
 import { updateServiceController } from '@/src/interface-adapters/controllers/services/update-service.controller';
 
-/** The panel's Servicios: the catalog, the alta, the detail, the edit, the baja and who offers each one. */
+/**
+ * The panel's Servicios: the catalog, the alta, the detail, the edit, the baja, who offers each one and with which
+ * Availability.
+ */
 export function createServicesModule() {
     const servicesModule = createModule();
 
@@ -57,6 +62,7 @@ export function createServicesModule() {
             DI_SYMBOLS.IAuthenticationService,
             DI_SYMBOLS.IGetMyServiceUseCase,
             DI_SYMBOLS.IListEmployeesUseCase,
+            DI_SYMBOLS.IListAvailabilitiesUseCase,
         ]);
 
     servicesModule
@@ -105,6 +111,21 @@ export function createServicesModule() {
             DI_SYMBOLS.IInstrumentationService,
             DI_SYMBOLS.IAuthenticationService,
             DI_SYMBOLS.IRemoveEmployeeUseCase,
+        ]);
+
+    servicesModule
+        .bind(DI_SYMBOLS.IChangeEmployeeAvailabilityUseCase)
+        .toHigherOrderFunction(changeEmployeeAvailabilityUseCase, [
+            DI_SYMBOLS.IInstrumentationService,
+            DI_SYMBOLS.IServicesRepository,
+        ]);
+
+    servicesModule
+        .bind(DI_SYMBOLS.IChangeEmployeeAvailabilityController)
+        .toHigherOrderFunction(changeEmployeeAvailabilityController, [
+            DI_SYMBOLS.IInstrumentationService,
+            DI_SYMBOLS.IAuthenticationService,
+            DI_SYMBOLS.IChangeEmployeeAvailabilityUseCase,
         ]);
 
     return servicesModule;

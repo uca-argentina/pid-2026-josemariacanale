@@ -18,3 +18,10 @@ export class EmployeeNotAssignableError extends Error {
         super(message, options);
     }
 }
+
+/** 422: the Availability chosen for a Servicio belongs to another Empleado. */
+export class AvailabilityNotOfEmployeeError extends Error {
+    constructor(message: string, options?: ErrorOptions) {
+        super(message, options);
+    }
+}

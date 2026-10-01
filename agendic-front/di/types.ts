@@ -47,6 +47,7 @@ import type { IUpdateServiceUseCase } from '@/src/application/use-cases/services
 import type { IRetireServiceUseCase } from '@/src/application/use-cases/services/retire-service.use-case';
 import type { IAssignEmployeeUseCase } from '@/src/application/use-cases/services/assign-employee.use-case';
 import type { IRemoveEmployeeUseCase } from '@/src/application/use-cases/services/remove-employee.use-case';
+import type { IChangeEmployeeAvailabilityUseCase } from '@/src/application/use-cases/services/change-employee-availability.use-case';
 import type { IListMyServicesController } from '@/src/interface-adapters/controllers/services/list-my-services.controller';
 import type { ICreateServiceController } from '@/src/interface-adapters/controllers/services/create-service.controller';
 import type { IGetMyServiceController } from '@/src/interface-adapters/controllers/services/get-my-service.controller';
@@ -54,6 +55,7 @@ import type { IUpdateServiceController } from '@/src/interface-adapters/controll
 import type { IRetireServiceController } from '@/src/interface-adapters/controllers/services/retire-service.controller';
 import type { IAssignEmployeeController } from '@/src/interface-adapters/controllers/services/assign-employee.controller';
 import type { IRemoveEmployeeController } from '@/src/interface-adapters/controllers/services/remove-employee.controller';
+import type { IChangeEmployeeAvailabilityController } from '@/src/interface-adapters/controllers/services/change-employee-availability.controller';
 import type { IEmployeeBookingsRepository } from '@/src/application/repositories/employee-bookings.repository.interface';
 import type { IListMyBookingsUseCase } from '@/src/application/use-cases/bookings/list-my-bookings.use-case';
 import type { IListMyBookingsController } from '@/src/interface-adapters/controllers/bookings/list-my-bookings.controller';
@@ -118,6 +120,7 @@ export const DI_SYMBOLS = {
     IRetireServiceUseCase: Symbol.for('IRetireServiceUseCase'),
     IAssignEmployeeUseCase: Symbol.for('IAssignEmployeeUseCase'),
     IRemoveEmployeeUseCase: Symbol.for('IRemoveEmployeeUseCase'),
+    IChangeEmployeeAvailabilityUseCase: Symbol.for('IChangeEmployeeAvailabilityUseCase'),
     IRejectInvitationUseCase: Symbol.for('IRejectInvitationUseCase'),
     IResendInvitationUseCase: Symbol.for('IResendInvitationUseCase'),
     ICancelInvitationUseCase: Symbol.for('ICancelInvitationUseCase'),
@@ -158,6 +161,7 @@ export const DI_SYMBOLS = {
     IRetireServiceController: Symbol.for('IRetireServiceController'),
     IAssignEmployeeController: Symbol.for('IAssignEmployeeController'),
     IRemoveEmployeeController: Symbol.for('IRemoveEmployeeController'),
+    IChangeEmployeeAvailabilityController: Symbol.for('IChangeEmployeeAvailabilityController'),
     IRejectInvitationController: Symbol.for('IRejectInvitationController'),
     IResendInvitationController: Symbol.for('IResendInvitationController'),
     ICancelInvitationController: Symbol.for('ICancelInvitationController'),
@@ -214,6 +218,7 @@ export interface DI_RETURN_TYPES {
     IRetireServiceUseCase: IRetireServiceUseCase;
     IAssignEmployeeUseCase: IAssignEmployeeUseCase;
     IRemoveEmployeeUseCase: IRemoveEmployeeUseCase;
+    IChangeEmployeeAvailabilityUseCase: IChangeEmployeeAvailabilityUseCase;
     IRejectInvitationUseCase: IRejectInvitationUseCase;
     IResendInvitationUseCase: IResendInvitationUseCase;
     ICancelInvitationUseCase: ICancelInvitationUseCase;
@@ -254,6 +259,7 @@ export interface DI_RETURN_TYPES {
     IRetireServiceController: IRetireServiceController;
     IAssignEmployeeController: IAssignEmployeeController;
     IRemoveEmployeeController: IRemoveEmployeeController;
+    IChangeEmployeeAvailabilityController: IChangeEmployeeAvailabilityController;
     IRejectInvitationController: IRejectInvitationController;
     IResendInvitationController: IResendInvitationController;
     ICancelInvitationController: ICancelInvitationController;

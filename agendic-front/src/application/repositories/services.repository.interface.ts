@@ -1,5 +1,6 @@
 import type {
     CatalogService,
+    ServiceEmployeeAvailability,
     CreateService,
     RemovedEmployee,
     RetiredService,
@@ -60,4 +61,12 @@ export interface IServicesRepository {
      * @throws {ApiRequestError} acting for another Empleado without being the Dueño (403) or any other failure
      */
     removeEmployee(input: ServiceEmployeeRef): Promise<RemovedEmployee>;
+    /**
+     * Changes the Availability the Empleado attends the Servicio with. Their Turnos already taken stay as they are.
+     *
+     * @throws {AvailabilityNotOfEmployeeError} the Availability belongs to another Empleado (422)
+     * @throws {NotFoundError} the Empleado does not attend the Servicio, or it does not exist (404)
+     * @throws {ApiRequestError} acting for another Empleado without being the Dueño (403) or any other failure
+     */
+    changeEmployeeAvailability(input: ServiceEmployeeAvailability): Promise<CatalogService>;
 }
