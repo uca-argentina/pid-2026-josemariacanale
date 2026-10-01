@@ -10,8 +10,9 @@ import {
   ServicesRepository,
 } from '../../domain/services/services.repository';
 
+/** Abre un Servicio por su tramo del Enlace de reserva (ADR 0018). */
 @Injectable()
-export class ListActiveServicesByBranchUseCase {
+export class GetServiceBySlugUseCase {
   constructor(
     @Inject(BRANCHES_REPOSITORY)
     private readonly branches: BranchesRepository,
@@ -19,12 +20,19 @@ export class ListActiveServicesByBranchUseCase {
     private readonly services: ServicesRepository,
   ) {}
 
-  /** Los Servicios ocultos no salen: se llega a ellos solo por su Enlace de reserva (ADR 0018). */
-  async execute(branchId: number): Promise<Service[]> {
+  /**
+   * Devuelve el Servicio aunque esté oculto: su tramo es la única puerta a él. El tramo se compara en minúsculas.
+   *
+   * @throws {NotFoundError} la Sucursal no existe, o ningún Servicio suyo no dado de baja tiene ese tramo
+   */
+  async execute(branchId: number, slug: string): Promise<Service> {
     const branch = await this.branches.findById(branchId);
     if (!branch) throw new NotFoundError('Branch not found');
-    return (await this.services.listActiveByBranch(branchId)).filter(
-      (service) => !service.hidden,
+    const service = await this.services.findActiveBySlug(
+      branchId,
+      slug.toLowerCase(),
     );
+    if (!service) throw new NotFoundError('Service not found');
+    return service;
   }
 }

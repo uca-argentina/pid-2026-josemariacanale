@@ -82,6 +82,17 @@ export class PrismaServicesRepository implements ServicesRepository {
     ).map(toService);
   }
 
+  async findActiveBySlug(branchId: number, slug: string) {
+    // findFirst, not findUnique: the slug is unique only among the Services not dados de baja (partial index).
+    const row = await this.prisma.service
+      .findFirst({
+        where: { branchId, slug, retiredAt: null },
+        include: VISIBLE_EMPLOYEES,
+      })
+      .catch(translateError);
+    return row && toService(row);
+  }
+
   async update(
     id: number,
     data: Partial<
