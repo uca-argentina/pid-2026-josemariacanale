@@ -177,6 +177,29 @@ export class PrismaServicesRepository implements ServicesRepository {
     );
   }
 
+  async setEmployeeAvailability({
+    serviceId,
+    employeeId,
+    availabilityId,
+  }: EmployeeService) {
+    return toService(
+      await this.prisma.service
+        .update({
+          where: { id: serviceId },
+          data: {
+            employees: {
+              update: {
+                where: { employeeId_serviceId: { employeeId, serviceId } },
+                data: { availabilityId },
+              },
+            },
+          },
+          include: VISIBLE_EMPLOYEES,
+        })
+        .catch(translateError),
+    );
+  }
+
   async removeEmployee(serviceId: number, employeeId: number, now: Date) {
     return this.prisma
       .$transaction(async (tx) => {

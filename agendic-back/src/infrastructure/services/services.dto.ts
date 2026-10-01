@@ -67,6 +67,12 @@ export class AssignEmployeeDto {
   availabilityId?: number;
 }
 
+export class ChangeEmployeeAvailabilityDto {
+  /** One of that Empleado's own. */
+  @IsInt()
+  availabilityId!: number;
+}
+
 export class UpdateServiceDto {
   @IfPresent()
   @IsName()

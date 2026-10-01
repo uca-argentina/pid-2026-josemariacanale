@@ -3,6 +3,7 @@ import {
   ANAS_BUSINESS,
   ANAS_EMPLOYEE,
   bearer,
+  BRUNO,
   createTestApp,
   OTHER_CLERK_TOKEN,
   scriptOtherSession,
@@ -70,7 +71,36 @@ describe('Availability', () => {
       );
     });
 
-    it('answers 403 for a Usuario who is not the Dueño of the Empleado Negocio', async () => {
+    it('lets an Empleado who is not the Dueño read their own', async () => {
+      const brunos = { ...ANAS_EMPLOYEE, id: 2, userId: BRUNO.id };
+      t.employees.findById.mockResolvedValue(brunos);
+      t.availabilities.listByEmployee.mockResolvedValue([]);
+
+      await t.http
+        .get(`/employees/${brunos.id}/availabilities`)
+        .set(bearer(OTHER_CLERK_TOKEN))
+        .expect(200);
+
+      expect(t.availabilities.listByEmployee).toHaveBeenCalledWith(brunos.id);
+    });
+
+    it('answers 403 for an Empleado dado de baja reading their own', async () => {
+      t.employees.findById.mockResolvedValue({
+        ...ANAS_EMPLOYEE,
+        id: 2,
+        userId: BRUNO.id,
+        retiredAt: new Date('2026-01-01T00:00:00.000Z'),
+      });
+
+      await t.http
+        .get('/employees/2/availabilities')
+        .set(bearer(OTHER_CLERK_TOKEN))
+        .expect(403);
+
+      expect(t.availabilities.listByEmployee).not.toHaveBeenCalled();
+    });
+
+    it('answers 403 for a Usuario who is neither the Dueño of the Empleado Negocio nor that Empleado', async () => {
       await t.http
         .get(`/employees/${ANAS_EMPLOYEE.id}/availabilities`)
         .set(bearer(OTHER_CLERK_TOKEN))
