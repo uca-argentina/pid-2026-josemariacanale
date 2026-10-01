@@ -13,7 +13,11 @@ import {
   SERVICES_REPOSITORY,
   ServicesRepository,
 } from '../../domain/services/services.repository';
-import { assertBookable, assertWithinHours } from './assert-booking-rules';
+import {
+  assertBookable,
+  assertWithinHours,
+  dailyLimitDay,
+} from './assert-booking-rules';
 
 /** Re-checks every booking rule at verification time, since it has been up to 24h since the request. */
 @Injectable()
@@ -25,6 +29,10 @@ export class VerifyBookingUseCase {
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
+  /**
+   * @throws {BusinessRuleError} el token no sirve, o alguna regla de Reservar dejó de cumplirse
+   * @throws {ConflictError} otro Turno del Empleado ya ocupa el horario, o el Servicio alcanzó su Límite diario ese día
+   */
   async execute(token: string): Promise<Booking> {
     const now = this.clock.now();
     const booking = await this.bookings.findByVerificationToken(token, now);
@@ -37,9 +45,15 @@ export class VerifyBookingUseCase {
       now,
     );
     assertWithinHours(branch, booking.startsAt, booking.endsAt);
-    return this.bookings.markVerified(
-      booking.id,
-      service.requiresApproval ? BookingStatus.PENDING : BookingStatus.BOOKED,
-    );
+    const status = service.requiresApproval
+      ? BookingStatus.PENDING
+      : BookingStatus.BOOKED;
+    if (service.dailyLimit === null)
+      return this.bookings.markVerified(booking.id, status);
+    return this.bookings.markVerified(booking.id, status, {
+      serviceId: service.id,
+      limit: service.dailyLimit,
+      ...dailyLimitDay(branch, booking.startsAt),
+    });
   }
 }

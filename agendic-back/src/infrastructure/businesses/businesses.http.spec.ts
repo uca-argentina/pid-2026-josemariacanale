@@ -61,6 +61,8 @@ const ANAS_SERVICE = {
   requiresApproval: false,
   retiredAt: null,
   hidden: false,
+  prepMinutes: 0,
+  dailyLimit: null,
   employees: [
     { id: ANAS_EMPLOYEE.id, name: ANAS_EMPLOYEE.name, availabilityId: 10 },
   ],
@@ -103,6 +105,8 @@ describe('Negocio', () => {
           depositPercent: null,
           requiresApproval: false,
           hidden: false,
+          prepMinutes: 0,
+          dailyLimit: null,
         },
         employee: { userId: ANA.id },
         availability: {
@@ -129,6 +133,8 @@ describe('Negocio', () => {
           requiresApproval: false,
           slug: ANAS_SERVICE.slug,
           hidden: false,
+          prepMinutes: 0,
+          dailyLimit: null,
           employees: [
             {
               id: ANAS_EMPLOYEE.id,
@@ -182,6 +188,8 @@ describe('Negocio', () => {
             depositPercent: null,
             requiresApproval: false,
             hidden: false,
+            prepMinutes: 0,
+            dailyLimit: null,
           },
         }),
       );
@@ -206,6 +214,8 @@ describe('Negocio', () => {
             depositPercent: 20,
             requiresApproval: false,
             hidden: false,
+            prepMinutes: 0,
+            dailyLimit: null,
           },
         }),
       );

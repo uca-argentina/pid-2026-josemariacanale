@@ -51,6 +51,8 @@ export class PrismaServicesRepository implements ServicesRepository {
       | 'requiresApproval'
       | 'slug'
       | 'hidden'
+      | 'prepMinutes'
+      | 'dailyLimit'
     > & { employees: Omit<EmployeeService, 'serviceId'>[] },
   ) {
     const { employees, ...service } = data;
@@ -96,6 +98,8 @@ export class PrismaServicesRepository implements ServicesRepository {
         | 'requiresApproval'
         | 'slug'
         | 'hidden'
+        | 'prepMinutes'
+        | 'dailyLimit'
       >
     >,
   ) {
@@ -214,6 +218,8 @@ export const toService = (row: ServiceRowWithEmployees): Service => ({
   retiredAt: row.retiredAt,
   slug: row.slug,
   hidden: row.hidden,
+  prepMinutes: row.prepMinutes,
+  dailyLimit: row.dailyLimit,
   employees: row.employees.map(({ employee, availabilityId }) => ({
     id: employee.id,
     name: employee.user.name,

@@ -76,7 +76,7 @@ describe('GET /services/:id/slots', () => {
 
   it('descuenta un Turno tomado, en cualquier Servicio del mismo Empleado', async () => {
     t.bookings.listOccupiedByEmployee.mockResolvedValue([
-      { startsAt: new Date('2026-01-02T14:00:00.000Z'), endsAt: new Date('2026-01-02T14:30:00.000Z') },
+      { prepStartsAt: new Date('2026-01-02T14:00:00.000Z'), endsAt: new Date('2026-01-02T14:30:00.000Z') },
     ]);
 
     const res = await query(t, {}).expect(200);
@@ -92,6 +92,106 @@ describe('GET /services/:id/slots', () => {
       expect.any(Date),
       undefined,
     );
+  });
+
+  describe('Tiempo de preparación', () => {
+    it('el primer Horario reservable de una Franja arranca después de la preparación', async () => {
+      t.services.findById.mockResolvedValue({ ...SERVICE, prepMinutes: 15 });
+
+      const res = await query(t, {}).expect(200);
+
+      const [day] = res.body.days;
+      expect(day.slots[0]).toBe('2026-01-02T12:15:00.000Z'); // 09:15 ARG: 09:00 to 09:15 is preparation
+      expect(day.slots.at(-1)).toBe('2026-01-02T20:30:00.000Z'); // 17:30 ARG, ends 18:00
+      expect(day.slots).toHaveLength(34);
+    });
+
+    it('un Turno tomado bloquea también su preparación', async () => {
+      t.bookings.listOccupiedByEmployee.mockResolvedValue([
+        // 11:00 to 11:30 ARG, with 15 minutes of preparation from 10:45
+        { prepStartsAt: new Date('2026-01-02T13:45:00.000Z'), endsAt: new Date('2026-01-02T14:30:00.000Z') },
+      ]);
+
+      const res = await query(t, {}).expect(200);
+
+      const [day] = res.body.days;
+      expect(day.slots).not.toContain('2026-01-02T13:30:00.000Z'); // would end inside the preparation
+      expect(day.slots).toContain('2026-01-02T13:15:00.000Z'); // ends exactly when the preparation starts
+    });
+
+    it('la preparación del Servicio pedido no puede pisar un Turno tomado, de cualquier Servicio del Empleado', async () => {
+      t.services.findById.mockResolvedValue({ ...SERVICE, prepMinutes: 15 });
+      t.bookings.listOccupiedByEmployee.mockResolvedValue([
+        { prepStartsAt: new Date('2026-01-02T14:00:00.000Z'), endsAt: new Date('2026-01-02T14:30:00.000Z') },
+      ]);
+
+      const res = await query(t, {}).expect(200);
+
+      const [day] = res.body.days;
+      expect(day.slots).not.toContain('2026-01-02T14:30:00.000Z'); // its preparation would start at 14:15
+      expect(day.slots).toContain('2026-01-02T14:45:00.000Z'); // its preparation starts exactly at 14:30
+      expect(day.slots).not.toContain('2026-01-02T13:45:00.000Z'); // would end at 14:15, inside the Turno
+      expect(day.slots).toContain('2026-01-02T13:30:00.000Z'); // ends exactly when the Turno's preparation starts
+    });
+  });
+
+  describe('Límite diario', () => {
+    it('alcanzado, el día no ofrece Horarios reservables', async () => {
+      t.services.findById.mockResolvedValue({ ...SERVICE, dailyLimit: 2 });
+      t.bookings.listOccupiedStartsByService.mockResolvedValue([
+        new Date('2026-01-02T13:00:00.000Z'),
+        new Date('2026-01-02T18:00:00.000Z'),
+      ]);
+
+      const res = await query(t, {}).expect(200);
+
+      expect(res.body.days).toEqual([
+        { date: '2026-01-02', slots: [], reason: 'FULLY_BOOKED' },
+      ]);
+      expect(t.bookings.listOccupiedStartsByService).toHaveBeenCalledWith(
+        SERVICE.id,
+        expect.any(Date),
+        expect.any(Date),
+        undefined,
+      );
+    });
+
+    it('sin alcanzarlo, el día ofrece sus horarios', async () => {
+      t.services.findById.mockResolvedValue({ ...SERVICE, dailyLimit: 2 });
+      t.bookings.listOccupiedStartsByService.mockResolvedValue([
+        new Date('2026-01-02T13:00:00.000Z'),
+      ]);
+
+      const res = await query(t, {}).expect(200);
+
+      expect(res.body.days[0].slots).toHaveLength(35);
+    });
+
+    it('cuenta el día en la zona horaria de la Sucursal', async () => {
+      t.services.findById.mockResolvedValue({ ...SERVICE, dailyLimit: 1 });
+      // 2026-01-03T02:00Z is still Friday 2026-01-02 at 23:00 in Buenos Aires; 2026-01-02T02:00Z is Thursday.
+      t.bookings.listOccupiedStartsByService.mockResolvedValue([
+        new Date('2026-01-02T02:00:00.000Z'),
+      ]);
+      const notFull = await query(t, {}).expect(200);
+      expect(notFull.body.days[0].slots).toHaveLength(35);
+
+      t.bookings.listOccupiedStartsByService.mockResolvedValue([
+        new Date('2026-01-03T02:00:00.000Z'),
+      ]);
+      const full = await query(t, {}).expect(200);
+      expect(full.body.days[0]).toEqual({
+        date: '2026-01-02',
+        slots: [],
+        reason: 'FULLY_BOOKED',
+      });
+    });
+
+    it('sin Límite diario no cuenta Turnos', async () => {
+      await query(t, {}).expect(200);
+
+      expect(t.bookings.listOccupiedStartsByService).not.toHaveBeenCalled();
+    });
   });
 
   it('una Anulación sin horas deja el día sin horarios, con motivo NOT_WORKING', async () => {
@@ -166,7 +266,7 @@ describe('GET /services/:id/slots', () => {
   ])('un día sin horarios trae su motivo: %s', async (_, date, reason) => {
     if (reason === 'FULLY_BOOKED')
       t.bookings.listOccupiedByEmployee.mockResolvedValue([
-        { startsAt: new Date('2026-01-02T00:00:00.000Z'), endsAt: new Date('2026-01-03T00:00:00.000Z') },
+        { prepStartsAt: new Date('2026-01-02T00:00:00.000Z'), endsAt: new Date('2026-01-03T00:00:00.000Z') },
       ]);
 
     const res = await query(t, { from: date, to: date }).expect(200);

@@ -1,9 +1,11 @@
 import { assertBranchExists } from '../branches/assert-branch-owner';
 import { Branch } from '../../domain/branches/branch';
 import { BranchesRepository } from '../../domain/branches/branches.repository';
-import { BusinessRuleError } from '../../domain/errors';
+import { BookingsRepository } from '../../domain/bookings/bookings.repository';
+import { BusinessRuleError, ConflictError } from '../../domain/errors';
 import { Service } from '../../domain/services/service';
 import { ServicesRepository } from '../../domain/services/services.repository';
+import { localDayBounds } from '../../domain/slots/slot';
 
 const BUENOS_AIRES = 'America/Argentina/Buenos_Aires';
 
@@ -49,6 +51,28 @@ export function assertWithinHours(
     throw new BusinessRuleError(
       "Booking must fit within the Sucursal's hours",
     );
+}
+
+/** The local day of the Sucursal that `startsAt` falls on: the one its Límite diario counts. */
+export function dailyLimitDay(branch: Branch, startsAt: Date) {
+  const { from, to } = localDayBounds(startsAt, branch.timeZone);
+  return { from, to };
+}
+
+/**
+ * @throws {ConflictError} el Servicio ya tiene `dailyLimit` Turnos pendientes o aceptados ese día de la Sucursal
+ */
+export async function assertUnderDailyLimit(
+  bookings: BookingsRepository,
+  service: Service,
+  branch: Branch,
+  startsAt: Date,
+): Promise<void> {
+  if (service.dailyLimit === null) return;
+  const { from, to } = dailyLimitDay(branch, startsAt);
+  const taken = await bookings.listOccupiedStartsByService(service.id, from, to);
+  if (taken.length >= service.dailyLimit)
+    throw new ConflictError('The Service reached its Límite diario that day');
 }
 
 /**

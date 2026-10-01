@@ -26,12 +26,13 @@ export class RescheduleBookingUseCase {
   ) {}
 
   /**
-   * Conserva la duración fijada al reservar y no repite la Verificación de email.
+   * Conserva la duración y la preparación fijadas al reservar, y no repite la Verificación de email. El Límite
+   * diario del día de destino lo descuenta el cálculo de Horarios reservables, sin contar a este mismo Turno.
    *
    * @throws {NotFoundError} el Turno no existe
    * @throws {ForbiddenError} el Usuario no es el Empleado asignado al Turno
-   * @throws {BusinessRuleError} el Turno no está aceptado, o `startsAt` no es un Horario reservable
-   * @throws {ConflictError} `startsAt` pisa otro Turno pendiente o aceptado del Empleado
+   * @throws {BusinessRuleError} el Turno no está aceptado, o `startsAt` no es un Horario reservable (incluido un día que ya alcanzó el Límite diario)
+   * @throws {ConflictError} `startsAt`, con su preparación, pisa otro Turno pendiente o aceptado del Empleado
    */
   async execute(
     userId: number,
@@ -47,10 +48,14 @@ export class RescheduleBookingUseCase {
     const endsAt = new Date(
       startsAt.getTime() + (booking.endsAt.getTime() - booking.startsAt.getTime()),
     );
+    const prepStartsAt = new Date(
+      startsAt.getTime() -
+        (booking.startsAt.getTime() - booking.prepStartsAt.getTime()),
+    );
     if (
       await this.bookings.hasOverlappingOccupied(
         booking.employeeId,
-        startsAt,
+        prepStartsAt,
         endsAt,
         bookingId,
       )
@@ -66,6 +71,10 @@ export class RescheduleBookingUseCase {
     );
     if (!days.some((day) => day.slots.includes(startsAt.toISOString())))
       throw new BusinessRuleError('startsAt is not a Horario reservable');
-    return this.bookings.reschedule(bookingId, startsAt, endsAt);
+    return this.bookings.reschedule(bookingId, {
+      prepStartsAt,
+      startsAt,
+      endsAt,
+    });
   }
 }

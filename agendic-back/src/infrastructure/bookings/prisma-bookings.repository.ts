@@ -4,6 +4,7 @@ import { Booking, BookingStatus, EmployeeBooking } from '../../domain/bookings/b
 import {
   BookingsRepository,
   CreateBookingData,
+  DailyLimitGuard,
 } from '../../domain/bookings/bookings.repository';
 import {
   BusinessRuleError,
@@ -17,6 +18,11 @@ import { PrismaService } from '../prisma.service';
 
 /** Statuses that hold an Empleado's horario, as the Booking_no_overlap constraint does. */
 const OCCUPYING = [BookingStatus.PENDING, BookingStatus.BOOKED];
+
+/** Namespace of the advisory locks that serialize verifications per Servicio (first key), so no other lock collides. */
+const DAILY_LIMIT_LOCK = 61;
+
+const DAILY_LIMIT_REACHED = 'The Service reached its Límite diario that day';
 
 /** Stores only a hash of each verification token, so a leaked table can't be used to verify a Turno. */
 const hash = (token: string) =>
@@ -40,10 +46,11 @@ export class PrismaBookingsRepository implements BookingsRepository {
     return { booking: toBooking(row), token };
   }
 
+  /** The occupied range of a Turno is [prepStartsAt, endsAt), as in the Booking_no_overlap constraint. */
   async hasOverlappingOccupied(
     employeeId: number,
-    startsAt: Date,
-    endsAt: Date,
+    from: Date,
+    to: Date,
     excludeBookingId?: number,
   ) {
     const overlapping = await this.prisma.booking
@@ -52,12 +59,35 @@ export class PrismaBookingsRepository implements BookingsRepository {
           ...notExcluded(excludeBookingId),
           employeeId,
           status: { in: OCCUPYING },
-          startsAt: { lt: endsAt },
-          endsAt: { gt: startsAt },
+          prepStartsAt: { lt: to },
+          endsAt: { gt: from },
         },
       })
       .catch(translateError);
     return overlapping !== null;
+  }
+
+  /**
+   * @throws {DatabaseOperationError} falló la base
+   */
+  async listOccupiedStartsByService(
+    serviceId: number,
+    from: Date,
+    to: Date,
+    excludeBookingId?: number,
+  ) {
+    const rows = await this.prisma.booking
+      .findMany({
+        where: {
+          ...notExcluded(excludeBookingId),
+          serviceId,
+          status: { in: OCCUPYING },
+          startsAt: { gte: from, lt: to },
+        },
+        select: { startsAt: true },
+      })
+      .catch(translateError);
+    return rows.map(({ startsAt }) => startsAt);
   }
 
   async findByVerificationToken(token: string, now: Date) {
@@ -76,24 +106,48 @@ export class PrismaBookingsRepository implements BookingsRepository {
   }
 
   /**
-   * @throws {ConflictError} el horario ya lo ocupa otro Turno pendiente o aceptado del Empleado
+   * With a Límite diario, an advisory lock per Servicio makes counting and verifying one step: a second
+   * verification of the same Servicio waits for the first to commit, then counts it.
+   *
+   * @throws {ConflictError} el horario ya lo ocupa otro Turno pendiente o aceptado del Empleado, o el Servicio ya alcanzó su Límite diario ese día
    * @throws {NotFoundError} el Turno no existe
    */
   async markVerified(
     id: number,
     status: BookingStatus.PENDING | BookingStatus.BOOKED,
+    dailyLimit?: DailyLimitGuard,
   ) {
+    const verify = (client: Prisma.TransactionClient) =>
+      client.booking.update({
+        where: { id },
+        data: {
+          status,
+          verificationTokenHash: null,
+          verificationTokenExpiresAt: null,
+        },
+      });
+    if (!dailyLimit)
+      return toBooking(await verify(this.prisma).catch(translateError));
+    const { serviceId, limit, from, to } = dailyLimit;
     return toBooking(
-      await this.prisma.booking
-        .update({
-          where: { id },
-          data: {
-            status,
-            verificationTokenHash: null,
-            verificationTokenExpiresAt: null,
-          },
+      await this.prisma
+        .$transaction(async (tx) => {
+          await tx.$executeRaw`SELECT pg_advisory_xact_lock(${DAILY_LIMIT_LOCK}::int, ${serviceId}::int)`;
+          const taken = await tx.booking.count({
+            where: {
+              serviceId,
+              status: { in: OCCUPYING },
+              startsAt: { gte: from, lt: to },
+            },
+          });
+          if (taken >= limit) throw new ConflictError(DAILY_LIMIT_REACHED);
+          return verify(tx);
         })
-        .catch(translateError),
+        .catch((error: unknown) =>
+          error instanceof ConflictError
+            ? Promise.reject(error)
+            : translateError(error),
+        ),
     );
   }
 
@@ -146,10 +200,10 @@ export class PrismaBookingsRepository implements BookingsRepository {
           ...notExcluded(excludeBookingId),
           employeeId,
           status: { in: OCCUPYING },
-          startsAt: { lt: to },
+          prepStartsAt: { lt: to },
           endsAt: { gt: from },
         },
-        select: { startsAt: true, endsAt: true },
+        select: { prepStartsAt: true, endsAt: true },
       })
       .catch(translateError);
   }
@@ -194,8 +248,15 @@ export class PrismaBookingsRepository implements BookingsRepository {
    * @throws {ConflictError} el nuevo horario pisa otro Turno pendiente o aceptado del Empleado
    * @throws {NotFoundError} el Turno no existe
    */
-  async reschedule(id: number, startsAt: Date, endsAt: Date) {
-    return this.updateBooked(id, { startsAt, endsAt }, 'Turno is not booked');
+  async reschedule(
+    id: number,
+    { prepStartsAt, startsAt, endsAt }: Pick<Booking, 'prepStartsAt' | 'startsAt' | 'endsAt'>,
+  ) {
+    return this.updateBooked(
+      id,
+      { prepStartsAt, startsAt, endsAt },
+      'Turno is not booked',
+    );
   }
 
   /**
@@ -238,6 +299,7 @@ const toBooking = (row: BookingRow): Booking => ({
   employeeId: row.employeeId,
   clientName: row.clientName,
   clientEmail: row.clientEmail,
+  prepStartsAt: row.prepStartsAt,
   startsAt: row.startsAt,
   endsAt: row.endsAt,
   status: row.status as BookingStatus,

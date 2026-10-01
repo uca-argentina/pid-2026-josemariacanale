@@ -13,6 +13,8 @@ export const presentService = (service: Service) => ({
   requiresApproval: service.requiresApproval,
   slug: service.slug,
   hidden: service.hidden,
+  prepMinutes: service.prepMinutes,
+  dailyLimit: service.dailyLimit,
   employees: service.employees.map(({ id, name, availabilityId }) => ({
     id,
     name,

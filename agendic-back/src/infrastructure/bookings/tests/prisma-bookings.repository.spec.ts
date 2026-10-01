@@ -21,6 +21,7 @@ const BOOKING_ROW = {
   employeeId: 1,
   clientName: 'Bruno Díaz',
   clientEmail: 'bruno@example.com',
+  prepStartsAt: new Date('2026-01-01T11:45:00.000Z'),
   startsAt: new Date('2026-01-01T12:00:00.000Z'),
   endsAt: new Date('2026-01-01T12:30:00.000Z'),
   status: BookingStatus.UNVERIFIED,
@@ -32,6 +33,10 @@ const BOOKING_ROW = {
 };
 
 describe('PrismaBookingsRepository', () => {
+  const tx = {
+    $executeRaw: jest.fn(),
+    booking: { count: jest.fn(), update: jest.fn() },
+  };
   const prisma = {
     booking: {
       create: jest.fn(),
@@ -41,12 +46,16 @@ describe('PrismaBookingsRepository', () => {
       findUnique: jest.fn(),
       updateMany: jest.fn(),
     },
+    $transaction: jest.fn((run: (client: typeof tx) => unknown) => run(tx)),
   };
   const repository = new PrismaBookingsRepository(
     prisma as unknown as PrismaService,
   );
 
-  beforeEach(() => jest.resetAllMocks());
+  beforeEach(() => {
+    jest.resetAllMocks();
+    prisma.$transaction.mockImplementation((run) => run(tx));
+  });
 
   it('translates the overlap exclusion violation into ConflictError on markVerified', async () => {
     const cause = knownError('P2039');
@@ -83,6 +92,7 @@ describe('PrismaBookingsRepository', () => {
       employeeId: BOOKING_ROW.employeeId,
       clientName: BOOKING_ROW.clientName,
       clientEmail: BOOKING_ROW.clientEmail,
+      prepStartsAt: BOOKING_ROW.prepStartsAt,
       startsAt: BOOKING_ROW.startsAt,
       endsAt: BOOKING_ROW.endsAt,
       status: BOOKING_ROW.status,
@@ -106,7 +116,7 @@ describe('PrismaBookingsRepository', () => {
     ).rejects.toBeInstanceOf(BusinessRuleError);
   });
 
-  it('reports whether a BOOKED Booking overlaps the given window', async () => {
+  it('reports whether a BOOKED Booking, its Tiempo de preparación included, overlaps the given window', async () => {
     prisma.booking.findFirst.mockResolvedValue(BOOKING_ROW);
 
     const overlaps = await repository.hasOverlappingOccupied(
@@ -120,9 +130,106 @@ describe('PrismaBookingsRepository', () => {
       where: {
         employeeId: 1,
         status: { in: [BookingStatus.PENDING, BookingStatus.BOOKED] },
-        startsAt: { lt: new Date('2026-01-01T12:30:00.000Z') },
+        prepStartsAt: { lt: new Date('2026-01-01T12:30:00.000Z') },
         endsAt: { gt: new Date('2026-01-01T12:00:00.000Z') },
       },
+    });
+  });
+
+  it('lists the occupied range of each Turno of the Empleado, from its preparation', async () => {
+    prisma.booking.findMany.mockResolvedValue([]);
+    const from = new Date('2026-01-01T00:00:00.000Z');
+    const to = new Date('2026-01-02T00:00:00.000Z');
+
+    await repository.listOccupiedByEmployee(1, from, to);
+
+    expect(prisma.booking.findMany).toHaveBeenCalledWith({
+      where: {
+        employeeId: 1,
+        status: { in: [BookingStatus.PENDING, BookingStatus.BOOKED] },
+        prepStartsAt: { lt: to },
+        endsAt: { gt: from },
+      },
+      select: { prepStartsAt: true, endsAt: true },
+    });
+  });
+
+  describe('Límite diario', () => {
+    const FROM = new Date('2026-01-01T03:00:00.000Z');
+    const TO = new Date('2026-01-02T03:00:00.000Z');
+    const OCCUPYING = { in: [BookingStatus.PENDING, BookingStatus.BOOKED] };
+
+    it('lists when the PENDING and BOOKED Turnos of the Servicio start, of every Empleado: not UNVERIFIED, CANCELLED or REJECTED', async () => {
+      prisma.booking.findMany.mockResolvedValue([
+        { startsAt: new Date('2026-01-01T13:00:00.000Z') },
+      ]);
+
+      await expect(
+        repository.listOccupiedStartsByService(1, FROM, TO, 9),
+      ).resolves.toEqual([new Date('2026-01-01T13:00:00.000Z')]);
+      expect(prisma.booking.findMany).toHaveBeenCalledWith({
+        where: {
+          id: { not: 9 },
+          serviceId: 1,
+          status: OCCUPYING,
+          startsAt: { gte: FROM, lt: TO },
+        },
+        select: { startsAt: true },
+      });
+    });
+
+    it('verifies under the limit inside a transaction locked per Servicio', async () => {
+      tx.booking.count.mockResolvedValue(1);
+      tx.booking.update.mockResolvedValue({ ...BOOKING_ROW, status: BookingStatus.BOOKED });
+
+      await repository.markVerified(1, BookingStatus.BOOKED, {
+        serviceId: 4,
+        limit: 2,
+        from: FROM,
+        to: TO,
+      });
+
+      expect(tx.$executeRaw).toHaveBeenCalled();
+      expect(tx.booking.count).toHaveBeenCalledWith({
+        where: { serviceId: 4, status: OCCUPYING, startsAt: { gte: FROM, lt: TO } },
+      });
+      expect(tx.booking.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 1 },
+          data: expect.objectContaining({ status: BookingStatus.BOOKED }),
+        }),
+      );
+      expect(prisma.booking.update).not.toHaveBeenCalled();
+    });
+
+    it('throws ConflictError and verifies nothing once the limit is reached', async () => {
+      tx.booking.count.mockResolvedValue(2);
+
+      await expect(
+        repository.markVerified(1, BookingStatus.BOOKED, {
+          serviceId: 4,
+          limit: 2,
+          from: FROM,
+          to: TO,
+        }),
+      ).rejects.toThrow(
+        new ConflictError('The Service reached its Límite diario that day'),
+      );
+      expect(tx.booking.update).not.toHaveBeenCalled();
+    });
+
+    it('still translates the overlap exclusion violation into ConflictError', async () => {
+      const cause = knownError('P2039');
+      cause.meta = { driverAdapterError: { cause: { originalCode: '23P01' } } };
+      tx.booking.count.mockResolvedValue(0);
+      tx.booking.update.mockRejectedValue(cause);
+
+      const error = await repository
+        .markVerified(1, BookingStatus.BOOKED, { serviceId: 4, limit: 2, from: FROM, to: TO })
+        .catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(ConflictError);
+      expect(error).toHaveProperty('message', 'Overlaps a booked Turno for this Employee');
     });
   });
 
@@ -236,7 +343,7 @@ describe('PrismaBookingsRepository', () => {
 
       await expect(repository.cancel(1)).rejects.toBeInstanceOf(BusinessRuleError);
       await expect(
-        repository.reschedule(1, NOW, NOW),
+        repository.reschedule(1, { prepStartsAt: NOW, startsAt: NOW, endsAt: NOW }),
       ).rejects.toBeInstanceOf(BusinessRuleError);
     });
 
@@ -245,9 +352,9 @@ describe('PrismaBookingsRepository', () => {
       cause.meta = { driverAdapterError: { cause: { originalCode: '23P01' } } };
       prisma.booking.updateMany.mockRejectedValue(cause);
 
-      await expect(repository.reschedule(1, NOW, NOW)).rejects.toBeInstanceOf(
-        ConflictError,
-      );
+      await expect(
+        repository.reschedule(1, { prepStartsAt: NOW, startsAt: NOW, endsAt: NOW }),
+      ).rejects.toBeInstanceOf(ConflictError);
     });
 
     it('markNoShow requires an ended Turno without an Ausencia', async () => {

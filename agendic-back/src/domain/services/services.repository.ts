@@ -17,6 +17,8 @@ export interface ServicesRepository {
       | 'requiresApproval'
       | 'slug'
       | 'hidden'
+      | 'prepMinutes'
+      | 'dailyLimit'
     > & { employees: Omit<EmployeeService, 'serviceId'>[] },
   ): Promise<Service>;
   findById(id: number): Promise<Service | null>;
@@ -36,6 +38,8 @@ export interface ServicesRepository {
         | 'requiresApproval'
         | 'slug'
         | 'hidden'
+        | 'prepMinutes'
+        | 'dailyLimit'
       >
     >,
   ): Promise<Service>;

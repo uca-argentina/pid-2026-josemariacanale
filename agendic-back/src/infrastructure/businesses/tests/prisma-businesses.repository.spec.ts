@@ -55,6 +55,8 @@ const SERVICE_ROW = {
   retiredAt: null,
   slug: 'haircut',
   hidden: false,
+  prepMinutes: 0,
+  dailyLimit: null,
   employees: [
     {
       availabilityId: 40,
@@ -88,6 +90,8 @@ const CREATE_DATA = {
     requiresApproval: false,
     slug: 'haircut',
     hidden: false,
+    prepMinutes: 0,
+    dailyLimit: null,
   },
   employee: {
     userId: ANAS_BUSINESS.ownerId,
@@ -173,6 +177,8 @@ describe('PrismaBusinessesRepository', () => {
       retiredAt: null,
       slug: 'haircut',
       hidden: false,
+      prepMinutes: 0,
+      dailyLimit: null,
       employees: [
         {
           id: EMPLOYEE_ROW.id,

@@ -103,10 +103,13 @@ una Sucursal); sus archivos en el storage no.
 | DELETE | `/services/:id/employees/:employeeId` | sí | Quita un empleado de un servicio (solo el dueño) |
 | GET | `/branches/:id/services` | no | Lista servicios activos de una sucursal |
 
-- `CreateServiceDto`: `{ name, description?, category, durationMinutes (int ≥1), price (number ≥0), depositPercent?, requiresApproval?, slug, hidden?, employeeIds: number[] (no vacío) }`
+- `CreateServiceDto`: `{ name, description?, category, durationMinutes (int ≥1), price (number ≥0), depositPercent?, requiresApproval?, slug, hidden?, prepMinutes?, dailyLimit?, employeeIds: number[] (no vacío) }`
 - `slug` es el tramo del Servicio en el Enlace de reserva (ADR 0018): obligatorio al crear, en minúsculas, mismas reglas que el de Sucursal; único por sucursal entre los servicios no dados de baja (índice parcial, ADR 0004; un tramo de un servicio dado de baja queda libre). `hidden` (por defecto `false`) es el Servicio oculto. El servicio del body de `POST /businesses` también exige `slug` y acepta `hidden`.
 - Respuesta del servicio (`presentService`): suma `slug`, `hidden` y, en cada elemento de `employees`, `availabilityId`: `{ id, name, availabilityId }`
-- `UpdateServiceDto`: `{ name?, description?, category?, durationMinutes?, price?, depositPercent?, requiresApproval? }`
+- `UpdateServiceDto`: `{ name?, description?, category?, durationMinutes?, price?, depositPercent?, requiresApproval?, slug?, hidden?, prepMinutes?, dailyLimit? }`
+- `prepMinutes` (Tiempo de preparación): `0`, `5`, `10`, `15`, `30` o `60`; `0` por defecto. Otro valor, o `null` → 400. Cada Turno ocupa la agenda de su Empleado desde `startsAt − prepMinutes` hasta `endsAt`, fijado al reservar: cambiarlo no toca los Turnos ya tomados (ADR 0004).
+- `dailyLimit` (Límite diario): entero ≥ 1; sin él, el Servicio no tiene límite (`null` en la respuesta). Cuentan los Turnos `PENDING` y `BOOKED` del Servicio, de todos sus Empleados, cuyo inicio cae en ese día según la zona horaria de la Sucursal. En creación no acepta `null`; en `PATCH`, `dailyLimit: null` lo quita, igual que `depositPercent`. Fuera de rango, con decimales o no numérico → 400.
+- Los dos valen también en el `service` de `POST /businesses`, y la respuesta del servicio (`presentService`) los suma: `prepMinutes`, `dailyLimit`.
 - `depositPercent` (Seña): entero de 0 a 100, porcentaje del precio. Es simbólica: se guarda y se
   muestra, no dispara ningún cobro. Sin él, el Servicio no pide Seña (`null` en la respuesta). Fuera
   de 0-100, con decimales o no numérico → 400. En creación no acepta `null`; en `PATCH`,
@@ -205,9 +208,10 @@ del Empleado: cualquier otro Usuario recibe 403.
   1. Arranca de las Franjas de la Availability con la que ese Empleado atiende ese Servicio, por día de la semana
   2. Una Anulación de esa fecha reemplaza esas Franjas por completo (día sin horas = día libre)
   3. Recorta contra `opensAt`/`closesAt` de la Sucursal (nunca toca la Availability)
-  4. Grilla de a 15 minutos fijos; entra el horario si el Servicio completo termina antes o al mismo tiempo que el fin de la Franja
-  5. Descuenta los Turnos `PENDING` y `BOOKED` de ese Empleado (un Turno pendiente ocupa su horario igual que uno aceptado) que pisen el horario, en cualquiera de sus Servicios
-  6. Descarta lo que ya pasó según el reloj del sistema; un día ya pasado no viene
+  4. Grilla de a 15 minutos fijos que arranca después del Tiempo de preparación del Servicio (`prepMinutes`) desde el inicio de la Franja; entra el horario si el Servicio completo termina antes o al mismo tiempo que el fin de la Franja
+  5. Descuenta los Turnos `PENDING` y `BOOKED` de ese Empleado (un Turno pendiente ocupa su horario igual que uno aceptado), en cualquiera de sus Servicios, cuyo tramo ocupado (desde su propia preparación hasta su fin) pise el tramo del horario (desde su preparación hasta su fin)
+  6. Si el Servicio tiene `dailyLimit` y ese día de la Sucursal ya tiene esa cantidad de Turnos `PENDING` o `BOOKED` del Servicio, el día no ofrece horarios (`reason: FULLY_BOOKED`)
+  7. Descarta lo que ya pasó según el reloj del sistema; un día ya pasado no viene
 - Respuesta: `{ timeZone, days: [{ date, slots: [ISO instants], reason?, coveredByEmployeeId? }] }`. `reason` solo aparece cuando `slots` está vacío: `NOT_WORKING` (sin Franjas, Anulación de día libre, o nada sobrevive el recorte), `FULLY_BOOKED` (había horarios pero los Turnos o el reloj se los llevaron todos), o `COVERED` (la fecha tiene una Anulación con Cobertura; no se calcula nada más y el día trae además `coveredByEmployeeId`)
 
 ## Bookings (Turno)
@@ -238,7 +242,8 @@ del Empleado: cualquier otro Usuario recibe 403.
   - Ausencia: 422 si el Turno no terminó todavía (`Turno has not ended yet`) o ya tiene Ausencia (`Turno already has an Ausencia`).
 - **Horario ocupado (409 `Overlaps a booked Turno for this Employee`)**. Un Turno sin verificar no
   mantiene reservado su horario: lo toma recién al verificarse. Por eso:
-  - `POST /bookings` → 409 si el horario pisa un Turno `PENDING` o `BOOKED` del mismo Empleado.
+  - `POST /bookings` → 409 si el horario, contado desde su Tiempo de preparación, pisa un Turno `PENDING` o `BOOKED` del mismo Empleado (contado desde la preparación de ese Turno).
+  - `POST /bookings` y `POST /bookings/verification` → 409 `The Service reached its Límite diario that day` si el Servicio ya tiene `dailyLimit` Turnos `PENDING` o `BOOKED` ese día de la Sucursal. Los Turnos sin verificar, cancelados y rechazados no cuentan. Dos verificaciones casi juntas del mismo Servicio no pueden pasarlo (ADR 0004).
   - Dos `POST /bookings` para el mismo horario, aunque lleguen casi juntos, dan los dos 201: ninguno
     ocupa el horario todavía.
   - La carrera se decide al verificar: el primer `POST /bookings/verification` gana y el otro recibe

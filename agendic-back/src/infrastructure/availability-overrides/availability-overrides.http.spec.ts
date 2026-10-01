@@ -38,6 +38,8 @@ const OTHER_SERVICE: Service = {
   retiredAt: null,
   slug: 'haircut',
   hidden: false,
+  prepMinutes: 0,
+  dailyLimit: null,
   employees: [
     { id: ANAS_EMPLOYEE.id, name: ANAS_EMPLOYEE.name, availabilityId: 10 },
   ],

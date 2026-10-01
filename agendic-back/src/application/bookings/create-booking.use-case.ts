@@ -15,7 +15,11 @@ import {
   SERVICES_REPOSITORY,
   ServicesRepository,
 } from '../../domain/services/services.repository';
-import { assertBookable, assertWithinHours } from './assert-booking-rules';
+import {
+  assertBookable,
+  assertUnderDailyLimit,
+  assertWithinHours,
+} from './assert-booking-rules';
 
 @Injectable()
 export class CreateBookingUseCase {
@@ -27,6 +31,12 @@ export class CreateBookingUseCase {
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
+  /**
+   * Reserva un Turno sin verificar. Ocupa la agenda del Empleado desde la preparación del Servicio, que queda fijada acá.
+   *
+   * @throws {BusinessRuleError} el Servicio no existe o está dado de baja, el Empleado no lo atiende, el horario ya pasó o cae fuera de la Sucursal
+   * @throws {ConflictError} el horario, con su preparación, pisa otro Turno del Empleado, o el Servicio ya alcanzó su Límite diario ese día
+   */
   async execute(input: CreateBookingInput): Promise<Booking> {
     const now = this.clock.now();
     const { service, branch } = await assertBookable(
@@ -41,14 +51,18 @@ export class CreateBookingUseCase {
       input.startsAt.getTime() + service.durationMinutes * 60_000,
     );
     assertWithinHours(branch, input.startsAt, endsAt);
+    const prepStartsAt = new Date(
+      input.startsAt.getTime() - service.prepMinutes * 60_000,
+    );
     if (
       await this.bookings.hasOverlappingOccupied(
         input.employeeId,
-        input.startsAt,
+        prepStartsAt,
         endsAt,
       )
     )
       throw new ConflictError('Overlaps a booked Turno for this Employee');
+    await assertUnderDailyLimit(this.bookings, service, branch, input.startsAt);
 
     const { booking, token } = await this.bookings.create(
       {
@@ -56,6 +70,7 @@ export class CreateBookingUseCase {
         employeeId: input.employeeId,
         clientName: input.clientName,
         clientEmail: input.clientEmail,
+        prepStartsAt,
         startsAt: input.startsAt,
         endsAt,
         notes: input.notes || null, // a blank Comentario del Turno is no Comentario

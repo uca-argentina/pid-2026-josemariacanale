@@ -12,6 +12,8 @@ export interface Booking {
   employeeId: number;
   clientName: string;
   clientEmail: string;
+  /** startsAt minus the Servicio's Tiempo de preparación, fixed at booking: the Empleado is held from here. */
+  prepStartsAt: Date;
   startsAt: Date;
   endsAt: Date;
   status: BookingStatus;

@@ -3,17 +3,24 @@ import {
   ArrayNotEmpty,
   IsBoolean,
   IsEnum,
+  IsIn,
   IsInt,
   IsNumber,
   IsOptional,
   Max,
   Min,
 } from 'class-validator';
-import { ServiceCategory } from '../../domain/services/service';
+import { PREP_MINUTES, ServiceCategory } from '../../domain/services/service';
 import { IfPresent, IsName, IsSlug, IsText } from '../users/users.dto';
 
 /** Seña: a whole percentage of the price, 0 to 100. */
 const IsDepositPercent = () => applyDecorators(IsInt(), Min(0), Max(100));
+
+/** Tiempo de preparación: only the minutes in PREP_MINUTES. */
+const IsPrepMinutes = () => IsIn(PREP_MINUTES);
+
+/** Límite diario: a whole number of Turnos, at least one. */
+const IsDailyLimit = () => applyDecorators(IsInt(), Min(1));
 
 /** The Servicio's own fields, shared with the Servicio part of POST /businesses. */
 export class ServiceFieldsDto {
@@ -49,6 +56,14 @@ export class ServiceFieldsDto {
   @IfPresent()
   @IsBoolean()
   hidden?: boolean;
+
+  @IfPresent()
+  @IsPrepMinutes()
+  prepMinutes?: number;
+
+  @IfPresent()
+  @IsDailyLimit()
+  dailyLimit?: number;
 }
 
 export class CreateServiceDto extends ServiceFieldsDto {
@@ -106,4 +121,13 @@ export class UpdateServiceDto {
   @IfPresent()
   @IsBoolean()
   hidden?: boolean;
+
+  @IfPresent()
+  @IsPrepMinutes()
+  prepMinutes?: number;
+
+  /** Null drops the Límite diario, so like depositPercent it's @IsOptional rather than @IfPresent. */
+  @IsOptional()
+  @IsDailyLimit()
+  dailyLimit?: number | null;
 }

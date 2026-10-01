@@ -151,6 +151,7 @@ export async function createTestApp() {
   const bookings: jest.Mocked<BookingsRepository> = {
     create: jest.fn(),
     hasOverlappingOccupied: jest.fn(),
+    listOccupiedStartsByService: jest.fn(),
     findByVerificationToken: jest.fn(),
     markVerified: jest.fn(),
     findById: jest.fn(),
@@ -289,6 +290,8 @@ export const ANAS_SERVICE: Service = {
   retiredAt: null,
   slug: 'haircut',
   hidden: false,
+  prepMinutes: 0,
+  dailyLimit: null,
   employees: [
     { id: ANAS_EMPLOYEE.id, name: ANAS_EMPLOYEE.name, availabilityId: 10 },
   ],
