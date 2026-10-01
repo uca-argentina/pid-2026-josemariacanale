@@ -41,7 +41,7 @@ function presenter(
     }));
 }
 
-// The Servicio tramo is optional: without it, the page of the Sucursal with no Servicio chosen yet.
+/** The Servicio tramo is optional: without it, the page of the Sucursal with no Servicio chosen yet. */
 const inputSchema = z.object({ businessSlug: slugSchema, branchSlug: slugSchema, serviceSlug: slugSchema.optional() });
 
 export type IGetPublicBranchController = ReturnType<typeof getPublicBranchController>;

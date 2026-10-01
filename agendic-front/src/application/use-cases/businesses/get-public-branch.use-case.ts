@@ -17,14 +17,19 @@ export interface PublicBranch {
     employees: ServiceEmployee[];
     // In gallery order.
     images: BranchImage[];
-    // The Servicio of the Enlace de reserva's tramo, already chosen; null without that tramo. It may
-    // be hidden, and so missing from `services` (ADR 0018).
+    /** The Servicio of the Enlace de reserva's tramo, already chosen; null without that tramo. It may be hidden, and so missing from `services` (ADR 0018). */
     selectedService: Service | null;
 }
 
 export type IGetPublicBranchUseCase = ReturnType<typeof getPublicBranchUseCase>;
-// The Sucursal a full Enlace de reserva points to. There is no combined endpoint: the Sucursal
-// tramo is looked up among the Negocio's own Sucursales, so one of another Negocio is a 404 too.
+/**
+ * Gets the Sucursal a full Enlace de reserva points to, with the Servicio of its tramo when there is one.
+ * There is no combined endpoint: the Sucursal tramo is looked up among the Negocio's own Sucursales,
+ * so one of another Negocio is a 404 too.
+ *
+ * @throws {NotFoundError} no Negocio has that tramo, it has no such Sucursal, or the Sucursal has no active Servicio with that tramo
+ * @throws {ApiRequestError} the back failed
+ */
 export const getPublicBranchUseCase =
     (instrumentationService: IInstrumentationService, publicBusinessesRepository: IPublicBusinessesRepository) =>
     (input: { businessSlug: string; branchSlug: string; serviceSlug?: string }): Promise<PublicBranch> =>

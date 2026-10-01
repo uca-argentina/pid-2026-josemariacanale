@@ -10,8 +10,12 @@ export interface IPublicBusinessesRepository {
     listBranches(businessId: number): Promise<Branch[]>;
     // Only the active Servicios of the Sucursal, without the hidden ones.
     listServices(branchId: number): Promise<Service[]>;
-    // The Servicio of the Sucursal with that tramo of the Enlace de reserva, even if hidden (ADR 0018).
-    // Throws NotFoundError (404) if none of its Servicios not dados de baja has it.
+    /**
+     * Gets the Servicio of the Sucursal with that tramo of the Enlace de reserva, even if hidden (ADR 0018).
+     *
+     * @throws {NotFoundError} the Sucursal has no such Servicio, or it was dado de baja
+     * @throws {ApiRequestError} the back failed or answered an unexpected body
+     */
     getServiceBySlug(branchId: number, slug: string): Promise<Service>;
     // Already in gallery order; empty when the Sucursal has no Imágenes yet.
     listBranchImages(branchId: number): Promise<BranchImage[]>;

@@ -62,7 +62,7 @@ export function BranchPublicPage({
     services,
     employees,
     images,
-    selectedService = null,
+    selectedService,
 }: {
     business: Business;
     branch: Branch;
@@ -71,7 +71,7 @@ export function BranchPublicPage({
     employees: Employee[];
     images: BranchImage[];
     /** El Servicio del Enlace de reserva: la reserva abre con él ya elegido. Puede ser oculto, y no estar en `services`. */
-    selectedService?: Service | null;
+    selectedService: Service | null;
 }) {
     // Solo las Categorías que esta Sucursal realmente ofrece, en el orden del enum.
     const categories = SERVICE_CATEGORIES.filter((c) => services.some((s) => s.category === c.value));
@@ -80,6 +80,10 @@ export function BranchPublicPage({
     const [flowOpen, setFlowOpen] = useState(selectedService !== null);
     const [booking, setBooking] = useState<Booking | null>(null);
     const [allImagesOpen, setAllImagesOpen] = useState(false);
+
+    const bookable =
+        selectedService && !services.some((s) => s.id === selectedService.id) ? [...services, selectedService] : services;
+    const bookableCategories = SERVICE_CATEGORIES.filter((c) => bookable.some((s) => s.category === c.value));
 
     const openFlow = (service: Service | null) => {
         setInitialService(service);
@@ -241,9 +245,9 @@ export function BranchPublicPage({
                                     </p>
                                 </div>
                             </div>
-                            {services.length > 0 && (
+                            {bookable.length > 0 && (
                                 <Button
-                                    onClick={() => openFlow(null)}
+                                    onClick={() => openFlow(selectedService)}
                                     className="h-auto w-full rounded-xl bg-foreground py-3.5 text-[15px] font-bold text-white hover:bg-foreground/90"
                                 >
                                     Reservar un turno
@@ -299,8 +303,8 @@ export function BranchPublicPage({
                 <BookingFlow
                     business={business}
                     branch={branch}
-                    services={services}
-                    categories={categories}
+                    services={bookable}
+                    categories={bookableCategories}
                     coverUrl={cover}
                     initialService={initialService}
                     onClose={() => setFlowOpen(false)}
