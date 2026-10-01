@@ -72,9 +72,11 @@ async function runInvitationAction(
 }
 
 /** Reenvía la Invitación pendiente y renueva su vencimiento. */
-export const resendInvitationAction = (payload: unknown) =>
-    runInvitationAction('IResendInvitationController', payload, 'No pudimos reenviar la invitación. Intentá de nuevo.');
+export async function resendInvitationAction(payload: unknown): Promise<EmployeeActionResult> {
+    return runInvitationAction('IResendInvitationController', payload, 'No pudimos reenviar la invitación. Intentá de nuevo.');
+}
 
 /** Cancela la Invitación pendiente; la fila sale de la tabla. */
-export const cancelInvitationAction = (payload: unknown) =>
-    runInvitationAction('ICancelInvitationController', payload, 'No pudimos cancelar la invitación. Intentá de nuevo.');
+export async function cancelInvitationAction(payload: unknown): Promise<EmployeeActionResult> {
+    return runInvitationAction('ICancelInvitationController', payload, 'No pudimos cancelar la invitación. Intentá de nuevo.');
+}
