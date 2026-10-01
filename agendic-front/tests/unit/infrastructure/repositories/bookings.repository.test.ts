@@ -1,4 +1,4 @@
-import { SlotTakenError } from '@/src/entities/errors/booking';
+import { BookingStateError, SlotTakenError } from '@/src/entities/errors/booking';
 import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
 import { BookingsRepository } from '@/src/infrastructure/repositories/bookings.repository';
 
@@ -128,5 +128,37 @@ describe('BookingsRepository.book', () => {
         expect(error).toBeInstanceOf(ApiRequestError);
         expect(error.status).toBeUndefined();
         expect(error.cause).toBe(cause);
+    });
+});
+
+describe('BookingsRepository.verifyBooking', () => {
+    const verified = {
+        id: 7,
+        serviceId: 100,
+        employeeId: 1,
+        startsAt: '2026-09-28T12:00:00.000Z',
+        endsAt: '2026-09-28T13:00:00.000Z',
+        status: 'BOOKED',
+    };
+
+    it('POSTs the token without a Sesión and returns the Turno', async () => {
+        const fetchSpy = respond(201, verified);
+
+        await expect(repo().verifyBooking('abc')).resolves.toEqual(verified);
+        expect(fetchSpy).toHaveBeenCalledWith('http://api/bookings/verification', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: 'abc' }),
+        });
+    });
+
+    it('translates a 422 to BookingStateError', async () => {
+        respond(422, { statusCode: 422, message: 'Unknown, used or expired verification token' });
+        await expect(repo().verifyBooking('abc')).rejects.toBeInstanceOf(BookingStateError);
+    });
+
+    it('translates a 409 to SlotTakenError', async () => {
+        respond(409, { statusCode: 409, message: 'Overlaps a booked Turno for this Employee' });
+        await expect(repo().verifyBooking('abc')).rejects.toBeInstanceOf(SlotTakenError);
     });
 });

@@ -1,5 +1,5 @@
 import type { IBookingsRepository } from '@/src/application/repositories/bookings.repository.interface';
-import { SlotTakenError } from '@/src/entities/errors/booking';
+import { BookingStateError, SlotTakenError } from '@/src/entities/errors/booking';
 import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
 import { bookingSchema, type Booking, type CreateBooking } from '@/src/entities/models/booking';
 import { slotsSchema, type Slots, type SlotsQuery } from '@/src/entities/models/slot';
@@ -31,6 +31,23 @@ export class BookingsRepository implements IBookingsRepository {
             { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) },
             what,
         );
+        return parseOrFail(() => bookingSchema.parse(body), what);
+    }
+
+    /**
+     * @throws {BookingStateError} el back respondió 422: token desconocido, usado o vencido
+     */
+    async verifyBooking(token: string): Promise<Booking> {
+        const what = 'POST /bookings/verification';
+        const body = await this.request(
+            '/bookings/verification',
+            { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token }) },
+            what,
+        ).catch((error) => {
+            if (error instanceof ApiRequestError && error.status === 422)
+                throw new BookingStateError(error.message, { cause: error });
+            throw error;
+        });
         return parseOrFail(() => bookingSchema.parse(body), what);
     }
 
