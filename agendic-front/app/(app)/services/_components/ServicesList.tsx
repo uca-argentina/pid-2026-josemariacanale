@@ -25,7 +25,7 @@ import {
 import { BUSINESS_PATH, bookingLinkPath } from '@/app/routes';
 import { createServiceAction } from '../actions';
 import { OfferButton, PublicLinkButtons } from './service-actions';
-import { formInput, serviceFormSchema, slugFrom, type ServiceForm } from './service-form';
+import { copySlug, serviceFormSchema, slugFrom, slugWhileTyping, type ServiceForm } from './service-form';
 import type { ServiceBranch, ServiceGroup, ServiceItem } from './types';
 
 const THOUSANDS = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 0 });
@@ -39,26 +39,26 @@ interface DialogState {
     initial: ServiceForm;
 }
 
+/** El alta vacía. Con una sola Sucursal no se pregunta: el Servicio va ahí. */
 const emptyForm = (group: ServiceGroup): ServiceForm => ({
-    // Con una sola Sucursal no se pregunta: el Servicio va ahí.
     branchId: group.branches.length === 1 ? String(group.branches[0].id) : '',
     name: '',
     slug: '',
     slugEdited: false,
     description: '',
     category: '',
-    duration: '15',
+    durationMinutes: '15',
     price: '',
 });
 
 const copyForm = (service: ServiceItem): ServiceForm => ({
     branchId: String(service.branchId),
     name: `${service.name} (copia)`,
-    slug: slugFrom(`${service.slug}-copia`),
+    slug: copySlug(service.slug),
     slugEdited: true,
     description: service.description ?? '',
     category: service.category,
-    duration: String(service.durationMinutes),
+    durationMinutes: String(service.durationMinutes),
     price: String(service.price),
 });
 
@@ -142,7 +142,7 @@ function GroupHeader({ group, onNew }: { group: ServiceGroup; onNew: () => void 
                 <span className="text-[12.5px] font-medium text-[#6b7280]">{bookingLinkPath(group.business.slug)}</span>
             </div>
             <PanelBadge className="ml-1">{group.role === 'owner' ? 'Dueño' : 'Empleado'}</PanelBadge>
-            {group.role === 'owner' && (
+            {group.role === 'owner' && group.branches.length > 0 && (
                 <PanelButton className="ml-auto" onClick={onNew}>
                     <Plus className="size-4" />
                     Nuevo
@@ -166,14 +166,14 @@ function NewServiceDialog({ state, onClose }: { state: DialogState; onClose: () 
         setForm((f) => ({ ...f, ...patch }));
         setErrors((e) => {
             const next = { ...e };
-            for (const field of Object.keys(patch)) delete next[field === 'duration' ? 'durationMinutes' : field];
+            for (const field of Object.keys(patch)) delete next[field];
             return next;
         });
     };
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        const parsed = serviceFormSchema.safeParse(formInput(form));
+        const parsed = serviceFormSchema.safeParse(form);
         if (!parsed.success) {
             setErrors(fieldErrorsOf(parsed.error));
             return;
@@ -236,7 +236,7 @@ function NewServiceDialog({ state, onClose }: { state: DialogState; onClose: () 
                         prefix={`${bookingLinkPath(group.business.slug, branch?.slug ?? '…')}/`}
                         value={form.slug}
                         aria-describedby={errors.slug ? 'new-service-slug-error' : undefined}
-                        onChange={(e) => set({ slug: slugFrom(e.target.value), slugEdited: true })}
+                        onChange={(e) => set({ slug: slugWhileTyping(e.target.value), slugEdited: true })}
                     />
                 </PanelField>
                 <PanelField label="Descripción" htmlFor="new-service-description" error={errors.description}>
@@ -262,8 +262,8 @@ function NewServiceDialog({ state, onClose }: { state: DialogState; onClose: () 
                         type="number"
                         min={1}
                         suffix="Minutos"
-                        value={form.duration}
-                        onChange={(e) => set({ duration: e.target.value })}
+                        value={form.durationMinutes}
+                        onChange={(e) => set({ durationMinutes: e.target.value })}
                     />
                 </PanelField>
                 <PanelField label="Precio" htmlFor="new-service-price" error={errors.price}>

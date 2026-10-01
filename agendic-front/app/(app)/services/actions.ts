@@ -8,6 +8,7 @@ import { getInjection } from '@/di/container';
 import { ApiRequestError, InputParseError } from '@/src/entities/errors/common';
 import { ServiceNameTakenError, ServiceSlugTakenError } from '@/src/entities/errors/service';
 
+/** Lo que el diálogo de alta necesita para cerrar, o para mostrar el error bajo su campo o al pie. */
 export type CreateServiceResult = { ok: true; name: string } | { ok: false; message: string; field?: 'name' | 'slug' };
 
 /**
@@ -24,7 +25,8 @@ export async function createServiceAction(payload: unknown): Promise<CreateServi
         if (error instanceof ServiceSlugTakenError) return { ok: false, field: 'slug', message: error.message };
         if (error instanceof ServiceNameTakenError) return { ok: false, field: 'name', message: error.message };
         if (isSessionExpired(error)) redirect(SIGN_IN_PATH);
-        if (error instanceof InputParseError) return { ok: false, message: 'Revisá los datos e intentá de nuevo.' };
+        if (error instanceof InputParseError || (error instanceof ApiRequestError && error.status === 400))
+            return { ok: false, message: 'Revisá los datos e intentá de nuevo.' };
         if (error instanceof ApiRequestError && error.status === 403)
             return { ok: false, message: 'Solo el Dueño del Negocio puede crear Servicios.' };
         getInjection('ICrashReporterService').report(error);

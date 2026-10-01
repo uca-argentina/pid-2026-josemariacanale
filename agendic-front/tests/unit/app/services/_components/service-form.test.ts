@@ -1,4 +1,4 @@
-import { formInput, serviceFormSchema, slugFrom, type ServiceForm } from '@/app/(app)/services/_components/service-form';
+import { copySlug, serviceFormSchema, slugFrom, slugWhileTyping, type ServiceForm } from '@/app/(app)/services/_components/service-form';
 
 const form: ServiceForm = {
     branchId: '10',
@@ -7,7 +7,7 @@ const form: ServiceForm = {
     slugEdited: false,
     description: '  ',
     category: 'SPA',
-    duration: '60',
+    durationMinutes: '60',
     price: '20000',
 };
 
@@ -21,9 +21,32 @@ describe('slugFrom', () => {
     });
 });
 
+describe('slugWhileTyping', () => {
+    it('deja escribir el guion antes de la próxima palabra', () => {
+        expect(slugWhileTyping('corte-')).toBe('corte-');
+        expect(slugWhileTyping('Corte de Pelo')).toBe('corte-de-pelo');
+    });
+
+    it('saca tildes y símbolos', () => {
+        expect(slugWhileTyping('Kinesiología!')).toBe('kinesiologia');
+    });
+});
+
+describe('copySlug', () => {
+    it('suma "-copia" al tramo', () => {
+        expect(copySlug('masaje')).toBe('masaje-copia');
+    });
+
+    it('recorta un tramo largo antes de sumar "-copia", así la copia nunca repite el tramo', () => {
+        const long = `${'a'.repeat(33)}-bcdef`;
+        expect(copySlug(long)).toBe(`${'a'.repeat(33)}-copia`);
+        expect(copySlug(long)).toHaveLength(39);
+    });
+});
+
 describe('serviceFormSchema', () => {
     it('convierte el formulario en el cuerpo de POST /branches/:id/services', () => {
-        expect(serviceFormSchema.parse(formInput(form))).toEqual({
+        expect(serviceFormSchema.parse(form)).toEqual({
             branchId: 10,
             name: 'Masaje relajante',
             slug: 'masaje-relajante',
@@ -39,12 +62,12 @@ describe('serviceFormSchema', () => {
         ['slug', { slug: 'ma' }],
         ['slug', { slug: 'masaje--vip' }],
         ['category', { category: '' as const }],
-        ['durationMinutes', { duration: '0' }],
-        ['durationMinutes', { duration: '' }],
+        ['durationMinutes', { durationMinutes: '0' }],
+        ['durationMinutes', { durationMinutes: '' }],
         ['price', { price: '' }],
         ['price', { price: '-1' }],
     ])('marca el campo %s', (field, patch) => {
-        const result = serviceFormSchema.safeParse(formInput({ ...form, ...patch }));
+        const result = serviceFormSchema.safeParse({ ...form, ...patch });
         expect(result.success).toBe(false);
         expect(result.error?.issues[0].path[0]).toBe(field);
     });

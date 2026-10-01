@@ -7,7 +7,6 @@ describe('canStopOffering', () => {
         expect(canStopOffering({ ...base, offeredByMe: false, otherEmployees: ['Sofía Ledesma'] })).toBe(false);
     });
 
-    // Un Servicio no puede quedar sin nadie que lo atienda.
     it('no te deja si sos el único que lo ofrece', () => {
         expect(canStopOffering({ ...base, offeredByMe: true, otherEmployees: [] })).toBe(false);
     });

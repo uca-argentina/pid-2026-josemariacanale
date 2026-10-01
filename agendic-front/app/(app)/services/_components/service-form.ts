@@ -5,8 +5,27 @@ import { SERVICE_CATEGORIES, slugify, type ServiceCategoryValue } from '@/app/_c
 const SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const SLUG_MAX = 40;
 
-/** El tramo propuesto a partir de un texto: el del nombre, o el de una copia. */
+/** El tramo propuesto a partir del nombre: sin tildes ni símbolos, de hasta 40 caracteres. */
 export const slugFrom = (value: string) => slugify(value).slice(0, SLUG_MAX).replace(/-+$/, '');
+
+/**
+ * Lo que el Dueño escribe en el tramo, mientras lo escribe: minúsculas, sin tildes, y un espacio pasa a guion. No saca
+ * el guion final, así se puede seguir escribiendo la próxima palabra; el formato completo lo valida el schema.
+ */
+export const slugWhileTyping = (value: string) =>
+    value
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/\s+/g, '-')
+        .replace(/[^a-z0-9-]/g, '')
+        .slice(0, SLUG_MAX);
+
+const COPY_SUFFIX = '-copia';
+
+/** El tramo de la copia de un Servicio: el suyo con "-copia", recortado antes si no entra en 40 caracteres. */
+export const copySlug = (slug: string) =>
+    `${slug.slice(0, SLUG_MAX - COPY_SUFFIX.length).replace(/-+$/, '')}${COPY_SUFFIX}`;
 
 /** Lo que el diálogo de Nuevo y Duplicar edita, todo como texto de los inputs. */
 export interface ServiceForm {
@@ -17,7 +36,7 @@ export interface ServiceForm {
     slugEdited: boolean;
     description: string;
     category: ServiceCategoryValue | '';
-    duration: string;
+    durationMinutes: string;
     price: string;
 }
 
@@ -55,15 +74,4 @@ export const serviceFormSchema = z.object({
         .min(1, 'Ingresá el precio.')
         .transform(Number)
         .pipe(z.number({ message: 'El precio tiene que ser un número.' }).min(0, 'El precio no puede ser negativo.')),
-});
-
-/** El formulario con los nombres de campo del schema. */
-export const formInput = (form: ServiceForm) => ({
-    branchId: form.branchId,
-    name: form.name,
-    slug: form.slug,
-    description: form.description,
-    category: form.category,
-    durationMinutes: form.duration,
-    price: form.price,
 });
