@@ -62,3 +62,32 @@ export const createServiceSchema = z.object({
     employeeIds: z.array(z.number().int()).min(1),
 });
 export type CreateService = z.infer<typeof createServiceSchema>;
+
+/** Where a Servicio sits in the panel's catalog: its Negocio (with the Usuario's role there) and its Sucursal. */
+export interface ServiceInCatalog {
+    group: ServiceCatalogGroup;
+    branch: ServiceCatalogGroup['branches'][number];
+    service: CatalogService;
+}
+
+/**
+ * What PATCH /services/:id accepts, plus the Servicio that goes in the path. Every field is optional: only the ones
+ * sent change. `depositPercent: null` drops the Seña.
+ */
+export const updateServiceSchema = z.object({
+    id: z.number().int(),
+    name: z.string().trim().min(1).optional(),
+    slug: slugSchema.optional(),
+    description: z.string().trim().min(1).optional(),
+    category: z.enum(SERVICE_CATEGORIES).optional(),
+    durationMinutes: z.number().int().min(1).optional(),
+    price: z.number().min(0).optional(),
+    depositPercent: z.number().int().min(0).max(100).nullable().optional(),
+    requiresApproval: z.boolean().optional(),
+    hidden: z.boolean().optional(),
+});
+export type UpdateService = z.infer<typeof updateServiceSchema>;
+
+/** What DELETE /services/:id answers: how many future Turnos of the Servicio got cancelled by the baja. */
+export const retiredServiceSchema = z.object({ cancelledBookings: z.number().int().min(0) });
+export type RetiredService = z.infer<typeof retiredServiceSchema>;

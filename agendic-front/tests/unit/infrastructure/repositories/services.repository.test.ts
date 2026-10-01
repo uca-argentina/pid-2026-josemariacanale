@@ -1,4 +1,4 @@
-import { ApiRequestError } from '@/src/entities/errors/common';
+import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
 import { ServiceNameTakenError, ServiceSlugTakenError } from '@/src/entities/errors/service';
 import { ServicesRepository } from '@/src/infrastructure/repositories/services.repository';
 import { authWith } from '@/tests/unit/stubs';
@@ -131,5 +131,80 @@ describe('ServicesRepository.createService', () => {
     it('translates a body that is not JSON to ApiRequestError', async () => {
         jest.spyOn(global, 'fetch').mockResolvedValue(new Response('<html>', { status: 201 }));
         await expect(repo().createService(input)).rejects.toBeInstanceOf(ApiRequestError);
+    });
+});
+
+describe('ServicesRepository.updateService', () => {
+    it('PATCHes only the fields sent, without the id in the body, and returns the Servicio', async () => {
+        const fetchSpy = respond(200, service);
+
+        await expect(repo().updateService({ id: 100, name: 'Masaje', depositPercent: null })).resolves.toEqual(parsedService);
+        expect(fetchSpy).toHaveBeenCalledWith(
+            'http://api/services/100',
+            expect.objectContaining({
+                method: 'PATCH',
+                headers: expect.objectContaining({ Authorization: 'Bearer tok' }),
+                body: JSON.stringify({ name: 'Masaje', depositPercent: null }),
+            }),
+        );
+    });
+
+    it('translates the 409 of the tramo to ServiceSlugTakenError with the message of the back', async () => {
+        respond(409, { statusCode: 409, message: 'Service booking link already in use' });
+        const error = await repo().updateService({ id: 100, slug: 'masaje' }).catch((e) => e);
+        expect(error).toBeInstanceOf(ServiceSlugTakenError);
+        expect(error.message).toBe('Service booking link already in use');
+    });
+
+    it('translates the 409 of the name to ServiceNameTakenError', async () => {
+        respond(409, { statusCode: 409, message: 'Service name already in use' });
+        await expect(repo().updateService({ id: 100, name: 'Masaje' })).rejects.toBeInstanceOf(ServiceNameTakenError);
+    });
+
+    it('translates a 404 to NotFoundError', async () => {
+        respond(404, { statusCode: 404, message: 'Service not found' });
+        await expect(repo().updateService({ id: 100, hidden: true })).rejects.toBeInstanceOf(NotFoundError);
+    });
+
+    it.each([400, 401, 403, 500])('translates a %i to ApiRequestError carrying the status', async (status) => {
+        respond(status, { statusCode: status, message: 'no' });
+        await expect(repo().updateService({ id: 100, hidden: true })).rejects.toMatchObject({ status });
+    });
+
+    it('translates a body that is not JSON to ApiRequestError', async () => {
+        jest.spyOn(global, 'fetch').mockResolvedValue(new Response('<html>', { status: 200 }));
+        await expect(repo().updateService({ id: 100, hidden: true })).rejects.toBeInstanceOf(ApiRequestError);
+    });
+});
+
+describe('ServicesRepository.retireService', () => {
+    it('DELETEs the Servicio and returns how many Turnos got cancelled', async () => {
+        const fetchSpy = respond(200, { cancelledBookings: 2 });
+
+        await expect(repo().retireService(100)).resolves.toEqual({ cancelledBookings: 2 });
+        expect(fetchSpy).toHaveBeenCalledWith(
+            'http://api/services/100',
+            expect.objectContaining({ method: 'DELETE', headers: expect.objectContaining({ Authorization: 'Bearer tok' }) }),
+        );
+    });
+
+    it('translates a 404 to NotFoundError', async () => {
+        respond(404, { statusCode: 404, message: 'Service not found' });
+        await expect(repo().retireService(100)).rejects.toBeInstanceOf(NotFoundError);
+    });
+
+    it.each([401, 403, 500])('translates a %i to ApiRequestError carrying the status', async (status) => {
+        respond(status, { statusCode: status, message: 'no' });
+        await expect(repo().retireService(100)).rejects.toMatchObject({ status });
+    });
+
+    it('translates a body that is not JSON to ApiRequestError', async () => {
+        jest.spyOn(global, 'fetch').mockResolvedValue(new Response('<html>', { status: 200 }));
+        await expect(repo().retireService(100)).rejects.toBeInstanceOf(ApiRequestError);
+    });
+
+    it('translates a body without the count to ApiRequestError', async () => {
+        respond(200, { ok: true });
+        await expect(repo().retireService(100)).rejects.toBeInstanceOf(ApiRequestError);
     });
 });
