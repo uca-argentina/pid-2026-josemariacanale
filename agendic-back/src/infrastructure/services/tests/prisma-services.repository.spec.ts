@@ -24,6 +24,8 @@ const SERVICE_ROW = {
   retiredAt: null,
   slug: 'haircut',
   hidden: false,
+  prepMinutes: 0,
+  dailyLimit: null,
   employees: [
     { availabilityId: 10, employee: { id: 7, user: { name: 'Ana Pérez' } } },
   ],
@@ -42,6 +44,8 @@ const SERVICE: Service = {
   retiredAt: null,
   slug: 'haircut',
   hidden: false,
+  prepMinutes: 0,
+  dailyLimit: null,
   employees: [{ id: 7, name: 'Ana Pérez', availabilityId: 10 }],
 };
 
@@ -97,6 +101,8 @@ describe('PrismaServicesRepository', () => {
         requiresApproval: false,
         slug: 'haircut',
         hidden: false,
+        prepMinutes: 0,
+        dailyLimit: null,
         employees: [
           { employeeId: 7, availabilityId: 70 },
           { employeeId: 8, availabilityId: 80 },
@@ -115,6 +121,8 @@ describe('PrismaServicesRepository', () => {
         requiresApproval: false,
         slug: 'haircut',
         hidden: false,
+        prepMinutes: 0,
+        dailyLimit: null,
         employees: {
           create: [
             { employeeId: 7, availabilityId: 70 },
@@ -367,6 +375,8 @@ describe('PrismaServicesRepository', () => {
                 requiresApproval: false,
                 slug: 'haircut',
                 hidden: false,
+                prepMinutes: 0,
+                dailyLimit: null,
                 employees: [],
               })
             : repository.update(1, { slug: 'haircut' })
@@ -395,6 +405,8 @@ describe('PrismaServicesRepository', () => {
           requiresApproval: false,
           slug: 'haircut',
           hidden: false,
+          prepMinutes: 0,
+          dailyLimit: null,
           employees: [{ employeeId: 7, availabilityId: 70 }],
         }),
       findById: () => repository.findById(1),

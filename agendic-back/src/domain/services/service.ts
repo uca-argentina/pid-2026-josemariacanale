@@ -8,6 +8,9 @@ export enum ServiceCategory {
   OTRO = 'OTRO',
 }
 
+/** Tiempo de preparación: the only minutes a Servicio may hold its Empleado before each Turno. */
+export const PREP_MINUTES = [0, 5, 10, 15, 30, 60] as const;
+
 export interface Service {
   id: number;
   branchId: number;
@@ -25,6 +28,10 @@ export interface Service {
   slug: string;
   /** Servicio oculto: off the Sucursal's page, reachable only by its own Enlace de reserva. */
   hidden: boolean;
+  /** Tiempo de preparación: one of PREP_MINUTES. Each Turno holds its Empleado from startsAt minus this. */
+  prepMinutes: number;
+  /** Límite diario: PENDING and BOOKED Turnos per local day of the Sucursal. Null when there is none. */
+  dailyLimit: number | null;
   /** In charge of it: verified and not dados de baja. */
   employees: ServiceEmployee[];
 }
@@ -49,6 +56,8 @@ export interface CreateServiceInput {
   requiresApproval?: boolean;
   slug: string;
   hidden?: boolean;
+  prepMinutes?: number;
+  dailyLimit?: number;
   employeeIds: number[];
 }
 
@@ -63,4 +72,7 @@ export interface UpdateServiceInput {
   requiresApproval?: boolean;
   slug?: string;
   hidden?: boolean;
+  prepMinutes?: number;
+  /** Null drops the Límite diario. */
+  dailyLimit?: number | null;
 }

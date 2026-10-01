@@ -9,6 +9,10 @@ import {
   EmployeesRepository,
 } from '../../domain/employees/employees.repository';
 import { ConflictError, BusinessRuleError } from '../../domain/errors';
+import {
+  SERVICES_REPOSITORY,
+  ServicesRepository,
+} from '../../domain/services/services.repository';
 import { ListSlotsUseCase } from '../slots/list-slots.use-case';
 import { findOwnBookedBooking } from './find-own-booked-booking';
 
@@ -22,16 +26,20 @@ export class RescheduleBookingUseCase {
     @Inject(BOOKINGS_REPOSITORY) private readonly bookings: BookingsRepository,
     @Inject(EMPLOYEES_REPOSITORY)
     private readonly employees: EmployeesRepository,
+    @Inject(SERVICES_REPOSITORY) private readonly services: ServicesRepository,
     private readonly listSlots: ListSlotsUseCase,
   ) {}
 
   /**
-   * Conserva la duración fijada al reservar y no repite la Verificación de email.
+   * Conserva la duración fijada al reservar y no repite la Verificación de email. La preparación es la que el
+   * Servicio tiene hoy, la misma con la que el cálculo de Horarios reservables valida el horario nuevo, así nunca
+   * queda fuera de la Franja. El Límite diario del día de destino también lo descuenta ese cálculo, sin contar a
+   * este mismo Turno.
    *
    * @throws {NotFoundError} el Turno no existe
    * @throws {ForbiddenError} el Usuario no es el Empleado asignado al Turno
-   * @throws {BusinessRuleError} el Turno no está aceptado, o `startsAt` no es un Horario reservable
-   * @throws {ConflictError} `startsAt` pisa otro Turno pendiente o aceptado del Empleado
+   * @throws {BusinessRuleError} el Turno no está aceptado, o `startsAt` no es un Horario reservable (incluido un día que ya alcanzó el Límite diario)
+   * @throws {ConflictError} `startsAt`, con su preparación, pisa otro Turno pendiente o aceptado del Empleado
    */
   async execute(
     userId: number,
@@ -47,10 +55,14 @@ export class RescheduleBookingUseCase {
     const endsAt = new Date(
       startsAt.getTime() + (booking.endsAt.getTime() - booking.startsAt.getTime()),
     );
+    const service = await this.services.findById(booking.serviceId);
+    const prepStartsAt = new Date(
+      startsAt.getTime() - (service?.prepMinutes ?? 0) * 60_000,
+    );
     if (
       await this.bookings.hasOverlappingOccupied(
         booking.employeeId,
-        startsAt,
+        prepStartsAt,
         endsAt,
         bookingId,
       )
@@ -66,6 +78,10 @@ export class RescheduleBookingUseCase {
     );
     if (!days.some((day) => day.slots.includes(startsAt.toISOString())))
       throw new BusinessRuleError('startsAt is not a Horario reservable');
-    return this.bookings.reschedule(bookingId, startsAt, endsAt);
+    return this.bookings.reschedule(bookingId, {
+      prepStartsAt,
+      startsAt,
+      endsAt,
+    });
   }
 }

@@ -24,7 +24,7 @@ const toMinutes = (hhmm: string): number => {
 const toHHMM = (minutes: number): string =>
   `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
 
-const addDays = (date: string, days: number): string => {
+export const addDays = (date: string, days: number): string => {
   const d = new Date(`${date}T00:00:00.000Z`);
   d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString().slice(0, 10);
@@ -34,7 +34,7 @@ const weekdayOf = (date: string): number =>
   new Date(`${date}T00:00:00.000Z`).getUTCDay();
 
 /** Formats an instant as the local calendar date (YYYY-MM-DD) it falls on in timeZone. Native Intl, no library. */
-const localDate = (instant: Date, timeZone: string): string =>
+export const localDate = (instant: Date, timeZone: string): string =>
   new Intl.DateTimeFormat('en-CA', { timeZone }).format(instant);
 
 const zonedParts = new Map<string, Intl.DateTimeFormat>();
@@ -88,6 +88,19 @@ export const zonedTimeToUtc = (
   return new Date(instant);
 };
 
+/** The local date `instant` falls on in timeZone, as the half-open UTC range [from, to) it spans. */
+export const localDayBounds = (
+  instant: Date,
+  timeZone: string,
+): { date: string; from: Date; to: Date } => {
+  const date = localDate(instant, timeZone);
+  return {
+    date,
+    from: zonedTimeToUtc(date, '00:00', timeZone),
+    to: zonedTimeToUtc(addDays(date, 1), '00:00', timeZone),
+  };
+};
+
 /** Intersects a Franja with the Sucursal's opening hours; null if nothing survives. */
 const clip = (
   interval: { startTime: string; endTime: string },
@@ -106,15 +119,20 @@ export interface ComputeSlotsInput {
   availabilityIntervals: AvailabilityInterval[];
   /** This Empleado's Anulaciones, already narrowed to [from, to]. */
   overridesByDate: Map<string, AvailabilityOverride>;
-  /** BOOKED Turnos of this Empleado, in any of their Servicios, that could overlap the range. */
-  bookedRanges: { startsAt: Date; endsAt: Date }[];
+  /** PENDING and BOOKED Turnos of this Empleado, in any of their Servicios, each from its own preparation on. */
+  bookedRanges: { prepStartsAt: Date; endsAt: Date }[];
   durationMinutes: number;
+  /** Tiempo de preparación of the Servicio asked for: held before each Horario reservable, inside the Franja. */
+  prepMinutes: number;
+  /** Local dates on which the Servicio already reached its Límite diario. */
+  fullDates: Set<string>;
   now: Date;
 }
 
 /**
  * Availability Franjas → replaced by that date's Anulación, if any → clipped to the Sucursal's hours →
- * grillado de a 15' → Turnos tomados y el reloj descontados. Pure: no I/O.
+ * grillado de a 15' from the end of the preparation → Turnos tomados (with their own preparation), el
+ * reloj y el Límite diario descontados. Pure: no I/O.
  */
 export function computeSlots({
   from,
@@ -124,6 +142,8 @@ export function computeSlots({
   overridesByDate,
   bookedRanges,
   durationMinutes,
+  prepMinutes,
+  fullDates,
   now,
 }: ComputeSlotsInput): DaySlots[] {
   const today = localDate(now, branch.timeZone);
@@ -153,18 +173,23 @@ export function computeSlots({
       if (!clipped) continue;
       const endMin = toMinutes(clipped.endTime);
       for (
-        let t = toMinutes(clipped.startTime);
+        let t = toMinutes(clipped.startTime) + prepMinutes;
         t + durationMinutes <= endMin;
         t += GRID_MINUTES
       )
         candidates.push(zonedTimeToUtc(date, toHHMM(t), branch.timeZone));
     }
 
-    const slots = candidates.filter((start) => {
-      if (start < now) return false;
-      const end = new Date(start.getTime() + durationMinutes * 60_000);
-      return !bookedRanges.some((b) => b.startsAt < end && b.endsAt > start);
-    });
+    const slots = fullDates.has(date)
+      ? []
+      : candidates.filter((start) => {
+          if (start < now) return false;
+          const held = new Date(start.getTime() - prepMinutes * 60_000);
+          const end = new Date(start.getTime() + durationMinutes * 60_000);
+          return !bookedRanges.some(
+            (b) => b.prepStartsAt < end && b.endsAt > held,
+          );
+        });
 
     days.push({
       date,

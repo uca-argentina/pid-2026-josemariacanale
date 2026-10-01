@@ -90,6 +90,8 @@ const SERVICE = {
   retiredAt: null,
   slug: VALID_SERVICE.slug,
   hidden: false,
+  prepMinutes: 0,
+  dailyLimit: null,
   employees: IN_CHARGE,
 };
 
@@ -105,6 +107,8 @@ const PRESENTED_SERVICE = {
   requiresApproval: SERVICE.requiresApproval,
   slug: SERVICE.slug,
   hidden: SERVICE.hidden,
+  prepMinutes: SERVICE.prepMinutes,
+  dailyLimit: SERVICE.dailyLimit,
   employees: IN_CHARGE,
 };
 
@@ -140,10 +144,44 @@ describe('Servicio', () => {
         depositPercent: null,
         requiresApproval: false,
         hidden: false,
+        prepMinutes: 0,
+        dailyLimit: null,
         employees: [{ employeeId: ANAS_EMPLOYEE.id, availabilityId: 10 }],
       });
       expect(res.body).toEqual(PRESENTED_SERVICE);
     });
+
+    it('creates a Servicio with Tiempo de preparación and Límite diario, and returns them', async () => {
+      t.services.create.mockResolvedValue({
+        ...SERVICE,
+        prepMinutes: 15,
+        dailyLimit: 4,
+      });
+
+      const res = await t.http
+        .post(`/branches/${BRANCH.id}/services`)
+        .set(bearer(CLERK_TOKEN))
+        .send({ ...VALID_SERVICE, prepMinutes: 15, dailyLimit: 4 })
+        .expect(201);
+
+      expect(t.services.create).toHaveBeenCalledWith(
+        expect.objectContaining({ prepMinutes: 15, dailyLimit: 4 }),
+      );
+      expect(res.body).toMatchObject({ prepMinutes: 15, dailyLimit: 4 });
+    });
+
+    it.each([0, 5, 10, 15, 30, 60])(
+      'accepts a Tiempo de preparación of %i minutes',
+      async (prepMinutes) => {
+        t.services.create.mockResolvedValue({ ...SERVICE, prepMinutes });
+
+        await t.http
+          .post(`/branches/${BRANCH.id}/services`)
+          .set(bearer(CLERK_TOKEN))
+          .send({ ...VALID_SERVICE, prepMinutes })
+          .expect(201);
+      },
+    );
 
     it('creates a Servicio with a Seña', async () => {
       t.services.create.mockResolvedValue({ ...SERVICE, depositPercent: 30 });
@@ -208,6 +246,8 @@ describe('Servicio', () => {
         requiresApproval: false,
         slug: VALID_SERVICE.slug,
         hidden: false,
+        prepMinutes: 0,
+        dailyLimit: null,
         employees: [{ employeeId: ANAS_EMPLOYEE.id, availabilityId: 10 }],
       });
     });
@@ -378,6 +418,11 @@ describe('Servicio', () => {
       ['a fractional depositPercent', { depositPercent: 12.5 }],
       ['a null depositPercent', { depositPercent: null }],
       ['a non-boolean requiresApproval', { requiresApproval: 'yes' }],
+      ['a prepMinutes off the list', { prepMinutes: 20 }],
+      ['a negative prepMinutes', { prepMinutes: -5 }],
+      ['a zero dailyLimit', { dailyLimit: 0 }],
+      ['a fractional dailyLimit', { dailyLimit: 2.5 }],
+      ['a null dailyLimit', { dailyLimit: null }],
     ])(
       'rejects %s with 400, without reaching the repository',
       async (_, override) => {
@@ -457,6 +502,41 @@ describe('Servicio', () => {
         depositPercent: 50,
       });
       expect(res.body.depositPercent).toBe(50);
+    });
+
+    it('changes the Tiempo de preparación and the Límite diario', async () => {
+      t.services.update.mockResolvedValue({
+        ...SERVICE,
+        prepMinutes: 30,
+        dailyLimit: 6,
+      });
+
+      const res = await t.http
+        .patch(`/services/${SERVICE.id}`)
+        .set(bearer(CLERK_TOKEN))
+        .send({ prepMinutes: 30, dailyLimit: 6 })
+        .expect(200);
+
+      expect(t.services.update).toHaveBeenCalledWith(SERVICE.id, {
+        prepMinutes: 30,
+        dailyLimit: 6,
+      });
+      expect(res.body).toMatchObject({ prepMinutes: 30, dailyLimit: 6 });
+    });
+
+    it('drops the Límite diario with a null dailyLimit', async () => {
+      t.services.update.mockResolvedValue(SERVICE);
+
+      const res = await t.http
+        .patch(`/services/${SERVICE.id}`)
+        .set(bearer(CLERK_TOKEN))
+        .send({ dailyLimit: null })
+        .expect(200);
+
+      expect(t.services.update).toHaveBeenCalledWith(SERVICE.id, {
+        dailyLimit: null,
+      });
+      expect(res.body.dailyLimit).toBeNull();
     });
 
     it('drops the Seña with a null depositPercent', async () => {
@@ -553,6 +633,9 @@ describe('Servicio', () => {
       ['a negative depositPercent', { depositPercent: -1 }],
       ['a depositPercent over 100', { depositPercent: 101 }],
       ['a fractional depositPercent', { depositPercent: 12.5 }],
+      ['a prepMinutes off the list', { prepMinutes: 45 }],
+      ['a null prepMinutes', { prepMinutes: null }],
+      ['a zero dailyLimit', { dailyLimit: 0 }],
     ])(
       'rejects %s with 400, without reaching the repository',
       async (_, body) => {

@@ -71,6 +71,8 @@ export class CreateServiceUseCase {
       requiresApproval: input.requiresApproval ?? false,
       slug: input.slug,
       hidden: input.hidden ?? false,
+      prepMinutes: input.prepMinutes ?? 0,
+      dailyLimit: input.dailyLimit ?? null,
       employees,
     });
   }

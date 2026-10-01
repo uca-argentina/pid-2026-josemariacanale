@@ -35,6 +35,7 @@ const BOOKING: Booking = {
   employeeId: ANAS_EMPLOYEE.id,
   clientName: VALID_BOOKING.clientName,
   clientEmail: VALID_BOOKING.clientEmail,
+  prepStartsAt: new Date(VALID_BOOKING.startsAt),
   startsAt: new Date(VALID_BOOKING.startsAt),
   endsAt: new Date('2026-01-01T12:30:00.000Z'),
   status: BookingStatus.UNVERIFIED,
@@ -74,6 +75,7 @@ describe('Turno', () => {
           employeeId: ANAS_EMPLOYEE.id,
           clientName: VALID_BOOKING.clientName,
           clientEmail: VALID_BOOKING.clientEmail,
+          prepStartsAt: new Date(VALID_BOOKING.startsAt),
           startsAt: new Date(VALID_BOOKING.startsAt),
           endsAt: new Date('2026-01-01T12:30:00.000Z'),
           notes: null,
@@ -84,6 +86,69 @@ describe('Turno', () => {
         VALID_BOOKING.clientEmail,
         'a-token',
       );
+    });
+
+    it('holds the Empleado from the Tiempo de preparación on, checking overlaps from there', async () => {
+      t.services.findById.mockResolvedValue({ ...SERVICE, prepMinutes: 15 });
+
+      await t.http
+        .post('/bookings')
+        .send({ ...VALID_BOOKING, startsAt: '2026-01-01T13:00:00.000Z' })
+        .expect(201);
+
+      expect(t.bookings.hasOverlappingOccupied).toHaveBeenCalledWith(
+        ANAS_EMPLOYEE.id,
+        new Date('2026-01-01T12:45:00.000Z'),
+        new Date('2026-01-01T13:30:00.000Z'),
+      );
+      expect(t.bookings.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          prepStartsAt: new Date('2026-01-01T12:45:00.000Z'),
+          startsAt: new Date('2026-01-01T13:00:00.000Z'),
+        }),
+        expect.any(Date),
+      );
+    });
+
+    it('answers 409 when the slot collides with the Tiempo de preparación', async () => {
+      t.services.findById.mockResolvedValue({ ...SERVICE, prepMinutes: 15 });
+      t.bookings.hasOverlappingOccupied.mockResolvedValue(true);
+
+      await t.http
+        .post('/bookings')
+        .send({ ...VALID_BOOKING, startsAt: '2026-01-01T13:00:00.000Z' })
+        .expect(409);
+      expect(t.bookings.create).not.toHaveBeenCalled();
+    });
+
+    it('answers 409 when the day already reached the Límite diario, counted in the Sucursal time zone', async () => {
+      t.services.findById.mockResolvedValue({ ...SERVICE, dailyLimit: 2 });
+      t.bookings.listOccupiedStartsByService.mockResolvedValue([
+        new Date('2026-01-01T15:00:00.000Z'),
+        new Date('2026-01-01T16:00:00.000Z'),
+      ]);
+
+      const res = await t.http.post('/bookings').send(VALID_BOOKING).expect(409);
+
+      expect(res.body.message).toBe(
+        'The Service reached its Límite diario that day',
+      );
+      // 2026-01-01 in Buenos Aires (UTC-3): from 03:00Z to 03:00Z of the next day.
+      expect(t.bookings.listOccupiedStartsByService).toHaveBeenCalledWith(
+        SERVICE.id,
+        new Date('2026-01-01T03:00:00.000Z'),
+        new Date('2026-01-02T03:00:00.000Z'),
+      );
+      expect(t.bookings.create).not.toHaveBeenCalled();
+    });
+
+    it('books under the Límite diario', async () => {
+      t.services.findById.mockResolvedValue({ ...SERVICE, dailyLimit: 2 });
+      t.bookings.listOccupiedStartsByService.mockResolvedValue([
+        new Date('2026-01-01T15:00:00.000Z'),
+      ]);
+
+      await t.http.post('/bookings').send(VALID_BOOKING).expect(201);
     });
 
     it('books a Turno for a Servicio oculto just the same', async () => {
@@ -289,6 +354,38 @@ describe('Turno', () => {
         BookingStatus.PENDING,
       );
       expect(res.body).toMatchObject({ status: 'PENDING' });
+    });
+
+    it('verifies under the Límite diario, serialized per Servicio by the repository', async () => {
+      t.services.findById.mockResolvedValue({ ...SERVICE, dailyLimit: 3 });
+
+      await t.http
+        .post('/bookings/verification')
+        .send({ token: 'a-token' })
+        .expect(201);
+
+      expect(t.bookings.markVerified).toHaveBeenCalledWith(
+        BOOKING.id,
+        BookingStatus.BOOKED,
+        {
+          serviceId: SERVICE.id,
+          limit: 3,
+          from: new Date('2026-01-01T03:00:00.000Z'),
+          to: new Date('2026-01-02T03:00:00.000Z'),
+        },
+      );
+    });
+
+    it('answers 409 when the Límite diario was reached meanwhile', async () => {
+      t.services.findById.mockResolvedValue({ ...SERVICE, dailyLimit: 1 });
+      t.bookings.markVerified.mockRejectedValue(
+        new ConflictError('The Service reached its Límite diario that day'),
+      );
+
+      await t.http
+        .post('/bookings/verification')
+        .send({ token: 'a-token' })
+        .expect(409);
     });
 
     it('answers 422 for an unknown, used or expired token', async () => {

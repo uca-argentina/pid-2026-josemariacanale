@@ -12,6 +12,8 @@ export interface Booking {
   employeeId: number;
   clientName: string;
   clientEmail: string;
+  /** startsAt minus the Servicio's Tiempo de preparación, fixed at booking: the Empleado is held from here. */
+  prepStartsAt: Date;
   startsAt: Date;
   endsAt: Date;
   status: BookingStatus;
@@ -38,6 +40,9 @@ export interface CreateBookingInput {
   clientEmail: string;
   notes?: string;
 }
+
+/** The 409 of a Servicio whose Límite diario that day is already reached, wherever it is detected. */
+export const DAILY_LIMIT_REACHED = 'The Service reached its Límite diario that day';
 
 const VERIFICATION_TOKEN_LIFETIME_MS = 24 * 60 * 60 * 1000;
 

@@ -24,6 +24,8 @@ export interface CreateBusinessData {
     | 'requiresApproval'
     | 'slug'
     | 'hidden'
+    | 'prepMinutes'
+    | 'dailyLimit'
   >;
   /** The Dueño, in charge of that first Servicio. */
   employee: Pick<Employee, 'userId'>;

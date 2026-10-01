@@ -20,6 +20,7 @@ const BOOKED: Booking = {
   employeeId: ANAS_EMPLOYEE.id,
   clientName: 'Carla Gómez',
   clientEmail: 'carla@example.com',
+  prepStartsAt: new Date('2026-01-02T13:50:00.000Z'),
   startsAt: new Date('2026-01-02T14:00:00.000Z'), // Friday 11:00 ARG
   endsAt: new Date('2026-01-02T14:30:00.000Z'),
   status: BookingStatus.BOOKED,
@@ -196,14 +197,22 @@ describe('Mis turnos del Empleado', () => {
       });
     });
 
-    it('moves a BOOKED Turno to another Horario reservable, keeping its duration and BOOKED', async () => {
+    it("moves a BOOKED Turno to another Horario reservable, keeping its duration and BOOKED, with the Servicio's current Tiempo de preparación", async () => {
+      t.services.findById.mockResolvedValue({ ...ANAS_SERVICE, prepMinutes: 15 });
+
       const res = await patch({ startsAt: NEW_START }).expect(200);
 
-      expect(t.bookings.reschedule).toHaveBeenCalledWith(
-        BOOKED.id,
-        new Date(NEW_START),
+      expect(t.bookings.hasOverlappingOccupied).toHaveBeenCalledWith(
+        ANAS_EMPLOYEE.id,
+        new Date('2026-01-02T14:45:00.000Z'),
         new Date('2026-01-02T15:30:00.000Z'),
+        BOOKED.id,
       );
+      expect(t.bookings.reschedule).toHaveBeenCalledWith(BOOKED.id, {
+        prepStartsAt: new Date('2026-01-02T14:45:00.000Z'),
+        startsAt: new Date(NEW_START),
+        endsAt: new Date('2026-01-02T15:30:00.000Z'),
+      });
       expect(t.bookings.listOccupiedByEmployee).toHaveBeenCalledWith(
         ANAS_EMPLOYEE.id,
         expect.any(Date),
