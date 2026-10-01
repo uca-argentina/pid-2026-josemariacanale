@@ -5,8 +5,8 @@ import { redirect, unstable_rethrow } from 'next/navigation';
 import { isSessionExpired } from '@/app/api-error';
 import { SIGN_IN_PATH } from '@/app/routes';
 import { getInjection } from '@/di/container';
-import { InputParseError } from '@/src/entities/errors/common';
-import { AlreadyEmployeeError, LastEmployeeError } from '@/src/entities/errors/employee';
+import { ApiRequestError, InputParseError } from '@/src/entities/errors/common';
+import { AlreadyEmployeeError, InvitationNotPendingError, LastEmployeeError } from '@/src/entities/errors/employee';
 
 export type EmployeeActionResult = { ok: true } | { ok: false; message: string; field?: 'email' };
 
@@ -41,5 +41,43 @@ export async function retireEmployeeAction(payload: unknown): Promise<EmployeeAc
         if (error instanceof InputParseError) return { ok: false, message: 'Revisá los datos e intentá de nuevo.' };
         getInjection('ICrashReporterService').report(error);
         return { ok: false, message: 'No pudimos dar de baja al Empleado. Intentá de nuevo.' };
+    }
+}
+
+/** Reenvía la Invitación pendiente y renueva su vencimiento. El 404 y el 422 del back refrescan la tabla: la Invitación ya no está. */
+export async function resendInvitationAction(payload: unknown): Promise<EmployeeActionResult> {
+    try {
+        await getInjection('IResendInvitationController')(payload);
+        refresh();
+        return { ok: true };
+    } catch (error) {
+        unstable_rethrow(error);
+        if (error instanceof InvitationNotPendingError || (error instanceof ApiRequestError && error.status === 404)) {
+            refresh();
+            return { ok: false, message: 'La Invitación ya no está pendiente.' };
+        }
+        if (isSessionExpired(error)) redirect(SIGN_IN_PATH);
+        if (error instanceof InputParseError) return { ok: false, message: 'Revisá los datos e intentá de nuevo.' };
+        getInjection('ICrashReporterService').report(error);
+        return { ok: false, message: 'No pudimos reenviar la invitación. Intentá de nuevo.' };
+    }
+}
+
+/** Cancela la Invitación pendiente. El 404 y el 422 del back refrescan la tabla: la Invitación ya no está. */
+export async function cancelInvitationAction(payload: unknown): Promise<EmployeeActionResult> {
+    try {
+        await getInjection('ICancelInvitationController')(payload);
+        refresh();
+        return { ok: true };
+    } catch (error) {
+        unstable_rethrow(error);
+        if (error instanceof InvitationNotPendingError || (error instanceof ApiRequestError && error.status === 404)) {
+            refresh();
+            return { ok: false, message: 'La Invitación ya no está pendiente.' };
+        }
+        if (isSessionExpired(error)) redirect(SIGN_IN_PATH);
+        if (error instanceof InputParseError) return { ok: false, message: 'Revisá los datos e intentá de nuevo.' };
+        getInjection('ICrashReporterService').report(error);
+        return { ok: false, message: 'No pudimos cancelar la invitación. Intentá de nuevo.' };
     }
 }

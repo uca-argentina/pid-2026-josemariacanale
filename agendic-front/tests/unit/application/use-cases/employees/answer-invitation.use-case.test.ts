@@ -1,4 +1,6 @@
 import type { IEmployeesRepository } from '@/src/application/repositories/employees.repository.interface';
+import { resendInvitationUseCase } from '@/src/application/use-cases/employees/resend-invitation.use-case';
+import { cancelInvitationUseCase } from '@/src/application/use-cases/employees/cancel-invitation.use-case';
 import { acceptInvitationUseCase } from '@/src/application/use-cases/employees/accept-invitation.use-case';
 import { listMyInvitationsUseCase } from '@/src/application/use-cases/employees/list-my-invitations.use-case';
 import { rejectInvitationUseCase } from '@/src/application/use-cases/employees/reject-invitation.use-case';
@@ -12,6 +14,8 @@ const repoWith = (overrides: Partial<IEmployeesRepository>): IEmployeesRepositor
     listMyInvitations: jest.fn(),
     acceptInvitation: jest.fn(),
     rejectInvitation: jest.fn(),
+    resendInvitation: jest.fn(),
+    cancelInvitation: jest.fn(),
     ...overrides,
 });
 
@@ -35,5 +39,22 @@ describe('Invitaciones del Usuario use cases', () => {
 
         await rejectInvitationUseCase(instrumentation, repoWith({ rejectInvitation }))(4);
         expect(rejectInvitation).toHaveBeenCalledWith(4);
+    });
+});
+
+describe('Invitaciones del Negocio use cases', () => {
+    it('resends an Invitación through the repository', async () => {
+        const invitation = { id: 4, email: 'a@b.com', expiresAt: 'x' };
+        const resendInvitation = jest.fn().mockResolvedValue(invitation);
+
+        await expect(resendInvitationUseCase(instrumentation, repoWith({ resendInvitation }))(4)).resolves.toEqual(invitation);
+        expect(resendInvitation).toHaveBeenCalledWith(4);
+    });
+
+    it('cancels an Invitación through the repository', async () => {
+        const cancelInvitation = jest.fn().mockResolvedValue(undefined);
+
+        await cancelInvitationUseCase(instrumentation, repoWith({ cancelInvitation }))(4);
+        expect(cancelInvitation).toHaveBeenCalledWith(4);
     });
 });

@@ -25,4 +25,18 @@ export interface IEmployeesRepository {
      * @throws {ApiRequestError} la Invitación no es suya (404) u otro error de la API
      */
     rejectInvitation(invitationId: number): Promise<void>;
+    /**
+     * Reenvía la Invitación pendiente y renueva su vencimiento.
+     *
+     * @throws {InvitationNotPendingError} ya se aceptó o rechazó (422)
+     * @throws {ApiRequestError} no existe o no es del Negocio (404) u otro error de la API
+     */
+    resendInvitation(invitationId: number): Promise<Invitation>;
+    /**
+     * Cancela la Invitación pendiente.
+     *
+     * @throws {InvitationNotPendingError} ya se aceptó o rechazó (422)
+     * @throws {ApiRequestError} no existe o no es del Negocio (404) u otro error de la API
+     */
+    cancelInvitation(invitationId: number): Promise<void>;
 }

@@ -7,6 +7,10 @@ import { retireEmployeeUseCase } from '@/src/application/use-cases/employees/ret
 import { listMyInvitationsUseCase } from '@/src/application/use-cases/employees/list-my-invitations.use-case';
 import { acceptInvitationUseCase } from '@/src/application/use-cases/employees/accept-invitation.use-case';
 import { rejectInvitationUseCase } from '@/src/application/use-cases/employees/reject-invitation.use-case';
+import { resendInvitationUseCase } from '@/src/application/use-cases/employees/resend-invitation.use-case';
+import { cancelInvitationUseCase } from '@/src/application/use-cases/employees/cancel-invitation.use-case';
+import { resendInvitationController } from '@/src/interface-adapters/controllers/employees/resend-invitation.controller';
+import { cancelInvitationController } from '@/src/interface-adapters/controllers/employees/cancel-invitation.controller';
 import { listMyInvitationsController } from '@/src/interface-adapters/controllers/employees/list-my-invitations.controller';
 import { acceptInvitationController } from '@/src/interface-adapters/controllers/employees/accept-invitation.controller';
 import { rejectInvitationController } from '@/src/interface-adapters/controllers/employees/reject-invitation.controller';
@@ -96,6 +100,30 @@ export function createEmployeesModule() {
             DI_SYMBOLS.IInstrumentationService,
             DI_SYMBOLS.IAuthenticationService,
             DI_SYMBOLS.IRejectInvitationUseCase,
+        ]);
+
+    employeesModule
+        .bind(DI_SYMBOLS.IResendInvitationUseCase)
+        .toHigherOrderFunction(resendInvitationUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IEmployeesRepository]);
+
+    employeesModule
+        .bind(DI_SYMBOLS.IResendInvitationController)
+        .toHigherOrderFunction(resendInvitationController, [
+            DI_SYMBOLS.IInstrumentationService,
+            DI_SYMBOLS.IAuthenticationService,
+            DI_SYMBOLS.IResendInvitationUseCase,
+        ]);
+
+    employeesModule
+        .bind(DI_SYMBOLS.ICancelInvitationUseCase)
+        .toHigherOrderFunction(cancelInvitationUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IEmployeesRepository]);
+
+    employeesModule
+        .bind(DI_SYMBOLS.ICancelInvitationController)
+        .toHigherOrderFunction(cancelInvitationController, [
+            DI_SYMBOLS.IInstrumentationService,
+            DI_SYMBOLS.IAuthenticationService,
+            DI_SYMBOLS.ICancelInvitationUseCase,
         ]);
 
     return employeesModule;

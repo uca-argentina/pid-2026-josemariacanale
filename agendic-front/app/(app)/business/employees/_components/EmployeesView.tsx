@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { Loader2, MoreHorizontal, PanelRightOpen, Plus, Search, UserRound, UserX } from 'lucide-react';
+import { Loader2, MailX, MoreHorizontal, PanelRightOpen, Plus, RotateCw, Search, UserRound, UserX } from 'lucide-react';
 import { toast } from 'sonner';
 import {
     PanelAvatar,
@@ -19,11 +19,13 @@ import {
 import { cn } from '@/app/_components/utils';
 import { inviteEmployeeSchema, fieldErrorsOf, type FieldErrors } from '@/app/_components/business-schemas';
 import { RoleBadge, type BusinessRole } from '../../_components/business-ui';
-import { addEmployeeAction, retireEmployeeAction } from '../actions';
+import { addEmployeeAction, cancelInvitationAction, resendInvitationAction, retireEmployeeAction } from '../actions';
 import { EmployeeSheet } from './EmployeeSheet';
 
 export type EmployeeRow = { id: number; name: string; email: string; role: BusinessRole };
-export type InvitationRow = { id: number; email: string };
+export type InvitationRow = { id: number; email: string; expiresAt: string };
+
+const EXPIRY = new Intl.DateTimeFormat('es-AR', { day: 'numeric', month: 'short', timeZone: 'America/Argentina/Buenos_Aires' });
 
 function InviteEmployeeDialog({ businessId, onClose }: { businessId: number; onClose: () => void }) {
     const [form, setForm] = useState({ email: '' });
@@ -106,6 +108,7 @@ export function EmployeesView({
     const [inviting, setInviting] = useState(false);
     const [viewing, setViewing] = useState<EmployeeRow>();
     const [retiring, setRetiring] = useState<EmployeeRow>();
+    const [cancelling, setCancelling] = useState<InvitationRow>();
     const [, startTransition] = useTransition();
 
     const q = query.trim().toLowerCase();
@@ -118,6 +121,20 @@ export function EmployeesView({
         startTransition(async () => {
             const response = await retireEmployeeAction({ employeeId: employee.id });
             if (response.ok) toast.success(`${employee.name}: dado de baja`);
+            else toast.error(response.message);
+        });
+
+    const resend = (invitation: InvitationRow) =>
+        startTransition(async () => {
+            const response = await resendInvitationAction({ invitationId: invitation.id });
+            if (response.ok) toast.success(`Invitación reenviada a ${invitation.email}`);
+            else toast.error(response.message);
+        });
+
+    const cancel = (invitation: InvitationRow) =>
+        startTransition(async () => {
+            const response = await cancelInvitationAction({ invitationId: invitation.id });
+            if (response.ok) toast.success(`Invitación a ${invitation.email} cancelada`);
             else toast.error(response.message);
         });
 
@@ -205,13 +222,29 @@ export function EmployeesView({
                                 <td className="px-6 py-4">
                                     <div className="flex items-center gap-3">
                                         <PanelAvatar name={invitation.email} />
-                                        <span className="truncate text-[14px] font-bold tracking-[-0.02em]">{invitation.email}</span>
+                                        <div className="flex min-w-0 flex-col">
+                                            <span className="truncate text-[14px] font-bold tracking-[-0.02em]">{invitation.email}</span>
+                                            <span className="truncate text-[12.5px] font-medium text-[#6b7280]">
+                                                Vence el {EXPIRY.format(new Date(invitation.expiresAt))}
+                                            </span>
+                                        </div>
                                     </div>
                                 </td>
                                 <td className="px-6 py-4">
                                     <PanelBadge>Invitación pendiente</PanelBadge>
                                 </td>
-                                <td />
+                                <td className="px-6 py-4">
+                                    <div className="flex justify-end">
+                                        <PanelIconGroup>
+                                            <PanelIconButton label={`Reenviar invitación a ${invitation.email}`} onClick={() => resend(invitation)}>
+                                                <RotateCw />
+                                            </PanelIconButton>
+                                            <PanelIconButton label={`Cancelar invitación a ${invitation.email}`} onClick={() => setCancelling(invitation)}>
+                                                <MailX />
+                                            </PanelIconButton>
+                                        </PanelIconGroup>
+                                    </div>
+                                </td>
                             </tr>
                         ))}
                     </tbody>
@@ -232,6 +265,15 @@ export function EmployeesView({
                 confirmLabel="Dar de baja"
                 destructive
                 onConfirm={() => retiring && retire(retiring)}
+            />
+            <PanelConfirm
+                open={Boolean(cancelling)}
+                onOpenChange={(open) => !open && setCancelling(undefined)}
+                title={`¿Cancelar la invitación a ${cancelling?.email ?? ''}?`}
+                description="La persona ya no va a poder aceptarla."
+                confirmLabel="Cancelar invitación"
+                destructive
+                onConfirm={() => cancelling && cancel(cancelling)}
             />
         </div>
     );
