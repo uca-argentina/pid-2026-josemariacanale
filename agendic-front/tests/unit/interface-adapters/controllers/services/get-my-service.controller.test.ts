@@ -17,6 +17,8 @@ const service = {
     depositPercent: 20,
     requiresApproval: true,
     hidden: false,
+    prepMinutes: 15,
+    dailyLimit: 6,
     employees: [
         { id: 1, name: 'Ana', availabilityId: 7 },
         { id: 2, name: 'Juan', availabilityId: 8 },
@@ -55,6 +57,8 @@ describe('getMyServiceController', () => {
                 depositPercent: 20,
                 requiresApproval: true,
                 hidden: false,
+                prepMinutes: 15,
+                dailyLimit: 6,
                 offeredByMe: true,
                 employees: [
                     { id: 1, name: 'Ana' },

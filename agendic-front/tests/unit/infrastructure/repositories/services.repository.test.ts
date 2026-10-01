@@ -16,10 +16,12 @@ const parsedService = {
     depositPercent: null,
     requiresApproval: false,
     hidden: false,
+    prepMinutes: 10,
+    dailyLimit: null,
     employees: [{ id: 1, name: 'Ana', availabilityId: 7 }],
 };
-/** The back may send fields the panel does not read yet: they are dropped. */
-const service = { ...parsedService, prepMinutes: 0, dailyLimit: null };
+/** The back may send fields the panel does not read: they are dropped. */
+const service = { ...parsedService, createdAt: '2026-09-01T00:00:00.000Z' };
 const group = {
     business: { id: 1, name: 'Vitalia', slug: 'vitalia' },
     role: 'owner',
@@ -148,6 +150,29 @@ describe('ServicesRepository.updateService', () => {
                 body: JSON.stringify({ name: 'Masaje', depositPercent: null }),
             }),
         );
+    });
+
+    it('PATCHes the Tiempo de preparación and drops the Límite diario with null', async () => {
+        const fetchSpy = respond(200, { ...service, prepMinutes: 15, dailyLimit: null });
+
+        await expect(repo().updateService({ id: 100, prepMinutes: 15, dailyLimit: null })).resolves.toMatchObject({
+            prepMinutes: 15,
+            dailyLimit: null,
+        });
+        expect(fetchSpy).toHaveBeenCalledWith(
+            'http://api/services/100',
+            expect.objectContaining({ body: JSON.stringify({ prepMinutes: 15, dailyLimit: null }) }),
+        );
+    });
+
+    it('translates the 400 of a Límite diario under 1 to ApiRequestError carrying the status', async () => {
+        respond(400, { statusCode: 400, message: ['dailyLimit must not be less than 1'] });
+        await expect(repo().updateService({ id: 100, dailyLimit: 0 })).rejects.toMatchObject({ status: 400 });
+    });
+
+    it('translates a Servicio without Tiempo de preparación to ApiRequestError', async () => {
+        respond(200, { ...service, prepMinutes: undefined });
+        await expect(repo().updateService({ id: 100, prepMinutes: 15 })).rejects.toBeInstanceOf(ApiRequestError);
     });
 
     it('translates the 409 of the tramo to ServiceSlugTakenError with the message of the back', async () => {
