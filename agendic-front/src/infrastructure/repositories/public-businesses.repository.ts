@@ -33,6 +33,12 @@ export class PublicBusinessesRepository implements IPublicBusinessesRepository {
         return parseOrFail(() => serviceSchema.array().parse(body), 'GET /branches/:id/services');
     }
 
+    async getServiceBySlug(branchId: number, slug: string): Promise<Service> {
+        const what = 'GET /branches/:id/services/by-slug/:slug';
+        const body = await this.get(`/branches/${branchId}/services/by-slug/${encodeURIComponent(slug)}`, what);
+        return parseOrFail(() => serviceSchema.parse(body), what);
+    }
+
     async listBranchImages(branchId: number): Promise<BranchImage[]> {
         const body = await this.get(`/branches/${branchId}/images`, 'GET /branches/:id/images');
         return parseOrFail(() => branchImageSchema.array().parse(body), 'GET /branches/:id/images');

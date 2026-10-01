@@ -80,10 +80,21 @@ function ServiceStep({
     chosen: Service | null;
     onChoose: (s: Service) => void;
 }) {
-    const [category, setCategory] = useState<ServiceCategoryValue>(
-        chosen?.category ?? categories[0].value,
+    // El Servicio elegido por su Enlace de reserva puede ser oculto (ADR 0018): ni él ni su Categoría
+    // están en la lista, así que se arranca en la primera Categoría listada, si hay alguna.
+    const listed = categories.some((c) => c.value === chosen?.category);
+    const [category, setCategory] = useState<ServiceCategoryValue | undefined>(
+        listed ? chosen?.category : categories[0]?.value,
     );
     const shown = services.filter((s) => s.category === category);
+
+    if (!category) {
+        return (
+            <p className="text-[14.5px] text-muted-foreground">
+                Esta sucursal no tiene otros servicios para reservar.
+            </p>
+        );
+    }
 
     return (
         <>

@@ -62,6 +62,7 @@ export function BranchPublicPage({
     services,
     employees,
     images,
+    selectedService = null,
 }: {
     business: Business;
     branch: Branch;
@@ -69,12 +70,14 @@ export function BranchPublicPage({
     services: Service[];
     employees: Employee[];
     images: BranchImage[];
+    /** El Servicio del Enlace de reserva: la reserva abre con él ya elegido. Puede ser oculto, y no estar en `services`. */
+    selectedService?: Service | null;
 }) {
     // Solo las Categorías que esta Sucursal realmente ofrece, en el orden del enum.
     const categories = SERVICE_CATEGORIES.filter((c) => services.some((s) => s.category === c.value));
     const [category, setCategory] = useState<ServiceCategoryValue | undefined>(categories[0]?.value);
-    const [initialService, setInitialService] = useState<Service | null>(null);
-    const [flowOpen, setFlowOpen] = useState(false);
+    const [initialService, setInitialService] = useState<Service | null>(selectedService);
+    const [flowOpen, setFlowOpen] = useState(selectedService !== null);
     const [booking, setBooking] = useState<Booking | null>(null);
     const [allImagesOpen, setAllImagesOpen] = useState(false);
 
