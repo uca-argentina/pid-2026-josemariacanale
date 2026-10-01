@@ -74,6 +74,14 @@ describe('GET /services/:id/slots', () => {
     expect(day.slots).toHaveLength(35);
   });
 
+  it('un Servicio oculto tiene Horarios reservables igual que uno visible', async () => {
+    t.services.findById.mockResolvedValue({ ...SERVICE, hidden: true });
+
+    const res = await query(t, {}).expect(200);
+
+    expect(res.body.days[0].slots).toHaveLength(35);
+  });
+
   it('descuenta un Turno tomado, en cualquier Servicio del mismo Empleado', async () => {
     t.bookings.listOccupiedByEmployee.mockResolvedValue([
       { startsAt: new Date('2026-01-02T14:00:00.000Z'), endsAt: new Date('2026-01-02T14:30:00.000Z') },

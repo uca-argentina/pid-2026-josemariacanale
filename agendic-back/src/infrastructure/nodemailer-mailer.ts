@@ -15,12 +15,13 @@ export class NodemailerMailer implements Mailer {
   }
 
   async sendVerificationLink(email: string, token: string) {
-    const link = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
+    const path = `/verify-email?token=${token}`;
+    const link = `${process.env.FRONTEND_URL}${path}`;
     await this.transporter.sendMail({
       from: process.env.SMTP_FROM,
       to: email,
       subject: 'Verify your account',
-      html: `<p>Click <a href="${link}">here</a> to verify your account.</p>`,
+      html: `<p>Click <a href="${link}">here</a> to verify your account.</p><p>${path}</p>`,
     });
   }
 }

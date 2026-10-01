@@ -14,6 +14,7 @@ import {
 import { AssignEmployeeUseCase } from '../../application/services/assign-employee.use-case';
 import { ChangeEmployeeAvailabilityUseCase } from '../../application/services/change-employee-availability.use-case';
 import { CreateServiceUseCase } from '../../application/services/create-service.use-case';
+import { GetServiceBySlugUseCase } from '../../application/services/get-service-by-slug.use-case';
 import { ListActiveServicesByBranchUseCase } from '../../application/services/list-active-services-by-branch.use-case';
 import { ListMyServicesUseCase } from '../../application/services/list-my-services.use-case';
 import { RemoveEmployeeUseCase } from '../../application/services/remove-employee.use-case';
@@ -37,6 +38,7 @@ export class ServicesController {
     private readonly updateServiceUseCase: UpdateServiceUseCase,
     private readonly retireServiceUseCase: RetireServiceUseCase,
     private readonly listActiveServicesByBranchUseCase: ListActiveServicesByBranchUseCase,
+    private readonly getServiceBySlugUseCase: GetServiceBySlugUseCase,
     private readonly assignEmployeeUseCase: AssignEmployeeUseCase,
     private readonly changeEmployeeAvailabilityUseCase: ChangeEmployeeAvailabilityUseCase,
     private readonly removeEmployeeUseCase: RemoveEmployeeUseCase,
@@ -154,6 +156,17 @@ export class ServicesController {
   async list(@Param('id', ParseIntPipe) branchId: number) {
     return (await this.listActiveServicesByBranchUseCase.execute(branchId)).map(
       presentService,
+    );
+  }
+
+  /** Público: un Servicio por su tramo del Enlace de reserva, aunque esté oculto. 404 si no hay uno no dado de baja con ese tramo. */
+  @Get('branches/:id/services/by-slug/:slug')
+  async getBySlug(
+    @Param('id', ParseIntPipe) branchId: number,
+    @Param('slug') slug: string,
+  ) {
+    return presentService(
+      await this.getServiceBySlugUseCase.execute(branchId, slug),
     );
   }
 

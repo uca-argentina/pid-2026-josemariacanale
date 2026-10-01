@@ -60,6 +60,7 @@ describe('PrismaServicesRepository', () => {
     service: {
       create: jest.fn(),
       findUnique: jest.fn(),
+      findFirst: jest.fn(),
       findMany: jest.fn(),
       update: jest.fn(),
     },
@@ -132,6 +133,28 @@ describe('PrismaServicesRepository', () => {
     expect(prisma.service.findMany).toHaveBeenCalledWith({
       where: { branchId: 1, retiredAt: null },
       include: VISIBLE_EMPLOYEES,
+    });
+  });
+
+  describe('findActiveBySlug', () => {
+    it('finds the Service of that Branch with that slug, among the ones not dados de baja, hidden or not', async () => {
+      prisma.service.findFirst.mockResolvedValue(SERVICE_ROW);
+
+      await expect(repository.findActiveBySlug(1, 'haircut')).resolves.toEqual(
+        SERVICE,
+      );
+      expect(prisma.service.findFirst).toHaveBeenCalledWith({
+        where: { branchId: 1, slug: 'haircut', retiredAt: null },
+        include: VISIBLE_EMPLOYEES,
+      });
+    });
+
+    it('answers null when there is none', async () => {
+      prisma.service.findFirst.mockResolvedValue(null);
+
+      await expect(
+        repository.findActiveBySlug(1, 'haircut'),
+      ).resolves.toBeNull();
     });
   });
 

@@ -1206,10 +1206,87 @@ describe('Servicio', () => {
       expect(JSON.stringify(res.body)).not.toContain(ANAS_EMPLOYEE.email);
     });
 
+    it('leaves out the Servicios ocultos', async () => {
+      t.branches.findById.mockResolvedValue(BRANCH);
+      t.services.listActiveByBranch.mockResolvedValue([
+        SERVICE,
+        { ...SERVICE, id: 2, slug: 'oculto', hidden: true },
+      ]);
+
+      const res = await t.http
+        .get(`/branches/${BRANCH.id}/services`)
+        .expect(200);
+
+      expect(res.body).toEqual([PRESENTED_SERVICE]);
+    });
+
     it('answers 404 for an unknown Sucursal', async () => {
       t.branches.findById.mockResolvedValue(null);
 
       await t.http.get('/branches/999/services').expect(404);
+    });
+  });
+
+  describe('GET /branches/:id/services/by-slug/:slug', () => {
+    beforeEach(() => t.branches.findById.mockResolvedValue(BRANCH));
+
+    it('answers a visible Servicio by its tramo, without a Sesión', async () => {
+      t.services.findActiveBySlug.mockResolvedValue(SERVICE);
+
+      const res = await t.http
+        .get(`/branches/${BRANCH.id}/services/by-slug/${SERVICE.slug}`)
+        .expect(200);
+
+      expect(res.body).toEqual(PRESENTED_SERVICE);
+      expect(t.services.findActiveBySlug).toHaveBeenCalledWith(
+        BRANCH.id,
+        SERVICE.slug,
+      );
+    });
+
+    it('answers a Servicio oculto too: its tramo is the way in', async () => {
+      t.services.findActiveBySlug.mockResolvedValue({
+        ...SERVICE,
+        hidden: true,
+      });
+
+      const res = await t.http
+        .get(`/branches/${BRANCH.id}/services/by-slug/${SERVICE.slug}`)
+        .expect(200);
+
+      expect(res.body).toEqual({ ...PRESENTED_SERVICE, hidden: true });
+    });
+
+    it('compares the tramo in lowercase', async () => {
+      t.services.findActiveBySlug.mockResolvedValue(SERVICE);
+
+      await t.http
+        .get(`/branches/${BRANCH.id}/services/by-slug/HairCut`)
+        .expect(200);
+
+      expect(t.services.findActiveBySlug).toHaveBeenCalledWith(
+        BRANCH.id,
+        'haircut',
+      );
+    });
+
+    it('answers 404 for a tramo that no active Servicio of that Sucursal has: unknown, dado de baja or of another Sucursal', async () => {
+      t.services.findActiveBySlug.mockResolvedValue(null);
+
+      const res = await t.http
+        .get(`/branches/${BRANCH.id}/services/by-slug/${SERVICE.slug}`)
+        .expect(404);
+
+      expect(res.body.message).toBe('Service not found');
+    });
+
+    it('answers 404 for an unknown Sucursal', async () => {
+      t.branches.findById.mockResolvedValue(null);
+
+      await t.http
+        .get(`/branches/999/services/by-slug/${SERVICE.slug}`)
+        .expect(404);
+      expect(t.services.findActiveBySlug).not.toHaveBeenCalled();
     });
   });
 

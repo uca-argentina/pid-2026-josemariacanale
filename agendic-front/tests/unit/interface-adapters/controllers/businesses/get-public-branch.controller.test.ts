@@ -37,6 +37,7 @@ describe('getPublicBranchController', () => {
                 { id: 5, url: 'https://img.example/b.jpg' },
                 { id: 4, url: 'https://img.example/a.jpg' },
             ],
+            selectedService: null,
         });
         expect(useCase).toHaveBeenCalledWith({ businessSlug: 'vitalia', branchSlug: 'centro' });
     });
@@ -55,6 +56,29 @@ describe('getPublicBranchController', () => {
         await expect(
             getPublicBranchController(instrumentation, useCase)({ businessSlug: 'vitalia', branchSlug: 'centro' }),
         ).resolves.toMatchObject({ images: [] });
+    });
+
+    it('presents the Servicio of the tramo as the chosen one, with the same fields as the listed ones', async () => {
+        const centro = { id: 10, businessId: 1, name: 'Centro', address: 'Av. 1', opensAt: '09:00', closesAt: '18:00', timeZone: TZ, slug: 'centro' };
+        const ana = { id: 1, name: 'Ana' };
+        const hidden = { id: 101, branchId: 10, name: 'Masaje VIP', description: null, category: 'SPA', durationMinutes: 90, price: 30000, depositPercent: null, employees: [ana] };
+        const useCase = jest.fn().mockResolvedValue({
+            business: { id: 1, name: 'Vitalia', description: 'Desc', slug: 'vitalia', ownerId: 7 },
+            branch: centro,
+            branches: [centro],
+            services: [],
+            employees: [],
+            images: [],
+            selectedService: hidden,
+        });
+
+        await expect(
+            getPublicBranchController(instrumentation, useCase)({ businessSlug: 'vitalia', branchSlug: 'centro', serviceSlug: 'Masaje-VIP' }),
+        ).resolves.toMatchObject({
+            services: [],
+            selectedService: { id: 101, name: 'Masaje VIP', description: null, category: 'SPA', durationMinutes: 90, price: 30000, depositPercent: null, employees: [ana] },
+        });
+        expect(useCase).toHaveBeenCalledWith({ businessSlug: 'vitalia', branchSlug: 'centro', serviceSlug: 'masaje-vip' });
     });
 
     it('lowercases both tramos', async () => {
@@ -78,6 +102,8 @@ describe('getPublicBranchController', () => {
         ['Sucursal tramo missing', { businessSlug: 'vitalia' }],
         ['Sucursal tramo too short', { businessSlug: 'vitalia', branchSlug: 'ce' }],
         ['Sucursal tramo malformed', { businessSlug: 'vitalia', branchSlug: 'centro--sur' }],
+        ['Servicio tramo too short', { businessSlug: 'vitalia', branchSlug: 'centro', serviceSlug: 'ma' }],
+        ['Servicio tramo malformed', { businessSlug: 'vitalia', branchSlug: 'centro', serviceSlug: 'masaje vip' }],
     ])('throws InputParseError with the %s, without calling the use case', async (_case, input) => {
         const useCase = jest.fn();
 

@@ -8,8 +8,15 @@ export interface IPublicBusinessesRepository {
     // Throws NotFoundError (404) if no Negocio has that Enlace de reserva.
     getBusinessBySlug(slug: string): Promise<Business>;
     listBranches(businessId: number): Promise<Branch[]>;
-    // Only the active Servicios of the Sucursal.
+    // Only the active Servicios of the Sucursal, without the hidden ones.
     listServices(branchId: number): Promise<Service[]>;
+    /**
+     * Gets the Servicio of the Sucursal with that tramo of the Enlace de reserva, even if hidden (ADR 0018).
+     *
+     * @throws {NotFoundError} the Sucursal has no such Servicio, or it was dado de baja
+     * @throws {ApiRequestError} the back failed or answered an unexpected body
+     */
+    getServiceBySlug(branchId: number, slug: string): Promise<Service>;
     // Already in gallery order; empty when the Sucursal has no Imágenes yet.
     listBranchImages(branchId: number): Promise<BranchImage[]>;
 }
