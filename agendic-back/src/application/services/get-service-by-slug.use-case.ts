@@ -24,6 +24,7 @@ export class GetServiceBySlugUseCase {
    * Devuelve el Servicio aunque esté oculto: su tramo es la única puerta a él. El tramo se compara en minúsculas.
    *
    * @throws {NotFoundError} la Sucursal no existe, o ningún Servicio suyo no dado de baja tiene ese tramo
+   * @throws {DatabaseOperationError} falló la base
    */
   async execute(branchId: number, slug: string): Promise<Service> {
     const branch = await this.branches.findById(branchId);

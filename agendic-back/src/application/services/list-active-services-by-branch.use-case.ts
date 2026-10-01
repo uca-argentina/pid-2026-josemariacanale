@@ -19,7 +19,11 @@ export class ListActiveServicesByBranchUseCase {
     private readonly services: ServicesRepository,
   ) {}
 
-  /** Los Servicios ocultos no salen: se llega a ellos solo por su Enlace de reserva (ADR 0018). */
+  /**
+   * Los Servicios ocultos no salen: se llega a ellos solo por su Enlace de reserva (ADR 0018).
+   *
+   * @throws {NotFoundError} la Sucursal no existe
+   */
   async execute(branchId: number): Promise<Service[]> {
     const branch = await this.branches.findById(branchId);
     if (!branch) throw new NotFoundError('Branch not found');

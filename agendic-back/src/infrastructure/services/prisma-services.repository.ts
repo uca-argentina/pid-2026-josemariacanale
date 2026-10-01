@@ -82,8 +82,12 @@ export class PrismaServicesRepository implements ServicesRepository {
     ).map(toService);
   }
 
+  /**
+   * Uses findFirst, not findUnique: the slug is unique only among the Services not dados de baja (partial index, ADR 0004).
+   *
+   * @throws {DatabaseOperationError} the database failed
+   */
   async findActiveBySlug(branchId: number, slug: string) {
-    // findFirst, not findUnique: the slug is unique only among the Services not dados de baja (partial index).
     const row = await this.prisma.service
       .findFirst({
         where: { branchId, slug, retiredAt: null },

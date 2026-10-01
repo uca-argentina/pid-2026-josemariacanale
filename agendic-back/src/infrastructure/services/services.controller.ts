@@ -113,6 +113,7 @@ export class ServicesController {
     );
   }
 
+  /** Público: un Servicio por su tramo del Enlace de reserva, aunque esté oculto. 404 si no hay uno no dado de baja con ese tramo. */
   @Get('branches/:id/services/by-slug/:slug')
   async getBySlug(
     @Param('id', ParseIntPipe) branchId: number,
