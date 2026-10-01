@@ -14,6 +14,13 @@ describe('updateServiceUseCase', () => {
         expect(repo.updateService).toHaveBeenCalledWith(input);
     });
 
+    it('passes the Tiempo de preparación and the Límite diario through', async () => {
+        const repo = servicesWith({ updateService: jest.fn().mockResolvedValue({ id: 100 }) });
+
+        await updateServiceUseCase(instrumentation, repo)({ id: 100, prepMinutes: 30, dailyLimit: null });
+        expect(repo.updateService).toHaveBeenCalledWith({ id: 100, prepMinutes: 30, dailyLimit: null });
+    });
+
     it('propagates the 409 of the tramo', async () => {
         const repo = servicesWith({ updateService: jest.fn().mockRejectedValue(new ServiceSlugTakenError('taken')) });
 

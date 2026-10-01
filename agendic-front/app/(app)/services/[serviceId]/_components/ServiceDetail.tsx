@@ -42,21 +42,26 @@ import {
     type ServiceEditForm,
 } from '../../_components/service-form';
 import type { ServiceDetailData } from '../../_components/types';
+import { PREP_MINUTES } from '@/src/entities/models/service';
 
 type TabId = 'setup' | 'employees' | 'availability' | 'limits';
 
 const NAMES = new Intl.ListFormat('es', { type: 'conjunction' });
 
-/** Lo que muestra la pestaña Límites. Todavía no se guarda: es de otro ticket. */
-interface Limits {
-    prepMinutes: number;
-    dailyLimit: { enabled: boolean; max: number };
-}
-
-const PREP_OPTIONS = [0, 5, 10, 15, 30, 60].map((m) => ({
+const PREP_OPTIONS = PREP_MINUTES.map((m) => ({
     value: String(m),
     label: m === 0 ? 'Sin preparación' : `${m} minutos`,
 }));
+
+/** El error de un input que no va en un `PanelField`, como el porcentaje de la Seña o el máximo del Límite diario. */
+function InlineFieldError({ id, error }: { id: string; error?: string }) {
+    if (!error) return null;
+    return (
+        <p id={`${id}-error`} role="alert" className="m-0 text-[12.5px] font-medium text-[#b91c1c]">
+            {error}
+        </p>
+    );
+}
 
 function SetupTab({
     draft,
@@ -184,15 +189,7 @@ function SetupTab({
                                 {formatPrice(price - deposit)} al atender
                             </span>
                         </div>
-                        {errors.depositPercent && (
-                            <p
-                                id="service-deposit-percent-error"
-                                role="alert"
-                                className="m-0 text-[12.5px] font-medium text-[#b91c1c]"
-                            >
-                                {errors.depositPercent}
-                            </p>
-                        )}
+                        <InlineFieldError id="service-deposit-percent" error={errors.depositPercent} />
                     </div>
                 )}
                 <PanelToggleRow
@@ -277,10 +274,12 @@ function AvailabilityTab({
 function LimitsTab({
     draft,
     set,
+    errors,
     readOnly,
 }: {
-    draft: Limits;
-    set: (patch: Partial<Limits>) => void;
+    draft: ServiceEditForm;
+    set: (patch: Partial<ServiceEditForm>) => void;
+    errors: FieldErrors;
     readOnly: boolean;
 }) {
     return (
@@ -289,13 +288,13 @@ function LimitsTab({
                 <PanelField
                     label="Tiempo de preparación"
                     htmlFor="service-prep"
-                    hint="Se bloquea antes de cada turno para preparar el espacio o el equipo."
+                    hint="Se bloquea antes de cada Turno para preparar el espacio o el equipo."
                 >
                     <PanelSelect
                         id="service-prep"
-                        value={String(draft.prepMinutes)}
+                        value={draft.prepMinutes}
                         disabled={readOnly}
-                        onValueChange={(v) => set({ prepMinutes: Number(v) })}
+                        onValueChange={(prepMinutes) => set({ prepMinutes })}
                         options={PREP_OPTIONS}
                     />
                 </PanelField>
@@ -304,24 +303,27 @@ function LimitsTab({
             <PanelCard className="flex flex-col gap-5">
                 <PanelToggleRow
                     id="service-daily-limit"
-                    title="Limitar turnos por día"
-                    description="Máximo de turnos de este servicio por día, aunque el horario tenga lugar."
-                    checked={draft.dailyLimit.enabled}
+                    title="Límite diario"
+                    description="Máximo de Turnos de este Servicio por día, sumando a todos sus Empleados, aunque el horario tenga lugar."
+                    checked={draft.dailyLimitEnabled}
                     disabled={readOnly}
-                    onCheckedChange={(enabled) => set({ dailyLimit: { ...draft.dailyLimit, enabled } })}
+                    onCheckedChange={(dailyLimitEnabled) => set({ dailyLimitEnabled })}
                 />
-                {draft.dailyLimit.enabled && (
-                    <div className="pl-14">
+                {draft.dailyLimitEnabled && (
+                    <div className="flex flex-col gap-2 pl-14">
                         <PanelInput
-                            aria-label="Máximo de turnos por día"
+                            id="service-daily-limit-max"
+                            aria-label="Máximo de Turnos por día"
                             type="number"
                             min={1}
-                            suffix="turnos por día"
+                            suffix="Turnos por día"
                             className="w-[220px]"
-                            value={draft.dailyLimit.max}
+                            value={draft.dailyLimit}
                             disabled={readOnly}
-                            onChange={(e) => set({ dailyLimit: { ...draft.dailyLimit, max: Number(e.target.value) } })}
+                            aria-describedby={errors.dailyLimit ? 'service-daily-limit-max-error' : undefined}
+                            onChange={(e) => set({ dailyLimit: e.target.value })}
                         />
+                        <InlineFieldError id="service-daily-limit-max" error={errors.dailyLimit} />
                     </div>
                 )}
             </PanelCard>
@@ -412,8 +414,8 @@ function EmployeesTab({
 
 /**
  * El detalle de un Servicio. El Dueño edita y guarda la Configuración, lo oculta y lo da de baja; un Empleado lo ve en
- * solo lectura. El Dueño además elige quiénes lo atienden, en Empleados. Las pestañas Disponibilidad y Límites
- * todavía no guardan.
+ * solo lectura. Guardar incluye la pestaña Límites. El Dueño además elige quiénes lo atienden, en Empleados. La pestaña
+ * Disponibilidad todavía no guarda.
  */
 export function ServiceDetail({ detail, availabilities }: { detail: ServiceDetailData; availabilities: Availability[] }) {
     const { business, branch, service } = detail;
@@ -427,7 +429,6 @@ export function ServiceDetail({ detail, availabilities }: { detail: ServiceDetai
     const [tab, setTab] = useState<TabId>('setup');
     const [confirmRetire, setConfirmRetire] = useState(false);
     const [availabilityId, setAvailabilityId] = useState(availabilities[0]?.id);
-    const [limits, setLimits] = useState<Limits>({ prepMinutes: 0, dailyLimit: { enabled: false, max: 1 } });
     const isOwner = detail.role === 'owner';
 
     if (savedKey !== JSON.stringify(saved)) {
@@ -444,6 +445,7 @@ export function ServiceDetail({ detail, availabilities }: { detail: ServiceDetai
             const next = { ...e };
             for (const field of Object.keys(patch)) delete next[field];
             if ('depositEnabled' in patch) delete next.depositPercent;
+            if ('dailyLimitEnabled' in patch) delete next.dailyLimit;
             return next;
         });
         setFormError(null);
@@ -452,6 +454,7 @@ export function ServiceDetail({ detail, availabilities }: { detail: ServiceDetai
     const save = () => {
         if (!edit.ok) {
             setErrors(edit.errors);
+            setTab(Object.keys(edit.errors).every((field) => field === 'dailyLimit') ? 'limits' : 'setup');
             return;
         }
         startSaving(async () => {
@@ -464,8 +467,8 @@ export function ServiceDetail({ detail, availabilities }: { detail: ServiceDetai
 
     const availability = availabilities.find((a) => a.id === availabilityId) ?? availabilities[0];
     const limitsSummary = [
-        limits.prepMinutes ? `Preparación ${limits.prepMinutes} min` : 'Sin preparación',
-        limits.dailyLimit.enabled && `máx. ${limits.dailyLimit.max}/día`,
+        service.prepMinutes ? `Preparación ${service.prepMinutes} min` : 'Sin preparación',
+        service.dailyLimit !== null && `máx. ${service.dailyLimit}/día`,
     ]
         .filter(Boolean)
         .join(' · ');
@@ -594,7 +597,7 @@ export function ServiceDetail({ detail, availabilities }: { detail: ServiceDetai
                         <AvailabilityTab availability={availability} set={setAvailabilityId} availabilities={availabilities} />
                     )}
                     {tab === 'limits' && (
-                        <LimitsTab draft={limits} set={(patch) => setLimits((l) => ({ ...l, ...patch }))} readOnly={!isOwner} />
+                        <LimitsTab draft={draft} set={set} errors={errors} readOnly={!isOwner || saving} />
                     )}
                 </div>
             </div>

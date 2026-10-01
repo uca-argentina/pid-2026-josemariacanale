@@ -90,6 +90,8 @@ const service = {
     price: 20000,
     depositPercent: null,
     requiresApproval: false,
+    prepMinutes: 0,
+    dailyLimit: null,
 };
 
 describe('editFormOf', () => {
@@ -104,6 +106,17 @@ describe('editFormOf', () => {
             depositEnabled: false,
             depositPercent: '',
             requiresApproval: false,
+            prepMinutes: '0',
+            dailyLimitEnabled: false,
+            dailyLimit: '',
+        });
+    });
+
+    it('prende el Límite diario con su máximo', () => {
+        expect(editFormOf({ ...service, prepMinutes: 10, dailyLimit: 8 })).toMatchObject({
+            prepMinutes: '10',
+            dailyLimitEnabled: true,
+            dailyLimit: '8',
         });
     });
 
@@ -151,6 +164,30 @@ describe('serviceChanges', () => {
     it.each(['', '0', '101', '12.5', 'diez'])('rechaza una Seña de "%s"', (depositPercent) => {
         const result = serviceChanges(saved, { ...saved, depositEnabled: true, depositPercent });
         expect(result).toEqual({ ok: false, errors: { depositPercent: 'La Seña va de 1 a 100%, en enteros.' } });
+    });
+
+    it('manda el Tiempo de preparación como número', () => {
+        expect(serviceChanges(saved, { ...saved, prepMinutes: '30' })).toEqual({ ok: true, changes: { prepMinutes: 30 } });
+    });
+
+    it('activa el Límite diario con su máximo', () => {
+        expect(serviceChanges(saved, { ...saved, dailyLimitEnabled: true, dailyLimit: '6' })).toEqual({
+            ok: true,
+            changes: { dailyLimit: 6 },
+        });
+    });
+
+    it('saca el Límite diario mandando null', () => {
+        const limited = editFormOf({ ...service, dailyLimit: 6 });
+        expect(serviceChanges(limited, { ...limited, dailyLimitEnabled: false })).toEqual({
+            ok: true,
+            changes: { dailyLimit: null },
+        });
+    });
+
+    it.each(['', '0', '-2', '1.5', 'diez'])('rechaza un Límite diario de "%s"', (dailyLimit) => {
+        const result = serviceChanges(saved, { ...saved, dailyLimitEnabled: true, dailyLimit });
+        expect(result).toEqual({ ok: false, errors: { dailyLimit: 'El Límite diario es de al menos 1 Turno, en enteros.' } });
     });
 
     it('no deja borrar una descripción que ya tenía, porque el back no la vacía', () => {

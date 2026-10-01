@@ -23,15 +23,23 @@ export const serviceSchema = z.object({
 });
 export type Service = z.infer<typeof serviceSchema>;
 
+/** The Tiempo de preparación a Servicio may ask for, in minutes; 0 is none. */
+export const PREP_MINUTES = [0, 5, 10, 15, 30, 60] as const;
+
 /** An Empleado in charge of a Servicio in the panel's catalog, with the Availability they attend it with. */
 export const catalogServiceEmployeeSchema = serviceEmployeeSchema.extend({ availabilityId: z.number() });
 export type CatalogServiceEmployee = z.infer<typeof catalogServiceEmployeeSchema>;
 
-/** A Servicio as the panel's catalog and POST /branches/:id/services return it. `hidden` is the Servicio oculto. */
+/**
+ * A Servicio as the panel's catalog and POST /branches/:id/services return it. `hidden` is the Servicio oculto,
+ * `prepMinutes` the Tiempo de preparación and `dailyLimit` the Límite diario (null: no limit).
+ */
 export const catalogServiceSchema = serviceSchema.extend({
     slug: z.string(),
     requiresApproval: z.boolean(),
     hidden: z.boolean(),
+    prepMinutes: z.number(),
+    dailyLimit: z.number().nullable(),
     employees: z.array(catalogServiceEmployeeSchema),
 });
 export type CatalogService = z.infer<typeof catalogServiceSchema>;
@@ -72,7 +80,7 @@ export interface ServiceInCatalog {
 
 /**
  * What PATCH /services/:id accepts, plus the Servicio that goes in the path. Every field is optional: only the ones
- * sent change. `depositPercent: null` drops the Seña.
+ * sent change. `depositPercent: null` drops the Seña and `dailyLimit: null` the Límite diario.
  */
 export const updateServiceSchema = z.object({
     id: z.number().int(),
@@ -85,6 +93,11 @@ export const updateServiceSchema = z.object({
     depositPercent: z.number().int().min(0).max(100).nullable().optional(),
     requiresApproval: z.boolean().optional(),
     hidden: z.boolean().optional(),
+    prepMinutes: z
+        .number()
+        .refine((m) => (PREP_MINUTES as readonly number[]).includes(m))
+        .optional(),
+    dailyLimit: z.number().int().min(1).nullable().optional(),
 });
 export type UpdateService = z.infer<typeof updateServiceSchema>;
 

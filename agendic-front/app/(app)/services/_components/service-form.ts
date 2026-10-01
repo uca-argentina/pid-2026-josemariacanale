@@ -85,7 +85,7 @@ export const serviceFormSchema = z.object({
         .pipe(z.number({ message: 'El precio tiene que ser un número.' }).min(0, 'El precio no puede ser negativo.')),
 });
 
-/** Lo que Guardar del detalle edita, todo como texto de los inputs salvo los toggles. */
+/** Lo que Guardar del detalle edita, todo como texto de los inputs salvo los toggles. Incluye la pestaña Límites. */
 export interface ServiceEditForm {
     name: string;
     slug: string;
@@ -97,6 +97,11 @@ export interface ServiceEditForm {
     /** El porcentaje de la Seña; solo cuenta con `depositEnabled`. */
     depositPercent: string;
     requiresApproval: boolean;
+    /** El Tiempo de preparación, en minutos, como lo da el select. */
+    prepMinutes: string;
+    dailyLimitEnabled: boolean;
+    /** El máximo de Turnos por día; solo cuenta con `dailyLimitEnabled`. */
+    dailyLimit: string;
 }
 
 /** El Servicio como lo deja editar el detalle. */
@@ -109,6 +114,8 @@ export const editFormOf = (service: {
     price: number;
     depositPercent: number | null;
     requiresApproval: boolean;
+    prepMinutes: number;
+    dailyLimit: number | null;
 }): ServiceEditForm => ({
     name: service.name,
     slug: service.slug,
@@ -119,29 +126,45 @@ export const editFormOf = (service: {
     depositEnabled: service.depositPercent !== null,
     depositPercent: service.depositPercent === null ? '' : String(service.depositPercent),
     requiresApproval: service.requiresApproval,
+    prepMinutes: String(service.prepMinutes),
+    dailyLimitEnabled: service.dailyLimit !== null,
+    dailyLimit: service.dailyLimit === null ? '' : String(service.dailyLimit),
 });
 
 const DEPOSIT_MESSAGE = 'La Seña va de 1 a 100%, en enteros.';
+const DAILY_LIMIT_MESSAGE = 'El Límite diario es de al menos 1 Turno, en enteros.';
+
+const toNumber = (value: string) => (value.trim() === '' ? NaN : Number(value));
 
 const serviceEditSchema = serviceFormSchema
     .omit({ branchId: true })
-    .extend({ depositEnabled: z.boolean(), depositPercent: z.string(), requiresApproval: z.boolean() })
-    .superRefine((form, ctx) => {
-        if (!form.depositEnabled) return;
-        const percent = form.depositPercent.trim() === '' ? NaN : Number(form.depositPercent);
-        if (!Number.isInteger(percent) || percent < 1 || percent > 100)
-            ctx.addIssue({ code: 'custom', path: ['depositPercent'], message: DEPOSIT_MESSAGE });
+    .extend({
+        depositEnabled: z.boolean(),
+        depositPercent: z.string(),
+        requiresApproval: z.boolean(),
+        prepMinutes: z.string().transform(Number),
+        dailyLimitEnabled: z.boolean(),
+        dailyLimit: z.string(),
     })
-    .transform(({ depositEnabled, depositPercent, ...form }) => ({
+    .superRefine((form, ctx) => {
+        const percent = toNumber(form.depositPercent);
+        if (form.depositEnabled && (!Number.isInteger(percent) || percent < 1 || percent > 100))
+            ctx.addIssue({ code: 'custom', path: ['depositPercent'], message: DEPOSIT_MESSAGE });
+        const limit = toNumber(form.dailyLimit);
+        if (form.dailyLimitEnabled && (!Number.isInteger(limit) || limit < 1))
+            ctx.addIssue({ code: 'custom', path: ['dailyLimit'], message: DAILY_LIMIT_MESSAGE });
+    })
+    .transform(({ depositEnabled, depositPercent, dailyLimitEnabled, dailyLimit, ...form }) => ({
         ...form,
         depositPercent: depositEnabled ? Number(depositPercent) : null,
+        dailyLimit: dailyLimitEnabled ? Number(dailyLimit) : null,
     }));
 
 type ServiceChanges = Partial<z.output<typeof serviceEditSchema>>;
 
 /**
  * Valida el borrador y arma el cuerpo de `PATCH /services/:id` con solo lo que cambió respecto de lo guardado. La
- * Seña apagada viaja como `depositPercent: null`. Una descripción que ya tenía texto no se puede vaciar: el back no
+ * Seña apagada viaja como `depositPercent: null` y el Límite diario apagado, como `dailyLimit: null`. Una descripción que ya tenía texto no se puede vaciar: el back no
  * acepta una descripción vacía.
  */
 export function serviceChanges(

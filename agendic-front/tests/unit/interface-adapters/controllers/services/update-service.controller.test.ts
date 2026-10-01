@@ -17,6 +17,8 @@ const input = {
     depositPercent: 20,
     requiresApproval: true,
     hidden: true,
+    prepMinutes: 10,
+    dailyLimit: 8,
 };
 
 describe('updateServiceController', () => {
@@ -46,6 +48,13 @@ describe('updateServiceController', () => {
         expect(useCase).toHaveBeenCalledWith({ id: 100, depositPercent: null, slug: 'masaje' });
     });
 
+    it('keeps dailyLimit null, which drops the Límite diario', async () => {
+        const useCase = jest.fn().mockResolvedValue(updated);
+
+        await updateServiceController(instrumentation, signedIn(), useCase)({ id: 100, prepMinutes: 0, dailyLimit: null });
+        expect(useCase).toHaveBeenCalledWith({ id: 100, prepMinutes: 0, dailyLimit: null });
+    });
+
     it.each([
         ['a missing id', { ...input, id: undefined }],
         ['a blank name', { ...input, name: ' ' }],
@@ -59,6 +68,9 @@ describe('updateServiceController', () => {
         ['a fractional Seña', { ...input, depositPercent: 12.5 }],
         ['a Aprobación manual that is not a boolean', { ...input, requiresApproval: 'yes' }],
         ['a hidden that is not a boolean', { ...input, hidden: 'yes' }],
+        ['a Tiempo de preparación off the list', { ...input, prepMinutes: 20 }],
+        ['a Límite diario of zero', { ...input, dailyLimit: 0 }],
+        ['a fractional Límite diario', { ...input, dailyLimit: 2.5 }],
         ['no input', undefined],
     ])('throws InputParseError for %s, without calling the use case', async (_case, bad) => {
         const useCase = jest.fn();
