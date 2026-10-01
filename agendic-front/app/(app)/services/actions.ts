@@ -7,7 +7,12 @@ import { SIGN_IN_PATH } from '@/app/routes';
 import { getInjection } from '@/di/container';
 import { ApiRequestError, InputParseError, NotFoundError } from '@/src/entities/errors/common';
 import { LastEmployeeError } from '@/src/entities/errors/employee';
-import { EmployeeNotAssignableError, ServiceNameTakenError, ServiceSlugTakenError } from '@/src/entities/errors/service';
+import {
+    AvailabilityNotOfEmployeeError,
+    EmployeeNotAssignableError,
+    ServiceNameTakenError,
+    ServiceSlugTakenError,
+} from '@/src/entities/errors/service';
 
 /** Lo que el diálogo de alta necesita para cerrar, o para mostrar el error bajo su campo o al pie. */
 export type CreateServiceResult = { ok: true; name: string } | { ok: false; message: string; field?: 'name' | 'slug' };
@@ -133,5 +138,33 @@ export async function removeEmployeeAction(payload: { serviceId: number; employe
             return { ok: false, message: 'Solo el Dueño puede quitar a otro Empleado de un Servicio.' };
         getInjection('ICrashReporterService').report(error);
         return { ok: false, message: 'No pudimos dejar de ofrecer el Servicio. Intentá de nuevo.' };
+    }
+}
+
+/** El nombre del Servicio para confirmar, o el mensaje para el Usuario. */
+export type ChangeEmployeeAvailabilityResult = { ok: true; name: string } | { ok: false; message: string };
+
+/**
+ * El select de la pestaña Horas laborables: cambia la Availability con la que el propio Empleado del Usuario atiende el
+ * Servicio y refresca la página. No toca sus Turnos ya tomados. El 422 y el 404 vuelven con el `message` del back.
+ */
+export async function changeEmployeeAvailabilityAction(payload: {
+    serviceId: number;
+    employeeId: number;
+    availabilityId: number;
+}): Promise<ChangeEmployeeAvailabilityResult> {
+    try {
+        const { name } = await getInjection('IChangeEmployeeAvailabilityController')(payload);
+        refresh();
+        return { ok: true, name };
+    } catch (error) {
+        unstable_rethrow(error);
+        if (error instanceof AvailabilityNotOfEmployeeError || error instanceof NotFoundError)
+            return { ok: false, message: error.message };
+        if (isSessionExpired(error)) redirect(SIGN_IN_PATH);
+        if (error instanceof ApiRequestError && error.status === 403)
+            return { ok: false, message: 'Solo podés elegir tus propias Horas laborables.' };
+        getInjection('ICrashReporterService').report(error);
+        return { ok: false, message: 'No pudimos cambiar las Horas laborables. Intentá de nuevo.' };
     }
 }

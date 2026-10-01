@@ -1,6 +1,11 @@
 import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
 import { LastEmployeeError } from '@/src/entities/errors/employee';
-import { EmployeeNotAssignableError, ServiceNameTakenError, ServiceSlugTakenError } from '@/src/entities/errors/service';
+import {
+    AvailabilityNotOfEmployeeError,
+    EmployeeNotAssignableError,
+    ServiceNameTakenError,
+    ServiceSlugTakenError,
+} from '@/src/entities/errors/service';
 import { ServicesRepository } from '@/src/infrastructure/repositories/services.repository';
 import { authWith } from '@/tests/unit/stubs';
 
@@ -309,5 +314,47 @@ describe('ServicesRepository.removeEmployee', () => {
     it('translates a body without the count to ApiRequestError', async () => {
         respond(200, {});
         await expect(repo().removeEmployee({ serviceId: 100, employeeId: 1 })).rejects.toBeInstanceOf(ApiRequestError);
+    });
+});
+
+describe('ServicesRepository.changeEmployeeAvailability', () => {
+    const change = { serviceId: 100, employeeId: 1, availabilityId: 9 };
+
+    it('PATCHes the Availability of the Empleado in the Servicio and returns the Servicio', async () => {
+        const fetchSpy = respond(200, service);
+
+        await expect(repo().changeEmployeeAvailability(change)).resolves.toEqual(parsedService);
+        expect(fetchSpy).toHaveBeenCalledWith(
+            'http://api/services/100/employees/1',
+            expect.objectContaining({
+                method: 'PATCH',
+                headers: expect.objectContaining({ Authorization: 'Bearer tok' }),
+                body: JSON.stringify({ availabilityId: 9 }),
+            }),
+        );
+    });
+
+    it('translates the 422 to AvailabilityNotOfEmployeeError with the message of the back', async () => {
+        respond(422, { statusCode: 422, message: 'The Availability belongs to another Employee' });
+        const error = await repo().changeEmployeeAvailability(change).catch((e) => e);
+        expect(error).toBeInstanceOf(AvailabilityNotOfEmployeeError);
+        expect(error.message).toBe('The Availability belongs to another Employee');
+    });
+
+    it('translates the 404 to NotFoundError with the message of the back', async () => {
+        respond(404, { statusCode: 404, message: 'The Employee does not attend the Service' });
+        const error = await repo().changeEmployeeAvailability(change).catch((e) => e);
+        expect(error).toBeInstanceOf(NotFoundError);
+        expect(error.message).toBe('The Employee does not attend the Service');
+    });
+
+    it.each([400, 401, 403, 500])('translates a %i to ApiRequestError carrying the status', async (status) => {
+        respond(status, { statusCode: status, message: 'no' });
+        await expect(repo().changeEmployeeAvailability(change)).rejects.toMatchObject({ status });
+    });
+
+    it('translates a body that is not JSON to ApiRequestError', async () => {
+        jest.spyOn(global, 'fetch').mockResolvedValue(new Response('<html>', { status: 200 }));
+        await expect(repo().changeEmployeeAvailability(change)).rejects.toBeInstanceOf(ApiRequestError);
     });
 });

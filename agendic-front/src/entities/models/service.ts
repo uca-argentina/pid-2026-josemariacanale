@@ -115,3 +115,10 @@ export type ServiceEmployeeRef = z.infer<typeof serviceEmployeeRefSchema>;
 /** What DELETE /services/:id/employees/:employeeId answers: how many future Turnos of that Empleado got cancelled. */
 export const removedEmployeeSchema = z.object({ cancelledBookings: z.number().int().min(0) });
 export type RemovedEmployee = z.infer<typeof removedEmployeeSchema>;
+
+/** The Availability an Empleado attends a Servicio with: the path and body of PATCH /services/:id/employees/:employeeId. */
+export const serviceEmployeeAvailabilitySchema = serviceEmployeeRefSchema.extend({
+    availabilityId: z.number().int().positive(),
+});
+/** An Empleado, the Servicio they attend and the Availability they switch to. */
+export type ServiceEmployeeAvailability = z.infer<typeof serviceEmployeeAvailabilitySchema>;

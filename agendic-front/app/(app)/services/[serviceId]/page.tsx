@@ -1,7 +1,6 @@
 import { notFound, redirect, unstable_rethrow } from 'next/navigation';
 import { isSessionExpired } from '@/app/api-error';
 import { BackendErrorNotice } from '@/app/_components/BackendErrorNotice';
-import { myAvailabilities } from '@/app/(app)/_components/mock-availability';
 import { SIGN_IN_PATH } from '@/app/routes';
 import { getInjection } from '@/di/container';
 import { InputParseError, NotFoundError } from '@/src/entities/errors/common';
@@ -23,5 +22,5 @@ export default async function ServicePage({ params }: { params: Promise<{ servic
         return <BackendErrorNotice />;
     }
 
-    return <ServiceDetail detail={detail} availabilities={myAvailabilities} />;
+    return <ServiceDetail detail={detail} />;
 }

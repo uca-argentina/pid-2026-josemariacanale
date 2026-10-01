@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useOptimistic, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Calendar, ChevronRight, Clock, ExternalLink, Globe, Info, Link2, Loader2, Trash2, Users } from 'lucide-react';
@@ -21,9 +21,9 @@ import {
     PanelTextarea,
     PanelToggleRow,
 } from '@/app/(app)/_components/panel-ui';
-import { DAY_NAMES, type Availability } from '@/app/(app)/_components/mock-availability';
+import { DAY_NAMES, toWeek } from '@/app/(app)/_components/availability-week';
 import { bookingLinkPath } from '@/app/routes';
-import { updateServiceAction } from '../../actions';
+import { changeEmployeeAvailabilityAction, updateServiceAction } from '../../actions';
 import { formatPrice } from '../../_components/format';
 import {
     HiddenSwitch,
@@ -205,34 +205,66 @@ function SetupTab({
     );
 }
 
-function AvailabilityTab({
-    availability,
-    set,
-    availabilities,
-}: {
-    availability: Availability;
-    set: (availabilityId: string) => void;
-    availabilities: Availability[];
-}) {
+/**
+ * La pestaña Horas laborables: si el Usuario atiende el Servicio, elige con cuál de sus Availability lo hace, y se
+ * guarda en el momento; debajo, las Franjas de la elegida de lunes a domingo, en solo lectura. Si no lo atiende, lo
+ * invita a Ofrecerlo.
+ */
+function AvailabilityTab({ detail, onStopped }: { detail: ServiceDetailData; onStopped: () => void }) {
+    const { service, availabilities, employeeId } = detail;
+    const [chosenId, setChosenId] = useOptimistic(detail.myAvailabilityId);
+    const [saving, startSaving] = useTransition();
+
+    if (!availabilities)
+        return (
+            <PanelCard className="flex flex-col items-start gap-4">
+                <div className="flex flex-col gap-1">
+                    <span className="text-[14.5px] font-bold tracking-[-0.02em]">Todavía no ofrecés este Servicio</span>
+                    <span className="text-[13px] font-medium text-[#6b7280]">
+                        Ofrecelo para atenderlo con tus Horas laborables predeterminadas. Después podés elegir otras acá.
+                    </span>
+                </div>
+                <OfferButton service={service} employeeId={employeeId} onStopped={onStopped} />
+            </PanelCard>
+        );
+
+    const chosen = availabilities.find((a) => a.id === chosenId);
+    const week = chosen ? toWeek(chosen.intervals) : [];
+
+    const choose = (value: string) =>
+        startSaving(async () => {
+            const availabilityId = Number(value);
+            setChosenId(availabilityId);
+            const result = await changeEmployeeAvailabilityAction({ serviceId: service.id, employeeId, availabilityId });
+            if (result.ok) toast.success(`${result.name}: Horas laborables actualizadas`);
+            else toast.error(result.message);
+        });
+
     return (
         <PanelCard className="overflow-hidden p-0">
             <div className="border-b border-[#e5e7eb] p-6">
-                <PanelField label="Tu disponibilidad para este servicio" htmlFor="service-availability">
+                <PanelField
+                    label="Tus Horas laborables para este Servicio"
+                    htmlFor="service-availability"
+                    hint="Cambiarlas no toca los Turnos que ya tenés."
+                >
                     <PanelSelect
                         id="service-availability"
-                        value={availability.id}
-                        onValueChange={set}
+                        value={chosen ? String(chosen.id) : ''}
+                        disabled={saving}
+                        onValueChange={choose}
                         options={availabilities.map((a) => ({
-                            value: a.id,
+                            value: String(a.id),
                             label: a.name,
-                            badge: a.isDefault ? 'Predeterminado' : undefined,
+                            badge: a.isDefault ? 'Predeterminada' : undefined,
                         }))}
+                        placeholder="Elegí tus Horas laborables"
                     />
                 </PanelField>
             </div>
 
             <div className="flex flex-col gap-5 p-6">
-                {availability.days.map((intervals, i) => (
+                {week.map((intervals, i) => (
                     <div key={DAY_NAMES[i]} className="grid grid-cols-[140px_1fr] items-start text-[13.5px] font-medium">
                         <span className={cn('font-bold tracking-[-0.01em]', intervals.length === 0 && 'text-[#6b7280] line-through')}>
                             {DAY_NAMES[i]}
@@ -259,13 +291,15 @@ function AvailabilityTab({
                     <Globe className="size-4 text-[#6b7280]" />
                     Hora local de cada Sucursal
                 </span>
-                <Link
-                    href="/availability"
-                    className="ml-auto flex items-center gap-1.5 font-semibold text-[#6b7280] hover:text-[#0f1b2d]"
-                >
-                    Editar disponibilidad
-                    <ExternalLink className="size-4" />
-                </Link>
+                {detail.role === 'owner' && (
+                    <Link
+                        href={`/availability?empleado=${employeeId}`}
+                        className="ml-auto flex items-center gap-1.5 font-semibold text-[#6b7280] hover:text-[#0f1b2d]"
+                    >
+                        Editar Horas laborables
+                        <ExternalLink className="size-4" />
+                    </Link>
+                )}
             </div>
         </PanelCard>
     );
@@ -414,10 +448,10 @@ function EmployeesTab({
 
 /**
  * El detalle de un Servicio. El Dueño edita y guarda la Configuración, lo oculta y lo da de baja; un Empleado lo ve en
- * solo lectura. Guardar incluye la pestaña Límites. El Dueño además elige quiénes lo atienden, en Empleados. La pestaña
- * Disponibilidad todavía no guarda.
+ * solo lectura. Guardar incluye la pestaña Límites. El Dueño además elige quiénes lo atienden, en Empleados. En Horas
+ * laborables, cada uno elige con cuál de sus Availability lo atiende, y eso se guarda aparte.
  */
-export function ServiceDetail({ detail, availabilities }: { detail: ServiceDetailData; availabilities: Availability[] }) {
+export function ServiceDetail({ detail }: { detail: ServiceDetailData }) {
     const { business, branch, service } = detail;
     const router = useRouter();
     const saved = editFormOf(service);
@@ -428,7 +462,6 @@ export function ServiceDetail({ detail, availabilities }: { detail: ServiceDetai
     const [saving, startSaving] = useTransition();
     const [tab, setTab] = useState<TabId>('setup');
     const [confirmRetire, setConfirmRetire] = useState(false);
-    const [availabilityId, setAvailabilityId] = useState(availabilities[0]?.id);
     const isOwner = detail.role === 'owner';
 
     if (savedKey !== JSON.stringify(saved)) {
@@ -465,7 +498,8 @@ export function ServiceDetail({ detail, availabilities }: { detail: ServiceDetai
         });
     };
 
-    const availability = availabilities.find((a) => a.id === availabilityId) ?? availabilities[0];
+    const myAvailability = detail.availabilities?.find((a) => a.id === detail.myAvailabilityId);
+    const afterStopping = () => (!isOwner && service.hidden ? router.replace('/services') : router.refresh());
     const limitsSummary = [
         service.prepMinutes ? `Preparación ${service.prepMinutes} min` : 'Sin preparación',
         service.dailyLimit !== null && `máx. ${service.dailyLimit}/día`,
@@ -490,7 +524,12 @@ export function ServiceDetail({ detail, availabilities }: { detail: ServiceDetai
                   },
               ]
             : []),
-        { id: 'availability', icon: Calendar, title: 'Disponibilidad', subtitle: availability?.name ?? '' },
+        {
+            id: 'availability',
+            icon: Calendar,
+            title: 'Horas laborables',
+            subtitle: myAvailability?.name ?? 'No lo ofrecés',
+        },
         { id: 'limits', icon: Clock, title: 'Límites', subtitle: limitsSummary },
     ];
 
@@ -519,7 +558,7 @@ export function ServiceDetail({ detail, availabilities }: { detail: ServiceDetai
                     <OfferButton
                         service={service}
                         employeeId={detail.employeeId}
-                        onStopped={() => (!isOwner && service.hidden ? router.replace('/services') : router.refresh())}
+                        onStopped={afterStopping}
                     />
                     <PanelDivider />
                     <PanelIconGroup>
@@ -576,7 +615,7 @@ export function ServiceDetail({ detail, availabilities }: { detail: ServiceDetai
                             <Info className="mt-0.5 size-4 shrink-0" />
                             <span>
                                 Solo el Dueño de {business.name} puede editar este servicio. Vos elegís en qué horario lo
-                                atendés, en Disponibilidad.
+                                atendés, en Horas laborables.
                             </span>
                         </div>
                     )}
@@ -593,9 +632,7 @@ export function ServiceDetail({ detail, availabilities }: { detail: ServiceDetai
                     {tab === 'employees' && detail.staff && (
                         <EmployeesTab service={service} staff={detail.staff} myEmployeeId={detail.employeeId} />
                     )}
-                    {tab === 'availability' && availability && (
-                        <AvailabilityTab availability={availability} set={setAvailabilityId} availabilities={availabilities} />
-                    )}
+                    {tab === 'availability' && <AvailabilityTab detail={detail} onStopped={afterStopping} />}
                     {tab === 'limits' && (
                         <LimitsTab draft={draft} set={set} errors={errors} readOnly={!isOwner || saving} />
                     )}

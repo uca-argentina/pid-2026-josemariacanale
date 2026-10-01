@@ -3,8 +3,8 @@ import type { Availability, CreateAvailability, UpdateAvailability } from '@/src
 /**
  * Availability de los Empleados contra la API del back.
  *
- * Todo es del Dueño del Negocio del Empleado; el back responde 403 a cualquier otro Usuario y 404 si
- * el Empleado o la Availability no existen.
+ * Todo es del Dueño del Negocio del Empleado, salvo leerlas, que también puede el propio Empleado (ADR 0017); el
+ * back responde 403 a cualquier otro Usuario y 404 si el Empleado o la Availability no existen.
  */
 export interface IAvailabilitiesRepository {
     /**

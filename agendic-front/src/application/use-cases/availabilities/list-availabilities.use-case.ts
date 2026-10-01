@@ -8,7 +8,7 @@ export type IListAvailabilitiesUseCase = ReturnType<typeof listAvailabilitiesUse
 /**
  * Lista las Availability de un Empleado.
  *
- * Que sea del Dueño del Negocio lo valida el back.
+ * Que sea el Dueño del Negocio o el propio Empleado lo valida el back.
  *
  * @throws {UnauthenticatedError} no hay Sesión válida
  * @throws {NotFoundError} el Empleado no existe
