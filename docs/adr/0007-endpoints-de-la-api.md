@@ -99,12 +99,15 @@ una Sucursal); sus archivos en el storage no.
 | POST | `/branches/:id/services` | sí | Crea un servicio bajo una sucursal, con asignación inicial de empleados (solo el dueño); cada empleado entra con su Availability predeterminada; 409 si el tramo (`slug`) ya lo usa otro servicio activo de esa sucursal |
 | PATCH | `/services/:id` | sí | Actualiza un servicio (solo el dueño), incluidos `slug` y `hidden`; 409 si el tramo ya está en uso en esa sucursal |
 | DELETE | `/services/:id` | sí | Da de baja (soft-delete) un servicio (solo el dueño) |
-| POST | `/services/:id/employees` | sí | Asigna un empleado a un servicio con una Availability suya (solo el dueño); 201 con el servicio; 422 si la Availability es de otro Empleado o si el servicio está dado de baja; 404 si no existe; 409 si ya lo atiende |
-| DELETE | `/services/:id/employees/:employeeId` | sí | Quita un empleado de un servicio (solo el dueño) |
-| GET | `/branches/:id/services` | no | Lista servicios activos de una sucursal |
+| POST | `/services/:id/employees` | sí | Ofrecer: asigna un empleado a un servicio con una Availability suya (el dueño, o el propio Empleado); 200 con el servicio; 403 si un Empleado actúa por otro o no es Empleado activo del Negocio; 404 si no existe, o si está oculto y quien llama no es dueño ni lo atiende; 422 si la Availability es de otro Empleado o si el servicio está dado de baja; 409 si ya lo atiende |
+| PATCH | `/services/:id/employees/:employeeId` | sí | Cambia la Availability con la que ese empleado atiende el servicio (el dueño, o el propio Empleado); 200 con el servicio; 422 si la Availability es de otro Empleado; 404 si ese empleado no atiende el servicio o la Availability no existe; no cancela ni mueve Turnos |
+| DELETE | `/services/:id/employees/:employeeId` | sí | Dejar de ofrecer: quita un empleado de un servicio (el dueño, o el propio Empleado); `{ cancelledBookings }` con los Turnos futuros cancelados; 422 `Cannot remove the Service's last Employee` si es el último |
+| GET | `/branches/:id/services` | no | Lista servicios activos de una sucursal, sin los ocultos; 404 si la sucursal no existe |
+| GET | `/branches/:id/services/by-slug/:slug` | no | Un servicio de la sucursal por su tramo del Enlace de reserva (ADR 0018), aunque esté oculto; el tramo se compara en minúsculas; 404 si la sucursal no existe o si ningún servicio suyo no dado de baja tiene ese tramo |
 
 - `CreateServiceDto`: `{ name, description?, category, durationMinutes (int ≥1), price (number ≥0), depositPercent?, requiresApproval?, slug, hidden?, prepMinutes?, dailyLimit?, employeeIds: number[] (no vacío) }`
 - `slug` es el tramo del Servicio en el Enlace de reserva (ADR 0018): obligatorio al crear, en minúsculas, mismas reglas que el de Sucursal; único por sucursal entre los servicios no dados de baja (índice parcial, ADR 0004; un tramo de un servicio dado de baja queda libre). `hidden` (por defecto `false`) es el Servicio oculto. El servicio del body de `POST /businesses` también exige `slug` y acepta `hidden`.
+- Servicio oculto (`hidden: true`): no sale en `GET /branches/:id/services`, pero `by-slug` lo devuelve y sus Horarios reservables y `POST /bookings` funcionan igual que los de uno visible. Ocultar no es una medida de seguridad, es sacarlo de la vidriera. El front abre la página de la Sucursal con el Servicio ya elegido pidiéndolo por su tramo, y trata el 404 como página no encontrada.
 - Respuesta del servicio (`presentService`): suma `slug`, `hidden` y, en cada elemento de `employees`, `availabilityId`: `{ id, name, availabilityId }`
 - `UpdateServiceDto`: `{ name?, description?, category?, durationMinutes?, price?, depositPercent?, requiresApproval?, slug?, hidden?, prepMinutes?, dailyLimit? }`
 - `prepMinutes` (Tiempo de preparación): `0`, `5`, `10`, `15`, `30` o `60`; `0` por defecto. Otro valor, o `null` → 400. Cada Turno ocupa la agenda de su Empleado desde `startsAt − prepMinutes` hasta `endsAt`, fijado al reservar: cambiarlo no toca los Turnos ya tomados (ADR 0004).
@@ -118,6 +121,8 @@ una Sucursal); sus archivos en el storage no.
   no quedan `BOOKED` al verificarse sino `PENDING`, hasta que el Empleado los Acepta o los Rechaza.
   No booleano → 400. También vale en el `service` de `POST /businesses`.
 - `AssignEmployeeDto`: `{ employeeId, availabilityId? }`; sin `availabilityId`, el empleado entra con su Availability predeterminada
+- `ChangeEmployeeAvailabilityDto`: `{ availabilityId }`; falta o no es entero → 400
+- **Quién gestiona los Empleados de un servicio** (ADR 0017): el Dueño, por cualquiera del Staff, o el propio Empleado, cuando `employeeId` es su Empleado activo en el Negocio del servicio. Un Empleado que actúa por otro, uno dado de baja o un Usuario que no es Empleado de ese Negocio recibe 403 `Only the Dueño or that same Empleado can do this`. El front muestra tal cual el `message` del 422 del último Empleado e informa `cancelledBookings` al dejar de ofrecer.
 - Cada empleado atiende el servicio con una de sus Availability. Es una referencia: editar esa
   Availability (`PATCH /availabilities/:id`) cambia en el acto todos los servicios que la usan. La
   respuesta del servicio no dice cuál usa cada empleado.
@@ -153,11 +158,13 @@ Todo Empleado es un Usuario (ADR 0013): nombre y email los presta su cuenta, no 
 ## Availability (Horas laborables)
 
 Cada Empleado tiene una o más Availability, exactamente una predeterminada. Todo es del Dueño del
-Negocio del Empleado: cualquier otro Usuario recibe 403.
+Negocio del Empleado: cualquier otro Usuario recibe 403. La única excepción es leerlas: el propio
+Empleado activo también puede (ADR 0017); crear, editar, marcar predeterminada y borrar siguen
+siendo solo del Dueño.
 
 | Método | Ruta | Auth | Qué hace |
 |---|---|---|---|
-| GET | `/employees/:id/availabilities` | sí | Las Availability del Empleado con sus Franjas |
+| GET | `/employees/:id/availabilities` | sí | Las Availability del Empleado con sus Franjas; además del Dueño, las lee el propio Empleado activo (ADR 0017) |
 | POST | `/employees/:id/availabilities` | sí | Crea una con sus Franjas; la primera del Empleado nace predeterminada; 201 |
 | PATCH | `/availabilities/:id` | sí | Cambia el nombre y/o reemplaza el set entero de Franjas; sin `intervals` no las toca |
 | POST | `/availabilities/:id/default` | sí | La marca predeterminada y desmarca la anterior; 200 con la Availability |

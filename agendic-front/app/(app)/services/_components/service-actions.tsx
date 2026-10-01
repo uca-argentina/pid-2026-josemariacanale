@@ -1,20 +1,22 @@
 'use client';
 
-import { useState } from 'react';
-import { ExternalLink, Link2 } from 'lucide-react';
+import { useOptimistic, useState, useTransition } from 'react';
+import { ExternalLink, Link2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { PanelButton, PanelConfirm, PanelIconButton } from '@/app/(app)/_components/panel-ui';
-import { canStopOffering, type ServiceItem } from '@/app/(app)/_components/mock-services';
-import { bookingLinkPath } from '@/app/routes';
+import { PanelButton, PanelConfirm, PanelIconButton, PanelSwitch } from '@/app/(app)/_components/panel-ui';
+import { assignEmployeeAction, removeEmployeeAction, retireServiceAction, updateServiceAction } from '../actions';
+import { retiredMessage, stoppedOfferingMessage } from './format';
+import { canStopOffering, offersIt, othersAttending, type OfferableService } from './offering';
 
 /**
  * Abrir el Enlace de reserva y copiarlo. Van dentro de un `PanelIconGroup`.
- * ponytail: no hay Enlace de reserva por Servicio; abrir lleva a la página del Negocio, que elige la Sucursal.
+ *
+ * @param path la ruta del Enlace de reserva en este mismo front, como la arma `bookingLinkPath`
  */
-export function PublicLinkButtons({ url, businessSlug }: { url: string; businessSlug: string }) {
+export function PublicLinkButtons({ path }: { path: string }) {
     const copy = async () => {
         try {
-            await navigator.clipboard.writeText(url);
+            await navigator.clipboard.writeText(`${window.location.origin}${path}`);
             toast.success('Enlace de reserva copiado');
         } catch {
             toast.error('No se pudo copiar el Enlace de reserva');
@@ -23,7 +25,7 @@ export function PublicLinkButtons({ url, businessSlug }: { url: string; business
 
     return (
         <>
-            <PanelIconButton label="Abrir Enlace de reserva" onClick={() => window.open(bookingLinkPath(businessSlug), '_blank')}>
+            <PanelIconButton label="Abrir Enlace de reserva" onClick={() => window.open(path, '_blank')}>
                 <ExternalLink />
             </PanelIconButton>
             <PanelIconButton label="Copiar Enlace de reserva" onClick={copy}>
@@ -35,45 +37,204 @@ export function PublicLinkButtons({ url, businessSlug }: { url: string; business
 
 const NAMES = new Intl.ListFormat('es', { type: 'conjunction' });
 
-type OfferableService = Pick<ServiceItem, 'name' | 'offeredByMe' | 'otherEmployees'>;
+/** El Empleado sobre el que se actúa: el propio Usuario, o otro del Staff cuando lo hace el Dueño. */
+export interface OfferingEmployee {
+    id: number;
+    name: string;
+    isMe: boolean;
+}
+
+/** Ofrece el Servicio en nombre del Empleado, con su Availability predeterminada, y avisa cómo salió. */
+export async function offerService(service: OfferableService, employee: OfferingEmployee) {
+    const result = await assignEmployeeAction({ serviceId: service.id, employeeId: employee.id });
+    if (!result.ok) toast.error(result.message);
+    else if (employee.isMe) toast.success(`Ahora ofrecés ${result.name}`);
+    else toast.success(`${employee.name} ahora ofrece ${result.name}`);
+}
 
 /**
- * Ofrecer o dejar de ofrecer un Servicio, como Dueño o como Empleado. Pide confirmación, pero todavía no cambia nada.
- * Si sos el único que lo ofrece, en vez de confirmar avisa por qué no se puede.
+ * La confirmación de dejar de ofrecer un Servicio: dice quiénes lo siguen atendiendo y que los Turnos futuros del
+ * Empleado en él se cancelan; al terminar informa cuántos. Si es el único que lo atiende, en vez de confirmar explica
+ * por qué no puede.
+ *
+ * @param onStopped vuelve a la lista o la refresca, para que se vea el cambio
  */
-export function OfferButton({ service }: { service: OfferableService }) {
-    const [open, setOpen] = useState(false);
-    const offered = service.offeredByMe;
-    const blocked = offered && !canStopOffering(service);
+export function StopOfferingConfirm({
+    service,
+    employee,
+    open,
+    onOpenChange,
+    onStopped,
+}: {
+    service: OfferableService;
+    employee: OfferingEmployee;
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    onStopped: () => void;
+}) {
+    const others = othersAttending(service, employee.id);
 
-    const dialog = blocked
-        ? {
-              title: `No podés dejar de ofrecer "${service.name}"`,
-              description:
-                  'Sos el único empleado que lo atiende. Para dejarlo, otro empleado tiene que ofrecerlo primero.',
-          }
-        : {
-              title: '¿Estás seguro?',
-              description: offered
-                  ? `Vas a dejar de atender "${service.name}". Lo siguen atendiendo ${NAMES.format(service.otherEmployees)}.`
-                  : `Vas a empezar a atender "${service.name}" en los horarios que elijas en Disponibilidad.`,
-              confirmLabel: offered ? 'Dejar de ofrecer' : 'Ofrecer',
-          };
+    const stop = async () => {
+        const toastId = toast.loading(`Dejando de ofrecer ${service.name}…`);
+        const result = await removeEmployeeAction({ serviceId: service.id, employeeId: employee.id });
+        if (!result.ok) {
+            toast.error(result.message, { id: toastId });
+            return;
+        }
+        toast.success(stoppedOfferingMessage(service.name, employee.isMe ? null : employee.name, result.cancelledBookings), {
+            id: toastId,
+        });
+        onStopped();
+    };
+
+    if (!canStopOffering(service, employee.id))
+        return (
+            <PanelConfirm
+                open={open}
+                onOpenChange={onOpenChange}
+                title={
+                    employee.isMe
+                        ? `No podés dejar de ofrecer "${service.name}"`
+                        : `${employee.name} no puede dejar de ofrecer "${service.name}"`
+                }
+                description={
+                    employee.isMe
+                        ? 'Sos el único Empleado que lo atiende. Para dejarlo, otro Empleado tiene que ofrecerlo primero.'
+                        : 'Es el único Empleado que lo atiende. Para quitarlo, otro Empleado tiene que ofrecerlo primero.'
+                }
+                cancelLabel="Entendido"
+            />
+        );
+
+    return (
+        <PanelConfirm
+            open={open}
+            onOpenChange={onOpenChange}
+            title="¿Estás seguro?"
+            description={
+                employee.isMe
+                    ? `Vas a dejar de atender "${service.name}". Lo siguen atendiendo ${NAMES.format(others)}. Tus Turnos futuros de este Servicio se cancelan.`
+                    : `${employee.name} va a dejar de atender "${service.name}". Lo siguen atendiendo ${NAMES.format(others)}. Sus Turnos futuros de este Servicio se cancelan.`
+            }
+            confirmLabel="Dejar de ofrecer"
+            destructive
+            onConfirm={() => void stop()}
+        />
+    );
+}
+
+/**
+ * Ofrecer o dejar de ofrecer un Servicio, como Dueño o como Empleado, siempre sobre el propio Usuario. Ofrecer entra
+ * con sus Horas laborables predeterminadas.
+ *
+ * @param employeeId el Empleado del Usuario en el Negocio del Servicio
+ * @param onStopped vuelve a la lista o la refresca después de dejar de ofrecerlo
+ */
+export function OfferButton({
+    service,
+    employeeId,
+    onStopped,
+}: {
+    service: OfferableService;
+    employeeId: number;
+    onStopped: () => void;
+}) {
+    const [open, setOpen] = useState(false);
+    const [offering, startOffering] = useTransition();
+    const offered = offersIt(service, employeeId);
+    const me = { id: employeeId, name: '', isMe: true };
 
     return (
         <>
-            <PanelButton variant="secondary" onClick={() => setOpen(true)}>
-                {offered ? 'Dejar de ofrecer' : 'Ofrecer'}
+            <PanelButton variant="secondary" disabled={offering} onClick={() => setOpen(true)} className="min-w-[96px]">
+                {offering ? <Loader2 className="size-4 animate-spin" /> : offered ? 'Dejar de ofrecer' : 'Ofrecer'}
             </PanelButton>
-            <PanelConfirm
-                open={open}
-                onOpenChange={setOpen}
-                {...dialog}
-                cancelLabel={blocked ? 'Entendido' : 'Cancelar'}
-                destructive={offered}
-                // ponytail: todavía no hace nada; se conecta cuando exista el endpoint.
-                onConfirm={() => {}}
-            />
+            {offered ? (
+                <StopOfferingConfirm service={service} employee={me} open={open} onOpenChange={setOpen} onStopped={onStopped} />
+            ) : (
+                <PanelConfirm
+                    open={open}
+                    onOpenChange={setOpen}
+                    title="¿Estás seguro?"
+                    description={`Vas a empezar a atender "${service.name}" con tus Horas laborables predeterminadas.`}
+                    confirmLabel="Ofrecer"
+                    onConfirm={() => startOffering(() => offerService(service, me))}
+                />
+            )}
         </>
+    );
+}
+
+const HIDDEN_HINT =
+    'Un Servicio oculto no aparece en la página de la Sucursal, pero se puede Reservar entrando por su propio Enlace de reserva.';
+
+/**
+ * El switch del Dueño que oculta o muestra un Servicio en la página de su Sucursal. Guarda al tocarlo y muestra el
+ * cambio enseguida; si el back falla, vuelve atrás.
+ *
+ * @param showLabel muestra al lado si está visible u oculto, además del tooltip
+ */
+export function HiddenSwitch({ service, showLabel }: { service: { id: number; hidden: boolean }; showLabel?: boolean }) {
+    const [hidden, setHidden] = useOptimistic(service.hidden);
+    const [saving, startSaving] = useTransition();
+
+    const toggle = (visible: boolean) =>
+        startSaving(async () => {
+            setHidden(!visible);
+            const result = await updateServiceAction({ id: service.id, hidden: !visible });
+            if (!result.ok) toast.error(result.message);
+            else if (result.hidden) toast.success(`${result.name}: oculto de la página de la Sucursal`);
+            else toast.success(`${result.name}: visible en la página de la Sucursal`);
+        });
+
+    return (
+        <label className="flex items-center gap-2 text-[12.5px] font-semibold text-[#6b7280]" title={HIDDEN_HINT}>
+            <PanelSwitch
+                checked={!hidden}
+                disabled={saving}
+                onCheckedChange={toggle}
+                aria-label={hidden ? 'Mostrar en la página de la Sucursal' : 'Ocultar de la página de la Sucursal'}
+            />
+            {showLabel && (hidden ? 'Oculto de la página de la Sucursal' : 'Visible en la página de la Sucursal')}
+        </label>
+    );
+}
+
+/**
+ * La confirmación de Dar de baja un Servicio. Al terminar informa cuántos Turnos se cancelaron y llama a `onRetired`,
+ * que vuelve a la lista o la refresca.
+ */
+export function RetireServiceConfirm({
+    service,
+    open,
+    onOpenChange,
+    onRetired,
+}: {
+    service: { id: number; name: string };
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    onRetired: () => void;
+}) {
+    const retire = async () => {
+        const toastId = toast.loading(`Dando de baja ${service.name}…`);
+        const result = await retireServiceAction(service.id);
+        if (!result.ok) {
+            toast.error(result.message, { id: toastId });
+            return;
+        }
+        toast.success(retiredMessage(service.name, result.cancelledBookings), { id: toastId });
+        onRetired();
+    };
+
+    return (
+        <PanelConfirm
+            open={open}
+            onOpenChange={onOpenChange}
+            title={`¿Dar de baja "${service.name}"?`}
+            description="Deja de aparecer en tu agenda y sus Turnos futuros quedan cancelados."
+            confirmLabel="Dar de baja"
+            destructive
+            onConfirm={() => void retire()}
+        />
     );
 }

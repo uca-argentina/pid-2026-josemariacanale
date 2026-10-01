@@ -1,37 +1,57 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Calendar, ChevronRight, Clock, ExternalLink, Globe, Info, Link2, Trash2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft, Calendar, ChevronRight, Clock, ExternalLink, Globe, Info, Link2, Loader2, Trash2, Users } from 'lucide-react';
 import { toast } from 'sonner';
-import { slugify } from '@/app/_components/business-schemas';
+import type { FieldErrors } from '@/app/_components/business-schemas';
 import { cn } from '@/app/_components/utils';
 import {
+    PanelAvatar,
+    PanelBadge,
     PanelButton,
     PanelCard,
-    PanelConfirm,
     PanelDivider,
     PanelField,
     PanelIconButton,
     PanelIconGroup,
     PanelInput,
     PanelSelect,
-    PanelSwitch,
     PanelTextarea,
     PanelToggleRow,
 } from '@/app/(app)/_components/panel-ui';
-import { OfferButton, PublicLinkButtons } from '../../_components/service-actions';
-import {
-    depositAmount,
-    formatPrice,
-    bookingLink,
-    publicUrl,
-    type ServiceGroup,
-    type ServiceItem,
-} from '@/app/(app)/_components/mock-services';
 import { DAY_NAMES, type Availability } from '@/app/(app)/_components/mock-availability';
+import { bookingLinkPath } from '@/app/routes';
+import { updateServiceAction } from '../../actions';
+import { formatPrice } from '../../_components/format';
+import {
+    HiddenSwitch,
+    OfferButton,
+    PublicLinkButtons,
+    RetireServiceConfirm,
+    StopOfferingConfirm,
+    offerService,
+    type OfferingEmployee,
+} from '../../_components/service-actions';
+import {
+    CATEGORY_OPTIONS,
+    editFormOf,
+    serviceChanges,
+    slugWhileTyping,
+    type ServiceEditForm,
+} from '../../_components/service-form';
+import type { ServiceDetailData } from '../../_components/types';
 
-type TabId = 'setup' | 'availability' | 'limits';
+type TabId = 'setup' | 'employees' | 'availability' | 'limits';
+
+const NAMES = new Intl.ListFormat('es', { type: 'conjunction' });
+
+/** Lo que muestra la pestaña Límites. Todavía no se guarda: es de otro ticket. */
+interface Limits {
+    prepMinutes: number;
+    dailyLimit: { enabled: boolean; max: number };
+}
 
 const PREP_OPTIONS = [0, 5, 10, 15, 30, 60].map((m) => ({
     value: String(m),
@@ -41,44 +61,73 @@ const PREP_OPTIONS = [0, 5, 10, 15, 30, 60].map((m) => ({
 function SetupTab({
     draft,
     set,
-    businessSlug,
+    errors,
+    slugPrefix,
+    slugChanged,
     readOnly,
 }: {
-    draft: ServiceItem;
-    set: (patch: Partial<ServiceItem>) => void;
-    businessSlug: string;
+    draft: ServiceEditForm;
+    set: (patch: Partial<ServiceEditForm>) => void;
+    errors: FieldErrors;
+    slugPrefix: string;
+    slugChanged: boolean;
     readOnly: boolean;
 }) {
-    const deposit = depositAmount(draft.price, draft.deposit.percent);
+    const price = Number(draft.price) || 0;
+    const percent = Number(draft.depositPercent) || 0;
+    const deposit = Math.round((price * percent) / 100);
+    const describedBy = (field: string, id: string) => (errors[field] ? `${id}-error` : undefined);
 
     return (
         <>
             <PanelCard className="flex flex-col gap-6">
-                <PanelField label="Título" htmlFor="service-name">
-                    <PanelInput id="service-name" value={draft.name} disabled={readOnly} onChange={(e) => set({ name: e.target.value })} />
+                <PanelField label="Título" htmlFor="service-name" error={errors.name}>
+                    <PanelInput
+                        id="service-name"
+                        value={draft.name}
+                        disabled={readOnly}
+                        aria-describedby={describedBy('name', 'service-name')}
+                        onChange={(e) => set({ name: e.target.value })}
+                    />
                 </PanelField>
-                <PanelField label="Descripción" htmlFor="service-description">
+                <PanelField label="Descripción" htmlFor="service-description" error={errors.description}>
                     <PanelTextarea
                         id="service-description"
                         value={draft.description}
                         disabled={readOnly}
                         placeholder="Contale a tus clientes de qué se trata el servicio."
+                        aria-describedby={describedBy('description', 'service-description')}
                         onChange={(e) => set({ description: e.target.value })}
                     />
                 </PanelField>
-                <PanelField label="URL" htmlFor="service-slug">
+                <PanelField
+                    label="Enlace de reserva"
+                    htmlFor="service-slug"
+                    error={errors.slug}
+                    hint={slugChanged ? 'Al guardar, el Enlace de reserva anterior de este Servicio deja de funcionar.' : undefined}
+                >
                     <PanelInput
                         id="service-slug"
-                        prefix={`${bookingLink(businessSlug)}/`}
+                        prefix={slugPrefix}
                         value={draft.slug}
                         disabled={readOnly}
-                        onChange={(e) => set({ slug: slugify(e.target.value) })}
+                        aria-describedby={describedBy('slug', 'service-slug')}
+                        onChange={(e) => set({ slug: slugWhileTyping(e.target.value) })}
+                    />
+                </PanelField>
+                <PanelField label="Categoría de Servicio" htmlFor="service-category" error={errors.category}>
+                    <PanelSelect
+                        id="service-category"
+                        value={draft.category}
+                        disabled={readOnly}
+                        onValueChange={(category) => set({ category: category as ServiceEditForm['category'] })}
+                        options={CATEGORY_OPTIONS}
                     />
                 </PanelField>
             </PanelCard>
 
             <PanelCard className="flex flex-col gap-6">
-                <PanelField label="Duración" htmlFor="service-duration">
+                <PanelField label="Duración" htmlFor="service-duration" error={errors.durationMinutes}>
                     <PanelInput
                         id="service-duration"
                         type="number"
@@ -86,10 +135,11 @@ function SetupTab({
                         suffix="Minutos"
                         value={draft.durationMinutes}
                         disabled={readOnly}
-                        onChange={(e) => set({ durationMinutes: Number(e.target.value) })}
+                        aria-describedby={describedBy('durationMinutes', 'service-duration')}
+                        onChange={(e) => set({ durationMinutes: e.target.value })}
                     />
                 </PanelField>
-                <PanelField label="Precio" htmlFor="service-price">
+                <PanelField label="Precio" htmlFor="service-price" error={errors.price}>
                     <PanelInput
                         id="service-price"
                         type="number"
@@ -98,7 +148,8 @@ function SetupTab({
                         suffix="ARS"
                         value={draft.price}
                         disabled={readOnly}
-                        onChange={(e) => set({ price: Number(e.target.value) })}
+                        aria-describedby={describedBy('price', 'service-price')}
+                        onChange={(e) => set({ price: e.target.value })}
                     />
                 </PanelField>
             </PanelCard>
@@ -107,30 +158,51 @@ function SetupTab({
                 <PanelToggleRow
                     id="service-deposit"
                     title="Pedir seña"
-                    description="El cliente paga un porcentaje del precio al reservar para asegurar el turno."
-                    checked={draft.deposit.enabled}
+                    description="El cliente declara al reservar que adelanta un porcentaje del precio."
+                    checked={draft.depositEnabled}
                     disabled={readOnly}
-                    onCheckedChange={(enabled) => set({ deposit: { ...draft.deposit, enabled } })}
+                    onCheckedChange={(depositEnabled) => set({ depositEnabled })}
                 />
-                {draft.deposit.enabled && (
-                    <div className="flex flex-wrap items-center gap-3 pl-14">
-                        <PanelInput
-                            aria-label="Porcentaje de la seña"
-                            type="number"
-                            min={1}
-                            max={100}
-                            suffix="%"
-                            className="w-[120px]"
-                            value={draft.deposit.percent}
-                            disabled={readOnly}
-                            onChange={(e) => set({ deposit: { ...draft.deposit, percent: Number(e.target.value) } })}
-                        />
-                        <span className="text-[13px] font-medium text-[#6b7280]">
-                            Seña de <strong className="font-bold text-[#0f1b2d]">{formatPrice(deposit)}</strong> · resta{' '}
-                            {formatPrice(draft.price - deposit)} al atender
-                        </span>
+                {draft.depositEnabled && (
+                    <div className="flex flex-col gap-2 pl-14">
+                        <div className="flex flex-wrap items-center gap-3">
+                            <PanelInput
+                                id="service-deposit-percent"
+                                aria-label="Porcentaje de la seña"
+                                type="number"
+                                min={1}
+                                max={100}
+                                suffix="%"
+                                className="w-[120px]"
+                                value={draft.depositPercent}
+                                disabled={readOnly}
+                                aria-describedby={describedBy('depositPercent', 'service-deposit-percent')}
+                                onChange={(e) => set({ depositPercent: e.target.value })}
+                            />
+                            <span className="text-[13px] font-medium text-[#6b7280]">
+                                Seña de <strong className="font-bold text-[#0f1b2d]">{formatPrice(deposit)}</strong> · resta{' '}
+                                {formatPrice(price - deposit)} al atender
+                            </span>
+                        </div>
+                        {errors.depositPercent && (
+                            <p
+                                id="service-deposit-percent-error"
+                                role="alert"
+                                className="m-0 text-[12.5px] font-medium text-[#b91c1c]"
+                            >
+                                {errors.depositPercent}
+                            </p>
+                        )}
                     </div>
                 )}
+                <PanelToggleRow
+                    id="service-requires-approval"
+                    title="Aprobación manual"
+                    description="Los Turnos quedan pendientes hasta que el Empleado los acepte o los rechace."
+                    checked={draft.requiresApproval}
+                    disabled={readOnly}
+                    onCheckedChange={(requiresApproval) => set({ requiresApproval })}
+                />
             </PanelCard>
         </>
     );
@@ -142,7 +214,7 @@ function AvailabilityTab({
     availabilities,
 }: {
     availability: Availability;
-    set: (patch: Partial<ServiceItem>) => void;
+    set: (availabilityId: string) => void;
     availabilities: Availability[];
 }) {
     return (
@@ -152,7 +224,7 @@ function AvailabilityTab({
                     <PanelSelect
                         id="service-availability"
                         value={availability.id}
-                        onValueChange={(availabilityId) => set({ availabilityId })}
+                        onValueChange={set}
                         options={availabilities.map((a) => ({
                             value: a.id,
                             label: a.name,
@@ -207,8 +279,8 @@ function LimitsTab({
     set,
     readOnly,
 }: {
-    draft: ServiceItem;
-    set: (patch: Partial<ServiceItem>) => void;
+    draft: Limits;
+    set: (patch: Partial<Limits>) => void;
     readOnly: boolean;
 }) {
     return (
@@ -257,51 +329,167 @@ function LimitsTab({
     );
 }
 
-export function ServiceDetail({
-    business,
-    role,
+/**
+ * La sección Empleados del Dueño: quiénes atienden el Servicio, quitar a cualquiera con las mismas reglas que dejar de
+ * ofrecerlo, y Ofrecerlo en nombre de otro Empleado del Staff.
+ */
+function EmployeesTab({
     service,
-    availabilities,
+    staff,
+    myEmployeeId,
 }: {
-    business: ServiceGroup['business'];
-    role: ServiceGroup['role'];
-    service: ServiceItem;
-    availabilities: Availability[];
+    service: ServiceDetailData['service'];
+    staff: NonNullable<ServiceDetailData['staff']>;
+    myEmployeeId: number;
 }) {
-    const [saved, setSaved] = useState(service);
-    const [draft, setDraft] = useState(service);
-    const [tab, setTab] = useState<TabId>('setup');
-    const [confirmRemove, setConfirmRemove] = useState(false);
-    const isOwner = role === 'owner';
-    const dirty = JSON.stringify(draft) !== JSON.stringify(saved);
-    const valid =
-        draft.name.trim() !== '' &&
-        draft.slug !== '' &&
-        draft.durationMinutes > 0 &&
-        draft.price >= 0 &&
-        (!draft.deposit.enabled || (draft.deposit.percent >= 1 && draft.deposit.percent <= 100)) &&
-        (!draft.dailyLimit.enabled || draft.dailyLimit.max >= 1);
-    const set = (patch: Partial<ServiceItem>) => setDraft((d) => ({ ...d, ...patch }));
+    const router = useRouter();
+    const [removing, setRemoving] = useState<OfferingEmployee | null>(null);
+    const [adding, setAdding] = useState('');
+    const [offering, startOffering] = useTransition();
+    const asOfferingEmployee = (e: { id: number; name: string }): OfferingEmployee => ({ ...e, isMe: e.id === myEmployeeId });
+    const available = staff.filter((e) => !service.employees.some((s) => s.id === e.id));
 
-    const availability = availabilities.find((a) => a.id === draft.availabilityId) ?? availabilities[0];
+    const add = () => {
+        const employee = staff.find((e) => String(e.id) === adding);
+        if (!employee) return;
+        startOffering(async () => {
+            await offerService(service, asOfferingEmployee(employee));
+            setAdding('');
+        });
+    };
+
+    return (
+        <PanelCard className="flex flex-col gap-5">
+            <ul className="m-0 flex list-none flex-col divide-y divide-[#e5e7eb] p-0">
+                {service.employees.map((employee) => (
+                    <li key={employee.id} className="flex items-center gap-3 py-3 first:pt-0">
+                        <PanelAvatar name={employee.name} />
+                        <span className="text-[13.5px] font-bold tracking-[-0.01em]">{employee.name}</span>
+                        {employee.id === myEmployeeId && <PanelBadge>Vos</PanelBadge>}
+                        <PanelButton variant="ghost" className="ml-auto" onClick={() => setRemoving(asOfferingEmployee(employee))}>
+                            Quitar
+                        </PanelButton>
+                    </li>
+                ))}
+            </ul>
+
+            {available.length > 0 ? (
+                <div className="flex flex-wrap items-end gap-3 border-t border-[#e5e7eb] pt-5">
+                    <div className="min-w-[220px] flex-1">
+                        <PanelField label="Ofrecerlo en nombre de" htmlFor="service-add-employee">
+                            <PanelSelect
+                                id="service-add-employee"
+                                value={adding}
+                                onValueChange={setAdding}
+                                disabled={offering}
+                                options={available.map((e) => ({ value: String(e.id), label: e.name }))}
+                                placeholder="Elegí un Empleado del Staff"
+                            />
+                        </PanelField>
+                    </div>
+                    <PanelButton disabled={!adding || offering} onClick={add} className="min-w-[96px]">
+                        {offering ? <Loader2 className="size-4 animate-spin" /> : 'Ofrecer'}
+                    </PanelButton>
+                </div>
+            ) : (
+                <p className="m-0 border-t border-[#e5e7eb] pt-5 text-[13px] font-medium text-[#6b7280]">
+                    Todo el Staff ya ofrece este Servicio.
+                </p>
+            )}
+
+            {removing && (
+                <StopOfferingConfirm
+                    service={service}
+                    employee={removing}
+                    open
+                    onOpenChange={(open) => !open && setRemoving(null)}
+                    onStopped={() => router.refresh()}
+                />
+            )}
+        </PanelCard>
+    );
+}
+
+/**
+ * El detalle de un Servicio. El Dueño edita y guarda la Configuración, lo oculta y lo da de baja; un Empleado lo ve en
+ * solo lectura. El Dueño además elige quiénes lo atienden, en Empleados. Las pestañas Disponibilidad y Límites
+ * todavía no guardan.
+ */
+export function ServiceDetail({ detail, availabilities }: { detail: ServiceDetailData; availabilities: Availability[] }) {
+    const { business, branch, service } = detail;
+    const router = useRouter();
+    const saved = editFormOf(service);
+    const [draft, setDraft] = useState(saved);
+    const [savedKey, setSavedKey] = useState(JSON.stringify(saved));
+    const [errors, setErrors] = useState<FieldErrors>({});
+    const [formError, setFormError] = useState<string | null>(null);
+    const [saving, startSaving] = useTransition();
+    const [tab, setTab] = useState<TabId>('setup');
+    const [confirmRetire, setConfirmRetire] = useState(false);
+    const [availabilityId, setAvailabilityId] = useState(availabilities[0]?.id);
+    const [limits, setLimits] = useState<Limits>({ prepMinutes: 0, dailyLimit: { enabled: false, max: 1 } });
+    const isOwner = detail.role === 'owner';
+
+    if (savedKey !== JSON.stringify(saved)) {
+        setSavedKey(JSON.stringify(saved));
+        setDraft(saved);
+    }
+
+    const edit = serviceChanges(saved, draft);
+    const dirty = !edit.ok || Object.keys(edit.changes).length > 0;
+
+    const set = (patch: Partial<ServiceEditForm>) => {
+        setDraft((d) => ({ ...d, ...patch }));
+        setErrors((e) => {
+            const next = { ...e };
+            for (const field of Object.keys(patch)) delete next[field];
+            if ('depositEnabled' in patch) delete next.depositPercent;
+            return next;
+        });
+        setFormError(null);
+    };
+
+    const save = () => {
+        if (!edit.ok) {
+            setErrors(edit.errors);
+            return;
+        }
+        startSaving(async () => {
+            const saveResult = await updateServiceAction({ id: service.id, ...edit.changes });
+            if (saveResult.ok) toast.success(`${saveResult.name}: servicio actualizado`);
+            else if (saveResult.field) setErrors((prev) => ({ ...prev, [saveResult.field!]: saveResult.message }));
+            else setFormError(saveResult.message);
+        });
+    };
+
+    const availability = availabilities.find((a) => a.id === availabilityId) ?? availabilities[0];
     const limitsSummary = [
-        draft.prepMinutes ? `Preparación ${draft.prepMinutes} min` : 'Sin preparación',
-        draft.dailyLimit.enabled && `máx. ${draft.dailyLimit.max}/día`,
+        limits.prepMinutes ? `Preparación ${limits.prepMinutes} min` : 'Sin preparación',
+        limits.dailyLimit.enabled && `máx. ${limits.dailyLimit.max}/día`,
     ]
         .filter(Boolean)
         .join(' · ');
 
     const tabs: { id: TabId; icon: typeof Link2; title: string; subtitle: string }[] = [
-        { id: 'setup', icon: Link2, title: 'Configuración', subtitle: `${draft.durationMinutes} min · ${formatPrice(draft.price)}` },
-        { id: 'availability', icon: Calendar, title: 'Disponibilidad', subtitle: availability.name },
+        {
+            id: 'setup',
+            icon: Link2,
+            title: 'Configuración',
+            subtitle: `${service.durationMinutes} min · ${formatPrice(service.price)}`,
+        },
+        ...(detail.staff
+            ? [
+                  {
+                      id: 'employees' as const,
+                      icon: Users,
+                      title: 'Empleados',
+                      subtitle: service.employees.map((e) => e.name).join(', '),
+                  },
+              ]
+            : []),
+        { id: 'availability', icon: Calendar, title: 'Disponibilidad', subtitle: availability?.name ?? '' },
         { id: 'limits', icon: Clock, title: 'Límites', subtitle: limitsSummary },
     ];
-
-    const save = () => {
-        // ponytail: no persiste; se reemplaza por la server action cuando exista el endpoint.
-        setSaved(draft);
-        toast.success(`${draft.name}: servicio actualizado`);
-    };
 
     return (
         <div className="flex-1 bg-white px-4 py-6 text-[#0f1b2d] sm:px-8">
@@ -313,32 +501,47 @@ export function ServiceDetail({
                 >
                     <ArrowLeft className="size-5" />
                 </Link>
-                <h1 className="m-0 min-w-0 truncate text-[21px] font-extrabold tracking-[-0.035em]">{draft.name || saved.name}</h1>
+                <div className="flex min-w-0 flex-col">
+                    <div className="flex min-w-0 items-center gap-2">
+                        <h1 className="m-0 min-w-0 truncate text-[21px] font-extrabold tracking-[-0.035em]">{service.name}</h1>
+                        {service.offeredByMe && <PanelBadge className="bg-[#e6f6ec] text-[#15803d]">Lo ofrecés</PanelBadge>}
+                    </div>
+                    <span className="truncate text-[12.5px] font-medium text-[#6b7280]">
+                        Lo atienden {NAMES.format(service.employees.map((e) => e.name))}
+                    </span>
+                </div>
 
-                <div className="ml-auto flex items-center gap-3">
-                    {isOwner && (
-                        <PanelSwitch
-                            checked={draft.visible}
-                            onCheckedChange={(visible) => set({ visible })}
-                            aria-label={draft.visible ? 'Ocultar del Enlace de reserva' : 'Mostrar en el Enlace de reserva'}
-                        />
-                    )}
-                    <OfferButton service={saved} />
+                <div className="ml-auto flex flex-wrap items-center gap-3">
+                    {isOwner && <HiddenSwitch service={service} showLabel />}
+                    <OfferButton
+                        service={service}
+                        employeeId={detail.employeeId}
+                        onStopped={() => (!isOwner && service.hidden ? router.replace('/services') : router.refresh())}
+                    />
                     <PanelDivider />
                     <PanelIconGroup>
-                        <PublicLinkButtons url={publicUrl(business.slug, saved.slug)} businessSlug={business.slug} />
+                        <PublicLinkButtons path={bookingLinkPath(business.slug, branch.slug, service.slug)} />
                         {isOwner && (
-                            <PanelIconButton label="Dar de baja" destructive onClick={() => setConfirmRemove(true)}>
+                            <PanelIconButton label="Dar de baja" destructive onClick={() => setConfirmRetire(true)}>
                                 <Trash2 />
                             </PanelIconButton>
                         )}
                     </PanelIconGroup>
-                    <PanelDivider />
-                    <PanelButton disabled={!dirty || !valid} onClick={save}>
-                        Guardar
-                    </PanelButton>
+                    {isOwner && (
+                        <>
+                            <PanelDivider />
+                            <PanelButton disabled={!dirty || saving} onClick={save} className="min-w-[88px]">
+                                {saving ? <Loader2 className="size-4 animate-spin" /> : 'Guardar'}
+                            </PanelButton>
+                        </>
+                    )}
                 </div>
             </header>
+            {formError && (
+                <p role="alert" className="m-0 mt-3 text-right text-[12.5px] font-medium text-[#b91c1c]">
+                    {formError}
+                </p>
+            )}
 
             <div className="mt-8 grid grid-cols-1 items-start gap-8 lg:grid-cols-[300px_minmax(0,1fr)]">
                 <nav role="tablist" aria-orientation="vertical" className="flex flex-col gap-1">
@@ -374,22 +577,36 @@ export function ServiceDetail({
                             </span>
                         </div>
                     )}
-                    {tab === 'setup' && <SetupTab draft={draft} set={set} businessSlug={business.slug} readOnly={!isOwner} />}
-                    {tab === 'availability' && <AvailabilityTab availability={availability} set={set} availabilities={availabilities} />}
-                    {tab === 'limits' && <LimitsTab draft={draft} set={set} readOnly={!isOwner} />}
+                    {tab === 'setup' && (
+                        <SetupTab
+                            draft={draft}
+                            set={set}
+                            errors={errors}
+                            slugPrefix={`${bookingLinkPath(business.slug, branch.slug)}/`}
+                            slugChanged={draft.slug !== saved.slug}
+                            readOnly={!isOwner || saving}
+                        />
+                    )}
+                    {tab === 'employees' && detail.staff && (
+                        <EmployeesTab service={service} staff={detail.staff} myEmployeeId={detail.employeeId} />
+                    )}
+                    {tab === 'availability' && availability && (
+                        <AvailabilityTab availability={availability} set={setAvailabilityId} availabilities={availabilities} />
+                    )}
+                    {tab === 'limits' && (
+                        <LimitsTab draft={limits} set={(patch) => setLimits((l) => ({ ...l, ...patch }))} readOnly={!isOwner} />
+                    )}
                 </div>
             </div>
 
-            <PanelConfirm
-                open={confirmRemove}
-                onOpenChange={setConfirmRemove}
-                title="¿Dar de baja este servicio?"
-                description="Deja de aparecer en tu agenda y sus turnos futuros quedan cancelados."
-                confirmLabel="Dar de baja"
-                destructive
-                // ponytail: todavía no hace nada; se conecta cuando exista el endpoint.
-                onConfirm={() => {}}
-            />
+            {isOwner && (
+                <RetireServiceConfirm
+                    service={service}
+                    open={confirmRetire}
+                    onOpenChange={setConfirmRetire}
+                    onRetired={() => router.replace('/services')}
+                />
+            )}
         </div>
     );
 }

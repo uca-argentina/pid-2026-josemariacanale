@@ -12,7 +12,8 @@ import {
   EMPLOYEES_REPOSITORY,
   EmployeesRepository,
 } from '../../domain/employees/employees.repository';
-import { assertEmployeeOwner } from '../employees/assert-employee-owner';
+import { NotFoundError } from '../../domain/errors';
+import { assertOwnerOrSelf } from '../employees/assert-owner-or-self';
 
 @Injectable()
 export class ListAvailabilitiesByEmployeeUseCase {
@@ -25,10 +26,19 @@ export class ListAvailabilitiesByEmployeeUseCase {
     private readonly businesses: BusinessesRepository,
   ) {}
 
+  /**
+   * Las lee el Dueño del Negocio del Empleado, o el propio Empleado (ADR 0017).
+   *
+   * @throws {NotFoundError} el Empleado no existe
+   * @throws {ForbiddenError} no es el Dueño ni ese Empleado
+   */
   async execute(userId: number, employeeId: number): Promise<Availability[]> {
-    await assertEmployeeOwner(
+    const employee = await this.employees.findById(employeeId);
+    if (!employee) throw new NotFoundError('Employee not found');
+    await assertOwnerOrSelf(
       this.employees,
       this.businesses,
+      employee.businessId,
       employeeId,
       userId,
     );

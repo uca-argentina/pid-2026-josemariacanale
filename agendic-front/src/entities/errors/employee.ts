@@ -1,4 +1,4 @@
-// 422: the Empleado is the last one attending a Servicio, so they cannot be dado de baja.
+/** 422: the Empleado is the last one attending a Servicio, so they can neither be dado de baja nor stop offering it. */
 export class LastEmployeeError extends Error {
     constructor(message: string, options?: ErrorOptions) {
         super(message, options);

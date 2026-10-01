@@ -22,7 +22,7 @@ import {
   ServicesRepository,
 } from '../../domain/services/services.repository';
 import { defaultAvailability } from '../availabilities/default-availability';
-import { assertBranchOwner } from '../branches/assert-branch-owner';
+import { assertServiceOwnerOrSelf } from './assert-service-owner-or-self';
 
 export interface AssignEmployeeInput {
   employeeId: number;
@@ -45,6 +45,16 @@ export class AssignEmployeeUseCase {
     private readonly availabilities: AvailabilitiesRepository,
   ) {}
 
+  /**
+   * Ofrecer: lo hace el Dueño por cualquiera del Staff, o el propio Empleado por sí mismo (ADR 0017).
+   *
+   * @throws {NotFoundError} el Servicio, su Sucursal, el Empleado o la Availability no existen, o el Servicio está oculto y quien
+   * llama no es Dueño ni lo atiende
+   * @throws {ForbiddenError} no es el Dueño ni ese Empleado
+   * @throws {BusinessRuleError} el Servicio está dado de baja, el Empleado no es del Negocio o está dado de baja, o la
+   * Availability es de otro Empleado
+   * @throws {ConflictError} el Empleado ya lo atiende
+   */
   async execute(
     userId: number,
     serviceId: number,
@@ -55,12 +65,20 @@ export class AssignEmployeeUseCase {
     // A Servicio dado de baja has no links: one here would keep its Availability from being deleted.
     if (service.retiredAt)
       throw new BusinessRuleError('The Service is retired');
-    const branch = await assertBranchOwner(
+    const { branch, isOwner } = await assertServiceOwnerOrSelf(
       this.branches,
       this.businesses,
-      service.branchId,
+      this.employees,
+      service,
+      employeeId,
       userId,
     );
+    if (
+      !isOwner &&
+      service.hidden &&
+      !service.employees.some(({ id }) => id === employeeId)
+    )
+      throw new NotFoundError('Service not found');
     const employee = await this.employees.findById(employeeId);
     if (!employee) throw new NotFoundError('Employee not found');
     if (

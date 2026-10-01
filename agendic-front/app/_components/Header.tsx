@@ -1,8 +1,9 @@
 import Link from 'next/link';
+import { ChevronRight } from 'lucide-react';
 import type { CurrentUser } from '@/app/(public)/(auth)/current-user';
+import { SIGNED_IN_HOME_PATH } from '@/app/routes';
 import { Button } from './ui/button';
 import { Logo } from './Logo';
-import { SignOutButton } from './SignOutButton';
 
 // `nav` son los enlaces de la landing; la página pública de un Negocio usa el mismo Header sin ellos.
 export function Header({ user, nav = true }: { user: CurrentUser | null; nav?: boolean }) {
@@ -30,15 +31,15 @@ export function Header({ user, nav = true }: { user: CurrentUser | null; nav?: b
                         <span className="text-[15px] font-semibold text-foreground px-4 py-2.5">
                             {user.name}
                         </span>
-                        <SignOutButton>
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                className="text-[15px] font-semibold text-foreground px-4 py-2.5 hover:text-primary transition-colors h-auto"
-                            >
-                                Cerrar sesión
-                            </Button>
-                        </SignOutButton>
+                        <Button
+                            asChild
+                            className="text-[15px] font-bold text-white bg-primary px-[18px] py-[11px] rounded-[10px] hover:bg-primary/90 transition-colors h-auto"
+                        >
+                            <Link href={SIGNED_IN_HOME_PATH}>
+                                Ir a la app
+                                <ChevronRight />
+                            </Link>
+                        </Button>
                     </>
                 ) : (
                     <>

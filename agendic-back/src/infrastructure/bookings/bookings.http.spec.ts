@@ -151,6 +151,13 @@ describe('Turno', () => {
       await t.http.post('/bookings').send(VALID_BOOKING).expect(201);
     });
 
+    it('books a Turno for a Servicio oculto just the same', async () => {
+      t.services.findById.mockResolvedValue({ ...SERVICE, hidden: true });
+
+      await t.http.post('/bookings').send(VALID_BOOKING).expect(201);
+      expect(t.bookings.create).toHaveBeenCalled();
+    });
+
     it('trims the name and trims and lowercases the email', async () => {
       await t.http
         .post('/bookings')

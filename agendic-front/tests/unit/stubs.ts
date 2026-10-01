@@ -3,6 +3,7 @@ import type { IBookingsRepository } from '@/src/application/repositories/booking
 import type { IEmployeeBookingsRepository } from '@/src/application/repositories/employee-bookings.repository.interface';
 import type { IOverridesRepository } from '@/src/application/repositories/overrides.repository.interface';
 import type { IPublicBusinessesRepository } from '@/src/application/repositories/public-businesses.repository.interface';
+import type { IServicesRepository } from '@/src/application/repositories/services.repository.interface';
 import type { IAuthenticationService } from '@/src/application/services/authentication.service.interface';
 import type { IInstrumentationService } from '@/src/application/services/instrumentation.service.interface';
 
@@ -21,6 +22,7 @@ export const publicBusinessesWith = (stubs: Partial<IPublicBusinessesRepository>
     getBusinessBySlug: jest.fn(notStubbed('getBusinessBySlug')),
     listBranches: jest.fn(notStubbed('listBranches')),
     listServices: jest.fn(notStubbed('listServices')),
+    getServiceBySlug: jest.fn(notStubbed('getServiceBySlug')),
     listBranchImages: jest.fn(notStubbed('listBranchImages')),
     ...stubs,
 });
@@ -55,5 +57,15 @@ export const overridesWith = (stubs: Partial<IOverridesRepository>): IOverridesR
     listOverrides: jest.fn(notStubbed('listOverrides')),
     setOverride: jest.fn(notStubbed('setOverride')),
     removeOverride: jest.fn(notStubbed('removeOverride')),
+    ...stubs,
+});
+
+export const servicesWith = (stubs: Partial<IServicesRepository>): IServicesRepository => ({
+    listMyCatalog: jest.fn(notStubbed('listMyCatalog')),
+    createService: jest.fn(notStubbed('createService')),
+    updateService: jest.fn(notStubbed('updateService')),
+    retireService: jest.fn(notStubbed('retireService')),
+    assignEmployee: jest.fn(notStubbed('assignEmployee')),
+    removeEmployee: jest.fn(notStubbed('removeEmployee')),
     ...stubs,
 });

@@ -64,6 +64,7 @@ describe('PrismaServicesRepository', () => {
     service: {
       create: jest.fn(),
       findUnique: jest.fn(),
+      findFirst: jest.fn(),
       findMany: jest.fn(),
       update: jest.fn(),
     },
@@ -143,6 +144,28 @@ describe('PrismaServicesRepository', () => {
     });
   });
 
+  describe('findActiveBySlug', () => {
+    it('finds the Service of that Branch with that slug, among the ones not dados de baja, hidden or not', async () => {
+      prisma.service.findFirst.mockResolvedValue(SERVICE_ROW);
+
+      await expect(repository.findActiveBySlug(1, 'haircut')).resolves.toEqual(
+        SERVICE,
+      );
+      expect(prisma.service.findFirst).toHaveBeenCalledWith({
+        where: { branchId: 1, slug: 'haircut', retiredAt: null },
+        include: VISIBLE_EMPLOYEES,
+      });
+    });
+
+    it('answers null when there is none', async () => {
+      prisma.service.findFirst.mockResolvedValue(null);
+
+      await expect(
+        repository.findActiveBySlug(1, 'haircut'),
+      ).resolves.toBeNull();
+    });
+  });
+
   describe('addEmployee', () => {
     it('links the Employee to the Service with the given Availability', async () => {
       prisma.service.findUnique.mockResolvedValue({ employees: [] });
@@ -208,6 +231,45 @@ describe('PrismaServicesRepository', () => {
           serviceId: 999,
           employeeId: 7,
           availabilityId: 70,
+        }),
+      ).rejects.toBeInstanceOf(NotFoundError);
+    });
+  });
+
+  describe('setEmployeeAvailability', () => {
+    it("points the Employee's link to the Service at another Availability, nothing else", async () => {
+      prisma.service.update.mockResolvedValue(SERVICE_ROW);
+
+      await expect(
+        repository.setEmployeeAvailability({
+          serviceId: 1,
+          employeeId: 7,
+          availabilityId: 11,
+        }),
+      ).resolves.toEqual(SERVICE);
+      expect(prisma.service.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: {
+          employees: {
+            update: {
+              where: { employeeId_serviceId: { employeeId: 7, serviceId: 1 } },
+              data: { availabilityId: 11 },
+            },
+          },
+        },
+        include: VISIBLE_EMPLOYEES,
+      });
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('throws NotFoundError when the Employee is not in charge of the Service', async () => {
+      prisma.service.update.mockRejectedValue(knownError('P2025'));
+
+      await expect(
+        repository.setEmployeeAvailability({
+          serviceId: 1,
+          employeeId: 7,
+          availabilityId: 11,
         }),
       ).rejects.toBeInstanceOf(NotFoundError);
     });

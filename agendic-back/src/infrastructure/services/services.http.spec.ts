@@ -6,6 +6,7 @@ import {
   ANAS_BUSINESS,
   ANAS_EMPLOYEE,
   bearer,
+  BRUNO,
   createTestApp,
   DAY_MS,
   OTHER_CLERK_TOKEN,
@@ -17,10 +18,11 @@ import {
 
 const BRANCH = ANAS_BRANCH;
 
-/** A second Empleado of Ana's. */
+/** A second Empleado of Ana's Negocio: Bruno, who is not its Dueño. */
 const OTHER_EMPLOYEE = {
   ...ANAS_EMPLOYEE,
   id: 2,
+  userId: BRUNO.id,
   name: 'Bruno Díaz',
   email: 'bruno@example.com',
 };
@@ -53,6 +55,13 @@ const scriptAvailabilities = ({ availabilities }: TestApp) => {
     async (id) => AVAILABILITIES.find((a) => a.id === id) ?? null,
   );
 };
+
+/** Answers each Empleado of Ana's Negocio by id. */
+const scriptStaff = ({ employees }: TestApp) =>
+  employees.findById.mockImplementation(
+    async (id) =>
+      [ANAS_EMPLOYEE, OTHER_EMPLOYEE].find((e) => e.id === id) ?? null,
+  );
 
 const IN_CHARGE = [
   { id: ANAS_EMPLOYEE.id, name: ANAS_EMPLOYEE.name, availabilityId: 10 },
@@ -740,7 +749,7 @@ describe('Servicio', () => {
         .post(`/services/${SERVICE.id}/employees`)
         .set(bearer(CLERK_TOKEN))
         .send({ employeeId: OTHER_EMPLOYEE.id })
-        .expect(201);
+        .expect(200);
 
       expect(t.services.addEmployee).toHaveBeenCalledWith({
         serviceId: SERVICE.id,
@@ -761,7 +770,7 @@ describe('Servicio', () => {
         .post(`/services/${SERVICE.id}/employees`)
         .set(bearer(CLERK_TOKEN))
         .send({ employeeId: OTHER_EMPLOYEE.id, availabilityId: 21 })
-        .expect(201);
+        .expect(200);
 
       expect(t.services.addEmployee).toHaveBeenCalledWith({
         serviceId: SERVICE.id,
@@ -864,7 +873,41 @@ describe('Servicio', () => {
         .expect(401);
     });
 
-    it('answers 403 for another Usuario', async () => {
+    it('lets an Empleado who is not the Dueño Ofrecer it themself, with their default Availability', async () => {
+      scriptStaff(t);
+      t.services.addEmployee.mockResolvedValue(SERVICE);
+
+      await t.http
+        .post(`/services/${SERVICE.id}/employees`)
+        .set(bearer(OTHER_CLERK_TOKEN))
+        .send({ employeeId: OTHER_EMPLOYEE.id })
+        .expect(200);
+
+      expect(t.services.addEmployee).toHaveBeenCalledWith({
+        serviceId: SERVICE.id,
+        employeeId: OTHER_EMPLOYEE.id,
+        availabilityId: 20,
+      });
+    });
+
+    it('answers 403 when an Empleado puts another Empleado in charge', async () => {
+      scriptStaff(t);
+
+      await t.http
+        .post(`/services/${SERVICE.id}/employees`)
+        .set(bearer(OTHER_CLERK_TOKEN))
+        .send({ employeeId: ANAS_EMPLOYEE.id })
+        .expect(403);
+
+      expect(t.services.addEmployee).not.toHaveBeenCalled();
+    });
+
+    it('answers 403 for a Usuario who is not an active Empleado of the Servicio Negocio', async () => {
+      t.employees.findById.mockResolvedValue({
+        ...OTHER_EMPLOYEE,
+        businessId: ANAS_BUSINESS.id + 1,
+      });
+
       await t.http
         .post(`/services/${SERVICE.id}/employees`)
         .set(bearer(OTHER_CLERK_TOKEN))
@@ -872,6 +915,47 @@ describe('Servicio', () => {
         .expect(403);
 
       expect(t.services.addEmployee).not.toHaveBeenCalled();
+    });
+
+    it('answers 403 for an Empleado dado de baja acting on themself', async () => {
+      t.employees.findById.mockResolvedValue({
+        ...OTHER_EMPLOYEE,
+        retiredAt: new Date('2026-01-01T00:00:00.000Z'),
+      });
+
+      await t.http
+        .post(`/services/${SERVICE.id}/employees`)
+        .set(bearer(OTHER_CLERK_TOKEN))
+        .send({ employeeId: OTHER_EMPLOYEE.id })
+        .expect(403);
+
+      expect(t.services.addEmployee).not.toHaveBeenCalled();
+    });
+
+    it("answers 404 when an Empleado Ofrece a Servicio oculto they don't attend", async () => {
+      scriptStaff(t);
+      t.services.findById.mockResolvedValue({ ...SERVICE, hidden: true });
+
+      await t.http
+        .post(`/services/${SERVICE.id}/employees`)
+        .set(bearer(OTHER_CLERK_TOKEN))
+        .send({ employeeId: OTHER_EMPLOYEE.id })
+        .expect(404);
+
+      expect(t.services.addEmployee).not.toHaveBeenCalled();
+    });
+
+    it('lets the Dueño Ofrecer a Servicio oculto to any Empleado', async () => {
+      t.services.findById.mockResolvedValue({ ...SERVICE, hidden: true });
+      t.services.addEmployee.mockResolvedValue(SERVICE);
+
+      await t.http
+        .post(`/services/${SERVICE.id}/employees`)
+        .set(bearer(CLERK_TOKEN))
+        .send({ employeeId: OTHER_EMPLOYEE.id })
+        .expect(200);
+
+      expect(t.services.addEmployee).toHaveBeenCalled();
     });
 
     it('answers 404 for an unknown Servicio', async () => {
@@ -975,9 +1059,59 @@ describe('Servicio', () => {
         .expect(401);
     });
 
-    it('answers 403 for another Usuario', async () => {
+    it('lets an Empleado stop offering it themself', async () => {
+      scriptStaff(t);
+      t.services.findById.mockResolvedValue({
+        ...SERVICE,
+        employees: [
+          ...IN_CHARGE,
+          {
+            id: OTHER_EMPLOYEE.id,
+            name: OTHER_EMPLOYEE.name,
+            availabilityId: 20,
+          },
+        ],
+      });
+
+      const res = await t.http
+        .delete(`/services/${SERVICE.id}/employees/${OTHER_EMPLOYEE.id}`)
+        .set(bearer(OTHER_CLERK_TOKEN))
+        .expect(200);
+
+      expect(t.services.removeEmployee).toHaveBeenCalledWith(
+        SERVICE.id,
+        OTHER_EMPLOYEE.id,
+        expect.any(Date),
+      );
+      expect(res.body).toEqual({ cancelledBookings: 0 });
+    });
+
+    it("answers 422 when the Empleado taking themself off is the Servicio's last", async () => {
+      scriptStaff(t);
+      t.services.findById.mockResolvedValue({
+        ...SERVICE,
+        employees: [
+          {
+            id: OTHER_EMPLOYEE.id,
+            name: OTHER_EMPLOYEE.name,
+            availabilityId: 20,
+          },
+        ],
+      });
+
       await t.http
         .delete(`/services/${SERVICE.id}/employees/${OTHER_EMPLOYEE.id}`)
+        .set(bearer(OTHER_CLERK_TOKEN))
+        .expect(422);
+
+      expect(t.services.removeEmployee).not.toHaveBeenCalled();
+    });
+
+    it('answers 403 when an Empleado takes another Empleado off', async () => {
+      scriptStaff(t);
+
+      await t.http
+        .delete(`/services/${SERVICE.id}/employees/${ANAS_EMPLOYEE.id}`)
         .set(bearer(OTHER_CLERK_TOKEN))
         .expect(403);
 
@@ -1005,6 +1139,143 @@ describe('Servicio', () => {
     });
   });
 
+  describe('PATCH /services/:id/employees/:employeeId', () => {
+    const path = (employeeId: number) =>
+      `/services/${SERVICE.id}/employees/${employeeId}`;
+
+    beforeEach(() => {
+      scriptSession(t);
+      scriptOtherSession(t);
+      scriptStaff(t);
+      scriptAvailabilities(t);
+      t.services.findById.mockResolvedValue(SERVICE);
+      t.branches.findById.mockResolvedValue(BRANCH);
+      t.businesses.findById.mockResolvedValue(ANAS_BUSINESS);
+      t.services.findEmployeeLink.mockImplementation(
+        async (serviceId, employeeId) => ({
+          serviceId,
+          employeeId,
+          availabilityId: employeeId === OTHER_EMPLOYEE.id ? 20 : 10,
+        }),
+      );
+      t.services.setEmployeeAvailability.mockResolvedValue({
+        ...SERVICE,
+        employees: [
+          ...IN_CHARGE,
+          {
+            id: OTHER_EMPLOYEE.id,
+            name: OTHER_EMPLOYEE.name,
+            availabilityId: 21,
+          },
+        ],
+      });
+    });
+
+    it('changes the Availability an Empleado attends it with, for the Dueño, without touching Turnos', async () => {
+      const res = await t.http
+        .patch(path(OTHER_EMPLOYEE.id))
+        .set(bearer(CLERK_TOKEN))
+        .send({ availabilityId: 21 })
+        .expect(200);
+
+      expect(t.services.setEmployeeAvailability).toHaveBeenCalledWith({
+        serviceId: SERVICE.id,
+        employeeId: OTHER_EMPLOYEE.id,
+        availabilityId: 21,
+      });
+      expect(res.body.employees).toContainEqual({
+        id: OTHER_EMPLOYEE.id,
+        name: OTHER_EMPLOYEE.name,
+        availabilityId: 21,
+      });
+      for (const method of Object.values(t.bookings))
+        expect(method).not.toHaveBeenCalled();
+    });
+
+    it('lets the Empleado change their own', async () => {
+      await t.http
+        .patch(path(OTHER_EMPLOYEE.id))
+        .set(bearer(OTHER_CLERK_TOKEN))
+        .send({ availabilityId: 21 })
+        .expect(200);
+
+      expect(t.services.setEmployeeAvailability).toHaveBeenCalled();
+    });
+
+    it("answers 422 for another Empleado's Availability, and changes nothing", async () => {
+      const res = await t.http
+        .patch(path(OTHER_EMPLOYEE.id))
+        .set(bearer(CLERK_TOKEN))
+        .send({ availabilityId: 11 })
+        .expect(422);
+
+      expect(res.body.message).toBe(
+        'La Availability tiene que ser del mismo Empleado',
+      );
+      expect(t.services.setEmployeeAvailability).not.toHaveBeenCalled();
+    });
+
+    it("answers 404 when that Empleado doesn't attend the Servicio", async () => {
+      t.services.findEmployeeLink.mockResolvedValue(null);
+
+      await t.http
+        .patch(path(OTHER_EMPLOYEE.id))
+        .set(bearer(CLERK_TOKEN))
+        .send({ availabilityId: 21 })
+        .expect(404);
+
+      expect(t.services.setEmployeeAvailability).not.toHaveBeenCalled();
+    });
+
+    it('answers 404 for an unknown Availability', async () => {
+      await t.http
+        .patch(path(OTHER_EMPLOYEE.id))
+        .set(bearer(CLERK_TOKEN))
+        .send({ availabilityId: 999 })
+        .expect(404);
+
+      expect(t.services.setEmployeeAvailability).not.toHaveBeenCalled();
+    });
+
+    it('answers 404 for an unknown Servicio', async () => {
+      t.services.findById.mockResolvedValue(null);
+
+      await t.http
+        .patch(path(OTHER_EMPLOYEE.id))
+        .set(bearer(CLERK_TOKEN))
+        .send({ availabilityId: 21 })
+        .expect(404);
+    });
+
+    it("answers 403 when an Empleado changes another Empleado's", async () => {
+      await t.http
+        .patch(path(ANAS_EMPLOYEE.id))
+        .set(bearer(OTHER_CLERK_TOKEN))
+        .send({ availabilityId: 11 })
+        .expect(403);
+
+      expect(t.services.setEmployeeAvailability).not.toHaveBeenCalled();
+    });
+
+    it('rejects a missing or non-numeric availabilityId with 400', async () => {
+      for (const body of [{}, { availabilityId: 'tarde' }])
+        await t.http
+          .patch(path(OTHER_EMPLOYEE.id))
+          .set(bearer(CLERK_TOKEN))
+          .send(body)
+          .expect(400);
+
+      expect(t.services.setEmployeeAvailability).not.toHaveBeenCalled();
+    });
+
+    it('answers 401 without a Sesión', async () => {
+      await t.http
+        .patch(path(OTHER_EMPLOYEE.id))
+        .send({ availabilityId: 21 })
+        .expect(401);
+    });
+  });
+
   describe('GET /branches/:id/services', () => {
     it("lists a Sucursal's active Servicios, and who attends each, without a Sesión", async () => {
       t.branches.findById.mockResolvedValue(BRANCH);
@@ -1018,10 +1289,87 @@ describe('Servicio', () => {
       expect(JSON.stringify(res.body)).not.toContain(ANAS_EMPLOYEE.email);
     });
 
+    it('leaves out the Servicios ocultos', async () => {
+      t.branches.findById.mockResolvedValue(BRANCH);
+      t.services.listActiveByBranch.mockResolvedValue([
+        SERVICE,
+        { ...SERVICE, id: 2, slug: 'oculto', hidden: true },
+      ]);
+
+      const res = await t.http
+        .get(`/branches/${BRANCH.id}/services`)
+        .expect(200);
+
+      expect(res.body).toEqual([PRESENTED_SERVICE]);
+    });
+
     it('answers 404 for an unknown Sucursal', async () => {
       t.branches.findById.mockResolvedValue(null);
 
       await t.http.get('/branches/999/services').expect(404);
+    });
+  });
+
+  describe('GET /branches/:id/services/by-slug/:slug', () => {
+    beforeEach(() => t.branches.findById.mockResolvedValue(BRANCH));
+
+    it('answers a visible Servicio by its tramo, without a Sesión', async () => {
+      t.services.findActiveBySlug.mockResolvedValue(SERVICE);
+
+      const res = await t.http
+        .get(`/branches/${BRANCH.id}/services/by-slug/${SERVICE.slug}`)
+        .expect(200);
+
+      expect(res.body).toEqual(PRESENTED_SERVICE);
+      expect(t.services.findActiveBySlug).toHaveBeenCalledWith(
+        BRANCH.id,
+        SERVICE.slug,
+      );
+    });
+
+    it('answers a Servicio oculto too: its tramo is the way in', async () => {
+      t.services.findActiveBySlug.mockResolvedValue({
+        ...SERVICE,
+        hidden: true,
+      });
+
+      const res = await t.http
+        .get(`/branches/${BRANCH.id}/services/by-slug/${SERVICE.slug}`)
+        .expect(200);
+
+      expect(res.body).toEqual({ ...PRESENTED_SERVICE, hidden: true });
+    });
+
+    it('compares the tramo in lowercase', async () => {
+      t.services.findActiveBySlug.mockResolvedValue(SERVICE);
+
+      await t.http
+        .get(`/branches/${BRANCH.id}/services/by-slug/HairCut`)
+        .expect(200);
+
+      expect(t.services.findActiveBySlug).toHaveBeenCalledWith(
+        BRANCH.id,
+        'haircut',
+      );
+    });
+
+    it('answers 404 for a tramo that no active Servicio of that Sucursal has: unknown, dado de baja or of another Sucursal', async () => {
+      t.services.findActiveBySlug.mockResolvedValue(null);
+
+      const res = await t.http
+        .get(`/branches/${BRANCH.id}/services/by-slug/${SERVICE.slug}`)
+        .expect(404);
+
+      expect(res.body.message).toBe('Service not found');
+    });
+
+    it('answers 404 for an unknown Sucursal', async () => {
+      t.branches.findById.mockResolvedValue(null);
+
+      await t.http
+        .get(`/branches/999/services/by-slug/${SERVICE.slug}`)
+        .expect(404);
+      expect(t.services.findActiveBySlug).not.toHaveBeenCalled();
     });
   });
 
