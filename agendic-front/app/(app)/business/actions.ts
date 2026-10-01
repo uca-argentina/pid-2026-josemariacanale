@@ -10,11 +10,11 @@ import { InputParseError } from '@/src/entities/errors/common';
 
 export type CreateBusinessResult = { ok: true; failedEmployees: string[] } | { ok: false; message: string };
 
-// Crear Negocio y después sumarle los Empleados del wizard. El back no los recibe juntos: si falla
-// un Empleado, el Negocio ya existe y el Dueño lo agrega después desde Empleados.
+// Crear Negocio y después mandar las Invitaciones del wizard. El back no las recibe juntas: si falla
+// una, el Negocio ya existe y el Dueño la manda después desde Empleados.
 export async function createBusinessAction(
     payload: unknown,
-    employees: { name: string; email: string }[],
+    emails: string[],
 ): Promise<CreateBusinessResult> {
     let business;
     try {
@@ -35,13 +35,13 @@ export async function createBusinessAction(
     }
 
     const failedEmployees: string[] = [];
-    for (const employee of employees) {
+    for (const email of emails) {
         try {
-            await getInjection('IAddEmployeeController')({ ...employee, businessId: business.id });
+            await getInjection('IAddEmployeeController')({ email, businessId: business.id });
         } catch (error) {
             unstable_rethrow(error);
             getInjection('ICrashReporterService').report(error);
-            failedEmployees.push(employee.name);
+            failedEmployees.push(email);
         }
     }
     refresh();
