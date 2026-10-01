@@ -70,9 +70,14 @@ export async function updateBusinessAction(payload: unknown): Promise<UpdateBusi
     }
 }
 
+/** Resultado de Aceptar o Rechazar una Invitaci贸n; `message` se muestra en el toast. */
 export type AnswerInvitationResult = { ok: true } | { ok: false; message: string };
 
-/** Aceptar invitaci贸n: el Usuario pasa a ser Empleado. El 422 del back (venci贸 / ya es Empleado) se muestra tal cual. */
+/**
+ * Acepta la Invitaci贸n: el Usuario pasa a ser Empleado.
+ *
+ * El 422 del back (venci贸 / ya es Empleado) vuelve con su mensaje, y se refresca porque la Invitaci贸n ya no se puede aceptar.
+ */
 export async function acceptInvitationAction(invitationId: number): Promise<AnswerInvitationResult> {
     try {
         await getInjection('IAcceptInvitationController')({ invitationId });
@@ -81,7 +86,7 @@ export async function acceptInvitationAction(invitationId: number): Promise<Answ
     } catch (error) {
         unstable_rethrow(error);
         if (error instanceof InvitationNotAcceptableError) {
-            refresh(); // la Invitaci贸n ya no est谩 pendiente
+            refresh();
             return { ok: false, message: error.message };
         }
         if (isSessionExpired(error)) redirect(SIGN_IN_PATH);
@@ -91,7 +96,7 @@ export async function acceptInvitationAction(invitationId: number): Promise<Answ
     }
 }
 
-/** Rechaza la Invitaci髇 del Usuario; la secci髇 se refresca con las que quedan. */
+/** Rechaza la Invitaci贸n del Usuario; la secci贸n se refresca con las que quedan. */
 export async function rejectInvitationAction(invitationId: number): Promise<AnswerInvitationResult> {
     try {
         await getInjection('IRejectInvitationController')({ invitationId });

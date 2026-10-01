@@ -39,15 +39,21 @@ export class EmployeesRepository implements IEmployeesRepository {
         return parseOrFail(() => invitationSchema.array().parse(body), 'GET /businesses/:id/invitations');
     }
 
+    /** @throws {ApiRequestError} la API respondió con error o con un cuerpo inesperado */
     async listMyInvitations(): Promise<MyInvitation[]> {
         const body = await this.request('GET', '/invitations/me');
         return parseOrFail(() => myInvitationSchema.array().parse(body), 'GET /invitations/me');
     }
 
+    /**
+     * @throws {InvitationNotAcceptableError} la Invitación venció o ya es Empleado (422)
+     * @throws {ApiRequestError} la API respondió con otro error
+     */
     async acceptInvitation(invitationId: number): Promise<void> {
         await this.request('POST', `/invitations/${invitationId}/accept`, { errors: { 422: InvitationNotAcceptableError } });
     }
 
+    /** @throws {ApiRequestError} la API respondió con error */
     async rejectInvitation(invitationId: number): Promise<void> {
         await this.request('POST', `/invitations/${invitationId}/reject`);
     }

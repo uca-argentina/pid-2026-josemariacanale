@@ -7,15 +7,15 @@ import { PanelAvatar, PanelButton, PanelSection } from '@/app/(app)/_components/
 import { bookingLink } from '@/app/(app)/_components/mock-services';
 import { BusinessCard } from './business-ui';
 import { CreateBusinessDialog, type Owner } from './CreateBusinessDialog';
+import type { MyInvitation as Invitation } from '@/src/entities/models/employee';
 import { acceptInvitationAction, rejectInvitationAction } from '../actions';
 
-type Invitation = { id: number; business: { name: string; slug: string } };
 
 /** Mi Negocio de un Usuario que todavía no hizo Crear Negocio: sus invitaciones y el botón para crearlo. */
 export function NoBusinessView({ owner, invitations }: { owner: Owner; invitations: Invitation[] }) {
     const [joined, setJoined] = useState<Invitation['business']>();
     const [creating, setCreating] = useState(false);
-    const [pending, startTransition] = useTransition();
+    const [isAnswering, startTransition] = useTransition();
 
     const answer = (invitation: Invitation, accepted: boolean) =>
         startTransition(async () => {
@@ -23,7 +23,7 @@ export function NoBusinessView({ owner, invitations }: { owner: Owner; invitatio
             if (!result.ok) return void toast.error(result.message);
             if (accepted) setJoined(invitation.business);
             toast.success(
-                accepted ? `Te sumaste a ${invitation.business.name}` : `Rechazaste la invitaci�n de ${invitation.business.name}`,
+                accepted ? `Te sumaste a ${invitation.business.name}` : `Rechazaste la invitación de ${invitation.business.name}`,
             );
         });
 
@@ -46,10 +46,10 @@ export function NoBusinessView({ owner, invitations }: { owner: Owner; invitatio
                                     </span>
                                 </div>
                                 <div className="ml-auto flex gap-2">
-                                    <PanelButton variant="secondary" disabled={pending} onClick={() => answer(invitation, false)}>
+                                    <PanelButton variant="secondary" disabled={isAnswering} onClick={() => answer(invitation, false)}>
                                         Rechazar
                                     </PanelButton>
-                                    <PanelButton variant="secondary" disabled={pending} onClick={() => answer(invitation, true)}>
+                                    <PanelButton variant="secondary" disabled={isAnswering} onClick={() => answer(invitation, true)}>
                                         <Check className="size-4" />
                                         Aceptar
                                     </PanelButton>

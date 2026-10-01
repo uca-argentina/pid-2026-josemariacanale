@@ -4,6 +4,7 @@ import { isSessionExpired } from '@/app/api-error';
 import { BackendErrorNotice } from '@/app/_components/BackendErrorNotice';
 import { SIGN_IN_PATH } from '@/app/routes';
 import { getInjection } from '@/di/container';
+import type { MyInvitation } from '@/src/entities/models/employee';
 import { PageHeader } from './_components/business-ui';
 import { BusinessOverview } from './_components/BusinessOverview';
 import { NoBusinessView } from './_components/NoBusinessView';
@@ -26,7 +27,7 @@ export default async function BusinessPage() {
         return <BackendErrorNotice />;
     }
 
-    let invitations: { id: number; business: { name: string; slug: string } }[] = [];
+    let invitations: MyInvitation[] = [];
     if (!business) {
         try {
             invitations = await getInjection('IListMyInvitationsController')();

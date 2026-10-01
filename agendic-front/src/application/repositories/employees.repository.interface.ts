@@ -10,10 +10,19 @@ export interface IEmployeesRepository {
     listInvitations(businessId: number): Promise<Invitation[]>;
     // Throws LastEmployeeError (422) when they are the last Empleado of a Servicio.
     retireEmployee(employeeId: number): Promise<void>;
-    // The pending Invitaciones addressed to the Usuario.
+    /** Las Invitaciones pendientes dirigidas al Usuario. */
     listMyInvitations(): Promise<MyInvitation[]>;
-    // Aceptar invitaci髇: the Usuario becomes Empleado. Throws InvitationNotAcceptableError (422) when it expired or they already are one.
+    /**
+     * Aceptar invitaci贸n: el Usuario pasa a ser Empleado.
+     *
+     * @throws {InvitationNotAcceptableError} la Invitaci贸n venci贸 o ya es Empleado (422)
+     * @throws {ApiRequestError} la Invitaci贸n no es suya (404) u otro error de la API
+     */
     acceptInvitation(invitationId: number): Promise<void>;
-    // Rechazar la Invitaci髇; it stops being pending.
+    /**
+     * Rechaza la Invitaci贸n; deja de estar pendiente.
+     *
+     * @throws {ApiRequestError} la Invitaci贸n no es suya (404) u otro error de la API
+     */
     rejectInvitation(invitationId: number): Promise<void>;
 }
