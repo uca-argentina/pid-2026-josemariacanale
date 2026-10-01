@@ -86,6 +86,37 @@ describe('PublicBusinessesRepository.listServices', () => {
     });
 });
 
+describe('PublicBusinessesRepository.getServiceBySlug', () => {
+    it('GETs the Servicio of the Sucursal by its tramo, hidden or not', async () => {
+        const fetchSpy = respond(200, { ...service, slug: 'masaje', hidden: true });
+
+        await expect(repo().getServiceBySlug(10, 'masaje')).resolves.toEqual(service);
+        expect(fetchSpy).toHaveBeenCalledWith('http://api/branches/10/services/by-slug/masaje');
+    });
+
+    it('translates a 404 (no such tramo, or dado de baja) to NotFoundError', async () => {
+        respond(404, { statusCode: 404, message: 'Service not found' });
+        await expect(repo().getServiceBySlug(10, 'nada')).rejects.toBeInstanceOf(NotFoundError);
+    });
+
+    it('translates a 500 to ApiRequestError carrying the status', async () => {
+        respond(500, { statusCode: 500, message: 'boom' });
+        await expect(repo().getServiceBySlug(10, 'masaje')).rejects.toMatchObject({ status: 500 });
+    });
+
+    it('translates a body that is not JSON to ApiRequestError', async () => {
+        jest.spyOn(global, 'fetch').mockResolvedValue(new Response('<html>', { status: 200 }));
+        await expect(repo().getServiceBySlug(10, 'masaje')).rejects.toBeInstanceOf(ApiRequestError);
+    });
+
+    it('translates a body that does not match the schema to ApiRequestError with the cause', async () => {
+        respond(200, { id: 'not a number' });
+        const error = await repo().getServiceBySlug(10, 'masaje').catch((e) => e);
+        expect(error).toBeInstanceOf(ApiRequestError);
+        expect(error.cause).toBeDefined();
+    });
+});
+
 describe('PublicBusinessesRepository.listBranchImages', () => {
     it('GETs the Imágenes of the Sucursal in the order they come', async () => {
         const images = [

@@ -28,7 +28,16 @@ describe('getPublicBranchUseCase', () => {
 
         await expect(
             getPublicBranchUseCase(instrumentation, repo)({ businessSlug: 'vitalia', branchSlug: 'palermo' }),
-        ).resolves.toEqual({ business, branch: palermo, branches: [centro, palermo], services, employees: [ana, beto], images });
+        ).resolves.toEqual({
+            business,
+            branch: palermo,
+            branches: [centro, palermo],
+            services,
+            employees: [ana, beto],
+            images,
+            selectedService: null,
+        });
+        expect(repo.getServiceBySlug).not.toHaveBeenCalled();
         expect(repo.getBusinessBySlug).toHaveBeenCalledWith('vitalia');
         expect(repo.listBranches).toHaveBeenCalledWith(1);
         expect(repo.listServices).toHaveBeenCalledWith(11);
@@ -66,6 +75,41 @@ describe('getPublicBranchUseCase', () => {
         await expect(
             getPublicBranchUseCase(instrumentation, repo)({ businessSlug: 'vitalia', branchSlug: 'centro' }),
         ).resolves.toMatchObject({ images: [first, second] });
+    });
+
+    it('with a Servicio tramo, also returns that Servicio as the chosen one, even when it is hidden and so not listed', async () => {
+        const business = { id: 1, name: 'Vitalia', description: 'Desc', slug: 'vitalia', ownerId: 7 };
+        const centro = { id: 10, businessId: 1, name: 'Centro', address: 'Av. 1', opensAt: '09:00', closesAt: '18:00', timeZone: TZ, slug: 'centro' };
+        const visible = { id: 100, branchId: 10, name: 'Masaje', description: null, category: 'SPA' as const, durationMinutes: 60, price: 20000, depositPercent: null, employees: [{ id: 1, name: 'Ana' }] };
+        const hidden = { ...visible, id: 101, name: 'Masaje VIP' };
+        const repo = publicBusinessesWith({
+            getBusinessBySlug: jest.fn().mockResolvedValue(business),
+            listBranches: jest.fn().mockResolvedValue([centro]),
+            listServices: jest.fn().mockResolvedValue([visible]),
+            listBranchImages: jest.fn().mockResolvedValue([]),
+            getServiceBySlug: jest.fn().mockResolvedValue(hidden),
+        });
+
+        await expect(
+            getPublicBranchUseCase(instrumentation, repo)({ businessSlug: 'vitalia', branchSlug: 'centro', serviceSlug: 'masaje-vip' }),
+        ).resolves.toMatchObject({ services: [visible], selectedService: hidden });
+        expect(repo.getServiceBySlug).toHaveBeenCalledWith(10, 'masaje-vip');
+    });
+
+    it('propagates NotFoundError when the Sucursal has no active Servicio with that tramo', async () => {
+        const business = { id: 1, name: 'Vitalia', description: 'Desc', slug: 'vitalia', ownerId: 7 };
+        const centro = { id: 10, businessId: 1, name: 'Centro', address: 'Av. 1', opensAt: '09:00', closesAt: '18:00', timeZone: TZ, slug: 'centro' };
+        const repo = publicBusinessesWith({
+            getBusinessBySlug: jest.fn().mockResolvedValue(business),
+            listBranches: jest.fn().mockResolvedValue([centro]),
+            listServices: jest.fn().mockResolvedValue([]),
+            listBranchImages: jest.fn().mockResolvedValue([]),
+            getServiceBySlug: jest.fn().mockRejectedValue(new NotFoundError('Service not found')),
+        });
+
+        await expect(
+            getPublicBranchUseCase(instrumentation, repo)({ businessSlug: 'vitalia', branchSlug: 'centro', serviceSlug: 'nada' }),
+        ).rejects.toBeInstanceOf(NotFoundError);
     });
 
     it('propagates NotFoundError when no Negocio has that Enlace de reserva', async () => {
