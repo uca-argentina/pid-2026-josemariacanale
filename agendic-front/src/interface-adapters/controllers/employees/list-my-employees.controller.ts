@@ -1,14 +1,16 @@
 import type { IAuthenticationService } from '@/src/application/services/authentication.service.interface';
 import type { IInstrumentationService } from '@/src/application/services/instrumentation.service.interface';
 import type { IListBusinessesUseCase } from '@/src/application/use-cases/businesses/list-businesses.use-case';
+import type { IListInvitationsUseCase } from '@/src/application/use-cases/employees/list-invitations.use-case';
 import type { IListEmployeesUseCase } from '@/src/application/use-cases/employees/list-employees.use-case';
 import type { Business } from '@/src/entities/models/business';
-import type { Employee } from '@/src/entities/models/employee';
+import type { Employee, Invitation } from '@/src/entities/models/employee';
 import type { User } from '@/src/entities/models/user';
 
 function presenter(
     business: Business | undefined,
     employees: Employee[],
+    invitations: Invitation[],
     user: User,
     instrumentationService: IInstrumentationService,
 ) {
@@ -21,6 +23,7 @@ function presenter(
             employees: employees
                 .map((e) => ({ id: e.id, name: e.name, email: e.email, role: isOwner(e) ? ('owner' as const) : ('employee' as const) }))
                 .sort((a, b) => Number(b.role === 'owner') - Number(a.role === 'owner')),
+            invitations: invitations.map((i) => ({ id: i.id, email: i.email })),
         };
     });
 }
@@ -33,11 +36,14 @@ export const listMyEmployeesController =
         authenticationService: IAuthenticationService,
         listBusinessesUseCase: IListBusinessesUseCase,
         listEmployeesUseCase: IListEmployeesUseCase,
+        listInvitationsUseCase: IListInvitationsUseCase,
     ) =>
     async (): Promise<ReturnType<typeof presenter>> =>
         instrumentationService.startSpan({ name: 'listMyEmployees Controller' }, async () => {
             const user = await authenticationService.getCurrentUser(); // throws UnauthenticatedError
             const [business] = await listBusinessesUseCase();
-            const employees = business ? await listEmployeesUseCase(business.id) : [];
-            return presenter(business, employees, user, instrumentationService);
+            const [employees, invitations] = business
+                ? await Promise.all([listEmployeesUseCase(business.id), listInvitationsUseCase(business.id)])
+                : [[], []];
+            return presenter(business, employees, invitations, user, instrumentationService);
         });

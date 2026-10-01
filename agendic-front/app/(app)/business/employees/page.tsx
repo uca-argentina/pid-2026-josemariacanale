@@ -32,6 +32,7 @@ export default async function EmployeesPage() {
             <EmployeesView
                 businessId={staff.businessId}
                 employees={staff.employees}
+                invitations={staff.invitations}
             />
         </div>
     );

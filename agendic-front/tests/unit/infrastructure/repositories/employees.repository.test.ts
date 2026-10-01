@@ -1,9 +1,10 @@
 import { ApiRequestError } from '@/src/entities/errors/common';
-import { LastEmployeeError } from '@/src/entities/errors/employee';
+import { AlreadyEmployeeError, LastEmployeeError } from '@/src/entities/errors/employee';
 import { EmployeesRepository } from '@/src/infrastructure/repositories/employees.repository';
 import { authWith } from '@/tests/unit/stubs';
 
 const employee = { id: 3, userId: 9, name: 'Martina', email: 'martina@estudio.com' };
+const invitation = { id: 5, email: 'martina@estudio.com', expiresAt: '2026-10-08T00:00:00.000Z' };
 
 const repo = (apiUrl: string | undefined = 'http://api') =>
     new EmployeesRepository(authWith({ getAccessToken: jest.fn().mockResolvedValue('tok') }), apiUrl);
@@ -54,23 +55,23 @@ describe('EmployeesRepository.listEmployees', () => {
 });
 
 describe('EmployeesRepository.addEmployee', () => {
-    it('POSTs name and email to the Negocio and returns the Empleado', async () => {
-        const fetchSpy = respond(201, employee);
+    it('POSTs the email to the Negocio and returns the Invitación', async () => {
+        const fetchSpy = respond(201, invitation);
 
-        await expect(repo().addEmployee({ businessId: 1, name: 'Martina', email: 'martina@estudio.com' })).resolves.toEqual(employee);
+        await expect(repo().addEmployee({ businessId: 1, email: 'martina@estudio.com' })).resolves.toEqual(invitation);
         expect(fetchSpy).toHaveBeenCalledWith(
             'http://api/businesses/1/employees',
             expect.objectContaining({
                 method: 'POST',
                 headers: expect.objectContaining({ Authorization: 'Bearer tok' }),
-                body: JSON.stringify({ name: 'Martina', email: 'martina@estudio.com' }),
+                body: JSON.stringify({ email: 'martina@estudio.com' }),
             }),
         );
     });
 
     it('translates a 400 to ApiRequestError carrying the status', async () => {
         respond(400, { statusCode: 400, message: 'email must be an email' });
-        await expect(repo().addEmployee({ businessId: 1, name: 'M', email: 'x' })).rejects.toMatchObject({ status: 400 });
+        await expect(repo().addEmployee({ businessId: 1, email: 'x' })).rejects.toMatchObject({ status: 400 });
     });
 });
 
@@ -93,5 +94,29 @@ describe('EmployeesRepository.retireEmployee', () => {
     it('translates other failures to ApiRequestError carrying the status', async () => {
         respond(500, { statusCode: 500, message: 'boom' });
         await expect(repo().retireEmployee(3)).rejects.toMatchObject({ status: 500 });
+    });
+});
+
+describe('EmployeesRepository.addEmployee already Empleado', () => {
+    it('translates a 422 to AlreadyEmployeeError', async () => {
+        respond(422, { statusCode: 422, message: 'Already an Employee' });
+        await expect(repo().addEmployee({ businessId: 1, email: 'martina@estudio.com' })).rejects.toBeInstanceOf(AlreadyEmployeeError);
+    });
+});
+
+describe('EmployeesRepository.listInvitations', () => {
+    it('GETs the pending Invitaciones of the Negocio with the bearer token', async () => {
+        const fetchSpy = respond(200, [invitation]);
+
+        await expect(repo().listInvitations(1)).resolves.toEqual([invitation]);
+        expect(fetchSpy).toHaveBeenCalledWith(
+            'http://api/businesses/1/invitations',
+            expect.objectContaining({ headers: expect.objectContaining({ Authorization: 'Bearer tok' }) }),
+        );
+    });
+
+    it('translates a 403 to ApiRequestError carrying the status', async () => {
+        respond(403, { statusCode: 403, message: 'no' });
+        await expect(repo().listInvitations(1)).rejects.toMatchObject({ status: 403 });
     });
 });

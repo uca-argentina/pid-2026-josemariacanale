@@ -3,17 +3,17 @@ import type { IAuthenticationService } from '@/src/application/services/authenti
 import type { IInstrumentationService } from '@/src/application/services/instrumentation.service.interface';
 import type { IAddEmployeeUseCase } from '@/src/application/use-cases/employees/add-employee.use-case';
 import { InputParseError } from '@/src/entities/errors/common';
-import { createEmployeeSchema, type Employee } from '@/src/entities/models/employee';
+import { createEmployeeSchema, type Invitation } from '@/src/entities/models/employee';
 
-function presenter(employee: Employee, instrumentationService: IInstrumentationService) {
+function presenter(invitation: Invitation, instrumentationService: IInstrumentationService) {
     return instrumentationService.startSpan({ name: 'addEmployee Presenter', op: 'serialize' }, () => ({
-        id: employee.id,
-        name: employee.name,
-        email: employee.email,
+        id: invitation.id,
+        email: invitation.email,
+        expiresAt: invitation.expiresAt,
     }));
 }
 
-const inputSchema = createEmployeeSchema.extend({ name: z.string().trim().min(1), email: z.email() });
+const inputSchema = createEmployeeSchema.extend({ email: z.email() });
 
 export type IAddEmployeeController = ReturnType<typeof addEmployeeController>;
 export const addEmployeeController =

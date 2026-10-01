@@ -85,6 +85,11 @@ export const employeeSchema = z.object({
     email: required('el email').pipe(z.email('Ingresá un email válido.')),
 });
 
+/** La forma de POST /businesses/:id/employees (una Invitación): solo el email. */
+export const inviteEmployeeSchema = z.object({
+    email: required('el email').pipe(z.email('Ingresá un email válido.')),
+});
+
 export type BusinessFields = z.input<typeof businessSchema>;
 export type BranchFields = z.input<typeof branchSchema>;
 export type ServiceFields = z.input<typeof serviceSchema>;

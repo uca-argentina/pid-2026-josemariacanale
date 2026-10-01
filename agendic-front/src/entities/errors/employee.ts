@@ -4,3 +4,10 @@ export class LastEmployeeError extends Error {
         super(message, options);
     }
 }
+
+/** 422: el email invitado ya es Empleado del Negocio. */
+export class AlreadyEmployeeError extends Error {
+    constructor(message: string, options?: ErrorOptions) {
+        super(message, options);
+    }
+}

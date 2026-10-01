@@ -1,8 +1,8 @@
 import type { IEmployeesRepository } from '@/src/application/repositories/employees.repository.interface';
 import type { IAuthenticationService } from '@/src/application/services/authentication.service.interface';
 import { ApiRequestError } from '@/src/entities/errors/common';
-import { LastEmployeeError } from '@/src/entities/errors/employee';
-import { employeeSchema, type CreateEmployee, type Employee } from '@/src/entities/models/employee';
+import { AlreadyEmployeeError, LastEmployeeError } from '@/src/entities/errors/employee';
+import { employeeSchema, invitationSchema, type CreateEmployee, type Employee, type Invitation } from '@/src/entities/models/employee';
 
 // Same as in BusinessesRepository: the boundaries lint keeps adapters from importing each other.
 function parseOrFail<T>(parse: () => T, what: string): T {
@@ -26,9 +26,17 @@ export class EmployeesRepository implements IEmployeesRepository {
         return parseOrFail(() => employeeSchema.array().parse(body), 'GET /businesses/:id/employees');
     }
 
-    async addEmployee({ businessId, ...employee }: CreateEmployee): Promise<Employee> {
-        const body = await this.request('POST', `/businesses/${businessId}/employees`, { body: employee });
-        return parseOrFail(() => employeeSchema.parse(body), 'POST /businesses/:id/employees');
+    async addEmployee({ businessId, ...invitation }: CreateEmployee): Promise<Invitation> {
+        const body = await this.request('POST', `/businesses/${businessId}/employees`, {
+            body: invitation,
+            errors: { 422: AlreadyEmployeeError },
+        });
+        return parseOrFail(() => invitationSchema.parse(body), 'POST /businesses/:id/employees');
+    }
+
+    async listInvitations(businessId: number): Promise<Invitation[]> {
+        const body = await this.request('GET', `/businesses/${businessId}/invitations`);
+        return parseOrFail(() => invitationSchema.array().parse(body), 'GET /businesses/:id/invitations');
     }
 
     async retireEmployee(employeeId: number): Promise<void> {
