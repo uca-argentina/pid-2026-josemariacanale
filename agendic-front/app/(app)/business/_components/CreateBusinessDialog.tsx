@@ -20,7 +20,7 @@ import { TimeSelect } from '@/app/(app)/_components/TimeSelect';
 import {
     branchSchema,
     businessSchema,
-    employeeSchema,
+    inviteEmployeeSchema,
     fieldErrorsOf,
     SERVICE_CATEGORIES,
     serviceSchema,
@@ -28,7 +28,7 @@ import {
     type BranchFields,
     type BusinessFields,
     type CreateBusinessPayload,
-    type EmployeeFields,
+    type InviteFields,
     type FieldErrors,
     type ServiceCategoryValue,
     type ServiceFields,
@@ -40,7 +40,7 @@ import { RoleBadge } from './business-ui';
 const STEPS = [
     { title: 'Creá tu Negocio', description: 'Necesitamos algunos datos para crear tu Negocio. Vas a poder editarlos después.' },
     { title: 'Tu primera Sucursal', description: 'Es la sede donde vas a atender. Después vas a poder agregar más.' },
-    { title: 'Sumá a tus Empleados', description: 'Invitá a quienes atienden en tu Negocio. Podés hacerlo después.' },
+    { title: 'Invitá a tus Empleados', description: 'Mandales una Invitación por email a quienes atienden en tu Negocio. Podés hacerlo después.' },
     { title: 'Tu primer Servicio', description: 'La prestación que tus Clientes van a poder reservar.' },
     { title: 'Ya casi', description: 'Revisá los datos antes de crear tu Negocio.' },
 ];
@@ -50,7 +50,7 @@ const SUMMARY_STEP = STEPS.length;
 /** El estado del paso de Servicio admite category '' hasta que el Dueño elige una; serviceSchema exige el enum real. */
 type ServiceStepFields = Omit<ServiceFields, 'category'> & { category: ServiceCategoryValue | '' };
 
-const NAMES = new Intl.ListFormat('es', { type: 'conjunction' });
+const EMAILS = new Intl.ListFormat('es', { type: 'conjunction' });
 const CATEGORY_OPTIONS = SERVICE_CATEGORIES.map((c) => ({ value: c.value, label: c.label }));
 const invalid = (errors: FieldErrors, field: string, id: string) =>
     errors[field] ? { 'aria-invalid': true, 'aria-describedby': `${id}-error` } : {};
@@ -65,9 +65,9 @@ export function CreateBusinessDialog({ owner, onClose }: { owner: Owner; onClose
     // Una vez que el Dueño edita el Enlace de reserva a mano, deja de seguir al nombre.
     const [slugEdited, setSlugEdited] = useState(false);
     const [branch, setBranch] = useState<BranchFields>({ name: '', address: '', opensAt: '', closesAt: '', timeZone: 'America/Argentina/Buenos_Aires' });
-    const [employees, setEmployees] = useState<{ name: string; email: string }[]>([]);
-    // El mini formulario de Agregar empleado; null mientras está cerrado.
-    const [draft, setDraft] = useState<EmployeeFields | null>(null);
+    const [employees, setEmployees] = useState<string[]>([]);
+    // El mini formulario de Invitar; null mientras está cerrado.
+    const [draft, setDraft] = useState<InviteFields | null>(null);
     const [service, setService] = useState<ServiceStepFields>({
         name: '',
         category: '',
@@ -87,17 +87,17 @@ export function CreateBusinessDialog({ owner, onClose }: { owner: Owner; onClose
     /** Suma el borrador a la lista. Devuelve false si no es válido, dejando los errores a la vista. */
     const addDraft = () => {
         if (!draft) return true;
-        const result = employeeSchema.safeParse(draft);
+        const result = inviteEmployeeSchema.safeParse(draft);
         if (!result.success) {
             setErrors(fieldErrorsOf(result.error));
             return false;
         }
         const { email } = result.data;
-        if (email.toLowerCase() === owner.email.toLowerCase() || employees.some((e) => e.email.toLowerCase() === email.toLowerCase())) {
+        if (email.toLowerCase() === owner.email.toLowerCase() || employees.some((e) => e.toLowerCase() === email.toLowerCase())) {
             setErrors({ email: 'Ya está en la lista.' });
             return false;
         }
-        setEmployees([...employees, result.data]);
+        setEmployees([...employees, email]);
         setDraft(null);
         setErrors({});
         return true;
@@ -107,9 +107,9 @@ export function CreateBusinessDialog({ owner, onClose }: { owner: Owner; onClose
         event.preventDefault();
 
         if (step < SUMMARY_STEP) {
-            // Lo que quedó escrito en Agregar empleado se suma antes de avanzar, para no perderlo.
+            // Lo que quedó escrito en Invitar se suma antes de avanzar, para no perderlo.
             if (step === EMPLOYEES_STEP) {
-                if (draft && (draft.name.trim() || draft.email.trim()) && !addDraft()) return;
+                if (draft?.email.trim() && !addDraft()) return;
                 setDraft(null);
             } else {
                 const result =
@@ -140,7 +140,7 @@ export function CreateBusinessDialog({ owner, onClose }: { owner: Owner; onClose
             }
             toast.success(`${payload.business.name}: negocio creado`);
             if (result.failedEmployees.length)
-                toast.error(`No pudimos sumar a ${NAMES.format(result.failedEmployees)}. Invitalos desde Empleados.`);
+                toast.error(`No pudimos sumar a ${EMAILS.format(result.failedEmployees)}. Invitalos desde Empleados.`);
             onClose();
         });
     };
@@ -210,7 +210,7 @@ export function CreateBusinessDialog({ owner, onClose }: { owner: Owner; onClose
                     <EmployeesStep
                         owner={owner}
                         employees={employees}
-                        onRemove={(email) => setEmployees(employees.filter((e) => e.email !== email))}
+                        onRemove={(email) => setEmployees(employees.filter((e) => e !== email))}
                         draft={draft}
                         onDraftChange={setDraft}
                         onAdd={addDraft}
@@ -310,7 +310,7 @@ function BranchStep({
     );
 }
 
-function PersonRow({ name, email, badges, action }: { name: string; email: string; badges: React.ReactNode; action?: React.ReactNode }) {
+function PersonRow({ name, email, badges, action }: { name: string; email?: string; badges: React.ReactNode; action?: React.ReactNode }) {
     return (
         <li className="flex items-center gap-3 px-4 py-3">
             <PanelAvatar name={name} />
@@ -319,7 +319,7 @@ function PersonRow({ name, email, badges, action }: { name: string; email: strin
                     <span className="text-[13.5px] font-bold tracking-[-0.01em] text-[#0f1b2d]">{name}</span>
                     {badges}
                 </div>
-                <span className="truncate text-[12.5px] font-medium text-[#6b7280]">{email}</span>
+                {email && <span className="truncate text-[12.5px] font-medium text-[#6b7280]">{email}</span>}
             </div>
             {action}
         </li>
@@ -336,14 +336,14 @@ function EmployeesStep({
     errors,
 }: {
     owner: Owner;
-    employees: { name: string; email: string }[];
+    employees: string[];
     onRemove: (email: string) => void;
-    draft: EmployeeFields | null;
-    onDraftChange: (draft: EmployeeFields | null) => void;
+    draft: InviteFields | null;
+    onDraftChange: (draft: InviteFields | null) => void;
     onAdd: () => boolean;
     errors: FieldErrors;
 }) {
-    // Enter en el mini formulario agrega al Empleado en vez de avanzar de paso.
+    // Enter en el mini formulario suma el email en vez de avanzar de paso.
     const addOnEnter = (e: React.KeyboardEvent) => {
         if (e.key !== 'Enter') return;
         e.preventDefault();
@@ -363,14 +363,13 @@ function EmployeesStep({
                         </>
                     }
                 />
-                {employees.map((e) => (
+                {employees.map((email) => (
                     <PersonRow
-                        key={e.email}
-                        name={e.name}
-                        email={e.email}
-                        badges={<RoleBadge role="employee" />}
+                        key={email}
+                        name={email}
+                        badges={<PanelBadge className="bg-[#fef3c7] text-[#92400e]">Invitación</PanelBadge>}
                         action={
-                            <PanelIconButton bordered label={`Quitar a ${e.name}`} onClick={() => onRemove(e.email)}>
+                            <PanelIconButton bordered label={`Quitar a ${email}`} onClick={() => onRemove(email)}>
                                 <X />
                             </PanelIconButton>
                         }
@@ -381,20 +380,10 @@ function EmployeesStep({
 
             {draft ? (
                 <div className="flex flex-col gap-4 rounded-md border border-[#e5e7eb] bg-[#f9fafb] p-4">
-                    <PanelField label="Nombre" htmlFor="employee-name" error={errors.name}>
-                        <PanelInput
-                            id="employee-name"
-                            autoFocus
-                            placeholder="Martina Fernández"
-                            value={draft.name}
-                            onChange={(e) => onDraftChange({ ...draft, name: e.target.value })}
-                            onKeyDown={addOnEnter}
-                            {...invalid(errors, 'name', 'employee-name')}
-                        />
-                    </PanelField>
                     <PanelField label="Email" htmlFor="employee-email" error={errors.email}>
                         <PanelInput
                             id="employee-email"
+                            autoFocus
                             type="email"
                             placeholder="email@ejemplo.com"
                             value={draft.email}
@@ -408,14 +397,14 @@ function EmployeesStep({
                             Cancelar
                         </PanelButton>
                         <PanelButton variant="secondary" onClick={onAdd}>
-                            Agregar
+                            Invitar
                         </PanelButton>
                     </div>
                 </div>
             ) : (
-                <PanelButton variant="secondary" className="w-full" onClick={() => onDraftChange({ name: '', email: '' })}>
+                <PanelButton variant="secondary" className="w-full" onClick={() => onDraftChange({ email: '' })}>
                     <Plus className="size-4" />
-                    Agregar empleado
+                    Invitar empleado
                 </PanelButton>
             )}
         </div>
@@ -501,7 +490,7 @@ function SummaryStep({
 }: {
     business: BusinessFields;
     branch: BranchFields;
-    employees: { name: string }[];
+    employees: string[];
     service: ServiceStepFields;
     onEdit: (step: number) => void;
 }) {
@@ -520,8 +509,8 @@ function SummaryStep({
                 <SummaryItem label="Horario" value={`${branch.opensAt} a ${branch.closesAt}`} />
                 <SummaryItem label="Zona horaria" value={branch.timeZone} />
             </SummaryBlock>
-            <SummaryBlock title="Empleados" onEdit={() => onEdit(EMPLOYEES_STEP)}>
-                <SummaryItem label="Equipo" value={employees.length ? `Vos, ${employees.map((e) => e.name).join(', ')}` : 'Solo vos'} />
+            <SummaryBlock title="Invitaciones" onEdit={() => onEdit(EMPLOYEES_STEP)}>
+                <SummaryItem label="Invitados" value={employees.join(', ')} />
             </SummaryBlock>
             <SummaryBlock title="Servicio" onEdit={() => onEdit(4)}>
                 <SummaryItem label="Nombre" value={service.name} />
