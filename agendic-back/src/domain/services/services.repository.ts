@@ -21,6 +21,8 @@ export interface ServicesRepository {
   ): Promise<Service>;
   findById(id: number): Promise<Service | null>;
   listActiveByBranch(branchId: number): Promise<Service[]>;
+  /** The Service of that Branch with that slug among the ones not dados de baja, hidden or not. Null if there is none. */
+  findActiveBySlug(branchId: number, slug: string): Promise<Service | null>;
   /** Leaves undefined fields unchanged. Throws ConflictError on a rename to a taken name or slug. */
   update(
     id: number,

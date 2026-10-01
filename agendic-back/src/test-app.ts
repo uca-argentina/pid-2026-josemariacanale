@@ -141,6 +141,7 @@ export async function createTestApp() {
     create: jest.fn(),
     findById: jest.fn(),
     listActiveByBranch: jest.fn(),
+    findActiveBySlug: jest.fn(),
     update: jest.fn(),
     retire: jest.fn(),
     addEmployee: jest.fn(),

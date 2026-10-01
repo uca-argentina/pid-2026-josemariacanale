@@ -101,10 +101,12 @@ una Sucursal); sus archivos en el storage no.
 | DELETE | `/services/:id` | sí | Da de baja (soft-delete) un servicio (solo el dueño) |
 | POST | `/services/:id/employees` | sí | Asigna un empleado a un servicio con una Availability suya (solo el dueño); 201 con el servicio; 422 si la Availability es de otro Empleado o si el servicio está dado de baja; 404 si no existe; 409 si ya lo atiende |
 | DELETE | `/services/:id/employees/:employeeId` | sí | Quita un empleado de un servicio (solo el dueño) |
-| GET | `/branches/:id/services` | no | Lista servicios activos de una sucursal |
+| GET | `/branches/:id/services` | no | Lista servicios activos de una sucursal, sin los ocultos; 404 si la sucursal no existe |
+| GET | `/branches/:id/services/by-slug/:slug` | no | Un servicio de la sucursal por su tramo del Enlace de reserva (ADR 0018), aunque esté oculto; el tramo se compara en minúsculas; 404 si la sucursal no existe o si ningún servicio suyo no dado de baja tiene ese tramo |
 
 - `CreateServiceDto`: `{ name, description?, category, durationMinutes (int ≥1), price (number ≥0), depositPercent?, requiresApproval?, slug, hidden?, employeeIds: number[] (no vacío) }`
 - `slug` es el tramo del Servicio en el Enlace de reserva (ADR 0018): obligatorio al crear, en minúsculas, mismas reglas que el de Sucursal; único por sucursal entre los servicios no dados de baja (índice parcial, ADR 0004; un tramo de un servicio dado de baja queda libre). `hidden` (por defecto `false`) es el Servicio oculto. El servicio del body de `POST /businesses` también exige `slug` y acepta `hidden`.
+- Servicio oculto (`hidden: true`): no sale en `GET /branches/:id/services`, pero `by-slug` lo devuelve y sus Horarios reservables y `POST /bookings` funcionan igual que los de uno visible. Ocultar no es una medida de seguridad, es sacarlo de la vidriera. El front abre la página de la Sucursal con el Servicio ya elegido pidiéndolo por su tramo, y trata el 404 como página no encontrada.
 - Respuesta del servicio (`presentService`): suma `slug`, `hidden` y, en cada elemento de `employees`, `availabilityId`: `{ id, name, availabilityId }`
 - `UpdateServiceDto`: `{ name?, description?, category?, durationMinutes?, price?, depositPercent?, requiresApproval? }`
 - `depositPercent` (Seña): entero de 0 a 100, porcentaje del precio. Es simbólica: se guarda y se
