@@ -24,8 +24,9 @@ export type IVerifyBookingController = ReturnType<typeof verifyBookingController
  * Es público: el Cliente no tiene Sesión (ADR 0005).
  *
  * @throws {InputParseError} falta el token
- * @throws {BookingStateError} el token no existe, ya se usó o venció
+ * @throws {BookingStateError} el token no existe, ya se usó o venció, o el Turno ya no se puede reservar
  * @throws {SlotTakenError} el horario se ocupó mientras tanto
+ * @throws {NotFoundError} el Turno ya no existe
  */
 export const verifyBookingController =
     (instrumentationService: IInstrumentationService, verifyBookingUseCase: IVerifyBookingUseCase) =>

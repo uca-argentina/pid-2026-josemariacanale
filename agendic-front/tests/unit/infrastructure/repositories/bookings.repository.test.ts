@@ -1,8 +1,9 @@
 import { BookingStateError, SlotTakenError } from '@/src/entities/errors/booking';
 import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
 import { BookingsRepository } from '@/src/infrastructure/repositories/bookings.repository';
+import { instrumentation } from '@/tests/unit/stubs';
 
-const repo = (apiUrl: string | undefined = 'http://api') => new BookingsRepository(apiUrl);
+const repo = (apiUrl: string | undefined = 'http://api') => new BookingsRepository(instrumentation, apiUrl);
 const respond = (status: number, body: unknown) =>
     jest.spyOn(global, 'fetch').mockResolvedValue(new Response(JSON.stringify(body), { status }));
 
@@ -160,5 +161,21 @@ describe('BookingsRepository.verifyBooking', () => {
     it('translates a 409 to SlotTakenError', async () => {
         respond(409, { statusCode: 409, message: 'Overlaps a booked Turno for this Employee' });
         await expect(repo().verifyBooking('abc')).rejects.toBeInstanceOf(SlotTakenError);
+    });
+});
+
+describe('BookingsRepository spans', () => {
+    it('runs each method inside a span named after the repository and the method', async () => {
+        const names: string[] = [];
+        const spanning = new BookingsRepository({ startSpan: (options, callback) => (names.push(options.name), callback()) }, 'http://api');
+        respond(404, { message: 'nope' });
+        await spanning.verifyBooking('abc').catch(() => undefined);
+        await spanning.book({} as never).catch(() => undefined);
+        await spanning.listSlots({ serviceId: 1, employeeId: 1, from: 'a', to: 'b' }).catch(() => undefined);
+        expect(names).toEqual([
+            'BookingsRepository > verifyBooking',
+            'BookingsRepository > book',
+            'BookingsRepository > listSlots',
+        ]);
     });
 });

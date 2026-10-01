@@ -10,9 +10,9 @@ export type IVerifyBookingUseCase = ReturnType<typeof verifyBookingUseCase>;
  *
  * El estado en que queda el Turno lo decide el back.
  *
- * @throws {BookingStateError} el token no existe, ya se usó o venció
+ * @throws {BookingStateError} el token no existe, ya se usó o venció, o el Turno ya no se puede reservar
  * @throws {SlotTakenError} el horario se ocupó mientras tanto
- * @throws {NotFoundError} el Servicio se dio de baja
+ * @throws {NotFoundError} el Turno ya no existe
  */
 export const verifyBookingUseCase =
     (instrumentationService: IInstrumentationService, bookingsRepository: IBookingsRepository) =>

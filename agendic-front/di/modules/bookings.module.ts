@@ -21,11 +21,13 @@ import { verifyBookingUseCase } from '@/src/application/use-cases/bookings/verif
 import { verifyBookingController } from '@/src/interface-adapters/controllers/bookings/verify-booking.controller';
 import { listSlotsController } from '@/src/interface-adapters/controllers/bookings/list-slots.controller';
 
+/**
+ * Cablea Turnos. Reservar es público, así que `BookingsRepository` no recibe `IAuthenticationService`.
+ */
 export function createBookingsModule() {
     const bookingsModule = createModule();
 
-    // Reservar is public, so its repository takes no IAuthenticationService.
-    bookingsModule.bind(DI_SYMBOLS.IBookingsRepository).toClass(BookingsRepository);
+    bookingsModule.bind(DI_SYMBOLS.IBookingsRepository).toClass(BookingsRepository, [DI_SYMBOLS.IInstrumentationService]);
 
     bookingsModule
         .bind(DI_SYMBOLS.IListSlotsUseCase)
