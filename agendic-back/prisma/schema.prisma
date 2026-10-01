@@ -64,6 +64,7 @@ model Invitation {
   businessId Int
   email      String // always lowercase
   expiresAt  DateTime @db.Timestamptz(3)
+  closedAt   DateTime? @db.Timestamptz(3) // aceptada o rechazada
 
   business Business @relation(fields: [businessId], references: [id])
 

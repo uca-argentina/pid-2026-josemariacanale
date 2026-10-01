@@ -1,0 +1,1 @@
+ALTER TABLE "Invitation" ADD COLUMN "closedAt" TIMESTAMPTZ(3);
