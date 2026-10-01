@@ -91,3 +91,14 @@ export type UpdateService = z.infer<typeof updateServiceSchema>;
 /** What DELETE /services/:id answers: how many future Turnos of the Servicio got cancelled by the baja. */
 export const retiredServiceSchema = z.object({ cancelledBookings: z.number().int().min(0) });
 export type RetiredService = z.infer<typeof retiredServiceSchema>;
+
+/** An Empleado and the Servicio they start or stop offering: the path of POST and DELETE /services/:id/employees. */
+export const serviceEmployeeRefSchema = z.object({
+    serviceId: z.number().int().positive(),
+    employeeId: z.number().int().positive(),
+});
+export type ServiceEmployeeRef = z.infer<typeof serviceEmployeeRefSchema>;
+
+/** What DELETE /services/:id/employees/:employeeId answers: how many future Turnos of that Empleado got cancelled. */
+export const removedEmployeeSchema = z.object({ cancelledBookings: z.number().int().min(0) });
+export type RemovedEmployee = z.infer<typeof removedEmployeeSchema>;

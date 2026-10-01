@@ -1,12 +1,12 @@
 'use client';
 
 import { useOptimistic, useState, useTransition } from 'react';
-import { ExternalLink, Link2 } from 'lucide-react';
+import { ExternalLink, Link2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PanelButton, PanelConfirm, PanelIconButton, PanelSwitch } from '@/app/(app)/_components/panel-ui';
-import { retireServiceAction, updateServiceAction } from '../actions';
-import { canStopOffering, type OfferableService } from './offering';
-import { retiredMessage } from './format';
+import { assignEmployeeAction, removeEmployeeAction, retireServiceAction, updateServiceAction } from '../actions';
+import { retiredMessage, stoppedOfferingMessage } from './format';
+import { canStopOffering, offersIt, othersAttending, type OfferableService } from './offering';
 
 /**
  * Abrir el Enlace de reserva y copiarlo. Van dentro de un `PanelIconGroup`.
@@ -37,43 +37,130 @@ export function PublicLinkButtons({ path }: { path: string }) {
 
 const NAMES = new Intl.ListFormat('es', { type: 'conjunction' });
 
-/**
- * Ofrecer o dejar de ofrecer un Servicio, como Dueño o como Empleado. Pide confirmación, pero todavía no cambia nada.
- * Si sos el único que lo ofrece, en vez de confirmar avisa por qué no se puede.
- */
-export function OfferButton({ service }: { service: OfferableService }) {
-    const [open, setOpen] = useState(false);
-    const offered = service.offeredByMe;
-    const blocked = offered && !canStopOffering(service);
+/** El Empleado sobre el que se actúa: el propio Usuario, o otro del Staff cuando lo hace el Dueño. */
+export interface OfferingEmployee {
+    id: number;
+    name: string;
+    isMe: boolean;
+}
 
-    const dialog = blocked
-        ? {
-              title: `No podés dejar de ofrecer "${service.name}"`,
-              description:
-                  'Sos el único empleado que lo atiende. Para dejarlo, otro empleado tiene que ofrecerlo primero.',
-          }
-        : {
-              title: '¿Estás seguro?',
-              description: offered
-                  ? `Vas a dejar de atender "${service.name}". Lo siguen atendiendo ${NAMES.format(service.otherEmployees)}.`
-                  : `Vas a empezar a atender "${service.name}" en los horarios que elijas en Disponibilidad.`,
-              confirmLabel: offered ? 'Dejar de ofrecer' : 'Ofrecer',
-          };
+/** Ofrece el Servicio en nombre del Empleado, con su Availability predeterminada, y avisa cómo salió. */
+export async function offerService(service: OfferableService, employee: OfferingEmployee) {
+    const result = await assignEmployeeAction({ serviceId: service.id, employeeId: employee.id });
+    if (!result.ok) toast.error(result.message);
+    else if (employee.isMe) toast.success(`Ahora ofrecés ${result.name}`);
+    else toast.success(`${employee.name} ahora ofrece ${result.name}`);
+}
+
+/**
+ * La confirmación de dejar de ofrecer un Servicio: dice quiénes lo siguen atendiendo y que los Turnos futuros del
+ * Empleado en él se cancelan; al terminar informa cuántos. Si es el único que lo atiende, en vez de confirmar explica
+ * por qué no puede.
+ *
+ * @param onStopped vuelve a la lista o la refresca, para que se vea el cambio
+ */
+export function StopOfferingConfirm({
+    service,
+    employee,
+    open,
+    onOpenChange,
+    onStopped,
+}: {
+    service: OfferableService;
+    employee: OfferingEmployee;
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    onStopped: () => void;
+}) {
+    const others = othersAttending(service, employee.id);
+
+    const stop = async () => {
+        const toastId = toast.loading(`Dejando de ofrecer ${service.name}…`);
+        const result = await removeEmployeeAction({ serviceId: service.id, employeeId: employee.id });
+        if (!result.ok) {
+            toast.error(result.message, { id: toastId });
+            return;
+        }
+        toast.success(stoppedOfferingMessage(service.name, employee.isMe ? null : employee.name, result.cancelledBookings), {
+            id: toastId,
+        });
+        onStopped();
+    };
+
+    if (!canStopOffering(service, employee.id))
+        return (
+            <PanelConfirm
+                open={open}
+                onOpenChange={onOpenChange}
+                title={
+                    employee.isMe
+                        ? `No podés dejar de ofrecer "${service.name}"`
+                        : `${employee.name} no puede dejar de ofrecer "${service.name}"`
+                }
+                description={
+                    employee.isMe
+                        ? 'Sos el único Empleado que lo atiende. Para dejarlo, otro Empleado tiene que ofrecerlo primero.'
+                        : 'Es el único Empleado que lo atiende. Para quitarlo, otro Empleado tiene que ofrecerlo primero.'
+                }
+                cancelLabel="Entendido"
+            />
+        );
+
+    return (
+        <PanelConfirm
+            open={open}
+            onOpenChange={onOpenChange}
+            title="¿Estás seguro?"
+            description={
+                employee.isMe
+                    ? `Vas a dejar de atender "${service.name}". Lo siguen atendiendo ${NAMES.format(others)}. Tus Turnos futuros de este Servicio se cancelan.`
+                    : `${employee.name} va a dejar de atender "${service.name}". Lo siguen atendiendo ${NAMES.format(others)}. Sus Turnos futuros de este Servicio se cancelan.`
+            }
+            confirmLabel="Dejar de ofrecer"
+            destructive
+            onConfirm={() => void stop()}
+        />
+    );
+}
+
+/**
+ * Ofrecer o dejar de ofrecer un Servicio, como Dueño o como Empleado, siempre sobre el propio Usuario. Ofrecer entra
+ * con sus Horas laborables predeterminadas.
+ *
+ * @param employeeId el Empleado del Usuario en el Negocio del Servicio
+ * @param onStopped vuelve a la lista o la refresca después de dejar de ofrecerlo
+ */
+export function OfferButton({
+    service,
+    employeeId,
+    onStopped,
+}: {
+    service: OfferableService;
+    employeeId: number;
+    onStopped: () => void;
+}) {
+    const [open, setOpen] = useState(false);
+    const [offering, startOffering] = useTransition();
+    const offered = offersIt(service, employeeId);
+    const me = { id: employeeId, name: '', isMe: true };
 
     return (
         <>
-            <PanelButton variant="secondary" onClick={() => setOpen(true)}>
-                {offered ? 'Dejar de ofrecer' : 'Ofrecer'}
+            <PanelButton variant="secondary" disabled={offering} onClick={() => setOpen(true)} className="min-w-[96px]">
+                {offering ? <Loader2 className="size-4 animate-spin" /> : offered ? 'Dejar de ofrecer' : 'Ofrecer'}
             </PanelButton>
-            <PanelConfirm
-                open={open}
-                onOpenChange={setOpen}
-                {...dialog}
-                cancelLabel={blocked ? 'Entendido' : 'Cancelar'}
-                destructive={offered}
-                // ponytail: todavía no hace nada; se conecta cuando exista el endpoint.
-                onConfirm={() => {}}
-            />
+            {offered ? (
+                <StopOfferingConfirm service={service} employee={me} open={open} onOpenChange={setOpen} onStopped={onStopped} />
+            ) : (
+                <PanelConfirm
+                    open={open}
+                    onOpenChange={setOpen}
+                    title="¿Estás seguro?"
+                    description={`Vas a empezar a atender "${service.name}" con tus Horas laborables predeterminadas.`}
+                    confirmLabel="Ofrecer"
+                    onConfirm={() => startOffering(() => offerService(service, me))}
+                />
+            )}
         </>
     );
 }

@@ -45,11 +45,15 @@ import type { ICreateServiceUseCase } from '@/src/application/use-cases/services
 import type { IGetMyServiceUseCase } from '@/src/application/use-cases/services/get-my-service.use-case';
 import type { IUpdateServiceUseCase } from '@/src/application/use-cases/services/update-service.use-case';
 import type { IRetireServiceUseCase } from '@/src/application/use-cases/services/retire-service.use-case';
+import type { IAssignEmployeeUseCase } from '@/src/application/use-cases/services/assign-employee.use-case';
+import type { IRemoveEmployeeUseCase } from '@/src/application/use-cases/services/remove-employee.use-case';
 import type { IListMyServicesController } from '@/src/interface-adapters/controllers/services/list-my-services.controller';
 import type { ICreateServiceController } from '@/src/interface-adapters/controllers/services/create-service.controller';
 import type { IGetMyServiceController } from '@/src/interface-adapters/controllers/services/get-my-service.controller';
 import type { IUpdateServiceController } from '@/src/interface-adapters/controllers/services/update-service.controller';
 import type { IRetireServiceController } from '@/src/interface-adapters/controllers/services/retire-service.controller';
+import type { IAssignEmployeeController } from '@/src/interface-adapters/controllers/services/assign-employee.controller';
+import type { IRemoveEmployeeController } from '@/src/interface-adapters/controllers/services/remove-employee.controller';
 import type { IEmployeeBookingsRepository } from '@/src/application/repositories/employee-bookings.repository.interface';
 import type { IListMyBookingsUseCase } from '@/src/application/use-cases/bookings/list-my-bookings.use-case';
 import type { IListMyBookingsController } from '@/src/interface-adapters/controllers/bookings/list-my-bookings.controller';
@@ -112,6 +116,8 @@ export const DI_SYMBOLS = {
     IGetMyServiceUseCase: Symbol.for('IGetMyServiceUseCase'),
     IUpdateServiceUseCase: Symbol.for('IUpdateServiceUseCase'),
     IRetireServiceUseCase: Symbol.for('IRetireServiceUseCase'),
+    IAssignEmployeeUseCase: Symbol.for('IAssignEmployeeUseCase'),
+    IRemoveEmployeeUseCase: Symbol.for('IRemoveEmployeeUseCase'),
     IRejectInvitationUseCase: Symbol.for('IRejectInvitationUseCase'),
     IResendInvitationUseCase: Symbol.for('IResendInvitationUseCase'),
     ICancelInvitationUseCase: Symbol.for('ICancelInvitationUseCase'),
@@ -150,6 +156,8 @@ export const DI_SYMBOLS = {
     IGetMyServiceController: Symbol.for('IGetMyServiceController'),
     IUpdateServiceController: Symbol.for('IUpdateServiceController'),
     IRetireServiceController: Symbol.for('IRetireServiceController'),
+    IAssignEmployeeController: Symbol.for('IAssignEmployeeController'),
+    IRemoveEmployeeController: Symbol.for('IRemoveEmployeeController'),
     IRejectInvitationController: Symbol.for('IRejectInvitationController'),
     IResendInvitationController: Symbol.for('IResendInvitationController'),
     ICancelInvitationController: Symbol.for('ICancelInvitationController'),
@@ -204,6 +212,8 @@ export interface DI_RETURN_TYPES {
     IGetMyServiceUseCase: IGetMyServiceUseCase;
     IUpdateServiceUseCase: IUpdateServiceUseCase;
     IRetireServiceUseCase: IRetireServiceUseCase;
+    IAssignEmployeeUseCase: IAssignEmployeeUseCase;
+    IRemoveEmployeeUseCase: IRemoveEmployeeUseCase;
     IRejectInvitationUseCase: IRejectInvitationUseCase;
     IResendInvitationUseCase: IResendInvitationUseCase;
     ICancelInvitationUseCase: ICancelInvitationUseCase;
@@ -242,6 +252,8 @@ export interface DI_RETURN_TYPES {
     IGetMyServiceController: IGetMyServiceController;
     IUpdateServiceController: IUpdateServiceController;
     IRetireServiceController: IRetireServiceController;
+    IAssignEmployeeController: IAssignEmployeeController;
+    IRemoveEmployeeController: IRemoveEmployeeController;
     IRejectInvitationController: IRejectInvitationController;
     IResendInvitationController: IResendInvitationController;
     ICancelInvitationController: ICancelInvitationController;

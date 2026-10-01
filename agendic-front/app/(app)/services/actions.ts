@@ -6,7 +6,8 @@ import { isSessionExpired } from '@/app/api-error';
 import { SIGN_IN_PATH } from '@/app/routes';
 import { getInjection } from '@/di/container';
 import { ApiRequestError, InputParseError, NotFoundError } from '@/src/entities/errors/common';
-import { ServiceNameTakenError, ServiceSlugTakenError } from '@/src/entities/errors/service';
+import { LastEmployeeError } from '@/src/entities/errors/employee';
+import { EmployeeNotAssignableError, ServiceNameTakenError, ServiceSlugTakenError } from '@/src/entities/errors/service';
 
 /** Lo que el diálogo de alta necesita para cerrar, o para mostrar el error bajo su campo o al pie. */
 export type CreateServiceResult = { ok: true; name: string } | { ok: false; message: string; field?: 'name' | 'slug' };
@@ -82,5 +83,55 @@ export async function retireServiceAction(id: number): Promise<RetireServiceResu
             return { ok: false, message: 'Solo el Dueño del Negocio puede dar de baja sus Servicios.' };
         getInjection('ICrashReporterService').report(error);
         return { ok: false, message: 'No pudimos dar de baja el Servicio. Intentá de nuevo.' };
+    }
+}
+
+/** El nombre del Servicio para confirmar, o el mensaje para el Usuario. */
+export type AssignEmployeeResult = { ok: true; name: string } | { ok: false; message: string };
+
+/**
+ * Ofrecer un Servicio: para el propio Empleado del Usuario desde la lista o el detalle, o para otro Empleado del Staff
+ * desde la sección Empleados del Dueño. Refresca la página, así se ve quién lo atiende ahora.
+ */
+export async function assignEmployeeAction(payload: { serviceId: number; employeeId: number }): Promise<AssignEmployeeResult> {
+    try {
+        const { name } = await getInjection('IAssignEmployeeController')(payload);
+        refresh();
+        return { ok: true, name };
+    } catch (error) {
+        unstable_rethrow(error);
+        if (error instanceof EmployeeNotAssignableError) return { ok: false, message: error.message };
+        if (error instanceof NotFoundError) return { ok: false, message: 'El Servicio o el Empleado ya no existen.' };
+        if (isSessionExpired(error)) redirect(SIGN_IN_PATH);
+        if (error instanceof ApiRequestError && error.status === 403)
+            return { ok: false, message: 'Solo el Dueño puede ofrecer un Servicio en nombre de otro Empleado.' };
+        if (error instanceof ApiRequestError && error.status === 409)
+            return { ok: false, message: 'Ese Empleado ya ofrece este Servicio.' };
+        getInjection('ICrashReporterService').report(error);
+        return { ok: false, message: 'No pudimos ofrecer el Servicio. Intentá de nuevo.' };
+    }
+}
+
+/** Cuántos Turnos se cancelaron, o el mensaje para el Usuario. */
+export type RemoveEmployeeResult = { ok: true; cancelledBookings: number } | { ok: false; message: string };
+
+/**
+ * Dejar de ofrecer un Servicio, para el propio Empleado o, desde el detalle, el Dueño por cualquier Empleado. No
+ * refresca la página: un Empleado que deja un Servicio oculto ya no lo ve, y su detalle daría no encontrado; quien la
+ * llama vuelve a la lista o la refresca. El 422 del último Empleado vuelve con el `message` del back.
+ */
+export async function removeEmployeeAction(payload: { serviceId: number; employeeId: number }): Promise<RemoveEmployeeResult> {
+    try {
+        const { cancelledBookings } = await getInjection('IRemoveEmployeeController')(payload);
+        return { ok: true, cancelledBookings };
+    } catch (error) {
+        unstable_rethrow(error);
+        if (error instanceof LastEmployeeError) return { ok: false, message: error.message };
+        if (error instanceof NotFoundError) return { ok: false, message: 'El Servicio o el Empleado ya no existen.' };
+        if (isSessionExpired(error)) redirect(SIGN_IN_PATH);
+        if (error instanceof ApiRequestError && error.status === 403)
+            return { ok: false, message: 'Solo el Dueño puede quitar a otro Empleado de un Servicio.' };
+        getInjection('ICrashReporterService').report(error);
+        return { ok: false, message: 'No pudimos dejar de ofrecer el Servicio. Intentá de nuevo.' };
     }
 }

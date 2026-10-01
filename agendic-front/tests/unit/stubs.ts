@@ -65,5 +65,7 @@ export const servicesWith = (stubs: Partial<IServicesRepository>): IServicesRepo
     createService: jest.fn(notStubbed('createService')),
     updateService: jest.fn(notStubbed('updateService')),
     retireService: jest.fn(notStubbed('retireService')),
+    assignEmployee: jest.fn(notStubbed('assignEmployee')),
+    removeEmployee: jest.fn(notStubbed('removeEmployee')),
     ...stubs,
 });
