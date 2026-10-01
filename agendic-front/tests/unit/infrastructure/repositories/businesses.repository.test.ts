@@ -6,7 +6,7 @@ import { authWith } from '@/tests/unit/stubs';
 const input = {
     business: { name: 'Estudio', description: 'Desc', slug: 'estudio' },
     branch: { name: 'Centro', address: 'Av. 1', opensAt: '09:00', closesAt: '18:00', timeZone: 'America/Argentina/Buenos_Aires' },
-    service: { name: 'Consulta', category: 'CLINICA' as const, durationMinutes: 30, price: 100 },
+    service: { name: 'Consulta', slug: 'consulta', category: 'CLINICA' as const, durationMinutes: 30, price: 100 },
 };
 const business = { id: 1, name: 'Estudio', description: 'Desc', slug: 'estudio', ownerId: 7 };
 
@@ -40,6 +40,12 @@ describe('BusinessesRepository.createBusiness', () => {
     it('translates a 400 about the slug to InvalidSlugError', async () => {
         respond(400, { statusCode: 400, message: ['business.slug must match /^[a-z0-9]+$/'] });
         await expect(repo().createBusiness(input)).rejects.toBeInstanceOf(InvalidSlugError);
+    });
+
+    it('keeps a 400 about the service slug as ApiRequestError, not as the Negocio slug', async () => {
+        respond(400, { statusCode: 400, message: ['service.slug must be longer than or equal to 3 characters'] });
+
+        await expect(repo().createBusiness(input)).rejects.toBeInstanceOf(ApiRequestError);
     });
 
     it('keeps a 400 about another field as ApiRequestError, with its message', async () => {

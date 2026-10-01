@@ -48,8 +48,15 @@ export const SERVICE_CATEGORIES = [
 
 export type ServiceCategoryValue = (typeof SERVICE_CATEGORIES)[number]['value'];
 
-export const serviceSchema = z.object({
-    name: required('el nombre del Servicio'),
+/** El tramo del Servicio en el Enlace de reserva se deriva del nombre: 3 a 40 caracteres. */
+const SERVICE_SLUG_MIN = 3;
+const SERVICE_SLUG_MAX = 40;
+
+export const serviceSchema = z
+    .object({
+    name: required('el nombre del Servicio').refine((n) => slugify(n).length >= SERVICE_SLUG_MIN, {
+        message: `El nombre tiene que tener al menos ${SERVICE_SLUG_MIN} letras o números.`,
+    }),
     category: z.enum(
         SERVICE_CATEGORIES.map((c) => c.value),
         { message: 'Elegí una Categoría de Servicio.' },
@@ -77,7 +84,8 @@ export const serviceSchema = z.object({
         .trim()
         .optional()
         .transform((d) => d || undefined),
-});
+    })
+    .transform((s) => ({ ...s, slug: slugify(s.name).slice(0, SERVICE_SLUG_MAX).replace(/-+$/, '') }));
 
 /** La forma de POST /businesses/:id/employees (una Invitación): solo el email. */
 export const inviteEmployeeSchema = z.object({

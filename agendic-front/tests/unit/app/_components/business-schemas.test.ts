@@ -89,6 +89,23 @@ describe('serviceSchema', () => {
         });
     });
 
+    it('deriva el slug del nombre', () => {
+        expect(serviceSchema.parse({ ...service, name: 'Consulta Inicial Ñandú' }).slug).toBe('consulta-inicial-nandu');
+    });
+
+    it('recorta el slug a 40 caracteres sin dejar un guion al final', () => {
+        const slug = serviceSchema.parse({ ...service, name: `${'a'.repeat(39)} bbb` }).slug;
+
+        expect(slug).toBe('a'.repeat(39));
+    });
+
+    it.each(['ab', '!!', '  a '])('rechaza el nombre demasiado corto %j', (name) => {
+        const result = serviceSchema.safeParse({ ...service, name });
+
+        expect(result.success).toBe(false);
+        expect(fieldErrorsOf(result.error!).name).toBe('El nombre tiene que tener al menos 3 letras o números.');
+    });
+
     it('rechaza una duración menor a un minuto', () => {
         const result = serviceSchema.safeParse({ ...service, durationMinutes: '0' });
 
