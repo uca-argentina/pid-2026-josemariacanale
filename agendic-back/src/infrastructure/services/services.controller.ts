@@ -86,7 +86,15 @@ export class ServicesController {
     return this.retireServiceUseCase.execute(userId, id);
   }
 
-  /** Ofrecer: el Dueño por cualquiera del Staff, o el propio Empleado (ADR 0017). */
+  /**
+   * Ofrecer: el Dueño por cualquiera del Staff, o el propio Empleado (ADR 0017).
+   *
+   * @throws {NotFoundError} el Servicio, el Empleado o la Availability no existen, o el Servicio está oculto y quien
+   * llama no es Dueño ni lo atiende
+   * @throws {ForbiddenError} no es el Dueño ni ese Empleado
+   * @throws {BusinessRuleError} el Servicio o el Empleado están dados de baja, o la Availability es de otro Empleado
+   * @throws {ConflictError} el Empleado ya lo atiende
+   */
   @Post('services/:id/employees')
   @HttpCode(200)
   @UseGuards(ClerkGuard)
@@ -100,7 +108,13 @@ export class ServicesController {
     );
   }
 
-  /** Cambia la Availability con la que un Empleado atiende el Servicio; el Dueño o el propio Empleado. */
+  /**
+   * Cambia la Availability con la que un Empleado atiende el Servicio; el Dueño o el propio Empleado. No toca Turnos.
+   *
+   * @throws {NotFoundError} el Servicio o la Availability no existen, o ese Empleado no atiende el Servicio
+   * @throws {ForbiddenError} no es el Dueño ni ese Empleado
+   * @throws {BusinessRuleError} la Availability es de otro Empleado
+   */
   @Patch('services/:id/employees/:employeeId')
   @UseGuards(ClerkGuard)
   async changeEmployeeAvailability(
@@ -119,7 +133,13 @@ export class ServicesController {
     );
   }
 
-  /** Dejar de ofrecer: el Dueño por cualquiera del Staff, o el propio Empleado (ADR 0017). */
+  /**
+   * Dejar de ofrecer: el Dueño por cualquiera del Staff, o el propio Empleado (ADR 0017).
+   *
+   * @throws {NotFoundError} el Servicio o el Empleado no existen
+   * @throws {ForbiddenError} no es el Dueño ni ese Empleado
+   * @throws {BusinessRuleError} es el último Empleado del Servicio
+   */
   @Delete('services/:id/employees/:employeeId')
   @UseGuards(ClerkGuard)
   async removeEmployee(

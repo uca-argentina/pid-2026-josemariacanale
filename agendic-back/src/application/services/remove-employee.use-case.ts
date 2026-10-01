@@ -17,8 +17,7 @@ import {
   SERVICES_REPOSITORY,
   ServicesRepository,
 } from '../../domain/services/services.repository';
-import { assertBranchExists } from '../branches/assert-branch-owner';
-import { assertOwnerOrSelf } from '../employees/assert-owner-or-self';
+import { assertServiceOwnerOrSelf } from './assert-service-owner-or-self';
 import { isLastEmployee } from './is-last-employee';
 
 @Injectable()
@@ -38,7 +37,7 @@ export class RemoveEmployeeUseCase {
   /**
    * Dejar de ofrecer: lo hace el Dueño por cualquiera del Staff, o el propio Empleado por sí mismo (ADR 0017).
    *
-   * @throws {NotFoundError} el Servicio o el Empleado no existen
+   * @throws {NotFoundError} el Servicio, su Sucursal o el Empleado no existen
    * @throws {ForbiddenError} no es el Dueño ni ese Empleado
    * @throws {BusinessRuleError} es el último Empleado del Servicio
    */
@@ -49,12 +48,11 @@ export class RemoveEmployeeUseCase {
   ): Promise<{ cancelledBookings: number }> {
     const service = await this.services.findById(serviceId);
     if (!service) throw new NotFoundError('Service not found');
-    const branch = await this.branches.findById(service.branchId);
-    assertBranchExists(branch);
-    await assertOwnerOrSelf(
-      this.employees,
+    await assertServiceOwnerOrSelf(
+      this.branches,
       this.businesses,
-      branch.businessId,
+      this.employees,
+      service,
       employeeId,
       userId,
     );

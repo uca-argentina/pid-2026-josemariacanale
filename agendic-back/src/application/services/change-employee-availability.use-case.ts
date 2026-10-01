@@ -21,8 +21,7 @@ import {
   SERVICES_REPOSITORY,
   ServicesRepository,
 } from '../../domain/services/services.repository';
-import { assertBranchExists } from '../branches/assert-branch-owner';
-import { assertOwnerOrSelf } from '../employees/assert-owner-or-self';
+import { assertServiceOwnerOrSelf } from './assert-service-owner-or-self';
 
 /** Elige con cuál de sus Availability atiende un Empleado un Servicio (ADR 0017). */
 @Injectable()
@@ -43,7 +42,7 @@ export class ChangeEmployeeAvailabilityUseCase {
   /**
    * Lo hace el Dueño por cualquiera del Staff, o el propio Empleado. No cancela ni mueve Turnos.
    *
-   * @throws {NotFoundError} el Servicio o la Availability no existen, o ese Empleado no atiende el Servicio
+   * @throws {NotFoundError} el Servicio, su Sucursal o la Availability no existen, o ese Empleado no atiende el Servicio
    * @throws {ForbiddenError} no es el Dueño ni ese Empleado
    * @throws {BusinessRuleError} la Availability es de otro Empleado
    */
@@ -55,12 +54,11 @@ export class ChangeEmployeeAvailabilityUseCase {
   ): Promise<Service> {
     const service = await this.services.findById(serviceId);
     if (!service) throw new NotFoundError('Service not found');
-    const branch = await this.branches.findById(service.branchId);
-    assertBranchExists(branch);
-    await assertOwnerOrSelf(
-      this.employees,
+    await assertServiceOwnerOrSelf(
+      this.branches,
       this.businesses,
-      branch.businessId,
+      this.employees,
+      service,
       employeeId,
       userId,
     );

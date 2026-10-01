@@ -22,8 +22,7 @@ import {
   ServicesRepository,
 } from '../../domain/services/services.repository';
 import { defaultAvailability } from '../availabilities/default-availability';
-import { assertBranchExists } from '../branches/assert-branch-owner';
-import { assertOwnerOrSelf } from '../employees/assert-owner-or-self';
+import { assertServiceOwnerOrSelf } from './assert-service-owner-or-self';
 
 export interface AssignEmployeeInput {
   employeeId: number;
@@ -49,7 +48,7 @@ export class AssignEmployeeUseCase {
   /**
    * Ofrecer: lo hace el Dueño por cualquiera del Staff, o el propio Empleado por sí mismo (ADR 0017).
    *
-   * @throws {NotFoundError} el Servicio, el Empleado o la Availability no existen, o el Servicio está oculto y quien
+   * @throws {NotFoundError} el Servicio, su Sucursal, el Empleado o la Availability no existen, o el Servicio está oculto y quien
    * llama no es Dueño ni lo atiende
    * @throws {ForbiddenError} no es el Dueño ni ese Empleado
    * @throws {BusinessRuleError} el Servicio está dado de baja, el Empleado no es del Negocio o está dado de baja, o la
@@ -66,12 +65,11 @@ export class AssignEmployeeUseCase {
     // A Servicio dado de baja has no links: one here would keep its Availability from being deleted.
     if (service.retiredAt)
       throw new BusinessRuleError('The Service is retired');
-    const branch = await this.branches.findById(service.branchId);
-    assertBranchExists(branch);
-    const isOwner = await assertOwnerOrSelf(
-      this.employees,
+    const { branch, isOwner } = await assertServiceOwnerOrSelf(
+      this.branches,
       this.businesses,
-      branch.businessId,
+      this.employees,
+      service,
       employeeId,
       userId,
     );
