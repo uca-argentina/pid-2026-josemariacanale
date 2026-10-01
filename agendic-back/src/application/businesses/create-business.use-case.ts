@@ -42,6 +42,8 @@ export class CreateBusinessUseCase {
         depositPercent: input.service.depositPercent ?? null,
         requiresApproval: input.service.requiresApproval ?? false,
         hidden: input.service.hidden ?? false,
+        prepMinutes: input.service.prepMinutes ?? 0,
+        dailyLimit: input.service.dailyLimit ?? null,
       },
       employee: { userId: owner.id },
       availability: DEFAULT_AVAILABILITY,

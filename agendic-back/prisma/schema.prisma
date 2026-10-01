@@ -1,6 +1,6 @@
 // Identifiers follow docs/agents/domain.md (ADR 0003).
 // Hand-written SQL in the migrations, not expressible here (ADR 0004):
-// - no overlapping PENDING or BOOKED Bookings per Employee (exclusion constraint)
+// - no overlapping PENDING or BOOKED Bookings per Employee, Tiempo de preparación included: [prepStartsAt, endsAt) (exclusion constraint)
 // - Service name unique in any casing among a Branch's Services not retired
 // - Service slug unique per Branch among its Services not retired (partial unique index, ADR 0018)
 // - one active Employee (retiredAt null) per (userId, businessId): a User can be re-hired after being dado de baja
@@ -113,6 +113,8 @@ model Service {
   retiredAt        DateTime?       @db.Timestamptz(3) // when dado de baja; null while offered
   slug             String // Enlace de reserva's last tramo, always lowercase (ADR 0018)
   hidden           Boolean         @default(false) // Servicio oculto: off the Sucursal's page, reachable only by its own Enlace de reserva
+  prepMinutes      Int             @default(0) // Tiempo de preparación: 0, 5, 10, 15, 30 or 60 (checked by the API), held before each Turno
+  dailyLimit       Int? // Límite diario: PENDING and BOOKED Turnos per local day of the Sucursal; null when there is none
 
   branch    Branch            @relation(fields: [branchId], references: [id])
   employees EmployeeService[]
@@ -194,6 +196,7 @@ model Booking {
   employeeId                 Int
   clientName                 String
   clientEmail                String
+  prepStartsAt               DateTime      @db.Timestamptz(3) // startsAt - Service.prepMinutes, fixed at booking: the Empleado's agenda is held from here
   startsAt                   DateTime      @db.Timestamptz(3)
   endsAt                     DateTime      @db.Timestamptz(3) // startsAt + Service.durationMinutes, fixed at booking
   status                     BookingStatus @default(UNVERIFIED)

@@ -414,6 +414,8 @@ describe('Empleado', () => {
           retiredAt: null,
           slug: 'haircut',
           hidden: false,
+          prepMinutes: 0,
+          dailyLimit: null,
           employees: [
             {
               id: OTHER_EMPLOYEE.id,
@@ -447,6 +449,8 @@ describe('Empleado', () => {
           retiredAt: null,
           slug: 'haircut',
           hidden: false,
+          prepMinutes: 0,
+          dailyLimit: null,
           employees: [
             {
               id: OTHER_EMPLOYEE.id,

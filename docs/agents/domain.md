@@ -41,7 +41,7 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | Aprobación manual | `Service.requiresApproval` |
 | Seña | `Service.depositPercent` (opcional) |
 | Servicio oculto | `Service.hidden` |
-| Tiempo de preparación | `Service.prepMinutes` (0 = sin preparación) |
+| Tiempo de preparación | `Service.prepMinutes` (0 = sin preparación); en el Turno, `Booking.prepStartsAt` (desde cuándo ocupa al Empleado) |
 | Límite diario | `Service.dailyLimit` (opcional) |
 | Ofrecer un Servicio / dejar de ofrecerlo | `assignEmployee` / `removeEmployee` (`EmployeeService`) |
 | Turno | `Booking` (inicio/fin → `startsAt`/`endsAt`; estado → `BookingStatus.UNVERIFIED \| PENDING \| BOOKED \| REJECTED \| CANCELLED`) |

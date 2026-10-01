@@ -21,7 +21,13 @@ import {
   SERVICES_REPOSITORY,
   ServicesRepository,
 } from '../../domain/services/services.repository';
-import { computeSlots, DaySlots } from '../../domain/slots/slot';
+import {
+  addDays,
+  computeSlots,
+  DaySlots,
+  localDate,
+  zonedTimeToUtc,
+} from '../../domain/slots/slot';
 
 const MAX_RANGE_DAYS = 31;
 
@@ -82,6 +88,23 @@ export class ListSlotsUseCase {
       excludeBookingId,
     );
 
+    const fullDates = new Set<string>();
+    if (service.dailyLimit !== null) {
+      const starts = await this.bookings.listOccupiedStartsByService(
+        serviceId,
+        zonedTimeToUtc(from, '00:00', branch.timeZone),
+        zonedTimeToUtc(addDays(to, 1), '00:00', branch.timeZone),
+        excludeBookingId,
+      );
+      const perDate = new Map<string, number>();
+      for (const start of starts) {
+        const date = localDate(start, branch.timeZone);
+        perDate.set(date, (perDate.get(date) ?? 0) + 1);
+      }
+      for (const [date, taken] of perDate)
+        if (taken >= service.dailyLimit) fullDates.add(date);
+    }
+
     return {
       timeZone: branch.timeZone,
       days: computeSlots({
@@ -96,6 +119,8 @@ export class ListSlotsUseCase {
         ),
         bookedRanges,
         durationMinutes: service.durationMinutes,
+        prepMinutes: service.prepMinutes,
+        fullDates,
         now: this.clock.now(),
       }),
     };
