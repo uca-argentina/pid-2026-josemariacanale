@@ -4,17 +4,16 @@ import { useState } from 'react';
 import { ExternalLink, Link2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PanelButton, PanelConfirm, PanelIconButton } from '@/app/(app)/_components/panel-ui';
-import { canStopOffering, type ServiceItem } from '@/app/(app)/_components/mock-services';
-import { bookingLinkPath } from '@/app/routes';
-
+import { canStopOffering, type OfferableService } from './offering';
 /**
  * Abrir el Enlace de reserva y copiarlo. Van dentro de un `PanelIconGroup`.
- * ponytail: no hay Enlace de reserva por Servicio; abrir lleva a la página del Negocio, que elige la Sucursal.
+ *
+ * @param path la ruta del Enlace de reserva en este mismo front, como la arma `bookingLinkPath`
  */
-export function PublicLinkButtons({ url, businessSlug }: { url: string; businessSlug: string }) {
+export function PublicLinkButtons({ path }: { path: string }) {
     const copy = async () => {
         try {
-            await navigator.clipboard.writeText(url);
+            await navigator.clipboard.writeText(`${window.location.origin}${path}`);
             toast.success('Enlace de reserva copiado');
         } catch {
             toast.error('No se pudo copiar el Enlace de reserva');
@@ -23,7 +22,7 @@ export function PublicLinkButtons({ url, businessSlug }: { url: string; business
 
     return (
         <>
-            <PanelIconButton label="Abrir Enlace de reserva" onClick={() => window.open(bookingLinkPath(businessSlug), '_blank')}>
+            <PanelIconButton label="Abrir Enlace de reserva" onClick={() => window.open(path, '_blank')}>
                 <ExternalLink />
             </PanelIconButton>
             <PanelIconButton label="Copiar Enlace de reserva" onClick={copy}>
@@ -35,7 +34,6 @@ export function PublicLinkButtons({ url, businessSlug }: { url: string; business
 
 const NAMES = new Intl.ListFormat('es', { type: 'conjunction' });
 
-type OfferableService = Pick<ServiceItem, 'name' | 'offeredByMe' | 'otherEmployees'>;
 
 /**
  * Ofrecer o dejar de ofrecer un Servicio, como Dueño o como Empleado. Pide confirmación, pero todavía no cambia nada.

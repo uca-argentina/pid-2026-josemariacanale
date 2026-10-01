@@ -1,4 +1,5 @@
-import { canStopOffering, depositAmount, findService, formatPrice, groups, publicUrl } from '@/app/(app)/_components/mock-services';
+import { depositAmount, findService, formatPrice, groups, publicUrl } from '@/app/(app)/_components/mock-services';
+import { canStopOffering } from '@/app/(app)/services/_components/offering';
 
 describe('depositAmount', () => {
     it('es el porcentaje del precio, redondeado a pesos enteros', () => {
@@ -29,23 +30,6 @@ describe('findService', () => {
 
     it('devuelve undefined si no existe', () => {
         expect(findService('inexistente')).toBeUndefined();
-    });
-});
-
-describe('canStopOffering', () => {
-    const [base] = groups[0].services;
-
-    it('no aplica si no lo ofrecés', () => {
-        expect(canStopOffering({ ...base, offeredByMe: false, otherEmployees: ['Sofía Ledesma'] })).toBe(false);
-    });
-
-    // Un Servicio no puede quedar sin nadie que lo atienda.
-    it('no te deja si sos el único que lo ofrece', () => {
-        expect(canStopOffering({ ...base, offeredByMe: true, otherEmployees: [] })).toBe(false);
-    });
-
-    it('te deja si otro Empleado lo sigue ofreciendo', () => {
-        expect(canStopOffering({ ...base, offeredByMe: true, otherEmployees: ['Sofía Ledesma'] })).toBe(true);
     });
 });
 

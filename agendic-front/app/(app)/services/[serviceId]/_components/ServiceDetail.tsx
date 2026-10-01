@@ -21,11 +21,11 @@ import {
     PanelToggleRow,
 } from '@/app/(app)/_components/panel-ui';
 import { OfferButton, PublicLinkButtons } from '../../_components/service-actions';
+import { bookingLinkPath } from '@/app/routes';
 import {
     depositAmount,
     formatPrice,
     bookingLink,
-    publicUrl,
     type ServiceGroup,
     type ServiceItem,
 } from '@/app/(app)/_components/mock-services';
@@ -326,7 +326,7 @@ export function ServiceDetail({
                     <OfferButton service={saved} />
                     <PanelDivider />
                     <PanelIconGroup>
-                        <PublicLinkButtons url={publicUrl(business.slug, saved.slug)} businessSlug={business.slug} />
+                        <PublicLinkButtons path={bookingLinkPath(business.slug)} />
                         {isOwner && (
                             <PanelIconButton label="Dar de baja" destructive onClick={() => setConfirmRemove(true)}>
                                 <Trash2 />
