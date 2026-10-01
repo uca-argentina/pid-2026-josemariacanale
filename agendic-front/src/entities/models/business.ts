@@ -27,6 +27,7 @@ export const createBusinessSchema = z.object({
     branch: z.object({ name: z.string(), address: z.string(), opensAt: z.string(), closesAt: z.string(), timeZone: z.string() }),
     service: z.object({
         name: z.string(),
+        slug: z.string(),
         category: z.enum(SERVICE_CATEGORIES),
         durationMinutes: z.number().int().min(1),
         price: z.number().min(0),

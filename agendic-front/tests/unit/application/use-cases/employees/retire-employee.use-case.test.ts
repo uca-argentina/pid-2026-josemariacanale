@@ -6,6 +6,7 @@ import { instrumentation } from '@/tests/unit/stubs';
 const repoWith = (retireEmployee: jest.Mock): IEmployeesRepository => ({
     listEmployees: jest.fn(),
     addEmployee: jest.fn(),
+    listInvitations: jest.fn(),
     retireEmployee,
 });
 

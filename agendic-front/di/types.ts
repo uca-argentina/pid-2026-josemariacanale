@@ -16,6 +16,7 @@ import type { ICreateBusinessController } from '@/src/interface-adapters/control
 import type { IGetCurrentUserController } from '@/src/interface-adapters/controllers/auth/get-current-user.controller';
 import type { IEmployeesRepository } from '@/src/application/repositories/employees.repository.interface';
 import type { IListEmployeesUseCase } from '@/src/application/use-cases/employees/list-employees.use-case';
+import type { IListInvitationsUseCase } from '@/src/application/use-cases/employees/list-invitations.use-case';
 import type { IAddEmployeeUseCase } from '@/src/application/use-cases/employees/add-employee.use-case';
 import type { IRetireEmployeeUseCase } from '@/src/application/use-cases/employees/retire-employee.use-case';
 import type { IListMyEmployeesController } from '@/src/interface-adapters/controllers/employees/list-my-employees.controller';
@@ -80,6 +81,7 @@ export const DI_SYMBOLS = {
     IGetPublicBranchUseCase: Symbol.for('IGetPublicBranchUseCase'),
     IListEmployeesUseCase: Symbol.for('IListEmployeesUseCase'),
     IAddEmployeeUseCase: Symbol.for('IAddEmployeeUseCase'),
+    IListInvitationsUseCase: Symbol.for('IListInvitationsUseCase'),
     IRetireEmployeeUseCase: Symbol.for('IRetireEmployeeUseCase'),
     IListSlotsUseCase: Symbol.for('IListSlotsUseCase'),
     IBookSlotUseCase: Symbol.for('IBookSlotUseCase'),
@@ -148,6 +150,7 @@ export interface DI_RETURN_TYPES {
     IGetPublicBranchUseCase: IGetPublicBranchUseCase;
     IListEmployeesUseCase: IListEmployeesUseCase;
     IAddEmployeeUseCase: IAddEmployeeUseCase;
+    IListInvitationsUseCase: IListInvitationsUseCase;
     IRetireEmployeeUseCase: IRetireEmployeeUseCase;
     IListSlotsUseCase: IListSlotsUseCase;
     IBookSlotUseCase: IBookSlotUseCase;
