@@ -127,7 +127,8 @@ Todo Empleado es un Usuario (ADR 0013): nombre y email los presta su cuenta, no 
 
 | Método | Ruta | Auth | Qué hace |
 |---|---|---|---|
-| POST | `/businesses/:id/employees` | sí | Agrega un empleado a un negocio por su email (solo el dueño), con su Availability predeterminada "Horario general" (lunes a viernes de 09:00 a 18:00), así puede entrar a cualquier servicio; 201 con el empleado; 422 si ese email no tiene Usuario (mensaje: todavía no tiene cuenta en Agendic, tiene que registrarse); 409 si ya es empleado activo del negocio |
+| POST | `/businesses/:id/employees` | sí | Invita a un email a ser Empleado (solo el dueño, ADR 0019): crea una Invitación pendiente que vence a los 7 días, no un Empleado. Si ningún Usuario tiene ese email, Clerk le manda el mail para crearse una cuenta (si Clerk dice que ya tiene cuenta, no es error); si ya es Usuario no hay mail. 201 con la Invitación; 200 con la misma si ya estaba pendiente en ese negocio (se reenvía el mail si corresponde); 422 "ya es Empleado" si el email es de un empleado activo del negocio; 403/404 si no es el dueño o el negocio no existe; 502 si Clerk falla, sin crear nada |
+| GET | `/businesses/:id/invitations` | sí | Lista las Invitaciones pendientes (no vencidas) del negocio (solo el dueño) |
 | DELETE | `/employees/:id` | sí | Da de baja (soft-delete) un empleado (solo el dueño); 422 si es el Dueño dándose de baja a sí mismo |
 | GET | `/businesses/:id/employees` | sí | Lista empleados activos de un negocio (solo el dueño) |
 | GET | `/employees/me/services` | sí | Catálogo de Servicios del panel: un grupo por cada Negocio del que el Usuario es Empleado activo; `[]` (200) si no lo es de ninguno |

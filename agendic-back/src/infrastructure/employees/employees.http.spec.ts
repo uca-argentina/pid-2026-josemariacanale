@@ -1,5 +1,9 @@
 import { DEFAULT_AVAILABILITY } from '../../domain/availabilities/availability';
-import { ConflictError, DatabaseOperationError } from '../../domain/errors';
+import {
+  ConflictError,
+  DatabaseOperationError,
+  ExternalServiceError,
+} from '../../domain/errors';
 import { ServiceCategory } from '../../domain/services/service';
 import {
   ANA,
@@ -31,73 +35,95 @@ describe('Empleado', () => {
   afterEach(() => t.app.close());
 
   describe('POST /businesses/:id/employees', () => {
+    const INVITATION = {
+      id: 5,
+      businessId: ANAS_BUSINESS.id,
+      email: BRUNO.email,
+      expiresAt: new Date('2026-01-08T12:00:00.000Z'),
+    };
+    const post = (email = BRUNO.email) =>
+      t.http
+        .post(`/businesses/${ANAS_BUSINESS.id}/employees`)
+        .set(bearer(CLERK_TOKEN))
+        .send({ email });
+
     beforeEach(() => {
       scriptSession(t);
       t.businesses.findById.mockResolvedValue(ANAS_BUSINESS);
-      t.users.findByEmail.mockResolvedValue(BRUNO);
+      t.employees.listActiveByBusiness.mockResolvedValue([ANAS_EMPLOYEE]);
+      t.invitations.findPending.mockResolvedValue(null);
+      t.invitations.create.mockResolvedValue(INVITATION);
+      t.users.findByEmail.mockResolvedValue(null);
     });
 
-    it('creates the Empleado from the email of an existing Usuario, with the default Availability, and answers 201', async () => {
-      t.employees.create.mockResolvedValue(OTHER_EMPLOYEE);
+    it('creates an Invitaci�n that expires in 7 days and has Clerk mail an email with no Usuario', async () => {
+      const res = await post().expect(201);
 
-      const res = await t.http
-        .post(`/businesses/${ANAS_BUSINESS.id}/employees`)
-        .set(bearer(CLERK_TOKEN))
-        .send({ email: BRUNO.email })
-        .expect(201);
-
-      expect(t.users.findByEmail).toHaveBeenCalledWith(BRUNO.email);
-      expect(t.employees.create).toHaveBeenCalledWith({
-        userId: BRUNO.id,
+      expect(t.clerkAuth.inviteByEmail).toHaveBeenCalledWith(BRUNO.email);
+      expect(t.invitations.create).toHaveBeenCalledWith({
         businessId: ANAS_BUSINESS.id,
-        availability: DEFAULT_AVAILABILITY,
+        email: BRUNO.email,
+        expiresAt: new Date('2026-01-08T12:00:00.000Z'),
       });
       expect(res.body).toEqual({
-        id: OTHER_EMPLOYEE.id,
-        userId: OTHER_EMPLOYEE.userId,
-        name: OTHER_EMPLOYEE.name,
-        email: OTHER_EMPLOYEE.email,
+        id: 5,
+        email: BRUNO.email,
+        expiresAt: '2026-01-08T12:00:00.000Z',
       });
     });
 
-    it('passes the trimmed, lowercased email', async () => {
-      t.employees.create.mockResolvedValue(OTHER_EMPLOYEE);
+    it('creates the Invitaci�n without mail when the email already has a Usuario', async () => {
+      t.users.findByEmail.mockResolvedValue(BRUNO);
 
-      await t.http
-        .post(`/businesses/${ANAS_BUSINESS.id}/employees`)
-        .set(bearer(CLERK_TOKEN))
-        .send({ email: '  Bruno@Example.COM ' })
-        .expect(201);
+      await post().expect(201);
 
-      expect(t.users.findByEmail).toHaveBeenCalledWith('bruno@example.com');
+      expect(t.clerkAuth.inviteByEmail).not.toHaveBeenCalled();
+      expect(t.invitations.create).toHaveBeenCalled();
     });
 
-    it('answers 422 when no Usuario has that email, and creates nothing', async () => {
-      t.users.findByEmail.mockResolvedValue(null);
+    it('compares the email without regard to case', async () => {
+      await post('  Bruno@Example.COM ').expect(201);
 
-      const res = await t.http
-        .post(`/businesses/${ANAS_BUSINESS.id}/employees`)
-        .set(bearer(CLERK_TOKEN))
-        .send({ email: 'nobody@example.com' })
-        .expect(422);
-
-      expect(res.body.message).toContain('todavía no tiene cuenta en Agendic');
-      expect(t.employees.create).not.toHaveBeenCalled();
+      expect(t.invitations.findPending).toHaveBeenCalledWith(
+        ANAS_BUSINESS.id,
+        'bruno@example.com',
+        expect.any(Date),
+      );
     });
 
-    it('answers 409 when the Usuario is already an active Empleado of the Negocio', async () => {
-      t.employees.create.mockRejectedValue(
-        new ConflictError('User already an active Employee of this Business'),
+    it('answers 200 with the same Invitaci�n when it was already pending, creating no other', async () => {
+      t.invitations.findPending.mockResolvedValue(INVITATION);
+
+      const res = await post().expect(200);
+
+      expect(res.body.id).toBe(INVITATION.id);
+      expect(t.invitations.create).not.toHaveBeenCalled();
+      expect(t.clerkAuth.inviteByEmail).toHaveBeenCalledWith(BRUNO.email);
+    });
+
+    it('answers 422 when the email is an active Empleado of the Negocio', async () => {
+      t.employees.listActiveByBusiness.mockResolvedValue([
+        ANAS_EMPLOYEE,
+        OTHER_EMPLOYEE,
+      ]);
+
+      const res = await post().expect(422);
+
+      expect(res.body.message).toContain('ya es Empleado');
+      expect(t.invitations.create).not.toHaveBeenCalled();
+    });
+
+    it('answers 502 and creates nothing when Clerk fails', async () => {
+      t.clerkAuth.inviteByEmail.mockRejectedValue(
+        new ExternalServiceError('Clerk down'),
       );
 
-      await t.http
-        .post(`/businesses/${ANAS_BUSINESS.id}/employees`)
-        .set(bearer(CLERK_TOKEN))
-        .send({ email: BRUNO.email })
-        .expect(409);
+      await post().expect(502);
+
+      expect(t.invitations.create).not.toHaveBeenCalled();
     });
 
-    it('answers 403 for a session that is not the Dueño', async () => {
+    it('answers 403 for a session that is not the Due�o', async () => {
       scriptOtherSession(t);
 
       await t.http
@@ -105,7 +131,7 @@ describe('Empleado', () => {
         .set(bearer(OTHER_CLERK_TOKEN))
         .send({ email: BRUNO.email })
         .expect(403);
-      expect(t.employees.create).not.toHaveBeenCalled();
+      expect(t.invitations.create).not.toHaveBeenCalled();
     });
 
     it('answers 404 for an unknown Business', async () => {
@@ -134,9 +160,48 @@ describe('Empleado', () => {
           .send(body)
           .expect(400);
 
-        expect(t.employees.create).not.toHaveBeenCalled();
+        expect(t.invitations.create).not.toHaveBeenCalled();
       },
     );
+  });
+
+  describe('GET /businesses/:id/invitations', () => {
+    beforeEach(() => {
+      scriptSession(t);
+      scriptOtherSession(t);
+      t.businesses.findById.mockResolvedValue(ANAS_BUSINESS);
+    });
+
+    it('lists the pending Invitaciones of the Negocio for the Due�o', async () => {
+      t.invitations.listPending.mockResolvedValue([
+        {
+          id: 5,
+          businessId: ANAS_BUSINESS.id,
+          email: BRUNO.email,
+          expiresAt: new Date('2026-01-08T12:00:00.000Z'),
+        },
+      ]);
+
+      const res = await t.http
+        .get(`/businesses/${ANAS_BUSINESS.id}/invitations`)
+        .set(bearer(CLERK_TOKEN))
+        .expect(200);
+
+      expect(t.invitations.listPending).toHaveBeenCalledWith(
+        ANAS_BUSINESS.id,
+        new Date('2026-01-01T12:00:00.000Z'),
+      );
+      expect(res.body).toEqual([
+        { id: 5, email: BRUNO.email, expiresAt: '2026-01-08T12:00:00.000Z' },
+      ]);
+    });
+
+    it('answers 403 for a session that is not the Due�o', async () => {
+      await t.http
+        .get(`/businesses/${ANAS_BUSINESS.id}/invitations`)
+        .set(bearer(OTHER_CLERK_TOKEN))
+        .expect(403);
+    });
   });
 
   describe('DELETE /employees/:id', () => {
@@ -339,8 +404,10 @@ describe('Empleado', () => {
   it('answers a database failure with a generic 500', async () => {
     scriptSession(t);
     t.businesses.findById.mockResolvedValue(ANAS_BUSINESS);
+    t.employees.listActiveByBusiness.mockResolvedValue([]);
+    t.invitations.findPending.mockResolvedValue(null);
     t.users.findByEmail.mockResolvedValue(BRUNO);
-    t.employees.create.mockRejectedValue(
+    t.invitations.create.mockRejectedValue(
       new DatabaseOperationError('Database operation failed', {
         cause: new Error('connection refused at 10.0.0.1'),
       }),

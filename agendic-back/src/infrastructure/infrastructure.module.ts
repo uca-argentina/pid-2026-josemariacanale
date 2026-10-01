@@ -9,6 +9,7 @@ import { BOOKINGS_REPOSITORY } from '../domain/bookings/bookings.repository';
 import { BRANCHES_REPOSITORY } from '../domain/branches/branches.repository';
 import { BUSINESSES_REPOSITORY } from '../domain/businesses/businesses.repository';
 import { EMPLOYEES_REPOSITORY } from '../domain/employees/employees.repository';
+import { INVITATIONS_REPOSITORY } from '../domain/invitations/invitations.repository';
 import { SERVICES_REPOSITORY } from '../domain/services/services.repository';
 import { CLERK_AUTH } from '../domain/users/clerk-auth';
 import { USERS_REPOSITORY } from '../domain/users/users.repository';
@@ -26,6 +27,7 @@ import { PrismaBusinessesRepository } from './businesses/prisma-businesses.repos
 import { BusinessesModule } from './businesses/businesses.module';
 import { PrismaEmployeesRepository } from './employees/prisma-employees.repository';
 import { EmployeesModule } from './employees/employees.module';
+import { PrismaInvitationsRepository } from './invitations/prisma-invitations.repository';
 import { NodemailerMailer } from './nodemailer-mailer';
 import { PrismaService } from './prisma.service';
 import { readS3Config, S3FileStorage } from './s3-file-storage';
@@ -68,6 +70,10 @@ import { UsersModule } from './users/users.module';
     },
     { provide: SERVICES_REPOSITORY, useClass: PrismaServicesRepository },
     { provide: EMPLOYEES_REPOSITORY, useClass: PrismaEmployeesRepository },
+    {
+      provide: INVITATIONS_REPOSITORY,
+      useClass: PrismaInvitationsRepository,
+    },
     { provide: BOOKINGS_REPOSITORY, useClass: PrismaBookingsRepository },
     {
       provide: AVAILABILITIES_REPOSITORY,
@@ -89,6 +95,7 @@ import { UsersModule } from './users/users.module';
     BRANCH_IMAGES_REPOSITORY,
     SERVICES_REPOSITORY,
     EMPLOYEES_REPOSITORY,
+    INVITATIONS_REPOSITORY,
     BOOKINGS_REPOSITORY,
     AVAILABILITIES_REPOSITORY,
     AVAILABILITY_OVERRIDES_REPOSITORY,
