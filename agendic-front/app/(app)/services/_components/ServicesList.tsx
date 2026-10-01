@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Clock, Copy, Loader2, MoreHorizontal, Plus, Search, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { SERVICE_CATEGORIES, fieldErrorsOf, type FieldErrors } from '@/app/_components/business-schemas';
+import { fieldErrorsOf, type FieldErrors } from '@/app/_components/business-schemas';
 import { cn } from '@/app/_components/utils';
 import {
     PanelAvatar,
@@ -19,19 +19,21 @@ import {
     PanelInput,
     PanelMenu,
     PanelSelect,
-    PanelSwitch,
     PanelTextarea,
 } from '@/app/(app)/_components/panel-ui';
 import { BUSINESS_PATH, bookingLinkPath } from '@/app/routes';
 import { createServiceAction } from '../actions';
-import { OfferButton, PublicLinkButtons } from './service-actions';
-import { copySlug, serviceFormSchema, slugFrom, slugWhileTyping, type ServiceForm } from './service-form';
+import { formatPrice } from './format';
+import { HiddenSwitch, OfferButton, PublicLinkButtons, RetireServiceConfirm } from './service-actions';
+import {
+    CATEGORY_OPTIONS,
+    copySlug,
+    serviceFormSchema,
+    slugFrom,
+    slugWhileTyping,
+    type ServiceForm,
+} from './service-form';
 import type { ServiceBranch, ServiceGroup, ServiceItem } from './types';
-
-const THOUSANDS = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 0 });
-
-/** Mismo formato que la página pública. */
-const formatPrice = (price: number) => `$${THOUSANDS.format(price)}`;
 
 /** Un diálogo de alta abierto: Nuevo arranca vacío; Duplicar, con los datos del Servicio copiado. */
 interface DialogState {
@@ -67,11 +69,13 @@ function ServiceRow({
     branch,
     service,
     onDuplicate,
+    onRetire,
 }: {
     group: ServiceGroup;
     branch: ServiceBranch;
     service: ServiceItem;
     onDuplicate: () => void;
+    onRetire: () => void;
 }) {
     const isOwner = group.role === 'owner';
     const path = bookingLinkPath(group.business.slug, branch.slug, service.slug);
@@ -105,13 +109,7 @@ function ServiceRow({
                 {service.offeredByMe && <PanelBadge className="bg-[#e6f6ec] text-[#15803d]">Lo ofrecés</PanelBadge>}
                 {service.hidden && <PanelBadge>Oculto</PanelBadge>}
                 <OfferButton service={{ name: service.name, offeredByMe: service.offeredByMe, otherEmployees }} />
-                {isOwner && (
-                    <PanelSwitch
-                        checked={!service.hidden}
-                        disabled
-                        aria-label={service.hidden ? 'Mostrar en el Enlace de reserva' : 'Ocultar del Enlace de reserva'}
-                    />
-                )}
+                {isOwner && <HiddenSwitch service={service} />}
                 <PanelIconGroup>
                     <PublicLinkButtons path={path} />
                     {isOwner && (
@@ -123,7 +121,7 @@ function ServiceRow({
                             }
                             items={[
                                 { label: 'Duplicar', icon: <Copy />, onSelect: onDuplicate },
-                                { label: 'Dar de baja', icon: <Trash2 />, destructive: true, disabled: true },
+                                { label: 'Dar de baja', icon: <Trash2 />, destructive: true, onSelect: onRetire },
                             ]}
                         />
                     )}
@@ -151,8 +149,6 @@ function GroupHeader({ group, onNew }: { group: ServiceGroup; onNew: () => void 
         </div>
     );
 }
-
-const CATEGORY_OPTIONS = SERVICE_CATEGORIES.map((c) => ({ value: c.value, label: c.label }));
 
 function NewServiceDialog({ state, onClose }: { state: DialogState; onClose: () => void }) {
     const { group } = state;
@@ -293,6 +289,7 @@ export function ServicesList({ groups }: { groups: ServiceGroup[] }) {
     const router = useRouter();
     const [query, setQuery] = useState('');
     const [dialog, setDialog] = useState<DialogState | null>(null);
+    const [retiring, setRetiring] = useState<ServiceItem | null>(null);
 
     const q = query.trim().toLowerCase();
     const shownGroups = groups
@@ -351,6 +348,7 @@ export function ServicesList({ groups }: { groups: ServiceGroup[] }) {
                                                             branch={branch}
                                                             service={service}
                                                             onDuplicate={() => setDialog({ group, initial: copyForm(service) })}
+                                                            onRetire={() => setRetiring(service)}
                                                         />
                                                     ))}
                                                 </ul>
@@ -372,6 +370,14 @@ export function ServicesList({ groups }: { groups: ServiceGroup[] }) {
                 </>
             )}
 
+            {retiring && (
+                <RetireServiceConfirm
+                    service={retiring}
+                    open
+                    onOpenChange={(open) => !open && setRetiring(null)}
+                    onRetired={() => router.refresh()}
+                />
+            )}
             {dialog && <NewServiceDialog key={dialog.initial.slug + dialog.group.business.id} state={dialog} onClose={() => setDialog(null)} />}
         </div>
     );

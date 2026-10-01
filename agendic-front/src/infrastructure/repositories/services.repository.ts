@@ -1,13 +1,16 @@
 import type { IServicesRepository } from '@/src/application/repositories/services.repository.interface';
 import type { IAuthenticationService } from '@/src/application/services/authentication.service.interface';
-import { ApiRequestError } from '@/src/entities/errors/common';
+import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
 import { ServiceNameTakenError, ServiceSlugTakenError } from '@/src/entities/errors/service';
 import {
     catalogServiceSchema,
+    retiredServiceSchema,
     serviceCatalogGroupSchema,
     type CatalogService,
     type CreateService,
+    type RetiredService,
     type ServiceCatalogGroup,
+    type UpdateService,
 } from '@/src/entities/models/service';
 
 /** Same as in BusinessesRepository: the boundaries lint keeps adapters from importing each other. */
@@ -51,12 +54,40 @@ export class ServicesRepository implements IServicesRepository {
     async createService({ branchId, ...service }: CreateService): Promise<CatalogService> {
         const what = 'POST /branches/:id/services';
         const { status, json } = await this.request('POST', `/branches/${branchId}/services`, service);
-        if (status === 409) {
-            const message = messageOf(json, what, status);
-            throw message === SLUG_TAKEN_MESSAGE ? new ServiceSlugTakenError(message) : new ServiceNameTakenError(message);
-        }
+        if (status === 409) throw takenError(json, what, status);
         if (status >= 400) throw apiError(what, status, json);
         return parseOrFail(() => catalogServiceSchema.parse(json), what);
+    }
+
+    /**
+     * Changes the fields sent of a Servicio: `PATCH /services/:id`.
+     *
+     * @throws {ServiceSlugTakenError} the tramo is taken in that Sucursal (409)
+     * @throws {ServiceNameTakenError} the name is taken in that Sucursal (409)
+     * @throws {NotFoundError} the Servicio does not exist (404)
+     * @throws {ApiRequestError} any other failure, or a body that is not a Servicio
+     */
+    async updateService({ id, ...changes }: UpdateService): Promise<CatalogService> {
+        const what = 'PATCH /services/:id';
+        const { status, json } = await this.request('PATCH', `/services/${id}`, changes);
+        if (status === 409) throw takenError(json, what, status);
+        if (status === 404) throw new NotFoundError(messageOf(json, what, status));
+        if (status >= 400) throw apiError(what, status, json);
+        return parseOrFail(() => catalogServiceSchema.parse(json), what);
+    }
+
+    /**
+     * Dar de baja: `DELETE /services/:id`.
+     *
+     * @throws {NotFoundError} the Servicio does not exist or was already retired (404)
+     * @throws {ApiRequestError} any other failure, or a body without the count of cancelled Turnos
+     */
+    async retireService(id: number): Promise<RetiredService> {
+        const what = 'DELETE /services/:id';
+        const { status, json } = await this.request('DELETE', `/services/${id}`);
+        if (status === 404) throw new NotFoundError(messageOf(json, what, status));
+        if (status >= 400) throw apiError(what, status, json);
+        return parseOrFail(() => retiredServiceSchema.parse(json), what);
     }
 
     private async request(method: string, path: string, body?: unknown) {
@@ -82,3 +113,8 @@ const messageOf = (json: { message?: unknown } | undefined, what: string, status
 
 const apiError = (what: string, status: number, json: { message?: unknown } | undefined) =>
     new ApiRequestError(messageOf(json, what, status), { status });
+
+const takenError = (json: { message?: unknown } | undefined, what: string, status: number) => {
+    const message = messageOf(json, what, status);
+    return message === SLUG_TAKEN_MESSAGE ? new ServiceSlugTakenError(message) : new ServiceNameTakenError(message);
+};

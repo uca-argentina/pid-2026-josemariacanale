@@ -1,4 +1,12 @@
-import { copySlug, serviceFormSchema, slugFrom, slugWhileTyping, type ServiceForm } from '@/app/(app)/services/_components/service-form';
+import {
+    copySlug,
+    editFormOf,
+    serviceChanges,
+    serviceFormSchema,
+    slugFrom,
+    slugWhileTyping,
+    type ServiceForm,
+} from '@/app/(app)/services/_components/service-form';
 
 const form: ServiceForm = {
     branchId: '10',
@@ -70,5 +78,99 @@ describe('serviceFormSchema', () => {
         const result = serviceFormSchema.safeParse({ ...form, ...patch });
         expect(result.success).toBe(false);
         expect(result.error?.issues[0].path[0]).toBe(field);
+    });
+});
+
+const service = {
+    name: 'Masaje',
+    slug: 'masaje',
+    description: 'Relajante',
+    category: 'SPA' as const,
+    durationMinutes: 60,
+    price: 20000,
+    depositPercent: null,
+    requiresApproval: false,
+};
+
+describe('editFormOf', () => {
+    it('pasa el Servicio a texto de los inputs, con la Seña apagada si no tiene', () => {
+        expect(editFormOf(service)).toEqual({
+            name: 'Masaje',
+            slug: 'masaje',
+            description: 'Relajante',
+            category: 'SPA',
+            durationMinutes: '60',
+            price: '20000',
+            depositEnabled: false,
+            depositPercent: '',
+            requiresApproval: false,
+        });
+    });
+
+    it('prende la Seña con su porcentaje y deja vacía una descripción nula', () => {
+        expect(editFormOf({ ...service, description: null, depositPercent: 20 })).toMatchObject({
+            description: '',
+            depositEnabled: true,
+            depositPercent: '20',
+        });
+    });
+});
+
+describe('serviceChanges', () => {
+    const saved = editFormOf(service);
+
+    it('no manda nada si nada cambió', () => {
+        expect(serviceChanges(saved, { ...saved, name: ' Masaje ' })).toEqual({ ok: true, changes: {} });
+    });
+
+    it('manda solo los campos que cambiaron, ya convertidos', () => {
+        expect(
+            serviceChanges(saved, { ...saved, price: '25000', slug: 'masaje-relax', requiresApproval: true }),
+        ).toEqual({ ok: true, changes: { price: 25000, slug: 'masaje-relax', requiresApproval: true } });
+    });
+
+    it('activa la Seña con su porcentaje', () => {
+        expect(serviceChanges(saved, { ...saved, depositEnabled: true, depositPercent: '30' })).toEqual({
+            ok: true,
+            changes: { depositPercent: 30 },
+        });
+    });
+
+    it('saca la Seña mandando null', () => {
+        const withDeposit = editFormOf({ ...service, depositPercent: 20 });
+        expect(serviceChanges(withDeposit, { ...withDeposit, depositEnabled: false })).toEqual({
+            ok: true,
+            changes: { depositPercent: null },
+        });
+    });
+
+    it('ignora el porcentaje escrito si la Seña sigue apagada', () => {
+        expect(serviceChanges(saved, { ...saved, depositPercent: '30' })).toEqual({ ok: true, changes: {} });
+    });
+
+    it.each(['', '0', '101', '12.5', 'diez'])('rechaza una Seña de "%s"', (depositPercent) => {
+        const result = serviceChanges(saved, { ...saved, depositEnabled: true, depositPercent });
+        expect(result).toEqual({ ok: false, errors: { depositPercent: 'La Seña va de 1 a 100%, en enteros.' } });
+    });
+
+    it('no deja borrar una descripción que ya tenía, porque el back no la vacía', () => {
+        expect(serviceChanges(saved, { ...saved, description: '  ' })).toEqual({
+            ok: false,
+            errors: { description: 'La descripción no se puede borrar: escribí una nueva.' },
+        });
+    });
+
+    it('acepta dejar vacía una descripción que ya estaba vacía', () => {
+        const blank = editFormOf({ ...service, description: null });
+        expect(serviceChanges(blank, { ...blank, name: 'Masaje relax' })).toEqual({
+            ok: true,
+            changes: { name: 'Masaje relax' },
+        });
+    });
+
+    it('devuelve el error de cada campo inválido', () => {
+        const result = serviceChanges(saved, { ...saved, name: ' ', slug: 'ma', durationMinutes: '0', price: '-1' });
+        expect(result.ok).toBe(false);
+        expect(!result.ok && Object.keys(result.errors).sort()).toEqual(['durationMinutes', 'name', 'price', 'slug']);
     });
 });

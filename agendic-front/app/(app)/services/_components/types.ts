@@ -6,3 +6,5 @@ export type ServiceGroup = Awaited<ReturnType<DI_RETURN_TYPES['IListMyServicesCo
 export type ServiceBranch = ServiceGroup['branches'][number];
 /** Un Servicio de la lista. `offeredByMe`: lo atiende el Empleado del Usuario en ese Negocio. */
 export type ServiceItem = ServiceBranch['services'][number];
+/** El detalle de un Servicio, como lo presenta getMyServiceController. */
+export type ServiceDetailData = Awaited<ReturnType<DI_RETURN_TYPES['IGetMyServiceController']>>;

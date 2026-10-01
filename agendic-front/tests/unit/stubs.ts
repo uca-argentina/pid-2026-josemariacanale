@@ -63,5 +63,7 @@ export const overridesWith = (stubs: Partial<IOverridesRepository>): IOverridesR
 export const servicesWith = (stubs: Partial<IServicesRepository>): IServicesRepository => ({
     listMyCatalog: jest.fn(notStubbed('listMyCatalog')),
     createService: jest.fn(notStubbed('createService')),
+    updateService: jest.fn(notStubbed('updateService')),
+    retireService: jest.fn(notStubbed('retireService')),
     ...stubs,
 });
