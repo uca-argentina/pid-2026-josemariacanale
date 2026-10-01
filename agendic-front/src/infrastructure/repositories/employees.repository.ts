@@ -1,8 +1,8 @@
 import type { IEmployeesRepository } from '@/src/application/repositories/employees.repository.interface';
 import type { IAuthenticationService } from '@/src/application/services/authentication.service.interface';
 import { ApiRequestError } from '@/src/entities/errors/common';
-import { AlreadyEmployeeError, LastEmployeeError } from '@/src/entities/errors/employee';
-import { employeeSchema, invitationSchema, type CreateEmployee, type Employee, type Invitation } from '@/src/entities/models/employee';
+import { AlreadyEmployeeError, InvitationNotAcceptableError, LastEmployeeError } from '@/src/entities/errors/employee';
+import { employeeSchema, invitationSchema, myInvitationSchema, type CreateEmployee, type Employee, type Invitation, type MyInvitation } from '@/src/entities/models/employee';
 
 // Same as in BusinessesRepository: the boundaries lint keeps adapters from importing each other.
 function parseOrFail<T>(parse: () => T, what: string): T {
@@ -37,6 +37,19 @@ export class EmployeesRepository implements IEmployeesRepository {
     async listInvitations(businessId: number): Promise<Invitation[]> {
         const body = await this.request('GET', `/businesses/${businessId}/invitations`);
         return parseOrFail(() => invitationSchema.array().parse(body), 'GET /businesses/:id/invitations');
+    }
+
+    async listMyInvitations(): Promise<MyInvitation[]> {
+        const body = await this.request('GET', '/invitations/me');
+        return parseOrFail(() => myInvitationSchema.array().parse(body), 'GET /invitations/me');
+    }
+
+    async acceptInvitation(invitationId: number): Promise<void> {
+        await this.request('POST', `/invitations/${invitationId}/accept`, { errors: { 422: InvitationNotAcceptableError } });
+    }
+
+    async rejectInvitation(invitationId: number): Promise<void> {
+        await this.request('POST', `/invitations/${invitationId}/reject`);
     }
 
     async retireEmployee(employeeId: number): Promise<void> {

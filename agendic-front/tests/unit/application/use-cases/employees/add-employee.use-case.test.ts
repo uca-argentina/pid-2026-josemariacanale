@@ -7,6 +7,9 @@ const repoWith = (addEmployee: jest.Mock): IEmployeesRepository => ({
     listEmployees: jest.fn(),
     addEmployee,
     retireEmployee: jest.fn(),
+    listMyInvitations: jest.fn(),
+    acceptInvitation: jest.fn(),
+    rejectInvitation: jest.fn(),
     listInvitations: jest.fn(),
 });
 

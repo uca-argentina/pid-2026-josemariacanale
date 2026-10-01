@@ -21,6 +21,12 @@ import type { IAddEmployeeUseCase } from '@/src/application/use-cases/employees/
 import type { IRetireEmployeeUseCase } from '@/src/application/use-cases/employees/retire-employee.use-case';
 import type { IListMyEmployeesController } from '@/src/interface-adapters/controllers/employees/list-my-employees.controller';
 import type { IAddEmployeeController } from '@/src/interface-adapters/controllers/employees/add-employee.controller';
+import type { IListMyInvitationsUseCase } from '@/src/application/use-cases/employees/list-my-invitations.use-case';
+import type { IAcceptInvitationUseCase } from '@/src/application/use-cases/employees/accept-invitation.use-case';
+import type { IRejectInvitationUseCase } from '@/src/application/use-cases/employees/reject-invitation.use-case';
+import type { IListMyInvitationsController } from '@/src/interface-adapters/controllers/employees/list-my-invitations.controller';
+import type { IAcceptInvitationController } from '@/src/interface-adapters/controllers/employees/accept-invitation.controller';
+import type { IRejectInvitationController } from '@/src/interface-adapters/controllers/employees/reject-invitation.controller';
 import type { IBookingsRepository } from '@/src/application/repositories/bookings.repository.interface';
 import type { IListSlotsUseCase } from '@/src/application/use-cases/bookings/list-slots.use-case';
 import type { IBookSlotUseCase } from '@/src/application/use-cases/bookings/book-slot.use-case';
@@ -83,6 +89,9 @@ export const DI_SYMBOLS = {
     IAddEmployeeUseCase: Symbol.for('IAddEmployeeUseCase'),
     IListInvitationsUseCase: Symbol.for('IListInvitationsUseCase'),
     IRetireEmployeeUseCase: Symbol.for('IRetireEmployeeUseCase'),
+    IRejectInvitationUseCase: Symbol.for('IRejectInvitationUseCase'),
+    IAcceptInvitationUseCase: Symbol.for('IAcceptInvitationUseCase'),
+    IListMyInvitationsUseCase: Symbol.for('IListMyInvitationsUseCase'),
     IListSlotsUseCase: Symbol.for('IListSlotsUseCase'),
     IBookSlotUseCase: Symbol.for('IBookSlotUseCase'),
     IListMyBookingsUseCase: Symbol.for('IListMyBookingsUseCase'),
@@ -110,6 +119,9 @@ export const DI_SYMBOLS = {
     IListMyEmployeesController: Symbol.for('IListMyEmployeesController'),
     IAddEmployeeController: Symbol.for('IAddEmployeeController'),
     IRetireEmployeeController: Symbol.for('IRetireEmployeeController'),
+    IRejectInvitationController: Symbol.for('IRejectInvitationController'),
+    IAcceptInvitationController: Symbol.for('IAcceptInvitationController'),
+    IListMyInvitationsController: Symbol.for('IListMyInvitationsController'),
     IListSlotsController: Symbol.for('IListSlotsController'),
     IBookSlotController: Symbol.for('IBookSlotController'),
     IListMyBookingsController: Symbol.for('IListMyBookingsController'),
@@ -152,6 +164,9 @@ export interface DI_RETURN_TYPES {
     IAddEmployeeUseCase: IAddEmployeeUseCase;
     IListInvitationsUseCase: IListInvitationsUseCase;
     IRetireEmployeeUseCase: IRetireEmployeeUseCase;
+    IRejectInvitationUseCase: IRejectInvitationUseCase;
+    IAcceptInvitationUseCase: IAcceptInvitationUseCase;
+    IListMyInvitationsUseCase: IListMyInvitationsUseCase;
     IListSlotsUseCase: IListSlotsUseCase;
     IBookSlotUseCase: IBookSlotUseCase;
     IListMyBookingsUseCase: IListMyBookingsUseCase;
@@ -179,6 +194,9 @@ export interface DI_RETURN_TYPES {
     IListMyEmployeesController: IListMyEmployeesController;
     IAddEmployeeController: IAddEmployeeController;
     IRetireEmployeeController: IRetireEmployeeController;
+    IRejectInvitationController: IRejectInvitationController;
+    IAcceptInvitationController: IAcceptInvitationController;
+    IListMyInvitationsController: IListMyInvitationsController;
     IListSlotsController: IListSlotsController;
     IBookSlotController: IBookSlotController;
     IListMyBookingsController: IListMyBookingsController;

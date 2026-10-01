@@ -1,5 +1,5 @@
 import { ApiRequestError } from '@/src/entities/errors/common';
-import { AlreadyEmployeeError, LastEmployeeError } from '@/src/entities/errors/employee';
+import { AlreadyEmployeeError, InvitationNotAcceptableError, LastEmployeeError } from '@/src/entities/errors/employee';
 import { EmployeesRepository } from '@/src/infrastructure/repositories/employees.repository';
 import { authWith } from '@/tests/unit/stubs';
 
@@ -118,5 +118,56 @@ describe('EmployeesRepository.listInvitations', () => {
     it('translates a 403 to ApiRequestError carrying the status', async () => {
         respond(403, { statusCode: 403, message: 'no' });
         await expect(repo().listInvitations(1)).rejects.toMatchObject({ status: 403 });
+    });
+});
+
+describe('EmployeesRepository.listMyInvitations', () => {
+    it('GETs the Invitaciones of the Usuario with the bearer token', async () => {
+        const mine = { id: 5, business: { name: 'Estudio Norte', slug: 'estudio-norte' } };
+        const fetchSpy = respond(200, [mine]);
+
+        await expect(repo().listMyInvitations()).resolves.toEqual([mine]);
+        expect(fetchSpy).toHaveBeenCalledWith(
+            'http://api/invitations/me',
+            expect.objectContaining({ headers: expect.objectContaining({ Authorization: 'Bearer tok' }) }),
+        );
+    });
+
+    it('translates a body that does not match the schema to ApiRequestError', async () => {
+        respond(200, [{ id: 'x' }]);
+        await expect(repo().listMyInvitations()).rejects.toBeInstanceOf(ApiRequestError);
+    });
+});
+
+describe('EmployeesRepository.acceptInvitation', () => {
+    it('POSTs the accept with the bearer token', async () => {
+        const fetchSpy = respond(200, employee);
+
+        await expect(repo().acceptInvitation(5)).resolves.toBeUndefined();
+        expect(fetchSpy).toHaveBeenCalledWith(
+            'http://api/invitations/5/accept',
+            expect.objectContaining({ method: 'POST', headers: expect.objectContaining({ Authorization: 'Bearer tok' }) }),
+        );
+    });
+
+    it('translates a 422 to InvitationNotAcceptableError keeping the message of the back', async () => {
+        respond(422, { statusCode: 422, message: 'La invitación venció' });
+        const error = await repo().acceptInvitation(5).catch((e) => e);
+        expect(error).toBeInstanceOf(InvitationNotAcceptableError);
+        expect(error.message).toBe('La invitación venció');
+    });
+
+    it('translates a 404 to ApiRequestError carrying the status', async () => {
+        respond(404, { statusCode: 404, message: 'no' });
+        await expect(repo().acceptInvitation(5)).rejects.toMatchObject({ status: 404 });
+    });
+});
+
+describe('EmployeesRepository.rejectInvitation', () => {
+    it('POSTs the reject and accepts the empty 204', async () => {
+        const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue(new Response(null, { status: 204 }));
+
+        await expect(repo().rejectInvitation(5)).resolves.toBeUndefined();
+        expect(fetchSpy).toHaveBeenCalledWith('http://api/invitations/5/reject', expect.objectContaining({ method: 'POST' }));
     });
 });

@@ -1,28 +1,31 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { PanelAvatar, PanelButton, PanelSection } from '@/app/(app)/_components/panel-ui';
 import { bookingLink } from '@/app/(app)/_components/mock-services';
 import { BusinessCard } from './business-ui';
 import { CreateBusinessDialog, type Owner } from './CreateBusinessDialog';
-import { pendingInvitations, type Invitation } from './mock-invitations';
+import { acceptInvitationAction, rejectInvitationAction } from '../actions';
+
+type Invitation = { id: number; business: { name: string; slug: string } };
 
 /** Mi Negocio de un Usuario que todavía no hizo Crear Negocio: sus invitaciones y el botón para crearlo. */
-export function NoBusinessView({ owner }: { owner: Owner }) {
-    const [invitations, setInvitations] = useState(pendingInvitations);
-    // ponytail: aceptar es solo estado local; se pierde al recargar hasta que el back maneje invitaciones.
+export function NoBusinessView({ owner, invitations }: { owner: Owner; invitations: Invitation[] }) {
     const [joined, setJoined] = useState<Invitation['business']>();
     const [creating, setCreating] = useState(false);
+    const [pending, startTransition] = useTransition();
 
-    const answer = (invitation: Invitation, accepted: boolean) => {
-        setInvitations((prev) => prev.filter((i) => i.id !== invitation.id));
-        if (accepted) setJoined(invitation.business);
-        toast.success(
-            accepted ? `Te sumaste a ${invitation.business.name}` : `Rechazaste la invitación de ${invitation.business.name}`,
-        );
-    };
+    const answer = (invitation: Invitation, accepted: boolean) =>
+        startTransition(async () => {
+            const result = await (accepted ? acceptInvitationAction : rejectInvitationAction)(invitation.id);
+            if (!result.ok) return void toast.error(result.message);
+            if (accepted) setJoined(invitation.business);
+            toast.success(
+                accepted ? `Te sumaste a ${invitation.business.name}` : `Rechazaste la invitaci�n de ${invitation.business.name}`,
+            );
+        });
 
     if (joined) return <BusinessCard business={joined} role="employee" />;
 
@@ -43,10 +46,10 @@ export function NoBusinessView({ owner }: { owner: Owner }) {
                                     </span>
                                 </div>
                                 <div className="ml-auto flex gap-2">
-                                    <PanelButton variant="secondary" onClick={() => answer(invitation, false)}>
+                                    <PanelButton variant="secondary" disabled={pending} onClick={() => answer(invitation, false)}>
                                         Rechazar
                                     </PanelButton>
-                                    <PanelButton variant="secondary" onClick={() => answer(invitation, true)}>
+                                    <PanelButton variant="secondary" disabled={pending} onClick={() => answer(invitation, true)}>
                                         <Check className="size-4" />
                                         Aceptar
                                     </PanelButton>
