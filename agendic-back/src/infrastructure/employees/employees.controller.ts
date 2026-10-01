@@ -16,6 +16,7 @@ import { ListEmployeesByBusinessUseCase } from '../../application/employees/list
 import { InviteEmployeeUseCase } from '../../application/invitations/invite-employee.use-case';
 import { ListInvitationsByBusinessUseCase } from '../../application/invitations/list-invitations-by-business.use-case';
 import { ListMyInvitationsUseCase } from '../../application/invitations/list-my-invitations.use-case';
+import { ManageInvitationUseCase } from '../../application/invitations/manage-invitation.use-case';
 import { RespondToInvitationUseCase } from '../../application/invitations/respond-to-invitation.use-case';
 import { RetireEmployeeUseCase } from '../../application/employees/retire-employee.use-case';
 import { ClerkGuard, CurrentUser } from '../users/clerk.guard';
@@ -32,6 +33,7 @@ export class EmployeesController {
     private readonly listEmployeesByBusinessUseCase: ListEmployeesByBusinessUseCase,
     private readonly listMyInvitationsUseCase: ListMyInvitationsUseCase,
     private readonly respondToInvitationUseCase: RespondToInvitationUseCase,
+    private readonly manageInvitationUseCase: ManageInvitationUseCase,
     private readonly retireEmployeeUseCase: RetireEmployeeUseCase,
     private readonly listMyBookingsUseCase: ListMyBookingsUseCase,
   ) {}
@@ -96,6 +98,30 @@ export class EmployeesController {
     @Param('id', ParseIntPipe) id: number,
   ) {
     await this.respondToInvitationUseCase.reject(userId, id);
+  }
+
+  /** El Dueño reenvía la Invitación: renueva el vencimiento y reenvía el mail si corresponde. */
+  @Post('invitations/:id/resend')
+  @HttpCode(200)
+  @UseGuards(ClerkGuard)
+  async resendInvitation(
+    @CurrentUser() userId: number,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return presentInvitation(
+      await this.manageInvitationUseCase.resend(userId, id),
+    );
+  }
+
+  /** El Dueño cancela la Invitación pendiente. */
+  @Delete('invitations/:id')
+  @HttpCode(204)
+  @UseGuards(ClerkGuard)
+  async cancelInvitation(
+    @CurrentUser() userId: number,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    await this.manageInvitationUseCase.cancel(userId, id);
   }
 
   @Delete('employees/:id')

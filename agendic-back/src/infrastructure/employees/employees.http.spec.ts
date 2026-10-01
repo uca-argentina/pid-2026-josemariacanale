@@ -288,6 +288,77 @@ describe('Empleado', () => {
     });
   });
 
+  describe('resend / cancel an Invitación', () => {
+    const PENDING = {
+      id: 5,
+      businessId: ANAS_BUSINESS.id,
+      email: BRUNO.email,
+      expiresAt: new Date('2026-01-02T12:00:00.000Z'),
+      closedAt: null,
+    };
+    const as = (token: string, req: ReturnType<typeof t.http.get>) => req.set(bearer(token));
+
+    beforeEach(() => {
+      scriptSession(t);
+      scriptOtherSession(t);
+      t.businesses.findById.mockResolvedValue(ANAS_BUSINESS);
+      t.invitations.findById.mockResolvedValue(PENDING);
+      t.users.findByEmail.mockResolvedValue(null);
+    });
+
+    it('resending renews the expiry to 7 days and mails a person with no Usuario', async () => {
+      const res = await as(
+        CLERK_TOKEN,
+        t.http.post('/invitations/5/resend'),
+      ).expect(200);
+
+      expect(t.invitations.renew).toHaveBeenCalledWith(
+        5,
+        new Date('2026-01-08T12:00:00.000Z'),
+      );
+      expect(t.clerkAuth.inviteByEmail).toHaveBeenCalledWith(BRUNO.email);
+      expect(res.body).toEqual({
+        id: 5,
+        email: BRUNO.email,
+        expiresAt: '2026-01-08T12:00:00.000Z',
+      });
+    });
+
+    it('resending sends no mail when the email already has a Usuario', async () => {
+      t.users.findByEmail.mockResolvedValue(BRUNO);
+      await as(CLERK_TOKEN, t.http.post('/invitations/5/resend')).expect(200);
+
+      expect(t.clerkAuth.inviteByEmail).not.toHaveBeenCalled();
+      expect(t.invitations.renew).toHaveBeenCalled();
+    });
+
+    it('cancelling closes the Invitación', async () => {
+      await as(CLERK_TOKEN, t.http.delete('/invitations/5')).expect(204);
+
+      expect(t.invitations.close).toHaveBeenCalledWith(5, expect.any(Date));
+    });
+
+    it('answers 404 for a missing Invitación or one that is not of the Dueño', async () => {
+      await as(OTHER_CLERK_TOKEN, t.http.post('/invitations/5/resend')).expect(
+        404,
+      );
+      await as(OTHER_CLERK_TOKEN, t.http.delete('/invitations/5')).expect(404);
+      t.invitations.findById.mockResolvedValue(null);
+      await as(CLERK_TOKEN, t.http.delete('/invitations/5')).expect(404);
+      expect(t.invitations.renew).not.toHaveBeenCalled();
+      expect(t.invitations.close).not.toHaveBeenCalled();
+    });
+
+    it('answers 422 for an Invitación already accepted or rejected', async () => {
+      t.invitations.findById.mockResolvedValue({
+        ...PENDING,
+        closedAt: new Date(),
+      });
+      await as(CLERK_TOKEN, t.http.post('/invitations/5/resend')).expect(422);
+      await as(CLERK_TOKEN, t.http.delete('/invitations/5')).expect(422);
+    });
+  });
+
   describe('DELETE /employees/:id', () => {
     beforeEach(() => {
       scriptSession(t);
