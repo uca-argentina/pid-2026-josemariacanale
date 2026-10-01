@@ -31,6 +31,7 @@ export default async function AvailabilityPage({ searchParams }: { searchParams:
             employees={staff.employees}
             employeeId={staff.employeeId}
             availabilities={staff.availabilities}
+            overrides={staff.overrides}
         />
     );
 }

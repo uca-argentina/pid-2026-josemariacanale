@@ -136,6 +136,7 @@ export function AvailabilityList({
     onMakeDefault,
     onDuplicate,
     onDelete,
+    children,
 }: {
     employees: StaffMember[];
     employeeId: number;
@@ -146,6 +147,8 @@ export function AvailabilityList({
     onMakeDefault: (availability: AvailabilityItem) => void;
     onDuplicate: (availability: AvailabilityItem) => void;
     onDelete: (availability: AvailabilityItem) => void;
+    /** Se muestra debajo de la lista (la sección de Anulaciones del Empleado). */
+    children?: React.ReactNode;
 }) {
     const router = useRouter();
     const [creating, setCreating] = useState(false);
@@ -195,6 +198,8 @@ export function AvailabilityList({
                     </p>
                 )}
             </div>
+
+            {children && <div className="mt-8">{children}</div>}
 
             {creating && (
                 <NewAvailabilityDialog

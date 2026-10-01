@@ -40,6 +40,12 @@ import type { IRejectBookingController } from '@/src/interface-adapters/controll
 import type { IAcceptBookingUseCase } from '@/src/application/use-cases/bookings/accept-booking.use-case';
 import type { IAcceptBookingController } from '@/src/interface-adapters/controllers/bookings/accept-booking.controller';
 import type { IAvailabilitiesRepository } from '@/src/application/repositories/availabilities.repository.interface';
+import type { IOverridesRepository } from '@/src/application/repositories/overrides.repository.interface';
+import type { IListOverridesUseCase } from '@/src/application/use-cases/overrides/list-overrides.use-case';
+import type { ISetOverrideUseCase } from '@/src/application/use-cases/overrides/set-override.use-case';
+import type { IRemoveOverrideUseCase } from '@/src/application/use-cases/overrides/remove-override.use-case';
+import type { ISetOverridesController } from '@/src/interface-adapters/controllers/overrides/set-overrides.controller';
+import type { IRemoveOverrideController } from '@/src/interface-adapters/controllers/overrides/remove-override.controller';
 import type { IListAvailabilitiesUseCase } from '@/src/application/use-cases/availabilities/list-availabilities.use-case';
 import type { ICreateAvailabilityUseCase } from '@/src/application/use-cases/availabilities/create-availability.use-case';
 import type { IUpdateAvailabilityUseCase } from '@/src/application/use-cases/availabilities/update-availability.use-case';
@@ -64,6 +70,7 @@ export const DI_SYMBOLS = {
     IBookingsRepository: Symbol.for('IBookingsRepository'),
     IEmployeeBookingsRepository: Symbol.for('IEmployeeBookingsRepository'),
     IAvailabilitiesRepository: Symbol.for('IAvailabilitiesRepository'),
+    IOverridesRepository: Symbol.for('IOverridesRepository'),
 
     // Use cases
     ICreateBusinessUseCase: Symbol.for('ICreateBusinessUseCase'),
@@ -87,6 +94,9 @@ export const DI_SYMBOLS = {
     IUpdateAvailabilityUseCase: Symbol.for('IUpdateAvailabilityUseCase'),
     IMakeAvailabilityDefaultUseCase: Symbol.for('IMakeAvailabilityDefaultUseCase'),
     IDeleteAvailabilityUseCase: Symbol.for('IDeleteAvailabilityUseCase'),
+    IListOverridesUseCase: Symbol.for('IListOverridesUseCase'),
+    ISetOverrideUseCase: Symbol.for('ISetOverrideUseCase'),
+    IRemoveOverrideUseCase: Symbol.for('IRemoveOverrideUseCase'),
 
     // Controllers
     IGetCurrentUserController: Symbol.for('IGetCurrentUserController'),
@@ -111,6 +121,8 @@ export const DI_SYMBOLS = {
     IUpdateAvailabilityController: Symbol.for('IUpdateAvailabilityController'),
     IMakeAvailabilityDefaultController: Symbol.for('IMakeAvailabilityDefaultController'),
     IDeleteAvailabilityController: Symbol.for('IDeleteAvailabilityController'),
+    ISetOverridesController: Symbol.for('ISetOverridesController'),
+    IRemoveOverrideController: Symbol.for('IRemoveOverrideController'),
 };
 
 export interface DI_RETURN_TYPES {
@@ -126,6 +138,7 @@ export interface DI_RETURN_TYPES {
     IBookingsRepository: IBookingsRepository;
     IEmployeeBookingsRepository: IEmployeeBookingsRepository;
     IAvailabilitiesRepository: IAvailabilitiesRepository;
+    IOverridesRepository: IOverridesRepository;
 
     // Use cases
     ICreateBusinessUseCase: ICreateBusinessUseCase;
@@ -149,6 +162,9 @@ export interface DI_RETURN_TYPES {
     IUpdateAvailabilityUseCase: IUpdateAvailabilityUseCase;
     IMakeAvailabilityDefaultUseCase: IMakeAvailabilityDefaultUseCase;
     IDeleteAvailabilityUseCase: IDeleteAvailabilityUseCase;
+    IListOverridesUseCase: IListOverridesUseCase;
+    ISetOverrideUseCase: ISetOverrideUseCase;
+    IRemoveOverrideUseCase: IRemoveOverrideUseCase;
 
     // Controllers
     IGetCurrentUserController: IGetCurrentUserController;
@@ -173,4 +189,6 @@ export interface DI_RETURN_TYPES {
     IUpdateAvailabilityController: IUpdateAvailabilityController;
     IMakeAvailabilityDefaultController: IMakeAvailabilityDefaultController;
     IDeleteAvailabilityController: IDeleteAvailabilityController;
+    ISetOverridesController: ISetOverridesController;
+    IRemoveOverrideController: IRemoveOverrideController;
 }
