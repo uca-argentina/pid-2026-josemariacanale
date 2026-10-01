@@ -21,18 +21,12 @@ import {
   SERVICES_REPOSITORY,
   ServicesRepository,
 } from '../../domain/services/services.repository';
-import { defaultAvailability } from '../availabilities/default-availability';
 import { assertBranchExists } from '../branches/assert-branch-owner';
 import { assertOwnerOrSelf } from '../employees/assert-owner-or-self';
 
-export interface AssignEmployeeInput {
-  employeeId: number;
-  /** One of that Empleado's own; without it, their default. */
-  availabilityId?: number;
-}
-
+/** Elige con cuál de sus Availability atiende un Empleado un Servicio (ADR 0017). */
 @Injectable()
-export class AssignEmployeeUseCase {
+export class ChangeEmployeeAvailabilityUseCase {
   constructor(
     @Inject(BUSINESSES_REPOSITORY)
     private readonly businesses: BusinessesRepository,
@@ -47,62 +41,41 @@ export class AssignEmployeeUseCase {
   ) {}
 
   /**
-   * Ofrecer: lo hace el Dueño por cualquiera del Staff, o el propio Empleado por sí mismo (ADR 0017).
+   * Lo hace el Dueño por cualquiera del Staff, o el propio Empleado. No cancela ni mueve Turnos.
    *
-   * @throws {NotFoundError} el Servicio, el Empleado o la Availability no existen, o el Servicio está oculto y quien
-   * llama no es Dueño ni lo atiende
+   * @throws {NotFoundError} el Servicio o la Availability no existen, o ese Empleado no atiende el Servicio
    * @throws {ForbiddenError} no es el Dueño ni ese Empleado
-   * @throws {BusinessRuleError} el Servicio está dado de baja, el Empleado no es del Negocio o está dado de baja, o la
-   * Availability es de otro Empleado
-   * @throws {ConflictError} el Empleado ya lo atiende
+   * @throws {BusinessRuleError} la Availability es de otro Empleado
    */
   async execute(
     userId: number,
     serviceId: number,
-    { employeeId, availabilityId }: AssignEmployeeInput,
+    employeeId: number,
+    availabilityId: number,
   ): Promise<Service> {
     const service = await this.services.findById(serviceId);
     if (!service) throw new NotFoundError('Service not found');
-    // A Servicio dado de baja has no links: one here would keep its Availability from being deleted.
-    if (service.retiredAt)
-      throw new BusinessRuleError('The Service is retired');
     const branch = await this.branches.findById(service.branchId);
     assertBranchExists(branch);
-    const isOwner = await assertOwnerOrSelf(
+    await assertOwnerOrSelf(
       this.employees,
       this.businesses,
       branch.businessId,
       employeeId,
       userId,
     );
-    if (
-      !isOwner &&
-      service.hidden &&
-      !service.employees.some(({ id }) => id === employeeId)
-    )
-      throw new NotFoundError('Service not found');
-    const employee = await this.employees.findById(employeeId);
-    if (!employee) throw new NotFoundError('Employee not found');
-    if (
-      employee.businessId !== branch.businessId ||
-      employee.retiredAt !== null
-    )
-      throw new BusinessRuleError(
-        'The Employee must belong to this Business and not be retired',
-      );
-    const availability =
-      availabilityId === undefined
-        ? await defaultAvailability(this.availabilities, employeeId)
-        : await this.availabilities.findById(availabilityId);
+    if (!(await this.services.findEmployeeLink(serviceId, employeeId)))
+      throw new NotFoundError('Employee not in charge of this Service');
+    const availability = await this.availabilities.findById(availabilityId);
     if (!availability) throw new NotFoundError('Availability not found');
     if (availability.employeeId !== employeeId)
       throw new BusinessRuleError(
         'La Availability tiene que ser del mismo Empleado',
       );
-    return this.services.addEmployee({
+    return this.services.setEmployeeAvailability({
       serviceId,
       employeeId,
-      availabilityId: availability.id,
+      availabilityId,
     });
   }
 }

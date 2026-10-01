@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AssignEmployeeUseCase } from '../../application/services/assign-employee.use-case';
+import { ChangeEmployeeAvailabilityUseCase } from '../../application/services/change-employee-availability.use-case';
 import { CreateServiceUseCase } from '../../application/services/create-service.use-case';
 import { ListActiveServicesByBranchUseCase } from '../../application/services/list-active-services-by-branch.use-case';
 import { ListMyServicesUseCase } from '../../application/services/list-my-services.use-case';
@@ -19,6 +20,7 @@ import { ServicesController } from './services.controller';
     RetireServiceUseCase,
     ListActiveServicesByBranchUseCase,
     AssignEmployeeUseCase,
+    ChangeEmployeeAvailabilityUseCase,
     RemoveEmployeeUseCase,
     ListSlotsUseCase,
     ListMyServicesUseCase,

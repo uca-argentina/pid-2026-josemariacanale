@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   Param,
   ParseIntPipe,
   Patch,
@@ -11,6 +12,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AssignEmployeeUseCase } from '../../application/services/assign-employee.use-case';
+import { ChangeEmployeeAvailabilityUseCase } from '../../application/services/change-employee-availability.use-case';
 import { CreateServiceUseCase } from '../../application/services/create-service.use-case';
 import { ListActiveServicesByBranchUseCase } from '../../application/services/list-active-services-by-branch.use-case';
 import { ListMyServicesUseCase } from '../../application/services/list-my-services.use-case';
@@ -23,6 +25,7 @@ import { ClerkGuard, CurrentUser } from '../users/clerk.guard';
 import { presentCatalogGroup, presentService } from './service.presenter';
 import {
   AssignEmployeeDto,
+  ChangeEmployeeAvailabilityDto,
   CreateServiceDto,
   UpdateServiceDto,
 } from './services.dto';
@@ -35,6 +38,7 @@ export class ServicesController {
     private readonly retireServiceUseCase: RetireServiceUseCase,
     private readonly listActiveServicesByBranchUseCase: ListActiveServicesByBranchUseCase,
     private readonly assignEmployeeUseCase: AssignEmployeeUseCase,
+    private readonly changeEmployeeAvailabilityUseCase: ChangeEmployeeAvailabilityUseCase,
     private readonly removeEmployeeUseCase: RemoveEmployeeUseCase,
     private readonly listSlotsUseCase: ListSlotsUseCase,
     private readonly listMyServicesUseCase: ListMyServicesUseCase,
@@ -82,7 +86,9 @@ export class ServicesController {
     return this.retireServiceUseCase.execute(userId, id);
   }
 
+  /** Ofrecer: el Dueño por cualquiera del Staff, o el propio Empleado (ADR 0017). */
   @Post('services/:id/employees')
+  @HttpCode(200)
   @UseGuards(ClerkGuard)
   async assignEmployee(
     @CurrentUser() userId: number,
@@ -94,6 +100,26 @@ export class ServicesController {
     );
   }
 
+  /** Cambia la Availability con la que un Empleado atiende el Servicio; el Dueño o el propio Empleado. */
+  @Patch('services/:id/employees/:employeeId')
+  @UseGuards(ClerkGuard)
+  async changeEmployeeAvailability(
+    @CurrentUser() userId: number,
+    @Param('id', ParseIntPipe) serviceId: number,
+    @Param('employeeId', ParseIntPipe) employeeId: number,
+    @Body() dto: ChangeEmployeeAvailabilityDto,
+  ) {
+    return presentService(
+      await this.changeEmployeeAvailabilityUseCase.execute(
+        userId,
+        serviceId,
+        employeeId,
+        dto.availabilityId,
+      ),
+    );
+  }
+
+  /** Dejar de ofrecer: el Dueño por cualquiera del Staff, o el propio Empleado (ADR 0017). */
   @Delete('services/:id/employees/:employeeId')
   @UseGuards(ClerkGuard)
   async removeEmployee(

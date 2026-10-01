@@ -205,6 +205,45 @@ describe('PrismaServicesRepository', () => {
     });
   });
 
+  describe('setEmployeeAvailability', () => {
+    it("points the Employee's link to the Service at another Availability, nothing else", async () => {
+      prisma.service.update.mockResolvedValue(SERVICE_ROW);
+
+      await expect(
+        repository.setEmployeeAvailability({
+          serviceId: 1,
+          employeeId: 7,
+          availabilityId: 11,
+        }),
+      ).resolves.toEqual(SERVICE);
+      expect(prisma.service.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: {
+          employees: {
+            update: {
+              where: { employeeId_serviceId: { employeeId: 7, serviceId: 1 } },
+              data: { availabilityId: 11 },
+            },
+          },
+        },
+        include: VISIBLE_EMPLOYEES,
+      });
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('throws NotFoundError when the Employee is not in charge of the Service', async () => {
+      prisma.service.update.mockRejectedValue(knownError('P2025'));
+
+      await expect(
+        repository.setEmployeeAvailability({
+          serviceId: 1,
+          employeeId: 7,
+          availabilityId: 11,
+        }),
+      ).rejects.toBeInstanceOf(NotFoundError);
+    });
+  });
+
   describe('removeEmployee', () => {
     const now = new Date('2026-02-01T00:00:00.000Z');
 

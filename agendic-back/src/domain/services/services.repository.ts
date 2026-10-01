@@ -46,6 +46,8 @@ export interface ServicesRepository {
   ): Promise<{ service: Service; cancelledBookings: number }>;
   /** Throws ConflictError when the Employee is already in charge of the Service. */
   addEmployee(link: EmployeeService): Promise<Service>;
+  /** Points the Employee's link to another of their Availabilities; touches no Booking. Throws NotFoundError when they don't attend it. */
+  setEmployeeAvailability(link: EmployeeService): Promise<Service>;
   /** Also cancels that pair's future BOOKED Bookings, atomically. */
   removeEmployee(
     serviceId: number,

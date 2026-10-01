@@ -144,6 +144,7 @@ export async function createTestApp() {
     update: jest.fn(),
     retire: jest.fn(),
     addEmployee: jest.fn(),
+    setEmployeeAvailability: jest.fn(),
     removeEmployee: jest.fn(),
     listActiveByEmployee: jest.fn(),
     findEmployeeLink: jest.fn(),
