@@ -25,6 +25,14 @@ _Avoid_: recurso
 **Staff**:
 El conjunto de Empleados de un Negocio. Solo se usa en plural/colectivo.
 
+**Invitación**:
+Pedido del Dueño a una persona, identificada por su email, para que sea Empleado de su Negocio. No hace Empleado a nadie hasta que la persona la acepta. Si la persona todavía no es Usuario, además recibe un mail que la invita a crearse una cuenta de Agendic.
+_Avoid_: solicitud, pedido, agregar Empleado (eso saltea la aceptación)
+
+**Aceptar invitación**:
+Acción del Usuario invitado, dentro de la app, de pasar a ser Empleado del Negocio que lo invitó.
+_Avoid_: confirmar invitación, unirse
+
 **Usuario**:
 Persona identificada por Agendic, con contraseña o con un Proveedor de identidad. Puede ser Dueño de cero o un Negocio.
 _Avoid_: cuenta, perfil
