@@ -23,9 +23,10 @@ import { addEmployeeAction, cancelInvitationAction, resendInvitationAction, reti
 import { EmployeeSheet } from './EmployeeSheet';
 
 export type EmployeeRow = { id: number; name: string; email: string; role: BusinessRole };
+/** Invitación pendiente del Negocio; `expiresAt` es ISO y se muestra en hora de Buenos Aires. */
 export type InvitationRow = { id: number; email: string; expiresAt: string };
 
-const EXPIRY = new Intl.DateTimeFormat('es-AR', { day: 'numeric', month: 'short', timeZone: 'America/Argentina/Buenos_Aires' });
+const EXPIRY_DATE_FORMAT = new Intl.DateTimeFormat('es-AR', { day: 'numeric', month: 'short', timeZone: 'America/Argentina/Buenos_Aires' });
 
 function InviteEmployeeDialog({ businessId, onClose }: { businessId: number; onClose: () => void }) {
     const [form, setForm] = useState({ email: '' });
@@ -225,7 +226,7 @@ export function EmployeesView({
                                         <div className="flex min-w-0 flex-col">
                                             <span className="truncate text-[14px] font-bold tracking-[-0.02em]">{invitation.email}</span>
                                             <span className="truncate text-[12.5px] font-medium text-[#6b7280]">
-                                                Vence el {EXPIRY.format(new Date(invitation.expiresAt))}
+                                                Vence el {EXPIRY_DATE_FORMAT.format(new Date(invitation.expiresAt))}
                                             </span>
                                         </div>
                                     </div>
