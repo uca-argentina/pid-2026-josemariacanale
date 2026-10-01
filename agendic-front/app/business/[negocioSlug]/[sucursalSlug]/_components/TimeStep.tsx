@@ -244,7 +244,7 @@ export function TimeStep({
                         <CalendarX2 className="size-5 text-muted-foreground" />
                     </div>
                     <p className="text-[15px] font-bold tracking-[-0.02em]">
-                        {employee.name} no atiende ese día
+                        {employee.name} no trabaja o está anulado ese día
                     </p>
                     <div className="mt-3 flex flex-wrap justify-center gap-2.5">
                         {goToNext}
