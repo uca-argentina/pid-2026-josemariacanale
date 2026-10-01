@@ -11,3 +11,10 @@ export class AlreadyEmployeeError extends Error {
         super(message, options);
     }
 }
+
+/** 422: la Invitación venció o el Usuario ya es Empleado del Negocio; el mensaje es el del back. */
+export class InvitationNotAcceptableError extends Error {
+    constructor(message: string, options?: ErrorOptions) {
+        super(message, options);
+    }
+}

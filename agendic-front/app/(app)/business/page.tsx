@@ -26,13 +26,24 @@ export default async function BusinessPage() {
         return <BackendErrorNotice />;
     }
 
+    let invitations: { id: number; business: { name: string; slug: string } }[] = [];
+    if (!business) {
+        try {
+            invitations = await getInjection('IListMyInvitationsController')();
+        } catch (error) {
+            unstable_rethrow(error);
+            if (isSessionExpired(error)) redirect(SIGN_IN_PATH);
+            getInjection('ICrashReporterService').report(error);
+        }
+    }
+
     return (
         <div className="flex flex-1 flex-col gap-8 bg-white px-4 py-8 text-[#0f1b2d] sm:px-8">
             <PageHeader title="Mi Negocio" description="Tu Negocio, tus Empleados y cómo lo ven tus Clientes." />
             {business ? (
                 <BusinessOverview business={business} />
             ) : (
-                <NoBusinessView owner={{ name: user.name, email: user.email }} />
+                <NoBusinessView invitations={invitations} owner={{ name: user.name, email: user.email }} />
             )}
         </div>
     );

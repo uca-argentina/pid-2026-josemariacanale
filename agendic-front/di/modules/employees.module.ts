@@ -4,6 +4,12 @@ import { addEmployeeUseCase } from '@/src/application/use-cases/employees/add-em
 import { listEmployeesUseCase } from '@/src/application/use-cases/employees/list-employees.use-case';
 import { listInvitationsUseCase } from '@/src/application/use-cases/employees/list-invitations.use-case';
 import { retireEmployeeUseCase } from '@/src/application/use-cases/employees/retire-employee.use-case';
+import { listMyInvitationsUseCase } from '@/src/application/use-cases/employees/list-my-invitations.use-case';
+import { acceptInvitationUseCase } from '@/src/application/use-cases/employees/accept-invitation.use-case';
+import { rejectInvitationUseCase } from '@/src/application/use-cases/employees/reject-invitation.use-case';
+import { listMyInvitationsController } from '@/src/interface-adapters/controllers/employees/list-my-invitations.controller';
+import { acceptInvitationController } from '@/src/interface-adapters/controllers/employees/accept-invitation.controller';
+import { rejectInvitationController } from '@/src/interface-adapters/controllers/employees/reject-invitation.controller';
 import { EmployeesRepository } from '@/src/infrastructure/repositories/employees.repository';
 import { addEmployeeController } from '@/src/interface-adapters/controllers/employees/add-employee.controller';
 import { listMyEmployeesController } from '@/src/interface-adapters/controllers/employees/list-my-employees.controller';
@@ -54,6 +60,42 @@ export function createEmployeesModule() {
             DI_SYMBOLS.IInstrumentationService,
             DI_SYMBOLS.IAuthenticationService,
             DI_SYMBOLS.IRetireEmployeeUseCase,
+        ]);
+
+    employeesModule
+        .bind(DI_SYMBOLS.IListMyInvitationsUseCase)
+        .toHigherOrderFunction(listMyInvitationsUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IEmployeesRepository]);
+
+    employeesModule
+        .bind(DI_SYMBOLS.IAcceptInvitationUseCase)
+        .toHigherOrderFunction(acceptInvitationUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IEmployeesRepository]);
+
+    employeesModule
+        .bind(DI_SYMBOLS.IRejectInvitationUseCase)
+        .toHigherOrderFunction(rejectInvitationUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IEmployeesRepository]);
+
+    employeesModule
+        .bind(DI_SYMBOLS.IListMyInvitationsController)
+        .toHigherOrderFunction(listMyInvitationsController, [
+            DI_SYMBOLS.IInstrumentationService,
+            DI_SYMBOLS.IAuthenticationService,
+            DI_SYMBOLS.IListMyInvitationsUseCase,
+        ]);
+
+    employeesModule
+        .bind(DI_SYMBOLS.IAcceptInvitationController)
+        .toHigherOrderFunction(acceptInvitationController, [
+            DI_SYMBOLS.IInstrumentationService,
+            DI_SYMBOLS.IAuthenticationService,
+            DI_SYMBOLS.IAcceptInvitationUseCase,
+        ]);
+
+    employeesModule
+        .bind(DI_SYMBOLS.IRejectInvitationController)
+        .toHigherOrderFunction(rejectInvitationController, [
+            DI_SYMBOLS.IInstrumentationService,
+            DI_SYMBOLS.IAuthenticationService,
+            DI_SYMBOLS.IRejectInvitationUseCase,
         ]);
 
     return employeesModule;

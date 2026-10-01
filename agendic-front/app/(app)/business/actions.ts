@@ -7,6 +7,7 @@ import { SIGN_IN_PATH } from '@/app/routes';
 import { getInjection } from '@/di/container';
 import { AlreadyOwnerError, InvalidSlugError, SlugTakenError } from '@/src/entities/errors/business';
 import { InputParseError } from '@/src/entities/errors/common';
+import { InvitationNotAcceptableError } from '@/src/entities/errors/employee';
 
 export type CreateBusinessResult = { ok: true; failedEmployees: string[] } | { ok: false; message: string };
 
@@ -66,5 +67,41 @@ export async function updateBusinessAction(payload: unknown): Promise<UpdateBusi
         if (error instanceof InputParseError) return { ok: false, message: 'Revisá los datos e intentá de nuevo.' };
         getInjection('ICrashReporterService').report(error);
         return { ok: false, message: 'No pudimos guardar los cambios. Intentá de nuevo.' };
+    }
+}
+
+export type AnswerInvitationResult = { ok: true } | { ok: false; message: string };
+
+/** Aceptar invitación: el Usuario pasa a ser Empleado. El 422 del back (venció / ya es Empleado) se muestra tal cual. */
+export async function acceptInvitationAction(invitationId: number): Promise<AnswerInvitationResult> {
+    try {
+        await getInjection('IAcceptInvitationController')({ invitationId });
+        refresh();
+        return { ok: true };
+    } catch (error) {
+        unstable_rethrow(error);
+        if (error instanceof InvitationNotAcceptableError) {
+            refresh(); // la Invitación ya no está pendiente
+            return { ok: false, message: error.message };
+        }
+        if (isSessionExpired(error)) redirect(SIGN_IN_PATH);
+        if (error instanceof InputParseError) return { ok: false, message: 'Revisá los datos e intentá de nuevo.' };
+        getInjection('ICrashReporterService').report(error);
+        return { ok: false, message: 'No pudimos aceptar la invitación. Intentá de nuevo.' };
+    }
+}
+
+/** Rechaza la Invitaci�n del Usuario; la secci�n se refresca con las que quedan. */
+export async function rejectInvitationAction(invitationId: number): Promise<AnswerInvitationResult> {
+    try {
+        await getInjection('IRejectInvitationController')({ invitationId });
+        refresh();
+        return { ok: true };
+    } catch (error) {
+        unstable_rethrow(error);
+        if (isSessionExpired(error)) redirect(SIGN_IN_PATH);
+        if (error instanceof InputParseError) return { ok: false, message: 'Revisá los datos e intentá de nuevo.' };
+        getInjection('ICrashReporterService').report(error);
+        return { ok: false, message: 'No pudimos rechazar la invitación. Intentá de nuevo.' };
     }
 }

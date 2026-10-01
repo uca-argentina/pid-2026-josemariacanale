@@ -23,3 +23,10 @@ export const createEmployeeSchema = z.object({
     email: z.string(),
 });
 export type CreateEmployee = z.infer<typeof createEmployeeSchema>;
+
+/** La Invitación pendiente del Usuario, como la lista GET /invitations/me. */
+export const myInvitationSchema = z.object({
+    id: z.number(),
+    business: z.object({ name: z.string(), slug: z.string() }),
+});
+export type MyInvitation = z.infer<typeof myInvitationSchema>;
