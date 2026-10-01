@@ -129,6 +129,9 @@ Todo Empleado es un Usuario (ADR 0013): nombre y email los presta su cuenta, no 
 |---|---|---|---|
 | POST | `/businesses/:id/employees` | sí | Invita a un email a ser Empleado (solo el dueño, ADR 0019): crea una Invitación pendiente que vence a los 7 días, no un Empleado. Si ningún Usuario tiene ese email, Clerk le manda el mail para crearse una cuenta (si Clerk dice que ya tiene cuenta, no es error); si ya es Usuario no hay mail. 201 con la Invitación; 200 con la misma si ya estaba pendiente en ese negocio (se reenvía el mail si corresponde); 422 "ya es Empleado" si el email es de un empleado activo del negocio; 403/404 si no es el dueño o el negocio no existe; 502 si Clerk falla, sin crear nada |
 | GET | `/businesses/:id/invitations` | sí | Lista las Invitaciones pendientes (no vencidas) del negocio (solo el dueño) |
+| GET | `/invitations/me` | sí | Invitaciones pendientes y no vencidas dirigidas al email de la Sesión (sin distinguir mayúsculas): `[{ id, business: { name, slug } }]` |
+| POST | `/invitations/:id/accept` | sí | Aceptar invitación (ADR 0019): crea el Empleado del Negocio, con su Availability predeterminada, y cierra la Invitación; 200 con el empleado; puede aceptar aunque sea Dueño de otro Negocio; 404 si no existe o no es de su email; 422 "La invitación venció"; 422 "ya es Empleado" (también al aceptar dos veces) |
+| POST | `/invitations/:id/reject` | sí | Rechaza la Invitación y la cierra sin crear Empleado; 204; 404 / 422 como arriba |
 | DELETE | `/employees/:id` | sí | Da de baja (soft-delete) un empleado (solo el dueño); 422 si es el Dueño dándose de baja a sí mismo |
 | GET | `/businesses/:id/employees` | sí | Lista empleados activos de un negocio (solo el dueño) |
 | GET | `/employees/me/services` | sí | Catálogo de Servicios del panel: un grupo por cada Negocio del que el Usuario es Empleado activo; `[]` (200) si no lo es de ninguno |

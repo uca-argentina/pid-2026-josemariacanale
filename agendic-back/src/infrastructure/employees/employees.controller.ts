@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   Param,
   ParseIntPipe,
   Post,
@@ -14,6 +15,8 @@ import { ListMyBookingsUseCase } from '../../application/bookings/list-my-bookin
 import { ListEmployeesByBusinessUseCase } from '../../application/employees/list-employees-by-business.use-case';
 import { InviteEmployeeUseCase } from '../../application/invitations/invite-employee.use-case';
 import { ListInvitationsByBusinessUseCase } from '../../application/invitations/list-invitations-by-business.use-case';
+import { ListMyInvitationsUseCase } from '../../application/invitations/list-my-invitations.use-case';
+import { RespondToInvitationUseCase } from '../../application/invitations/respond-to-invitation.use-case';
 import { RetireEmployeeUseCase } from '../../application/employees/retire-employee.use-case';
 import { ClerkGuard, CurrentUser } from '../users/clerk.guard';
 import { presentInvitation } from '../invitations/invitation.presenter';
@@ -27,6 +30,8 @@ export class EmployeesController {
     private readonly inviteEmployeeUseCase: InviteEmployeeUseCase,
     private readonly listInvitationsByBusinessUseCase: ListInvitationsByBusinessUseCase,
     private readonly listEmployeesByBusinessUseCase: ListEmployeesByBusinessUseCase,
+    private readonly listMyInvitationsUseCase: ListMyInvitationsUseCase,
+    private readonly respondToInvitationUseCase: RespondToInvitationUseCase,
     private readonly retireEmployeeUseCase: RetireEmployeeUseCase,
     private readonly listMyBookingsUseCase: ListMyBookingsUseCase,
   ) {}
@@ -58,6 +63,39 @@ export class EmployeesController {
     return (
       await this.listInvitationsByBusinessUseCase.execute(userId, businessId)
     ).map(presentInvitation);
+  }
+
+  /** Mis invitaciones: las pendientes y no vencidas dirigidas al email del Usuario. */
+  @Get('invitations/me')
+  @UseGuards(ClerkGuard)
+  async listMyInvitations(@CurrentUser() userId: number) {
+    return (await this.listMyInvitationsUseCase.execute(userId)).map(
+      ({ id, business }) => ({ id, business }),
+    );
+  }
+
+  /** Acepta la Invitación: crea el Empleado del Negocio. */
+  @Post('invitations/:id/accept')
+  @HttpCode(200)
+  @UseGuards(ClerkGuard)
+  async acceptInvitation(
+    @CurrentUser() userId: number,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return presentEmployee(
+      await this.respondToInvitationUseCase.accept(userId, id),
+    );
+  }
+
+  /** Rechaza la Invitación: la cierra sin crear Empleado. */
+  @Post('invitations/:id/reject')
+  @HttpCode(204)
+  @UseGuards(ClerkGuard)
+  async rejectInvitation(
+    @CurrentUser() userId: number,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    await this.respondToInvitationUseCase.reject(userId, id);
   }
 
   @Delete('employees/:id')

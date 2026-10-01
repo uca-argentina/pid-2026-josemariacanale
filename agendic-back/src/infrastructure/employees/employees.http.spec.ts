@@ -204,6 +204,90 @@ describe('Empleado', () => {
     });
   });
 
+  describe('invitations of the invitee', () => {
+    const MINE = {
+      id: 9,
+      businessId: 7,
+      email: ANA.email,
+      expiresAt: new Date('2026-01-05T12:00:00.000Z'),
+      closedAt: null,
+    };
+    const auth = (req: import('supertest').Test) =>
+      req.set(bearer(CLERK_TOKEN));
+
+    beforeEach(() => {
+      scriptSession(t);
+      t.users.findById.mockResolvedValue({ ...ANA, email: 'Ana@Example.com' });
+      t.invitations.findById.mockResolvedValue(MINE);
+      t.employees.listActiveByUser.mockResolvedValue([ANAS_EMPLOYEE]);
+      t.employees.create.mockResolvedValue({
+        ...ANAS_EMPLOYEE,
+        id: 3,
+        businessId: 7,
+      });
+    });
+
+    it('lists only the pending Invitaciones of the Session email, with their Negocio', async () => {
+      t.invitations.listPendingByEmail.mockResolvedValue([
+        { ...MINE, business: { name: 'Spa', slug: 'spa' } },
+      ]);
+
+      const res = await auth(t.http.get('/invitations/me')).expect(200);
+
+      expect(t.invitations.listPendingByEmail).toHaveBeenCalledWith(
+        ANA.email,
+        new Date('2026-01-01T12:00:00.000Z'),
+      );
+      expect(res.body).toEqual([
+        { id: 9, business: { name: 'Spa', slug: 'spa' } },
+      ]);
+    });
+
+    it('accepting creates the Empleado and closes the Invitación', async () => {
+      const res = await auth(t.http.post('/invitations/9/accept')).expect(200);
+
+      expect(t.employees.create).toHaveBeenCalledWith(
+        expect.objectContaining({ userId: ANA.id, businessId: 7 }),
+      );
+      expect(t.invitations.close).toHaveBeenCalledWith(9, expect.any(Date));
+      expect(res.body.id).toBe(3);
+    });
+
+    it('accepting twice answers 422', async () => {
+      t.employees.listActiveByUser.mockResolvedValue([
+        ANAS_EMPLOYEE,
+        { ...ANAS_EMPLOYEE, id: 3, businessId: 7 },
+      ]);
+
+      await auth(t.http.post('/invitations/9/accept')).expect(422);
+      expect(t.employees.create).not.toHaveBeenCalled();
+    });
+
+    it('rejecting closes the Invitación without creating an Empleado', async () => {
+      await auth(t.http.post('/invitations/9/reject')).expect(204);
+
+      expect(t.invitations.close).toHaveBeenCalledWith(9, expect.any(Date));
+      expect(t.employees.create).not.toHaveBeenCalled();
+    });
+
+    it('answers 404 for a missing or foreign Invitación', async () => {
+      t.invitations.findById.mockResolvedValue({ ...MINE, email: BRUNO.email });
+      await auth(t.http.post('/invitations/9/accept')).expect(404);
+      t.invitations.findById.mockResolvedValue(null);
+      await auth(t.http.post('/invitations/9/reject')).expect(404);
+    });
+
+    it('answers 422 "La invitación venció" for an expired one', async () => {
+      t.invitations.findById.mockResolvedValue({
+        ...MINE,
+        expiresAt: new Date('2026-01-01T11:00:00.000Z'),
+      });
+
+      const res = await auth(t.http.post('/invitations/9/accept')).expect(422);
+      expect(res.body.message).toBe('La invitación venció');
+    });
+  });
+
   describe('DELETE /employees/:id', () => {
     beforeEach(() => {
       scriptSession(t);

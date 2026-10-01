@@ -132,6 +132,9 @@ export async function createTestApp() {
     findPending: jest.fn(),
     create: jest.fn(),
     listPending: jest.fn(),
+    findById: jest.fn(),
+    listPendingByEmail: jest.fn(),
+    close: jest.fn(),
   };
   const services: jest.Mocked<ServicesRepository> = {
     create: jest.fn(),
