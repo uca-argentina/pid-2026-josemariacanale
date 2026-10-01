@@ -35,6 +35,11 @@ export class RespondToInvitationUseCase {
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
+  /**
+   * @returns el Empleado recién creado
+   * @throws {NotFoundError} la Invitación no existe o no es del Usuario
+   * @throws {BusinessRuleError} venció, ya fue respondida o el Usuario ya es Empleado del Negocio
+   */
   async accept(userId: number, invitationId: number): Promise<Employee> {
     const invitation = await this.load(userId, invitationId);
     const active = await this.employees.listActiveByUser(userId);
@@ -53,6 +58,10 @@ export class RespondToInvitationUseCase {
     return employee;
   }
 
+  /**
+   * @throws {NotFoundError} la Invitación no existe o no es del Usuario
+   * @throws {BusinessRuleError} venció o ya fue respondida
+   */
   async reject(userId: number, invitationId: number): Promise<void> {
     const invitation = await this.load(userId, invitationId);
     if (invitation.closedAt)

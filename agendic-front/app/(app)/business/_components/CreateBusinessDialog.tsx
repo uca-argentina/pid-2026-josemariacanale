@@ -16,6 +16,7 @@ import {
     PanelTextarea,
 } from '@/app/(app)/_components/panel-ui';
 import { bookingLink } from '@/app/(app)/_components/mock-services';
+import { TimeSelect } from '@/app/(app)/_components/TimeSelect';
 import {
     branchSchema,
     businessSchema,
@@ -287,21 +288,21 @@ function BranchStep({
             </PanelField>
             <div className="grid grid-cols-2 gap-4">
                 <PanelField label="Abre a las" htmlFor="branch-opensAt" error={errors.opensAt}>
-                    <PanelInput
+                    <TimeSelect
                         id="branch-opensAt"
-                        type="time"
+                        placeholder="09:00"
                         value={value.opensAt}
-                        onChange={(e) => onChange({ ...value, opensAt: e.target.value })}
-                        {...invalid(errors, 'opensAt', 'branch-opensAt')}
+                        invalid={!!errors.opensAt}
+                        onChange={(opensAt) => onChange({ ...value, opensAt })}
                     />
                 </PanelField>
                 <PanelField label="Cierra a las" htmlFor="branch-closesAt" error={errors.closesAt}>
-                    <PanelInput
+                    <TimeSelect
                         id="branch-closesAt"
-                        type="time"
+                        placeholder="18:00"
                         value={value.closesAt}
-                        onChange={(e) => onChange({ ...value, closesAt: e.target.value })}
-                        {...invalid(errors, 'closesAt', 'branch-closesAt')}
+                        invalid={!!errors.closesAt}
+                        onChange={(closesAt) => onChange({ ...value, closesAt })}
                     />
                 </PanelField>
             </div>

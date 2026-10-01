@@ -1,33 +1,9 @@
 'use client';
 
 import { Plus, X } from 'lucide-react';
-import { cn } from '@/app/_components/utils';
-import { PanelIconButton, PanelSelect } from '@/app/(app)/_components/panel-ui';
-import { TIME_OPTIONS, invalidIntervals, nextInterval, type AvailabilityInterval } from '@/app/(app)/_components/availability-week';
-
-const TIMES = TIME_OPTIONS.map((t) => ({ value: t, label: t }));
-
-function TimeSelect({
-    label,
-    value,
-    invalid,
-    onChange,
-}: {
-    label: string;
-    value: string;
-    invalid: boolean;
-    onChange: (value: string) => void;
-}) {
-    return (
-        <PanelSelect
-            aria-label={label}
-            value={value}
-            onValueChange={onChange}
-            options={TIMES}
-            className={cn('w-[104px]', invalid && 'border-[#b91c1c] hover:border-[#b91c1c]')}
-        />
-    );
-}
+import { PanelIconButton } from '@/app/(app)/_components/panel-ui';
+import { TimeSelect } from '@/app/(app)/_components/TimeSelect';
+import { invalidIntervals, nextInterval, type AvailabilityInterval } from '@/app/(app)/_components/availability-week';
 
 /** Las Franjas de un día, cada una con su X. Las que terminan antes de empezar o se pisan quedan en rojo. */
 export function IntervalsEditor({
@@ -44,9 +20,9 @@ export function IntervalsEditor({
         <div className="flex flex-col gap-2">
             {intervals.map(([from, to], i) => (
                 <div key={i} className="flex items-center gap-2">
-                    <TimeSelect label="Desde" value={from} invalid={invalid.includes(i)} onChange={(v) => update(i, [v, to])} />
+                    <TimeSelect aria-label="Desde" className="w-[104px]" value={from} invalid={invalid.includes(i)} onChange={(v) => update(i, [v, to])} />
                     <span className="text-[13px] font-bold text-[#374151]">-</span>
-                    <TimeSelect label="Hasta" value={to} invalid={invalid.includes(i)} onChange={(v) => update(i, [from, v])} />
+                    <TimeSelect aria-label="Hasta" className="w-[104px]" value={to} invalid={invalid.includes(i)} onChange={(v) => update(i, [from, v])} />
                     <PanelIconButton
                         label="Quitar Franja"
                         className="size-8 rounded-md"

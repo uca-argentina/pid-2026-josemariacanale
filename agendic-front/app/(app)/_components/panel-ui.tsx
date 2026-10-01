@@ -317,7 +317,7 @@ export function PanelToggleRow({
     );
 }
 
-const FIELD_BOX =
+export const FIELD_BOX =
     'flex h-9 w-full items-center rounded-md border border-[#d1d5db] bg-white text-[13.5px] font-medium text-[#0f1b2d] transition-colors hover:border-[#9ca3af] focus-within:border-[#0f1b2d] focus-within:ring-1 focus-within:ring-[#0f1b2d] has-[:disabled]:cursor-not-allowed has-[:disabled]:bg-[#f9fafb] has-[:disabled]:text-[#6b7280] has-[:disabled]:hover:border-[#d1d5db]';
 
 export function PanelInput({
