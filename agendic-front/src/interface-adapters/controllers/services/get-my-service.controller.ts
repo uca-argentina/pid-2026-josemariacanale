@@ -33,6 +33,8 @@ function presenter(
             depositPercent: service.depositPercent,
             requiresApproval: service.requiresApproval,
             hidden: service.hidden,
+            prepMinutes: service.prepMinutes,
+            dailyLimit: service.dailyLimit,
             offeredByMe: service.employees.some((e) => e.id === group.employeeId),
             employees: service.employees.map((e) => ({ id: e.id, name: e.name })),
         },
