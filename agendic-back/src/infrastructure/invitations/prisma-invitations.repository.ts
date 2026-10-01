@@ -67,6 +67,12 @@ export class PrismaInvitationsRepository implements InvitationsRepository {
     ).map((row) => ({ ...toInvitation(row), business: row.business }));
   }
 
+  async renew(id: number, expiresAt: Date) {
+    await this.prisma.invitation
+      .update({ where: { id }, data: { expiresAt } })
+      .catch(fail);
+  }
+
   async close(id: number, closedAt: Date) {
     await this.prisma.invitation
       .update({ where: { id }, data: { closedAt } })

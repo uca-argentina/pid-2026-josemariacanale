@@ -19,6 +19,8 @@ export interface InvitationsRepository {
   ): Promise<(Invitation & { business: { name: string; slug: string } })[]>;
   /** Marks it accepted or rejected so it is no longer pending. */
   close(id: number, closedAt: Date): Promise<void>;
+  /** Sets a new expiry on the Invitación. */
+  renew(id: number, expiresAt: Date): Promise<void>;
   /** The Negocio's not yet expired Invitaciones. */
   listPending(businessId: number, now: Date): Promise<Invitation[]>;
 }
