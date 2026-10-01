@@ -36,6 +36,10 @@ import {
   EMPLOYEES_REPOSITORY,
   EmployeesRepository,
 } from './domain/employees/employees.repository';
+import {
+  INVITATIONS_REPOSITORY,
+  InvitationsRepository,
+} from './domain/invitations/invitations.repository';
 import { Mailer, MAILER } from './domain/mailer';
 import { Service, ServiceCategory } from './domain/services/service';
 import {
@@ -94,6 +98,7 @@ export async function createTestApp() {
       },
     ),
     getProfile: jest.fn(),
+    inviteByEmail: jest.fn(),
   };
   const businesses: jest.Mocked<BusinessesRepository> = {
     create: jest.fn(),
@@ -122,6 +127,11 @@ export async function createTestApp() {
     listActiveByBusiness: jest.fn(),
     listActiveByUser: jest.fn(),
     retire: jest.fn(),
+  };
+  const invitations: jest.Mocked<InvitationsRepository> = {
+    findPending: jest.fn(),
+    create: jest.fn(),
+    listPending: jest.fn(),
   };
   const services: jest.Mocked<ServicesRepository> = {
     create: jest.fn(),
@@ -183,6 +193,8 @@ export async function createTestApp() {
     .useValue(services)
     .overrideProvider(EMPLOYEES_REPOSITORY)
     .useValue(employees)
+    .overrideProvider(INVITATIONS_REPOSITORY)
+    .useValue(invitations)
     .overrideProvider(BOOKINGS_REPOSITORY)
     .useValue(bookings)
     .overrideProvider(AVAILABILITIES_REPOSITORY)
@@ -204,6 +216,7 @@ export async function createTestApp() {
     branchImages,
     services,
     employees,
+    invitations,
     bookings,
     availabilities,
     overrides,

@@ -3,7 +3,10 @@ import {
   verifyToken as verifyClerkToken,
 } from '@clerk/backend';
 import { Injectable } from '@nestjs/common';
-import { UnauthenticatedError } from '../../domain/errors';
+import {
+  ExternalServiceError,
+  UnauthenticatedError,
+} from '../../domain/errors';
 import {
   ClerkAuth,
   ClerkIdentity,
@@ -46,10 +49,33 @@ export class ClerkBackendAuth implements ClerkAuth {
         .trim() || email;
     return { name, email };
   }
+
+  async inviteByEmail(email: string): Promise<void> {
+    try {
+      await this.clerkClient.invitations.createInvitation({
+        emailAddress: email,
+        ignoreExisting: true,
+        notify: true,
+      });
+    } catch (error) {
+      if (isExistingAccount(error)) return;
+      throw new ExternalServiceError('No se pudo enviar la invitaci�n', {
+        cause: error,
+      });
+    }
+  }
+}
+
+/** Clerk answers 422 `form_identifier_exists` when the email already has an account. */
+function isExistingAccount(error: unknown): boolean {
+  const errors = (error as { errors?: { code?: string }[] }).errors;
+  return !!errors?.some((e) => e.code === 'form_identifier_exists');
 }
 
 /** Reads the `name`/`email` session token custom claims, absent unless both are set. */
-function profileClaims(payload: Record<string, unknown>): ClerkProfile | undefined {
+function profileClaims(
+  payload: Record<string, unknown>,
+): ClerkProfile | undefined {
   const { name, email } = payload;
   if (typeof name !== 'string' || typeof email !== 'string') return undefined;
   return { name, email };

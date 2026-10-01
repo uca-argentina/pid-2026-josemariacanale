@@ -52,9 +52,22 @@ model Business {
   ownerId     Int    @unique // un Usuario es Dueño de a lo sumo un Negocio (ADR 0012)
   slug        String @unique // Enlace de reserva: /business/<slug>, always lowercase
 
-  owner     User       @relation(fields: [ownerId], references: [id])
-  branches  Branch[]
-  employees Employee[]
+  owner       User         @relation(fields: [ownerId], references: [id])
+  branches    Branch[]
+  employees   Employee[]
+  invitations Invitation[]
+}
+
+/// Invitaci�n pendiente de un Negocio a un email para ser Empleado (ADR 0019); vence a los 7 d�as.
+model Invitation {
+  id         Int      @id @default(autoincrement())
+  businessId Int
+  email      String // always lowercase
+  expiresAt  DateTime @db.Timestamptz(3)
+
+  business Business @relation(fields: [businessId], references: [id])
+
+  @@index([businessId, email])
 }
 
 model Branch {

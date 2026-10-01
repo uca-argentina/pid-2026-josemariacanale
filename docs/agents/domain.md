@@ -30,6 +30,7 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | Usuario | `User` |
 | Cliente | `Booking.clientName` / `Booking.clientEmail` |
 | Empleado | `Employee` |
+| Invitación | `Invitation` (`email`, `expiresAt`) |
 | Availability | `Availability` (predeterminada → `isDefault`) |
 | Franja | `AvailabilityInterval` (día → `weekday`, 0 = domingo como `Date.getUTCDay()`; inicio/fin → `startTime`/`endTime`) |
 | Anulación | `AvailabilityOverride` |
