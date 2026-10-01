@@ -79,7 +79,7 @@ function ServiceRow({
 }) {
     const isOwner = group.role === 'owner';
     const path = bookingLinkPath(group.business.slug, branch.slug, service.slug);
-    const otherEmployees = service.employees.filter((e) => e.id !== group.employeeId).map((e) => e.name);
+    const router = useRouter();
 
     return (
         <li className="flex flex-wrap items-center gap-4 px-6 py-5 transition-colors hover:bg-[#f9fafb]">
@@ -108,7 +108,7 @@ function ServiceRow({
             <div className="ml-auto flex items-center gap-4">
                 {service.offeredByMe && <PanelBadge className="bg-[#e6f6ec] text-[#15803d]">Lo ofrecés</PanelBadge>}
                 {service.hidden && <PanelBadge>Oculto</PanelBadge>}
-                <OfferButton service={{ name: service.name, offeredByMe: service.offeredByMe, otherEmployees }} />
+                <OfferButton service={service} employeeId={group.employeeId} onStopped={() => router.refresh()} />
                 {isOwner && <HiddenSwitch service={service} />}
                 <PanelIconGroup>
                     <PublicLinkButtons path={path} />

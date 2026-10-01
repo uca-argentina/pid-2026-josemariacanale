@@ -1,15 +1,19 @@
 import type { IServicesRepository } from '@/src/application/repositories/services.repository.interface';
 import type { IAuthenticationService } from '@/src/application/services/authentication.service.interface';
 import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
-import { ServiceNameTakenError, ServiceSlugTakenError } from '@/src/entities/errors/service';
+import { LastEmployeeError } from '@/src/entities/errors/employee';
+import { EmployeeNotAssignableError, ServiceNameTakenError, ServiceSlugTakenError } from '@/src/entities/errors/service';
 import {
     catalogServiceSchema,
+    removedEmployeeSchema,
     retiredServiceSchema,
     serviceCatalogGroupSchema,
     type CatalogService,
     type CreateService,
+    type RemovedEmployee,
     type RetiredService,
     type ServiceCatalogGroup,
+    type ServiceEmployeeRef,
     type UpdateService,
 } from '@/src/entities/models/service';
 
@@ -88,6 +92,38 @@ export class ServicesRepository implements IServicesRepository {
         if (status === 404) throw new NotFoundError(messageOf(json, what, status));
         if (status >= 400) throw apiError(what, status, json);
         return parseOrFail(() => retiredServiceSchema.parse(json), what);
+    }
+
+    /**
+     * Ofrecer un Servicio: `POST /services/:id/employees`, without an Availability so the default one is used.
+     *
+     * @throws {EmployeeNotAssignableError} the Empleado is not of the Negocio or was dado de baja (422)
+     * @throws {NotFoundError} the Servicio or the Empleado do not exist (404)
+     * @throws {ApiRequestError} any other failure, or a body that is not a Servicio
+     */
+    async assignEmployee({ serviceId, employeeId }: ServiceEmployeeRef): Promise<CatalogService> {
+        const what = 'POST /services/:id/employees';
+        const { status, json } = await this.request('POST', `/services/${serviceId}/employees`, { employeeId });
+        if (status === 422) throw new EmployeeNotAssignableError(messageOf(json, what, status));
+        if (status === 404) throw new NotFoundError(messageOf(json, what, status));
+        if (status >= 400) throw apiError(what, status, json);
+        return parseOrFail(() => catalogServiceSchema.parse(json), what);
+    }
+
+    /**
+     * Dejar de ofrecer un Servicio: `DELETE /services/:id/employees/:employeeId`.
+     *
+     * @throws {LastEmployeeError} the Empleado is the last one attending it (422)
+     * @throws {NotFoundError} the Servicio or the Empleado do not exist (404)
+     * @throws {ApiRequestError} any other failure, or a body without the count of cancelled Turnos
+     */
+    async removeEmployee({ serviceId, employeeId }: ServiceEmployeeRef): Promise<RemovedEmployee> {
+        const what = 'DELETE /services/:id/employees/:employeeId';
+        const { status, json } = await this.request('DELETE', `/services/${serviceId}/employees/${employeeId}`);
+        if (status === 422) throw new LastEmployeeError(messageOf(json, what, status));
+        if (status === 404) throw new NotFoundError(messageOf(json, what, status));
+        if (status >= 400) throw apiError(what, status, json);
+        return parseOrFail(() => removedEmployeeSchema.parse(json), what);
     }
 
     private async request(method: string, path: string, body?: unknown) {

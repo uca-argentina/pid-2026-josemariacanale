@@ -11,3 +11,10 @@ export class ServiceNameTakenError extends Error {
         super(message, options);
     }
 }
+
+/** 422: the Empleado cannot offer the Servicio: they are not of its Negocio, or they were dados de baja. */
+export class EmployeeNotAssignableError extends Error {
+    constructor(message: string, options?: ErrorOptions) {
+        super(message, options);
+    }
+}

@@ -3,11 +3,13 @@
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Calendar, ChevronRight, Clock, ExternalLink, Globe, Info, Link2, Loader2, Trash2 } from 'lucide-react';
+import { ArrowLeft, Calendar, ChevronRight, Clock, ExternalLink, Globe, Info, Link2, Loader2, Trash2, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import type { FieldErrors } from '@/app/_components/business-schemas';
 import { cn } from '@/app/_components/utils';
 import {
+    PanelAvatar,
+    PanelBadge,
     PanelButton,
     PanelCard,
     PanelDivider,
@@ -23,7 +25,15 @@ import { DAY_NAMES, type Availability } from '@/app/(app)/_components/mock-avail
 import { bookingLinkPath } from '@/app/routes';
 import { updateServiceAction } from '../../actions';
 import { formatPrice } from '../../_components/format';
-import { HiddenSwitch, OfferButton, PublicLinkButtons, RetireServiceConfirm } from '../../_components/service-actions';
+import {
+    HiddenSwitch,
+    OfferButton,
+    PublicLinkButtons,
+    RetireServiceConfirm,
+    StopOfferingConfirm,
+    offerService,
+    type OfferingEmployee,
+} from '../../_components/service-actions';
 import {
     CATEGORY_OPTIONS,
     editFormOf,
@@ -33,7 +43,9 @@ import {
 } from '../../_components/service-form';
 import type { ServiceDetailData } from '../../_components/types';
 
-type TabId = 'setup' | 'availability' | 'limits';
+type TabId = 'setup' | 'employees' | 'availability' | 'limits';
+
+const NAMES = new Intl.ListFormat('es', { type: 'conjunction' });
 
 /** Lo que muestra la pestaña Límites. Todavía no se guarda: es de otro ticket. */
 interface Limits {
@@ -318,8 +330,90 @@ function LimitsTab({
 }
 
 /**
+ * La sección Empleados del Dueño: quiénes atienden el Servicio, quitar a cualquiera con las mismas reglas que dejar de
+ * ofrecerlo, y Ofrecerlo en nombre de otro Empleado del Staff.
+ */
+function EmployeesTab({
+    service,
+    staff,
+    myEmployeeId,
+}: {
+    service: ServiceDetailData['service'];
+    staff: NonNullable<ServiceDetailData['staff']>;
+    myEmployeeId: number;
+}) {
+    const router = useRouter();
+    const [removing, setRemoving] = useState<OfferingEmployee | null>(null);
+    const [adding, setAdding] = useState('');
+    const [offering, startOffering] = useTransition();
+    const asOfferingEmployee = (e: { id: number; name: string }): OfferingEmployee => ({ ...e, isMe: e.id === myEmployeeId });
+    const available = staff.filter((e) => !service.employees.some((s) => s.id === e.id));
+
+    const add = () => {
+        const employee = staff.find((e) => String(e.id) === adding);
+        if (!employee) return;
+        startOffering(async () => {
+            await offerService(service, asOfferingEmployee(employee));
+            setAdding('');
+        });
+    };
+
+    return (
+        <PanelCard className="flex flex-col gap-5">
+            <ul className="m-0 flex list-none flex-col divide-y divide-[#e5e7eb] p-0">
+                {service.employees.map((employee) => (
+                    <li key={employee.id} className="flex items-center gap-3 py-3 first:pt-0">
+                        <PanelAvatar name={employee.name} />
+                        <span className="text-[13.5px] font-bold tracking-[-0.01em]">{employee.name}</span>
+                        {employee.id === myEmployeeId && <PanelBadge>Vos</PanelBadge>}
+                        <PanelButton variant="ghost" className="ml-auto" onClick={() => setRemoving(asOfferingEmployee(employee))}>
+                            Quitar
+                        </PanelButton>
+                    </li>
+                ))}
+            </ul>
+
+            {available.length > 0 ? (
+                <div className="flex flex-wrap items-end gap-3 border-t border-[#e5e7eb] pt-5">
+                    <div className="min-w-[220px] flex-1">
+                        <PanelField label="Ofrecerlo en nombre de" htmlFor="service-add-employee">
+                            <PanelSelect
+                                id="service-add-employee"
+                                value={adding}
+                                onValueChange={setAdding}
+                                disabled={offering}
+                                options={available.map((e) => ({ value: String(e.id), label: e.name }))}
+                                placeholder="Elegí un Empleado del Staff"
+                            />
+                        </PanelField>
+                    </div>
+                    <PanelButton disabled={!adding || offering} onClick={add} className="min-w-[96px]">
+                        {offering ? <Loader2 className="size-4 animate-spin" /> : 'Ofrecer'}
+                    </PanelButton>
+                </div>
+            ) : (
+                <p className="m-0 border-t border-[#e5e7eb] pt-5 text-[13px] font-medium text-[#6b7280]">
+                    Todo el Staff ya ofrece este Servicio.
+                </p>
+            )}
+
+            {removing && (
+                <StopOfferingConfirm
+                    service={service}
+                    employee={removing}
+                    open
+                    onOpenChange={(open) => !open && setRemoving(null)}
+                    onStopped={() => router.refresh()}
+                />
+            )}
+        </PanelCard>
+    );
+}
+
+/**
  * El detalle de un Servicio. El Dueño edita y guarda la Configuración, lo oculta y lo da de baja; un Empleado lo ve en
- * solo lectura. Las pestañas Disponibilidad y Límites todavía no guardan.
+ * solo lectura. El Dueño además elige quiénes lo atienden, en Empleados. Las pestañas Disponibilidad y Límites
+ * todavía no guardan.
  */
 export function ServiceDetail({ detail, availabilities }: { detail: ServiceDetailData; availabilities: Availability[] }) {
     const { business, branch, service } = detail;
@@ -343,7 +437,6 @@ export function ServiceDetail({ detail, availabilities }: { detail: ServiceDetai
 
     const edit = serviceChanges(saved, draft);
     const dirty = !edit.ok || Object.keys(edit.changes).length > 0;
-    const otherEmployees = service.employees.filter((e) => e.id !== detail.employeeId).map((e) => e.name);
 
     const set = (patch: Partial<ServiceEditForm>) => {
         setDraft((d) => ({ ...d, ...patch }));
@@ -384,6 +477,16 @@ export function ServiceDetail({ detail, availabilities }: { detail: ServiceDetai
             title: 'Configuración',
             subtitle: `${service.durationMinutes} min · ${formatPrice(service.price)}`,
         },
+        ...(detail.staff
+            ? [
+                  {
+                      id: 'employees' as const,
+                      icon: Users,
+                      title: 'Empleados',
+                      subtitle: service.employees.map((e) => e.name).join(', '),
+                  },
+              ]
+            : []),
         { id: 'availability', icon: Calendar, title: 'Disponibilidad', subtitle: availability?.name ?? '' },
         { id: 'limits', icon: Clock, title: 'Límites', subtitle: limitsSummary },
     ];
@@ -398,11 +501,23 @@ export function ServiceDetail({ detail, availabilities }: { detail: ServiceDetai
                 >
                     <ArrowLeft className="size-5" />
                 </Link>
-                <h1 className="m-0 min-w-0 truncate text-[21px] font-extrabold tracking-[-0.035em]">{service.name}</h1>
+                <div className="flex min-w-0 flex-col">
+                    <div className="flex min-w-0 items-center gap-2">
+                        <h1 className="m-0 min-w-0 truncate text-[21px] font-extrabold tracking-[-0.035em]">{service.name}</h1>
+                        {service.offeredByMe && <PanelBadge className="bg-[#e6f6ec] text-[#15803d]">Lo ofrecés</PanelBadge>}
+                    </div>
+                    <span className="truncate text-[12.5px] font-medium text-[#6b7280]">
+                        Lo atienden {NAMES.format(service.employees.map((e) => e.name))}
+                    </span>
+                </div>
 
                 <div className="ml-auto flex flex-wrap items-center gap-3">
                     {isOwner && <HiddenSwitch service={service} showLabel />}
-                    <OfferButton service={{ name: service.name, offeredByMe: service.offeredByMe, otherEmployees }} />
+                    <OfferButton
+                        service={service}
+                        employeeId={detail.employeeId}
+                        onStopped={() => (!isOwner && service.hidden ? router.replace('/services') : router.refresh())}
+                    />
                     <PanelDivider />
                     <PanelIconGroup>
                         <PublicLinkButtons path={bookingLinkPath(business.slug, branch.slug, service.slug)} />
@@ -471,6 +586,9 @@ export function ServiceDetail({ detail, availabilities }: { detail: ServiceDetai
                             slugChanged={draft.slug !== saved.slug}
                             readOnly={!isOwner || saving}
                         />
+                    )}
+                    {tab === 'employees' && detail.staff && (
+                        <EmployeesTab service={service} staff={detail.staff} myEmployeeId={detail.employeeId} />
                     )}
                     {tab === 'availability' && availability && (
                         <AvailabilityTab availability={availability} set={setAvailabilityId} availabilities={availabilities} />

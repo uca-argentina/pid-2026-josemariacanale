@@ -1,5 +1,6 @@
 import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
-import { ServiceNameTakenError, ServiceSlugTakenError } from '@/src/entities/errors/service';
+import { LastEmployeeError } from '@/src/entities/errors/employee';
+import { EmployeeNotAssignableError, ServiceNameTakenError, ServiceSlugTakenError } from '@/src/entities/errors/service';
 import { ServicesRepository } from '@/src/infrastructure/repositories/services.repository';
 import { authWith } from '@/tests/unit/stubs';
 
@@ -206,5 +207,82 @@ describe('ServicesRepository.retireService', () => {
     it('translates a body without the count to ApiRequestError', async () => {
         respond(200, { ok: true });
         await expect(repo().retireService(100)).rejects.toBeInstanceOf(ApiRequestError);
+    });
+});
+
+describe('ServicesRepository.assignEmployee', () => {
+    it('POSTs the Empleado to the Servicio, without an Availability, and returns the Servicio', async () => {
+        const fetchSpy = respond(200, service);
+
+        await expect(repo().assignEmployee({ serviceId: 100, employeeId: 1 })).resolves.toEqual(parsedService);
+        expect(fetchSpy).toHaveBeenCalledWith(
+            'http://api/services/100/employees',
+            expect.objectContaining({
+                method: 'POST',
+                headers: expect.objectContaining({ Authorization: 'Bearer tok' }),
+                body: JSON.stringify({ employeeId: 1 }),
+            }),
+        );
+    });
+
+    it('translates the 422 to EmployeeNotAssignableError with the message of the back', async () => {
+        respond(422, { statusCode: 422, message: 'The Employee is retired' });
+        const error = await repo().assignEmployee({ serviceId: 100, employeeId: 1 }).catch((e) => e);
+        expect(error).toBeInstanceOf(EmployeeNotAssignableError);
+        expect(error.message).toBe('The Employee is retired');
+    });
+
+    it('translates a 404 to NotFoundError', async () => {
+        respond(404, { statusCode: 404, message: 'Service not found' });
+        await expect(repo().assignEmployee({ serviceId: 100, employeeId: 1 })).rejects.toBeInstanceOf(NotFoundError);
+    });
+
+    it.each([400, 401, 403, 409, 500])('translates a %i to ApiRequestError carrying the status', async (status) => {
+        respond(status, { statusCode: status, message: 'no' });
+        await expect(repo().assignEmployee({ serviceId: 100, employeeId: 1 })).rejects.toMatchObject({ status });
+    });
+
+    it('translates a body that is not JSON to ApiRequestError', async () => {
+        jest.spyOn(global, 'fetch').mockResolvedValue(new Response('<html>', { status: 200 }));
+        await expect(repo().assignEmployee({ serviceId: 100, employeeId: 1 })).rejects.toBeInstanceOf(ApiRequestError);
+    });
+});
+
+describe('ServicesRepository.removeEmployee', () => {
+    it('DELETEs the Empleado from the Servicio and returns how many Turnos got cancelled', async () => {
+        const fetchSpy = respond(200, { cancelledBookings: 1 });
+
+        await expect(repo().removeEmployee({ serviceId: 100, employeeId: 1 })).resolves.toEqual({ cancelledBookings: 1 });
+        expect(fetchSpy).toHaveBeenCalledWith(
+            'http://api/services/100/employees/1',
+            expect.objectContaining({ method: 'DELETE', headers: expect.objectContaining({ Authorization: 'Bearer tok' }) }),
+        );
+    });
+
+    it('translates the 422 to LastEmployeeError with the message of the back', async () => {
+        respond(422, { statusCode: 422, message: 'Last Employee of the Service' });
+        const error = await repo().removeEmployee({ serviceId: 100, employeeId: 1 }).catch((e) => e);
+        expect(error).toBeInstanceOf(LastEmployeeError);
+        expect(error.message).toBe('Last Employee of the Service');
+    });
+
+    it('translates a 404 to NotFoundError', async () => {
+        respond(404, { statusCode: 404, message: 'Employee not found' });
+        await expect(repo().removeEmployee({ serviceId: 100, employeeId: 1 })).rejects.toBeInstanceOf(NotFoundError);
+    });
+
+    it.each([401, 403, 500])('translates a %i to ApiRequestError carrying the status', async (status) => {
+        respond(status, { statusCode: status, message: 'no' });
+        await expect(repo().removeEmployee({ serviceId: 100, employeeId: 1 })).rejects.toMatchObject({ status });
+    });
+
+    it('translates a body that is not JSON to ApiRequestError', async () => {
+        jest.spyOn(global, 'fetch').mockResolvedValue(new Response('<html>', { status: 200 }));
+        await expect(repo().removeEmployee({ serviceId: 100, employeeId: 1 })).rejects.toBeInstanceOf(ApiRequestError);
+    });
+
+    it('translates a body without the count to ApiRequestError', async () => {
+        respond(200, {});
+        await expect(repo().removeEmployee({ serviceId: 100, employeeId: 1 })).rejects.toBeInstanceOf(ApiRequestError);
     });
 });
