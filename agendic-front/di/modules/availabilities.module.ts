@@ -45,6 +45,7 @@ export function createAvailabilitiesModule() {
             DI_SYMBOLS.IListBusinessesUseCase,
             DI_SYMBOLS.IListEmployeesUseCase,
             DI_SYMBOLS.IListAvailabilitiesUseCase,
+            DI_SYMBOLS.IListOverridesUseCase,
         ]);
 
     availabilitiesModule

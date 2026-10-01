@@ -12,11 +12,14 @@ import {
     createAvailabilityAction,
     deleteAvailabilityAction,
     makeAvailabilityDefaultAction,
+    removeOverrideAction,
     saveAvailabilityAction,
+    setOverridesAction,
     type AvailabilityActionResult,
 } from '../actions';
 import { AvailabilityEditor } from './AvailabilityEditor';
 import { AvailabilityList } from './AvailabilityList';
+import { OverridesSection, type OverrideItem } from './OverridesSection';
 
 /** Horas laborables tal como las presenta el controller. */
 export interface AvailabilityItem {
@@ -48,10 +51,12 @@ export function AvailabilityView({
     employees,
     employeeId,
     availabilities,
+    overrides,
 }: {
     employees: StaffMember[];
     employeeId: number;
     availabilities: AvailabilityItem[];
+    overrides: OverrideItem[];
 }) {
     const [openId, setOpenId] = useState<number | null>(null);
     const [busy, setBusy] = useState(false);
@@ -109,6 +114,19 @@ export function AvailabilityView({
                 return run(() => createAvailabilityAction(employeeId, name, item.intervals), `${name}: horas laborables creadas`);
             }}
             onDelete={remove}
-        />
+        >
+            <OverridesSection
+                overrides={overrides}
+                colleagues={employees.filter((e) => e.id !== employeeId)}
+                busy={busy}
+                onSave={(draft) =>
+                    run(
+                        () => setOverridesAction({ employeeId, ...draft }),
+                        draft.dates.length === 1 ? 'Anulación guardada' : `${draft.dates.length} anulaciones guardadas`,
+                    )
+                }
+                onRemove={(override) => run(() => removeOverrideAction(employeeId, override.date), 'Anulación quitada')}
+            />
+        </AvailabilityList>
     );
 }

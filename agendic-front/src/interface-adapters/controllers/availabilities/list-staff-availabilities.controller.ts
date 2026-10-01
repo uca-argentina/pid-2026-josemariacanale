@@ -3,10 +3,12 @@ import type { IAuthenticationService } from '@/src/application/services/authenti
 import type { IInstrumentationService } from '@/src/application/services/instrumentation.service.interface';
 import type { IListAvailabilitiesUseCase } from '@/src/application/use-cases/availabilities/list-availabilities.use-case';
 import type { IListBusinessesUseCase } from '@/src/application/use-cases/businesses/list-businesses.use-case';
+import type { IListOverridesUseCase } from '@/src/application/use-cases/overrides/list-overrides.use-case';
 import type { IListEmployeesUseCase } from '@/src/application/use-cases/employees/list-employees.use-case';
 import { InputParseError } from '@/src/entities/errors/common';
 import type { Availability } from '@/src/entities/models/availability';
 import type { Employee } from '@/src/entities/models/employee';
+import type { Override } from '@/src/entities/models/override';
 
 const inputSchema = z.object({ employeeId: z.number().int().positive().optional() });
 
@@ -15,6 +17,7 @@ function presenter(
     employee: Employee,
     ownerId: string,
     availabilities: Availability[],
+    overrides: Override[],
     instrumentationService: IInstrumentationService,
 ) {
     return instrumentationService.startSpan({ name: 'listStaffAvailabilities Presenter', op: 'serialize' }, () => ({
@@ -26,6 +29,10 @@ function presenter(
             isDefault: a.isDefault,
             intervals: a.intervals.map(({ weekday, startTime, endTime }) => ({ weekday, startTime, endTime })),
         })),
+        overrides: overrides.map((o) => ({
+            date: o.date,
+            intervals: o.intervals.map(({ startTime, endTime }) => ({ startTime, endTime })),
+        })),
     }));
 }
 
@@ -33,7 +40,7 @@ function presenter(
 export type IListStaffAvailabilitiesController = ReturnType<typeof listStaffAvailabilitiesController>;
 
 /**
- * Las Availability de un Empleado del Staff del Negocio del Dueño, junto con el Staff para elegir otro.
+ * Las Availability y Anulaciones de un Empleado del Staff del Negocio del Dueño, junto con el Staff para elegir otro.
  *
  * Sin `employeeId`, o con uno que no es del Staff, abre en el Empleado del propio Dueño. Devuelve
  * `null` si el Usuario todavía no hizo Crear Negocio.
@@ -48,6 +55,7 @@ export const listStaffAvailabilitiesController =
         listBusinessesUseCase: IListBusinessesUseCase,
         listEmployeesUseCase: IListEmployeesUseCase,
         listAvailabilitiesUseCase: IListAvailabilitiesUseCase,
+        listOverridesUseCase: IListOverridesUseCase,
     ) =>
     async (input: unknown = {}): Promise<ReturnType<typeof presenter> | null> =>
         instrumentationService.startSpan({ name: 'listStaffAvailabilities Controller' }, async () => {
@@ -65,6 +73,9 @@ export const listStaffAvailabilitiesController =
                 employees[0];
             if (!employee) return null;
 
-            const availabilities = await listAvailabilitiesUseCase(employee.id);
-            return presenter(employees, employee, ownerId, availabilities, instrumentationService);
+            const [availabilities, overrides] = await Promise.all([
+                listAvailabilitiesUseCase(employee.id),
+                listOverridesUseCase(employee.id),
+            ]);
+            return presenter(employees, employee, ownerId, availabilities, overrides, instrumentationService);
         });

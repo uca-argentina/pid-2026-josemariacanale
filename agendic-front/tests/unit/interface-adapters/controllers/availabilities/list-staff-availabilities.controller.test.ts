@@ -15,12 +15,20 @@ const horario = {
     intervals: [{ weekday: 1, startTime: '09:00', endTime: '13:00' }],
 };
 
-const build = (overrides: { employees?: unknown[]; businesses?: unknown[]; availabilities?: unknown[] } = {}) => {
+const build = (overrides: { employees?: unknown[]; businesses?: unknown[]; availabilities?: unknown[]; overrides?: unknown[] } = {}) => {
     const listBusinesses = jest.fn().mockResolvedValue(overrides.businesses ?? [business]);
     const listEmployees = jest.fn().mockResolvedValue(overrides.employees ?? [martina, ana]);
     const listAvailabilities = jest.fn().mockResolvedValue(overrides.availabilities ?? [horario]);
-    const controller = listStaffAvailabilitiesController(instrumentation, signedIn, listBusinesses, listEmployees, listAvailabilities);
-    return { controller, listBusinesses, listEmployees, listAvailabilities };
+    const listOverrides = jest.fn().mockResolvedValue(overrides.overrides ?? []);
+    const controller = listStaffAvailabilitiesController(
+        instrumentation,
+        signedIn,
+        listBusinesses,
+        listEmployees,
+        listAvailabilities,
+        listOverrides,
+    );
+    return { controller, listBusinesses, listEmployees, listAvailabilities, listOverrides };
 };
 
 describe('listStaffAvailabilitiesController', () => {
@@ -34,6 +42,7 @@ describe('listStaffAvailabilitiesController', () => {
             ],
             employeeId: 3,
             availabilities: [{ id: 10, name: 'Horario', isDefault: true, intervals: horario.intervals }],
+            overrides: [],
         });
         expect(listAvailabilities).toHaveBeenCalledWith(3);
     });
@@ -43,6 +52,17 @@ describe('listStaffAvailabilitiesController', () => {
 
         await expect(controller({ employeeId: 4 })).resolves.toMatchObject({ employeeId: 4, availabilities: [] });
         expect(listAvailabilities).toHaveBeenCalledWith(4);
+    });
+
+    it('lists the Anulaciones of the chosen Empleado, whitelisting their fields', async () => {
+        const { controller, listOverrides } = build({
+            overrides: [{ date: '2026-12-24', intervals: [{ startTime: '09:00', endTime: '12:00' }], coveredByEmployeeId: 4 }],
+        });
+
+        await expect(controller({ employeeId: 4 })).resolves.toMatchObject({
+            overrides: [{ date: '2026-12-24', intervals: [{ startTime: '09:00', endTime: '12:00' }] }],
+        });
+        expect(listOverrides).toHaveBeenCalledWith(4);
     });
 
     it('falls back to the Dueño when the chosen Empleado is not in the Staff', async () => {
@@ -70,7 +90,7 @@ describe('listStaffAvailabilitiesController', () => {
     it('throws UnauthenticatedError without listing', async () => {
         const listBusinesses = jest.fn();
         const auth = authWith({ getCurrentUser: jest.fn().mockRejectedValue(new UnauthenticatedError('no')) });
-        const controller = listStaffAvailabilitiesController(instrumentation, auth, listBusinesses, jest.fn(), jest.fn());
+        const controller = listStaffAvailabilitiesController(instrumentation, auth, listBusinesses, jest.fn(), jest.fn(), jest.fn());
 
         await expect(controller({})).rejects.toBeInstanceOf(UnauthenticatedError);
         expect(listBusinesses).not.toHaveBeenCalled();

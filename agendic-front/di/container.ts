@@ -1,6 +1,7 @@
 import { createContainer } from '@evyweb/ioctopus';
 import { DI_SYMBOLS, type DI_RETURN_TYPES } from '@/di/types';
 import { createAvailabilitiesModule } from '@/di/modules/availabilities.module';
+import { createOverridesModule } from '@/di/modules/overrides.module';
 import { createAuthModule } from '@/di/modules/auth.module';
 import { createBookingsModule } from '@/di/modules/bookings.module';
 import { createBusinessesModule } from '@/di/modules/businesses.module';
@@ -15,6 +16,7 @@ ApplicationContainer.load(Symbol('BusinessesModule'), createBusinessesModule());
 ApplicationContainer.load(Symbol('EmployeesModule'), createEmployeesModule());
 ApplicationContainer.load(Symbol('BookingsModule'), createBookingsModule());
 ApplicationContainer.load(Symbol('AvailabilitiesModule'), createAvailabilitiesModule());
+ApplicationContainer.load(Symbol('OverridesModule'), createOverridesModule());
 
 export function getInjection<K extends keyof typeof DI_SYMBOLS>(symbol: K): DI_RETURN_TYPES[K] {
     return ApplicationContainer.get<DI_RETURN_TYPES[K]>(DI_SYMBOLS[symbol]);
