@@ -39,6 +39,11 @@ import type { IVerifyBookingUseCase } from '@/src/application/use-cases/bookings
 import type { IVerifyBookingController } from '@/src/interface-adapters/controllers/bookings/verify-booking.controller';
 import type { IBookSlotController } from '@/src/interface-adapters/controllers/bookings/book-slot.controller';
 import type { IRetireEmployeeController } from '@/src/interface-adapters/controllers/employees/retire-employee.controller';
+import type { IServicesRepository } from '@/src/application/repositories/services.repository.interface';
+import type { IListMyServicesUseCase } from '@/src/application/use-cases/services/list-my-services.use-case';
+import type { ICreateServiceUseCase } from '@/src/application/use-cases/services/create-service.use-case';
+import type { IListMyServicesController } from '@/src/interface-adapters/controllers/services/list-my-services.controller';
+import type { ICreateServiceController } from '@/src/interface-adapters/controllers/services/create-service.controller';
 import type { IEmployeeBookingsRepository } from '@/src/application/repositories/employee-bookings.repository.interface';
 import type { IListMyBookingsUseCase } from '@/src/application/use-cases/bookings/list-my-bookings.use-case';
 import type { IListMyBookingsController } from '@/src/interface-adapters/controllers/bookings/list-my-bookings.controller';
@@ -84,6 +89,7 @@ export const DI_SYMBOLS = {
     IEmployeeBookingsRepository: Symbol.for('IEmployeeBookingsRepository'),
     IAvailabilitiesRepository: Symbol.for('IAvailabilitiesRepository'),
     IOverridesRepository: Symbol.for('IOverridesRepository'),
+    IServicesRepository: Symbol.for('IServicesRepository'),
 
     // Use cases
     ICreateBusinessUseCase: Symbol.for('ICreateBusinessUseCase'),
@@ -95,6 +101,8 @@ export const DI_SYMBOLS = {
     IAddEmployeeUseCase: Symbol.for('IAddEmployeeUseCase'),
     IListInvitationsUseCase: Symbol.for('IListInvitationsUseCase'),
     IRetireEmployeeUseCase: Symbol.for('IRetireEmployeeUseCase'),
+    IListMyServicesUseCase: Symbol.for('IListMyServicesUseCase'),
+    ICreateServiceUseCase: Symbol.for('ICreateServiceUseCase'),
     IRejectInvitationUseCase: Symbol.for('IRejectInvitationUseCase'),
     IResendInvitationUseCase: Symbol.for('IResendInvitationUseCase'),
     ICancelInvitationUseCase: Symbol.for('ICancelInvitationUseCase'),
@@ -128,6 +136,8 @@ export const DI_SYMBOLS = {
     IListMyEmployeesController: Symbol.for('IListMyEmployeesController'),
     IAddEmployeeController: Symbol.for('IAddEmployeeController'),
     IRetireEmployeeController: Symbol.for('IRetireEmployeeController'),
+    IListMyServicesController: Symbol.for('IListMyServicesController'),
+    ICreateServiceController: Symbol.for('ICreateServiceController'),
     IRejectInvitationController: Symbol.for('IRejectInvitationController'),
     IResendInvitationController: Symbol.for('IResendInvitationController'),
     ICancelInvitationController: Symbol.for('ICancelInvitationController'),
@@ -165,6 +175,7 @@ export interface DI_RETURN_TYPES {
     IEmployeeBookingsRepository: IEmployeeBookingsRepository;
     IAvailabilitiesRepository: IAvailabilitiesRepository;
     IOverridesRepository: IOverridesRepository;
+    IServicesRepository: IServicesRepository;
 
     // Use cases
     ICreateBusinessUseCase: ICreateBusinessUseCase;
@@ -176,6 +187,8 @@ export interface DI_RETURN_TYPES {
     IAddEmployeeUseCase: IAddEmployeeUseCase;
     IListInvitationsUseCase: IListInvitationsUseCase;
     IRetireEmployeeUseCase: IRetireEmployeeUseCase;
+    IListMyServicesUseCase: IListMyServicesUseCase;
+    ICreateServiceUseCase: ICreateServiceUseCase;
     IRejectInvitationUseCase: IRejectInvitationUseCase;
     IResendInvitationUseCase: IResendInvitationUseCase;
     ICancelInvitationUseCase: ICancelInvitationUseCase;
@@ -209,6 +222,8 @@ export interface DI_RETURN_TYPES {
     IListMyEmployeesController: IListMyEmployeesController;
     IAddEmployeeController: IAddEmployeeController;
     IRetireEmployeeController: IRetireEmployeeController;
+    IListMyServicesController: IListMyServicesController;
+    ICreateServiceController: ICreateServiceController;
     IRejectInvitationController: IRejectInvitationController;
     IResendInvitationController: IResendInvitationController;
     ICancelInvitationController: ICancelInvitationController;
