@@ -1,3 +1,4 @@
+import { Availability } from '../../domain/availabilities/availability';
 import { Booking, BookingStatus } from '../../domain/bookings/booking';
 import {
   BusinessRuleError,
@@ -16,10 +17,22 @@ import {
   scriptSession,
   CLERK_TOKEN,
   TestApp,
+  workWeek,
 } from '../../test-app';
 
 const BRANCH = ANAS_BRANCH;
 const SERVICE = ANAS_SERVICE;
+
+/** Monday to Friday, 09:00–18:00 in the Sucursal's zone: the Horarios reservables Reservar recalculates. */
+const AVAILABILITY: Availability = {
+  id: 10,
+  userId: ANAS_EMPLOYEE.userId,
+  name: 'Horas laborables',
+  timeZone: BRANCH.timeZone,
+  isDefault: true,
+  schedule: workWeek('09:00', '18:00'),
+  overrides: [],
+};
 
 const VALID_BOOKING = {
   serviceId: SERVICE.id,
@@ -53,6 +66,13 @@ describe('Turno', () => {
     beforeEach(() => {
       t.services.findById.mockResolvedValue(SERVICE);
       t.branches.findById.mockResolvedValue(BRANCH);
+      t.services.findEmployeeLink.mockResolvedValue({
+        serviceId: SERVICE.id,
+        employeeId: ANAS_EMPLOYEE.id,
+        availabilityId: AVAILABILITY.id,
+      });
+      t.availabilities.findById.mockResolvedValue(AVAILABILITY);
+      t.bookings.listOccupiedByEmployee.mockResolvedValue([]);
       t.bookings.hasOverlappingOccupied.mockResolvedValue(false);
       t.bookings.create.mockResolvedValue({ booking: BOOKING, token: 'a-token' });
     });
@@ -214,7 +234,7 @@ describe('Turno', () => {
         .expect(201);
     });
 
-    it('accepts a Turno ending exactly at closing time', async () => {
+    it('accepts a Turno ending exactly at the end of the Franja', async () => {
       await t.http
         .post('/bookings')
         .send({ ...VALID_BOOKING, startsAt: '2026-01-01T20:30:00.000Z' }) // 17:30 ARG, ends 18:00 ARG
@@ -230,20 +250,24 @@ describe('Turno', () => {
       expect(t.bookings.create).not.toHaveBeenCalled();
     });
 
-    it('answers 422 for a Turno starting before the Sucursal opens', async () => {
+    it('answers 422 for a Turno before the Franja starts', async () => {
       await t.http
         .post('/bookings')
-        .send({ ...VALID_BOOKING, startsAt: '2026-01-02T10:00:00.000Z' }) // 07:00 ARG, after now but before opening
+        .send({ ...VALID_BOOKING, startsAt: '2026-01-02T10:00:00.000Z' }) // 07:00 ARG, after now but before the Franja
         .expect(422);
 
       expect(t.bookings.create).not.toHaveBeenCalled();
     });
 
-    it('answers 422 for a Turno ending after the Sucursal closes', async () => {
-      await t.http
+    it('answers 422 for a Turno that is not a Horario reservable', async () => {
+      const res = await t.http
         .post('/bookings')
-        .send({ ...VALID_BOOKING, startsAt: '2026-01-01T20:45:00.000Z' }) // 17:45 ARG, ends 18:15 ARG
+        .send({ ...VALID_BOOKING, startsAt: '2026-01-01T20:45:00.000Z' }) // 17:45 ARG: ends after the Franja and is off the 30' grid
         .expect(422);
+
+      expect(res.body.message).toBe(
+        `Slot 2026-01-01T20:45:00.000Z is not available for Service ${SERVICE.id}`,
+      );
 
       expect(t.bookings.create).not.toHaveBeenCalled();
     });

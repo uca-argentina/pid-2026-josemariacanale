@@ -1,41 +1,63 @@
 import { Type } from 'class-transformer';
-import { IsArray, IsInt, Max, Min, ValidateNested } from 'class-validator';
+import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  IsArray,
+  IsBoolean,
+  IsOptional,
+  IsString,
+  Matches,
+  ValidateNested,
+} from 'class-validator';
 import { IsTimeOfDay } from '../branches/branches.dto';
-import { IfPresent, IsName } from '../users/users.dto';
+import { IsName } from '../users/users.dto';
 
-class AvailabilityIntervalDto {
-  /** 0 = Sunday … 6 = Saturday, same as Date.getUTCDay(). */
-  @IsInt()
-  @Min(0)
-  @Max(6)
-  weekday!: number;
+class TimeRangeDto {
+  @IsTimeOfDay()
+  start!: string;
 
   @IsTimeOfDay()
-  startTime!: string;
+  end!: string;
+}
 
-  @IsTimeOfDay()
-  endTime!: string;
+class OverrideDto {
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: 'must be YYYY-MM-DD' })
+  date!: string;
+
+  /** `[]` is a día libre. */
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => TimeRangeDto)
+  ranges!: TimeRangeDto[];
 }
 
 export class CreateAvailabilityDto {
   @IsName()
   name!: string;
 
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => AvailabilityIntervalDto)
-  intervals!: AvailabilityIntervalDto[];
+  /** Checked as IANA by the use case, so a bad one answers 422. */
+  @IsString()
+  timeZone!: string;
 }
 
-/** `intervals`, when present, is the whole new set of Franjas. */
-export class UpdateAvailabilityDto {
-  @IfPresent()
-  @IsName()
-  name?: string;
+/** The whole Availability, as GET answers it: it is replaced, not patched. */
+export class UpdateAvailabilityDto extends CreateAvailabilityDto {
+  /** Accepted so the front can send back what it read; the default is changed with PATCH. */
+  @IsOptional()
+  @IsBoolean()
+  isDefault?: boolean;
 
-  @IfPresent()
+  /** `schedule[0]` is Sunday. */
+  @IsArray()
+  @ArrayMinSize(7)
+  @ArrayMaxSize(7)
+  @IsArray({ each: true })
+  @ValidateNested({ each: true })
+  @Type(() => TimeRangeDto)
+  schedule!: TimeRangeDto[][];
+
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => AvailabilityIntervalDto)
-  intervals?: AvailabilityIntervalDto[];
+  @Type(() => OverrideDto)
+  overrides!: OverrideDto[];
 }

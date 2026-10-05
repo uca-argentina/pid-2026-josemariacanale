@@ -7,15 +7,14 @@ import { Availability } from '../../domain/availabilities/availability';
 import { getOwnAvailability } from './get-own-availability';
 
 @Injectable()
-export class MakeDefaultAvailabilityUseCase {
+export class GetAvailabilityUseCase {
   constructor(
     @Inject(AVAILABILITIES_REPOSITORY)
     private readonly availabilities: AvailabilitiesRepository,
   ) {}
 
   /** @throws {NotFoundError} no existe o no es del Usuario */
-  async execute(userId: number, id: number): Promise<Availability> {
-    await getOwnAvailability(this.availabilities, id, userId);
-    return this.availabilities.makeDefault(id);
+  execute(userId: number, id: number): Promise<Availability> {
+    return getOwnAvailability(this.availabilities, id, userId);
   }
 }

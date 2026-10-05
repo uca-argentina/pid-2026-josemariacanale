@@ -26,7 +26,7 @@ import { assertServiceOwnerOrSelf } from './assert-service-owner-or-self';
 
 export interface AssignEmployeeInput {
   employeeId: number;
-  /** One of that Empleado's own; without it, their default. */
+  /** One of that Empleado's Usuario's own; without it, their default. */
   availabilityId?: number;
 }
 
@@ -52,7 +52,7 @@ export class AssignEmployeeUseCase {
    * llama no es Dueño ni lo atiende
    * @throws {ForbiddenError} no es el Dueño ni ese Empleado
    * @throws {BusinessRuleError} el Servicio está dado de baja, el Empleado no es del Negocio o está dado de baja, o la
-   * Availability es de otro Empleado
+   * Availability es de otro Usuario
    * @throws {ConflictError} el Empleado ya lo atiende
    */
   async execute(
@@ -90,12 +90,12 @@ export class AssignEmployeeUseCase {
       );
     const availability =
       availabilityId === undefined
-        ? await defaultAvailability(this.availabilities, employeeId)
+        ? await defaultAvailability(this.availabilities, employee.userId)
         : await this.availabilities.findById(availabilityId);
     if (!availability) throw new NotFoundError('Availability not found');
-    if (availability.employeeId !== employeeId)
+    if (availability.userId !== employee.userId)
       throw new BusinessRuleError(
-        'La Availability tiene que ser del mismo Empleado',
+        'La Availability tiene que ser del mismo Usuario que el Empleado',
       );
     return this.services.addEmployee({
       serviceId,

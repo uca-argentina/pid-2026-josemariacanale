@@ -44,7 +44,7 @@ export class ChangeEmployeeAvailabilityUseCase {
    *
    * @throws {NotFoundError} el Servicio, su Sucursal o la Availability no existen, o ese Empleado no atiende el Servicio
    * @throws {ForbiddenError} no es el Dueño ni ese Empleado
-   * @throws {BusinessRuleError} la Availability es de otro Empleado
+   * @throws {BusinessRuleError} la Availability es de otro Usuario
    */
   async execute(
     userId: number,
@@ -66,9 +66,11 @@ export class ChangeEmployeeAvailabilityUseCase {
       throw new NotFoundError('Employee not in charge of this Service');
     const availability = await this.availabilities.findById(availabilityId);
     if (!availability) throw new NotFoundError('Availability not found');
-    if (availability.employeeId !== employeeId)
+    const employee = await this.employees.findById(employeeId);
+    if (!employee) throw new NotFoundError('Employee not found');
+    if (availability.userId !== employee.userId)
       throw new BusinessRuleError(
-        'La Availability tiene que ser del mismo Empleado',
+        'La Availability tiene que ser del mismo Usuario que el Empleado',
       );
     return this.services.setEmployeeAvailability({
       serviceId,

@@ -1,6 +1,5 @@
 import { Global, Module } from '@nestjs/common';
 import { AVAILABILITIES_REPOSITORY } from '../domain/availabilities/availabilities.repository';
-import { AVAILABILITY_OVERRIDES_REPOSITORY } from '../domain/availability-overrides/availability-overrides.repository';
 import { CLOCK } from '../domain/clock';
 import { FILE_STORAGE } from '../domain/file-storage';
 import { MAILER } from '../domain/mailer';
@@ -15,8 +14,6 @@ import { CLERK_AUTH } from '../domain/users/clerk-auth';
 import { USERS_REPOSITORY } from '../domain/users/users.repository';
 import { AvailabilitiesModule } from './availabilities/availabilities.module';
 import { PrismaAvailabilitiesRepository } from './availabilities/prisma-availabilities.repository';
-import { AvailabilityOverridesModule } from './availability-overrides/availability-overrides.module';
-import { PrismaAvailabilityOverridesRepository } from './availability-overrides/prisma-availability-overrides.repository';
 import { PrismaBookingsRepository } from './bookings/prisma-bookings.repository';
 import { BookingsModule } from './bookings/bookings.module';
 import { BranchImagesModule } from './branch-images/branch-images.module';
@@ -50,7 +47,6 @@ import { UsersModule } from './users/users.module';
     EmployeesModule,
     BookingsModule,
     AvailabilitiesModule,
-    AvailabilityOverridesModule,
   ],
   providers: [
     PrismaService,
@@ -79,10 +75,6 @@ import { UsersModule } from './users/users.module';
       provide: AVAILABILITIES_REPOSITORY,
       useClass: PrismaAvailabilitiesRepository,
     },
-    {
-      provide: AVAILABILITY_OVERRIDES_REPOSITORY,
-      useClass: PrismaAvailabilityOverridesRepository,
-    },
   ],
   exports: [
     CLOCK,
@@ -98,7 +90,6 @@ import { UsersModule } from './users/users.module';
     INVITATIONS_REPOSITORY,
     BOOKINGS_REPOSITORY,
     AVAILABILITIES_REPOSITORY,
-    AVAILABILITY_OVERRIDES_REPOSITORY,
   ],
 })
 export class InfrastructureModule {}

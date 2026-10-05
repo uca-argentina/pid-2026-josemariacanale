@@ -1,6 +1,4 @@
-import { DEFAULT_AVAILABILITY } from '../../domain/availabilities/availability';
 import {
-  ConflictError,
   DatabaseOperationError,
   ExternalServiceError,
 } from '../../domain/errors';
@@ -416,6 +414,8 @@ describe('Empleado', () => {
           hidden: false,
           prepMinutes: 0,
           dailyLimit: null,
+          slotInterval: null,
+          minimumNoticeMinutes: 0,
           employees: [
             {
               id: OTHER_EMPLOYEE.id,
@@ -451,6 +451,8 @@ describe('Empleado', () => {
           hidden: false,
           prepMinutes: 0,
           dailyLimit: null,
+          slotInterval: null,
+          minimumNoticeMinutes: 0,
           employees: [
             {
               id: OTHER_EMPLOYEE.id,

@@ -53,6 +53,8 @@ export class PrismaServicesRepository implements ServicesRepository {
       | 'hidden'
       | 'prepMinutes'
       | 'dailyLimit'
+      | 'slotInterval'
+      | 'minimumNoticeMinutes'
     > & { employees: Omit<EmployeeService, 'serviceId'>[] },
   ) {
     const { employees, ...service } = data;
@@ -115,6 +117,8 @@ export class PrismaServicesRepository implements ServicesRepository {
         | 'hidden'
         | 'prepMinutes'
         | 'dailyLimit'
+        | 'slotInterval'
+        | 'minimumNoticeMinutes'
       >
     >,
   ) {
@@ -258,6 +262,8 @@ export const toService = (row: ServiceRowWithEmployees): Service => ({
   hidden: row.hidden,
   prepMinutes: row.prepMinutes,
   dailyLimit: row.dailyLimit,
+  slotInterval: row.slotInterval,
+  minimumNoticeMinutes: row.minimumNoticeMinutes,
   employees: row.employees.map(({ employee, availabilityId }) => ({
     id: employee.id,
     name: employee.user.name,

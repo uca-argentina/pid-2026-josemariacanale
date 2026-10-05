@@ -7,19 +7,19 @@ Plataforma de gestión de turnos para negocios de servicios (clínicas, spas, gi
 ### Actores
 
 **Negocio**:
-Quien contrata Agendic para gestionar su agenda. Es el destinatario de la landing y del panel de administración.
+Grupo de Usuarios que comparten Servicios: los Servicios del Negocio los atiende cualquiera de sus Empleados que los Ofrezca. No hace falta un Negocio para ofrecer Servicios; un Usuario solo tiene sus Servicios personales.
 _Avoid_: empresa, cuenta, cliente (cuando se refiere al negocio)
 
 **Cliente**:
-Persona que reserva Turnos dejando un nombre y un email. No hace falta que sea un Usuario.
+Persona que reserva un Turno dejando un nombre y un email, y verificándolo al Reservar. No hace falta que sea un Usuario. Cada Turno tiene su propio Cliente: el mismo email en dos Turnos son dos Clientes, que solo se juntan por ese email en Mis turnos.
 _Avoid_: usuario final, paciente, consumidor
 
 **Sucursal**:
-Sede física de un Negocio, con zona horaria propia. Un Negocio puede tener varias. Deja de ser la fuente de los horarios reservables.
+Sede física de un Negocio, con zona horaria propia. Un Negocio puede tener varias. No tiene horario de apertura ni de cierre: los Horarios reservables salen solo de las Availability de sus Empleados. Solo los Servicios del Negocio tienen Sucursal.
 _Avoid_: sede, local
 
 **Empleado**:
-Usuario que atiende los Servicios de un Negocio. Puede atender cualquiera de ellos. Un Usuario puede ser Empleado de varios Negocios a la vez, sea o no Dueño de otro.
+Usuario que atiende los Servicios del Negocio. Puede atender cualquiera de ellos. Un Usuario puede ser Empleado de varios Negocios a la vez, sea o no Dueño de otro.
 _Avoid_: recurso
 
 **Staff**:
@@ -80,17 +80,33 @@ Ingresar el Código de verificación recibido por email para probar que la direc
 _Avoid_: confirmar email
 
 **Código de verificación**:
-Código de un solo uso que el Proveedor de autenticación manda por email para Verificar email. Al ingresarlo, el Usuario queda con una Sesión abierta. Vence.
+Código que llega por email para Verificar email. Vence. Al Usuario se lo manda el Proveedor de autenticación y, al ingresarlo, queda con una Sesión abierta. Al Cliente se lo manda Agendic al Reservar y al entrar a Mis turnos; no abre una Sesión.
 _Avoid_: link de verificación, link de confirmación, magic link
 
 ### Agenda
 
 **Servicio**:
-Prestación que ofrece una Sucursal, con duración y precio, atendida por uno o más Empleados. No confundir con los microservicios de la arquitectura.
+Prestación con duración y precio que se puede Reservar. Es o un Servicio personal o un Servicio del Negocio, nunca los dos. No confundir con los microservicios de la arquitectura.
 _Avoid_: prestación, tratamiento
 
+**Servicio personal**:
+Servicio de un Usuario, sin Negocio ni Sucursal. Lo atiende solo ese Usuario, con una de sus Availability.
+_Avoid_: servicio individual, servicio propio
+
+**Servicio del Negocio**:
+Servicio de una Sucursal de un Negocio, atendido por los Empleados que lo Ofrecen. El Cliente no elige con quién: al Reservar se le asigna un Empleado libre en ese horario, el que hace más tiempo que no recibe un Turno de ese Servicio.
+_Avoid_: servicio de equipo, servicio compartido
+
+**Intervalo**:
+Cada cuántos minutos arranca un Horario reservable de un Servicio. Opcional: sin Intervalo, es la duración del Servicio.
+_Avoid_: frecuencia, grilla, paso
+
+**Anticipación mínima**:
+Minutos que tienen que faltar como mínimo para el inicio de un Turno al Reservarlo. Opcional: sin ella, se puede Reservar hasta el último momento.
+_Avoid_: aviso previo, minimum notice
+
 **Ofrecer un Servicio**:
-Acción de un Empleado de empezar a atender un Servicio de su Negocio, con una de sus Availability. La hace él mismo o el Dueño por él. Su contraria es dejar de ofrecerlo, que no se puede si es el último Empleado del Servicio.
+Acción de un Empleado de empezar a atender un Servicio del Negocio, con una de sus Availability. La hace él mismo o el Dueño por él. Su contraria es dejar de ofrecerlo, que no se puede si es el último Empleado del Servicio.
 _Avoid_: asignarse, tomar un servicio
 
 **Servicio oculto**:
@@ -106,23 +122,19 @@ Máximo de Turnos de un Servicio en un mismo día, sumando a todos sus Empleados
 _Avoid_: cupo, tope
 
 **Availability**:
-Conjunto de Franjas semanales con nombre que declara cuándo trabaja un Empleado. En pantalla se llama "Horas laborables". Un Empleado tiene una o más, exactamente una predeterminada. El término queda en inglés a pedido explícito: "Disponibilidad" ya se usa en el panel para otra cosa.
+Conjunto de Franjas semanales con nombre y zona horaria propia que declara cuándo trabaja un Usuario. Es del Usuario, no de su vínculo con un Negocio. Sus Franjas y sus Anulaciones se leen en esa zona, no en la de la Sucursal del Servicio. En pantalla se llama "Horas laborables". Todo Usuario tiene una o más desde que se crea, exactamente una predeterminada. El término queda en inglés a pedido explícito: "Disponibilidad" ya se usa en el panel para otra cosa.
 _Avoid_: disponibilidad, horario (a secas), agenda
 
 **Franja**:
-Tramo de un día de la semana dentro de una Availability, con hora de inicio y de fin. Varias por día; un día sin Franjas es un día que no se trabaja. Nunca cruza la medianoche.
+Tramo horario de una Availability, con hora de inicio y de fin, que se repite en uno o más días de la semana. Varias por día; un día sin Franjas es un día que no se trabaja. Nunca cruza la medianoche.
 _Avoid_: rango, bloque, slot
 
 **Anulación**:
-Reemplazo de las Franjas de un Empleado para una fecha concreta. Sin horas, es un día libre.
+Reemplazo de las Franjas de una Availability para una fecha concreta, leído en la zona horaria de esa Availability. Sin horas, es un día libre. Vale solo para esa Availability: para anular la misma fecha en otra, se carga otra Anulación.
 _Avoid_: excepción, override, licencia
 
-**Cobertura**:
-El Empleado que atiende en lugar de otro durante una Anulación, para no dejar sus Servicios sin nadie. Opcional: una Anulación sin Cobertura simplemente deja esas fechas sin horarios para el Cliente.
-_Avoid_: reemplazo, suplente, backup
-
 **Horario reservable**:
-Hora concreta en la que un Cliente puede Reservar un Turno para un Servicio con un Empleado, ya descontadas las Anulaciones y los Turnos tomados.
+Hora concreta en la que un Cliente puede Reservar un Turno para un Servicio, ya descontadas las Anulaciones, la Anticipación mínima y los Turnos tomados. En un Servicio del Negocio, basta con que un Empleado que lo Ofrece esté libre. Los Turnos ocupan al Usuario que los atiende en todos sus Servicios, personales o de cualquier Negocio.
 _Avoid_: slot, hueco, disponibilidad
 
 **Categoría de Servicio**:
@@ -142,23 +154,31 @@ Reserva concreta de un Cliente con un Empleado, para un Servicio y un horario de
 _Avoid_: cita, reserva (como sustantivo), appointment
 
 **Reservar**:
-Acción del Cliente de tomar un turno disponible.
+Acción del Cliente de tomar un turno disponible. Exige Verificar email: el Turno recién existe cuando el Cliente ingresa el Código de verificación. No hay forma de Reservar sin verificar.
 _Avoid_: agendar, sacar turno, pedir turno
+
+**Mis turnos**:
+Pantalla donde el Cliente ve los Turnos reservados con su email, en cualquier Negocio o Servicio personal, y desde donde puede Cancelar o Reagendar el que elija. Se entra con un Código de verificación. Separa Próximos (pendientes y aceptados que no pasaron) de Historial (pasados, cancelados y rechazados).
+_Avoid_: mis reservas, perfil del cliente, mi cuenta
+
+**Enlace del Turno**:
+Dirección secreta de un Turno que llega en la Confirmación de reserva. Abre ese Turno solo, sin Código de verificación, y quien la tenga puede Cancelarlo o Reagendarlo. Prueba que se tiene el Turno, no quién es el Cliente.
+_Avoid_: link de gestión, link de cancelación, uid (eso es el identificador en el código)
 
 **Comentario del Turno**:
 Texto libre que el Cliente puede dejar al Reservar, para contarle algo al Negocio sobre ese Turno.
 _Avoid_: notas, observaciones, comment
 
 **Enlace de reserva**:
-Dirección pública que un Negocio comparte para que un Cliente entre a Reservar. La elige el Dueño al Crear Negocio y puede cambiarla; al cambiarla, la anterior deja de funcionar. Si el Negocio tiene más de una Sucursal, cada una agrega su propio tramo a esa dirección para llegar directo a ella; con una sola Sucursal, el Enlace de reserva del Negocio ya lleva ahí. Cada Servicio agrega un último tramo que abre la página de su Sucursal con ese Servicio ya elegido.
+Dirección pública que un Negocio comparte para que un Cliente entre a Reservar. La elige el Dueño al Crear Negocio y puede cambiarla; al cambiarla, la anterior deja de funcionar. Si el Negocio tiene más de una Sucursal, cada una agrega su propio tramo a esa dirección para llegar directo a ella; con una sola Sucursal, el Enlace de reserva del Negocio ya lleva ahí. Cada Servicio agrega un último tramo que abre la página de su Sucursal con ese Servicio ya elegido. Un Usuario tiene además su propio Enlace de reserva, que elige él, para sus Servicios personales; cada uno agrega su propio último tramo.
 _Avoid_: link del negocio, perfil público, página pública, slug (eso es el identificador en el código)
 
 **Reagendar**:
-Mover un turno existente a otro horario. Libera el horario anterior.
+Mover un turno existente a otro horario del mismo Servicio, con el mismo Empleado. Libera el horario anterior. Lo puede hacer el Empleado o el Cliente, sobre un Turno pendiente o aceptado.
 _Avoid_: reprogramar, cambiar el turno
 
 **Cancelar**:
-Anular un Turno. Su horario queda libre.
+Anular un Turno. Su horario queda libre. El Cliente puede Cancelar un Turno pendiente o aceptado hasta que empieza.
 _Avoid_: eliminar, borrar (un turno)
 
 **Dar de baja**:
@@ -169,13 +189,9 @@ _Avoid_: eliminar, borrar, desactivar
 Turno al que el Cliente no se presentó sin cancelarlo. El Empleado la marca a mano, solo en Turnos ya aceptados cuyo horario ya pasó.
 _Avoid_: inasistencia, no-show
 
-**Turno sin verificar**:
-Turno cuyo Cliente todavía no verificó su email. No mantiene reservado su horario.
-_Avoid_: pendiente (ese término queda reservado para Aceptar turno y Rechazar turno)
-
 **Turno pendiente**:
-Turno ya verificado por su Cliente, de un Servicio con Aprobación manual, que todavía espera que el Empleado lo Acepte o lo Rechace. Mientras tanto ocupa su Horario reservable igual que uno aceptado.
-_Avoid_: turno sin verificar (eso es otra cosa, ver arriba)
+Turno de un Servicio con Aprobación manual que todavía espera que el Empleado lo Acepte o lo Rechace. Mientras tanto ocupa su Horario reservable igual que uno aceptado. Si el Cliente lo Reagenda, o Reagenda uno aceptado de un Servicio con Aprobación manual, vuelve a quedar pendiente.
+_Avoid_: turno sin verificar (no existe: todo Turno nace con el email verificado)
 
 **Aceptar turno**:
 Acción del Negocio de dar por válido un Turno pendiente, es decir, uno que no quedó aceptado automáticamente al reservarse.

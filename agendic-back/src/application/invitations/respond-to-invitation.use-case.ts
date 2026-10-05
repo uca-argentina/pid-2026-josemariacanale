@@ -1,5 +1,4 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { DEFAULT_AVAILABILITY } from '../../domain/availabilities/availability';
 import { CLOCK, Clock } from '../../domain/clock';
 import { Employee } from '../../domain/employees/employee';
 import {
@@ -19,7 +18,7 @@ import {
 /**
  * Acepta o rechaza una Invitación dirigida al email del Usuario (ADR 0019).
  *
- * Aceptar crea el Empleado con la Availability predeterminada y cierra la Invitación; rechazar solo la cierra.
+ * Aceptar crea el Empleado y cierra la Invitación; rechazar solo la cierra.
  *
  * @throws {NotFoundError} la Invitación no existe o no es del email del Usuario
  * @throws {BusinessRuleError} la Invitación venció, o el Usuario ya es Empleado del Negocio
@@ -52,7 +51,6 @@ export class RespondToInvitationUseCase {
     const employee = await this.employees.create({
       userId,
       businessId: invitation.businessId,
-      availability: DEFAULT_AVAILABILITY,
     });
     await this.invitations.close(invitation.id, this.clock.now());
     return employee;

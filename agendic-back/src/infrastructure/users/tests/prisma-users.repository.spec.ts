@@ -46,7 +46,28 @@ describe('PrismaUsersRepository', () => {
     };
 
     await expect(repository.create(data)).resolves.toEqual(ANA);
-    expect(prisma.user.create).toHaveBeenCalledWith({ data });
+    // Born with Horas laborables, in the same write: Monday to Friday 09:00–17:00 in Buenos Aires, the default.
+    expect(prisma.user.create).toHaveBeenCalledWith({
+      data: {
+        ...data,
+        availabilities: {
+          create: {
+            name: 'Horas laborables',
+            timeZone: 'America/Argentina/Buenos_Aires',
+            isDefault: true,
+            intervals: {
+              create: [
+                {
+                  days: [1, 2, 3, 4, 5],
+                  startTime: new Date('1970-01-01T09:00:00.000Z'),
+                  endTime: new Date('1970-01-01T17:00:00.000Z'),
+                },
+              ],
+            },
+          },
+        },
+      },
+    });
   });
 
   it('finds by id', async () => {

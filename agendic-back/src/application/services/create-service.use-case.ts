@@ -50,14 +50,16 @@ export class CreateServiceUseCase {
       branchId,
       userId,
     );
-    await this.assertCanAttend(branch.businessId, input.employeeIds);
-    // Each Empleado enters with their default Availability.
+    const attending = await this.assertCanAttend(
+      branch.businessId,
+      input.employeeIds,
+    );
+    // Each Empleado enters with their User's default Availability.
     const employees = await Promise.all(
-      [...new Set(input.employeeIds)].map(async (employeeId) => ({
-        employeeId,
-        availabilityId: (
-          await defaultAvailability(this.availabilities, employeeId)
-        ).id,
+      attending.map(async ({ id, userId }) => ({
+        employeeId: id,
+        availabilityId: (await defaultAvailability(this.availabilities, userId))
+          .id,
       })),
     );
     return this.services.create({
@@ -73,11 +75,13 @@ export class CreateServiceUseCase {
       hidden: input.hidden ?? false,
       prepMinutes: input.prepMinutes ?? 0,
       dailyLimit: input.dailyLimit ?? null,
+      slotInterval: input.slotInterval ?? null,
+      minimumNoticeMinutes: input.minimumNoticeMinutes ?? 0,
       employees,
     });
   }
 
-  /** Every Empleado belongs to this Negocio and isn't dado de baja. */
+  /** Every Empleado belongs to this Negocio and isn't dado de baja; answers them. */
   private async assertCanAttend(businessId: number, employeeIds: number[]) {
     const found = await this.employees.listByIds(employeeIds);
     const eligible = found.filter(
@@ -88,5 +92,6 @@ export class CreateServiceUseCase {
       throw new BusinessRuleError(
         'Every employeeId must be an Employee of this Business who is not retired',
       );
+    return eligible;
   }
 }

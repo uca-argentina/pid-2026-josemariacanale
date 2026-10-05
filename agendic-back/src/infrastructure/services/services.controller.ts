@@ -94,7 +94,7 @@ export class ServicesController {
    * @throws {NotFoundError} el Servicio, el Empleado o la Availability no existen, o el Servicio está oculto y quien
    * llama no es Dueño ni lo atiende
    * @throws {ForbiddenError} no es el Dueño ni ese Empleado
-   * @throws {BusinessRuleError} el Servicio o el Empleado están dados de baja, o la Availability es de otro Empleado
+   * @throws {BusinessRuleError} el Servicio o el Empleado están dados de baja, o la Availability es de otro Usuario
    * @throws {ConflictError} el Empleado ya lo atiende
    */
   @Post('services/:id/employees')
@@ -115,7 +115,7 @@ export class ServicesController {
    *
    * @throws {NotFoundError} el Servicio o la Availability no existen, o ese Empleado no atiende el Servicio
    * @throws {ForbiddenError} no es el Dueño ni ese Empleado
-   * @throws {BusinessRuleError} la Availability es de otro Empleado
+   * @throws {BusinessRuleError} la Availability es de otro Usuario
    */
   @Patch('services/:id/employees/:employeeId')
   @UseGuards(ClerkGuard)

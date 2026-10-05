@@ -8,16 +8,14 @@ import {
   EMPLOYEES_REPOSITORY,
   EmployeesRepository,
 } from '../../domain/employees/employees.repository';
-import { ConflictError, BusinessRuleError } from '../../domain/errors';
+import { ConflictError } from '../../domain/errors';
 import {
   SERVICES_REPOSITORY,
   ServicesRepository,
 } from '../../domain/services/services.repository';
 import { ListSlotsUseCase } from '../slots/list-slots.use-case';
+import { assertSlotAvailable } from './assert-booking-rules';
 import { findOwnBookedBooking } from './find-own-booked-booking';
-
-const DAY_MS = 86_400_000;
-const isoDate = (instant: Date) => instant.toISOString().slice(0, 10);
 
 /** Mueve un Turno aceptado a otro Horario reservable del mismo Servicio y Empleado. */
 @Injectable()
@@ -69,15 +67,13 @@ export class RescheduleBookingUseCase {
     )
       throw new ConflictError('Overlaps a booked Turno for this Employee');
 
-    const { days } = await this.listSlots.execute(
+    await assertSlotAvailable(
+      this.listSlots,
       booking.serviceId,
       booking.employeeId,
-      isoDate(new Date(startsAt.getTime() - DAY_MS)),
-      isoDate(new Date(startsAt.getTime() + DAY_MS)),
+      startsAt,
       bookingId,
     );
-    if (!days.some((day) => day.slots.includes(startsAt.toISOString())))
-      throw new BusinessRuleError('startsAt is not a Horario reservable');
     return this.bookings.reschedule(bookingId, {
       prepStartsAt,
       startsAt,

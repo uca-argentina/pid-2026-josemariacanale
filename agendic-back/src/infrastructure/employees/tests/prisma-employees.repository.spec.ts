@@ -1,4 +1,3 @@
-import { DEFAULT_AVAILABILITY } from '../../../domain/availabilities/availability';
 import { Employee } from '../../../domain/employees/employee';
 import {
   ConflictError,
@@ -76,39 +75,14 @@ describe('PrismaEmployeesRepository', () => {
     await expect(repository.listByIds([999])).resolves.toEqual([]);
   });
 
-  it('creates an Employee with their default Availability in one write, and returns only its domain fields', async () => {
+  it('creates an Employee and returns only its domain fields', async () => {
     prisma.employee.create.mockResolvedValue(EMPLOYEE_ROW);
 
     await expect(
-      repository.create({
-        userId: 1,
-        businessId: 1,
-        availability: {
-          name: 'Horario general',
-          intervals: [{ weekday: 1, startTime: '09:00', endTime: '18:00' }],
-        },
-      }),
+      repository.create({ userId: 1, businessId: 1 }),
     ).resolves.toEqual(EMPLOYEE);
     expect(prisma.employee.create).toHaveBeenCalledWith({
-      data: {
-        userId: 1,
-        businessId: 1,
-        availabilities: {
-          create: {
-            name: 'Horario general',
-            isDefault: true,
-            intervals: {
-              create: [
-                {
-                  weekday: 1,
-                  startTime: new Date('1970-01-01T09:00:00.000Z'),
-                  endTime: new Date('1970-01-01T18:00:00.000Z'),
-                },
-              ],
-            },
-          },
-        },
-      },
+      data: { userId: 1, businessId: 1 },
       include: WITH_USER,
     });
   });
@@ -183,11 +157,7 @@ describe('PrismaEmployeesRepository', () => {
       prisma.employee.create.mockRejectedValue(cause);
 
       const error = await repository
-        .create({
-          userId: 1,
-          businessId: 1,
-          availability: DEFAULT_AVAILABILITY,
-        })
+        .create({ userId: 1, businessId: 1 })
         .catch((e: unknown) => e);
 
       expect(error).toBeInstanceOf(ConflictError);

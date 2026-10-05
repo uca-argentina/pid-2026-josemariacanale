@@ -1,13 +1,22 @@
-import { Availability } from '../../domain/availabilities/availability';
+import {
+  Availability,
+  AvailabilitySummary,
+} from '../../domain/availabilities/availability';
+
+export const presentAvailabilitySummary = ({
+  id,
+  name,
+  isDefault,
+  timeZone,
+}: AvailabilitySummary) => ({ id, name, isDefault, timeZone });
 
 export const presentAvailability = (availability: Availability) => ({
-  id: availability.id,
-  employeeId: availability.employeeId,
-  name: availability.name,
-  isDefault: availability.isDefault,
-  intervals: availability.intervals.map(({ weekday, startTime, endTime }) => ({
-    weekday,
-    startTime,
-    endTime,
+  ...presentAvailabilitySummary(availability),
+  schedule: availability.schedule.map((ranges) =>
+    ranges.map(({ start, end }) => ({ start, end })),
+  ),
+  overrides: availability.overrides.map(({ date, ranges }) => ({
+    date,
+    ranges: ranges.map(({ start, end }) => ({ start, end })),
   })),
 });

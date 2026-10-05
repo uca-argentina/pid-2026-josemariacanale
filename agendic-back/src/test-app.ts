@@ -2,14 +2,11 @@ import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from './app.module';
 import { setupApp } from './setup-app';
+import { emptySchedule, Schedule } from './domain/availabilities/availability';
 import {
   AVAILABILITIES_REPOSITORY,
   AvailabilitiesRepository,
 } from './domain/availabilities/availabilities.repository';
-import {
-  AVAILABILITY_OVERRIDES_REPOSITORY,
-  AvailabilityOverridesRepository,
-} from './domain/availability-overrides/availability-overrides.repository';
 import {
   BRANCH_IMAGES_REPOSITORY,
   BranchImagesRepository,
@@ -56,6 +53,12 @@ import {
   USERS_REPOSITORY,
   UsersRepository,
 } from './domain/users/users.repository';
+
+/** Monday to Friday, one range a day; the weekend is not worked. */
+export const workWeek = (start: string, end: string): Schedule =>
+  emptySchedule().map((_, day) =>
+    day >= 1 && day <= 5 ? [{ start, end }] : [],
+  );
 
 export const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -166,17 +169,12 @@ export async function createTestApp() {
     markNoShow: jest.fn(),
   };
   const availabilities: jest.Mocked<AvailabilitiesRepository> = {
-    listByEmployee: jest.fn(),
+    listByUser: jest.fn(),
     findById: jest.fn(),
     create: jest.fn(),
-    update: jest.fn(),
+    replace: jest.fn(),
     makeDefault: jest.fn(),
     countServices: jest.fn(),
-    delete: jest.fn(),
-  };
-  const overrides: jest.Mocked<AvailabilityOverridesRepository> = {
-    listByEmployee: jest.fn(),
-    replace: jest.fn(),
     delete: jest.fn(),
   };
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
@@ -206,8 +204,6 @@ export async function createTestApp() {
     .useValue(bookings)
     .overrideProvider(AVAILABILITIES_REPOSITORY)
     .useValue(availabilities)
-    .overrideProvider(AVAILABILITY_OVERRIDES_REPOSITORY)
-    .useValue(overrides)
     .compile();
   const app = setupApp(moduleRef.createNestApplication());
   await app.init();
@@ -226,7 +222,6 @@ export async function createTestApp() {
     invitations,
     bookings,
     availabilities,
-    overrides,
     http: request(app.getHttpServer()),
   };
 }
@@ -262,8 +257,6 @@ export const ANAS_BRANCH: Branch = {
   businessId: ANAS_BUSINESS.id,
   name: 'Downtown',
   address: '123 Main St',
-  opensAt: '09:00',
-  closesAt: '18:00',
   timeZone: 'America/Argentina/Buenos_Aires',
   slug: 'downtown',
 };
@@ -294,6 +287,8 @@ export const ANAS_SERVICE: Service = {
   hidden: false,
   prepMinutes: 0,
   dailyLimit: null,
+  slotInterval: null,
+  minimumNoticeMinutes: 0,
   employees: [
     { id: ANAS_EMPLOYEE.id, name: ANAS_EMPLOYEE.name, availabilityId: 10 },
   ],

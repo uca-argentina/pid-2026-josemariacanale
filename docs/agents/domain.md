@@ -24,17 +24,16 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | Negocio | `Business` |
 | Dueño | `owner` (`Business.ownerId`) |
 | Enlace de reserva | `Business.slug` (tramo del Negocio) + `Branch.slug` (tramo de la Sucursal, único por `businessId`); la URL del front es `/business/<negocio-slug>/<sucursal-slug>`, y `/business/<negocio-slug>/<sucursal-slug>/<servicio-slug>` con el tramo del Servicio (`Service.slug`, único por `branchId` entre los no dados de baja) |
-| Sucursal | `Branch` (apertura/cierre → `opensAt`/`closesAt`) |
+| Sucursal | `Branch` (sin horario de apertura ni de cierre) |
 | Imágenes de Sucursal | `BranchImage` (`url`, `order`) |
 | Zona horaria | `Branch.timeZone` |
 | Usuario | `User` |
 | Cliente | `Booking.clientName` / `Booking.clientEmail` |
 | Empleado | `Employee` |
 | Invitación | `Invitation` (`email`, `expiresAt`) |
-| Availability | `Availability` (predeterminada → `isDefault`) |
-| Franja | `AvailabilityInterval` (día → `weekday`, 0 = domingo como `Date.getUTCDay()`; inicio/fin → `startTime`/`endTime`) |
-| Anulación | `AvailabilityOverride` |
-| Cobertura | `AvailabilityOverride.coveredByEmployeeId` |
+| Availability | `Availability` (predeterminada → `isDefault`; zona horaria → `Availability.timeZone`; es del Usuario, `userId`) |
+| Franja | `AvailabilityInterval` (días → `days`, 0 = domingo como `dayjs().day()`, varios por Franja; inicio/fin → `startTime`/`endTime`) |
+| Anulación | `AvailabilityOverride` (`availabilityId`) |
 | Horario reservable | `Slot` (`GET /services/:id/slots`) |
 | Servicio | `Service` |
 | Categoría de Servicio | `ServiceCategory` (`Service.category`) |
@@ -43,6 +42,8 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | Servicio oculto | `Service.hidden` |
 | Tiempo de preparación | `Service.prepMinutes` (0 = sin preparación); en el Turno, `Booking.prepStartsAt` (desde cuándo ocupa al Empleado) |
 | Límite diario | `Service.dailyLimit` (opcional) |
+| Intervalo | `Service.slotInterval` (minutos, opcional; sin él, `durationMinutes`) |
+| Anticipación mínima | `Service.minimumNoticeMinutes` (minutos, 0 = sin anticipación) |
 | Ofrecer un Servicio / dejar de ofrecerlo | `assignEmployee` / `removeEmployee` (`EmployeeService`) |
 | Turno | `Booking` (inicio/fin → `startsAt`/`endsAt`; estado → `BookingStatus.UNVERIFIED \| PENDING \| BOOKED \| REJECTED \| CANCELLED`) |
 | Comentario del Turno | `Booking.notes` (opcional) |

@@ -1,4 +1,4 @@
-import { Availability } from '../../domain/availabilities/availability';
+import { Availability, emptySchedule } from '../../domain/availabilities/availability';
 import { ConflictError } from '../../domain/errors';
 import { ServiceCategory } from '../../domain/services/service';
 import {
@@ -29,27 +29,29 @@ const OTHER_EMPLOYEE = {
 
 const availability = (
   id: number,
-  employeeId: number,
+  userId: number,
   isDefault: boolean,
 ): Availability => ({
   id,
-  employeeId,
-  name: isDefault ? 'Horario general' : 'Turno tarde',
+  userId,
+  name: isDefault ? 'Horas laborables' : 'Turno tarde',
+  timeZone: 'America/Argentina/Buenos_Aires',
   isDefault,
-  intervals: [],
+  schedule: emptySchedule(),
+  overrides: [],
 });
 
 /** Ana's default (10) and another one (11); Bruno's default (20) and another one (21). */
 const AVAILABILITIES = [
-  availability(10, ANAS_EMPLOYEE.id, true),
-  availability(11, ANAS_EMPLOYEE.id, false),
-  availability(20, OTHER_EMPLOYEE.id, true),
-  availability(21, OTHER_EMPLOYEE.id, false),
+  availability(10, ANAS_EMPLOYEE.userId, true),
+  availability(11, ANAS_EMPLOYEE.userId, false),
+  availability(20, OTHER_EMPLOYEE.userId, true),
+  availability(21, OTHER_EMPLOYEE.userId, false),
 ];
 
 const scriptAvailabilities = ({ availabilities }: TestApp) => {
-  availabilities.listByEmployee.mockImplementation(async (employeeId) =>
-    AVAILABILITIES.filter((a) => a.employeeId === employeeId),
+  availabilities.listByUser.mockImplementation(async (userId) =>
+    AVAILABILITIES.filter((a) => a.userId === userId),
   );
   availabilities.findById.mockImplementation(
     async (id) => AVAILABILITIES.find((a) => a.id === id) ?? null,
@@ -92,6 +94,8 @@ const SERVICE = {
   hidden: false,
   prepMinutes: 0,
   dailyLimit: null,
+  slotInterval: null,
+  minimumNoticeMinutes: 0,
   employees: IN_CHARGE,
 };
 
@@ -109,6 +113,8 @@ const PRESENTED_SERVICE = {
   hidden: SERVICE.hidden,
   prepMinutes: SERVICE.prepMinutes,
   dailyLimit: SERVICE.dailyLimit,
+  slotInterval: SERVICE.slotInterval,
+  minimumNoticeMinutes: SERVICE.minimumNoticeMinutes,
   employees: IN_CHARGE,
 };
 
@@ -146,6 +152,8 @@ describe('Servicio', () => {
         hidden: false,
         prepMinutes: 0,
         dailyLimit: null,
+        slotInterval: null,
+        minimumNoticeMinutes: 0,
         employees: [{ employeeId: ANAS_EMPLOYEE.id, availabilityId: 10 }],
       });
       expect(res.body).toEqual(PRESENTED_SERVICE);
@@ -248,6 +256,8 @@ describe('Servicio', () => {
         hidden: false,
         prepMinutes: 0,
         dailyLimit: null,
+        slotInterval: null,
+        minimumNoticeMinutes: 0,
         employees: [{ employeeId: ANAS_EMPLOYEE.id, availabilityId: 10 }],
       });
     });
@@ -423,6 +433,11 @@ describe('Servicio', () => {
       ['a zero dailyLimit', { dailyLimit: 0 }],
       ['a fractional dailyLimit', { dailyLimit: 2.5 }],
       ['a null dailyLimit', { dailyLimit: null }],
+      ['a zero slotInterval', { slotInterval: 0 }],
+      ['a fractional slotInterval', { slotInterval: 7.5 }],
+      ['a null slotInterval', { slotInterval: null }],
+      ['a negative minimumNoticeMinutes', { minimumNoticeMinutes: -1 }],
+      ['a fractional minimumNoticeMinutes', { minimumNoticeMinutes: 1.5 }],
     ])(
       'rejects %s with 400, without reaching the repository',
       async (_, override) => {
@@ -522,6 +537,35 @@ describe('Servicio', () => {
         dailyLimit: 6,
       });
       expect(res.body).toMatchObject({ prepMinutes: 30, dailyLimit: 6 });
+    });
+
+    it('saves the Intervalo and the Anticipación mínima, and a null slotInterval drops the Intervalo', async () => {
+      t.services.update.mockResolvedValue({
+        ...SERVICE,
+        slotInterval: 45,
+        minimumNoticeMinutes: 120,
+      });
+
+      const res = await t.http
+        .patch(`/services/${SERVICE.id}`)
+        .set(bearer(CLERK_TOKEN))
+        .send({ slotInterval: 45, minimumNoticeMinutes: 120 })
+        .expect(200);
+
+      expect(t.services.update).toHaveBeenCalledWith(SERVICE.id, {
+        slotInterval: 45,
+        minimumNoticeMinutes: 120,
+      });
+      expect(res.body).toMatchObject({ slotInterval: 45, minimumNoticeMinutes: 120 });
+
+      await t.http
+        .patch(`/services/${SERVICE.id}`)
+        .set(bearer(CLERK_TOKEN))
+        .send({ slotInterval: null })
+        .expect(200);
+      expect(t.services.update).toHaveBeenLastCalledWith(SERVICE.id, {
+        slotInterval: null,
+      });
     });
 
     it('drops the Límite diario with a null dailyLimit', async () => {
@@ -636,6 +680,8 @@ describe('Servicio', () => {
       ['a prepMinutes off the list', { prepMinutes: 45 }],
       ['a null prepMinutes', { prepMinutes: null }],
       ['a zero dailyLimit', { dailyLimit: 0 }],
+      ['a zero slotInterval', { slotInterval: 0 }],
+      ['a negative minimumNoticeMinutes', { minimumNoticeMinutes: -1 }],
     ])(
       'rejects %s with 400, without reaching the repository',
       async (_, body) => {
@@ -779,7 +825,7 @@ describe('Servicio', () => {
       });
     });
 
-    it("answers 422 for another Empleado's Availability, and links nothing", async () => {
+    it("answers 422 for another Usuario's Availability, and links nothing", async () => {
       await t.http
         .post(`/services/${SERVICE.id}/employees`)
         .set(bearer(CLERK_TOKEN))
@@ -1202,7 +1248,7 @@ describe('Servicio', () => {
       expect(t.services.setEmployeeAvailability).toHaveBeenCalled();
     });
 
-    it("answers 422 for another Empleado's Availability, and changes nothing", async () => {
+    it("answers 422 for another Usuario's Availability, and changes nothing", async () => {
       const res = await t.http
         .patch(path(OTHER_EMPLOYEE.id))
         .set(bearer(CLERK_TOKEN))
@@ -1210,7 +1256,7 @@ describe('Servicio', () => {
         .expect(422);
 
       expect(res.body.message).toBe(
-        'La Availability tiene que ser del mismo Empleado',
+        'La Availability tiene que ser del mismo Usuario que el Empleado',
       );
       expect(t.services.setEmployeeAvailability).not.toHaveBeenCalled();
     });

@@ -15,10 +15,11 @@ import {
   SERVICES_REPOSITORY,
   ServicesRepository,
 } from '../../domain/services/services.repository';
+import { ListSlotsUseCase } from '../slots/list-slots.use-case';
 import {
   assertBookable,
+  assertSlotAvailable,
   assertUnderDailyLimit,
-  assertWithinHours,
 } from './assert-booking-rules';
 
 @Injectable()
@@ -29,12 +30,13 @@ export class CreateBookingUseCase {
     @Inject(BOOKINGS_REPOSITORY) private readonly bookings: BookingsRepository,
     @Inject(MAILER) private readonly mailer: Mailer,
     @Inject(CLOCK) private readonly clock: Clock,
+    private readonly listSlots: ListSlotsUseCase,
   ) {}
 
   /**
    * Reserva un Turno sin verificar. Ocupa la agenda del Empleado desde la preparación del Servicio, que queda fijada acá.
    *
-   * @throws {BusinessRuleError} el Servicio no existe o está dado de baja, el Empleado no lo atiende, el horario ya pasó o cae fuera de la Sucursal
+   * @throws {BusinessRuleError} el Servicio no existe o está dado de baja, el Empleado no lo atiende, el horario ya pasó o no es un Horario reservable
    * @throws {ConflictError} el horario, con su preparación, pisa otro Turno del Empleado, o el Servicio ya alcanzó su Límite diario ese día
    */
   async execute(input: CreateBookingInput): Promise<Booking> {
@@ -50,7 +52,6 @@ export class CreateBookingUseCase {
     const endsAt = new Date(
       input.startsAt.getTime() + service.durationMinutes * 60_000,
     );
-    assertWithinHours(branch, input.startsAt, endsAt);
     const prepStartsAt = new Date(
       input.startsAt.getTime() - service.prepMinutes * 60_000,
     );
@@ -63,6 +64,12 @@ export class CreateBookingUseCase {
     )
       throw new ConflictError('Overlaps a booked Turno for this Employee');
     await assertUnderDailyLimit(this.bookings, service, branch, input.startsAt);
+    await assertSlotAvailable(
+      this.listSlots,
+      input.serviceId,
+      input.employeeId,
+      input.startsAt,
+    );
 
     const { booking, token } = await this.bookings.create(
       {

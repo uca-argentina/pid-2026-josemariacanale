@@ -9,35 +9,66 @@ import { Prisma } from '../../../generated/prisma/client';
 import { PrismaService } from '../../prisma.service';
 import {
   PrismaAvailabilitiesRepository,
-  WITH_INTERVALS,
+  WITH_SCHEDULE,
 } from '../prisma-availabilities.repository';
 
+/** Monday to Friday 09:00–17:00, Wednesday 10:00–14:00; a día libre on Jan 5 and a shorter day on Jan 6. */
 const AVAILABILITY: Availability = {
   id: 1,
-  employeeId: 7,
-  name: 'Horario general',
+  userId: 7,
+  name: 'Horas laborables',
+  timeZone: 'America/Argentina/Buenos_Aires',
   isDefault: true,
-  intervals: [
-    { weekday: 1, startTime: '09:00', endTime: '13:00' },
-    { weekday: 1, startTime: '14:30', endTime: '18:00' },
+  schedule: [
+    [],
+    [{ start: '09:00', end: '17:00' }],
+    [{ start: '09:00', end: '17:00' }],
+    [{ start: '10:00', end: '14:00' }],
+    [{ start: '09:00', end: '17:00' }],
+    [{ start: '09:00', end: '17:00' }],
+    [],
+  ],
+  overrides: [
+    { date: '2026-01-05', ranges: [] },
+    {
+      date: '2026-01-06',
+      ranges: [
+        { start: '09:00', end: '12:00' },
+        { start: '14:00', end: '16:00' },
+      ],
+    },
   ],
 };
 
 /** How Prisma reads a Postgres time(0): 1970-01-01T<HH:mm>Z. */
 const time = (hhmm: string) => new Date(`1970-01-01T${hhmm}:00.000Z`);
+const date = (day: string) => new Date(`${day}T00:00:00.000Z`);
 
+/** Grouped as the API stores it: ranges with the same hours share a Franja. */
 const INTERVAL_ROWS = [
-  { weekday: 1, startTime: time('09:00'), endTime: time('13:00') },
-  { weekday: 1, startTime: time('14:30'), endTime: time('18:00') },
+  { days: [1, 2, 4, 5], startTime: time('09:00'), endTime: time('17:00') },
+  { days: [3], startTime: time('10:00'), endTime: time('14:00') },
+];
+
+const OVERRIDE_ROWS = [
+  { date: date('2026-01-05'), startTime: null, endTime: null },
+  { date: date('2026-01-06'), startTime: time('09:00'), endTime: time('12:00') },
+  { date: date('2026-01-06'), startTime: time('14:00'), endTime: time('16:00') },
 ];
 
 const AVAILABILITY_ROW = {
   id: AVAILABILITY.id,
-  employeeId: AVAILABILITY.employeeId,
+  userId: AVAILABILITY.userId,
   name: AVAILABILITY.name,
+  timeZone: AVAILABILITY.timeZone,
   isDefault: AVAILABILITY.isDefault,
   intervals: INTERVAL_ROWS.map((row, i) => ({
     id: 100 + i,
+    availabilityId: AVAILABILITY.id,
+    ...row,
+  })),
+  overrides: OVERRIDE_ROWS.map((row, i) => ({
+    id: 200 + i,
     availabilityId: AVAILABILITY.id,
     ...row,
   })),
@@ -57,6 +88,7 @@ describe('PrismaAvailabilitiesRepository', () => {
       update: jest.fn(),
     },
     availabilityInterval: { deleteMany: jest.fn() },
+    availabilityOverride: { deleteMany: jest.fn() },
   };
   const prisma = {
     availability: {
@@ -77,31 +109,13 @@ describe('PrismaAvailabilitiesRepository', () => {
     prisma.$transaction.mockImplementation((run) => run(tx));
   });
 
-  it('writes the Franjas hours as times, and reads them back as HH:mm', async () => {
-    prisma.availability.create.mockResolvedValue(AVAILABILITY_ROW);
-    const { id: _, ...data } = AVAILABILITY;
-
-    await expect(repository.create(data)).resolves.toEqual(AVAILABILITY);
-    expect(prisma.availability.create).toHaveBeenCalledWith({
-      data: {
-        employeeId: AVAILABILITY.employeeId,
-        name: AVAILABILITY.name,
-        isDefault: true,
-        intervals: { create: INTERVAL_ROWS },
-      },
-      include: WITH_INTERVALS,
-    });
-  });
-
-  it('reads the Franjas ordered by weekday and start time', async () => {
+  it('reads the grouped Franjas back as the 7-day matrix, and the Anulaciones by date', async () => {
     prisma.availability.findUnique.mockResolvedValue(AVAILABILITY_ROW);
 
     await expect(repository.findById(1)).resolves.toEqual(AVAILABILITY);
     expect(prisma.availability.findUnique).toHaveBeenCalledWith({
       where: { id: 1 },
-      include: {
-        intervals: { orderBy: [{ weekday: 'asc' }, { startTime: 'asc' }] },
-      },
+      include: WITH_SCHEDULE,
     });
   });
 
@@ -111,64 +125,119 @@ describe('PrismaAvailabilitiesRepository', () => {
     await expect(repository.findById(999)).resolves.toBeNull();
   });
 
-  it("lists an Empleado's Availabilities", async () => {
-    prisma.availability.findMany.mockResolvedValue([AVAILABILITY_ROW]);
+  it("lists a Usuario's Availabilities without their Franjas", async () => {
+    const summary = {
+      id: 1,
+      userId: 7,
+      name: AVAILABILITY.name,
+      timeZone: AVAILABILITY.timeZone,
+      isDefault: true,
+    };
+    prisma.availability.findMany.mockResolvedValue([summary]);
 
-    await expect(repository.listByEmployee(7)).resolves.toEqual([AVAILABILITY]);
+    await expect(repository.listByUser(7)).resolves.toEqual([summary]);
     expect(prisma.availability.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { employeeId: 7 } }),
+      expect.objectContaining({ where: { userId: 7 } }),
     );
   });
 
-  describe('update', () => {
-    it('replaces the whole set of Franjas, deleting the old ones first, in one transaction', async () => {
+  it('creates an empty Availability that is not the default', async () => {
+    prisma.availability.create.mockResolvedValue({
+      ...AVAILABILITY_ROW,
+      isDefault: false,
+      intervals: [],
+      overrides: [],
+    });
+
+    const created = await repository.create({
+      userId: 7,
+      name: AVAILABILITY.name,
+      timeZone: AVAILABILITY.timeZone,
+    });
+
+    expect(created.schedule).toEqual([[], [], [], [], [], [], []]);
+    expect(prisma.availability.create).toHaveBeenCalledWith({
+      data: {
+        userId: 7,
+        name: AVAILABILITY.name,
+        timeZone: AVAILABILITY.timeZone,
+        isDefault: false,
+      },
+      include: WITH_SCHEDULE,
+    });
+  });
+
+  describe('replace', () => {
+    it('groups the days with equal hours into one Franja, and writes a día libre as a row without hours', async () => {
       tx.availability.update.mockResolvedValue(AVAILABILITY_ROW);
 
-      await repository.update(1, { intervals: AVAILABILITY.intervals });
+      await repository.replace(1, AVAILABILITY);
+
+      expect(tx.availability.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: {
+          name: AVAILABILITY.name,
+          timeZone: AVAILABILITY.timeZone,
+          intervals: { create: INTERVAL_ROWS },
+          overrides: {
+            create: [
+              { date: date('2026-01-05') },
+              {
+                date: date('2026-01-06'),
+                startTime: time('09:00'),
+                endTime: time('12:00'),
+              },
+              {
+                date: date('2026-01-06'),
+                startTime: time('14:00'),
+                endTime: time('16:00'),
+              },
+            ],
+          },
+        },
+        include: WITH_SCHEDULE,
+      });
+    });
+
+    it('deletes the old Franjas and Anulaciones first, in one transaction', async () => {
+      tx.availability.update.mockResolvedValue(AVAILABILITY_ROW);
+
+      await expect(repository.replace(1, AVAILABILITY)).resolves.toEqual(
+        AVAILABILITY,
+      );
 
       expect(prisma.$transaction).toHaveBeenCalledTimes(1);
       expect(tx.availabilityInterval.deleteMany).toHaveBeenCalledWith({
         where: { availabilityId: 1 },
       });
-      expect(tx.availability.update).toHaveBeenCalledWith({
-        where: { id: 1 },
-        data: { name: undefined, intervals: { create: INTERVAL_ROWS } },
-        include: WITH_INTERVALS,
+      expect(tx.availabilityOverride.deleteMany).toHaveBeenCalledWith({
+        where: { availabilityId: 1 },
       });
+      const update = tx.availability.update.mock.invocationCallOrder[0];
       expect(
         tx.availabilityInterval.deleteMany.mock.invocationCallOrder[0],
-      ).toBeLessThan(tx.availability.update.mock.invocationCallOrder[0]);
-    });
-
-    it('renames without touching the Franjas', async () => {
-      tx.availability.update.mockResolvedValue(AVAILABILITY_ROW);
-
-      await repository.update(1, { name: 'Otro' });
-
-      expect(tx.availabilityInterval.deleteMany).not.toHaveBeenCalled();
-      expect(tx.availability.update).toHaveBeenCalledWith({
-        where: { id: 1 },
-        data: { name: 'Otro', intervals: undefined },
-        include: WITH_INTERVALS,
-      });
+      ).toBeLessThan(update);
+      expect(
+        tx.availabilityOverride.deleteMany.mock.invocationCallOrder[0],
+      ).toBeLessThan(update);
     });
   });
 
-  it("unmarks the Empleado's other default before marking this one, in one transaction", async () => {
-    tx.availability.findUniqueOrThrow.mockResolvedValue({ employeeId: 7 });
+  it("unmarks the Usuario's other default before marking this one, in one transaction", async () => {
+    tx.availability.findUniqueOrThrow.mockResolvedValue({ userId: 7 });
     tx.availability.update.mockResolvedValue(AVAILABILITY_ROW);
 
     await expect(repository.makeDefault(1)).resolves.toEqual(AVAILABILITY);
 
     expect(prisma.$transaction).toHaveBeenCalledTimes(1);
     expect(tx.availability.updateMany).toHaveBeenCalledWith({
-      where: { employeeId: 7, isDefault: true, id: { not: 1 } },
+      where: { userId: 7, isDefault: true, id: { not: 1 } },
       data: { isDefault: false },
     });
     expect(tx.availability.update).toHaveBeenCalledWith({
       where: { id: 1 },
       data: { isDefault: true },
-      include: WITH_INTERVALS,
+      include: WITH_SCHEDULE,
     });
     expect(tx.availability.updateMany.mock.invocationCallOrder[0]).toBeLessThan(
       tx.availability.update.mock.invocationCallOrder[0],
@@ -184,7 +253,7 @@ describe('PrismaAvailabilitiesRepository', () => {
     });
   });
 
-  it('deletes the Availability, its Franjas going with it by cascade', async () => {
+  it('deletes the Availability, its Franjas and Anulaciones going with it by cascade', async () => {
     prisma.availability.delete.mockResolvedValue(AVAILABILITY_ROW);
 
     await repository.delete(1);
@@ -198,7 +267,7 @@ describe('PrismaAvailabilitiesRepository', () => {
     it('translates a violation of the one-default partial index into ConflictError', async () => {
       const cause = knownError('P2002');
       tx.availability.update.mockRejectedValue(cause);
-      tx.availability.findUniqueOrThrow.mockResolvedValue({ employeeId: 7 });
+      tx.availability.findUniqueOrThrow.mockResolvedValue({ userId: 7 });
 
       const error = await repository.makeDefault(1).catch((e: unknown) => e);
 
@@ -206,34 +275,18 @@ describe('PrismaAvailabilitiesRepository', () => {
       expect(error).toHaveProperty('cause', cause);
     });
 
-    it('translates a violation of the Franjas exclusion constraint into the same 422 the use case gives', async () => {
+    it('translates a violation of the Anulaciones exclusion constraint into BusinessRuleError', async () => {
       const cause = knownError('P2039');
       // Postgres 23P01 arrives as the generic P2039, per ADR 0004.
       cause.meta = { driverAdapterError: { cause: { originalCode: '23P01' } } };
       tx.availability.update.mockRejectedValue(cause);
 
       const error = await repository
-        .update(1, { intervals: AVAILABILITY.intervals })
+        .replace(1, AVAILABILITY)
         .catch((e: unknown) => e);
 
       expect(error).toBeInstanceOf(BusinessRuleError);
-      expect(error).toHaveProperty(
-        'message',
-        'Dos Franjas del mismo día se solapan',
-      );
       expect(error).toHaveProperty('cause', cause);
-    });
-
-    it('recognises the exclusion violation by the constraint name when the driver meta is absent', async () => {
-      const cause = knownError('P2039');
-      cause.message =
-        'exclusion constraint "AvailabilityInterval_no_overlap" violated';
-      prisma.availability.create.mockRejectedValue(cause);
-      const { id: _, ...data } = AVAILABILITY;
-
-      const error = await repository.create(data).catch((e: unknown) => e);
-
-      expect(error).toBeInstanceOf(BusinessRuleError);
     });
 
     it('translates the foreign key of a Service still using it into ConflictError, when a link races the delete', async () => {
@@ -246,18 +299,19 @@ describe('PrismaAvailabilitiesRepository', () => {
       expect(error).toHaveProperty('cause', cause);
     });
 
-    it('does not read a foreign key failing on create (an unknown Empleado) as a Service using it', async () => {
+    it('does not read a foreign key failing on create (an unknown Usuario) as a Service using it', async () => {
       const cause = knownError('P2003');
       prisma.availability.create.mockRejectedValue(cause);
-      const { id: _, ...data } = AVAILABILITY;
 
-      const error = await repository.create(data).catch((e: unknown) => e);
+      const error = await repository
+        .create({ userId: 999, name: 'x', timeZone: 'UTC' })
+        .catch((e: unknown) => e);
 
       expect(error).toBeInstanceOf(DatabaseOperationError);
     });
 
     it.each([
-      ['update', () => repository.update(999, { name: 'x' })],
+      ['replace', () => repository.replace(999, AVAILABILITY)],
       ['makeDefault', () => repository.makeDefault(999)],
       ['delete', () => repository.delete(999)],
     ])('%s: an unknown Availability into NotFoundError', async (_, call) => {
@@ -276,7 +330,7 @@ describe('PrismaAvailabilitiesRepository', () => {
       const cause = new Error('connection refused at 10.0.0.1');
       prisma.availability.findMany.mockRejectedValue(cause);
 
-      const error = await repository.listByEmployee(7).catch((e: unknown) => e);
+      const error = await repository.listByUser(7).catch((e: unknown) => e);
 
       expect(error).toBeInstanceOf(DatabaseOperationError);
       expect(error).toHaveProperty('cause', cause);

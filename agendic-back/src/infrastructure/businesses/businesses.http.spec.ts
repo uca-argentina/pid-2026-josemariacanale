@@ -24,8 +24,6 @@ const BUSINESS_PART = {
 const BRANCH_PART = {
   name: ANAS_BRANCH.name,
   address: ANAS_BRANCH.address,
-  opensAt: ANAS_BRANCH.opensAt,
-  closesAt: ANAS_BRANCH.closesAt,
   timeZone: ANAS_BRANCH.timeZone,
 };
 
@@ -63,6 +61,8 @@ const ANAS_SERVICE = {
   hidden: false,
   prepMinutes: 0,
   dailyLimit: null,
+  slotInterval: null,
+  minimumNoticeMinutes: 0,
   employees: [
     { id: ANAS_EMPLOYEE.id, name: ANAS_EMPLOYEE.name, availabilityId: 10 },
   ],
@@ -88,7 +88,7 @@ describe('Negocio', () => {
       t.businesses.listByOwner.mockResolvedValue([]);
     });
 
-    it('creates the Negocio, its Sucursal, its Servicio and the Dueño as its Empleado, with a default Availability of Monday to Friday 09:00–18:00', async () => {
+    it('creates the Negocio, its Sucursal, its Servicio and the Dueño as its Empleado', async () => {
       t.businesses.create.mockResolvedValue(CREATED);
 
       const res = await t.http
@@ -107,16 +107,10 @@ describe('Negocio', () => {
           hidden: false,
           prepMinutes: 0,
           dailyLimit: null,
+          slotInterval: null,
+          minimumNoticeMinutes: 0,
         },
         employee: { userId: ANA.id },
-        availability: {
-          name: 'Horario general',
-          intervals: [1, 2, 3, 4, 5].map((weekday) => ({
-            weekday,
-            startTime: '09:00',
-            endTime: '18:00',
-          })),
-        },
       });
       expect(res.body).toEqual({
         business: PRESENTED_BUSINESS,
@@ -135,6 +129,8 @@ describe('Negocio', () => {
           hidden: false,
           prepMinutes: 0,
           dailyLimit: null,
+          slotInterval: null,
+          minimumNoticeMinutes: 0,
           employees: [
             {
               id: ANAS_EMPLOYEE.id,
@@ -190,6 +186,8 @@ describe('Negocio', () => {
             hidden: false,
             prepMinutes: 0,
             dailyLimit: null,
+            slotInterval: null,
+            minimumNoticeMinutes: 0,
           },
         }),
       );
@@ -216,6 +214,8 @@ describe('Negocio', () => {
             hidden: false,
             prepMinutes: 0,
             dailyLimit: null,
+            slotInterval: null,
+            minimumNoticeMinutes: 0,
           },
         }),
       );
@@ -286,19 +286,6 @@ describe('Negocio', () => {
       await t.http.post('/businesses').send(VALID_BODY).expect(401);
     });
 
-    it('answers 422 when the Sucursal closes before it opens', async () => {
-      await t.http
-        .post('/businesses')
-        .set(bearer(CLERK_TOKEN))
-        .send({
-          ...VALID_BODY,
-          branch: { ...BRANCH_PART, opensAt: '18:00', closesAt: '09:00' },
-        })
-        .expect(422);
-
-      expect(t.businesses.create).not.toHaveBeenCalled();
-    });
-
     it.each([
       ['a blank Negocio name', { business: { ...BUSINESS_PART, name: '  ' } }],
       ['a missing Negocio name', { business: { description: 'y' } }],
@@ -335,7 +322,6 @@ describe('Negocio', () => {
         'a blank Sucursal address',
         { branch: { ...BRANCH_PART, address: ' ' } },
       ],
-      ['a malformed opensAt', { branch: { ...BRANCH_PART, opensAt: '9am' } }],
       [
         'a missing Sucursal timeZone',
         { branch: { ...BRANCH_PART, timeZone: undefined } },
