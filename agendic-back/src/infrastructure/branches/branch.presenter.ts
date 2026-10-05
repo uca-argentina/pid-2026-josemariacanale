@@ -5,8 +5,6 @@ export const presentBranch = (branch: Branch) => ({
   businessId: branch.businessId,
   name: branch.name,
   address: branch.address,
-  opensAt: branch.opensAt,
-  closesAt: branch.closesAt,
   timeZone: branch.timeZone,
   slug: branch.slug,
 });

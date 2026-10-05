@@ -28,8 +28,6 @@ const BRANCH_ROW = {
   businessId: ANAS_BUSINESS.id,
   name: 'Downtown',
   address: '123 Main St',
-  opensAt: new Date('1970-01-01T09:00:00.000Z'),
-  closesAt: new Date('1970-01-01T18:00:00.000Z'),
   timeZone: 'America/Argentina/Buenos_Aires',
   slug: ANAS_BUSINESS.slug,
 };
@@ -57,6 +55,8 @@ const SERVICE_ROW = {
   hidden: false,
   prepMinutes: 0,
   dailyLimit: null,
+  slotInterval: null,
+  minimumNoticeMinutes: 0,
   employees: [
     {
       availabilityId: 40,
@@ -75,8 +75,6 @@ const CREATE_DATA = {
   branch: {
     name: 'Downtown',
     address: '123 Main St',
-    opensAt: '09:00',
-    closesAt: '18:00',
     timeZone: 'America/Argentina/Buenos_Aires',
     slug: ANAS_BUSINESS.slug,
   },
@@ -92,6 +90,8 @@ const CREATE_DATA = {
     hidden: false,
     prepMinutes: 0,
     dailyLimit: null,
+    slotInterval: null,
+    minimumNoticeMinutes: 0,
   },
   employee: {
     userId: ANAS_BUSINESS.ownerId,
@@ -144,8 +144,6 @@ describe('PrismaBusinessesRepository', () => {
       businessId: ANAS_BUSINESS.id,
       name: 'Downtown',
       address: '123 Main St',
-      opensAt: '09:00',
-      closesAt: '18:00',
       timeZone: 'America/Argentina/Buenos_Aires',
       slug: ANAS_BUSINESS.slug,
     });
@@ -172,6 +170,8 @@ describe('PrismaBusinessesRepository', () => {
       hidden: false,
       prepMinutes: 0,
       dailyLimit: null,
+      slotInterval: null,
+      minimumNoticeMinutes: 0,
       employees: [
         {
           id: EMPLOYEE_ROW.id,

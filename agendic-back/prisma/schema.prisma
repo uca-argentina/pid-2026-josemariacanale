@@ -77,8 +77,6 @@ model Branch {
   businessId Int
   name       String
   address    String
-  opensAt    DateTime @db.Time(0) // read by Prisma as 1970-01-01T<HH:mm>Z
-  closesAt   DateTime @db.Time(0)
   timeZone   String // IANA name (e.g. America/Argentina/Buenos_Aires), never a UTC offset; the only source of time zone in the system
   slug       String // Enlace de reserva's second tramo: /business/<business slug>/<slug>, always lowercase (ADR 0014)
 
@@ -116,6 +114,8 @@ model Service {
   hidden           Boolean         @default(false) // Servicio oculto: off the Sucursal's page, reachable only by its own Enlace de reserva
   prepMinutes      Int             @default(0) // Tiempo de preparación: 0, 5, 10, 15, 30 or 60 (checked by the API), held before each Turno
   dailyLimit       Int? // Límite diario: PENDING and BOOKED Turnos per local day of the Sucursal; null when there is none
+  slotInterval     Int? // Intervalo: minutes between Horario reservable starts; null means the duration
+  minimumNoticeMinutes Int @default(0) // Anticipación mínima: minutes that must remain before a Turno starts to Reservar it
 
   branch    Branch            @relation(fields: [branchId], references: [id])
   employees EmployeeService[]

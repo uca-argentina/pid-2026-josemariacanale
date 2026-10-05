@@ -10,8 +10,6 @@ export interface BranchesRepository {
       | 'businessId'
       | 'name'
       | 'address'
-      | 'opensAt'
-      | 'closesAt'
       | 'timeZone'
       | 'slug'
     >,
@@ -24,7 +22,7 @@ export interface BranchesRepository {
     data: Partial<
       Pick<
         Branch,
-        'name' | 'address' | 'opensAt' | 'closesAt' | 'timeZone' | 'slug'
+        'name' | 'address' | 'timeZone' | 'slug'
       >
     >,
   ): Promise<Branch>;

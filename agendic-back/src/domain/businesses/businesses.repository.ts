@@ -10,7 +10,7 @@ export interface CreateBusinessData {
   business: Pick<Business, 'name' | 'description' | 'ownerId' | 'slug'>;
   branch: Pick<
     Branch,
-    'name' | 'address' | 'opensAt' | 'closesAt' | 'timeZone' | 'slug'
+    'name' | 'address' | 'timeZone' | 'slug'
   >;
   service: Pick<
     Service,
@@ -25,6 +25,8 @@ export interface CreateBusinessData {
     | 'hidden'
     | 'prepMinutes'
     | 'dailyLimit'
+    | 'slotInterval'
+    | 'minimumNoticeMinutes'
   >;
   /** The Dueño, in charge of that first Servicio with their default Availability. */
   employee: Pick<Employee, 'userId'>;

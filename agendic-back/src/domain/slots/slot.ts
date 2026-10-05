@@ -1,90 +1,43 @@
+import dayjs from 'dayjs';
+import timezone from 'dayjs/plugin/timezone';
+import utc from 'dayjs/plugin/utc';
 import { Availability } from '../availabilities/availability';
-import { Branch } from '../branches/branch';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 /** Horario reservable: why a day has none, when it doesn't. */
 export type SlotsReason = 'NOT_WORKING' | 'FULLY_BOOKED';
 
 export interface DaySlots {
-  /** A local date in the Availability's time zone. */
+  /** A local date in the Sucursal's time zone. */
   date: string; // YYYY-MM-DD
   /** ISO instants, one per Horario reservable. Empty when reason is set. */
   slots: string[];
   reason?: SlotsReason;
 }
 
-const GRID_MINUTES = 15;
+const MINUTE_MS = 60_000;
 
-const toMinutes = (hhmm: string): number => {
-  const [h, m] = hhmm.split(':').map(Number);
-  return h * 60 + m;
-};
+/** Start alignments tried from the largest: the first that divides the frequency wins. */
+const ALIGNMENTS = [60, 30, 20, 15, 10, 5];
 
-const toHHMM = (minutes: number): string =>
-  `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
+/** Millisecond range [start, end). */
+interface Range {
+  start: number;
+  end: number;
+}
 
-export const addDays = (date: string, days: number): string => {
-  const d = new Date(`${date}T00:00:00.000Z`);
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
-};
+export const addDays = (date: string, days: number): string =>
+  dayjs.utc(date).add(days, 'day').format('YYYY-MM-DD');
 
-const weekdayOf = (date: string): number =>
-  new Date(`${date}T00:00:00.000Z`).getUTCDay();
-
-/** Formats an instant as the local calendar date (YYYY-MM-DD) it falls on in timeZone. Native Intl, no library. */
+/** The local calendar date (YYYY-MM-DD) an instant falls on in timeZone. */
 export const localDate = (instant: Date, timeZone: string): string =>
-  new Intl.DateTimeFormat('en-CA', { timeZone }).format(instant);
+  dayjs(instant).tz(timeZone).format('YYYY-MM-DD');
 
-const zonedParts = new Map<string, Intl.DateTimeFormat>();
-const partsFormatter = (timeZone: string): Intl.DateTimeFormat => {
-  let formatter = zonedParts.get(timeZone);
-  if (!formatter) {
-    formatter = new Intl.DateTimeFormat('en-US', {
-      timeZone,
-      hourCycle: 'h23',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    });
-    zonedParts.set(timeZone, formatter);
-  }
-  return formatter;
-};
-
-/** The wall-clock instant would show in timeZone, as milliseconds since epoch of that same wall clock read as UTC. */
-const wallClockMsInZone = (instant: Date, timeZone: string): number => {
-  const parts = partsFormatter(timeZone).formatToParts(instant);
-  const get = (type: string) => Number(parts.find((p) => p.type === type)!.value);
-  return Date.UTC(
-    get('year'),
-    get('month') - 1,
-    get('day'),
-    get('hour') === 24 ? 0 : get('hour'),
-    get('minute'),
-    get('second'),
-  );
-};
-
-/**
- * A local date + HH:mm in timeZone, as the UTC instant it denotes. Fixed-point over Intl.DateTimeFormat
- * (the standard zonedTimeToUtc algorithm): two passes always converge, DST transition or not.
- */
-export const zonedTimeToUtc = (
-  date: string,
-  time: string,
-  timeZone: string,
-): Date => {
-  const [y, mo, d] = date.split('-').map(Number);
-  const [h, mi] = time.split(':').map(Number);
-  const target = Date.UTC(y, mo - 1, d, h, mi);
-  let instant = target;
-  for (let i = 0; i < 2; i++)
-    instant += target - wallClockMsInZone(new Date(instant), timeZone);
-  return new Date(instant);
-};
+/** A local date + HH:mm in timeZone, as the UTC instant it denotes. dayjs resolves the daylight-saving shift. */
+const instantAt = (date: string, time: string, timeZone: string): number =>
+  dayjs.tz(`${date} ${time}`, timeZone).valueOf();
 
 /** The local date `instant` falls on in timeZone, as the half-open UTC range [from, to) it spans. */
 export const localDayBounds = (
@@ -94,99 +47,158 @@ export const localDayBounds = (
   const date = localDate(instant, timeZone);
   return {
     date,
-    from: zonedTimeToUtc(date, '00:00', timeZone),
-    to: zonedTimeToUtc(addDays(date, 1), '00:00', timeZone),
+    from: new Date(instantAt(date, '00:00', timeZone)),
+    to: new Date(instantAt(addDays(date, 1), '00:00', timeZone)),
   };
 };
 
-/** The HH:mm an instant shows on the wall clock in timeZone. */
-const localTime = (instant: Date, timeZone: string): string =>
-  toHHMM(
-    Math.floor((wallClockMsInZone(instant, timeZone) % 86_400_000) / 60_000),
-  );
+/** Rounds an instant up to a multiple of `minutes` on the wall clock of timeZone. */
+const ceilToWallClock = (ms: number, minutes: number, timeZone: string) => {
+  const offset = dayjs(ms).tz(timeZone).utcOffset() * MINUTE_MS;
+  const step = minutes * MINUTE_MS;
+  return Math.ceil((ms + offset) / step) * step - offset;
+};
+
+/** The Availability's Franjas for a local date, or its Anulación's if it has one. 23:59 reaches midnight. */
+const rangesOf = (
+  {
+    timeZone,
+    schedule,
+    overrides,
+  }: Pick<Availability, 'timeZone' | 'schedule' | 'overrides'>,
+  date: string,
+): Range[] =>
+  (
+    overrides.find((o) => o.date === date)?.ranges ??
+    schedule[dayjs.utc(date).day()]
+  ).map(({ start, end }) => ({
+    start: instantAt(date, start, timeZone),
+    end:
+      end === '23:59'
+        ? instantAt(addDays(date, 1), '00:00', timeZone)
+        : instantAt(date, end, timeZone),
+  }));
+
+/** Both lists sorted by start: one pass, each busy range visited only by the ranges it touches. */
+const subtract = (ranges: Range[], busy: Range[]): Range[] => {
+  const free: Range[] = [];
+  let first = 0;
+  for (const range of ranges) {
+    while (first < busy.length && busy[first].end <= range.start) first++;
+    let cursor = range.start;
+    for (let i = first; i < busy.length && busy[i].start < range.end; i++) {
+      if (busy[i].start > cursor) free.push({ start: cursor, end: busy[i].start });
+      cursor = Math.max(cursor, busy[i].end);
+    }
+    if (cursor < range.end) free.push({ start: cursor, end: range.end });
+  }
+  return free;
+};
 
 export interface ComputeSlotsInput {
-  /** Local dates in the Availability's time zone. */
+  /** Local dates in the Sucursal's time zone. */
   from: string; // YYYY-MM-DD, inclusive
   to: string; // YYYY-MM-DD, inclusive
-  /** Where the Servicio is attended: its hours still bound the Horarios reservables, in its own zone. */
-  branch: Pick<Branch, 'opensAt' | 'closesAt' | 'timeZone'>;
-  /** The Availability the Empleado attends the Servicio with: its Franjas and Anulaciones, read in its zone. */
+  /** The "día": dates are grouped, starts aligned and the Límite diario counted in the Sucursal's zone. */
+  timeZone: string;
+  /** The Availability the Empleado attends the Servicio with: its Franjas and Anulaciones, read in its own zone. */
   availability: Pick<Availability, 'timeZone' | 'schedule' | 'overrides'>;
   /** PENDING and BOOKED Turnos of this Empleado, in any of their Servicios, each from its own preparation on. */
   bookedRanges: { prepStartsAt: Date; endsAt: Date }[];
   durationMinutes: number;
-  /** Tiempo de preparación of the Servicio asked for: held before each Horario reservable, inside the Franja. */
+  /** Tiempo de preparación of the Servicio asked for: held before each Horario reservable. */
   prepMinutes: number;
+  /** Intervalo; the duration when null. */
+  slotInterval: number | null;
+  /** Anticipación mínima. */
+  minimumNoticeMinutes: number;
   /** Local dates of the Sucursal on which the Servicio already reached its Límite diario. */
   fullDates: Set<string>;
   now: Date;
 }
 
 /**
- * Availability Franjas → replaced by that date's Anulación, if any → grillado de a 15' from the end of the
- * preparation → bounded by the Sucursal's hours → Turnos tomados (with their own preparation), el reloj y
- * el Límite diario descontados. Pure: no I/O.
+ * Horarios reservables, after cal.diy: Franjas (or the Anulación) of each date in the Availability's zone become
+ * ranges → the Empleado's Turnos, each from its preparation, are subtracted → each range is cut every
+ * Intervalo from the later of its start plus preparation and `now` plus Anticipación mínima, rounded up to the
+ * alignment → grouped by date of the Sucursal, the Límite diario emptying a full day. Pure: no I/O.
  */
 export function computeSlots({
   from,
   to,
-  branch,
+  timeZone,
   availability,
   bookedRanges,
   durationMinutes,
   prepMinutes,
+  slotInterval,
+  minimumNoticeMinutes,
   fullDates,
   now,
 }: ComputeSlotsInput): DaySlots[] {
-  const { timeZone } = availability;
-  const today = localDate(now, timeZone);
-  const overrides = new Map(availability.overrides.map((o) => [o.date, o]));
-  const days: DaySlots[] = [];
+  const frequency = slotInterval ?? durationMinutes;
+  const alignment = ALIGNMENTS.find((a) => frequency % a === 0) ?? 1;
 
+  const cut = (ranges: Range[], notBefore: number): Set<number> => {
+    const starts = new Set<number>();
+    for (const range of ranges) {
+      let start = ceilToWallClock(
+        Math.max(range.start + prepMinutes * MINUTE_MS, notBefore),
+        alignment,
+        timeZone,
+      );
+      for (
+        ;
+        start + durationMinutes * MINUTE_MS <= range.end;
+        start += frequency * MINUTE_MS
+      )
+        starts.add(start);
+    }
+    return starts;
+  };
+
+  // A day of slack either side (wider than any UTC offset) covers every Sucursal date in [from, to].
+  const working: Range[] = [];
+  for (let d = addDays(from, -1); d <= addDays(to, 1); d = addDays(d, 1))
+    working.push(...rangesOf(availability, d));
+  working.sort((a, b) => a.start - b.start);
+
+  const busy = bookedRanges
+    .map((b) => ({ start: b.prepStartsAt.getTime(), end: b.endsAt.getTime() }))
+    .sort((a, b) => a.start - b.start);
+
+  const byDate = (starts: Set<number>) => {
+    const dates = new Map<string, number[]>();
+    for (const ms of starts) {
+      const date = localDate(new Date(ms), timeZone);
+      dates.set(date, [...(dates.get(date) ?? []), ms]);
+    }
+    return dates;
+  };
+  const fitsByDate = byDate(cut(working, -Infinity));
+  const freeByDate = byDate(
+    cut(
+      subtract(working, busy),
+      now.getTime() + minimumNoticeMinutes * MINUTE_MS,
+    ),
+  );
+
+  const today = localDate(now, timeZone);
+  const days: DaySlots[] = [];
   for (let date = from; date <= to; date = addDays(date, 1)) {
     if (date < today) continue;
-
-    const ranges =
-      overrides.get(date)?.ranges ?? availability.schedule[weekdayOf(date)];
-
-    const candidates: Date[] = [];
-    for (const range of ranges) {
-      const endMin = toMinutes(range.end);
-      for (
-        let t = toMinutes(range.start) + prepMinutes;
-        t + durationMinutes <= endMin;
-        t += GRID_MINUTES
-      ) {
-        const start = zonedTimeToUtc(date, toHHMM(t), timeZone);
-        const end = new Date(start.getTime() + durationMinutes * 60_000);
-        if (
-          localTime(start, branch.timeZone) >= branch.opensAt &&
-          localTime(end, branch.timeZone) <= branch.closesAt
-        )
-          candidates.push(start);
-      }
-    }
-
-    const slots = candidates.filter((start) => {
-      if (start < now) return false;
-      if (fullDates.has(localDate(start, branch.timeZone))) return false;
-      const held = new Date(start.getTime() - prepMinutes * 60_000);
-      const end = new Date(start.getTime() + durationMinutes * 60_000);
-      return !bookedRanges.some((b) => b.prepStartsAt < end && b.endsAt > held);
-    });
-
+    const slots = fullDates.has(date)
+      ? []
+      : (freeByDate.get(date) ?? []).sort((a, b) => a - b);
     days.push({
       date,
-      slots: slots.map((d) => d.toISOString()),
-      reason:
-        candidates.length === 0
-          ? 'NOT_WORKING'
-          : slots.length === 0
-            ? 'FULLY_BOOKED'
-            : undefined,
+      slots: slots.map((ms) => new Date(ms).toISOString()),
+      reason: !fitsByDate.has(date)
+        ? 'NOT_WORKING'
+        : slots.length === 0
+          ? 'FULLY_BOOKED'
+          : undefined,
     });
   }
-
   return days;
 }

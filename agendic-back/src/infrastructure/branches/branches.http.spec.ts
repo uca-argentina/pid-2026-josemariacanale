@@ -14,8 +14,6 @@ import {
 const VALID_BRANCH = {
   name: 'Downtown',
   address: '123 Main St',
-  opensAt: '09:00',
-  closesAt: '18:00',
   timeZone: 'America/Argentina/Buenos_Aires',
   slug: 'downtown',
 };
@@ -147,10 +145,6 @@ describe('Sucursal', () => {
       ['a missing name', { name: undefined }],
       ['a blank address', { address: ' ' }],
       ['a missing address', { address: undefined }],
-      ['a malformed opensAt', { opensAt: '9:00' }],
-      ['a malformed closesAt', { closesAt: '18:60' }],
-      ['a missing opensAt', { opensAt: undefined }],
-      ['a missing closesAt', { closesAt: undefined }],
       ['a missing timeZone', { timeZone: undefined }],
       ['a UTC offset as timeZone', { timeZone: '-03:00' }],
       ['a nonsense timeZone', { timeZone: 'Marte/Olimpo' }],
@@ -168,24 +162,6 @@ describe('Sucursal', () => {
         .expect(400);
 
       expect(t.branches.create).not.toHaveBeenCalled();
-    });
-
-    it('answers 422 when closesAt is not after opensAt', async () => {
-      await t.http
-        .post(`/businesses/${ANAS_BUSINESS.id}/branches`)
-        .set(bearer(CLERK_TOKEN))
-        .send({ ...VALID_BRANCH, opensAt: '18:00', closesAt: '09:00' })
-        .expect(422);
-
-      expect(t.branches.create).not.toHaveBeenCalled();
-    });
-
-    it('answers 422 when closesAt equals opensAt', async () => {
-      await t.http
-        .post(`/businesses/${ANAS_BUSINESS.id}/branches`)
-        .set(bearer(CLERK_TOKEN))
-        .send({ ...VALID_BRANCH, opensAt: '09:00', closesAt: '09:00' })
-        .expect(422);
     });
   });
 
@@ -298,8 +274,6 @@ describe('Sucursal', () => {
 
     it.each([
       ['a blank name', { name: ' ' }],
-      ['a malformed opensAt', { opensAt: '25:00' }],
-      ['a malformed closesAt', { closesAt: 'noon' }],
       ['a UTC offset as timeZone', { timeZone: '-03:00' }],
       ['a nonsense timeZone', { timeZone: 'Marte/Olimpo' }],
       ['a malformed slug', { slug: 'down town!' }],
@@ -312,30 +286,6 @@ describe('Sucursal', () => {
         .expect(400);
 
       expect(t.branches.update).not.toHaveBeenCalled();
-    });
-
-    it('answers 422 when editing only opensAt crosses the existing closesAt', async () => {
-      await t.http
-        .patch(`/branches/${BRANCH.id}`)
-        .set(bearer(CLERK_TOKEN))
-        .send({ opensAt: '19:00' })
-        .expect(422);
-
-      expect(t.branches.update).not.toHaveBeenCalled();
-    });
-
-    it('validates the merge of new and existing hours when both are edited', async () => {
-      t.branches.update.mockResolvedValue({
-        ...BRANCH,
-        opensAt: '10:00',
-        closesAt: '20:00',
-      });
-
-      await t.http
-        .patch(`/branches/${BRANCH.id}`)
-        .set(bearer(CLERK_TOKEN))
-        .send({ opensAt: '10:00', closesAt: '20:00' })
-        .expect(200);
     });
   });
 

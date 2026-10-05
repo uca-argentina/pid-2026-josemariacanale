@@ -27,12 +27,6 @@ export class BranchFieldsDto {
   @IsText()
   address!: string;
 
-  @IsTimeOfDay()
-  opensAt!: string;
-
-  @IsTimeOfDay()
-  closesAt!: string;
-
   @IsTimeZone()
   timeZone!: string;
 }
@@ -50,14 +44,6 @@ export class UpdateBranchDto {
   @IfPresent()
   @IsText()
   address?: string;
-
-  @IfPresent()
-  @IsTimeOfDay()
-  opensAt?: string;
-
-  @IfPresent()
-  @IsTimeOfDay()
-  closesAt?: string;
 
   @IfPresent()
   @IsTimeZone()

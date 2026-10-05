@@ -75,6 +75,8 @@ export class CreateServiceUseCase {
       hidden: input.hidden ?? false,
       prepMinutes: input.prepMinutes ?? 0,
       dailyLimit: input.dailyLimit ?? null,
+      slotInterval: input.slotInterval ?? null,
+      minimumNoticeMinutes: input.minimumNoticeMinutes ?? 0,
       employees,
     });
   }

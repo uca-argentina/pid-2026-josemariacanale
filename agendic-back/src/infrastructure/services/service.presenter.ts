@@ -15,6 +15,8 @@ export const presentService = (service: Service) => ({
   hidden: service.hidden,
   prepMinutes: service.prepMinutes,
   dailyLimit: service.dailyLimit,
+  slotInterval: service.slotInterval,
+  minimumNoticeMinutes: service.minimumNoticeMinutes,
   employees: service.employees.map(({ id, name, availabilityId }) => ({
     id,
     name,

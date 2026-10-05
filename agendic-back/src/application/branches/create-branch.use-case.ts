@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Branch, assertValidHours, CreateBranchInput } from '../../domain/branches/branch';
+import { Branch, CreateBranchInput } from '../../domain/branches/branch';
 import {
   BRANCHES_REPOSITORY,
   BranchesRepository,
@@ -25,7 +25,6 @@ export class CreateBranchUseCase {
     input: CreateBranchInput,
   ): Promise<Branch> {
     assertOwner(await this.businesses.findById(businessId), userId);
-    assertValidHours(input.opensAt, input.closesAt);
     return this.branches.create({ businessId, ...input });
   }
 }
