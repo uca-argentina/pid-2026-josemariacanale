@@ -6,3 +6,5 @@ Cada app tiene su propio `CLAUDE.md` con las reglas que solo valen ahí.
 @docs/agents/domain.md
 @docs/agents/issue-tracker.md
 @docs/agents/comments.md
+@docs/agents/errors.md
+@docs/agents/testing.md

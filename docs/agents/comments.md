@@ -4,15 +4,26 @@ Applies to every `.ts` / `.tsx` file in `agendic-front/` and `agendic-back/`.
 
 ## The rule
 
-No inline comments. Ever. Every explanation goes in a TSDoc block (`/** … */`) attached to the symbol it describes, so the editor shows it on hover.
+Two kinds of comment, each in its place:
 
-There is no exception. A non-obvious *why* — a workaround, a domain invariant, a decision — belongs in the symbol's TSDoc, or in an ADR under `docs/adr/` linked from it. A comment that narrates what the next line does gets deleted instead of moved.
+- **TSDoc** (`/** … */`) on the symbol: what it does and why it exists, so the editor shows it on hover. A *why* about the whole symbol goes here, never in a `//` above it.
+- **Inline `//`** on the line it explains: only a *why* the code cannot show at that spot. A workaround, a domain invariant, a non-obvious optimization, a security decision, or a gotcha found while debugging.
+
+A comment that narrates *what* the code does gets deleted. A decision too big for a comment goes in an ADR under `docs/adr/`, linked from the TSDoc.
 
 ```ts
-// wrong: the reader already sees the call; the tooltip stays empty
-// "Only the Dueño" and "not the last Empleado of a Servicio" are enforced by the back.
-export const retireEmployeeUseCase = …
+// Busca los turnos del día
+const bookings = await bookingsRepository.findByEmployeeIdBetween(employeeId, from, to);
 ```
+
+The comment above restates the call; delete it.
+
+```ts
+// `to` is exclusive: a Turno ending at midnight belongs to the previous day.
+const bookings = await bookingsRepository.findByEmployeeIdBetween(employeeId, from, to);
+```
+
+This one stays: nothing in the line says the bound is exclusive or why.
 
 ```ts
 /**
@@ -23,6 +34,8 @@ export const retireEmployeeUseCase = …
  */
 export const retireEmployeeUseCase = …
 ```
+
+The *why* about the whole use case lives in its TSDoc, where the hover shows it.
 
 ## What gets TSDoc
 
