@@ -54,8 +54,7 @@ export const listMyAvailabilitiesController =
             if (error) throw new InputParseError('Invalid data', { cause: error });
 
             const availabilities = await listAvailabilitiesUseCase();
-            const open = availabilities.some((a) => a.id === data.availabilityId)
-                ? await getAvailabilityUseCase(data.availabilityId!)
-                : null;
+            const id = data.availabilityId;
+            const open = id !== undefined && availabilities.some((a) => a.id === id) ? await getAvailabilityUseCase(id) : null;
             return presenter(availabilities, open, instrumentationService);
         });

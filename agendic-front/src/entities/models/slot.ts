@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 // Why a day has no Horarios reservables. Only present when `slots` is empty (ADR 0007):
-// NOT_WORKING (no Franjas, a day-off Anulación, or nothing survives the Sucursal's hours),
+// NOT_WORKING (no Franjas or a day-off Anulación),
 // FULLY_BOOKED (there were Horarios but Turnos or the clock took them all).
 export const NO_SLOTS_REASONS = ['NOT_WORKING', 'FULLY_BOOKED'] as const;
 export type NoSlotsReason = (typeof NO_SLOTS_REASONS)[number];
