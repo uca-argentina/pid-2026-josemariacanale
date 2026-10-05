@@ -3,7 +3,7 @@ import { User } from './user';
 export const USERS_REPOSITORY = Symbol('UsersRepository');
 
 export interface UsersRepository {
-  /** Generates the id, createdAt and the USER role. Called once per Clerk identity, on its first request. */
+  /** Generates the id and createdAt, and the Usuario's default Availability in the same transaction. Called once per Clerk identity, on its first request. */
   create(data: Pick<User, 'clerkId' | 'name' | 'email'>): Promise<User>;
   findById(id: number): Promise<User | null>;
   findByClerkId(clerkId: string): Promise<User | null>;

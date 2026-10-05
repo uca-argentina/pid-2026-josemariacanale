@@ -1,6 +1,4 @@
 import { Availability } from '../../domain/availabilities/availability';
-import { AvailabilityOverride } from '../../domain/availability-overrides/availability-override';
-import { Branch } from '../../domain/branches/branch';
 import { EmployeeService } from '../../domain/services/service';
 import {
   ANAS_BRANCH,
@@ -8,6 +6,7 @@ import {
   ANAS_SERVICE,
   createTestApp,
   TestApp,
+  workWeek,
 } from '../../test-app';
 
 const BRANCH = ANAS_BRANCH; // opensAt 09:00, closesAt 18:00, America/Argentina/Buenos_Aires
@@ -22,14 +21,12 @@ const LINK: EmployeeService = {
 /** Monday to Friday, 09:00–18:00. 2026-01-02 is a Friday; 2026-01-03/04 is the weekend. */
 const AVAILABILITY: Availability = {
   id: LINK.availabilityId,
-  employeeId: ANAS_EMPLOYEE.id,
-  name: 'Horario general',
+  userId: ANAS_EMPLOYEE.userId,
+  name: 'Horas laborables',
+  timeZone: BRANCH.timeZone,
   isDefault: true,
-  intervals: [1, 2, 3, 4, 5].map((weekday) => ({
-    weekday,
-    startTime: '09:00',
-    endTime: '18:00',
-  })),
+  schedule: workWeek('09:00', '18:00'),
+  overrides: [],
 };
 
 const slotsPath = (params: Record<string, string | number>) =>
@@ -52,7 +49,6 @@ describe('GET /services/:id/slots', () => {
     t.services.findEmployeeLink.mockResolvedValue(LINK);
     t.branches.findById.mockResolvedValue(BRANCH);
     t.availabilities.findById.mockResolvedValue(AVAILABILITY);
-    t.overrides.listByEmployee.mockResolvedValue([]);
     t.bookings.listOccupiedByEmployee.mockResolvedValue([]);
   });
   afterEach(() => t.app.close());
@@ -203,13 +199,10 @@ describe('GET /services/:id/slots', () => {
   });
 
   it('una Anulación sin horas deja el día sin horarios, con motivo NOT_WORKING', async () => {
-    const dayOff: AvailabilityOverride = {
-      employeeId: ANAS_EMPLOYEE.id,
-      date: '2026-01-02',
-      intervals: [],
-      coveredByEmployeeId: null,
-    };
-    t.overrides.listByEmployee.mockResolvedValue([dayOff]);
+    t.availabilities.findById.mockResolvedValue({
+      ...AVAILABILITY,
+      overrides: [{ date: '2026-01-02', ranges: [] }],
+    });
 
     const res = await query(t, {}).expect(200);
 
@@ -219,13 +212,10 @@ describe('GET /services/:id/slots', () => {
   });
 
   it('una Anulación con horas reemplaza las Franjas del día, no las suma', async () => {
-    const override: AvailabilityOverride = {
-      employeeId: ANAS_EMPLOYEE.id,
-      date: '2026-01-02',
-      intervals: [{ startTime: '09:00', endTime: '10:00' }],
-      coveredByEmployeeId: null,
-    };
-    t.overrides.listByEmployee.mockResolvedValue([override]);
+    t.availabilities.findById.mockResolvedValue({
+      ...AVAILABILITY,
+      overrides: [{ date: '2026-01-02', ranges: [{ start: '09:00', end: '10:00' }] }],
+    });
 
     const res = await query(t, {}).expect(200);
 
@@ -236,14 +226,21 @@ describe('GET /services/:id/slots', () => {
     expect(day.slots.at(-1)).toBe('2026-01-02T12:30:00.000Z'); // 09:30 ARG, ends at 10:00
   });
 
+  it('una Anulación de otra fecha no toca el día', async () => {
+    t.availabilities.findById.mockResolvedValue({
+      ...AVAILABILITY,
+      overrides: [{ date: '2026-01-05', ranges: [] }],
+    });
+
+    const res = await query(t, {}).expect(200);
+
+    expect(res.body.days[0].slots).toHaveLength(35);
+  });
+
   it('el recorte contra la Sucursal achica el día, sin tocar la Availability', async () => {
     t.availabilities.findById.mockResolvedValue({
       ...AVAILABILITY,
-      intervals: [1, 2, 3, 4, 5].map((weekday) => ({
-        weekday,
-        startTime: '08:00',
-        endTime: '19:00',
-      })),
+      schedule: workWeek('08:00', '19:00'),
     });
 
     const res = await query(t, {}).expect(200);
@@ -282,38 +279,39 @@ describe('GET /services/:id/slots', () => {
     expect(res.body.days).toEqual([{ date, slots: [], reason }]);
   });
 
-  it('un día con Cobertura trae reason COVERED y coveredByEmployeeId, sin calcular horarios', async () => {
-    const covered: AvailabilityOverride = {
-      employeeId: ANAS_EMPLOYEE.id,
-      date: '2026-01-02',
-      intervals: [],
-      coveredByEmployeeId: 7,
-    };
-    t.overrides.listByEmployee.mockResolvedValue([covered]);
-
-    const res = await query(t, {}).expect(200);
-
-    expect(res.body.days).toEqual([
-      { date: '2026-01-02', slots: [], reason: 'COVERED', coveredByEmployeeId: 7 },
-    ]);
-    expect(t.availabilities.findById).toHaveBeenCalled(); // fetched, but never used to compute this day
-  });
-
-  it('una Sucursal en otra zona corre los instantes UTC, no las horas de reloj', async () => {
-    const NY_BRANCH: Branch = { ...BRANCH, timeZone: 'America/New_York' }; // UTC-5 in January
-    t.branches.findById.mockResolvedValue(NY_BRANCH);
+  it('lee las Franjas en la zona de la Availability, no en la de la Sucursal', async () => {
+    t.branches.findById.mockResolvedValue({ ...BRANCH, opensAt: '00:00', closesAt: '23:59' });
+    t.availabilities.findById.mockResolvedValue({
+      ...AVAILABILITY,
+      timeZone: 'America/New_York', // UTC-5 in January
+    });
 
     const res = await query(t, {}).expect(200);
 
     expect(res.body.timeZone).toBe('America/New_York');
-    expect(res.body.days[0].slots[0]).toBe('2026-01-02T14:00:00.000Z'); // 09:00 EST = UTC-5
+    expect(res.body.days[0].slots[0]).toBe('2026-01-02T14:00:00.000Z'); // 09:00 EST
+    expect(res.body.days[0].slots.at(-1)).toBe('2026-01-02T22:30:00.000Z'); // 17:30 EST
+  });
+
+  it('las horas de la Sucursal se leen en su propia zona, aunque la Availability sea de otra', async () => {
+    t.availabilities.findById.mockResolvedValue({
+      ...AVAILABILITY,
+      timeZone: 'America/New_York',
+    });
+
+    const res = await query(t, {}).expect(200);
+
+    // Branch is 09:00–18:00 ARG = 12:00Z–21:00Z; the Availability starts at 14:00Z.
+    expect(res.body.days[0].slots[0]).toBe('2026-01-02T14:00:00.000Z');
+    expect(res.body.days[0].slots.at(-1)).toBe('2026-01-02T20:30:00.000Z'); // ends 21:00Z = 18:00 ARG
   });
 
   it('un rango que cruza el cambio de horario de verano mantiene la hora de reloj y corre el instante UTC', async () => {
     // Daylight Saving in Europe/Madrid starts Sunday 2026-03-29 (02:00 -> 03:00, CET -> CEST).
     // 2026-03-27 is a Friday (CET, UTC+1); 2026-03-30 is the following Monday (CEST, UTC+2).
-    const MADRID_BRANCH: Branch = { ...BRANCH, timeZone: 'Europe/Madrid' };
-    t.branches.findById.mockResolvedValue(MADRID_BRANCH);
+    const MADRID = 'Europe/Madrid';
+    t.branches.findById.mockResolvedValue({ ...BRANCH, timeZone: MADRID });
+    t.availabilities.findById.mockResolvedValue({ ...AVAILABILITY, timeZone: MADRID });
     t.clock.advance(
       new Date('2026-03-27T00:00:00.000Z').getTime() -
         new Date('2026-01-01T12:00:00.000Z').getTime(),

@@ -31,10 +31,9 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | Cliente | `Booking.clientName` / `Booking.clientEmail` |
 | Empleado | `Employee` |
 | Invitación | `Invitation` (`email`, `expiresAt`) |
-| Availability | `Availability` (predeterminada → `isDefault`) |
-| Franja | `AvailabilityInterval` (día → `weekday`, 0 = domingo como `Date.getUTCDay()`; inicio/fin → `startTime`/`endTime`) |
-| Anulación | `AvailabilityOverride` |
-| Cobertura | `AvailabilityOverride.coveredByEmployeeId` |
+| Availability | `Availability` (predeterminada → `isDefault`; zona horaria → `Availability.timeZone`; es del Usuario, `userId`) |
+| Franja | `AvailabilityInterval` (días → `days`, 0 = domingo como `dayjs().day()`, varios por Franja; inicio/fin → `startTime`/`endTime`) |
+| Anulación | `AvailabilityOverride` (`availabilityId`) |
 | Horario reservable | `Slot` (`GET /services/:id/slots`) |
 | Servicio | `Service` |
 | Categoría de Servicio | `ServiceCategory` (`Service.category`) |

@@ -6,46 +6,30 @@ import {
 import {
   Availability,
   AvailabilityFields,
-  assertValidIntervals,
+  assertValidAvailability,
 } from '../../domain/availabilities/availability';
-import {
-  BUSINESSES_REPOSITORY,
-  BusinessesRepository,
-} from '../../domain/businesses/businesses.repository';
-import {
-  EMPLOYEES_REPOSITORY,
-  EmployeesRepository,
-} from '../../domain/employees/employees.repository';
-import { assertAvailabilityOwner } from './assert-availability-owner';
+import { getOwnAvailability } from './get-own-availability';
 
 @Injectable()
 export class UpdateAvailabilityUseCase {
   constructor(
     @Inject(AVAILABILITIES_REPOSITORY)
     private readonly availabilities: AvailabilitiesRepository,
-    @Inject(EMPLOYEES_REPOSITORY)
-    private readonly employees: EmployeesRepository,
-    @Inject(BUSINESSES_REPOSITORY)
-    private readonly businesses: BusinessesRepository,
   ) {}
 
-  /** `intervals`, when given, replace the whole set of Franjas. */
+  /**
+   * Reemplaza todas las Franjas y Anulaciones.
+   *
+   * @throws {NotFoundError} no existe o no es del Usuario
+   * @throws {BusinessRuleError} la zona no es IANA, o un rango termina antes de empezar o se pisa con otro
+   */
   async execute(
     userId: number,
     id: number,
-    input: Partial<AvailabilityFields>,
+    input: AvailabilityFields,
   ): Promise<Availability> {
-    await assertAvailabilityOwner(
-      this.availabilities,
-      this.employees,
-      this.businesses,
-      id,
-      userId,
-    );
-    if (input.intervals) assertValidIntervals(input.intervals);
-    return this.availabilities.update(id, {
-      name: input.name,
-      intervals: input.intervals,
-    });
+    await getOwnAvailability(this.availabilities, id, userId);
+    assertValidAvailability(input);
+    return this.availabilities.replace(id, input);
   }
 }

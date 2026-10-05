@@ -1,17 +1,15 @@
-import { AvailabilityInterval } from '../availabilities/availability';
-import { AvailabilityOverride } from '../availability-overrides/availability-override';
+import { Availability } from '../availabilities/availability';
 import { Branch } from '../branches/branch';
 
 /** Horario reservable: why a day has none, when it doesn't. */
-export type SlotsReason = 'NOT_WORKING' | 'FULLY_BOOKED' | 'COVERED';
+export type SlotsReason = 'NOT_WORKING' | 'FULLY_BOOKED';
 
 export interface DaySlots {
+  /** A local date in the Availability's time zone. */
   date: string; // YYYY-MM-DD
   /** ISO instants, one per Horario reservable. Empty when reason is set. */
   slots: string[];
   reason?: SlotsReason;
-  /** Only alongside reason COVERED. */
-  coveredByEmployeeId?: number;
 }
 
 const GRID_MINUTES = 15;
@@ -101,95 +99,82 @@ export const localDayBounds = (
   };
 };
 
-/** Intersects a Franja with the Sucursal's opening hours; null if nothing survives. */
-const clip = (
-  interval: { startTime: string; endTime: string },
-  opensAt: string,
-  closesAt: string,
-): { startTime: string; endTime: string } | null => {
-  const startTime = interval.startTime > opensAt ? interval.startTime : opensAt;
-  const endTime = interval.endTime < closesAt ? interval.endTime : closesAt;
-  return startTime < endTime ? { startTime, endTime } : null;
-};
+/** The HH:mm an instant shows on the wall clock in timeZone. */
+const localTime = (instant: Date, timeZone: string): string =>
+  toHHMM(
+    Math.floor((wallClockMsInZone(instant, timeZone) % 86_400_000) / 60_000),
+  );
 
 export interface ComputeSlotsInput {
+  /** Local dates in the Availability's time zone. */
   from: string; // YYYY-MM-DD, inclusive
   to: string; // YYYY-MM-DD, inclusive
+  /** Where the Servicio is attended: its hours still bound the Horarios reservables, in its own zone. */
   branch: Pick<Branch, 'opensAt' | 'closesAt' | 'timeZone'>;
-  availabilityIntervals: AvailabilityInterval[];
-  /** This Empleado's Anulaciones, already narrowed to [from, to]. */
-  overridesByDate: Map<string, AvailabilityOverride>;
+  /** The Availability the Empleado attends the Servicio with: its Franjas and Anulaciones, read in its zone. */
+  availability: Pick<Availability, 'timeZone' | 'schedule' | 'overrides'>;
   /** PENDING and BOOKED Turnos of this Empleado, in any of their Servicios, each from its own preparation on. */
   bookedRanges: { prepStartsAt: Date; endsAt: Date }[];
   durationMinutes: number;
   /** Tiempo de preparación of the Servicio asked for: held before each Horario reservable, inside the Franja. */
   prepMinutes: number;
-  /** Local dates on which the Servicio already reached its Límite diario. */
+  /** Local dates of the Sucursal on which the Servicio already reached its Límite diario. */
   fullDates: Set<string>;
   now: Date;
 }
 
 /**
- * Availability Franjas → replaced by that date's Anulación, if any → clipped to the Sucursal's hours →
- * grillado de a 15' from the end of the preparation → Turnos tomados (with their own preparation), el
- * reloj y el Límite diario descontados. Pure: no I/O.
+ * Availability Franjas → replaced by that date's Anulación, if any → grillado de a 15' from the end of the
+ * preparation → bounded by the Sucursal's hours → Turnos tomados (with their own preparation), el reloj y
+ * el Límite diario descontados. Pure: no I/O.
  */
 export function computeSlots({
   from,
   to,
   branch,
-  availabilityIntervals,
-  overridesByDate,
+  availability,
   bookedRanges,
   durationMinutes,
   prepMinutes,
   fullDates,
   now,
 }: ComputeSlotsInput): DaySlots[] {
-  const today = localDate(now, branch.timeZone);
+  const { timeZone } = availability;
+  const today = localDate(now, timeZone);
+  const overrides = new Map(availability.overrides.map((o) => [o.date, o]));
   const days: DaySlots[] = [];
 
   for (let date = from; date <= to; date = addDays(date, 1)) {
     if (date < today) continue;
 
-    const override = overridesByDate.get(date);
-    if (override && override.coveredByEmployeeId != null) {
-      days.push({
-        date,
-        slots: [],
-        reason: 'COVERED',
-        coveredByEmployeeId: override.coveredByEmployeeId,
-      });
-      continue;
-    }
-
-    const dayIntervals = override
-      ? override.intervals
-      : availabilityIntervals.filter((i) => i.weekday === weekdayOf(date));
+    const ranges =
+      overrides.get(date)?.ranges ?? availability.schedule[weekdayOf(date)];
 
     const candidates: Date[] = [];
-    for (const interval of dayIntervals) {
-      const clipped = clip(interval, branch.opensAt, branch.closesAt);
-      if (!clipped) continue;
-      const endMin = toMinutes(clipped.endTime);
+    for (const range of ranges) {
+      const endMin = toMinutes(range.end);
       for (
-        let t = toMinutes(clipped.startTime) + prepMinutes;
+        let t = toMinutes(range.start) + prepMinutes;
         t + durationMinutes <= endMin;
         t += GRID_MINUTES
-      )
-        candidates.push(zonedTimeToUtc(date, toHHMM(t), branch.timeZone));
+      ) {
+        const start = zonedTimeToUtc(date, toHHMM(t), timeZone);
+        const end = new Date(start.getTime() + durationMinutes * 60_000);
+        if (
+          localTime(start, branch.timeZone) >= branch.opensAt &&
+          localTime(end, branch.timeZone) <= branch.closesAt
+        )
+          candidates.push(start);
+      }
     }
 
-    const slots = fullDates.has(date)
-      ? []
-      : candidates.filter((start) => {
-          if (start < now) return false;
-          const held = new Date(start.getTime() - prepMinutes * 60_000);
-          const end = new Date(start.getTime() + durationMinutes * 60_000);
-          return !bookedRanges.some(
-            (b) => b.prepStartsAt < end && b.endsAt > held,
-          );
-        });
+    const slots = candidates.filter((start) => {
+      if (start < now) return false;
+      if (fullDates.has(localDate(start, branch.timeZone))) return false;
+      const held = new Date(start.getTime() - prepMinutes * 60_000);
+      const end = new Date(start.getTime() + durationMinutes * 60_000);
+      return !bookedRanges.some((b) => b.prepStartsAt < end && b.endsAt > held);
+    });
 
     days.push({
       date,

@@ -1,4 +1,3 @@
-import { AvailabilityFields } from '../availabilities/availability';
 import { Employee } from './employee';
 
 export const EMPLOYEES_REPOSITORY = Symbol('EmployeesRepository');
@@ -6,8 +5,6 @@ export const EMPLOYEES_REPOSITORY = Symbol('EmployeesRepository');
 export interface CreateEmployeeData {
   userId: number;
   businessId: number;
-  /** The Empleado's default Availability, born with them so they can enter any Servicio. */
-  availability: AvailabilityFields;
 }
 
 export interface EmployeesRepository {

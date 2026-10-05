@@ -1,6 +1,4 @@
-import { DEFAULT_AVAILABILITY } from '../../domain/availabilities/availability';
 import {
-  ConflictError,
   DatabaseOperationError,
   ExternalServiceError,
 } from '../../domain/errors';

@@ -1,4 +1,3 @@
-import { AvailabilityFields } from '../availabilities/availability';
 import { Branch } from '../branches/branch';
 import { Employee } from '../employees/employee';
 import { Service } from '../services/service';
@@ -27,10 +26,8 @@ export interface CreateBusinessData {
     | 'prepMinutes'
     | 'dailyLimit'
   >;
-  /** The Dueño, in charge of that first Servicio. */
+  /** The Dueño, in charge of that first Servicio with their default Availability. */
   employee: Pick<Employee, 'userId'>;
-  /** That Empleado's default Availability, its Franjas written as real rows. */
-  availability: AvailabilityFields;
 }
 
 export interface CreatedBusiness {

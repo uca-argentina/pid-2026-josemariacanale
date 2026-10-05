@@ -12,6 +12,7 @@ import {
   scriptOtherSession,
   scriptSession,
   TestApp,
+  workWeek,
 } from '../../test-app';
 
 const BOOKED: Booking = {
@@ -30,14 +31,12 @@ const BOOKED: Booking = {
 
 const AVAILABILITY: Availability = {
   id: 10,
-  employeeId: ANAS_EMPLOYEE.id,
-  name: 'Horario general',
+  userId: ANAS_EMPLOYEE.userId,
+  name: 'Horas laborables',
+  timeZone: ANAS_BRANCH.timeZone,
   isDefault: true,
-  intervals: [1, 2, 3, 4, 5].map((weekday) => ({
-    weekday,
-    startTime: '09:00',
-    endTime: '18:00',
-  })),
+  schedule: workWeek('09:00', '18:00'),
+  overrides: [],
 };
 
 describe('Mis turnos del Empleado', () => {
@@ -188,7 +187,6 @@ describe('Mis turnos del Empleado', () => {
       });
       t.branches.findById.mockResolvedValue(ANAS_BRANCH);
       t.availabilities.findById.mockResolvedValue(AVAILABILITY);
-      t.overrides.listByEmployee.mockResolvedValue([]);
       t.bookings.listOccupiedByEmployee.mockResolvedValue([]);
       t.bookings.reschedule.mockResolvedValue({
         ...BOOKED,

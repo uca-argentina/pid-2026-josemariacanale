@@ -1,4 +1,4 @@
-import { Availability } from '../../domain/availabilities/availability';
+import { Availability, emptySchedule } from '../../domain/availabilities/availability';
 import { ConflictError } from '../../domain/errors';
 import { ServiceCategory } from '../../domain/services/service';
 import {
@@ -29,27 +29,29 @@ const OTHER_EMPLOYEE = {
 
 const availability = (
   id: number,
-  employeeId: number,
+  userId: number,
   isDefault: boolean,
 ): Availability => ({
   id,
-  employeeId,
-  name: isDefault ? 'Horario general' : 'Turno tarde',
+  userId,
+  name: isDefault ? 'Horas laborables' : 'Turno tarde',
+  timeZone: 'America/Argentina/Buenos_Aires',
   isDefault,
-  intervals: [],
+  schedule: emptySchedule(),
+  overrides: [],
 });
 
 /** Ana's default (10) and another one (11); Bruno's default (20) and another one (21). */
 const AVAILABILITIES = [
-  availability(10, ANAS_EMPLOYEE.id, true),
-  availability(11, ANAS_EMPLOYEE.id, false),
-  availability(20, OTHER_EMPLOYEE.id, true),
-  availability(21, OTHER_EMPLOYEE.id, false),
+  availability(10, ANAS_EMPLOYEE.userId, true),
+  availability(11, ANAS_EMPLOYEE.userId, false),
+  availability(20, OTHER_EMPLOYEE.userId, true),
+  availability(21, OTHER_EMPLOYEE.userId, false),
 ];
 
 const scriptAvailabilities = ({ availabilities }: TestApp) => {
-  availabilities.listByEmployee.mockImplementation(async (employeeId) =>
-    AVAILABILITIES.filter((a) => a.employeeId === employeeId),
+  availabilities.listByUser.mockImplementation(async (userId) =>
+    AVAILABILITIES.filter((a) => a.userId === userId),
   );
   availabilities.findById.mockImplementation(
     async (id) => AVAILABILITIES.find((a) => a.id === id) ?? null,
@@ -779,7 +781,7 @@ describe('Servicio', () => {
       });
     });
 
-    it("answers 422 for another Empleado's Availability, and links nothing", async () => {
+    it("answers 422 for another Usuario's Availability, and links nothing", async () => {
       await t.http
         .post(`/services/${SERVICE.id}/employees`)
         .set(bearer(CLERK_TOKEN))
@@ -1202,7 +1204,7 @@ describe('Servicio', () => {
       expect(t.services.setEmployeeAvailability).toHaveBeenCalled();
     });
 
-    it("answers 422 for another Empleado's Availability, and changes nothing", async () => {
+    it("answers 422 for another Usuario's Availability, and changes nothing", async () => {
       const res = await t.http
         .patch(path(OTHER_EMPLOYEE.id))
         .set(bearer(CLERK_TOKEN))
@@ -1210,7 +1212,7 @@ describe('Servicio', () => {
         .expect(422);
 
       expect(res.body.message).toBe(
-        'La Availability tiene que ser del mismo Empleado',
+        'La Availability tiene que ser del mismo Usuario que el Empleado',
       );
       expect(t.services.setEmployeeAvailability).not.toHaveBeenCalled();
     });

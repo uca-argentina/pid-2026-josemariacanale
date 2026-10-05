@@ -4,10 +4,6 @@ import {
   AvailabilitiesRepository,
 } from '../../domain/availabilities/availabilities.repository';
 import {
-  AVAILABILITY_OVERRIDES_REPOSITORY,
-  AvailabilityOverridesRepository,
-} from '../../domain/availability-overrides/availability-overrides.repository';
-import {
   BOOKINGS_REPOSITORY,
   BookingsRepository,
 } from '../../domain/bookings/bookings.repository';
@@ -50,8 +46,6 @@ export class ListSlotsUseCase {
     @Inject(BRANCHES_REPOSITORY) private readonly branches: BranchesRepository,
     @Inject(AVAILABILITIES_REPOSITORY)
     private readonly availabilities: AvailabilitiesRepository,
-    @Inject(AVAILABILITY_OVERRIDES_REPOSITORY)
-    private readonly overrides: AvailabilityOverridesRepository,
     @Inject(BOOKINGS_REPOSITORY) private readonly bookings: BookingsRepository,
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
@@ -72,10 +66,9 @@ export class ListSlotsUseCase {
     if (!link)
       throw new NotFoundError('Employee is not in charge of this Service');
 
-    const [branch, availability, allOverrides] = await Promise.all([
+    const [branch, availability] = await Promise.all([
       this.branches.findById(service.branchId),
       this.availabilities.findById(link.availabilityId),
-      this.overrides.listByEmployee(employeeId),
     ]);
     if (!branch) throw new NotFoundError('Branch not found');
     if (!availability) throw new NotFoundError('Availability not found');
@@ -90,10 +83,11 @@ export class ListSlotsUseCase {
 
     const fullDates = new Set<string>();
     if (service.dailyLimit !== null) {
+      // The dates are the Availability's, the Límite diario counts in the Sucursal's: a day of slack either side.
       const starts = await this.bookings.listOccupiedStartsByService(
         serviceId,
-        zonedTimeToUtc(from, '00:00', branch.timeZone),
-        zonedTimeToUtc(addDays(to, 1), '00:00', branch.timeZone),
+        zonedTimeToUtc(addDays(from, -1), '00:00', availability.timeZone),
+        zonedTimeToUtc(addDays(to, 2), '00:00', availability.timeZone),
         excludeBookingId,
       );
       const perDate = new Map<string, number>();
@@ -106,17 +100,12 @@ export class ListSlotsUseCase {
     }
 
     return {
-      timeZone: branch.timeZone,
+      timeZone: availability.timeZone,
       days: computeSlots({
         from,
         to,
         branch,
-        availabilityIntervals: availability.intervals,
-        overridesByDate: new Map(
-          allOverrides
-            .filter((o) => o.date >= from && o.date <= to)
-            .map((o) => [o.date, o]),
-        ),
+        availability,
         bookedRanges,
         durationMinutes: service.durationMinutes,
         prepMinutes: service.prepMinutes,

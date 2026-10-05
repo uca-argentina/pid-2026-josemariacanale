@@ -8,11 +8,13 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Put,
   UseGuards,
 } from '@nestjs/common';
 import { CreateAvailabilityUseCase } from '../../application/availabilities/create-availability.use-case';
 import { DeleteAvailabilityUseCase } from '../../application/availabilities/delete-availability.use-case';
-import { ListAvailabilitiesByEmployeeUseCase } from '../../application/availabilities/list-availabilities-by-employee.use-case';
+import { GetAvailabilityUseCase } from '../../application/availabilities/get-availability.use-case';
+import { ListAvailabilitiesUseCase } from '../../application/availabilities/list-availabilities.use-case';
 import { MakeDefaultAvailabilityUseCase } from '../../application/availabilities/make-default-availability.use-case';
 import { UpdateAvailabilityUseCase } from '../../application/availabilities/update-availability.use-case';
 import { ClerkGuard, CurrentUser } from '../users/clerk.guard';
@@ -20,56 +22,68 @@ import {
   CreateAvailabilityDto,
   UpdateAvailabilityDto,
 } from './availabilities.dto';
-import { presentAvailability } from './availability.presenter';
+import {
+  presentAvailability,
+  presentAvailabilitySummary,
+} from './availability.presenter';
 
-@Controller()
+/** Horas laborables del propio Usuario (ADR 0020). */
+@Controller('availabilities')
+@UseGuards(ClerkGuard)
 export class AvailabilitiesController {
   constructor(
-    private readonly listAvailabilitiesByEmployeeUseCase: ListAvailabilitiesByEmployeeUseCase,
+    private readonly listAvailabilitiesUseCase: ListAvailabilitiesUseCase,
+    private readonly getAvailabilityUseCase: GetAvailabilityUseCase,
     private readonly createAvailabilityUseCase: CreateAvailabilityUseCase,
     private readonly updateAvailabilityUseCase: UpdateAvailabilityUseCase,
     private readonly makeDefaultAvailabilityUseCase: MakeDefaultAvailabilityUseCase,
     private readonly deleteAvailabilityUseCase: DeleteAvailabilityUseCase,
   ) {}
 
-  @Get('employees/:id/availabilities')
-  @UseGuards(ClerkGuard)
-  async list(
-    @CurrentUser() userId: number,
-    @Param('id', ParseIntPipe) employeeId: number,
-  ) {
-    return (
-      await this.listAvailabilitiesByEmployeeUseCase.execute(userId, employeeId)
-    ).map(presentAvailability);
+  @Get()
+  async list(@CurrentUser() userId: number) {
+    return (await this.listAvailabilitiesUseCase.execute(userId)).map(
+      presentAvailabilitySummary,
+    );
   }
 
-  @Post('employees/:id/availabilities')
-  @UseGuards(ClerkGuard)
+  @Post()
   async create(
     @CurrentUser() userId: number,
-    @Param('id', ParseIntPipe) employeeId: number,
     @Body() dto: CreateAvailabilityDto,
   ) {
     return presentAvailability(
-      await this.createAvailabilityUseCase.execute(userId, employeeId, dto),
+      await this.createAvailabilityUseCase.execute(userId, dto),
     );
   }
 
-  @Patch('availabilities/:id')
-  @UseGuards(ClerkGuard)
+  @Get(':id')
+  async get(
+    @CurrentUser() userId: number,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return presentAvailability(
+      await this.getAvailabilityUseCase.execute(userId, id),
+    );
+  }
+
+  @Put(':id')
   async update(
     @CurrentUser() userId: number,
     @Param('id', ParseIntPipe) id: number,
-    @Body() dto: UpdateAvailabilityDto,
+    @Body() { name, timeZone, schedule, overrides }: UpdateAvailabilityDto,
   ) {
     return presentAvailability(
-      await this.updateAvailabilityUseCase.execute(userId, id, dto),
+      await this.updateAvailabilityUseCase.execute(userId, id, {
+        name,
+        timeZone,
+        schedule,
+        overrides,
+      }),
     );
   }
 
-  @Post('availabilities/:id/default')
-  @UseGuards(ClerkGuard)
-  @HttpCode(200)
+  @Patch(':id/default')
   async makeDefault(
     @CurrentUser() userId: number,
     @Param('id', ParseIntPipe) id: number,
@@ -79,8 +93,7 @@ export class AvailabilitiesController {
     );
   }
 
-  @Delete('availabilities/:id')
-  @UseGuards(ClerkGuard)
+  @Delete(':id')
   @HttpCode(204)
   async delete(
     @CurrentUser() userId: number,

@@ -1,58 +1,127 @@
+import { AvailabilityOverride } from '../availability-overrides/availability-override';
 import { BusinessRuleError } from '../errors';
+import { isIanaTimeZone } from '../time-zone';
 
-/** Franja: a stretch of one weekday within an Availability. Never crosses midnight. */
-export interface AvailabilityInterval {
-  /** 0 = Sunday … 6 = Saturday, same as Date.getUTCDay(). */
-  weekday: number;
-  startTime: string; // HH:mm
-  endTime: string; // HH:mm
+/** A stretch of a day, read in the Availability's time zone. Never crosses midnight. */
+export interface TimeRange {
+  start: string; // HH:mm
+  end: string; // HH:mm
 }
 
-/** A named weekly schedule of an Empleado. Exactly one per Empleado is the default. */
+/** A week of Franjas: one list of ranges per day, `[0]` = Sunday … `[6]` = Saturday (as dayjs().day()). A day with none is not worked. */
+export type Schedule = TimeRange[][];
+
+/** Availability: the weekly Franjas and the Anulaciones of a Usuario, in their own time zone. Exactly one per Usuario is the default. */
 export interface Availability {
   id: number;
-  employeeId: number;
+  userId: number;
   name: string;
+  /** IANA name. */
+  timeZone: string;
   isDefault: boolean;
-  /** Ordered by weekday, then startTime. A weekday with none is a day not worked. */
-  intervals: AvailabilityInterval[];
+  schedule: Schedule;
+  /** Ordered by date. */
+  overrides: AvailabilityOverride[];
 }
 
-/** Also what the repository answers when the exclusion constraint catches a race. */
-export const OVERLAPPING_INTERVALS = 'Dos Franjas del mismo día se solapan';
+export type AvailabilitySummary = Omit<Availability, 'schedule' | 'overrides'>;
 
-export type AvailabilityFields = Pick<Availability, 'name' | 'intervals'>;
+export type AvailabilityFields = Pick<
+  Availability,
+  'name' | 'timeZone' | 'schedule' | 'overrides'
+>;
 
-/** What Crear Negocio gives the Dueño: Monday to Friday 09:00–18:00, weekend off. */
+export const emptySchedule = (): Schedule =>
+  Array.from({ length: 7 }, () => []);
+
+/** What every Usuario is born with: Monday to Friday 09:00–17:00 in Buenos Aires, the default. */
 export const DEFAULT_AVAILABILITY: AvailabilityFields = {
-  name: 'Horario general',
-  intervals: [1, 2, 3, 4, 5].map((weekday) => ({
-    weekday,
-    startTime: '09:00',
-    endTime: '18:00',
-  })),
+  name: 'Horas laborables',
+  timeZone: 'America/Argentina/Buenos_Aires',
+  schedule: emptySchedule().map((_, day) =>
+    day >= 1 && day <= 5 ? [{ start: '09:00', end: '17:00' }] : [],
+  ),
+  overrides: [],
 };
 
+const DAY_NAMES = [
+  'domingo',
+  'lunes',
+  'martes',
+  'miércoles',
+  'jueves',
+  'viernes',
+  'sábado',
+];
+
 /**
- * Franjas of the same weekday may touch (09:00–17:00 and 17:00–18:00) but not overlap.
- * HH:mm strings are zero-padded and same length, so lexical comparison matches time-of-day order.
+ * Ranges of one day may touch (09:00–17:00 and 17:00–18:00) but not overlap. HH:mm strings are zero-padded and
+ * same length, so lexical comparison matches time-of-day order.
+ *
+ * @throws {BusinessRuleError} naming `label` when a range ends before it starts, or two overlap
  */
-export function assertValidIntervals(intervals: AvailabilityInterval[]): void {
-  if (intervals.some(({ startTime, endTime }) => startTime >= endTime))
+function assertValidRanges(ranges: TimeRange[], label: string): void {
+  const bad = ranges.find(({ start, end }) => end <= start);
+  if (bad)
     throw new BusinessRuleError(
-      'Cada Franja tiene que terminar después de empezar',
+      `${label}: el rango ${bad.start}–${bad.end} tiene que terminar después de empezar`,
     );
-  const sorted = [...intervals].sort(
-    (a, b) =>
-      a.weekday - b.weekday || a.startTime.localeCompare(b.startTime),
+  const sorted = [...ranges].sort((a, b) => a.start.localeCompare(b.start));
+  const clash = sorted.find((range, i) => i > 0 && range.start < sorted[i - 1].end);
+  if (clash)
+    throw new BusinessRuleError(
+      `${label}: el rango ${clash.start}–${clash.end} se solapa con otro`,
+    );
+}
+
+/**
+ * @throws {BusinessRuleError} la zona no es IANA, un rango termina antes de empezar o se pisa con otro del mismo día, o hay dos Anulaciones de una fecha
+ */
+export function assertValidAvailability(fields: AvailabilityFields): void {
+  if (!isIanaTimeZone(fields.timeZone))
+    throw new BusinessRuleError(
+      `La zona horaria ${fields.timeZone} no es una zona IANA válida`,
+    );
+  fields.schedule.forEach((ranges, day) =>
+    assertValidRanges(ranges, `El ${DAY_NAMES[day]}`),
   );
-  if (
-    sorted.some(
-      (interval, i) =>
-        i > 0 &&
-        sorted[i - 1].weekday === interval.weekday &&
-        interval.startTime < sorted[i - 1].endTime,
-    )
-  )
-    throw new BusinessRuleError(OVERLAPPING_INTERVALS);
+  const dates = new Set<string>();
+  for (const { date, ranges } of fields.overrides) {
+    if (dates.has(date))
+      throw new BusinessRuleError(`La fecha ${date} está repetida`);
+    dates.add(date);
+    assertValidRanges(ranges, `La fecha ${date}`);
+  }
+}
+
+/** A Franja as stored: one range shared by several days. */
+export interface Interval extends TimeRange {
+  days: number[];
+}
+
+/**
+ * Groups the ranges with the same start and end into one Franja with several days, in the order they first
+ * appear going from Sunday on (as getAvailabilityFromSchedule of cal.diy).
+ */
+export function scheduleToIntervals(schedule: Schedule): Interval[] {
+  const byRange = new Map<string, Interval>();
+  schedule.forEach((ranges, day) =>
+    ranges.forEach(({ start, end }) => {
+      const key = `${start}-${end}`;
+      const interval = byRange.get(key);
+      if (interval) interval.days.push(day);
+      else byRange.set(key, { days: [day], start, end });
+    }),
+  );
+  return [...byRange.values()];
+}
+
+/** Inverse of scheduleToIntervals; each day's ranges ordered by start. */
+export function intervalsToSchedule(intervals: Interval[]): Schedule {
+  const schedule = emptySchedule();
+  for (const { days, start, end } of intervals)
+    for (const day of days) schedule[day].push({ start, end });
+  return schedule.map((ranges) =>
+    ranges.sort((a, b) => a.start.localeCompare(b.start)),
+  );
 }

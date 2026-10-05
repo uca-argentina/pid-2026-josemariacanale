@@ -96,13 +96,6 @@ const CREATE_DATA = {
   employee: {
     userId: ANAS_BUSINESS.ownerId,
   },
-  availability: {
-    name: 'Horario general',
-    intervals: [
-      { weekday: 1, startTime: '09:00', endTime: '18:00' },
-      { weekday: 5, startTime: '09:00', endTime: '18:00' },
-    ],
-  },
 };
 
 describe('PrismaBusinessesRepository', () => {
@@ -110,7 +103,7 @@ describe('PrismaBusinessesRepository', () => {
     business: { create: jest.fn() },
     branch: { create: jest.fn() },
     employee: { create: jest.fn() },
-    availability: { create: jest.fn() },
+    availability: { findFirstOrThrow: jest.fn() },
     service: { create: jest.fn() },
   };
   const prisma = {
@@ -130,7 +123,7 @@ describe('PrismaBusinessesRepository', () => {
   beforeEach(() => {
     jest.resetAllMocks();
     prisma.$transaction.mockImplementation((run) => run(tx));
-    tx.availability.create.mockResolvedValue({ id: 40 });
+    tx.availability.findFirstOrThrow.mockResolvedValue({ id: 40 });
   });
 
   it('creates the Business, its Branch, its Service and the owner as its Employee, in one transaction', async () => {
@@ -209,7 +202,7 @@ describe('PrismaBusinessesRepository', () => {
     );
   });
 
-  it("gives the Dueño's Empleado its default Availability, with its Franjas as real rows, in the same transaction", async () => {
+  it("attends the first Servicio with the Dueño's default Availability, which their User is born with", async () => {
     tx.business.create.mockResolvedValue(ANAS_BUSINESS);
     tx.branch.create.mockResolvedValue(BRANCH_ROW);
     tx.employee.create.mockResolvedValue(EMPLOYEE_ROW);
@@ -217,27 +210,9 @@ describe('PrismaBusinessesRepository', () => {
 
     await repository.create(CREATE_DATA);
 
-    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
-    expect(tx.availability.create).toHaveBeenCalledWith({
-      data: {
-        employeeId: EMPLOYEE_ROW.id,
-        name: 'Horario general',
-        isDefault: true,
-        intervals: {
-          create: [
-            {
-              weekday: 1,
-              startTime: new Date('1970-01-01T09:00:00.000Z'),
-              endTime: new Date('1970-01-01T18:00:00.000Z'),
-            },
-            {
-              weekday: 5,
-              startTime: new Date('1970-01-01T09:00:00.000Z'),
-              endTime: new Date('1970-01-01T18:00:00.000Z'),
-            },
-          ],
-        },
-      },
+    expect(tx.availability.findFirstOrThrow).toHaveBeenCalledWith({
+      where: { userId: ANAS_BUSINESS.ownerId, isDefault: true },
+      select: { id: true },
     });
   });
 

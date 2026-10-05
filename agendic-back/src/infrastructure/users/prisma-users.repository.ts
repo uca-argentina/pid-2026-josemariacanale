@@ -4,18 +4,46 @@ import {
   DatabaseOperationError,
   NotFoundError,
 } from '../../domain/errors';
+import {
+  DEFAULT_AVAILABILITY,
+  scheduleToIntervals,
+} from '../../domain/availabilities/availability';
 import { User } from '../../domain/users/user';
 import { UsersRepository } from '../../domain/users/users.repository';
 import { Prisma, User as UserRow } from '../../generated/prisma/client';
+import { toTime } from '../branches/prisma-branches.repository';
 import { PrismaService } from '../prisma.service';
 
 @Injectable()
 export class PrismaUsersRepository implements UsersRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  /** The nested create is one transaction: a Usuario never exists without its default Availability. */
   async create(data: Pick<User, 'clerkId' | 'name' | 'email'>) {
     return toUser(
-      await this.prisma.user.create({ data }).catch(translateError),
+      await this.prisma.user
+        .create({
+          data: {
+            ...data,
+            availabilities: {
+              create: {
+                name: DEFAULT_AVAILABILITY.name,
+                timeZone: DEFAULT_AVAILABILITY.timeZone,
+                isDefault: true,
+                intervals: {
+                  create: scheduleToIntervals(DEFAULT_AVAILABILITY.schedule).map(
+                    ({ days, start, end }) => ({
+                      days,
+                      startTime: toTime(start),
+                      endTime: toTime(end),
+                    }),
+                  ),
+                },
+              },
+            },
+          },
+        })
+        .catch(translateError),
     );
   }
 

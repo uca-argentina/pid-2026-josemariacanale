@@ -4,9 +4,9 @@
 // - Service name unique in any casing among a Branch's Services not retired
 // - Service slug unique per Branch among its Services not retired (partial unique index, ADR 0018)
 // - one active Employee (retiredAt null) per (userId, businessId): a User can be re-hired after being dado de baja
-// - no overlapping AvailabilityIntervals per (availabilityId, weekday), half-open so they can touch (exclusion constraint)
-// - at most one default Availability per Employee (partial unique index)
-// - no overlapping AvailabilityOverride Franjas per (employeeId, date), half-open, skipping día-libre rows (exclusion constraint)
+// - at most one default Availability per User (partial unique index)
+// - no overlapping AvailabilityOverride Franjas per (availabilityId, date), half-open, skipping día-libre rows (exclusion constraint)
+// - AvailabilityInterval Franjas of one weekday don't overlap: checked by the API only, since `days` is an array (ADR 0020)
 
 generator client {
   provider     = "prisma-client"
@@ -41,8 +41,9 @@ model User {
   email     String
   createdAt DateTime @default(now()) @db.Timestamptz(3)
 
-  businesses Business[]
-  employees  Employee[]
+  businesses     Business[]
+  employees      Employee[]
+  availabilities Availability[]
 }
 
 model Business {
@@ -60,10 +61,10 @@ model Business {
 
 /// Invitaci�n pendiente de un Negocio a un email para ser Empleado (ADR 0019); vence a los 7 d�as.
 model Invitation {
-  id         Int      @id @default(autoincrement())
+  id         Int       @id @default(autoincrement())
   businessId Int
   email      String // always lowercase
-  expiresAt  DateTime @db.Timestamptz(3)
+  expiresAt  DateTime  @db.Timestamptz(3)
   closedAt   DateTime? @db.Timestamptz(3) // aceptada o rechazada
 
   business Business @relation(fields: [businessId], references: [id])
@@ -127,13 +128,10 @@ model Employee {
   businessId Int
   retiredAt  DateTime? @db.Timestamptz(3) // when dado de baja; null while employed
 
-  user           User                   @relation(fields: [userId], references: [id])
-  business       Business               @relation(fields: [businessId], references: [id])
-  services       EmployeeService[]
-  bookings       Booking[]
-  availabilities Availability[]
-  overrides      AvailabilityOverride[] @relation("EmployeeOverrides")
-  coverages      AvailabilityOverride[] @relation("EmployeeCoverages")
+  user     User              @relation(fields: [userId], references: [id])
+  business Business          @relation(fields: [businessId], references: [id])
+  services EmployeeService[]
+  bookings Booking[]
 }
 
 /// An Empleado attending a Servicio with one of their own Availabilities. A reference: editing that Availability
@@ -141,7 +139,7 @@ model Employee {
 model EmployeeService {
   employeeId     Int
   serviceId      Int
-  availabilityId Int // one of the Empleado's own; a Service using it keeps it from being deleted
+  availabilityId Int // one of the Empleado's User's own; a Service using it keeps it from being deleted
 
   employee     Employee     @relation(fields: [employeeId], references: [id])
   service      Service      @relation(fields: [serviceId], references: [id])
@@ -153,13 +151,15 @@ model EmployeeService {
 }
 
 model Availability {
-  id         Int     @id @default(autoincrement())
-  employeeId Int
-  name       String
-  isDefault  Boolean // exactly one per Employee; no time zone of its own, the Branch's applies
+  id        Int     @id @default(autoincrement())
+  userId    Int
+  name      String
+  timeZone  String // IANA name; its Franjas and Anulaciones are read in this zone, not the Branch's (ADR 0020)
+  isDefault Boolean // exactly one per User
 
-  employee  Employee               @relation(fields: [employeeId], references: [id])
+  user      User                   @relation(fields: [userId], references: [id])
   intervals AvailabilityInterval[]
+  overrides AvailabilityOverride[]
   services  EmployeeService[]
 }
 
@@ -167,27 +167,25 @@ model Availability {
 model AvailabilityInterval {
   id             Int      @id @default(autoincrement())
   availabilityId Int
-  weekday        Int // 0 = Sunday … 6 = Saturday, same as Date.getUTCDay()
+  days           Int[] // 0 = Sunday … 6 = Saturday, same as dayjs().day()
   startTime      DateTime @db.Time(0) // read by Prisma as 1970-01-01T<HH:mm>Z
   endTime        DateTime @db.Time(0)
 
   availability Availability @relation(fields: [availabilityId], references: [id], onDelete: Cascade)
 }
 
-/// Anulación: replaces an Employee's Franjas for one concrete date, for every Service they attend.
+/// Anulación: replaces an Availability's Franjas for one concrete date, read in its time zone.
 /// Both times null is a día libre. Several rows for the same date are that date's own Franjas.
 model AvailabilityOverride {
-  id                  Int       @id @default(autoincrement())
-  employeeId          Int
-  date                DateTime  @db.Date
-  startTime           DateTime? @db.Time(0)
-  endTime             DateTime? @db.Time(0)
-  coveredByEmployeeId Int? // who attends in this Employee's place that date, if anyone
+  id             Int       @id @default(autoincrement())
+  availabilityId Int
+  date           DateTime  @db.Date
+  startTime      DateTime? @db.Time(0)
+  endTime        DateTime? @db.Time(0)
 
-  employee  Employee  @relation("EmployeeOverrides", fields: [employeeId], references: [id])
-  coveredBy Employee? @relation("EmployeeCoverages", fields: [coveredByEmployeeId], references: [id])
+  availability Availability @relation(fields: [availabilityId], references: [id], onDelete: Cascade)
 
-  @@index([employeeId, date])
+  @@index([availabilityId, date])
 }
 
 model Booking {

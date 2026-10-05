@@ -47,7 +47,7 @@ actualizarlo a mano cuando se agregue, cambie o borre un endpoint.
 
 | Método | Ruta | Auth | Qué hace |
 |---|---|---|---|
-| POST | `/businesses` | sí | Crea un negocio junto con su primera sucursal, servicio y empleado (alta todo-en-uno); el Empleado creado es el propio Dueño (su Usuario de Sesión, ADR 0013), con su Availability predeterminada "Horario general": lunes a viernes de 09:00 a 18:00, sábado y domingo sin Franjas, y el primer servicio queda atendido por ese Empleado con esa Availability, todo en la misma transacción (no viene en la respuesta; se lee con `GET /employees/:id/availabilities`); 409 si el Usuario ya es Dueño de un Negocio (ADR 0012) |
+| POST | `/businesses` | sí | Crea un negocio junto con su primera sucursal, servicio y empleado (alta todo-en-uno); el Empleado creado es el propio Dueño (su Usuario de Sesión, ADR 0013), y el primer servicio queda atendido por ese Empleado con la Availability predeterminada de su Usuario (ADR 0020), todo en la misma transacción; 409 si el Usuario ya es Dueño de un Negocio (ADR 0012) |
 | PATCH | `/businesses/:id` | sí | Actualiza name/description/slug (solo el dueño); cambiar el slug deja de servir el Enlace de reserva anterior |
 | GET | `/businesses` | sí | Lista solo los negocios del Dueño de la sesión (0 o 1) |
 | GET | `/businesses/:id` | no | Detalle de un negocio |
@@ -96,11 +96,11 @@ una Sucursal); sus archivos en el storage no.
 
 | Método | Ruta | Auth | Qué hace |
 |---|---|---|---|
-| POST | `/branches/:id/services` | sí | Crea un servicio bajo una sucursal, con asignación inicial de empleados (solo el dueño); cada empleado entra con su Availability predeterminada; 409 si el tramo (`slug`) ya lo usa otro servicio activo de esa sucursal |
+| POST | `/branches/:id/services` | sí | Crea un servicio bajo una sucursal, con asignación inicial de empleados (solo el dueño); cada empleado entra con la Availability predeterminada de su Usuario; 409 si el tramo (`slug`) ya lo usa otro servicio activo de esa sucursal |
 | PATCH | `/services/:id` | sí | Actualiza un servicio (solo el dueño), incluidos `slug` y `hidden`; 409 si el tramo ya está en uso en esa sucursal |
 | DELETE | `/services/:id` | sí | Da de baja (soft-delete) un servicio (solo el dueño) |
-| POST | `/services/:id/employees` | sí | Ofrecer: asigna un empleado a un servicio con una Availability suya (el dueño, o el propio Empleado); 200 con el servicio; 403 si un Empleado actúa por otro o no es Empleado activo del Negocio; 404 si no existe, o si está oculto y quien llama no es dueño ni lo atiende; 422 si la Availability es de otro Empleado o si el servicio está dado de baja; 409 si ya lo atiende |
-| PATCH | `/services/:id/employees/:employeeId` | sí | Cambia la Availability con la que ese empleado atiende el servicio (el dueño, o el propio Empleado); 200 con el servicio; 422 si la Availability es de otro Empleado; 404 si ese empleado no atiende el servicio o la Availability no existe; no cancela ni mueve Turnos |
+| POST | `/services/:id/employees` | sí | Ofrecer: asigna un empleado a un servicio con una Availability de su Usuario (el dueño, o el propio Empleado); 200 con el servicio; 403 si un Empleado actúa por otro o no es Empleado activo del Negocio; 404 si no existe, o si está oculto y quien llama no es dueño ni lo atiende; 422 `La Availability tiene que ser del mismo Usuario que el Empleado` si la Availability es de otro Usuario, o si el servicio está dado de baja; 409 si ya lo atiende |
+| PATCH | `/services/:id/employees/:employeeId` | sí | Cambia la Availability con la que ese empleado atiende el servicio (el dueño, o el propio Empleado); 200 con el servicio; 422 `La Availability tiene que ser del mismo Usuario que el Empleado` si la Availability es de otro Usuario; 404 si ese empleado no atiende el servicio o la Availability no existe; no cancela ni mueve Turnos |
 | DELETE | `/services/:id/employees/:employeeId` | sí | Dejar de ofrecer: quita un empleado de un servicio (el dueño, o el propio Empleado); `{ cancelledBookings }` con los Turnos futuros cancelados; 422 `Cannot remove the Service's last Employee` si es el último |
 | GET | `/branches/:id/services` | no | Lista servicios activos de una sucursal, sin los ocultos; 404 si la sucursal no existe |
 | GET | `/branches/:id/services/by-slug/:slug` | no | Un servicio de la sucursal por su tramo del Enlace de reserva (ADR 0018), aunque esté oculto; el tramo se compara en minúsculas; 404 si la sucursal no existe o si ningún servicio suyo no dado de baja tiene ese tramo |
@@ -120,11 +120,11 @@ una Sucursal); sus archivos en el storage no.
 - `requiresApproval` (Aprobación manual): booleano, `false` por defecto. Con `true`, los Turnos del Servicio
   no quedan `BOOKED` al verificarse sino `PENDING`, hasta que el Empleado los Acepta o los Rechaza.
   No booleano → 400. También vale en el `service` de `POST /businesses`.
-- `AssignEmployeeDto`: `{ employeeId, availabilityId? }`; sin `availabilityId`, el empleado entra con su Availability predeterminada
+- `AssignEmployeeDto`: `{ employeeId, availabilityId? }`; sin `availabilityId`, el empleado entra con la Availability predeterminada de su Usuario
 - `ChangeEmployeeAvailabilityDto`: `{ availabilityId }`; falta o no es entero → 400
 - **Quién gestiona los Empleados de un servicio** (ADR 0017): el Dueño, por cualquiera del Staff, o el propio Empleado, cuando `employeeId` es su Empleado activo en el Negocio del servicio. Un Empleado que actúa por otro, uno dado de baja o un Usuario que no es Empleado de ese Negocio recibe 403 `Only the Dueño or that same Empleado can do this`. El front muestra tal cual el `message` del 422 del último Empleado e informa `cancelledBookings` al dejar de ofrecer.
-- Cada empleado atiende el servicio con una de sus Availability. Es una referencia: editar esa
-  Availability (`PATCH /availabilities/:id`) cambia en el acto todos los servicios que la usan. La
+- Cada empleado atiende el servicio con una Availability de su Usuario. Es una referencia: editar esa
+  Availability (`PUT /availabilities/:id`) cambia en el acto todos los servicios que la usan. La
   respuesta del servicio no dice cuál usa cada empleado.
 - Respuesta (`presentService`): `{ id, branchId, name, description, category, durationMinutes, price, depositPercent, requiresApproval, employees: [{id, name}] }`; `depositPercent` es `null` si el Servicio no pide Seña
 - `category` es un enum fijo: `CLINICA | SPA | GIMNASIO | ACADEMIA | OTRO`, requerido en creación
@@ -138,7 +138,7 @@ Todo Empleado es un Usuario (ADR 0013): nombre y email los presta su cuenta, no 
 | POST | `/businesses/:id/employees` | sí | Invita a un email a ser Empleado (solo el dueño, ADR 0019): crea una Invitación pendiente que vence a los 7 días, no un Empleado. Si ningún Usuario tiene ese email, Clerk le manda el mail para crearse una cuenta (si Clerk dice que ya tiene cuenta, no es error); si ya es Usuario no hay mail. 201 con la Invitación; 200 con la misma si ya estaba pendiente en ese negocio (se reenvía el mail si corresponde); 422 "ya es Empleado" si el email es de un empleado activo del negocio; 403/404 si no es el dueño o el negocio no existe; 502 si Clerk falla, sin crear nada |
 | GET | `/businesses/:id/invitations` | sí | Lista las Invitaciones pendientes (no vencidas) del negocio (solo el dueño) |
 | GET | `/invitations/me` | sí | Invitaciones pendientes y no vencidas dirigidas al email de la Sesión (sin distinguir mayúsculas): `[{ id, business: { name, slug } }]` |
-| POST | `/invitations/:id/accept` | sí | Aceptar invitación (ADR 0019): crea el Empleado del Negocio, con su Availability predeterminada, y cierra la Invitación; 200 con el empleado; puede aceptar aunque sea Dueño de otro Negocio; 404 si no existe o no es de su email; 422 "La invitación venció"; 422 "ya es Empleado" (también al aceptar dos veces) |
+| POST | `/invitations/:id/accept` | sí | Aceptar invitación (ADR 0019): crea el Empleado del Negocio y cierra la Invitación; 200 con el empleado; puede aceptar aunque sea Dueño de otro Negocio; 404 si no existe o no es de su email; 422 "La invitación venció"; 422 "ya es Empleado" (también al aceptar dos veces) |
 | POST | `/invitations/:id/reject` | sí | Rechaza la Invitación y la cierra sin crear Empleado; 204; 404 / 422 como arriba |
 | POST | `/invitations/:id/resend` | sí | El Dueño reenvía la Invitación (ADR 0019): renueva el vencimiento a 7 días y reenvía el mail de Clerk solo si la persona todavía no es Usuario; 200 con la Invitación; 404 si no existe o no es de su Negocio; 422 si ya se aceptó o rechazó; 502 si Clerk falla |
 | DELETE | `/invitations/:id` | sí | El Dueño cancela la Invitación pendiente: la cierra, deja de listarse y ya no se puede aceptar; 204; 404 / 422 como arriba |
@@ -157,50 +157,34 @@ Todo Empleado es un Usuario (ADR 0013): nombre y email los presta su cuenta, no 
 
 ## Availability (Horas laborables)
 
-Cada Empleado tiene una o más Availability, exactamente una predeterminada. Todo es del Dueño del
-Negocio del Empleado: cualquier otro Usuario recibe 403. La única excepción es leerlas: el propio
-Empleado activo también puede (ADR 0017); crear, editar, marcar predeterminada y borrar siguen
-siendo solo del Dueño.
+La Availability es del Usuario (ADR 0020, 0021): todo Usuario nace con una, "Horas laborables" (lunes a
+viernes de 09:00 a 17:00, `America/Argentina/Buenos_Aires`, predeterminada), creada en la misma
+transacción que el Usuario. Todos los endpoints exigen Sesión y valen solo sobre las Availability
+propias: la de otro Usuario es 404, como una que no existe.
 
 | Método | Ruta | Auth | Qué hace |
 |---|---|---|---|
-| GET | `/employees/:id/availabilities` | sí | Las Availability del Empleado con sus Franjas; además del Dueño, las lee el propio Empleado activo (ADR 0017) |
-| POST | `/employees/:id/availabilities` | sí | Crea una con sus Franjas; la primera del Empleado nace predeterminada; 201 |
-| PATCH | `/availabilities/:id` | sí | Cambia el nombre y/o reemplaza el set entero de Franjas; sin `intervals` no las toca |
-| POST | `/availabilities/:id/default` | sí | La marca predeterminada y desmarca la anterior; 200 con la Availability |
-| DELETE | `/availabilities/:id` | sí | La borra con sus Franjas; 204; 422 si es la predeterminada; 409 si algún servicio la usa |
+| GET | `/availabilities` | sí | Las Availability del Usuario: `[{ id, name, isDefault, timeZone }]` |
+| POST | `/availabilities` | sí | Crea una vacía, no predeterminada; 201 con la Availability |
+| GET | `/availabilities/:id` | sí | La Availability con su matriz semanal y sus Anulaciones |
+| PUT | `/availabilities/:id` | sí | Reemplaza todo: nombre, zona, Franjas y Anulaciones, en una transacción; 200 con la Availability |
+| PATCH | `/availabilities/:id/default` | sí | La marca predeterminada y desmarca la anterior; 200 con la Availability |
+| DELETE | `/availabilities/:id` | sí | La borra con sus Franjas y Anulaciones; 204 |
 
-- `CreateAvailabilityDto`: `{ name, intervals: [{ weekday: 0-6, startTime: "HH:mm", endTime: "HH:mm" }] }`
-- `UpdateAvailabilityDto`: `{ name?, intervals? }`; `isDefault` no se acepta acá (400), va por `POST /availabilities/:id/default`
-- `weekday`: 0 = domingo … 6 = sábado, igual que `Date.getUTCDay()`
-- Las Franjas no tienen endpoints propios: se mandan enteras dentro de la Availability. Un día sin
-  Franjas es un día que no se trabaja; `intervals: []` es válido.
-- Respuesta (`presentAvailability`): `{ id, employeeId, name, isDefault, intervals: [{ weekday, startTime, endTime }] }`, Franjas ordenadas por día y hora de inicio
+- `CreateAvailabilityDto`: `{ name, timeZone }`
+- Respuesta de `GET /availabilities/:id` (`presentAvailability`): `{ id, name, isDefault, timeZone, schedule: TimeRange[7][], overrides: [{ date: "YYYY-MM-DD", ranges: TimeRange[] }] }`, con `TimeRange = { start: "HH:mm", end: "HH:mm" }`. `schedule[0]` es el domingo … `schedule[6]` el sábado (igual que `dayjs().day()`); un día sin rangos es un día que no se trabaja. En `overrides`, `ranges: []` es día libre; van ordenadas por fecha. La Franja y la Anulación se leen en `timeZone`.
+- `UpdateAvailabilityDto` (`PUT`): el mismo cuerpo sin `id`, `{ name, timeZone, schedule, overrides }`. `isDefault` se acepta y se ignora (se cambia con `PATCH .../default`). Reemplaza todas las Franjas y Anulaciones. El back guarda la matriz agrupada: los rangos con igual inicio y fin son una sola Franja con varios `days` (`AvailabilityInterval.days`), así que el GET devuelve la misma matriz que se mandó.
 - Errores (el front muestra el `message` tal cual):
-  - dos Franjas del mismo día que se solapan → 422 `Dos Franjas del mismo día se solapan`; dos que se tocan (09:00–17:00 y 17:00–18:00) se aceptan
-  - una Franja cuyo fin no es posterior al inicio → 422 `Cada Franja tiene que terminar después de empezar`
+  - `schedule` que no tiene 7 días, hora que no es `HH:mm`, fecha que no es `YYYY-MM-DD`, campo extra → 400
+  - un rango con `end <= start` → 422 `El miércoles: el rango 17:00–09:00 tiene que terminar después de empezar` (o `La fecha 2026-02-10: …`)
+  - dos rangos del mismo día que se pisan → 422 `El viernes: el rango 12:00–17:00 se solapa con otro` (o `La fecha …`); dos que se tocan (09:00–17:00 y 17:00–18:00) se aceptan
+  - dos Anulaciones de la misma fecha → 422 `La fecha 2026-02-10 está repetida`
+  - `timeZone` que no es un nombre IANA (por ejemplo un offset `-03:00`) → 422 `La zona horaria … no es una zona IANA válida`, también al crear
   - borrar la predeterminada → 422 `No se puede borrar la Availability predeterminada`
-  - borrar una que usa algún servicio → 409 `No se puede borrar la Availability: la usan 2 Servicios` (o `la usa 1 Servicio`); el front muestra el `message` tal cual. Un servicio dado de baja ya no la usa
-  - `weekday` fuera de 0–6, hora que no es `HH:mm`, campo extra → 400
-  - Empleado o Availability inexistente → 404
+  - borrar una que usa algún servicio → 422 `No se puede borrar la Availability: la usan 2 Servicios` (o `la usa 1 Servicio`). Un servicio dado de baja ya no la usa. Si un Servicio la toma justo mientras se borra → 409
+  - Availability inexistente o de otro Usuario → 404
   - dos pedidos concurrentes que dejarían dos predeterminadas → 409
-
-## Anulaciones (AvailabilityOverride)
-
-Cuelgan del Empleado, no de una Availability: tapan todos sus Servicios. Todo es del Dueño del Negocio
-del Empleado: cualquier otro Usuario recibe 403.
-
-| Método | Ruta | Auth | Qué hace |
-|---|---|---|---|
-| GET | `/employees/:id/overrides` | sí | Las Anulaciones del Empleado, agrupadas por fecha |
-| PUT | `/employees/:id/overrides/:date` | sí | Reemplaza las Anulaciones de esa fecha; lista vacía es día libre; puede sumar `coveredByEmployeeId` para nombrar quién cubre |
-| DELETE | `/employees/:id/overrides/:date` | sí | Saca las Anulaciones de esa fecha; 204; esa fecha vuelve al horario semanal |
-
-- `:date` es `YYYY-MM-DD`; otro formato → 400
-- `ReplaceOverridesDto`: `{ intervals: [{ startTime: "HH:mm", endTime: "HH:mm" }], coveredByEmployeeId? }`; `intervals: []` es día libre
-- Respuesta (`presentOverride`): `{ date, intervals: [{ startTime, endTime }], coveredByEmployeeId }`; `intervals: []` es día libre. El GET devuelve un array de esos, ordenado por fecha
-- Las Franjas de una Anulación siguen las mismas reglas que las de una Availability (dos Franjas del mismo día que se solapan → 422 `Dos Franjas del mismo día se solapan`; una que termina antes o al mismo tiempo que empieza → 422 `Cada Franja tiene que terminar después de empezar`; dos que se tocan se aceptan)
-- **Cobertura**: `coveredByEmployeeId` tiene que ser un Empleado activo del mismo Negocio y atender todos los Servicios de quien se ausenta; si no, 422 `La Cobertura tiene que ser un Empleado activo del mismo Negocio` o `La Cobertura tiene que atender todos los Servicios de quien se ausenta`. Activarla reasigna, en la misma transacción, los Turnos `PENDING` y `BOOKED` de quien se ausenta en esa fecha a quien cubre; si alguno choca con un Turno ya confirmado de quien cubre, 409 `El cubridor ya tiene un Turno a esa hora` y no se guarda nada. Sacar la Anulación (`DELETE`) no revierte los Turnos ya reasignados
+- Las Anulaciones no tienen endpoints propios (se van `GET/PUT/DELETE /employees/:id/overrides…`): viajan dentro de la Availability. La Cobertura desaparece (ADR 0021).
 
 ## Slots (Horario reservable)
 
@@ -208,18 +192,18 @@ del Empleado: cualquier otro Usuario recibe 403.
 |---|---|---|---|
 | GET | `/services/:id/slots` | no | Los Horarios reservables de un Servicio con un Empleado, día por día, en un rango de fechas |
 
-- Query: `employeeId` (int, requerido), `from`/`to` (`YYYY-MM-DD`, fechas locales de la Sucursal, inclusive, requeridos); falta alguno o formato inválido → 400
+- Query: `employeeId` (int, requerido), `from`/`to` (`YYYY-MM-DD`, fechas locales de la Availability con la que el Empleado atiende el Servicio, inclusive, requeridos); falta alguno o formato inválido → 400
 - Rango de hasta 31 días; más, o `to` anterior a `from` → 422
 - Servicio inexistente o dado de baja → 404; Empleado que no atiende ese Servicio → 404
-- Todo el cálculo corre en la zona horaria de la Sucursal del Servicio; la respuesta trae instantes UTC:
+- Las Franjas y las Anulaciones se leen en la zona horaria de la Availability, no en la de la Sucursal; la respuesta trae instantes UTC:
   1. Arranca de las Franjas de la Availability con la que ese Empleado atiende ese Servicio, por día de la semana
-  2. Una Anulación de esa fecha reemplaza esas Franjas por completo (día sin horas = día libre)
-  3. Recorta contra `opensAt`/`closesAt` de la Sucursal (nunca toca la Availability)
+  2. Una Anulación de esa fecha de la Availability reemplaza esas Franjas por completo (día sin horas = día libre)
+  3. Se queda con lo que cabe entre `opensAt` y `closesAt` de la Sucursal, leídos en la zona de la Sucursal (nunca toca la Availability)
   4. Grilla de a 15 minutos fijos que arranca después del Tiempo de preparación del Servicio (`prepMinutes`) desde el inicio de la Franja; entra el horario si el Servicio completo termina antes o al mismo tiempo que el fin de la Franja
   5. Descuenta los Turnos `PENDING` y `BOOKED` de ese Empleado (un Turno pendiente ocupa su horario igual que uno aceptado), en cualquiera de sus Servicios, cuyo tramo ocupado (desde su propia preparación hasta su fin) pise el tramo del horario (desde su preparación hasta su fin)
-  6. Si el Servicio tiene `dailyLimit` y ese día de la Sucursal ya tiene esa cantidad de Turnos `PENDING` o `BOOKED` del Servicio, el día no ofrece horarios (`reason: FULLY_BOOKED`)
+  6. Si el Servicio tiene `dailyLimit` y ese día de la Sucursal (su zona, no la de la Availability) ya tiene esa cantidad de Turnos `PENDING` o `BOOKED` del Servicio, el día no ofrece horarios (`reason: FULLY_BOOKED`)
   7. Descarta lo que ya pasó según el reloj del sistema; un día ya pasado no viene
-- Respuesta: `{ timeZone, days: [{ date, slots: [ISO instants], reason?, coveredByEmployeeId? }] }`. `reason` solo aparece cuando `slots` está vacío: `NOT_WORKING` (sin Franjas, Anulación de día libre, o nada sobrevive el recorte), `FULLY_BOOKED` (había horarios pero los Turnos o el reloj se los llevaron todos), o `COVERED` (la fecha tiene una Anulación con Cobertura; no se calcula nada más y el día trae además `coveredByEmployeeId`)
+- Respuesta: `{ timeZone, days: [{ date, slots: [ISO instants], reason? }] }`, con `timeZone` la de la Availability (en la que están las fechas `date`). `reason` solo aparece cuando `slots` está vacío: `NOT_WORKING` (sin Franjas, Anulación de día libre, o nada sobrevive el recorte) o `FULLY_BOOKED` (había horarios pero los Turnos o el reloj se los llevaron todos)
 
 ## Bookings (Turno)
 

@@ -14,7 +14,6 @@ import {
   Prisma,
   User as UserRow,
 } from '../../generated/prisma/client';
-import { toIntervalRow } from '../availabilities/prisma-availabilities.repository';
 import { cancelFutureBooked } from '../bookings/cancel-future-booked';
 import { PrismaService } from '../prisma.service';
 
@@ -39,24 +38,10 @@ export class PrismaEmployeesRepository implements EmployeesRepository {
     ).map(toEmployee);
   }
 
-  async create({ availability, ...employee }: CreateEmployeeData) {
+  async create(data: CreateEmployeeData) {
     return toEmployee(
       await this.prisma.employee
-        .create({
-          data: {
-            ...employee,
-            availabilities: {
-              create: {
-                name: availability.name,
-                isDefault: true,
-                intervals: {
-                  create: availability.intervals.map(toIntervalRow),
-                },
-              },
-            },
-          },
-          include: WITH_USER,
-        })
+        .create({ data, include: WITH_USER })
         .catch(translateError),
     );
   }
