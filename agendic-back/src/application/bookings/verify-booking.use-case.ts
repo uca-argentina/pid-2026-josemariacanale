@@ -16,7 +16,10 @@ import {
 import { localDayBounds } from '../../domain/slots/slot';
 import { assertBookable } from './assert-booking-rules';
 
-/** Re-checks every booking rule at verification time, since it has been up to 24h since the request. */
+/**
+ * Re-checks the booking rules of `assertBookable`, the overlap and the Límite diario at verification time,
+ * since it has been up to 24h since the request. It does not re-check the Horario reservable.
+ */
 @Injectable()
 export class VerifyBookingUseCase {
   constructor(

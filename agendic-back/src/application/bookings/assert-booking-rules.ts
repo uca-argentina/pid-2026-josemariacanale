@@ -44,14 +44,15 @@ export async function assertSlotAvailable(
   excludeBookingId?: number,
 ): Promise<void> {
   // A day of slack either side: the Sucursal's date for `startsAt` is within a day of its UTC date.
+  const iso = startsAt.toISOString();
+  const utcDate = iso.slice(0, 10);
   const { days } = await listSlots.execute(
     serviceId,
     employeeId,
-    addDays(startsAt.toISOString().slice(0, 10), -1),
-    addDays(startsAt.toISOString().slice(0, 10), 1),
+    addDays(utcDate, -1),
+    addDays(utcDate, 1),
     excludeBookingId,
   );
-  const iso = startsAt.toISOString();
   if (!days.some((day) => day.slots.includes(iso)))
     throw new BusinessRuleError(
       `Slot ${iso} is not available for Service ${serviceId}`,
@@ -77,9 +78,8 @@ export async function assertUnderDailyLimit(
 }
 
 /**
- * Every rule shared by creation and verification, except the hours check: the caller supplies endsAt,
- * since verification must check the Booking's endsAt as fixed at creation, not one recomputed from a
- * Servicio duration that may have changed since.
+ * Every rule shared by creation and verification, except the Horario reservable check: Reservar runs it
+ * apart with `assertSlotAvailable`, and verification does not run it.
  */
 export async function assertBookable(
   services: ServicesRepository,

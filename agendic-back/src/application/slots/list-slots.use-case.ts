@@ -49,6 +49,10 @@ export class ListSlotsUseCase {
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
+  /**
+   * @throws {BusinessRuleError} el rango no es de 1 a 31 días
+   * @throws {NotFoundError} el Servicio está dado de baja, o el Empleado no lo atiende
+   */
   async execute(
     serviceId: number,
     employeeId: number,
@@ -82,6 +86,7 @@ export class ListSlotsUseCase {
 
     const fullDates = new Set<string>();
     if (service.dailyLimit !== null) {
+      // Noon UTC falls on the intended calendar date in any zone, so localDayBounds picks the right local day.
       const starts = await this.bookings.listOccupiedStartsByService(
         serviceId,
         localDayBounds(new Date(`${from}T12:00:00.000Z`), branch.timeZone).from,
