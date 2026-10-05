@@ -28,6 +28,7 @@ interface Range {
   end: number;
 }
 
+/** Adds calendar days to a YYYY-MM-DD date. */
 export const addDays = (date: string, days: number): string =>
   dayjs.utc(date).add(days, 'day').format('YYYY-MM-DD');
 
