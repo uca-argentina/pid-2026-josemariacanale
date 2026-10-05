@@ -10,18 +10,18 @@ const inputSchema = z.object({ availabilityId: z.number().int().positive().optio
 
 function presenter(
     availabilities: Availability[],
-    open: AvailabilityDetail | null,
+    openAvailability: AvailabilityDetail | null,
     instrumentationService: IInstrumentationService,
 ) {
     return instrumentationService.startSpan({ name: 'listMyAvailabilities Presenter', op: 'serialize' }, () => ({
         availabilities: availabilities.map(({ id, name, isDefault, timeZone }) => ({ id, name, isDefault, timeZone })),
-        open: open && {
-            id: open.id,
-            name: open.name,
-            isDefault: open.isDefault,
-            timeZone: open.timeZone,
-            schedule: open.schedule.map((day) => day.map(({ start, end }) => ({ start, end }))),
-            overrides: open.overrides.map((o) => ({
+        open: openAvailability && {
+            id: openAvailability.id,
+            name: openAvailability.name,
+            isDefault: openAvailability.isDefault,
+            timeZone: openAvailability.timeZone,
+            schedule: openAvailability.schedule.map((day) => day.map(({ start, end }) => ({ start, end }))),
+            overrides: openAvailability.overrides.map((o) => ({
                 date: o.date,
                 ranges: o.ranges.map(({ start, end }) => ({ start, end })),
             })),
@@ -51,10 +51,13 @@ export const listMyAvailabilitiesController =
         instrumentationService.startSpan({ name: 'listMyAvailabilities Controller' }, async () => {
             await authenticationService.getCurrentUser();
             const { data, error } = inputSchema.safeParse(input);
-            if (error) throw new InputParseError('Invalid data', { cause: error });
+            if (error) throw new InputParseError('Invalid Availability id', { cause: error });
 
             const availabilities = await listAvailabilitiesUseCase();
-            const id = data.availabilityId;
-            const open = id !== undefined && availabilities.some((a) => a.id === id) ? await getAvailabilityUseCase(id) : null;
-            return presenter(availabilities, open, instrumentationService);
+            const { availabilityId } = data;
+            const openAvailability =
+                availabilityId !== undefined && availabilities.some((a) => a.id === availabilityId)
+                    ? await getAvailabilityUseCase(availabilityId)
+                    : null;
+            return presenter(availabilities, openAvailability, instrumentationService);
         });

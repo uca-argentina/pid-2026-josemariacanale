@@ -27,6 +27,6 @@ export const deleteAvailabilityController =
         instrumentationService.startSpan({ name: 'deleteAvailability Controller' }, async () => {
             await authenticationService.getCurrentUser();
             const { data, error } = inputSchema.safeParse(input);
-            if (error) throw new InputParseError('Invalid data', { cause: error });
+            if (error) throw new InputParseError('Invalid Availability id', { cause: error });
             await deleteAvailabilityUseCase(data.availabilityId);
         });

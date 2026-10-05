@@ -273,11 +273,11 @@ function AvailabilityTab({ detail, onStopped }: { detail: ServiceDetailData; onS
                             <span className="text-[#6b7280]">No disponible</span>
                         ) : (
                             <div className="flex flex-col gap-2">
-                                {intervals.map(([from, to]) => (
-                                    <div key={from} className="grid w-fit grid-cols-[64px_32px_64px] tabular-nums">
-                                        <span>{from}</span>
+                                {intervals.map(({ start, end }) => (
+                                    <div key={start} className="grid w-fit grid-cols-[64px_32px_64px] tabular-nums">
+                                        <span>{start}</span>
                                         <span className="text-[#6b7280]">-</span>
-                                        <span>{to}</span>
+                                        <span>{end}</span>
                                     </div>
                                 ))}
                             </div>

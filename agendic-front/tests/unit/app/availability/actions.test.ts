@@ -114,4 +114,13 @@ describe('saveAvailabilityAction', () => {
         });
         expect(mockControllers.IMakeAvailabilityDefaultController).not.toHaveBeenCalled();
     });
+
+    it('says the rest was saved when only marking it default failed', async () => {
+        mockControllers.IMakeAvailabilityDefaultController.mockRejectedValue(new Error('boom'));
+        await expect(saveAvailabilityAction({ availabilityId: 7, name: 'Verano', ...content, makeDefault: true })).resolves.toEqual({
+            ok: false,
+            message: 'Guardamos los cambios, pero no pudimos marcarlas como predeterminadas. Intentá de nuevo.',
+        });
+        expect(mockControllers.IUpdateAvailabilityController).toHaveBeenCalled();
+    });
 });

@@ -25,6 +25,6 @@ export const updateAvailabilityController =
         instrumentationService.startSpan({ name: 'updateAvailability Controller' }, async () => {
             await authenticationService.getCurrentUser();
             const { data, error } = updateAvailabilitySchema.safeParse(input);
-            if (error) throw new InputParseError('Invalid data', { cause: error });
+            if (error) throw new InputParseError('Invalid Availability', { cause: error });
             await updateAvailabilityUseCase(data);
         });

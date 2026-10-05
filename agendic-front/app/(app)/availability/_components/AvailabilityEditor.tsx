@@ -17,12 +17,10 @@ import {
 import {
     DAY_NAMES,
     DEFAULT_INTERVAL,
-    toTuples,
     toWeek,
     weekValid,
-    type AvailabilityInterval,
 } from '@/app/(app)/_components/availability-week';
-import type { AvailabilityDetail } from '@/src/entities/models/availability';
+import type { AvailabilityDetail, TimeRange } from '@/src/entities/models/availability';
 import type { AvailabilityDraft } from './AvailabilityView';
 import { AddIntervalButton, IntervalsEditor } from './IntervalsEditor';
 import { OverridesSection } from './OverridesSection';
@@ -112,8 +110,8 @@ function DayRow({
     onCopy,
 }: {
     day: number;
-    intervals: AvailabilityInterval[];
-    onChange: (intervals: AvailabilityInterval[]) => void;
+    intervals: TimeRange[];
+    onChange: (intervals: TimeRange[]) => void;
     onCopy: (days: number[]) => void;
 }) {
     const id = `day-${day}`;
@@ -200,7 +198,7 @@ export function AvailabilityEditor({
         name: availability.name,
         timeZone: availability.timeZone,
         days: toWeek(availability.schedule),
-        overrides: availability.overrides.map((o) => ({ date: o.date, intervals: toTuples(o.ranges) })),
+        overrides: availability.overrides,
         isDefault: availability.isDefault,
     };
     const [saved, setSaved] = useState(initial);
@@ -210,7 +208,7 @@ export function AvailabilityEditor({
     const dirty = JSON.stringify(draft) !== JSON.stringify(saved);
     const valid = draft.name.trim() !== '' && weekValid(draft.days);
 
-    const setDay = (day: number, intervals: AvailabilityInterval[]) =>
+    const setDay = (day: number, intervals: TimeRange[]) =>
         setDraft((d) => ({ ...d, days: d.days.map((current, i) => (i === day ? intervals : current)) }));
 
     const save = async () => {

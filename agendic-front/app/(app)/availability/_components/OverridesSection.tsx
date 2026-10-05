@@ -13,14 +13,14 @@ import {
     PanelSwitch,
 } from '@/app/(app)/_components/panel-ui';
 import {
+    byStart,
     DAY_SHORT,
     DEFAULT_INTERVAL,
     formatIntervals,
     intervalsValid,
-    type AvailabilityInterval,
 } from '@/app/(app)/_components/availability-week';
+import type { AvailabilityOverride, TimeRange } from '@/src/entities/models/availability';
 import { AddIntervalButton, IntervalsEditor } from './IntervalsEditor';
-import type { OverrideDraft } from './AvailabilityView';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 const isoDate = (y: number, m: number, d: number) => `${y}-${pad(m + 1)}-${pad(d)}`;
@@ -121,13 +121,13 @@ function OverrideDialog({
     onClose,
     onSave,
 }: {
-    editing?: OverrideDraft;
+    editing?: AvailabilityOverride;
     taken: string[];
     onClose: () => void;
-    onSave: (dates: string[], intervals: AvailabilityInterval[]) => void;
+    onSave: (dates: string[], ranges: TimeRange[]) => void;
 }) {
     const [selected, setSelected] = useState<string[]>(editing ? [editing.date] : []);
-    const [intervals, setIntervals] = useState<AvailabilityInterval[]>(editing ? editing.intervals : [DEFAULT_INTERVAL]);
+    const [intervals, setIntervals] = useState<TimeRange[]>(editing ? editing.ranges : [DEFAULT_INTERVAL]);
     const dayOff = intervals.length === 0;
     const valid = selected.length > 0 && intervalsValid(intervals);
 
@@ -145,7 +145,7 @@ function OverrideDialog({
                     </PanelDialogClose>
                     <PanelButton
                         disabled={!valid}
-                        onClick={() => onSave([...selected].sort(), intervals)}
+                        onClick={() => onSave([...selected].sort(), [...intervals].sort(byStart))}
                     >
                         Guardar anulación
                     </PanelButton>
@@ -200,11 +200,11 @@ export function OverridesSection({
     busy,
     onChange,
 }: {
-    overrides: OverrideDraft[];
+    overrides: AvailabilityOverride[];
     busy: boolean;
-    onChange: (overrides: OverrideDraft[]) => void;
+    onChange: (overrides: AvailabilityOverride[]) => void;
 }) {
-    const [editing, setEditing] = useState<OverrideDraft | 'new' | null>(null);
+    const [editing, setEditing] = useState<AvailabilityOverride | 'new' | null>(null);
 
     return (
         <>
@@ -232,7 +232,7 @@ export function OverridesSection({
                                 <div className="flex min-w-0 flex-col gap-1">
                                     <span className="text-[14px] font-semibold text-[#0f1b2d]">{formatDate(o.date)}</span>
                                     <span className="text-[13px] font-medium text-[#6b7280]">
-                                        {o.intervals.length ? formatIntervals(o.intervals) : 'Día libre'}
+                                        {o.ranges.length ? formatIntervals(o.ranges) : 'Día libre'}
                                     </span>
                                 </div>
                                 <div className="ml-auto flex gap-2">
@@ -260,9 +260,9 @@ export function OverridesSection({
                     editing={editing === 'new' ? undefined : editing}
                     taken={overrides.map((o) => o.date)}
                     onClose={() => setEditing(null)}
-                    onSave={(dates, intervals) => {
+                    onSave={(dates, ranges) => {
                         const replaced = overrides.filter((o) => !dates.includes(o.date));
-                        const added = dates.map((date) => ({ date, intervals }));
+                        const added = dates.map((date) => ({ date, ranges }));
                         onChange([...replaced, ...added].sort((x, y) => x.date.localeCompare(y.date)));
                         setEditing(null);
                     }}

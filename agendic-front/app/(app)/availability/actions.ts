@@ -18,11 +18,7 @@ export type AvailabilityActionResult = { ok: true } | { ok: false; message: stri
  * `message` del 422 es el del back (las Franjas inválidas, la predeterminada, los Servicios que la
  * usan) y sale tal cual.
  */
-async function perform(
-    run: () => Promise<void>,
-    unexpected: string,
-    notFound = 'Estas horas laborables ya no existen. Actualizamos la lista.',
-): Promise<AvailabilityActionResult> {
+async function perform(run: () => Promise<void>, unexpected: string): Promise<AvailabilityActionResult> {
     try {
         await run();
         refresh();
@@ -33,7 +29,7 @@ async function perform(
         if (error instanceof AvailabilityRuleError) return { ok: false, message: error.message };
         if (error instanceof NotFoundError) {
             refresh();
-            return { ok: false, message: notFound };
+            return { ok: false, message: 'Estas horas laborables ya no existen. Actualizamos la lista.' };
         }
         if (error instanceof InputParseError) return { ok: false, message: 'Revisá los datos e intentá de nuevo.' };
         getInjection('ICrashReporterService').report(error);
@@ -51,7 +47,8 @@ export async function createAvailabilityAction(name: string, timeZone: string) {
 
 /**
  * Guarda nombre, zona horaria, Franjas y Anulaciones enteros; con `makeDefault`, después las marca
- * predeterminadas (si el primer paso falla, no se marcan).
+ * predeterminadas (si el primer paso falla, no se marcan). Si solo falla el segundo, el mensaje dice que
+ * lo demás quedó guardado: volver a guardar repite los dos pasos sin perder nada.
  */
 export async function saveAvailabilityAction(input: {
     availabilityId: number;
@@ -62,10 +59,15 @@ export async function saveAvailabilityAction(input: {
     makeDefault: boolean;
 }) {
     const { makeDefault, ...changes } = input;
-    return perform(async () => {
-        await getInjection('IUpdateAvailabilityController')(changes);
-        if (makeDefault) await getInjection('IMakeAvailabilityDefaultController')({ availabilityId: input.availabilityId });
-    }, 'No pudimos guardar las horas laborables. Intentá de nuevo.');
+    const saved = await perform(
+        () => getInjection('IUpdateAvailabilityController')(changes),
+        'No pudimos guardar las horas laborables. Intentá de nuevo.',
+    );
+    if (!saved.ok || !makeDefault) return saved;
+    return perform(
+        () => getInjection('IMakeAvailabilityDefaultController')({ availabilityId: input.availabilityId }),
+        'Guardamos los cambios, pero no pudimos marcarlas como predeterminadas. Intentá de nuevo.',
+    );
 }
 
 /** Marca las Horas laborables como predeterminadas; las anteriores se desmarcan solas. */

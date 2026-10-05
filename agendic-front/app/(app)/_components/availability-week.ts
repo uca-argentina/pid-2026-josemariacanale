@@ -1,17 +1,15 @@
 import type { TimeRange } from '@/src/entities/models/availability';
 
-/** Una Franja en el editor: `['HH:mm', 'HH:mm']` en 24 h. Nunca cruza la medianoche. */
-export type AvailabilityInterval = [from: string, to: string];
-
 /** Nombres de los días, lunes primero. */
 export const DAY_NAMES = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 /** Nombres cortos de los días, lunes primero. */
 export const DAY_SHORT = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
-export const DEFAULT_INTERVAL: AvailabilityInterval = ['09:00', '18:00'];
+/** La Franja que se agrega a un día vacío: de 09:00 a 18:00. */
+export const DEFAULT_INTERVAL: TimeRange = { start: '09:00', end: '18:00' };
 
 /** La Availability por defecto: lunes a viernes de 09:00 a 18:00. */
-export const DEFAULT_DAYS: AvailabilityInterval[][] = DAY_NAMES.map((_, i) => (i < 5 ? [DEFAULT_INTERVAL] : []));
+export const DEFAULT_DAYS: TimeRange[][] = DAY_NAMES.map((_, i) => (i < 5 ? [DEFAULT_INTERVAL] : []));
 
 const toMinutes = (time: string) => Number(time.slice(0, 2)) * 60 + Number(time.slice(3));
 const toTime = (minutes: number) =>
@@ -21,27 +19,28 @@ const toTime = (minutes: number) =>
 export const TIME_OPTIONS = Array.from({ length: 96 }, (_, i) => toTime(i * 15));
 const LAST_TIME = TIME_OPTIONS[TIME_OPTIONS.length - 1];
 
-const byStart = (a: AvailabilityInterval, b: AvailabilityInterval) => a[0].localeCompare(b[0]);
+/** Para `sort`: las Franjas por hora de inicio. */
+export const byStart = (a: TimeRange, b: TimeRange) => a.start.localeCompare(b.start);
 
 /** La Franja que suma el `+`: una hora desde el fin de la última, recortada al final del día. */
-export function nextInterval(intervals: AvailabilityInterval[]): AvailabilityInterval | null {
+export function nextInterval(intervals: TimeRange[]): TimeRange | null {
     if (intervals.length === 0) return DEFAULT_INTERVAL;
-    const from = intervals.map(([, to]) => to).sort().at(-1)!;
-    if (from >= LAST_TIME) return null;
-    return [from, toTime(Math.min(toMinutes(from) + 60, toMinutes(LAST_TIME)))];
+    const start = intervals.map(({ end }) => end).sort().at(-1)!;
+    if (start >= LAST_TIME) return null;
+    return { start, end: toTime(Math.min(toMinutes(start) + 60, toMinutes(LAST_TIME))) };
 }
 
 /** Índices de las Franjas que terminan antes de empezar o se pisan con otra. Pegadas (9–17 y 17–18) valen. */
-export function invalidIntervals(intervals: AvailabilityInterval[]): number[] {
-    return intervals.flatMap(([from, to], i) =>
-        from >= to || intervals.some((other, j) => j !== i && from < other[1] && other[0] < to) ? [i] : [],
+export function invalidIntervals(intervals: TimeRange[]): number[] {
+    return intervals.flatMap(({ start, end }, i) =>
+        start >= end || intervals.some((other, j) => j !== i && start < other.end && other.start < end) ? [i] : [],
     );
 }
 
 /** Si ninguna Franja del día es vacía, invertida ni solapada. */
-export const intervalsValid = (intervals: AvailabilityInterval[]) => invalidIntervals(intervals).length === 0;
+export const intervalsValid = (intervals: TimeRange[]) => invalidIntervals(intervals).length === 0;
 
-const formatInterval = ([from, to]: AvailabilityInterval) => `${from} - ${to}`;
+const formatInterval = ({ start, end }: TimeRange) => `${start} - ${end}`;
 
 function dayRuns(days: number[]): string {
     const runs: number[][] = [];
@@ -56,7 +55,7 @@ function dayRuns(days: number[]): string {
 }
 
 /** Una línea por Franja distinta con los días que la tienen: `"Lun, Jue - Vie, 08:00 - 13:00"`. */
-export function summarize(days: AvailabilityInterval[][]): string[] {
+export function summarize(days: TimeRange[][]): string[] {
     const daysByInterval = new Map<string, number[]>();
     days.forEach((intervals, day) => {
         for (const interval of [...intervals].sort(byStart)) {
@@ -68,25 +67,18 @@ export function summarize(days: AvailabilityInterval[][]): string[] {
 }
 
 /** Las Franjas de un día en una línea: `"09:00 - 13:00, 14:00 - 18:00"`. */
-export const formatIntervals = (intervals: AvailabilityInterval[]) => intervals.map(formatInterval).join(', ');
-
-/** Las Franjas del editor de un día, a las que manda el back, ordenadas por inicio. */
-export const toRanges = (intervals: AvailabilityInterval[]): TimeRange[] =>
-    [...intervals].sort(byStart).map(([start, end]) => ({ start, end }));
-
-/** Las Franjas de un día como las manda el back, a las del editor. */
-export const toTuples = (ranges: TimeRange[]): AvailabilityInterval[] => ranges.map(({ start, end }) => [start, end]);
+export const formatIntervals = (intervals: TimeRange[]) => intervals.map(formatInterval).join(', ');
 
 /** Los días del editor, lunes primero: el `schedule` del back (índice 0 = domingo) rota un lugar, el día `d` cae en `(d + 6) % 7`. */
-export function toWeek(schedule: TimeRange[][]): AvailabilityInterval[][] {
-    const week: AvailabilityInterval[][] = DAY_NAMES.map(() => []);
-    schedule.forEach((ranges, day) => (week[(day + 6) % 7] = toTuples(ranges).sort(byStart)));
+export function toWeek(schedule: TimeRange[][]): TimeRange[][] {
+    const week: TimeRange[][] = DAY_NAMES.map(() => []);
+    schedule.forEach((ranges, day) => (week[(day + 6) % 7] = [...ranges].sort(byStart)));
     return week;
 }
 
-/** El `schedule` que espera el back: 7 días, domingo primero; un día sin Franjas es `[]`. */
-export const toSchedule = (week: AvailabilityInterval[][]): TimeRange[][] =>
-    Array.from({ length: 7 }, (_, day) => toRanges(week[(day + 6) % 7]));
+/** El `schedule` que espera el back: 7 días, domingo primero, cada uno ordenado por inicio; un día sin Franjas es `[]`. */
+export const toSchedule = (week: TimeRange[][]): TimeRange[][] =>
+    Array.from({ length: 7 }, (_, day) => [...week[(day + 6) % 7]].sort(byStart));
 
 /** Si el editor puede guardar: ningún día tiene una Franja vacía, invertida o solapada. */
-export const weekValid = (week: AvailabilityInterval[][]) => week.every(intervalsValid);
+export const weekValid = (week: TimeRange[][]) => week.every(intervalsValid);

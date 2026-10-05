@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { toRanges, toSchedule, type AvailabilityInterval } from '@/app/(app)/_components/availability-week';
-import type { Availability, AvailabilityDetail } from '@/src/entities/models/availability';
+import { toSchedule } from '@/app/(app)/_components/availability-week';
+import type { Availability, AvailabilityDetail, AvailabilityOverride, TimeRange } from '@/src/entities/models/availability';
 import {
     createAvailabilityAction,
     deleteAvailabilityAction,
@@ -15,18 +15,12 @@ import {
 import { AvailabilityEditor } from './AvailabilityEditor';
 import { AvailabilityList } from './AvailabilityList';
 
-/** Una Anulación en el editor: la fecha y las Franjas de ese día (`[]` = día libre). */
-export interface OverrideDraft {
-    date: string;
-    intervals: AvailabilityInterval[];
-}
-
 /** Lo que el editor guarda: todo el contenido de la Availability y si pasa a ser la predeterminada. */
 export interface AvailabilityDraft {
     name: string;
     timeZone: string;
-    days: AvailabilityInterval[][];
-    overrides: OverrideDraft[];
+    days: TimeRange[][];
+    overrides: AvailabilityOverride[];
     isDefault: boolean;
 }
 
@@ -66,7 +60,7 @@ export function AvailabilityView({ availabilities, open }: { availabilities: Ava
                             name: draft.name,
                             timeZone: draft.timeZone,
                             schedule: toSchedule(draft.days),
-                            overrides: draft.overrides.map((o) => ({ date: o.date, ranges: toRanges(o.intervals) })),
+                            overrides: draft.overrides,
                             makeDefault: draft.isDefault && !open.isDefault,
                         }),
                     `${draft.name}: horas laborables actualizadas`,
