@@ -1,5 +1,4 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { assertValidHours } from '../../domain/branches/branch';
 import { CreateBusinessInput } from '../../domain/businesses/business';
 import {
   BUSINESSES_REPOSITORY,
@@ -24,7 +23,6 @@ export class CreateBusinessUseCase {
     ownerId: number,
     input: CreateBusinessInput,
   ): Promise<CreatedBusiness> {
-    assertValidHours(input.branch.opensAt, input.branch.closesAt);
     const owner = await this.users.findById(ownerId);
     if (!owner) throw new NotFoundError('User not found');
     if ((await this.businesses.listByOwner(ownerId)).length)
@@ -43,6 +41,8 @@ export class CreateBusinessUseCase {
         hidden: input.service.hidden ?? false,
         prepMinutes: input.service.prepMinutes ?? 0,
         dailyLimit: input.service.dailyLimit ?? null,
+        slotInterval: input.service.slotInterval ?? null,
+        minimumNoticeMinutes: input.service.minimumNoticeMinutes ?? 0,
       },
       employee: { userId: owner.id },
     });

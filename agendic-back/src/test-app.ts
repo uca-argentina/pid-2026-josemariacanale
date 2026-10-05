@@ -257,8 +257,6 @@ export const ANAS_BRANCH: Branch = {
   businessId: ANAS_BUSINESS.id,
   name: 'Downtown',
   address: '123 Main St',
-  opensAt: '09:00',
-  closesAt: '18:00',
   timeZone: 'America/Argentina/Buenos_Aires',
   slug: 'downtown',
 };
@@ -289,6 +287,8 @@ export const ANAS_SERVICE: Service = {
   hidden: false,
   prepMinutes: 0,
   dailyLimit: null,
+  slotInterval: null,
+  minimumNoticeMinutes: 0,
   employees: [
     { id: ANAS_EMPLOYEE.id, name: ANAS_EMPLOYEE.name, availabilityId: 10 },
   ],

@@ -414,6 +414,8 @@ describe('Empleado', () => {
           hidden: false,
           prepMinutes: 0,
           dailyLimit: null,
+          slotInterval: null,
+          minimumNoticeMinutes: 0,
           employees: [
             {
               id: OTHER_EMPLOYEE.id,
@@ -449,6 +451,8 @@ describe('Empleado', () => {
           hidden: false,
           prepMinutes: 0,
           dailyLimit: null,
+          slotInterval: null,
+          minimumNoticeMinutes: 0,
           employees: [
             {
               id: OTHER_EMPLOYEE.id,

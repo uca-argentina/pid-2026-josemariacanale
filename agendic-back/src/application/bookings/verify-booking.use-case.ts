@@ -14,7 +14,7 @@ import {
   ServicesRepository,
 } from '../../domain/services/services.repository';
 import { localDayBounds } from '../../domain/slots/slot';
-import { assertBookable, assertWithinHours } from './assert-booking-rules';
+import { assertBookable } from './assert-booking-rules';
 
 /** Re-checks every booking rule at verification time, since it has been up to 24h since the request. */
 @Injectable()
@@ -43,7 +43,6 @@ export class VerifyBookingUseCase {
       booking.startsAt,
       now,
     );
-    assertWithinHours(branch, booking.startsAt, booking.endsAt);
     const status = service.requiresApproval
       ? BookingStatus.PENDING
       : BookingStatus.BOOKED;

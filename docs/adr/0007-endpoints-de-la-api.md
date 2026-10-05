@@ -53,7 +53,7 @@ actualizarlo a mano cuando se agregue, cambie o borre un endpoint.
 | GET | `/businesses/:id` | no | Detalle de un negocio |
 | GET | `/businesses/by-slug/:slug` | no | Detalle de un negocio por su Enlace de reserva; el slug se compara en minúsculas; 404 si no existe |
 
-- `CreateBusinessDto`: `{ business: { name, description, slug }, branch: { name, address, opensAt, closesAt, timeZone, slug? }, service: ServiceFieldsDto }`; `branch` valida sus campos igual que `CreateBranchDto` del endpoint de Sucursales, salvo que su `slug` es opcional: sin él, la primera Sucursal toma el `slug` del Negocio
+- `CreateBusinessDto`: `{ business: { name, description, slug }, branch: { name, address, timeZone, slug? }, service: ServiceFieldsDto }`; `branch` valida sus campos igual que `CreateBranchDto` del endpoint de Sucursales, salvo que su `slug` es opcional: sin él, la primera Sucursal toma el `slug` del Negocio
 - `UpdateBusinessDto`: `{ name?, description?, slug? }`
 - `slug` (Enlace de reserva): se pasa a minúsculas, 3-40 caracteres, palabras de letras y dígitos unidas por guiones (`^[a-z0-9]+(-[a-z0-9]+)*$`); formato inválido → 400, slug ya tomado → 409
 - Respuesta (`presentBusiness`): `{ id, name, description, slug, ownerId }`
@@ -67,11 +67,11 @@ actualizarlo a mano cuando se agregue, cambie o borre un endpoint.
 | PATCH | `/branches/:id` | sí | Actualiza una sucursal (solo el dueño); 409 si su `slug` ya está en uso en ese negocio; cambiar el `slug` deja de servir el Enlace de reserva anterior de esa sucursal |
 | GET | `/businesses/:businessId/branches` | no | Lista sucursales de un negocio |
 
-- `CreateBranchDto`: `{ name, address, opensAt: "HH:mm", closesAt: "HH:mm", timeZone, slug }`
+- `CreateBranchDto`: `{ name, address, timeZone, slug }`. La Sucursal no tiene horario de apertura ni de cierre (ADR 0020): los Horarios reservables salen solo de las Availability
 - `slug` (tramo de Sucursal del Enlace de reserva, ADR 0014: `/business/<slug del negocio>/<slug de la sucursal>`): mismo formato que el `slug` del Negocio (se pasa a minúsculas, 3-40 caracteres, `^[a-z0-9]+(-[a-z0-9]+)*$`); requerido en creación, opcional en `UpdateBranchDto`; formato inválido → 400; ya usado por otra sucursal del mismo negocio → 409 `Booking link already in use` (dos negocios distintos sí pueden repetirlo)
 - `timeZone`: nombre IANA (por ejemplo `America/Argentina/Buenos_Aires`), nunca un offset; requerido en creación, opcional en `UpdateBranchDto`; inválido → 400
 - `UpdateBranchDto`: los mismos campos, todos opcionales
-- Respuesta (`presentBranch`): `{ id, businessId, name, address, opensAt, closesAt, timeZone, slug }`
+- Respuesta (`presentBranch`): `{ id, businessId, name, address, timeZone, slug }`
 
 ## Imágenes de Sucursal (BranchImage)
 
@@ -105,14 +105,16 @@ una Sucursal); sus archivos en el storage no.
 | GET | `/branches/:id/services` | no | Lista servicios activos de una sucursal, sin los ocultos; 404 si la sucursal no existe |
 | GET | `/branches/:id/services/by-slug/:slug` | no | Un servicio de la sucursal por su tramo del Enlace de reserva (ADR 0018), aunque esté oculto; el tramo se compara en minúsculas; 404 si la sucursal no existe o si ningún servicio suyo no dado de baja tiene ese tramo |
 
-- `CreateServiceDto`: `{ name, description?, category, durationMinutes (int ≥1), price (number ≥0), depositPercent?, requiresApproval?, slug, hidden?, prepMinutes?, dailyLimit?, employeeIds: number[] (no vacío) }`
+- `CreateServiceDto`: `{ name, description?, category, durationMinutes (int ≥1), price (number ≥0), depositPercent?, requiresApproval?, slug, hidden?, prepMinutes?, dailyLimit?, slotInterval?, minimumNoticeMinutes?, employeeIds: number[] (no vacío) }`
 - `slug` es el tramo del Servicio en el Enlace de reserva (ADR 0018): obligatorio al crear, en minúsculas, mismas reglas que el de Sucursal; único por sucursal entre los servicios no dados de baja (índice parcial, ADR 0004; un tramo de un servicio dado de baja queda libre). `hidden` (por defecto `false`) es el Servicio oculto. El servicio del body de `POST /businesses` también exige `slug` y acepta `hidden`.
 - Servicio oculto (`hidden: true`): no sale en `GET /branches/:id/services`, pero `by-slug` lo devuelve y sus Horarios reservables y `POST /bookings` funcionan igual que los de uno visible. Ocultar no es una medida de seguridad, es sacarlo de la vidriera. El front abre la página de la Sucursal con el Servicio ya elegido pidiéndolo por su tramo, y trata el 404 como página no encontrada.
 - Respuesta del servicio (`presentService`): suma `slug`, `hidden` y, en cada elemento de `employees`, `availabilityId`: `{ id, name, availabilityId }`
-- `UpdateServiceDto`: `{ name?, description?, category?, durationMinutes?, price?, depositPercent?, requiresApproval?, slug?, hidden?, prepMinutes?, dailyLimit? }`
+- `UpdateServiceDto`: `{ name?, description?, category?, durationMinutes?, price?, depositPercent?, requiresApproval?, slug?, hidden?, prepMinutes?, dailyLimit?, slotInterval?, minimumNoticeMinutes? }`
 - `prepMinutes` (Tiempo de preparación): `0`, `5`, `10`, `15`, `30` o `60`; `0` por defecto. Otro valor, o `null` → 400. Cada Turno ocupa la agenda de su Empleado desde `startsAt − prepMinutes` hasta `endsAt`, fijado al reservar: cambiarlo no toca los Turnos ya tomados (ADR 0004).
 - `dailyLimit` (Límite diario): entero ≥ 1; sin él, el Servicio no tiene límite (`null` en la respuesta). Cuentan los Turnos `PENDING` y `BOOKED` del Servicio, de todos sus Empleados, cuyo inicio cae en ese día según la zona horaria de la Sucursal. En creación no acepta `null`; en `PATCH`, `dailyLimit: null` lo quita, igual que `depositPercent`. Fuera de rango, con decimales o no numérico → 400.
-- Los dos valen también en el `service` de `POST /businesses`, y la respuesta del servicio (`presentService`) los suma: `prepMinutes`, `dailyLimit`.
+- `slotInterval` (Intervalo): entero ≥ 1, en minutos; sin él (`null` en la respuesta), los Horarios reservables arrancan cada `durationMinutes`. En creación no acepta `null`; en `PATCH`, `slotInterval: null` lo quita. Otro valor → 400.
+- `minimumNoticeMinutes` (Anticipación mínima): entero ≥ 0, en minutos; `0` por defecto. Un Horario reservable arranca como mínimo a `ahora + minimumNoticeMinutes`. Otro valor, o `null` → 400.
+- Los cuatro valen también en el `service` de `POST /businesses`, y la respuesta del servicio (`presentService`) los suma: `prepMinutes`, `dailyLimit`, `slotInterval`, `minimumNoticeMinutes`.
 - `depositPercent` (Seña): entero de 0 a 100, porcentaje del precio. Es simbólica: se guarda y se
   muestra, no dispara ningún cobro. Sin él, el Servicio no pide Seña (`null` en la respuesta). Fuera
   de 0-100, con decimales o no numérico → 400. En creación no acepta `null`; en `PATCH`,
@@ -192,18 +194,18 @@ propias: la de otro Usuario es 404, como una que no existe.
 |---|---|---|---|
 | GET | `/services/:id/slots` | no | Los Horarios reservables de un Servicio con un Empleado, día por día, en un rango de fechas |
 
-- Query: `employeeId` (int, requerido), `from`/`to` (`YYYY-MM-DD`, fechas locales de la Availability con la que el Empleado atiende el Servicio, inclusive, requeridos); falta alguno o formato inválido → 400
+- Query: `employeeId` (int, requerido), `from`/`to` (`YYYY-MM-DD`, fechas locales de la Sucursal, inclusive, requeridos); falta alguno o formato inválido → 400
 - Rango de hasta 31 días; más, o `to` anterior a `from` → 422
 - Servicio inexistente o dado de baja → 404; Empleado que no atiende ese Servicio → 404
-- Las Franjas y las Anulaciones se leen en la zona horaria de la Availability, no en la de la Sucursal; la respuesta trae instantes UTC:
-  1. Arranca de las Franjas de la Availability con la que ese Empleado atiende ese Servicio, por día de la semana
-  2. Una Anulación de esa fecha de la Availability reemplaza esas Franjas por completo (día sin horas = día libre)
-  3. Se queda con lo que cabe entre `opensAt` y `closesAt` de la Sucursal, leídos en la zona de la Sucursal (nunca toca la Availability)
-  4. Grilla de a 15 minutos fijos que arranca después del Tiempo de preparación del Servicio (`prepMinutes`) desde el inicio de la Franja; entra el horario si el Servicio completo termina antes o al mismo tiempo que el fin de la Franja
-  5. Descuenta los Turnos `PENDING` y `BOOKED` de ese Empleado (un Turno pendiente ocupa su horario igual que uno aceptado), en cualquiera de sus Servicios, cuyo tramo ocupado (desde su propia preparación hasta su fin) pise el tramo del horario (desde su preparación hasta su fin)
-  6. Si el Servicio tiene `dailyLimit` y ese día de la Sucursal (su zona, no la de la Availability) ya tiene esa cantidad de Turnos `PENDING` o `BOOKED` del Servicio, el día no ofrece horarios (`reason: FULLY_BOOKED`)
-  7. Descarta lo que ya pasó según el reloj del sistema; un día ya pasado no viene
-- Respuesta: `{ timeZone, days: [{ date, slots: [ISO instants], reason? }] }`, con `timeZone` la de la Availability (en la que están las fechas `date`). `reason` solo aparece cuando `slots` está vacío: `NOT_WORKING` (sin Franjas, Anulación de día libre, o nada sobrevive el recorte) o `FULLY_BOOKED` (había horarios pero los Turnos o el reloj se los llevaron todos)
+- Algoritmo de cal.diy, con dayjs (`utc` y `timezone`); la respuesta trae instantes UTC:
+  1. Rangos por día: las Franjas de la Availability con la que ese Empleado atiende ese Servicio, leídas en la zona de la Availability, pasan a rangos concretos (el horario de verano lo resuelve dayjs). Una Franja que termina a las 23:59 llega hasta la medianoche
+  2. Una Anulación de esa fecha de la Availability (en su zona) reemplaza esas Franjas por completo (día sin horas = día libre)
+  3. Se restan, como rangos, los Turnos `PENDING` y `BOOKED` de ese Empleado (un Turno pendiente ocupa su horario igual que uno aceptado), en cualquiera de sus Servicios y Negocios, cada uno desde su propia preparación (`prepStartsAt`) hasta su fin. Con `excludeBookingId` el Turno que se está Reagendando queda libre
+  4. Cada rango se corta: la frecuencia es el Intervalo (`slotInterval`) o, sin él, la duración. La alineación es el mayor de 60, 30, 20, 15, 10 y 5 que divida la frecuencia (1 si ninguno). El inicio de cada rango es el máximo entre su inicio más el Tiempo de preparación del Servicio y `ahora + minimumNoticeMinutes`, redondeado hacia arriba a la alineación en la zona de la Sucursal. Se avanza de a la frecuencia mientras `inicio + duración ≤ fin del rango`, sin repetir instantes
+  5. Los horarios se agrupan por fecha de la Sucursal (su zona, no la de la Availability). Si el Servicio tiene `dailyLimit` y ese día de la Sucursal ya tiene esa cantidad de Turnos `PENDING` o `BOOKED` del Servicio, el día no ofrece horarios (`reason: FULLY_BOOKED`)
+  6. Un día ya pasado no viene
+- No se copian de cal.diy `showOptimizedSlots`, `offsetStart`, asientos, `travelSchedules` ni OOO
+- Respuesta: `{ timeZone, days: [{ date, slots: [ISO instants], reason? }] }`, con `timeZone` la de la Sucursal (en la que están las fechas `date`). `reason` solo aparece cuando `slots` está vacío: `NOT_WORKING` (ninguna Franja del día alcanza para la duración del Servicio, o Anulación de día libre) o `FULLY_BOOKED` (había horarios pero los Turnos, la Anticipación mínima o el Límite diario se los llevaron todos)
 
 ## Bookings (Turno)
 
@@ -229,11 +231,12 @@ propias: la de otro Usuario es 404, como una que no existe.
 - **Aceptar / Rechazar**: exigen Sesión y que el usuario sea el Empleado asignado al Turno (403 `Only the assigned Employee can accept or reject this Turno` si no; 404 si el Turno no existe). Un Turno que no
   está `PENDING` da 422 `Turno is not pending`. Responden el Turno (`presentBooking`).
 - **Cancelar / Reagendar / Ausencia**: exigen Sesión y ser el Empleado asignado al Turno (403 `Only the assigned Employee can act on this Turno`; 404 si el Turno no existe). Un Turno que no está `BOOKED` da 422 `Turno is not booked`. Responden el Turno (`presentBooking`); Ausencia le suma `noShowAt`.
-  - `RescheduleBookingDto`: `{ startsAt: ISO date-string }`; la duración se conserva, y la preparación es la que el Servicio tiene hoy. Un día que ya alcanzó el Límite diario no ofrece Horarios reservables, así que mover un Turno ahí es el mismo 422 (sin contar al propio Turno). `startsAt` inválido → 400. Si pisa otro Turno `PENDING` o `BOOKED` del Empleado (sin contar el propio) → 409 `Overlaps a booked Turno for this Employee`; si no es un Horario reservable según las mismas reglas que `GET /services/:id/slots` (Franjas, Anulaciones, Sucursal, reloj) → 422 `startsAt is not a Horario reservable`. El horario que el Turno ya ocupaba cuenta como libre.
+  - `RescheduleBookingDto`: `{ startsAt: ISO date-string }`; la duración se conserva, y la preparación es la que el Servicio tiene hoy. Un día que ya alcanzó el Límite diario no ofrece Horarios reservables, así que mover un Turno ahí es el mismo 422 (sin contar al propio Turno). `startsAt` inválido → 400. Si pisa otro Turno `PENDING` o `BOOKED` del Empleado (sin contar el propio) → 409 `Overlaps a booked Turno for this Employee`; si no es un Horario reservable según el mismo cálculo que `GET /services/:id/slots` → 422 `Slot <ISO> is not available for Service <id>`. El horario que el Turno ya ocupaba cuenta como libre.
   - Ausencia: 422 si el Turno no terminó todavía (`Turno has not ended yet`) o ya tiene Ausencia (`Turno already has an Ausencia`).
 - **Horario ocupado (409 `Overlaps a booked Turno for this Employee`)**. Un Turno sin verificar no
   mantiene reservado su horario: lo toma recién al verificarse. Por eso:
   - `POST /bookings` → 409 si el horario, contado desde su Tiempo de preparación, pisa un Turno `PENDING` o `BOOKED` del mismo Empleado (contado desde la preparación de ese Turno).
+  - `POST /bookings` → 422 `Slot <ISO> is not available for Service <id>` si `startsAt` no está entre los Horarios reservables que `GET /services/:id/slots` calcula en ese momento para ese Empleado (fuera de las Franjas, fuera de la grilla del Intervalo, antes de la Anticipación mínima). El front lo muestra como «ese horario ya no está disponible» y vuelve a pedir la lista. La unicidad en Postgres (ADR 0004) sigue siendo la defensa contra dos reservas al mismo tiempo.
   - `POST /bookings` y `POST /bookings/verification` → 409 `The Service reached its Límite diario that day` si el Servicio ya tiene `dailyLimit` Turnos `PENDING` o `BOOKED` ese día de la Sucursal. Los Turnos sin verificar, cancelados y rechazados no cuentan. Dos verificaciones casi juntas del mismo Servicio no pueden pasarlo (ADR 0004).
   - Dos `POST /bookings` para el mismo horario, aunque lleguen casi juntos, dan los dos 201: ninguno
     ocupa el horario todavía.

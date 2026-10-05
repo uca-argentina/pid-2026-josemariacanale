@@ -246,9 +246,13 @@ describe('Mis turnos del Empleado', () => {
     it.each([
       ['a day the Empleado does not work', '2026-01-03T15:00:00.000Z'],
       ['a time outside the Franjas', '2026-01-02T22:00:00.000Z'],
-      ['a time off the 15-minute grid', '2026-01-02T15:07:00.000Z'],
+      ["a time off the Servicio's start grid", '2026-01-02T15:07:00.000Z'],
     ])('answers 422 for %s', async (_name, startsAt) => {
-      await patch({ startsAt }).expect(422);
+      const res = await patch({ startsAt }).expect(422);
+
+      expect(res.body.message).toBe(
+        `Slot ${startsAt} is not available for Service ${ANAS_SERVICE.id}`,
+      );
       expect(t.bookings.reschedule).not.toHaveBeenCalled();
     });
 

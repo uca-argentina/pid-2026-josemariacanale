@@ -32,6 +32,10 @@ export interface Service {
   prepMinutes: number;
   /** Límite diario: PENDING and BOOKED Turnos per local day of the Sucursal. Null when there is none. */
   dailyLimit: number | null;
+  /** Intervalo: minutes between the starts of its Horarios reservables. Null means the duration. */
+  slotInterval: number | null;
+  /** Anticipación mínima: minutes that must remain before a Turno starts to Reservar it. 0 means none. */
+  minimumNoticeMinutes: number;
   /** In charge of it: verified and not dados de baja. */
   employees: ServiceEmployee[];
 }
@@ -58,6 +62,8 @@ export interface CreateServiceInput {
   hidden?: boolean;
   prepMinutes?: number;
   dailyLimit?: number;
+  slotInterval?: number;
+  minimumNoticeMinutes?: number;
   employeeIds: number[];
 }
 
@@ -75,4 +81,7 @@ export interface UpdateServiceInput {
   prepMinutes?: number;
   /** Null drops the Límite diario. */
   dailyLimit?: number | null;
+  /** Null drops the Intervalo. */
+  slotInterval?: number | null;
+  minimumNoticeMinutes?: number;
 }

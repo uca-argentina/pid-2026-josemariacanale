@@ -6,19 +6,8 @@ import { DAILY_LIMIT_REACHED } from '../../domain/bookings/booking';
 import { BusinessRuleError, ConflictError } from '../../domain/errors';
 import { Service } from '../../domain/services/service';
 import { ServicesRepository } from '../../domain/services/services.repository';
-import { localDayBounds } from '../../domain/slots/slot';
-
-const BUENOS_AIRES = 'America/Argentina/Buenos_Aires';
-
-const timeFormatter = new Intl.DateTimeFormat('en-GB', {
-  timeZone: BUENOS_AIRES,
-  hour: '2-digit',
-  minute: '2-digit',
-  hour12: false,
-});
-
-// ponytail: every Sucursal is assumed to be in Argentina; add a per-Sucursal timezone if the business expands abroad.
-const localTime = (date: Date) => timeFormatter.format(date).replace('24:', '00:');
+import { addDays, localDayBounds } from '../../domain/slots/slot';
+import { ListSlotsUseCase } from '../slots/list-slots.use-case';
 
 export function assertServiceBookable(
   service: Service | null,
@@ -42,15 +31,30 @@ export function assertNotPast(startsAt: Date, now: Date): void {
     throw new BusinessRuleError('startsAt cannot be before now');
 }
 
-/** Half-open: ending exactly at closing time is accepted. */
-export function assertWithinHours(
-  branch: Branch,
+/**
+ * Checks that `startsAt` is one of the Horarios reservables the Cliente was shown, recalculated now.
+ *
+ * @throws {BusinessRuleError} `startsAt` is not a Horario reservable of the Servicio for that Empleado
+ */
+export async function assertSlotAvailable(
+  listSlots: ListSlotsUseCase,
+  serviceId: number,
+  employeeId: number,
   startsAt: Date,
-  endsAt: Date,
-): void {
-  if (localTime(startsAt) < branch.opensAt || localTime(endsAt) > branch.closesAt)
+  excludeBookingId?: number,
+): Promise<void> {
+  // A day of slack either side: the Sucursal's date for `startsAt` is within a day of its UTC date.
+  const { days } = await listSlots.execute(
+    serviceId,
+    employeeId,
+    addDays(startsAt.toISOString().slice(0, 10), -1),
+    addDays(startsAt.toISOString().slice(0, 10), 1),
+    excludeBookingId,
+  );
+  const iso = startsAt.toISOString();
+  if (!days.some((day) => day.slots.includes(iso)))
     throw new BusinessRuleError(
-      "Booking must fit within the Sucursal's hours",
+      `Slot ${iso} is not available for Service ${serviceId}`,
     );
 }
 

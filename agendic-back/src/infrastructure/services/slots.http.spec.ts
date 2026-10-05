@@ -9,8 +9,8 @@ import {
   workWeek,
 } from '../../test-app';
 
-const BRANCH = ANAS_BRANCH; // opensAt 09:00, closesAt 18:00, America/Argentina/Buenos_Aires
-const SERVICE = ANAS_SERVICE; // durationMinutes 30
+const BRANCH = ANAS_BRANCH; // America/Argentina/Buenos_Aires
+const SERVICE = ANAS_SERVICE; // durationMinutes 30, so a start every 30 minutes
 
 const LINK: EmployeeService = {
   serviceId: SERVICE.id,
@@ -53,7 +53,7 @@ describe('GET /services/:id/slots', () => {
   });
   afterEach(() => t.app.close());
 
-  it('grillas horarios de a 15 minutos, el último terminando justo en el fin de la Franja', async () => {
+  it('ofrece un Horario reservable cada duración del Servicio, el último terminando justo en el fin de la Franja', async () => {
     const res = await query(t, {}).expect(200);
 
     expect(res.body.timeZone).toBe(BRANCH.timeZone);
@@ -66,8 +66,7 @@ describe('GET /services/:id/slots', () => {
     const [day] = res.body.days;
     expect(day.slots[0]).toBe('2026-01-02T12:00:00.000Z'); // 09:00 ARG
     expect(day.slots.at(-1)).toBe('2026-01-02T20:30:00.000Z'); // 17:30 ARG, ends 18:00
-    expect(day.slots).not.toContain('2026-01-02T20:45:00.000Z'); // would end at 18:15
-    expect(day.slots).toHaveLength(35);
+    expect(day.slots).toHaveLength(18);
   });
 
   it('un Servicio oculto tiene Horarios reservables igual que uno visible', async () => {
@@ -75,7 +74,7 @@ describe('GET /services/:id/slots', () => {
 
     const res = await query(t, {}).expect(200);
 
-    expect(res.body.days[0].slots).toHaveLength(35);
+    expect(res.body.days[0].slots).toHaveLength(18);
   });
 
   it('descuenta un Turno tomado, en cualquier Servicio del mismo Empleado', async () => {
@@ -87,8 +86,7 @@ describe('GET /services/:id/slots', () => {
 
     const [day] = res.body.days;
     expect(day.slots).not.toContain('2026-01-02T14:00:00.000Z'); // inside the booking
-    expect(day.slots).not.toContain('2026-01-02T14:15:00.000Z'); // would end inside the booking
-    expect(day.slots).toContain('2026-01-02T13:15:00.000Z'); // ends exactly when the booking starts
+    expect(day.slots).toContain('2026-01-02T13:30:00.000Z'); // ends exactly when the booking starts
     expect(day.slots).toContain('2026-01-02T14:30:00.000Z'); // starts exactly when the booking ends
     expect(t.bookings.listOccupiedByEmployee).toHaveBeenCalledWith(
       ANAS_EMPLOYEE.id,
@@ -105,9 +103,9 @@ describe('GET /services/:id/slots', () => {
       const res = await query(t, {}).expect(200);
 
       const [day] = res.body.days;
-      expect(day.slots[0]).toBe('2026-01-02T12:15:00.000Z'); // 09:15 ARG: 09:00 to 09:15 is preparation
+      expect(day.slots[0]).toBe('2026-01-02T12:30:00.000Z'); // 09:30 ARG: 09:15 rounded up to the 30' alignment
       expect(day.slots.at(-1)).toBe('2026-01-02T20:30:00.000Z'); // 17:30 ARG, ends 18:00
-      expect(day.slots).toHaveLength(34);
+      expect(day.slots).toHaveLength(17);
     });
 
     it('un Turno tomado bloquea también su preparación', async () => {
@@ -120,7 +118,7 @@ describe('GET /services/:id/slots', () => {
 
       const [day] = res.body.days;
       expect(day.slots).not.toContain('2026-01-02T13:30:00.000Z'); // would end inside the preparation
-      expect(day.slots).toContain('2026-01-02T13:15:00.000Z'); // ends exactly when the preparation starts
+      expect(day.slots).toContain('2026-01-02T13:00:00.000Z'); // ends before the preparation starts
     });
 
     it('la preparación del Servicio pedido no puede pisar un Turno tomado, de cualquier Servicio del Empleado', async () => {
@@ -133,9 +131,8 @@ describe('GET /services/:id/slots', () => {
 
       const [day] = res.body.days;
       expect(day.slots).not.toContain('2026-01-02T14:30:00.000Z'); // its preparation would start at 14:15
-      expect(day.slots).toContain('2026-01-02T14:45:00.000Z'); // its preparation starts exactly at 14:30
-      expect(day.slots).not.toContain('2026-01-02T13:45:00.000Z'); // would end at 14:15, inside the Turno
-      expect(day.slots).toContain('2026-01-02T13:30:00.000Z'); // ends exactly when the Turno's preparation starts
+      expect(day.slots).toContain('2026-01-02T15:00:00.000Z'); // 14:30 plus preparation, rounded up to the alignment
+      expect(day.slots).toContain('2026-01-02T13:30:00.000Z'); // ends exactly when the Turno starts
     });
   });
 
@@ -168,7 +165,7 @@ describe('GET /services/:id/slots', () => {
 
       const res = await query(t, {}).expect(200);
 
-      expect(res.body.days[0].slots).toHaveLength(35);
+      expect(res.body.days[0].slots).toHaveLength(18);
     });
 
     it('cuenta el día en la zona horaria de la Sucursal', async () => {
@@ -178,7 +175,7 @@ describe('GET /services/:id/slots', () => {
         new Date('2026-01-02T02:00:00.000Z'),
       ]);
       const notFull = await query(t, {}).expect(200);
-      expect(notFull.body.days[0].slots).toHaveLength(35);
+      expect(notFull.body.days[0].slots).toHaveLength(18);
 
       t.bookings.listOccupiedStartsByService.mockResolvedValue([
         new Date('2026-01-03T02:00:00.000Z'),
@@ -234,20 +231,7 @@ describe('GET /services/:id/slots', () => {
 
     const res = await query(t, {}).expect(200);
 
-    expect(res.body.days[0].slots).toHaveLength(35);
-  });
-
-  it('el recorte contra la Sucursal achica el día, sin tocar la Availability', async () => {
-    t.availabilities.findById.mockResolvedValue({
-      ...AVAILABILITY,
-      schedule: workWeek('08:00', '19:00'),
-    });
-
-    const res = await query(t, {}).expect(200);
-
-    const [day] = res.body.days;
-    expect(day.slots[0]).toBe('2026-01-02T12:00:00.000Z'); // 09:00 ARG, not 08:00
-    expect(day.slots.at(-1)).toBe('2026-01-02T20:30:00.000Z'); // 17:30 ARG, ends 18:00
+    expect(res.body.days[0].slots).toHaveLength(18);
   });
 
   it('un día pasado no viene; los horarios de hoy anteriores al reloj no vienen', async () => {
@@ -279,8 +263,7 @@ describe('GET /services/:id/slots', () => {
     expect(res.body.days).toEqual([{ date, slots: [], reason }]);
   });
 
-  it('lee las Franjas en la zona de la Availability, no en la de la Sucursal', async () => {
-    t.branches.findById.mockResolvedValue({ ...BRANCH, opensAt: '00:00', closesAt: '23:59' });
+  it('lee las Franjas en la zona de la Availability y agrupa el día en la de la Sucursal', async () => {
     t.availabilities.findById.mockResolvedValue({
       ...AVAILABILITY,
       timeZone: 'America/New_York', // UTC-5 in January
@@ -288,22 +271,9 @@ describe('GET /services/:id/slots', () => {
 
     const res = await query(t, {}).expect(200);
 
-    expect(res.body.timeZone).toBe('America/New_York');
+    expect(res.body.timeZone).toBe(BRANCH.timeZone); // the day is the Sucursal's
     expect(res.body.days[0].slots[0]).toBe('2026-01-02T14:00:00.000Z'); // 09:00 EST
     expect(res.body.days[0].slots.at(-1)).toBe('2026-01-02T22:30:00.000Z'); // 17:30 EST
-  });
-
-  it('las horas de la Sucursal se leen en su propia zona, aunque la Availability sea de otra', async () => {
-    t.availabilities.findById.mockResolvedValue({
-      ...AVAILABILITY,
-      timeZone: 'America/New_York',
-    });
-
-    const res = await query(t, {}).expect(200);
-
-    // Branch is 09:00–18:00 ARG = 12:00Z–21:00Z; the Availability starts at 14:00Z.
-    expect(res.body.days[0].slots[0]).toBe('2026-01-02T14:00:00.000Z');
-    expect(res.body.days[0].slots.at(-1)).toBe('2026-01-02T20:30:00.000Z'); // ends 21:00Z = 18:00 ARG
   });
 
   it('un rango que cruza el cambio de horario de verano mantiene la hora de reloj y corre el instante UTC', async () => {
@@ -324,6 +294,82 @@ describe('GET /services/:id/slots', () => {
     );
     expect(byDate['2026-03-27'][0]).toBe('2026-03-27T08:00:00.000Z'); // 09:00 CET = UTC+1
     expect(byDate['2026-03-30'][0]).toBe('2026-03-30T07:00:00.000Z'); // 09:00 CEST = UTC+2
+  });
+
+  describe('Intervalo y Anticipación mínima', () => {
+    const FRANJA_9_A_13 = { ...AVAILABILITY, schedule: workWeek('09:00', '13:00') };
+
+    it('sin Intervalo, un Servicio de 60 minutos con una Franja de 9 a 13 ofrece 9, 10, 11 y 12', async () => {
+      t.services.findById.mockResolvedValue({ ...SERVICE, durationMinutes: 60 });
+      t.availabilities.findById.mockResolvedValue(FRANJA_9_A_13);
+
+      const res = await query(t, {}).expect(200);
+
+      expect(res.body.days[0].slots).toEqual([
+        '2026-01-02T12:00:00.000Z',
+        '2026-01-02T13:00:00.000Z',
+        '2026-01-02T14:00:00.000Z',
+        '2026-01-02T15:00:00.000Z',
+      ]);
+    });
+
+    it('con Intervalo de 45 minutos se avanza de a 45', async () => {
+      t.services.findById.mockResolvedValue({ ...SERVICE, slotInterval: 45 });
+      t.availabilities.findById.mockResolvedValue(FRANJA_9_A_13);
+
+      const res = await query(t, {}).expect(200);
+
+      expect(res.body.days[0].slots).toEqual([
+        '2026-01-02T12:00:00.000Z', // 09:00
+        '2026-01-02T12:45:00.000Z', // 09:45
+        '2026-01-02T13:30:00.000Z', // 10:30
+        '2026-01-02T14:15:00.000Z', // 11:15
+        '2026-01-02T15:00:00.000Z', // 12:00, the next one (12:45) wouldn't fit
+      ]);
+    });
+
+    it('aprovecha el hueco que deja un Turno: con Intervalo de 20, tras uno de 9:00 a 9:20 el primero es 9:20', async () => {
+      t.services.findById.mockResolvedValue({
+        ...SERVICE,
+        durationMinutes: 20,
+        slotInterval: 20,
+      });
+      t.availabilities.findById.mockResolvedValue({
+        ...AVAILABILITY,
+        schedule: workWeek('09:00', '12:00'),
+      });
+      t.bookings.listOccupiedByEmployee.mockResolvedValue([
+        { prepStartsAt: new Date('2026-01-02T12:00:00.000Z'), endsAt: new Date('2026-01-02T12:20:00.000Z') },
+      ]);
+
+      const res = await query(t, {}).expect(200);
+
+      expect(res.body.days[0].slots[0]).toBe('2026-01-02T12:20:00.000Z');
+    });
+
+    it('no ofrece nada antes de ahora más la Anticipación mínima', async () => {
+      // now: 2026-01-01T12:00:00.000Z = 09:00 ARG
+      t.services.findById.mockResolvedValue({ ...SERVICE, minimumNoticeMinutes: 125 });
+
+      const res = await query(t, { from: '2026-01-01', to: '2026-01-01' }).expect(200);
+
+      expect(res.body.days[0].slots[0]).toBe('2026-01-01T14:30:00.000Z'); // 11:05 rounded up to 11:30 ARG
+    });
+
+    it('una Franja hasta las 23:59 admite un Turno que termina a las 00:00', async () => {
+      t.services.findById.mockResolvedValue({ ...SERVICE, durationMinutes: 60 });
+      t.availabilities.findById.mockResolvedValue({
+        ...AVAILABILITY,
+        schedule: workWeek('22:00', '23:59'),
+      });
+
+      const res = await query(t, {}).expect(200);
+
+      expect(res.body.days[0].slots).toEqual([
+        '2026-01-03T01:00:00.000Z', // 22:00 ARG
+        '2026-01-03T02:00:00.000Z', // 23:00 ARG, ends at midnight
+      ]);
+    });
   });
 
   it('answers 422 for a range longer than 31 days', async () => {

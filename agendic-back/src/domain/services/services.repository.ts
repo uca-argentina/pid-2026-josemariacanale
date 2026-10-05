@@ -19,6 +19,8 @@ export interface ServicesRepository {
       | 'hidden'
       | 'prepMinutes'
       | 'dailyLimit'
+      | 'slotInterval'
+      | 'minimumNoticeMinutes'
     > & { employees: Omit<EmployeeService, 'serviceId'>[] },
   ): Promise<Service>;
   findById(id: number): Promise<Service | null>;
@@ -42,6 +44,8 @@ export interface ServicesRepository {
         | 'hidden'
         | 'prepMinutes'
         | 'dailyLimit'
+        | 'slotInterval'
+        | 'minimumNoticeMinutes'
       >
     >,
   ): Promise<Service>;

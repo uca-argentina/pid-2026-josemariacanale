@@ -20,8 +20,6 @@ export class PrismaBranchesRepository implements BranchesRepository {
       | 'businessId'
       | 'name'
       | 'address'
-      | 'opensAt'
-      | 'closesAt'
       | 'timeZone'
       | 'slug'
     >,
@@ -33,8 +31,6 @@ export class PrismaBranchesRepository implements BranchesRepository {
             businessId: data.businessId,
             name: data.name,
             address: data.address,
-            opensAt: toTime(data.opensAt),
-            closesAt: toTime(data.closesAt),
             timeZone: data.timeZone,
             slug: data.slug,
           },
@@ -63,7 +59,7 @@ export class PrismaBranchesRepository implements BranchesRepository {
     data: Partial<
       Pick<
         Branch,
-        'name' | 'address' | 'opensAt' | 'closesAt' | 'timeZone' | 'slug'
+        'name' | 'address' | 'timeZone' | 'slug'
       >
     >,
   ) {
@@ -74,9 +70,6 @@ export class PrismaBranchesRepository implements BranchesRepository {
           data: {
             name: data.name,
             address: data.address,
-            opensAt: data.opensAt === undefined ? undefined : toTime(data.opensAt),
-            closesAt:
-              data.closesAt === undefined ? undefined : toTime(data.closesAt),
             timeZone: data.timeZone,
             slug: data.slug,
           },
@@ -94,8 +87,6 @@ export const toBranch = (row: BranchRow): Branch => ({
   businessId: row.businessId,
   name: row.name,
   address: row.address,
-  opensAt: fromTime(row.opensAt),
-  closesAt: fromTime(row.closesAt),
   timeZone: row.timeZone,
   slug: row.slug,
 });

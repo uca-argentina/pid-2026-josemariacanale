@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Branch, assertValidHours, UpdateBranchInput } from '../../domain/branches/branch';
+import { Branch, UpdateBranchInput } from '../../domain/branches/branch';
 import {
   BRANCHES_REPOSITORY,
   BranchesRepository,
@@ -28,10 +28,6 @@ export class UpdateBranchUseCase {
     const branch = await this.branches.findById(branchId);
     if (!branch) throw new NotFoundError('Branch not found');
     assertOwner(await this.businesses.findById(branch.businessId), userId);
-    assertValidHours(
-      input.opensAt ?? branch.opensAt,
-      input.closesAt ?? branch.closesAt,
-    );
     return this.branches.update(branchId, input);
   }
 }

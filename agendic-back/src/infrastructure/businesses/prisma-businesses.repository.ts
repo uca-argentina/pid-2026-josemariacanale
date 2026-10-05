@@ -10,7 +10,7 @@ import {
   NotFoundError,
 } from '../../domain/errors';
 import { Business as BusinessRow, Prisma } from '../../generated/prisma/client';
-import { toBranch, toTime } from '../branches/prisma-branches.repository';
+import { toBranch } from '../branches/prisma-branches.repository';
 import {
   toEmployee,
   WITH_USER,
@@ -39,8 +39,6 @@ export class PrismaBusinessesRepository implements BusinessesRepository {
             businessId: business.id,
             name: data.branch.name,
             address: data.branch.address,
-            opensAt: toTime(data.branch.opensAt),
-            closesAt: toTime(data.branch.closesAt),
             timeZone: data.branch.timeZone,
             slug: data.branch.slug,
           },

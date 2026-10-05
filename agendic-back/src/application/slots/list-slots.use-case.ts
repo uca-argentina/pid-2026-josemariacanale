@@ -18,11 +18,10 @@ import {
   ServicesRepository,
 } from '../../domain/services/services.repository';
 import {
-  addDays,
   computeSlots,
   DaySlots,
   localDate,
-  zonedTimeToUtc,
+  localDayBounds,
 } from '../../domain/slots/slot';
 
 const MAX_RANGE_DAYS = 31;
@@ -83,11 +82,10 @@ export class ListSlotsUseCase {
 
     const fullDates = new Set<string>();
     if (service.dailyLimit !== null) {
-      // The dates are the Availability's, the Límite diario counts in the Sucursal's: a day of slack either side.
       const starts = await this.bookings.listOccupiedStartsByService(
         serviceId,
-        zonedTimeToUtc(addDays(from, -1), '00:00', availability.timeZone),
-        zonedTimeToUtc(addDays(to, 2), '00:00', availability.timeZone),
+        localDayBounds(new Date(`${from}T12:00:00.000Z`), branch.timeZone).from,
+        localDayBounds(new Date(`${to}T12:00:00.000Z`), branch.timeZone).to,
         excludeBookingId,
       );
       const perDate = new Map<string, number>();
@@ -100,15 +98,17 @@ export class ListSlotsUseCase {
     }
 
     return {
-      timeZone: availability.timeZone,
+      timeZone: branch.timeZone,
       days: computeSlots({
         from,
         to,
-        branch,
+        timeZone: branch.timeZone,
         availability,
         bookedRanges,
         durationMinutes: service.durationMinutes,
         prepMinutes: service.prepMinutes,
+        slotInterval: service.slotInterval,
+        minimumNoticeMinutes: service.minimumNoticeMinutes,
         fullDates,
         now: this.clock.now(),
       }),

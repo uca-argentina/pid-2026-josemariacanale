@@ -22,6 +22,12 @@ const IsPrepMinutes = () => IsIn(PREP_MINUTES);
 /** Límite diario: a whole number of Turnos, at least one. */
 const IsDailyLimit = () => applyDecorators(IsInt(), Min(1));
 
+/** Intervalo: whole minutes, at least one. */
+const IsSlotInterval = () => applyDecorators(IsInt(), Min(1));
+
+/** Anticipación mínima: whole minutes, zero or more. */
+const IsMinimumNotice = () => applyDecorators(IsInt(), Min(0));
+
 /** The Servicio's own fields, shared with the Servicio part of POST /businesses. */
 export class ServiceFieldsDto {
   @IsName()
@@ -64,6 +70,14 @@ export class ServiceFieldsDto {
   @IfPresent()
   @IsDailyLimit()
   dailyLimit?: number;
+
+  @IfPresent()
+  @IsSlotInterval()
+  slotInterval?: number;
+
+  @IfPresent()
+  @IsMinimumNotice()
+  minimumNoticeMinutes?: number;
 }
 
 export class CreateServiceDto extends ServiceFieldsDto {
@@ -136,4 +150,13 @@ export class UpdateServiceDto {
   @IsOptional()
   @IsDailyLimit()
   dailyLimit?: number | null;
+
+  /** Null drops the Intervalo, like dailyLimit. */
+  @IsOptional()
+  @IsSlotInterval()
+  slotInterval?: number | null;
+
+  @IfPresent()
+  @IsMinimumNotice()
+  minimumNoticeMinutes?: number;
 }
