@@ -1,21 +1,22 @@
 import type { IAvailabilitiesRepository } from '@/src/application/repositories/availabilities.repository.interface';
 import type { IAuthenticationService } from '@/src/application/services/authentication.service.interface';
 import { UnauthenticatedError } from '@/src/entities/errors/auth';
-import { AvailabilityInUseError, AvailabilityRuleError } from '@/src/entities/errors/availability';
+import { AvailabilityRuleError } from '@/src/entities/errors/availability';
 import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
 import {
+    availabilityDetailSchema,
     availabilitySchema,
     type Availability,
+    type AvailabilityDetail,
     type CreateAvailability,
     type UpdateAvailability,
 } from '@/src/entities/models/availability';
 
 /**
- * Availability contra la API del back.
+ * Availability del Usuario contra la API del back.
  *
  * Cada método traduce el status del back así: 401 a `UnauthenticatedError`, 404 a `NotFoundError`,
- * 409 a `AvailabilityInUseError`, 422 a `AvailabilityRuleError`; cualquier otro no-OK (incluido el
- * 403 de quien no es el Dueño), o una falla de red, a `ApiRequestError`.
+ * 422 a `AvailabilityRuleError`; cualquier otro no-OK, o una falla de red, a `ApiRequestError`.
  */
 export class AvailabilitiesRepository implements IAvailabilitiesRepository {
     constructor(
@@ -25,54 +26,55 @@ export class AvailabilitiesRepository implements IAvailabilitiesRepository {
 
     /**
      * @throws {UnauthenticatedError} la API respondió 401
-     * @throws {NotFoundError} la API respondió 404
      * @throws {ApiRequestError} falla de red, otro status no-OK o cuerpo inesperado
      */
-    async listAvailabilities(employeeId: number): Promise<Availability[]> {
-        const path = `/employees/${employeeId}/availabilities`;
-        const json = await this.request('GET', path);
-        return this.parse(() => availabilitySchema.array().parse(json), `GET ${path}`);
+    async listAvailabilities(): Promise<Availability[]> {
+        const json = await this.request('GET', '/availabilities');
+        return this.parse(() => availabilitySchema.array().parse(json), 'GET /availabilities');
     }
 
     /**
      * @throws {UnauthenticatedError} la API respondió 401
      * @throws {NotFoundError} la API respondió 404
-     * @throws {AvailabilityRuleError} la API respondió 422
      * @throws {ApiRequestError} falla de red, otro status no-OK o cuerpo inesperado
      */
-    async createAvailability({ employeeId, ...availability }: CreateAvailability): Promise<Availability> {
-        const path = `/employees/${employeeId}/availabilities`;
-        const json = await this.request('POST', path, availability);
-        return this.parse(() => availabilitySchema.parse(json), `POST ${path}`);
-    }
-
-    /**
-     * @throws {UnauthenticatedError} la API respondió 401
-     * @throws {NotFoundError} la API respondió 404
-     * @throws {AvailabilityRuleError} la API respondió 422
-     * @throws {ApiRequestError} falla de red, otro status no-OK o cuerpo inesperado
-     */
-    async updateAvailability({ availabilityId, ...changes }: UpdateAvailability): Promise<Availability> {
+    async getAvailability(availabilityId: number): Promise<AvailabilityDetail> {
         const path = `/availabilities/${availabilityId}`;
-        const json = await this.request('PATCH', path, changes);
-        return this.parse(() => availabilitySchema.parse(json), `PATCH ${path}`);
+        const json = await this.request('GET', path);
+        return this.parse(() => availabilityDetailSchema.parse(json), `GET ${path}`);
     }
 
     /**
      * @throws {UnauthenticatedError} la API respondió 401
-     * @throws {NotFoundError} la API respondió 404
-     * @throws {ApiRequestError} falla de red, otro status no-OK o cuerpo inesperado
+     * @throws {AvailabilityRuleError} la API respondió 422
+     * @throws {ApiRequestError} falla de red u otro status no-OK
      */
-    async makeDefault(availabilityId: number): Promise<Availability> {
-        const path = `/availabilities/${availabilityId}/default`;
-        const json = await this.request('POST', path);
-        return this.parse(() => availabilitySchema.parse(json), `POST ${path}`);
+    async createAvailability(input: CreateAvailability): Promise<void> {
+        await this.request('POST', '/availabilities', input);
     }
 
     /**
      * @throws {UnauthenticatedError} la API respondió 401
      * @throws {NotFoundError} la API respondió 404
-     * @throws {AvailabilityInUseError} la API respondió 409
+     * @throws {AvailabilityRuleError} la API respondió 422
+     * @throws {ApiRequestError} falla de red u otro status no-OK
+     */
+    async updateAvailability({ availabilityId, ...body }: UpdateAvailability): Promise<void> {
+        await this.request('PUT', `/availabilities/${availabilityId}`, body);
+    }
+
+    /**
+     * @throws {UnauthenticatedError} la API respondió 401
+     * @throws {NotFoundError} la API respondió 404
+     * @throws {ApiRequestError} falla de red u otro status no-OK
+     */
+    async makeDefault(availabilityId: number): Promise<void> {
+        await this.request('PATCH', `/availabilities/${availabilityId}/default`);
+    }
+
+    /**
+     * @throws {UnauthenticatedError} la API respondió 401
+     * @throws {NotFoundError} la API respondió 404
      * @throws {AvailabilityRuleError} la API respondió 422
      * @throws {ApiRequestError} falla de red u otro status no-OK
      */
@@ -111,7 +113,6 @@ export class AvailabilitiesRepository implements IAvailabilitiesRepository {
         const message = String(json?.message ?? `${what} responded ${response.status}`);
         if (response.status === 401) throw new UnauthenticatedError(message);
         if (response.status === 404) throw new NotFoundError(message);
-        if (response.status === 409) throw new AvailabilityInUseError(message);
         if (response.status === 422) throw new AvailabilityRuleError(message);
         if (!response.ok) throw new ApiRequestError(message, { status: response.status });
         return json;

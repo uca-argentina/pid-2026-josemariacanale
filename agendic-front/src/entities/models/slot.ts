@@ -2,9 +2,8 @@ import { z } from 'zod';
 
 // Why a day has no Horarios reservables. Only present when `slots` is empty (ADR 0007):
 // NOT_WORKING (no Franjas, a day-off Anulación, or nothing survives the Sucursal's hours),
-// FULLY_BOOKED (there were Horarios but Turnos or the clock took them all), COVERED (an Anulación
-// with Cobertura: another Empleado attends that day).
-export const NO_SLOTS_REASONS = ['NOT_WORKING', 'FULLY_BOOKED', 'COVERED'] as const;
+// FULLY_BOOKED (there were Horarios but Turnos or the clock took them all).
+export const NO_SLOTS_REASONS = ['NOT_WORKING', 'FULLY_BOOKED'] as const;
 export type NoSlotsReason = (typeof NO_SLOTS_REASONS)[number];
 
 // `date` is a local date of the Sucursal ('YYYY-MM-DD'); `slots`, the UTC instants a Turno can start.
@@ -12,7 +11,6 @@ export const slotDaySchema = z.object({
     date: z.iso.date(),
     slots: z.array(z.iso.datetime()),
     reason: z.enum(NO_SLOTS_REASONS).optional(),
-    coveredByEmployeeId: z.number().optional(),
 });
 export type SlotDay = z.infer<typeof slotDaySchema>;
 

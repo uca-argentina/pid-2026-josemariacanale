@@ -6,16 +6,13 @@ import type { Availability } from '@/src/entities/models/availability';
 export type IListAvailabilitiesUseCase = ReturnType<typeof listAvailabilitiesUseCase>;
 
 /**
- * Lista las Availability de un Empleado.
- *
- * Que sea el Dueño del Negocio o el propio Empleado lo valida el back.
+ * Lista las Availability del Usuario con Sesión, sin Franjas.
  *
  * @throws {UnauthenticatedError} no hay Sesión válida
- * @throws {NotFoundError} el Empleado no existe
  */
 export const listAvailabilitiesUseCase =
     (instrumentationService: IInstrumentationService, availabilitiesRepository: IAvailabilitiesRepository) =>
-    (employeeId: number): Promise<Availability[]> =>
+    (): Promise<Availability[]> =>
         instrumentationService.startSpan({ name: 'listAvailabilities Use Case', op: 'function' }, () =>
-            availabilitiesRepository.listAvailabilities(employeeId),
+            availabilitiesRepository.listAvailabilities(),
         );

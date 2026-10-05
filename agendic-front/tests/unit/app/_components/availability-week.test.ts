@@ -4,7 +4,7 @@ import {
     invalidIntervals,
     nextInterval,
     summarize,
-    toIntervals,
+    toSchedule,
     toWeek,
     weekValid,
     type AvailabilityInterval,
@@ -80,41 +80,42 @@ describe('invalidIntervals / intervalsValid', () => {
     });
 });
 
+const empty = () => Array.from({ length: 7 }, () => [] as { start: string; end: string }[]);
+
 describe('toWeek', () => {
-    it('arranca la semana el lunes: weekday 1 cae en el índice 0 y weekday 0 (domingo) en el 6', () => {
-        const result = toWeek([
-            { weekday: 0, startTime: '10:00', endTime: '12:00' },
-            { weekday: 1, startTime: '09:00', endTime: '13:00' },
-        ]);
+    it('arranca la semana el lunes: el índice 1 del back (lunes) cae en el 0 y el 0 (domingo) en el 6', () => {
+        const schedule = empty();
+        schedule[0] = [{ start: '10:00', end: '12:00' }];
+        schedule[1] = [{ start: '09:00', end: '13:00' }];
+        const result = toWeek(schedule);
         expect(result[0]).toEqual([['09:00', '13:00']]);
         expect(result[6]).toEqual([['10:00', '12:00']]);
         expect(result[1]).toEqual([]);
     });
 
     it('ordena las Franjas de un día por hora de inicio', () => {
-        const result = toWeek([
-            { weekday: 2, startTime: '17:00', endTime: '20:00' },
-            { weekday: 2, startTime: '08:00', endTime: '13:00' },
-        ]);
-        expect(result[1]).toEqual([['08:00', '13:00'], ['17:00', '20:00']]);
+        const schedule = empty();
+        schedule[2] = [{ start: '17:00', end: '20:00' }, { start: '08:00', end: '13:00' }];
+        expect(toWeek(schedule)[1]).toEqual([['08:00', '13:00'], ['17:00', '20:00']]);
     });
 
     it('sin Franjas devuelve los 7 días vacíos', () => {
-        expect(toWeek([])).toEqual(week({}));
+        expect(toWeek(empty())).toEqual(week({}));
     });
 });
 
-describe('toIntervals', () => {
-    it('manda el set entero con weekday 0 = domingo, y los días sin Franjas no aparecen', () => {
-        expect(toIntervals(week({ 0: [['09:00', '13:00']], 6: [['10:00', '12:00']] }))).toEqual([
-            { weekday: 1, startTime: '09:00', endTime: '13:00' },
-            { weekday: 0, startTime: '10:00', endTime: '12:00' },
-        ]);
+describe('toSchedule', () => {
+    it('manda los 7 días con el domingo primero, y los días sin Franjas como []', () => {
+        const schedule = toSchedule(week({ 0: [['09:00', '13:00']], 6: [['10:00', '12:00']] }));
+        expect(schedule).toHaveLength(7);
+        expect(schedule[1]).toEqual([{ start: '09:00', end: '13:00' }]);
+        expect(schedule[0]).toEqual([{ start: '10:00', end: '12:00' }]);
+        expect(schedule[2]).toEqual([]);
     });
 
     it('es la inversa de toWeek', () => {
         const days = week({ 2: [['08:00', '13:00'], ['17:00', '20:00']], 6: [['10:00', '12:00']] });
-        expect(toWeek(toIntervals(days))).toEqual(days);
+        expect(toWeek(toSchedule(days))).toEqual(days);
     });
 });
 

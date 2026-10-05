@@ -14,9 +14,8 @@ export type IDeleteAvailabilityController = ReturnType<typeof deleteAvailability
  *
  * @throws {UnauthenticatedError} no hay Sesión válida
  * @throws {InputParseError} `availabilityId` no es válido
- * @throws {NotFoundError} la Availability no existe
- * @throws {AvailabilityRuleError} son las predeterminadas
- * @throws {AvailabilityInUseError} algún Servicio las usa
+ * @throws {NotFoundError} la Availability no existe o no es del Usuario
+ * @throws {AvailabilityRuleError} es la predeterminada o un Servicio se atiende con ella
  */
 export const deleteAvailabilityController =
     (

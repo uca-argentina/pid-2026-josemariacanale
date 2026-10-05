@@ -17,12 +17,16 @@ import {
 import {
     DAY_NAMES,
     DEFAULT_INTERVAL,
+    toTuples,
     toWeek,
     weekValid,
     type AvailabilityInterval,
 } from '@/app/(app)/_components/availability-week';
-import type { AvailabilityDraft, AvailabilityItem } from './AvailabilityView';
+import type { AvailabilityDetail } from '@/src/entities/models/availability';
+import type { AvailabilityDraft } from './AvailabilityView';
 import { AddIntervalButton, IntervalsEditor } from './IntervalsEditor';
+import { OverridesSection } from './OverridesSection';
+import { TimeZoneSelect } from './TimeZoneSelect';
 
 function CopyIntervals({
     fromDay,
@@ -176,8 +180,8 @@ function NameField({ name, onChange }: { name: string; onChange: (name: string) 
 }
 
 /**
- * Edita el nombre, las Franjas por día y si son las predeterminadas. "Guardar" manda el set entero
- * de Franjas; no deja guardar si alguna es vacía, invertida o se solapa con otra del mismo día.
+ * Edita nombre, zona horaria, Franjas por día, Anulaciones y si son las predeterminadas. "Guardar" manda
+ * todo junto; no deja guardar si una Franja es vacía, invertida o se solapa con otra del mismo día.
  */
 export function AvailabilityEditor({
     availability,
@@ -186,7 +190,7 @@ export function AvailabilityEditor({
     onSave,
     onDelete,
 }: {
-    availability: AvailabilityItem;
+    availability: AvailabilityDetail;
     busy: boolean;
     onBack: () => void;
     onSave: (draft: AvailabilityDraft) => Promise<boolean>;
@@ -194,7 +198,9 @@ export function AvailabilityEditor({
 }) {
     const initial: AvailabilityDraft = {
         name: availability.name,
-        days: toWeek(availability.intervals),
+        timeZone: availability.timeZone,
+        days: toWeek(availability.schedule),
+        overrides: availability.overrides.map((o) => ({ date: o.date, intervals: toTuples(o.ranges) })),
         isDefault: availability.isDefault,
     };
     const [saved, setSaved] = useState(initial);
@@ -252,6 +258,11 @@ export function AvailabilityEditor({
             </header>
 
             <div className="mt-8 flex max-w-[1080px] flex-col gap-6">
+                <PanelSection title="Zona horaria" description="Las Franjas y las Anulaciones se leen en esta zona.">
+                    <div className="max-w-[420px] px-6 py-4">
+                        <TimeZoneSelect value={draft.timeZone} onChange={(timeZone) => setDraft((d) => ({ ...d, timeZone }))} />
+                    </div>
+                </PanelSection>
                 <PanelSection title="Horas semanales" description="Establecé los horarios en los que atiende cada día.">
                     <div className="divide-y divide-[#e5e7eb]">
                         {draft.days.map((intervals, day) => (
@@ -267,6 +278,11 @@ export function AvailabilityEditor({
                         ))}
                     </div>
                 </PanelSection>
+                <OverridesSection
+                    overrides={draft.overrides}
+                    busy={busy}
+                    onChange={(overrides) => setDraft((d) => ({ ...d, overrides }))}
+                />
             </div>
 
             <PanelConfirm

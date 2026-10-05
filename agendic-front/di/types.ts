@@ -70,18 +70,13 @@ import type { IRejectBookingController } from '@/src/interface-adapters/controll
 import type { IAcceptBookingUseCase } from '@/src/application/use-cases/bookings/accept-booking.use-case';
 import type { IAcceptBookingController } from '@/src/interface-adapters/controllers/bookings/accept-booking.controller';
 import type { IAvailabilitiesRepository } from '@/src/application/repositories/availabilities.repository.interface';
-import type { IOverridesRepository } from '@/src/application/repositories/overrides.repository.interface';
-import type { IListOverridesUseCase } from '@/src/application/use-cases/overrides/list-overrides.use-case';
-import type { ISetOverrideUseCase } from '@/src/application/use-cases/overrides/set-override.use-case';
-import type { IRemoveOverrideUseCase } from '@/src/application/use-cases/overrides/remove-override.use-case';
-import type { ISetOverridesController } from '@/src/interface-adapters/controllers/overrides/set-overrides.controller';
-import type { IRemoveOverrideController } from '@/src/interface-adapters/controllers/overrides/remove-override.controller';
 import type { IListAvailabilitiesUseCase } from '@/src/application/use-cases/availabilities/list-availabilities.use-case';
+import type { IGetAvailabilityUseCase } from '@/src/application/use-cases/availabilities/get-availability.use-case';
 import type { ICreateAvailabilityUseCase } from '@/src/application/use-cases/availabilities/create-availability.use-case';
 import type { IUpdateAvailabilityUseCase } from '@/src/application/use-cases/availabilities/update-availability.use-case';
 import type { IMakeAvailabilityDefaultUseCase } from '@/src/application/use-cases/availabilities/make-availability-default.use-case';
 import type { IDeleteAvailabilityUseCase } from '@/src/application/use-cases/availabilities/delete-availability.use-case';
-import type { IListStaffAvailabilitiesController } from '@/src/interface-adapters/controllers/availabilities/list-staff-availabilities.controller';
+import type { IListMyAvailabilitiesController } from '@/src/interface-adapters/controllers/availabilities/list-my-availabilities.controller';
 import type { ICreateAvailabilityController } from '@/src/interface-adapters/controllers/availabilities/create-availability.controller';
 import type { IUpdateAvailabilityController } from '@/src/interface-adapters/controllers/availabilities/update-availability.controller';
 import type { IMakeAvailabilityDefaultController } from '@/src/interface-adapters/controllers/availabilities/make-availability-default.controller';
@@ -100,7 +95,6 @@ export const DI_SYMBOLS = {
     IBookingsRepository: Symbol.for('IBookingsRepository'),
     IEmployeeBookingsRepository: Symbol.for('IEmployeeBookingsRepository'),
     IAvailabilitiesRepository: Symbol.for('IAvailabilitiesRepository'),
-    IOverridesRepository: Symbol.for('IOverridesRepository'),
     IServicesRepository: Symbol.for('IServicesRepository'),
 
     // Use cases
@@ -136,13 +130,11 @@ export const DI_SYMBOLS = {
     IRejectBookingUseCase: Symbol.for('IRejectBookingUseCase'),
     IAcceptBookingUseCase: Symbol.for('IAcceptBookingUseCase'),
     IListAvailabilitiesUseCase: Symbol.for('IListAvailabilitiesUseCase'),
+    IGetAvailabilityUseCase: Symbol.for('IGetAvailabilityUseCase'),
     ICreateAvailabilityUseCase: Symbol.for('ICreateAvailabilityUseCase'),
     IUpdateAvailabilityUseCase: Symbol.for('IUpdateAvailabilityUseCase'),
     IMakeAvailabilityDefaultUseCase: Symbol.for('IMakeAvailabilityDefaultUseCase'),
     IDeleteAvailabilityUseCase: Symbol.for('IDeleteAvailabilityUseCase'),
-    IListOverridesUseCase: Symbol.for('IListOverridesUseCase'),
-    ISetOverrideUseCase: Symbol.for('ISetOverrideUseCase'),
-    IRemoveOverrideUseCase: Symbol.for('IRemoveOverrideUseCase'),
 
     // Controllers
     IGetCurrentUserController: Symbol.for('IGetCurrentUserController'),
@@ -176,13 +168,11 @@ export const DI_SYMBOLS = {
     ICancelBookingController: Symbol.for('ICancelBookingController'),
     IRejectBookingController: Symbol.for('IRejectBookingController'),
     IAcceptBookingController: Symbol.for('IAcceptBookingController'),
-    IListStaffAvailabilitiesController: Symbol.for('IListStaffAvailabilitiesController'),
+    IListMyAvailabilitiesController: Symbol.for('IListMyAvailabilitiesController'),
     ICreateAvailabilityController: Symbol.for('ICreateAvailabilityController'),
     IUpdateAvailabilityController: Symbol.for('IUpdateAvailabilityController'),
     IMakeAvailabilityDefaultController: Symbol.for('IMakeAvailabilityDefaultController'),
     IDeleteAvailabilityController: Symbol.for('IDeleteAvailabilityController'),
-    ISetOverridesController: Symbol.for('ISetOverridesController'),
-    IRemoveOverrideController: Symbol.for('IRemoveOverrideController'),
 };
 
 export interface DI_RETURN_TYPES {
@@ -198,7 +188,6 @@ export interface DI_RETURN_TYPES {
     IBookingsRepository: IBookingsRepository;
     IEmployeeBookingsRepository: IEmployeeBookingsRepository;
     IAvailabilitiesRepository: IAvailabilitiesRepository;
-    IOverridesRepository: IOverridesRepository;
     IServicesRepository: IServicesRepository;
 
     // Use cases
@@ -234,13 +223,11 @@ export interface DI_RETURN_TYPES {
     IRejectBookingUseCase: IRejectBookingUseCase;
     IAcceptBookingUseCase: IAcceptBookingUseCase;
     IListAvailabilitiesUseCase: IListAvailabilitiesUseCase;
+    IGetAvailabilityUseCase: IGetAvailabilityUseCase;
     ICreateAvailabilityUseCase: ICreateAvailabilityUseCase;
     IUpdateAvailabilityUseCase: IUpdateAvailabilityUseCase;
     IMakeAvailabilityDefaultUseCase: IMakeAvailabilityDefaultUseCase;
     IDeleteAvailabilityUseCase: IDeleteAvailabilityUseCase;
-    IListOverridesUseCase: IListOverridesUseCase;
-    ISetOverrideUseCase: ISetOverrideUseCase;
-    IRemoveOverrideUseCase: IRemoveOverrideUseCase;
 
     // Controllers
     IGetCurrentUserController: IGetCurrentUserController;
@@ -274,11 +261,9 @@ export interface DI_RETURN_TYPES {
     ICancelBookingController: ICancelBookingController;
     IRejectBookingController: IRejectBookingController;
     IAcceptBookingController: IAcceptBookingController;
-    IListStaffAvailabilitiesController: IListStaffAvailabilitiesController;
+    IListMyAvailabilitiesController: IListMyAvailabilitiesController;
     ICreateAvailabilityController: ICreateAvailabilityController;
     IUpdateAvailabilityController: IUpdateAvailabilityController;
     IMakeAvailabilityDefaultController: IMakeAvailabilityDefaultController;
     IDeleteAvailabilityController: IDeleteAvailabilityController;
-    ISetOverridesController: ISetOverridesController;
-    IRemoveOverrideController: IRemoveOverrideController;
 }

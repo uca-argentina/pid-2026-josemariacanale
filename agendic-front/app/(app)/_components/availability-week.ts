@@ -1,4 +1,4 @@
-import type { AvailabilityInterval as ApiInterval } from '@/src/entities/models/availability';
+import type { TimeRange } from '@/src/entities/models/availability';
 
 /** Una Franja en el editor: `['HH:mm', 'HH:mm']` en 24 h. Nunca cruza la medianoche. */
 export type AvailabilityInterval = [from: string, to: string];
@@ -70,18 +70,23 @@ export function summarize(days: AvailabilityInterval[][]): string[] {
 /** Las Franjas de un día en una línea: `"09:00 - 13:00, 14:00 - 18:00"`. */
 export const formatIntervals = (intervals: AvailabilityInterval[]) => intervals.map(formatInterval).join(', ');
 
-/** Los días del editor, lunes primero: la Franja que manda el back (`weekday` 0 = domingo) cae en el índice `(weekday + 6) % 7`. */
-export function toWeek(intervals: ApiInterval[]): AvailabilityInterval[][] {
+/** Las Franjas del editor de un día, a las que manda el back, ordenadas por inicio. */
+export const toRanges = (intervals: AvailabilityInterval[]): TimeRange[] =>
+    [...intervals].sort(byStart).map(([start, end]) => ({ start, end }));
+
+/** Las Franjas de un día como las manda el back, a las del editor. */
+export const toTuples = (ranges: TimeRange[]): AvailabilityInterval[] => ranges.map(({ start, end }) => [start, end]);
+
+/** Los días del editor, lunes primero: el `schedule` del back (índice 0 = domingo) rota un lugar, el día `d` cae en `(d + 6) % 7`. */
+export function toWeek(schedule: TimeRange[][]): AvailabilityInterval[][] {
     const week: AvailabilityInterval[][] = DAY_NAMES.map(() => []);
-    for (const { weekday, startTime, endTime } of [...intervals].sort((a, b) => a.startTime.localeCompare(b.startTime)))
-        week[(weekday + 6) % 7].push([startTime, endTime]);
+    schedule.forEach((ranges, day) => (week[(day + 6) % 7] = toTuples(ranges).sort(byStart)));
     return week;
 }
 
-/** El set entero de Franjas que espera el back; un día sin Franjas simplemente no aparece. */
-export function toIntervals(week: AvailabilityInterval[][]): ApiInterval[] {
-    return week.flatMap((day, i) => day.map(([startTime, endTime]) => ({ weekday: (i + 1) % 7, startTime, endTime })));
-}
+/** El `schedule` que espera el back: 7 días, domingo primero; un día sin Franjas es `[]`. */
+export const toSchedule = (week: AvailabilityInterval[][]): TimeRange[][] =>
+    Array.from({ length: 7 }, (_, day) => toRanges(week[(day + 6) % 7]));
 
 /** Si el editor puede guardar: ningún día tiene una Franja vacía, invertida o solapada. */
 export const weekValid = (week: AvailabilityInterval[][]) => week.every(intervalsValid);

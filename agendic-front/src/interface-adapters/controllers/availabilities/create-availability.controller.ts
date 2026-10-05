@@ -8,12 +8,11 @@ import { createAvailabilitySchema } from '@/src/entities/models/availability';
 export type ICreateAvailabilityController = ReturnType<typeof createAvailabilityController>;
 
 /**
- * Crea Horas laborables de un Empleado con nombre y Franjas.
+ * Crea Horas laborables del Usuario con nombre y zona horaria.
  *
  * @throws {UnauthenticatedError} no hay Sesión válida
- * @throws {InputParseError} `employeeId`, `name` o `intervals` no son válidos
- * @throws {NotFoundError} el Empleado no existe
- * @throws {AvailabilityRuleError} Franjas solapadas o que no terminan después de empezar
+ * @throws {InputParseError} `name` o `timeZone` no son válidos
+ * @throws {AvailabilityRuleError} zona horaria inválida
  */
 export const createAvailabilityController =
     (

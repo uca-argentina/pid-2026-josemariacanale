@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { CalendarX2, Loader2, UserRoundCheck } from 'lucide-react';
+import { CalendarX2, Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/app/_components/ui/avatar';
 import { Button } from '@/app/_components/ui/button';
 import { cn } from '@/app/_components/utils';
@@ -28,7 +28,6 @@ export function TimeStep({
     slot,
     notice,
     onSelect,
-    onChooseEmployee,
     onSeeEmployees,
 }: {
     service: Service;
@@ -39,7 +38,6 @@ export function TimeStep({
     /** Un aviso que el paso muestra arriba, por ejemplo que el horario elegido se ocupó. */
     notice: string | null;
     onSelect: (date: string, slot: Slot | null) => void;
-    onChooseEmployee: (employee: Employee) => void;
     onSeeEmployees: () => void;
 }) {
     const [load, setLoad] = useState<Load>({ status: 'loading' });
@@ -88,10 +86,6 @@ export function TimeStep({
     // El próximo después del elegido; si no hay, el primero de la tira.
     const withSlots = days.filter((d) => d.slots.length > 0 && d.date !== date);
     const nextWithSlots = withSlots.find((d) => !date || d.date > date) ?? withSlots[0];
-    const covering =
-        chosenDay?.reason === 'COVERED'
-            ? service.employees.find((e) => e.id === chosenDay.coveredByEmployeeId)
-            : undefined;
 
     const goToNext = nextWithSlots && (
         <Button variant="outline" onClick={() => onSelect(nextWithSlots.date, null)} className={pillButton}>
@@ -249,32 +243,6 @@ export function TimeStep({
                     <div className="mt-3 flex flex-wrap justify-center gap-2.5">
                         {goToNext}
                         {seeEmployees}
-                    </div>
-                </div>
-            )}
-
-            {chosenDay?.reason === 'COVERED' && (
-                <div className="mt-8 flex flex-col items-center gap-2 rounded-2xl border border-dashed border-input px-5 py-14 text-center">
-                    <div className="flex size-11 items-center justify-center rounded-xl bg-muted">
-                        <UserRoundCheck className="size-5 text-muted-foreground" />
-                    </div>
-                    <p className="text-[15px] font-bold tracking-[-0.02em]">
-                        {employee.name} no atiende ese día
-                    </p>
-                    {covering && (
-                        <p className="text-[13.5px] text-muted-foreground">
-                            Ese día atiende {covering.name} en su lugar.
-                        </p>
-                    )}
-                    <div className="mt-3 flex flex-wrap justify-center gap-2.5">
-                        {covering ? (
-                            <Button variant="outline" onClick={() => onChooseEmployee(covering)} className={pillButton}>
-                                Reservar con {covering.name}
-                            </Button>
-                        ) : (
-                            seeEmployees
-                        )}
-                        {goToNext}
                     </div>
                 </div>
             )}

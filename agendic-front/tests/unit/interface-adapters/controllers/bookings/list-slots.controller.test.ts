@@ -11,7 +11,7 @@ describe('listSlotsController', () => {
             days: [
                 { date: '2026-09-28', slots: ['2026-09-28T12:00:00.000Z', '2026-09-28T12:15:00.000Z'] },
                 { date: '2026-09-29', slots: [], reason: 'FULLY_BOOKED' },
-                { date: '2026-09-30', slots: [], reason: 'COVERED', coveredByEmployeeId: 2 },
+                { date: '2026-09-30', slots: [], reason: 'NOT_WORKING' },
             ],
         });
 
@@ -25,7 +25,7 @@ describe('listSlotsController', () => {
                     ],
                 },
                 { date: '2026-09-29', slots: [], reason: 'FULLY_BOOKED' },
-                { date: '2026-09-30', slots: [], reason: 'COVERED', coveredByEmployeeId: 2 },
+                { date: '2026-09-30', slots: [], reason: 'NOT_WORKING' },
             ],
         });
         expect(useCase).toHaveBeenCalledWith(query);

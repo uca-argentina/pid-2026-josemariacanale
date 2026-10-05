@@ -15,7 +15,6 @@ const DAYS_SHOWN = 14;
 const NO_SLOTS_REASON = {
     NOT_WORKING: 'No atendés ese día.',
     FULLY_BOOKED: 'Tenés la agenda completa ese día.',
-    COVERED: 'Ese día te cubre otro Empleado.',
 } as const;
 
 type Load = { status: 'loading' } | { status: 'error'; message: string } | { status: 'ready'; days: Extract<ListSlotsResult, { ok: true }>['days'] };

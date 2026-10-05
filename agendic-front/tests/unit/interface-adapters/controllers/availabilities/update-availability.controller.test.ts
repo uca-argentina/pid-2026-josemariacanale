@@ -4,20 +4,22 @@ import { InputParseError } from '@/src/entities/errors/common';
 import { authWith, instrumentation } from '@/tests/unit/stubs';
 
 const signedIn = authWith({ getCurrentUser: jest.fn().mockResolvedValue({}) });
-const interval = { weekday: 1, startTime: '09:00', endTime: '13:00' };
+const schedule = [[], [{ start: '09:00', end: '13:00' }], [], [], [], [], []];
+const body = { availabilityId: 7, name: 'Verano', timeZone: 'UTC', schedule, overrides: [{ date: '2026-12-25', ranges: [] }] };
 
 describe('updateAvailabilityController', () => {
-    it('runs the use case with only what came in', async () => {
+    it('runs the use case with the whole body', async () => {
         const useCase = jest.fn().mockResolvedValue(undefined);
-        await updateAvailabilityController(instrumentation, signedIn, useCase)({ availabilityId: 7, intervals: [interval] });
-        expect(useCase).toHaveBeenCalledWith({ availabilityId: 7, intervals: [interval] });
+        await updateAvailabilityController(instrumentation, signedIn, useCase)(body);
+        expect(useCase).toHaveBeenCalledWith(body);
     });
 
     it.each([
-        { name: 'Verano' },
-        { availabilityId: 0, name: 'Verano' },
-        { availabilityId: 7, name: '  ' },
-        { availabilityId: 7, intervals: [{ ...interval, endTime: 'tarde' }] },
+        { ...body, availabilityId: 0 },
+        { ...body, name: '  ' },
+        { ...body, schedule: [[]] },
+        { ...body, schedule: [[{ start: '9', end: '13:00' }], [], [], [], [], [], []] },
+        { availabilityId: 7, name: 'Verano' },
     ])('throws InputParseError for %j without calling the use case', async (input) => {
         const useCase = jest.fn();
         await expect(updateAvailabilityController(instrumentation, signedIn, useCase)(input)).rejects.toBeInstanceOf(InputParseError);
@@ -27,9 +29,7 @@ describe('updateAvailabilityController', () => {
     it('throws UnauthenticatedError without calling the use case', async () => {
         const useCase = jest.fn();
         const auth = authWith({ getCurrentUser: jest.fn().mockRejectedValue(new UnauthenticatedError('no')) });
-        await expect(
-            updateAvailabilityController(instrumentation, auth, useCase)({ availabilityId: 7, name: 'Verano' }),
-        ).rejects.toBeInstanceOf(UnauthenticatedError);
+        await expect(updateAvailabilityController(instrumentation, auth, useCase)(body)).rejects.toBeInstanceOf(UnauthenticatedError);
         expect(useCase).not.toHaveBeenCalled();
     });
 });

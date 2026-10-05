@@ -1,53 +1,62 @@
-import type { Availability, CreateAvailability, UpdateAvailability } from '@/src/entities/models/availability';
+import type {
+    Availability,
+    AvailabilityDetail,
+    CreateAvailability,
+    UpdateAvailability,
+} from '@/src/entities/models/availability';
 
 /**
- * Availability de los Empleados contra la API del back.
+ * Availability del Usuario con Sesión contra la API del back.
  *
- * Todo es del Dueño del Negocio del Empleado, salvo leerlas, que también puede el propio Empleado (ADR 0017); el
- * back responde 403 a cualquier otro Usuario y 404 si el Empleado o la Availability no existen.
+ * Solo opera sobre las propias: el back responde 404 si la Availability no es del Usuario.
  */
 export interface IAvailabilitiesRepository {
     /**
-     * Las Availability del Empleado con sus Franjas.
+     * Las Availability del Usuario, sin Franjas.
      *
      * @throws {UnauthenticatedError} no hay Sesión válida (401)
-     * @throws {NotFoundError} el Empleado no existe (404)
      */
-    listAvailabilities(employeeId: number): Promise<Availability[]>;
+    listAvailabilities(): Promise<Availability[]>;
 
     /**
-     * Crea una Availability con sus Franjas; la primera del Empleado nace predeterminada.
+     * Una Availability con sus Franjas y Anulaciones.
      *
      * @throws {UnauthenticatedError} no hay Sesión válida (401)
-     * @throws {NotFoundError} el Empleado no existe (404)
-     * @throws {AvailabilityRuleError} Franjas solapadas o que no terminan después de empezar (422)
+     * @throws {NotFoundError} la Availability no existe o no es del Usuario (404)
      */
-    createAvailability(input: CreateAvailability): Promise<Availability>;
+    getAvailability(availabilityId: number): Promise<AvailabilityDetail>;
 
     /**
-     * Renombra y/o reemplaza el set entero de Franjas.
+     * Crea una Availability con nombre y zona horaria.
      *
      * @throws {UnauthenticatedError} no hay Sesión válida (401)
-     * @throws {NotFoundError} la Availability no existe (404)
-     * @throws {AvailabilityRuleError} Franjas solapadas o que no terminan después de empezar (422)
+     * @throws {AvailabilityRuleError} zona horaria inválida (422)
      */
-    updateAvailability(input: UpdateAvailability): Promise<Availability>;
+    createAvailability(input: CreateAvailability): Promise<void>;
+
+    /**
+     * Reemplaza nombre, zona horaria, Franjas y Anulaciones.
+     *
+     * @throws {UnauthenticatedError} no hay Sesión válida (401)
+     * @throws {NotFoundError} la Availability no existe o no es del Usuario (404)
+     * @throws {AvailabilityRuleError} Franjas inválidas o solapadas, o zona horaria inválida (422)
+     */
+    updateAvailability(input: UpdateAvailability): Promise<void>;
 
     /**
      * La marca predeterminada; la anterior se desmarca sola.
      *
      * @throws {UnauthenticatedError} no hay Sesión válida (401)
-     * @throws {NotFoundError} la Availability no existe (404)
+     * @throws {NotFoundError} la Availability no existe o no es del Usuario (404)
      */
-    makeDefault(availabilityId: number): Promise<Availability>;
+    makeDefault(availabilityId: number): Promise<void>;
 
     /**
-     * Borra la Availability con sus Franjas.
+     * Borra la Availability.
      *
      * @throws {UnauthenticatedError} no hay Sesión válida (401)
-     * @throws {NotFoundError} la Availability no existe (404)
-     * @throws {AvailabilityRuleError} es la predeterminada (422)
-     * @throws {AvailabilityInUseError} algún Servicio la usa (409)
+     * @throws {NotFoundError} la Availability no existe o no es del Usuario (404)
+     * @throws {AvailabilityRuleError} es la predeterminada o un Servicio se atiende con ella (422)
      */
     deleteAvailability(availabilityId: number): Promise<void>;
 }

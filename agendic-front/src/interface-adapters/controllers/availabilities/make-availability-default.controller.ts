@@ -14,7 +14,7 @@ export type IMakeAvailabilityDefaultController = ReturnType<typeof makeAvailabil
  *
  * @throws {UnauthenticatedError} no hay Sesión válida
  * @throws {InputParseError} `availabilityId` no es válido
- * @throws {NotFoundError} la Availability no existe
+ * @throws {NotFoundError} la Availability no existe o no es del Usuario
  */
 export const makeAvailabilityDefaultController =
     (

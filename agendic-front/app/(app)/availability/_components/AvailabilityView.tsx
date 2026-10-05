@@ -1,66 +1,42 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import {
-    DEFAULT_DAYS,
-    toIntervals,
-    type AvailabilityInterval,
-} from '@/app/(app)/_components/availability-week';
-import type { AvailabilityInterval as ApiInterval } from '@/src/entities/models/availability';
+import { toRanges, toSchedule, type AvailabilityInterval } from '@/app/(app)/_components/availability-week';
+import type { Availability, AvailabilityDetail } from '@/src/entities/models/availability';
 import {
     createAvailabilityAction,
     deleteAvailabilityAction,
     makeAvailabilityDefaultAction,
-    removeOverrideAction,
     saveAvailabilityAction,
-    setOverridesAction,
     type AvailabilityActionResult,
 } from '../actions';
 import { AvailabilityEditor } from './AvailabilityEditor';
 import { AvailabilityList } from './AvailabilityList';
-import { OverridesSection, type OverrideItem } from './OverridesSection';
 
-/** Horas laborables tal como las presenta el controller. */
-export interface AvailabilityItem {
-    id: number;
-    name: string;
-    isDefault: boolean;
-    intervals: ApiInterval[];
+/** Una Anulación en el editor: la fecha y las Franjas de ese día (`[]` = día libre). */
+export interface OverrideDraft {
+    date: string;
+    intervals: AvailabilityInterval[];
 }
 
-/** Un Empleado del Staff para el selector; `isOwner` marca al Dueño. */
-export interface StaffMember {
-    id: number;
-    name: string;
-    isOwner: boolean;
-}
-
-/** Lo que el editor guarda: nombre, semana (lunes primero) y si pasan a ser las predeterminadas. */
+/** Lo que el editor guarda: todo el contenido de la Availability y si pasa a ser la predeterminada. */
 export interface AvailabilityDraft {
     name: string;
+    timeZone: string;
     days: AvailabilityInterval[][];
+    overrides: OverrideDraft[];
     isDefault: boolean;
 }
 
 /**
- * Horas laborables de un Empleado del Staff: la lista y, al abrir una, su editor. Todo sale de las
- * props que trae el server; cada acción las refresca.
+ * Horas laborables del Usuario: la lista y, con `open`, el editor de una. Todo sale de las props que trae
+ * el server; cada acción las refresca.
  */
-export function AvailabilityView({
-    employees,
-    employeeId,
-    availabilities,
-    overrides,
-}: {
-    employees: StaffMember[];
-    employeeId: number;
-    availabilities: AvailabilityItem[];
-    overrides: OverrideItem[];
-}) {
-    const [openId, setOpenId] = useState<number | null>(null);
+export function AvailabilityView({ availabilities, open }: { availabilities: Availability[]; open: AvailabilityDetail | null }) {
+    const router = useRouter();
     const [busy, setBusy] = useState(false);
-    const open = availabilities.find((a) => a.id === openId);
 
     /** Corre una acción sin dejar que se dispare otra a la vez; muestra el mensaje del back si falla. */
     const run = async (action: () => Promise<AvailabilityActionResult>, success: string) => {
@@ -72,8 +48,8 @@ export function AvailabilityView({
         return result.ok;
     };
 
-    const remove = async (item: AvailabilityItem) => {
-        if (await run(() => deleteAvailabilityAction(item.id), `${item.name}: horas laborables eliminadas`)) setOpenId(null);
+    const remove = async (item: Availability) => {
+        if (await run(() => deleteAvailabilityAction(item.id), `${item.name}: horas laborables eliminadas`)) router.push('/availability');
     };
 
     return open ? (
@@ -81,14 +57,16 @@ export function AvailabilityView({
             key={open.id}
             availability={open}
             busy={busy}
-            onBack={() => setOpenId(null)}
+            onBack={() => router.push('/availability')}
             onSave={(draft) =>
                 run(
                     () =>
                         saveAvailabilityAction({
                             availabilityId: open.id,
                             name: draft.name,
-                            intervals: toIntervals(draft.days),
+                            timeZone: draft.timeZone,
+                            schedule: toSchedule(draft.days),
+                            overrides: draft.overrides.map((o) => ({ date: o.date, ranges: toRanges(o.intervals) })),
                             makeDefault: draft.isDefault && !open.isDefault,
                         }),
                     `${draft.name}: horas laborables actualizadas`,
@@ -98,35 +76,14 @@ export function AvailabilityView({
         />
     ) : (
         <AvailabilityList
-            employees={employees}
-            employeeId={employeeId}
             availabilities={availabilities}
             busy={busy}
-            onOpen={setOpenId}
-            onCreate={(name) =>
-                run(() => createAvailabilityAction(employeeId, name, toIntervals(DEFAULT_DAYS)), `${name}: horas laborables creadas`)
-            }
+            onOpen={(id) => router.push(`/availability?id=${id}`)}
+            onCreate={(name, timeZone) => run(() => createAvailabilityAction(name, timeZone), `${name}: horas laborables creadas`)}
             onMakeDefault={(item) =>
                 run(() => makeAvailabilityDefaultAction(item.id), `${item.name}: ahora son las horas laborables predeterminadas`)
             }
-            onDuplicate={(item) => {
-                const name = `${item.name} (copia)`;
-                return run(() => createAvailabilityAction(employeeId, name, item.intervals), `${name}: horas laborables creadas`);
-            }}
             onDelete={remove}
-        >
-            <OverridesSection
-                overrides={overrides}
-                colleagues={employees.filter((e) => e.id !== employeeId)}
-                busy={busy}
-                onSave={(draft) =>
-                    run(
-                        () => setOverridesAction({ employeeId, ...draft }),
-                        draft.dates.length === 1 ? 'Anulación guardada' : `${draft.dates.length} anulaciones guardadas`,
-                    )
-                }
-                onRemove={(override) => run(() => removeOverrideAction(employeeId, override.date), 'Anulación quitada')}
-            />
-        </AvailabilityList>
+        />
     );
 }

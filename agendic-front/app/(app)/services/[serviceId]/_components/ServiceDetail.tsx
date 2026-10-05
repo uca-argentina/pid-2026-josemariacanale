@@ -229,7 +229,7 @@ function AvailabilityTab({ detail, onStopped }: { detail: ServiceDetailData; onS
         );
 
     const chosen = availabilities.find((a) => a.id === chosenId);
-    const week = chosen ? toWeek(chosen.intervals) : [];
+    const week = chosen ? toWeek(chosen.schedule) : [];
 
     const choose = (value: string) =>
         startSaving(async () => {
