@@ -4,6 +4,7 @@ import {
   Availability,
   AvailabilityFields,
   intervalsToSchedule,
+  Schedule,
   scheduleToIntervals,
 } from '../../domain/availabilities/availability';
 import { AvailabilityOverride } from '../../domain/availability-overrides/availability-override';
@@ -87,13 +88,7 @@ export class PrismaAvailabilitiesRepository implements AvailabilitiesRepository 
               name: data.name,
               timeZone: data.timeZone,
               intervals: {
-                create: scheduleToIntervals(data.schedule).map(
-                  ({ days, start, end }) => ({
-                    days,
-                    startTime: toTime(start),
-                    endTime: toTime(end),
-                  }),
-                ),
+                create: toIntervalRows(data.schedule),
               },
               overrides: { create: data.overrides.flatMap(toOverrideRows) },
             },
@@ -149,6 +144,14 @@ export class PrismaAvailabilitiesRepository implements AvailabilitiesRepository 
       });
   }
 }
+
+/** The Franjas as rows: the days with equal hours share one. */
+export const toIntervalRows = (schedule: Schedule) =>
+  scheduleToIntervals(schedule).map(({ days, start, end }) => ({
+    days,
+    startTime: toTime(start),
+    endTime: toTime(end),
+  }));
 
 /** A día libre is one row without hours. */
 const toOverrideRows = ({ date, ranges }: AvailabilityOverride) =>

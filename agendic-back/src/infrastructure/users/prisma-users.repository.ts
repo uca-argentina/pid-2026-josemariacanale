@@ -4,14 +4,11 @@ import {
   DatabaseOperationError,
   NotFoundError,
 } from '../../domain/errors';
-import {
-  DEFAULT_AVAILABILITY,
-  scheduleToIntervals,
-} from '../../domain/availabilities/availability';
+import { DEFAULT_AVAILABILITY } from '../../domain/availabilities/availability';
 import { User } from '../../domain/users/user';
 import { UsersRepository } from '../../domain/users/users.repository';
 import { Prisma, User as UserRow } from '../../generated/prisma/client';
-import { toTime } from '../branches/prisma-branches.repository';
+import { toIntervalRows } from '../availabilities/prisma-availabilities.repository';
 import { PrismaService } from '../prisma.service';
 
 @Injectable()
@@ -31,13 +28,7 @@ export class PrismaUsersRepository implements UsersRepository {
                 timeZone: DEFAULT_AVAILABILITY.timeZone,
                 isDefault: true,
                 intervals: {
-                  create: scheduleToIntervals(DEFAULT_AVAILABILITY.schedule).map(
-                    ({ days, start, end }) => ({
-                      days,
-                      startTime: toTime(start),
-                      endTime: toTime(end),
-                    }),
-                  ),
+                  create: toIntervalRows(DEFAULT_AVAILABILITY.schedule),
                 },
               },
             },
