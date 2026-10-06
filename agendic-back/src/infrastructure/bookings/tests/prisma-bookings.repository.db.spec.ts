@@ -28,9 +28,12 @@ describe('PrismaBookingsRepository (real database)', () => {
     );
 
   afterAll(async () => {
-    await prisma.booking.deleteMany({ where: { userId } });
-    await prisma.service.deleteMany({ where: { userId } });
-    await prisma.user.delete({ where: { id: userId } });
+    // `deleteMany({ where: { userId: undefined } })` matches every row: skip if the test died before creating the User.
+    if (userId !== undefined) {
+      await prisma.booking.deleteMany({ where: { userId } });
+      await prisma.service.deleteMany({ where: { userId } });
+      await prisma.user.delete({ where: { id: userId } });
+    }
     await prisma.$disconnect();
   });
 
@@ -50,14 +53,16 @@ describe('PrismaBookingsRepository (real database)', () => {
     });
     await book(10, 'Bruno', email, serviceId);
     await book(12, 'Bruno D.', email, serviceId);
+    await book(13, 'Bruno M.', `  ${email.toUpperCase()} `, serviceId);
     await book(14, 'Otra', `other-${email}`, serviceId);
 
-    const found = await repository.findByClientEmail(email);
+    const found = await repository.findByClientEmail(email.toUpperCase());
 
     expect(found.map((b) => [b.clientName, b.clientEmail, b.status])).toEqual([
       ['Bruno', email, BookingStatus.UNVERIFIED],
       ['Bruno D.', email, BookingStatus.UNVERIFIED],
+      ['Bruno M.', email, BookingStatus.UNVERIFIED],
     ]);
-    expect(await prisma.client.count({ where: { email } })).toBe(2);
+    expect(await prisma.client.count({ where: { email } })).toBe(3);
   }, 60_000);
 });
