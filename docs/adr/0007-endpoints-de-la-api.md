@@ -239,6 +239,7 @@ propias: la de otro Usuario es 404, como una que no existe.
   mantiene reservado su horario: lo toma recién al verificarse. Por eso:
   - `POST /bookings` → 422 `Slot <ISO> is not available for Service <id>` si `startsAt` no está entre los Horarios reservables que `GET /services/:id/slots` calcula en ese momento para algún Empleado (nadie libre, fuera de las Franjas, fuera de la grilla del Intervalo, antes de la Anticipación mínima). El front lo muestra como «ese horario ya no está disponible» y vuelve a pedir la lista. La unicidad en Postgres (ADR 0004) sigue siendo la defensa contra dos reservas al mismo tiempo.
   - `POST /bookings` y `POST /bookings/verification` → 409 `The Service reached its Límite diario that day` si el Servicio ya tiene `dailyLimit` Turnos `PENDING` o `BOOKED` ese día de la Sucursal. Los Turnos sin verificar, cancelados y rechazados no cuentan. Dos verificaciones casi juntas del mismo Servicio no pueden pasarlo (ADR 0004).
+  - Como un Turno sin verificar no ocupa al Empleado, dos `POST /bookings` casi juntos pueden asignar al mismo Empleado; el segundo en verificar recibe el 409 de arriba aunque otro estuviera libre.
   - Dos `POST /bookings` para el mismo horario, aunque lleguen casi juntos, dan los dos 201: ninguno
     ocupa el horario todavía.
   - La carrera se decide al verificar: el primer `POST /bookings/verification` gana y el otro recibe

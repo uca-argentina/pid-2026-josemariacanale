@@ -137,7 +137,7 @@ export class ListSlotsUseCase {
     const employees = await Promise.all(
       service.employees.map(async ({ id: employeeId, availabilityId }) => {
         const availability = await this.availabilities.findById(availabilityId);
-        if (!availability) throw new NotFoundError('Availability not found');
+        if (!availability) throw new NotFoundError(`Availability ${availabilityId} not found`);
         // A day of slack either side (wider than any UTC offset) keeps every local date in [from, to] covered.
         const bookedRanges = await this.bookings.listOccupiedByEmployee(
           employeeId,

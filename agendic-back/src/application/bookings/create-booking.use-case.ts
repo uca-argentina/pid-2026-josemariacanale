@@ -75,7 +75,8 @@ export class CreateBookingUseCase {
       bookingVerificationExpiresAt(now),
     );
     await this.mailer.sendVerificationLink(booking.clientEmail, token);
-    const employee = service.employees.find(({ id }) => id === employeeId);
-    return { ...booking, employeeName: employee?.name ?? '' };
+    // pickEmployee only picks from the Servicio's own Empleados, so this always finds one.
+    const employee = service.employees.find(({ id }) => id === employeeId)!;
+    return { ...booking, employeeName: employee.name };
   }
 }
