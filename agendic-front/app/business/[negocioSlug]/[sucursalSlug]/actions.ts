@@ -3,7 +3,7 @@
 import { unstable_rethrow } from 'next/navigation';
 import { getInjection } from '@/di/container';
 import type { DI_RETURN_TYPES } from '@/di/types';
-import { SlotTakenError } from '@/src/entities/errors/booking';
+import { SlotTakenError, SlotUnavailableError } from '@/src/entities/errors/booking';
 import { InputParseError, NotFoundError } from '@/src/entities/errors/common';
 
 // Reservar no pide Sesión (ADR 0005): ninguna de las dos acciones manda a Iniciar sesión.
@@ -46,6 +46,8 @@ export async function bookSlotAction(
         // Esperable, no un bug: alguien tomó el horario mientras tanto. No se reporta.
         if (error instanceof SlotTakenError)
             return { ok: false, slotTaken: true, message: 'Ese horario se acaba de ocupar. Elegí otro.' };
+        if (error instanceof SlotUnavailableError)
+            return { ok: false, slotTaken: true, message: 'Ese horario ya no está disponible. Elegí otro.' };
         if (error instanceof NotFoundError)
             return { ok: false, slotTaken: false, message: 'Este servicio ya no está disponible. Recargá la página.' };
         if (error instanceof InputParseError)

@@ -25,17 +25,10 @@ export const businessSchema = z.object({
         ),
 });
 
-export const branchSchema = z
-    .object({
+export const branchSchema = z.object({
         name: required('el nombre de la Sucursal'),
         address: required('la dirección'),
-        opensAt: required('el horario de apertura'),
-        closesAt: required('el horario de cierre'),
         timeZone: required('la zona horaria'),
-    })
-    .refine((s) => s.closesAt > s.opensAt, {
-        message: 'El cierre tiene que ser posterior a la apertura.',
-        path: ['closesAt'],
     });
 
 export const SERVICE_CATEGORIES = [

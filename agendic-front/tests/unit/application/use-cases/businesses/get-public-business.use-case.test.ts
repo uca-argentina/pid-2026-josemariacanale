@@ -6,7 +6,7 @@ describe('getPublicBusinessUseCase', () => {
     it('returns the Negocio with its Sucursales', async () => {
         const business = { id: 1, name: 'Vitalia', description: 'Desc', slug: 'vitalia', ownerId: 7 };
         const branches = [
-            { id: 10, businessId: 1, name: 'Centro', address: 'Av. 1', opensAt: '09:00', closesAt: '18:00', timeZone: 'America/Argentina/Buenos_Aires', slug: 'centro' },
+            { id: 10, businessId: 1, name: 'Centro', address: 'Av. 1', timeZone: 'America/Argentina/Buenos_Aires', slug: 'centro' },
         ];
         const repo = publicBusinessesWith({
             getBusinessBySlug: jest.fn().mockResolvedValue(business),

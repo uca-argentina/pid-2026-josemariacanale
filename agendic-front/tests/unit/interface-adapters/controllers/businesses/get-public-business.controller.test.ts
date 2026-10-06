@@ -8,7 +8,7 @@ describe('getPublicBusinessController', () => {
     it('presents the Negocio and the tramo of each Sucursal, and nothing of the Dueño', async () => {
         const useCase = jest.fn().mockResolvedValue({
             business: { id: 1, name: 'Vitalia', description: 'Desc', slug: 'vitalia', ownerId: 7 },
-            branches: [{ id: 10, businessId: 1, name: 'Centro', address: 'Av. 1', opensAt: '09:00', closesAt: '18:00', timeZone: TZ, slug: 'centro' }],
+            branches: [{ id: 10, businessId: 1, name: 'Centro', address: 'Av. 1', timeZone: TZ, slug: 'centro' }],
         });
 
         await expect(getPublicBusinessController(instrumentation, useCase)({ businessSlug: 'vitalia' })).resolves.toEqual({

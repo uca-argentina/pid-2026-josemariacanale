@@ -1,7 +1,7 @@
 import type { IEmployeeBookingsRepository } from '@/src/application/repositories/employee-bookings.repository.interface';
 import type { IAuthenticationService } from '@/src/application/services/authentication.service.interface';
 import { UnauthenticatedError } from '@/src/entities/errors/auth';
-import { BookingNotAllowedError, BookingStateError, SlotTakenError } from '@/src/entities/errors/booking';
+import { BookingNotAllowedError, BookingStateError, SlotTakenError, SlotUnavailableError } from '@/src/entities/errors/booking';
 import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
 import { employeeBookingSchema, type EmployeeBooking } from '@/src/entities/models/employee-booking';
 
@@ -69,6 +69,7 @@ export class EmployeeBookingsRepository implements IEmployeeBookingsRepository {
      * @throws {BookingNotAllowedError} la API respondió 403
      * @throws {NotFoundError} la API respondió 404
      * @throws {SlotTakenError} la API respondió 409
+     * @throws {SlotUnavailableError} la API respondió 422 `Slot … is not available`: el horario ya no es reservable
      * @throws {BookingStateError} la API respondió 422
      * @throws {ApiRequestError} falla de red u otro status no-OK
      */
@@ -112,6 +113,8 @@ export class EmployeeBookingsRepository implements IEmployeeBookingsRepository {
         if (response.status === 403) throw new BookingNotAllowedError(message);
         if (response.status === 404) throw new NotFoundError(message);
         if (response.status === 409) throw new SlotTakenError(message);
+        if (response.status === 422 && /^Slot .+ is not available for Service /.test(message))
+            throw new SlotUnavailableError(message);
         if (response.status === 422) throw new BookingStateError(message);
         if (!response.ok) throw new ApiRequestError(message, { status: response.status });
         return json;

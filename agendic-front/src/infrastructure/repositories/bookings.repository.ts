@@ -1,6 +1,6 @@
 import type { IBookingsRepository } from '@/src/application/repositories/bookings.repository.interface';
 import type { IInstrumentationService } from '@/src/application/services/instrumentation.service.interface';
-import { BookingStateError, SlotTakenError } from '@/src/entities/errors/booking';
+import { BookingStateError, SlotTakenError, SlotUnavailableError } from '@/src/entities/errors/booking';
 import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
 import { bookingSchema, type Booking, type CreateBooking } from '@/src/entities/models/booking';
 import { slotsSchema, type Slots, type SlotsQuery } from '@/src/entities/models/slot';
@@ -13,6 +13,9 @@ function parseOrFail<T>(parse: () => T, what: string): T {
         throw new ApiRequestError(`${what} responded with an unexpected body`, { cause });
     }
 }
+
+/** El mensaje del 422 de Reservar y Reagendar (ADR 0007). */
+const SLOT_UNAVAILABLE = /^Slot .+ is not available for Service /;
 
 /** Reservar desde la página del Enlace de reserva: endpoints públicos, sin Sesión ni token de acceso. */
 export class BookingsRepository implements IBookingsRepository {
@@ -36,6 +39,7 @@ export class BookingsRepository implements IBookingsRepository {
 
     /**
      * @throws {SlotTakenError} el back respondió 409: el horario ya está ocupado
+     * @throws {SlotUnavailableError} el back respondió 422: el horario ya no es un Horario reservable
      * @throws {NotFoundError} el back respondió 404: el Servicio ya no existe
      * @throws {ApiRequestError} cualquier otra respuesta con error, un cuerpo inesperado o una falla de red
      */
@@ -54,6 +58,7 @@ export class BookingsRepository implements IBookingsRepository {
     /**
      * @throws {BookingStateError} el back respondió 422: token desconocido, usado o vencido, o el Turno ya no se puede reservar (Servicio dado de baja, horario pasado, Empleado que ya no lo atiende)
      * @throws {SlotTakenError} el back respondió 409: el horario se ocupó mientras tanto
+     * @throws {SlotUnavailableError} el back respondió 422 `Slot … is not available`: el horario dejó de ser reservable
      * @throws {NotFoundError} el back respondió 404: el Turno ya no existe
      * @throws {ApiRequestError} cualquier otra respuesta con error, un cuerpo inesperado o una falla de red
      */
@@ -74,7 +79,7 @@ export class BookingsRepository implements IBookingsRepository {
     }
 
     /**
-     * El 404 pasa a NotFoundError y el 409 a SlotTakenError; cualquier otro estado con error, a un
+     * El 404 pasa a NotFoundError, el 409 a SlotTakenError y el 422 de horario no disponible a SlotUnavailableError; cualquier otro estado con error, a un
      * ApiRequestError que lo lleva. El 400 y el 422 quedan ahí: el controller ya validó el input, así que
      * son un bug del front y se reportan. `verifyBooking` es la excepción: traduce el 422 por su cuenta.
      */
@@ -92,6 +97,7 @@ export class BookingsRepository implements IBookingsRepository {
         const message = String(json?.message ?? `${what} responded ${response.status}`);
         if (response.status === 404) throw new NotFoundError(message);
         if (response.status === 409) throw new SlotTakenError(message);
+        if (response.status === 422 && SLOT_UNAVAILABLE.test(message)) throw new SlotUnavailableError(message);
         if (!response.ok) throw new ApiRequestError(message, { status: response.status });
         return json;
     }

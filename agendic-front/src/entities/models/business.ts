@@ -24,7 +24,7 @@ export type Business = z.infer<typeof businessSchema>;
 // The exact shape POST /businesses expects.
 export const createBusinessSchema = z.object({
     business: z.object({ name: z.string(), description: z.string(), slug: z.string() }),
-    branch: z.object({ name: z.string(), address: z.string(), opensAt: z.string(), closesAt: z.string(), timeZone: z.string() }),
+    branch: z.object({ name: z.string(), address: z.string(), timeZone: z.string() }),
     service: z.object({
         name: z.string(),
         slug: z.string(),

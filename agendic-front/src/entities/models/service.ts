@@ -32,7 +32,8 @@ export type CatalogServiceEmployee = z.infer<typeof catalogServiceEmployeeSchema
 
 /**
  * A Servicio as the panel's catalog and POST /branches/:id/services return it. `hidden` is the Servicio oculto,
- * `prepMinutes` the Tiempo de preparación and `dailyLimit` the Límite diario (null: no limit).
+ * `prepMinutes` the Tiempo de preparación, `dailyLimit` the Límite diario (null: no limit), `slotInterval` the
+ * Intervalo (null: the duration) and `minimumNoticeMinutes` the Anticipación mínima (0: none).
  */
 export const catalogServiceSchema = serviceSchema.extend({
     slug: z.string(),
@@ -40,6 +41,8 @@ export const catalogServiceSchema = serviceSchema.extend({
     hidden: z.boolean(),
     prepMinutes: z.number(),
     dailyLimit: z.number().nullable(),
+    slotInterval: z.number().nullable(),
+    minimumNoticeMinutes: z.number(),
     employees: z.array(catalogServiceEmployeeSchema),
 });
 export type CatalogService = z.infer<typeof catalogServiceSchema>;
@@ -80,7 +83,8 @@ export interface ServiceInCatalog {
 
 /**
  * What PATCH /services/:id accepts, plus the Servicio that goes in the path. Every field is optional: only the ones
- * sent change. `depositPercent: null` drops the Seña and `dailyLimit: null` the Límite diario.
+ * sent change. `depositPercent: null` drops the Seña, `dailyLimit: null` the Límite diario and `slotInterval: null`
+ * the Intervalo.
  */
 export const updateServiceSchema = z.object({
     id: z.number().int(),
@@ -98,6 +102,8 @@ export const updateServiceSchema = z.object({
         .refine((m) => (PREP_MINUTES as readonly number[]).includes(m))
         .optional(),
     dailyLimit: z.number().int().min(1).nullable().optional(),
+    slotInterval: z.number().int().min(1).nullable().optional(),
+    minimumNoticeMinutes: z.number().int().min(0).optional(),
 });
 export type UpdateService = z.infer<typeof updateServiceSchema>;
 

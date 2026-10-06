@@ -102,6 +102,10 @@ export interface ServiceEditForm {
     dailyLimitEnabled: boolean;
     /** El máximo de Turnos por día; solo cuenta con `dailyLimitEnabled`. */
     dailyLimit: string;
+    /** El Intervalo, en minutos; vacío es la duración del Servicio. */
+    slotInterval: string;
+    /** La Anticipación mínima, en minutos; vacío es 0. */
+    minimumNoticeMinutes: string;
 }
 
 /** El Servicio como lo deja editar el detalle. */
@@ -116,6 +120,8 @@ export const editFormOf = (service: {
     requiresApproval: boolean;
     prepMinutes: number;
     dailyLimit: number | null;
+    slotInterval: number | null;
+    minimumNoticeMinutes: number;
 }): ServiceEditForm => ({
     name: service.name,
     slug: service.slug,
@@ -129,10 +135,15 @@ export const editFormOf = (service: {
     prepMinutes: String(service.prepMinutes),
     dailyLimitEnabled: service.dailyLimit !== null,
     dailyLimit: service.dailyLimit === null ? '' : String(service.dailyLimit),
+    slotInterval: service.slotInterval === null ? '' : String(service.slotInterval),
+    minimumNoticeMinutes: String(service.minimumNoticeMinutes),
 });
 
 const DEPOSIT_MESSAGE = 'La Seña va de 1 a 100%, en enteros.';
 const DAILY_LIMIT_MESSAGE = 'El Límite diario es de al menos 1 Turno, en enteros.';
+
+const SLOT_INTERVAL_MESSAGE = 'El Intervalo es de al menos 1 minuto, en enteros.';
+const MINIMUM_NOTICE_MESSAGE = 'La Anticipación mínima va en minutos enteros, desde 0.';
 
 const toNumber = (value: string) => (value.trim() === '' ? NaN : Number(value));
 
@@ -145,6 +156,8 @@ const serviceEditSchema = serviceFormSchema
         prepMinutes: z.string().transform(Number),
         dailyLimitEnabled: z.boolean(),
         dailyLimit: z.string(),
+        slotInterval: z.string(),
+        minimumNoticeMinutes: z.string(),
     })
     .superRefine((form, ctx) => {
         const percent = toNumber(form.depositPercent);
@@ -153,18 +166,26 @@ const serviceEditSchema = serviceFormSchema
         const limit = toNumber(form.dailyLimit);
         if (form.dailyLimitEnabled && (!Number.isInteger(limit) || limit < 1))
             ctx.addIssue({ code: 'custom', path: ['dailyLimit'], message: DAILY_LIMIT_MESSAGE });
+        const interval = toNumber(form.slotInterval);
+        if (form.slotInterval.trim() !== '' && (!Number.isInteger(interval) || interval < 1))
+            ctx.addIssue({ code: 'custom', path: ['slotInterval'], message: SLOT_INTERVAL_MESSAGE });
+        const notice = form.minimumNoticeMinutes.trim() === '' ? 0 : Number(form.minimumNoticeMinutes);
+        if (!Number.isInteger(notice) || notice < 0)
+            ctx.addIssue({ code: 'custom', path: ['minimumNoticeMinutes'], message: MINIMUM_NOTICE_MESSAGE });
     })
-    .transform(({ depositEnabled, depositPercent, dailyLimitEnabled, dailyLimit, ...form }) => ({
+    .transform(({ depositEnabled, depositPercent, dailyLimitEnabled, dailyLimit, slotInterval, minimumNoticeMinutes, ...form }) => ({
         ...form,
         depositPercent: depositEnabled ? Number(depositPercent) : null,
         dailyLimit: dailyLimitEnabled ? Number(dailyLimit) : null,
+        slotInterval: slotInterval.trim() === '' ? null : Number(slotInterval),
+        minimumNoticeMinutes: minimumNoticeMinutes.trim() === '' ? 0 : Number(minimumNoticeMinutes),
     }));
 
 type ServiceChanges = Partial<z.output<typeof serviceEditSchema>>;
 
 /**
  * Valida el borrador y arma el cuerpo de `PATCH /services/:id` con solo lo que cambió respecto de lo guardado. La
- * Seña apagada viaja como `depositPercent: null` y el Límite diario apagado, como `dailyLimit: null`. Una descripción que ya tenía texto no se puede vaciar: el back no
+ * Seña apagada viaja como `depositPercent: null`, el Límite diario apagado como `dailyLimit: null` y el Intervalo vacío como `slotInterval: null`. Una descripción que ya tenía texto no se puede vaciar: el back no
  * acepta una descripción vacía.
  */
 export function serviceChanges(

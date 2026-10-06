@@ -2,7 +2,7 @@
 
 import { unstable_rethrow } from 'next/navigation';
 import { getInjection } from '@/di/container';
-import { BookingStateError, SlotTakenError } from '@/src/entities/errors/booking';
+import { BookingStateError, SlotTakenError, SlotUnavailableError } from '@/src/entities/errors/booking';
 import { InputParseError, NotFoundError } from '@/src/entities/errors/common';
 import { invalidLink, type VerifyBookingResult } from './messages';
 
@@ -20,7 +20,7 @@ export async function verifyBookingAction(token: string): Promise<VerifyBookingR
             : { title: 'Email verificado', text: 'Verificamos tu email y tu turno quedó reservado.' };
     } catch (error) {
         unstable_rethrow(error);
-        if (error instanceof SlotTakenError)
+        if (error instanceof SlotTakenError || error instanceof SlotUnavailableError)
             return { title: 'Ese horario se ocupó', text: 'Mientras tanto alguien tomó el horario. Reservá otro turno.' };
         if (error instanceof BookingStateError || error instanceof NotFoundError || error instanceof InputParseError)
             return invalidLink;

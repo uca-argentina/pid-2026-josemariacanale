@@ -6,6 +6,16 @@ export class SlotTakenError extends Error {
     }
 }
 
+/**
+ * 422 `Slot <ISO> is not available for Service <id>`: al Reservar o Reagendar, el horario ya no está entre los
+ * Horarios reservables. Esperable, no un bug: el Cliente elige otro.
+ */
+export class SlotUnavailableError extends Error {
+    constructor(message: string, options?: ErrorOptions) {
+        super(message, options);
+    }
+}
+
 /** 403: el Usuario logueado no es el Empleado asignado a ese Turno. */
 export class BookingNotAllowedError extends Error {
     constructor(message: string, options?: ErrorOptions) {

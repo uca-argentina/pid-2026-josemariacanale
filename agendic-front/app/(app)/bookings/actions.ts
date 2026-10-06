@@ -5,7 +5,7 @@ import { redirect, unstable_rethrow } from 'next/navigation';
 import { isSessionExpired } from '@/app/api-error';
 import { SIGN_IN_PATH } from '@/app/routes';
 import { getInjection } from '@/di/container';
-import { BookingNotAllowedError, BookingStateError, SlotTakenError } from '@/src/entities/errors/booking';
+import { BookingNotAllowedError, BookingStateError, SlotTakenError, SlotUnavailableError } from '@/src/entities/errors/booking';
 import { InputParseError, NotFoundError } from '@/src/entities/errors/common';
 
 /** Lo que la UI recibe de una acción; `slotTaken` marca el 409 de Reagendar, que el Empleado resuelve eligiendo otro horario. */
@@ -24,6 +24,7 @@ async function perform(run: () => Promise<void>, unexpected: string): Promise<Bo
         unstable_rethrow(error);
         if (isSessionExpired(error)) redirect(SIGN_IN_PATH);
         if (error instanceof SlotTakenError) return { ok: false, slotTaken: true, message: 'Ese horario choca con otro turno tuyo. Elegí otro horario.' };
+        if (error instanceof SlotUnavailableError) return { ok: false, slotTaken: true, message: 'Ese horario ya no está disponible. Elegí otro horario.' };
         if (error instanceof BookingNotAllowedError) return { ok: false, message: 'Este turno no es tuyo.' };
         if (error instanceof NotFoundError) {
             refresh();

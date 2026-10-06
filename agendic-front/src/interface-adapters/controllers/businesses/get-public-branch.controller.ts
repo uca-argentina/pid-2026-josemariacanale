@@ -26,8 +26,6 @@ function presenter(
             id: branch.id,
             name: branch.name,
             address: branch.address,
-            opensAt: branch.opensAt,
-            closesAt: branch.closesAt,
             timeZone: branch.timeZone,
             slug: branch.slug,
         },

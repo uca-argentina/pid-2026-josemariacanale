@@ -92,6 +92,8 @@ const service = {
     requiresApproval: false,
     prepMinutes: 0,
     dailyLimit: null,
+    slotInterval: null,
+    minimumNoticeMinutes: 0,
 };
 
 describe('editFormOf', () => {
@@ -109,6 +111,8 @@ describe('editFormOf', () => {
             prepMinutes: '0',
             dailyLimitEnabled: false,
             dailyLimit: '',
+            slotInterval: '',
+            minimumNoticeMinutes: '0',
         });
     });
 
@@ -183,6 +187,26 @@ describe('serviceChanges', () => {
             ok: true,
             changes: { dailyLimit: null },
         });
+    });
+
+    it('manda el Intervalo y la Anticipación mínima, y el Intervalo vacío vuelve a null', () => {
+        const withInterval = editFormOf({ ...service, slotInterval: 30 });
+        expect(serviceChanges(saved, { ...saved, slotInterval: '30', minimumNoticeMinutes: '120' })).toEqual({
+            ok: true,
+            changes: { slotInterval: 30, minimumNoticeMinutes: 120 },
+        });
+        expect(serviceChanges(withInterval, { ...withInterval, slotInterval: '' })).toEqual({
+            ok: true,
+            changes: { slotInterval: null },
+        });
+    });
+
+    it.each(['0', '-5', '1.5', 'x'])('rechaza un Intervalo de "%s"', (slotInterval) => {
+        expect(serviceChanges(saved, { ...saved, slotInterval })).toMatchObject({ ok: false, errors: { slotInterval: expect.any(String) } });
+    });
+
+    it.each(['-1', '2.5', 'x'])('rechaza una Anticipación mínima de "%s"', (minimumNoticeMinutes) => {
+        expect(serviceChanges(saved, { ...saved, minimumNoticeMinutes })).toMatchObject({ ok: false, errors: { minimumNoticeMinutes: expect.any(String) } });
     });
 
     it.each(['', '0', '-2', '1.5', 'diez'])('rechaza un Límite diario de "%s"', (dailyLimit) => {

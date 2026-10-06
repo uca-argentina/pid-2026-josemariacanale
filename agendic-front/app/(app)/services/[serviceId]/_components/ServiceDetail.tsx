@@ -335,6 +335,43 @@ function LimitsTab({
             </PanelCard>
 
             <PanelCard className="flex flex-col gap-5">
+                <PanelField
+                    label="Intervalo"
+                    htmlFor="service-slot-interval"
+                    error={errors.slotInterval}
+                    hint="Cada cuántos minutos arranca un horario reservable. Vacío, es la duración del Servicio."
+                >
+                    <PanelInput
+                        id="service-slot-interval"
+                        type="number"
+                        min={1}
+                        suffix="minutos"
+                        className="w-[220px]"
+                        value={draft.slotInterval}
+                        disabled={readOnly}
+                        onChange={(e) => set({ slotInterval: e.target.value })}
+                    />
+                </PanelField>
+                <PanelField
+                    label="Anticipación mínima"
+                    htmlFor="service-minimum-notice"
+                    error={errors.minimumNoticeMinutes}
+                    hint="Minutos que tienen que faltar como mínimo para el inicio de un Turno al reservarlo. 0, hasta el último momento."
+                >
+                    <PanelInput
+                        id="service-minimum-notice"
+                        type="number"
+                        min={0}
+                        suffix="minutos"
+                        className="w-[220px]"
+                        value={draft.minimumNoticeMinutes}
+                        disabled={readOnly}
+                        onChange={(e) => set({ minimumNoticeMinutes: e.target.value })}
+                    />
+                </PanelField>
+            </PanelCard>
+
+            <PanelCard className="flex flex-col gap-5">
                 <PanelToggleRow
                     id="service-daily-limit"
                     title="Límite diario"
@@ -487,7 +524,7 @@ export function ServiceDetail({ detail }: { detail: ServiceDetailData }) {
     const save = () => {
         if (!edit.ok) {
             setErrors(edit.errors);
-            setTab(Object.keys(edit.errors).every((field) => field === 'dailyLimit') ? 'limits' : 'setup');
+            setTab(Object.keys(edit.errors).every((field) => ['dailyLimit', 'slotInterval', 'minimumNoticeMinutes'].includes(field)) ? 'limits' : 'setup');
             return;
         }
         startSaving(async () => {

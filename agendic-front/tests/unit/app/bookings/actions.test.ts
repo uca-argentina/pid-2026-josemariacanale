@@ -6,7 +6,7 @@ import {
     rescheduleBookingAction,
 } from '@/app/(app)/bookings/actions';
 import { UnauthenticatedError } from '@/src/entities/errors/auth';
-import { BookingNotAllowedError, BookingStateError, SlotTakenError } from '@/src/entities/errors/booking';
+import { BookingNotAllowedError, BookingStateError, SlotTakenError, SlotUnavailableError } from '@/src/entities/errors/booking';
 import { InputParseError, NotFoundError } from '@/src/entities/errors/common';
 
 const mockControllers: Record<string, jest.Mock> = {
@@ -82,6 +82,13 @@ describe('rescheduleBookingAction', () => {
     it('sends the chosen startsAt', async () => {
         await rescheduleBookingAction(7, '2026-10-02T15:00:00.000Z');
         expect(mockControllers.IRescheduleBookingController).toHaveBeenCalledWith({ bookingId: 7, startsAt: '2026-10-02T15:00:00.000Z' });
+    });
+
+    it('shows a 422 of horario no disponible as "ya no está disponible" and reloads the horarios', async () => {
+        mockControllers.IRescheduleBookingController.mockRejectedValue(new SlotUnavailableError('Slot x is not available for Service 1'));
+        const result = await rescheduleBookingAction(7, '2026-10-02T15:00:00.000Z');
+        expect(result).toMatchObject({ ok: false, slotTaken: true, message: expect.stringContaining('ya no está disponible') });
+        expect(mockReport).not.toHaveBeenCalled();
     });
 
     it('shows a 409 as "elegí otro horario" without reporting it', async () => {

@@ -1,4 +1,4 @@
-import { BookingStateError, SlotTakenError } from '@/src/entities/errors/booking';
+import { BookingStateError, SlotTakenError, SlotUnavailableError } from '@/src/entities/errors/booking';
 import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
 import { BookingsRepository } from '@/src/infrastructure/repositories/bookings.repository';
 import { instrumentation } from '@/tests/unit/stubs';
@@ -38,6 +38,11 @@ describe('BookingsRepository.listSlots', () => {
         const error = await repo().listSlots(query).catch((e) => e);
         expect(error).toBeInstanceOf(ApiRequestError);
         expect(error.status).toBe(status);
+    });
+
+    it('translates the 422 of horario no disponible to SlotUnavailableError when booking', async () => {
+        respond(422, { statusCode: 422, message: 'Slot 2026-10-02T15:00:00.000Z is not available for Service 100' });
+        await expect(repo().book({} as never)).rejects.toBeInstanceOf(SlotUnavailableError);
     });
 
     it('translates an unknown reason to ApiRequestError', async () => {
