@@ -166,7 +166,7 @@ export function Sidebar({ user, navItems }: { user: CurrentBusinessUser; navItem
                     </Dialog.Trigger>
                     <Dialog.Portal>
                         <Dialog.Overlay className="fixed inset-0 z-40 bg-[#0f1b2d]/50 lg:hidden" />
-                        <Dialog.Content className="fixed inset-y-0 left-0 z-50 flex w-[280px] max-w-[85vw] flex-col gap-5 overflow-y-auto bg-white p-3.5 pt-4.5 shadow-[0_24px_60px_rgba(15,27,45,0.25)] outline-none lg:hidden">
+                        <Dialog.Content className="fixed inset-y-0 left-0 z-50 flex w-[280px] max-w-[85vw] flex-col gap-5 overflow-y-auto overscroll-contain bg-white p-3.5 pt-4.5 shadow-[0_24px_60px_rgba(15,27,45,0.25)] outline-none lg:hidden">
                             <Dialog.Title className="sr-only">Menú</Dialog.Title>
                             <Dialog.Description className="sr-only">Secciones del panel</Dialog.Description>
                             <SidebarContent

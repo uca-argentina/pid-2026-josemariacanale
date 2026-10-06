@@ -47,7 +47,7 @@ function ServiceCard({
             <Button
                 onClick={() => onBook(service)}
                 variant="outline"
-                className="h-auto w-full shrink-0 rounded-full px-5 py-2.5 text-[13.5px] font-bold sm:w-auto"
+                className="h-auto min-h-11 w-full shrink-0 rounded-full px-5 py-2.5 text-[13.5px] font-bold sm:w-auto"
             >
                 Reservar
             </Button>

@@ -33,7 +33,7 @@ export function Header({ user, nav = true }: { user: CurrentUser | null; nav?: b
                         </span>
                         <Button
                             asChild
-                            className="text-[14px] font-bold text-white bg-primary px-3.5 py-2 rounded-[10px] hover:bg-primary/90 transition-colors h-auto sm:px-[18px] sm:py-[11px] sm:text-[15px]"
+                            className="min-h-11 text-[14px] font-bold text-white bg-primary px-3.5 py-2 rounded-[10px] hover:bg-primary/90 transition-colors h-auto sm:px-[18px] sm:py-[11px] sm:text-[15px]"
                         >
                             <Link href={SIGNED_IN_HOME_PATH}>
                                 Ir a la app
@@ -57,7 +57,7 @@ export function Header({ user, nav = true }: { user: CurrentUser | null; nav?: b
                         </Button>
                         <Button
                             asChild
-                            className="text-[14px] font-bold text-white bg-primary px-3.5 py-2 rounded-[10px] hover:bg-primary/90 transition-colors h-auto sm:px-[18px] sm:py-[11px] sm:text-[15px]"
+                            className="min-h-11 text-[14px] font-bold text-white bg-primary px-3.5 py-2 rounded-[10px] hover:bg-primary/90 transition-colors h-auto sm:px-[18px] sm:py-[11px] sm:text-[15px]"
                         >
                             <Link
                                 href="/sign-up"

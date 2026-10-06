@@ -32,7 +32,7 @@ export function ChipTabs<T extends string>({
                         onClick={() => onSelect(o.value)}
                         aria-pressed={active}
                         className={cn(
-                            'shrink-0 rounded-full px-5 py-2.5 text-[14px] font-bold tracking-[-0.01em] whitespace-nowrap transition-colors',
+                            'min-h-11 shrink-0 rounded-full px-5 py-2.5 text-[14px] font-bold tracking-[-0.01em] whitespace-nowrap transition-colors',
                             active ? 'bg-foreground text-white' : 'text-foreground hover:bg-muted',
                         )}
                     >

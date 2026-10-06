@@ -47,7 +47,7 @@ function Breadcrumb({ step, onGo }: { step: Step; onGo: (s: Step) => void }) {
                                 disabled={!done}
                                 aria-current={i === current ? 'step' : undefined}
                                 className={cn(
-                                    'rounded-md px-1 tracking-[-0.01em] transition-colors',
+                                    'min-h-11 rounded-md px-1 tracking-[-0.01em] transition-colors',
                                     i === current && 'font-bold text-foreground',
                                     done && 'font-bold text-muted-foreground hover:text-foreground',
                                     i > current && 'font-medium text-muted-foreground',
@@ -511,7 +511,7 @@ export function BookingFlow({
             role="dialog"
             aria-modal="true"
             aria-label="Reservar un turno"
-            className="fixed inset-0 z-50 overflow-y-auto bg-background"
+            className="fixed inset-0 z-50 overflow-y-auto overscroll-contain bg-background"
         >
             <div className="flex items-center justify-between px-4 py-4 sm:px-8 lg:px-16">
                 <Button
@@ -519,7 +519,7 @@ export function BookingFlow({
                     size="icon-lg"
                     onClick={back}
                     aria-label="Volver"
-                    className="rounded-full"
+                    className="size-11 rounded-full"
                 >
                     <ArrowLeft className="size-5" />
                 </Button>
@@ -528,7 +528,7 @@ export function BookingFlow({
                     size="icon-lg"
                     onClick={onClose}
                     aria-label="Cerrar"
-                    className="rounded-full"
+                    className="size-11 rounded-full"
                 >
                     <X className="size-5" />
                 </Button>
@@ -539,7 +539,7 @@ export function BookingFlow({
                 <div className="grid grid-cols-1 items-start gap-10 lg:grid-cols-[1fr_400px]">
                     <div className="min-w-0">
                         <Breadcrumb step={step} onGo={goTo} />
-                        <h1 className="mt-4 mb-6 text-[28px] leading-none font-extrabold tracking-[-0.03em] sm:text-[44px]">
+                        <h1 className="mt-2 mb-6 text-[28px] leading-none font-extrabold tracking-[-0.03em] sm:text-[44px]">
                             {TITLES[step]}
                         </h1>
 
