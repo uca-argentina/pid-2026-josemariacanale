@@ -53,7 +53,7 @@ export default async function PublicBusinessPage({ params }: { params: Promise<P
             <main className="mx-auto w-full max-w-[720px] flex-1 px-4 pt-6 pb-20 sm:px-8">
                 {business && branches ? (
                     <>
-                        <h1 className="text-[40px] leading-[1.05] font-extrabold tracking-[-0.03em] sm:text-[52px]">
+                        <h1 className="text-[34px] leading-[1.05] font-extrabold tracking-[-0.03em] break-words sm:text-[52px]">
                             {business.name}
                         </h1>
                         <p className="mt-3 max-w-[62ch] text-[14.5px] leading-relaxed text-muted-foreground">

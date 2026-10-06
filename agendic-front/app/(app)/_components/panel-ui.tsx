@@ -108,7 +108,7 @@ export function PanelSection({
 }) {
     return (
         <section className="rounded-xl border border-[#e5e7eb] bg-[#f9fafb]">
-            <div className="flex flex-wrap items-center gap-3 px-6 py-4">
+            <div className="flex flex-wrap items-center gap-3 px-4 py-4 sm:px-6">
                 <div className="flex min-w-0 flex-col gap-0.5">
                     <h2 className="m-0 flex items-center gap-1.5 text-[14.5px] font-bold tracking-[-0.02em] text-[#0f1b2d]">
                         {title}
@@ -227,7 +227,7 @@ export function PanelCard({
     return (
         <section
             className={cn(
-                'rounded-md border border-[#e5e7eb] bg-white p-6',
+                'rounded-md border border-[#e5e7eb] bg-white p-4 sm:p-6',
                 className,
             )}
         >
@@ -332,7 +332,7 @@ export function PanelInput({
     return (
         <div className={cn(FIELD_BOX, className)}>
             {prefix && (
-                <span className="shrink-0 pl-3 text-[#9ca3af] select-none">
+                <span className="max-w-[55%] min-w-0 shrink-0 truncate pl-3 text-[#9ca3af] select-none">
                     {prefix}
                 </span>
             )}
@@ -471,11 +471,11 @@ export function PanelDialog({
                 <Dialog.Overlay className="fixed inset-0 z-40 bg-[#0f1b2d]/50" />
                 <Dialog.Content
                     className={cn(
-                        'fixed top-1/2 left-1/2 z-50 flex max-h-[90vh] w-[calc(100vw-32px)] max-w-[600px] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-xl bg-white shadow-[0_24px_60px_rgba(15,27,45,0.25)] outline-none',
+                        'fixed top-1/2 left-1/2 z-50 flex max-h-[90dvh] w-[calc(100vw-32px)] max-w-[600px] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-xl bg-white shadow-[0_24px_60px_rgba(15,27,45,0.25)] outline-none',
                         className,
                     )}
                 >
-                    <div className="flex flex-col gap-6 overflow-y-auto px-8 pt-8 pb-10">
+                    <div className="flex flex-col gap-6 overflow-y-auto px-5 pt-6 pb-8 sm:px-8 sm:pt-8 sm:pb-10">
                         <div className="flex flex-col gap-1">
                             <Dialog.Title className="m-0 text-[21px] font-extrabold tracking-[-0.035em] text-[#0f1b2d]">
                                 {title}
@@ -488,7 +488,7 @@ export function PanelDialog({
                         </div>
                         {children}
                     </div>
-                    <div className="flex justify-end gap-2 border-t border-[#e5e7eb] bg-[#f9fafb] px-8 py-4">
+                    <div className="flex flex-wrap justify-end gap-2 border-t border-[#e5e7eb] bg-[#f9fafb] px-5 py-4 sm:px-8">
                         {footer}
                     </div>
                 </Dialog.Content>
@@ -526,7 +526,7 @@ export function PanelConfirm({
             <AlertDialog.Portal>
                 <AlertDialog.Overlay className="fixed inset-0 z-40 bg-[#0f1b2d]/50" />
                 <AlertDialog.Content className="fixed top-1/2 left-1/2 z-50 w-[calc(100vw-32px)] max-w-[480px] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-xl bg-white shadow-[0_24px_60px_rgba(15,27,45,0.25)] outline-none">
-                    <div className="flex flex-col gap-2 px-8 pt-8 pb-8">
+                    <div className="flex flex-col gap-2 px-5 pt-6 pb-6 sm:px-8 sm:pt-8 sm:pb-8">
                         <AlertDialog.Title className="m-0 text-[19px] font-extrabold tracking-[-0.03em] text-[#0f1b2d]">
                             {title}
                         </AlertDialog.Title>
@@ -534,7 +534,7 @@ export function PanelConfirm({
                             {description}
                         </AlertDialog.Description>
                     </div>
-                    <div className="flex justify-end gap-2 border-t border-[#e5e7eb] bg-[#f9fafb] px-8 py-4">
+                    <div className="flex flex-wrap justify-end gap-2 border-t border-[#e5e7eb] bg-[#f9fafb] px-5 py-4 sm:px-8">
                         <AlertDialog.Cancel asChild>
                             <PanelButton
                                 variant={confirmLabel ? 'ghost' : 'primary'}

@@ -141,8 +141,8 @@ export function EmployeesView({
 
     return (
         <div className="flex flex-col gap-6">
-            <div className="flex flex-wrap items-center gap-3">
-                <div className="flex h-9 w-full max-w-[320px] items-center gap-2 rounded-md border border-[#d1d5db] px-3 focus-within:border-[#0f1b2d] focus-within:ring-1 focus-within:ring-[#0f1b2d]">
+            <div className="flex items-center gap-3">
+                <div className="flex h-9 min-w-0 flex-1 items-center gap-2 rounded-md border border-[#d1d5db] px-3 focus-within:border-[#0f1b2d] focus-within:ring-1 focus-within:ring-[#0f1b2d] sm:max-w-[320px]">
                     <Search className="size-4 shrink-0 text-[#6b7280]" />
                     <input
                         aria-label="Buscar empleados"
@@ -159,16 +159,16 @@ export function EmployeesView({
             </div>
 
             <div className="overflow-x-auto rounded-md border border-[#e5e7eb]">
-                <table className="w-full min-w-[560px] border-collapse text-left">
+                <table className="w-full table-fixed border-collapse text-left">
                     <thead className="bg-[#f9fafb] text-[12.5px] font-bold text-[#6b7280]">
                         <tr>
-                            <th scope="col" className="px-6 py-3 font-bold">
+                            <th scope="col" className="px-4 py-3 font-bold sm:px-6">
                                 Empleado
                             </th>
-                            <th scope="col" className="w-40 px-6 py-3 font-bold">
+                            <th scope="col" className="hidden w-40 px-6 py-3 font-bold sm:table-cell">
                                 Rol
                             </th>
-                            <th scope="col" className="w-32 px-6 py-3">
+                            <th scope="col" className="w-[104px] px-4 py-3 sm:w-32 sm:px-6">
                                 <span className="sr-only">Acciones</span>
                             </th>
                         </tr>
@@ -176,19 +176,22 @@ export function EmployeesView({
                     <tbody className="divide-y divide-[#e5e7eb] border-t border-[#e5e7eb]">
                         {visible.map((employee) => (
                             <tr key={employee.id} className="transition-colors hover:bg-[#f9fafb]">
-                                <td className="px-6 py-4">
+                                <td className="px-4 py-4 sm:px-6">
                                     <div className="flex items-center gap-3">
                                         <PanelAvatar name={employee.name} />
                                         <div className="flex min-w-0 flex-col">
                                             <span className="truncate text-[14px] font-bold tracking-[-0.02em]">{employee.name}</span>
                                             <span className="truncate text-[12.5px] font-medium text-[#6b7280]">{employee.email}</span>
+                                            <span className="mt-1.5 sm:hidden">
+                                                <RoleBadge role={employee.role} />
+                                            </span>
                                         </div>
                                     </div>
                                 </td>
-                                <td className="px-6 py-4">
+                                <td className="hidden px-6 py-4 sm:table-cell">
                                     <RoleBadge role={employee.role} />
                                 </td>
-                                <td className="px-6 py-4">
+                                <td className="px-4 py-4 sm:px-6">
                                     <div className="flex justify-end">
                                         <PanelIconGroup>
                                             <PanelIconButton label={`Ver a ${employee.name}`} onClick={() => setViewing(employee)}>
@@ -220,7 +223,7 @@ export function EmployeesView({
                         ))}
                         {visibleInvitations.map((invitation) => (
                             <tr key={`invitation-${invitation.id}`}>
-                                <td className="px-6 py-4">
+                                <td className="px-4 py-4 sm:px-6">
                                     <div className="flex items-center gap-3">
                                         <PanelAvatar name={invitation.email} />
                                         <div className="flex min-w-0 flex-col">
@@ -228,13 +231,16 @@ export function EmployeesView({
                                             <span className="truncate text-[12.5px] font-medium text-[#6b7280]">
                                                 Vence el {EXPIRY_DATE_FORMAT.format(new Date(invitation.expiresAt))}
                                             </span>
+                                            <span className="mt-1.5 sm:hidden">
+                                                <PanelBadge>Invitación pendiente</PanelBadge>
+                                            </span>
                                         </div>
                                     </div>
                                 </td>
-                                <td className="px-6 py-4">
+                                <td className="hidden px-6 py-4 sm:table-cell">
                                     <PanelBadge>Invitación pendiente</PanelBadge>
                                 </td>
-                                <td className="px-6 py-4">
+                                <td className="px-4 py-4 sm:px-6">
                                     <div className="flex justify-end">
                                         <PanelIconGroup>
                                             <PanelIconButton label={`Reenviar invitación a ${invitation.email}`} onClick={() => resend(invitation)}>

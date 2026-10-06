@@ -3,13 +3,13 @@ import { Globe, ChevronDown } from 'lucide-react';
 
 export function Footer() {
     return (
-        <footer className="flex items-center justify-between gap-4 px-16 py-5 flex-wrap">
+        <footer className="flex items-center justify-between gap-4 px-4 py-5 flex-wrap sm:px-8 lg:px-16">
             <div className="flex items-center gap-1.5 text-[13.5px] font-semibold text-muted-foreground cursor-pointer">
                 <Globe className="size-4" />
                 <span>Español</span>
                 <ChevronDown className="size-3" />
             </div>
-            <nav className="flex gap-7 flex-wrap">
+            <nav className="flex gap-x-5 gap-y-2 flex-wrap sm:gap-7">
                 <Link
                     href="#"
                     className="text-[13.5px] text-muted-foreground hover:text-primary transition-colors"

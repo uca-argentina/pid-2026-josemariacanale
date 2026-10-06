@@ -42,7 +42,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     const pendingCount = await countPendingBookings();
 
     return (
-        <div className="flex min-h-screen w-full bg-muted">
+        <div className="flex min-h-screen w-full flex-col bg-muted lg:flex-row">
             <Sidebar
                 user={{ name: user.name, initials: initialsOf(user.name), imageUrl: user.imageUrl }}
                 navItems={navItems.map((item) => (item.id === 'bookings' ? { ...item, count: pendingCount } : item))}
@@ -55,7 +55,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 toastOptions={{
                     unstyled: true,
                     classNames: {
-                        toast: 'flex w-[360px] items-center gap-3 rounded-md border border-[#e5e7eb] bg-white px-4 py-3 text-[13px] font-semibold text-[#0f1b2d] shadow-[0_10px_30px_rgba(15,27,45,0.12)]',
+                        toast: 'flex w-[calc(100vw-32px)] max-w-[360px] items-center gap-3 rounded-md border border-[#e5e7eb] bg-white px-4 py-3 text-[13px] font-semibold text-[#0f1b2d] shadow-[0_10px_30px_rgba(15,27,45,0.12)]',
                         closeButton: 'order-last ml-auto shrink-0 text-[#6b7280] hover:text-[#0f1b2d] [&_svg]:size-4',
                     },
                 }}

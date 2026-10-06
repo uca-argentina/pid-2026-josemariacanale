@@ -37,7 +37,7 @@ export function PageHeader({
                 </Link>
             )}
             <div className="flex min-w-0 flex-col gap-1">
-                <h1 className="m-0 text-[21px] font-extrabold tracking-[-0.035em]">{title}</h1>
+                <h1 className="m-0 text-[21px] font-extrabold tracking-[-0.035em] break-words">{title}</h1>
                 <p className="m-0 text-[13px] font-medium text-[#6b7280]">{description}</p>
             </div>
         </header>
@@ -58,9 +58,9 @@ export function BusinessCard({
 }) {
     return (
         <section className="overflow-hidden rounded-xl border border-[#e5e7eb] bg-white">
-            <div className="flex flex-wrap items-center gap-3 px-6 py-5">
+            <div className="flex flex-wrap items-center gap-3 px-4 py-4 sm:px-6 sm:py-5">
                 <PanelAvatar name={business.name} />
-                <div className="flex min-w-0 flex-col">
+                <div className="flex min-w-0 flex-1 flex-col">
                     <span className="truncate text-[14.5px] font-bold tracking-[-0.02em]">{business.name}</span>
                     <span className="truncate text-[12.5px] font-medium text-[#6b7280]">{bookingLink(business.slug)}</span>
                 </div>
@@ -69,7 +69,7 @@ export function BusinessCard({
                     {actions}
                 </div>
             </div>
-            {children && <div className="border-t border-[#e5e7eb] bg-[#f3f4f6] px-6 py-6">{children}</div>}
+            {children && <div className="border-t border-[#e5e7eb] bg-[#f3f4f6] px-4 py-5 sm:px-6 sm:py-6">{children}</div>}
         </section>
     );
 }

@@ -117,12 +117,15 @@ export function TimeStep({
             )}
 
             {days.length > 0 && (
-                <ol className="mt-6 flex flex-wrap gap-3" aria-label="Días disponibles">
+                <ol
+                    className="-mx-4 mt-6 flex gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 [&::-webkit-scrollbar]:hidden"
+                    aria-label="Días disponibles"
+                >
                     {days.map((day) => {
                         const noSlots = day.slots.length === 0;
                         const active = day.date === date;
                         return (
-                            <li key={day.date} className="flex flex-col items-center gap-2">
+                            <li key={day.date} className="flex shrink-0 flex-col items-center gap-2">
                                 <button
                                     type="button"
                                     onClick={() => onSelect(day.date, null)}

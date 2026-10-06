@@ -536,10 +536,10 @@ export function BookingFlow({
 
             {/* pb-32 en mobile deja aire para la barra fija de abajo. */}
             <div className="mx-auto w-full max-w-[1400px] px-4 pb-32 sm:px-8 lg:px-16 lg:pb-24">
-                <div className="grid items-start gap-10 lg:grid-cols-[1fr_400px]">
-                    <div>
+                <div className="grid grid-cols-1 items-start gap-10 lg:grid-cols-[1fr_400px]">
+                    <div className="min-w-0">
                         <Breadcrumb step={step} onGo={goTo} />
-                        <h1 className="mt-4 mb-6 text-[34px] leading-none font-extrabold tracking-[-0.03em] sm:text-[44px]">
+                        <h1 className="mt-4 mb-6 text-[28px] leading-none font-extrabold tracking-[-0.03em] sm:text-[44px]">
                             {TITLES[step]}
                         </h1>
 
@@ -593,7 +593,7 @@ export function BookingFlow({
             </div>
 
             {/* Abajo de lg el panel no entra al lado, así que el resumen queda en una barra fija. */}
-            <div className="fixed inset-x-0 bottom-0 border-t border-border bg-background px-4 py-3 shadow-[0_-1px_2px_rgba(15,27,45,0.06)] sm:px-8 lg:hidden">
+            <div className="fixed inset-x-0 bottom-0 border-t border-border bg-background px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-1px_2px_rgba(15,27,45,0.06)] sm:px-8 lg:hidden">
                 <div className="mb-2 flex items-baseline justify-between gap-4">
                     <span className="min-w-0 truncate text-[13px] font-medium text-muted-foreground">
                         {service

@@ -118,19 +118,19 @@ export function MyBookings({
                 aria-label="Detalle del turno"
                 className="overflow-hidden rounded-2xl border border-border"
             >
-                <div className="relative h-[240px] sm:h-[320px]">
+                <div className="relative h-[200px] sm:h-[320px]">
                     <BranchPhoto
                         src={booking.coverUrl}
                         alt={`Sucursal ${branch.name} de ${business.name}`}
                         sizes="(max-width: 1024px) 100vw, 60vw"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-foreground/70 to-transparent" />
-                    <h2 className="absolute bottom-6 left-6 max-w-[80%] text-[32px] leading-tight font-extrabold tracking-[-0.03em] text-white">
+                    <h2 className="absolute bottom-4 left-4 max-w-[80%] text-[26px] leading-tight break-words sm:bottom-6 sm:left-6 sm:text-[32px] font-extrabold tracking-[-0.03em] text-white">
                         {business.name}
                     </h2>
                 </div>
 
-                <div className="p-6">
+                <div className="p-4 sm:p-6">
                     <span className="inline-flex items-center gap-2 rounded-full bg-foreground px-3.5 py-1.5 text-[13px] font-bold text-white">
                         <status.icon className="size-4" />
                         {status.badge}

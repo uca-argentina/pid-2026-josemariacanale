@@ -47,7 +47,7 @@ function ServiceCard({
             <Button
                 onClick={() => onBook(service)}
                 variant="outline"
-                className="h-auto shrink-0 rounded-full px-5 py-2.5 text-[13.5px] font-bold"
+                className="h-auto w-full shrink-0 rounded-full px-5 py-2.5 text-[13.5px] font-bold sm:w-auto"
             >
                 Reservar
             </Button>
@@ -105,7 +105,7 @@ export function BranchPublicPage({
         <>
             <div className="mx-auto w-full max-w-[1400px] flex-1 px-4 pb-20 sm:px-8 lg:px-16">
                 <header className="pt-6 pb-7">
-                    <h1 className="text-[40px] leading-[1.05] font-extrabold tracking-[-0.03em] sm:text-[52px]">
+                    <h1 className="text-[34px] leading-[1.05] font-extrabold tracking-[-0.03em] break-words sm:text-[52px]">
                         {business.name}
                     </h1>
                     <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-[14.5px] font-medium text-muted-foreground">
@@ -166,11 +166,11 @@ export function BranchPublicPage({
                     </section>
                 )}
 
-                <div className="mt-12 grid items-start gap-10 lg:grid-cols-[1fr_360px]">
-                    <section aria-labelledby="servicios-titulo">
+                <div className="mt-12 grid grid-cols-1 items-start gap-10 lg:grid-cols-[1fr_360px]">
+                    <section aria-labelledby="servicios-titulo" className="min-w-0">
                         <h2
                             id="servicios-titulo"
-                            className="text-[32px] leading-none font-extrabold tracking-[-0.03em]"
+                            className="text-[26px] leading-none font-extrabold tracking-[-0.03em] sm:text-[32px]"
                         >
                             Servicios
                         </h2>

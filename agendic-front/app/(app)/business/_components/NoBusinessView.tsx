@@ -35,9 +35,9 @@ export function NoBusinessView({ owner, invitations }: { owner: Owner; invitatio
                 <PanelSection title="Invitaciones pendientes">
                     <ul className="m-0 list-none divide-y divide-[#e5e7eb] p-0">
                         {invitations.map((invitation) => (
-                            <li key={invitation.id} className="flex flex-wrap items-center gap-3 px-6 py-4">
+                            <li key={invitation.id} className="flex flex-wrap items-center gap-3 px-4 py-4 sm:px-6">
                                 <PanelAvatar name={invitation.business.name} />
-                                <div className="flex min-w-0 flex-col">
+                                <div className="flex min-w-0 flex-1 flex-col">
                                     <span className="truncate text-[14.5px] font-bold tracking-[-0.02em]">
                                         {invitation.business.name}
                                     </span>
@@ -45,11 +45,21 @@ export function NoBusinessView({ owner, invitations }: { owner: Owner; invitatio
                                         {bookingLink(invitation.business.slug)}
                                     </span>
                                 </div>
-                                <div className="ml-auto flex gap-2">
-                                    <PanelButton variant="secondary" disabled={isAnswering} onClick={() => answer(invitation, false)}>
+                                <div className="flex w-full gap-2 sm:ml-auto sm:w-auto">
+                                    <PanelButton
+                                        variant="secondary"
+                                        disabled={isAnswering}
+                                        onClick={() => answer(invitation, false)}
+                                        className="flex-1 sm:flex-none"
+                                    >
                                         Rechazar
                                     </PanelButton>
-                                    <PanelButton variant="secondary" disabled={isAnswering} onClick={() => answer(invitation, true)}>
+                                    <PanelButton
+                                        variant="secondary"
+                                        disabled={isAnswering}
+                                        onClick={() => answer(invitation, true)}
+                                        className="flex-1 sm:flex-none"
+                                    >
                                         <Check className="size-4" />
                                         Aceptar
                                     </PanelButton>
@@ -60,8 +70,8 @@ export function NoBusinessView({ owner, invitations }: { owner: Owner; invitatio
                 </PanelSection>
             )}
 
-            <section className="flex flex-col items-start gap-4 rounded-xl bg-[#0f1b2d] px-8 py-10 text-white">
-                <h2 className="m-0 max-w-[520px] text-[26px] font-extrabold leading-tight tracking-[-0.035em]">
+            <section className="flex flex-col items-start gap-4 rounded-xl bg-[#0f1b2d] px-5 py-8 text-white sm:px-8 sm:py-10">
+                <h2 className="m-0 max-w-[520px] text-[22px] font-extrabold sm:text-[26px] leading-tight tracking-[-0.035em]">
                     Agendic es mejor con tu equipo
                 </h2>
                 <p className="m-0 max-w-[520px] text-[14px] font-medium leading-relaxed text-white/75">

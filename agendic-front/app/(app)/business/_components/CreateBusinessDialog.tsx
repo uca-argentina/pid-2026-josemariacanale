@@ -155,7 +155,7 @@ export function CreateBusinessDialog({ owner, onClose }: { owner: Owner; onClose
             footer={
                 <>
                     {submitError && (
-                        <p role="alert" className="m-0 mr-auto self-center text-[13px] font-semibold text-[#b91c1c]">
+                        <p role="alert" className="m-0 basis-full self-center text-[13px] font-semibold text-[#b91c1c] sm:mr-auto sm:basis-auto">
                             {submitError}
                         </p>
                     )}
@@ -295,7 +295,7 @@ function PersonRow({ name, email, badges, action }: { name: string; email?: stri
             <PanelAvatar name={name} />
             <div className="flex min-w-0 flex-1 flex-col">
                 <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-[13.5px] font-bold tracking-[-0.01em] text-[#0f1b2d]">{name}</span>
+                    <span className="text-[13.5px] font-bold tracking-[-0.01em] break-all text-[#0f1b2d]">{name}</span>
                     {badges}
                 </div>
                 {email && <span className="truncate text-[12.5px] font-medium text-[#6b7280]">{email}</span>}
@@ -419,7 +419,7 @@ function ServiceStep({
                     onValueChange={(category) => onChange({ ...value, category: category as ServiceCategoryValue })}
                 />
             </PanelField>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <PanelField label="Duración" htmlFor="service-durationMinutes" error={errors.durationMinutes}>
                     <PanelInput
                         id="service-durationMinutes"
@@ -520,8 +520,8 @@ function SummaryBlock({ title, onEdit, children }: { title: string; onEdit: () =
 
 function SummaryItem({ label, value }: { label: string; value: string }) {
     return (
-        <div className="flex gap-2 text-[13px] font-medium">
-            <dt className="w-32 shrink-0 text-[#6b7280]">{label}</dt>
+        <div className="flex flex-col gap-0.5 text-[13px] font-medium sm:flex-row sm:gap-2">
+            <dt className="shrink-0 text-[#6b7280] sm:w-32">{label}</dt>
             <dd className="m-0 min-w-0 break-words text-[#0f1b2d]">{value || '—'}</dd>
         </div>
     );

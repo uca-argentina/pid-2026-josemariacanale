@@ -59,11 +59,11 @@ export function AppearanceView() {
     return (
         <div className="flex max-w-[880px] flex-col gap-6">
             <PanelCard className="overflow-hidden p-0">
-                <div className="flex flex-col gap-0.5 border-b border-[#e5e7eb] px-6 py-5">
+                <div className="flex flex-col gap-0.5 border-b border-[#e5e7eb] px-4 py-4 sm:px-6 sm:py-5">
                     <h2 className="m-0 text-[14.5px] font-bold tracking-[-0.02em]">Tema del Enlace de reserva</h2>
                     <p className="m-0 text-[13px] font-medium text-[#6b7280]">Solo se aplica a tu Enlace de reserva.</p>
                 </div>
-                <fieldset className="m-0 grid grid-cols-1 gap-4 border-0 p-6 sm:grid-cols-3">
+                <fieldset className="m-0 grid grid-cols-3 gap-2 border-0 p-4 sm:gap-4 sm:p-6">
                     <legend className="sr-only">Tema</legend>
                     {THEMES.map((t) => (
                         <label key={t.value} className="group flex cursor-pointer flex-col items-center gap-2.5">
@@ -75,7 +75,7 @@ export function AppearanceView() {
                                 onChange={() => setTheme(t.value)}
                                 className="peer sr-only"
                             />
-                            <div className="flex h-28 w-full overflow-hidden rounded-md ring-offset-2 transition-shadow group-hover:ring-1 group-hover:ring-[#9ca3af] peer-checked:ring-2 peer-checked:ring-[#0f1b2d] peer-focus-visible:ring-2 peer-focus-visible:ring-[#0f1b2d]">
+                            <div className="flex h-20 w-full overflow-hidden sm:h-28 rounded-md ring-offset-2 transition-shadow group-hover:ring-1 group-hover:ring-[#9ca3af] peer-checked:ring-2 peer-checked:ring-[#0f1b2d] peer-focus-visible:ring-2 peer-focus-visible:ring-[#0f1b2d]">
                                 {t.value === 'system' ? (
                                     <>
                                         <MiniPage dark={false} />
@@ -85,13 +85,13 @@ export function AppearanceView() {
                                     <MiniPage dark={t.value === 'dark'} />
                                 )}
                             </div>
-                            <span className="text-[13px] font-semibold text-[#374151] peer-checked:font-bold peer-checked:text-[#0f1b2d]">
+                            <span className="text-center text-[12px] font-semibold text-[#374151] peer-checked:font-bold sm:text-[13px] peer-checked:text-[#0f1b2d]">
                                 {t.label}
                             </span>
                         </label>
                     ))}
                 </fieldset>
-                <div className="flex justify-end border-t border-[#e5e7eb] bg-[#f9fafb] px-6 py-4">
+                <div className="flex justify-end border-t border-[#e5e7eb] bg-[#f9fafb] px-4 py-4 sm:px-6">
                     <PanelButton
                         disabled={theme === savedTheme}
                         onClick={() => {

@@ -23,7 +23,7 @@ function NextStep({
     action: string;
 }) {
     return (
-        <article className="flex flex-col items-start gap-2 rounded-md border border-[#e5e7eb] bg-white p-6 [&_svg]:size-5">
+        <article className="flex flex-col items-start gap-2 rounded-md border border-[#e5e7eb] bg-white p-4 sm:p-6 [&_svg]:size-5">
             {icon}
             <h3 className="m-0 mt-2 text-[16px] font-bold tracking-[-0.02em]">{title}</h3>
             <p className="m-0 text-[13px] font-medium leading-relaxed text-[#6b7280]">{description}</p>
