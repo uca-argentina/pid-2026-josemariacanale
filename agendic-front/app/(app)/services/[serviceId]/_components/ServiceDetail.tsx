@@ -673,7 +673,7 @@ export function ServiceDetail({ detail }: { detail: ServiceDetailData }) {
                             draft={draft}
                             set={set}
                             errors={errors}
-                            slugPrefix={`${linkBase ?? '/u/…'}/`}
+                            slugPrefix={`${linkBase ?? userLinkPath('…')}/`}
                             slugChanged={draft.slug !== saved.slug}
                             readOnly={!isOwner || saving}
                         />

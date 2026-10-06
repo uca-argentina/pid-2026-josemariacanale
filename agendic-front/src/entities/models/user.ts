@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { personalServiceSchema } from './service';
+import { personalServiceSchema, type PersonalService } from './service';
 
 export const userSchema = z.object({
     id: z.string(),
@@ -20,3 +20,6 @@ export const userPageSchema = z.object({
     services: z.array(personalServiceSchema),
 });
 export type UserPage = z.infer<typeof userPageSchema>;
+
+/** The page of a Usuario's Enlace de reserva with the Servicio of its tramo, already chosen; null without that tramo. It may be hidden, and so missing from `services`. */
+export type PublicUserPage = UserPage & { selectedService: PersonalService | null };

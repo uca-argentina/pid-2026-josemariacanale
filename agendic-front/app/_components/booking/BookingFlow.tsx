@@ -231,7 +231,7 @@ function ConfirmStep({
             <section className="mt-2 flex flex-col gap-2 border-t border-border pt-5">
                 {/* El Comentario del Turno (Booking.notes): solo viaja si el Cliente escribió algo. */}
                 <Label htmlFor="comentario" className="text-[17px] font-extrabold tracking-[-0.02em]">
-                    Comentario para el negocio
+                    Comentario para {host.name}
                 </Label>
                 <p className="text-[13.5px] text-muted-foreground">Opcional.</p>
                 <Textarea

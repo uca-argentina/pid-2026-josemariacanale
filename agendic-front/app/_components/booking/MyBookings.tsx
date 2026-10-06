@@ -62,10 +62,10 @@ const STATUS: Record<Booking['status'], { icon: LucideIcon; badge: string; detai
 
 export function MyBookings({
     booking,
-    onBackToBusiness,
+    onBack,
 }: {
     booking: Booking;
-    onBackToBusiness: () => void;
+    onBack: () => void;
 }) {
     const { host, service, employeeName, date, time, notes } = booking;
     // Sin Sucursal no hay dirección a la que llegar.
@@ -109,7 +109,7 @@ export function MyBookings({
 
                 <Button
                     variant="outline"
-                    onClick={onBackToBusiness}
+                    onClick={onBack}
                     className="mt-5 h-auto w-full rounded-xl py-3 text-[14px] font-bold"
                 >
                     Volver a {host.name}

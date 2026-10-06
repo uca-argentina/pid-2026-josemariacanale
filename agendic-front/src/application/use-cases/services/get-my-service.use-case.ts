@@ -1,10 +1,7 @@
 import type { IServicesRepository } from '@/src/application/repositories/services.repository.interface';
 import type { IInstrumentationService } from '@/src/application/services/instrumentation.service.interface';
 import { NotFoundError } from '@/src/entities/errors/common';
-import type { PersonalService, ServiceInCatalog } from '@/src/entities/models/service';
-
-/** A Servicio of the Usuario: one of the catalog, with its Negocio and Sucursal, or one of their Servicios personales. */
-export type MyService = ServiceInCatalog | { group: null; branch: null; service: PersonalService };
+import type { MyService } from '@/src/entities/models/service';
 
 export type IGetMyServiceUseCase = ReturnType<typeof getMyServiceUseCase>;
 /**

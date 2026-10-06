@@ -52,7 +52,7 @@ export function BranchPublicPage({
     };
 
     if (booking) {
-        return <MyBookings booking={booking} onBackToBusiness={() => setBooking(null)} />;
+        return <MyBookings booking={booking} onBack={() => setBooking(null)} />;
     }
 
     const shown = services.filter((s) => s.category === category);

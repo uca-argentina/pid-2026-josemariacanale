@@ -1,12 +1,6 @@
 import type { IUsersRepository } from '@/src/application/repositories/users.repository.interface';
 import type { IInstrumentationService } from '@/src/application/services/instrumentation.service.interface';
-import type { PersonalService } from '@/src/entities/models/service';
-import type { UserPage } from '@/src/entities/models/user';
-
-export interface PublicUserPage extends UserPage {
-    /** The Servicio of the Enlace de reserva's tramo, already chosen; null without that tramo. It may be hidden, and so missing from `services`. */
-    selectedService: PersonalService | null;
-}
+import type { PublicUserPage } from '@/src/entities/models/user';
 
 export type IGetUserPageUseCase = ReturnType<typeof getUserPageUseCase>;
 /**

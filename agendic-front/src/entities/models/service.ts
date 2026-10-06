@@ -96,6 +96,9 @@ export interface ServiceInCatalog {
     service: CatalogService;
 }
 
+/** A Servicio of the Usuario: one of the catalog, with its Negocio and Sucursal, or one of their Servicios personales. */
+export type MyService = ServiceInCatalog | { group: null; branch: null; service: PersonalService };
+
 /**
  * What PATCH /services/:id accepts, plus the Servicio that goes in the path. Every field is optional: only the ones
  * sent change, on a Servicio del Negocio or a personal one. `depositPercent: null` drops the Seña, `dailyLimit: null` the Límite diario and `slotInterval: null`

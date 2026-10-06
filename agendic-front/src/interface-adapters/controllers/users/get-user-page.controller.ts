@@ -1,9 +1,10 @@
 import { z } from 'zod';
 import type { IInstrumentationService } from '@/src/application/services/instrumentation.service.interface';
-import type { IGetUserPageUseCase, PublicUserPage } from '@/src/application/use-cases/users/get-user-page.use-case';
+import type { IGetUserPageUseCase } from '@/src/application/use-cases/users/get-user-page.use-case';
 import { InputParseError } from '@/src/entities/errors/common';
 import { slugSchema } from '@/src/entities/models/business';
 import type { PersonalService } from '@/src/entities/models/service';
+import type { PublicUserPage } from '@/src/entities/models/user';
 
 /** Same fields as a Servicio of the page of a Sucursal: the booking flow is the same one. */
 const presentService = (s: PersonalService) => ({

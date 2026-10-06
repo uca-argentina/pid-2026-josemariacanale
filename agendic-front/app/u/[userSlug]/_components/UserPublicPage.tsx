@@ -33,7 +33,7 @@ export function UserPublicPage({
         setFlowOpen(true);
     };
 
-    if (booking) return <MyBookings booking={booking} onBackToBusiness={() => setBooking(null)} />;
+    if (booking) return <MyBookings booking={booking} onBack={() => setBooking(null)} />;
 
     return (
         <>
