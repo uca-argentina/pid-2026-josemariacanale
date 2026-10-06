@@ -16,6 +16,9 @@ export class SlotUnavailableError extends Error {
     }
 }
 
+/** El mensaje del 422 que pasa a `SlotUnavailableError` (ADR 0007); los demás 422 de Turnos son otra cosa. */
+export const SLOT_UNAVAILABLE_MESSAGE = /^Slot .+ is not available for Service /;
+
 /** 403: el Usuario logueado no es el Empleado asignado a ese Turno. */
 export class BookingNotAllowedError extends Error {
     constructor(message: string, options?: ErrorOptions) {

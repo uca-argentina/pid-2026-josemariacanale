@@ -46,6 +46,9 @@ import { PREP_MINUTES } from '@/src/entities/models/service';
 
 type TabId = 'setup' | 'employees' | 'availability' | 'limits';
 
+// Los campos de la pestaña Límites: si solo fallan estos, guardar abre esa pestaña.
+const LIMITS_FIELDS = ['dailyLimit', 'slotInterval', 'minimumNoticeMinutes'];
+
 const NAMES = new Intl.ListFormat('es', { type: 'conjunction' });
 
 const PREP_OPTIONS = PREP_MINUTES.map((m) => ({
@@ -524,7 +527,7 @@ export function ServiceDetail({ detail }: { detail: ServiceDetailData }) {
     const save = () => {
         if (!edit.ok) {
             setErrors(edit.errors);
-            setTab(Object.keys(edit.errors).every((field) => ['dailyLimit', 'slotInterval', 'minimumNoticeMinutes'].includes(field)) ? 'limits' : 'setup');
+            setTab(Object.keys(edit.errors).every((field) => LIMITS_FIELDS.includes(field)) ? 'limits' : 'setup');
             return;
         }
         startSaving(async () => {

@@ -46,6 +46,7 @@ export async function bookSlotAction(
         // Esperable, no un bug: alguien tomó el horario mientras tanto. No se reporta.
         if (error instanceof SlotTakenError)
             return { ok: false, slotTaken: true, message: 'Ese horario se acaba de ocupar. Elegí otro.' };
+        // También esperable: el horario dejó de ser reservable (Anticipación mínima, Intervalo).
         if (error instanceof SlotUnavailableError)
             return { ok: false, slotTaken: true, message: 'Ese horario ya no está disponible. Elegí otro.' };
         if (error instanceof NotFoundError)

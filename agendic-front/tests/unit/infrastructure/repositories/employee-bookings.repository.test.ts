@@ -1,5 +1,5 @@
 import { UnauthenticatedError } from '@/src/entities/errors/auth';
-import { BookingNotAllowedError, BookingStateError, SlotTakenError } from '@/src/entities/errors/booking';
+import { BookingNotAllowedError, BookingStateError, SlotTakenError, SlotUnavailableError } from '@/src/entities/errors/booking';
 import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
 import { EmployeeBookingsRepository } from '@/src/infrastructure/repositories/employee-bookings.repository';
 import { authWith } from '@/tests/unit/stubs';
@@ -46,6 +46,11 @@ describe('EmployeeBookingsRepository.listMyBookings', () => {
     it('translates a 401 to UnauthenticatedError', async () => {
         respond(401, { statusCode: 401, message: 'no' });
         await expect(repo().listMyBookings()).rejects.toBeInstanceOf(UnauthenticatedError);
+    });
+
+    it('translates the 422 of horario no disponible to SlotUnavailableError', async () => {
+        respond(422, { message: 'Slot 2026-10-02T15:00:00.000Z is not available for Service 3' });
+        await expect(repo().reschedule(7, '2026-10-02T15:00:00.000Z')).rejects.toBeInstanceOf(SlotUnavailableError);
     });
 
     it('translates another status to ApiRequestError carrying it', async () => {

@@ -26,10 +26,10 @@ export const businessSchema = z.object({
 });
 
 export const branchSchema = z.object({
-        name: required('el nombre de la Sucursal'),
-        address: required('la dirección'),
-        timeZone: required('la zona horaria'),
-    });
+    name: required('el nombre de la Sucursal'),
+    address: required('la dirección'),
+    timeZone: required('la zona horaria'),
+});
 
 export const SERVICE_CATEGORIES = [
     { value: 'CLINICA', label: 'Clínica' },

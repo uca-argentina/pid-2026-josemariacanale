@@ -20,8 +20,10 @@ export async function verifyBookingAction(token: string): Promise<VerifyBookingR
             : { title: 'Email verificado', text: 'Verificamos tu email y tu turno quedó reservado.' };
     } catch (error) {
         unstable_rethrow(error);
-        if (error instanceof SlotTakenError || error instanceof SlotUnavailableError)
+        if (error instanceof SlotTakenError)
             return { title: 'Ese horario se ocupó', text: 'Mientras tanto alguien tomó el horario. Reservá otro turno.' };
+        if (error instanceof SlotUnavailableError)
+            return { title: 'Ese horario ya no está disponible', text: 'Reservá otro turno.' };
         if (error instanceof BookingStateError || error instanceof NotFoundError || error instanceof InputParseError)
             return invalidLink;
         getInjection('ICrashReporterService').report(error);

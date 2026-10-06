@@ -8,7 +8,7 @@ import { getInjection } from '@/di/container';
 import { BookingNotAllowedError, BookingStateError, SlotTakenError, SlotUnavailableError } from '@/src/entities/errors/booking';
 import { InputParseError, NotFoundError } from '@/src/entities/errors/common';
 
-/** Lo que la UI recibe de una acción; `slotTaken` marca el 409 de Reagendar, que el Empleado resuelve eligiendo otro horario. */
+/** Lo que la UI recibe de una acción; `slotTaken` marca el 409 y el 422 de horario no disponible de Reagendar, que el Empleado resuelve eligiendo otro horario. */
 export type BookingActionResult = { ok: true } | { ok: false; message: string; slotTaken?: true };
 
 /**

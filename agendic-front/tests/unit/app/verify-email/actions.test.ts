@@ -1,6 +1,6 @@
 import { verifyBookingAction } from '@/app/(public)/verify-email/actions';
 import { invalidLink } from '@/app/(public)/verify-email/messages';
-import { BookingStateError, SlotTakenError } from '@/src/entities/errors/booking';
+import { BookingStateError, SlotTakenError, SlotUnavailableError } from '@/src/entities/errors/booking';
 import { ApiRequestError, InputParseError, NotFoundError } from '@/src/entities/errors/common';
 
 const mockVerify = jest.fn();
@@ -29,6 +29,12 @@ describe('verifyBookingAction', () => {
     it('tells the Cliente the horario was taken, without reporting', async () => {
         mockVerify.mockRejectedValue(new SlotTakenError('taken'));
         expect((await verifyBookingAction('abc')).title).toBe('Ese horario se ocupó');
+        expect(mockReport).not.toHaveBeenCalled();
+    });
+
+    it('tells the Cliente the horario is no longer available, without reporting', async () => {
+        mockVerify.mockRejectedValue(new SlotUnavailableError('Slot x is not available for Service 1'));
+        expect((await verifyBookingAction('abc')).title).toBe('Ese horario ya no está disponible');
         expect(mockReport).not.toHaveBeenCalled();
     });
 

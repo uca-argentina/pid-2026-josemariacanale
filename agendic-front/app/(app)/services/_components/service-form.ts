@@ -141,11 +141,11 @@ export const editFormOf = (service: {
 
 const DEPOSIT_MESSAGE = 'La Seña va de 1 a 100%, en enteros.';
 const DAILY_LIMIT_MESSAGE = 'El Límite diario es de al menos 1 Turno, en enteros.';
-
 const SLOT_INTERVAL_MESSAGE = 'El Intervalo es de al menos 1 minuto, en enteros.';
 const MINIMUM_NOTICE_MESSAGE = 'La Anticipación mínima va en minutos enteros, desde 0.';
 
 const toNumber = (value: string) => (value.trim() === '' ? NaN : Number(value));
+const toOptionalNumber = (value: string) => (value.trim() === '' ? null : Number(value));
 
 const serviceEditSchema = serviceFormSchema
     .omit({ branchId: true })
@@ -166,10 +166,10 @@ const serviceEditSchema = serviceFormSchema
         const limit = toNumber(form.dailyLimit);
         if (form.dailyLimitEnabled && (!Number.isInteger(limit) || limit < 1))
             ctx.addIssue({ code: 'custom', path: ['dailyLimit'], message: DAILY_LIMIT_MESSAGE });
-        const interval = toNumber(form.slotInterval);
-        if (form.slotInterval.trim() !== '' && (!Number.isInteger(interval) || interval < 1))
+        const interval = toOptionalNumber(form.slotInterval);
+        if (interval !== null && (!Number.isInteger(interval) || interval < 1))
             ctx.addIssue({ code: 'custom', path: ['slotInterval'], message: SLOT_INTERVAL_MESSAGE });
-        const notice = form.minimumNoticeMinutes.trim() === '' ? 0 : Number(form.minimumNoticeMinutes);
+        const notice = toOptionalNumber(form.minimumNoticeMinutes) ?? 0;
         if (!Number.isInteger(notice) || notice < 0)
             ctx.addIssue({ code: 'custom', path: ['minimumNoticeMinutes'], message: MINIMUM_NOTICE_MESSAGE });
     })
@@ -177,16 +177,17 @@ const serviceEditSchema = serviceFormSchema
         ...form,
         depositPercent: depositEnabled ? Number(depositPercent) : null,
         dailyLimit: dailyLimitEnabled ? Number(dailyLimit) : null,
-        slotInterval: slotInterval.trim() === '' ? null : Number(slotInterval),
-        minimumNoticeMinutes: minimumNoticeMinutes.trim() === '' ? 0 : Number(minimumNoticeMinutes),
+        slotInterval: toOptionalNumber(slotInterval),
+        minimumNoticeMinutes: toOptionalNumber(minimumNoticeMinutes) ?? 0,
     }));
 
 type ServiceChanges = Partial<z.output<typeof serviceEditSchema>>;
 
 /**
  * Valida el borrador y arma el cuerpo de `PATCH /services/:id` con solo lo que cambió respecto de lo guardado. La
- * Seña apagada viaja como `depositPercent: null`, el Límite diario apagado como `dailyLimit: null` y el Intervalo vacío como `slotInterval: null`. Una descripción que ya tenía texto no se puede vaciar: el back no
- * acepta una descripción vacía.
+ * Seña apagada viaja como `depositPercent: null`, el Límite diario apagado como `dailyLimit: null` y el Intervalo
+ * vacío como `slotInterval: null`. Una descripción que ya tenía texto no se puede vaciar: el back no acepta una
+ * descripción vacía.
  */
 export function serviceChanges(
     saved: ServiceEditForm,
