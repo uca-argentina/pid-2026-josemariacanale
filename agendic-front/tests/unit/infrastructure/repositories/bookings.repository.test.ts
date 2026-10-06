@@ -19,7 +19,6 @@ describe('BookingsRepository.listSlots', () => {
                 { date: '2026-09-28', slots: ['2026-09-28T12:00:00.000Z', '2026-09-28T12:15:00.000Z'] },
                 { date: '2026-09-29', slots: [], reason: 'NOT_WORKING' },
                 { date: '2026-09-30', slots: [], reason: 'FULLY_BOOKED' },
-                { date: '2026-10-01', slots: [], reason: 'COVERED', coveredByEmployeeId: 2 },
             ],
         };
         const fetchSpy = respond(200, slots);

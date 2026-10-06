@@ -14,7 +14,7 @@ export type IMakeAvailabilityDefaultController = ReturnType<typeof makeAvailabil
  *
  * @throws {UnauthenticatedError} no hay Sesión válida
  * @throws {InputParseError} `availabilityId` no es válido
- * @throws {NotFoundError} la Availability no existe
+ * @throws {NotFoundError} la Availability no existe o no es del Usuario
  */
 export const makeAvailabilityDefaultController =
     (
@@ -26,6 +26,6 @@ export const makeAvailabilityDefaultController =
         instrumentationService.startSpan({ name: 'makeAvailabilityDefault Controller' }, async () => {
             await authenticationService.getCurrentUser();
             const { data, error } = inputSchema.safeParse(input);
-            if (error) throw new InputParseError('Invalid data', { cause: error });
+            if (error) throw new InputParseError('Invalid Availability id', { cause: error });
             await makeAvailabilityDefaultUseCase(data.availabilityId);
         });

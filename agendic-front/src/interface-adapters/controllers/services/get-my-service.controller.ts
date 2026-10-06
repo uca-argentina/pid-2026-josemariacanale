@@ -1,11 +1,12 @@
 import { z } from 'zod';
 import type { IAuthenticationService } from '@/src/application/services/authentication.service.interface';
 import type { IInstrumentationService } from '@/src/application/services/instrumentation.service.interface';
+import type { IGetAvailabilityUseCase } from '@/src/application/use-cases/availabilities/get-availability.use-case';
 import type { IListAvailabilitiesUseCase } from '@/src/application/use-cases/availabilities/list-availabilities.use-case';
 import type { IListEmployeesUseCase } from '@/src/application/use-cases/employees/list-employees.use-case';
 import type { IGetMyServiceUseCase } from '@/src/application/use-cases/services/get-my-service.use-case';
 import { InputParseError } from '@/src/entities/errors/common';
-import type { Availability } from '@/src/entities/models/availability';
+import type { AvailabilityDetail } from '@/src/entities/models/availability';
 import type { Employee } from '@/src/entities/models/employee';
 import type { ServiceInCatalog } from '@/src/entities/models/service';
 
@@ -18,7 +19,7 @@ function presenter(
     { group, branch, service }: ServiceInCatalog,
     staff: Employee[] | null,
     myAvailabilityId: number | null,
-    availabilities: Availability[] | null,
+    availabilities: AvailabilityDetail[] | null,
     instrumentationService: IInstrumentationService,
 ) {
     return instrumentationService.startSpan({ name: 'getMyService Presenter', op: 'serialize' }, () => ({
@@ -51,7 +52,7 @@ function presenter(
                 id: a.id,
                 name: a.name,
                 isDefault: a.isDefault,
-                intervals: a.intervals.map((i) => ({ weekday: i.weekday, startTime: i.startTime, endTime: i.endTime })),
+                schedule: a.schedule.map((day) => day.map(({ start, end }) => ({ start, end }))),
             })),
     }));
 }
@@ -76,6 +77,7 @@ export const getMyServiceController =
         getMyServiceUseCase: IGetMyServiceUseCase,
         listEmployeesUseCase: IListEmployeesUseCase,
         listAvailabilitiesUseCase: IListAvailabilitiesUseCase,
+        getAvailabilityUseCase: IGetAvailabilityUseCase,
     ) =>
     async (input: { serviceId?: unknown }): Promise<ReturnType<typeof presenter>> =>
         instrumentationService.startSpan({ name: 'getMyService Controller' }, async () => {
@@ -87,7 +89,7 @@ export const getMyServiceController =
             const mine = service.employees.find((e) => e.id === group.employeeId);
             const [staff, availabilities] = await Promise.all([
                 group.role === 'owner' ? listEmployeesUseCase(group.business.id) : null,
-                mine ? listAvailabilitiesUseCase(group.employeeId) : null,
+                mine ? listAvailabilitiesUseCase().then((list) => Promise.all(list.map((a) => getAvailabilityUseCase(a.id)))) : null,
             ]);
             return presenter(found, staff, mine?.availabilityId ?? null, availabilities, instrumentationService);
         });

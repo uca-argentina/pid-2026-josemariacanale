@@ -7,12 +7,9 @@ export type IDeleteAvailabilityUseCase = ReturnType<typeof deleteAvailabilityUse
 /**
  * Borra una Availability con sus Franjas.
  *
- * Que sea del Dueño del Negocio lo valida el back.
- *
  * @throws {UnauthenticatedError} no hay Sesión válida
- * @throws {NotFoundError} la Availability no existe
- * @throws {AvailabilityRuleError} es la predeterminada
- * @throws {AvailabilityInUseError} algún Servicio la usa
+ * @throws {NotFoundError} la Availability no existe o no es del Usuario
+ * @throws {AvailabilityRuleError} es la predeterminada o un Servicio se atiende con ella
  */
 export const deleteAvailabilityUseCase =
     (instrumentationService: IInstrumentationService, availabilitiesRepository: IAvailabilitiesRepository) =>

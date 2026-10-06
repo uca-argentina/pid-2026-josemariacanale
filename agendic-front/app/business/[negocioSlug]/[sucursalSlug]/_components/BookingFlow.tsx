@@ -505,9 +505,6 @@ export function BookingFlow({
             d.employee?.id === next.id ? d : { ...d, employee: next, date: null, slot: null },
         );
 
-    // Quien cubre una Anulación atiende justo ese día: se lo elige sin perder la fecha.
-    const chooseCovering = (next: Employee) => setDraft((d) => ({ ...d, employee: next, slot: null }));
-
     const canAdvance =
         (step === 'service' && !!service) ||
         (step === 'employee' && !!employee) ||
@@ -637,7 +634,6 @@ export function BookingFlow({
                                 onSelect={(nextDate, nextSlot) =>
                                     setDraft((d) => ({ ...d, date: nextDate, slot: nextSlot }))
                                 }
-                                onChooseEmployee={chooseCovering}
                                 onSeeEmployees={() => goTo('employee')}
                             />
                         )}

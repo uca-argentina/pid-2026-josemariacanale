@@ -1,7 +1,6 @@
 import type { IAvailabilitiesRepository } from '@/src/application/repositories/availabilities.repository.interface';
 import type { IBookingsRepository } from '@/src/application/repositories/bookings.repository.interface';
 import type { IEmployeeBookingsRepository } from '@/src/application/repositories/employee-bookings.repository.interface';
-import type { IOverridesRepository } from '@/src/application/repositories/overrides.repository.interface';
 import type { IPublicBusinessesRepository } from '@/src/application/repositories/public-businesses.repository.interface';
 import type { IServicesRepository } from '@/src/application/repositories/services.repository.interface';
 import type { IAuthenticationService } from '@/src/application/services/authentication.service.interface';
@@ -46,17 +45,11 @@ export const employeeBookingsWith = (stubs: Partial<IEmployeeBookingsRepository>
 
 export const availabilitiesWith = (stubs: Partial<IAvailabilitiesRepository>): IAvailabilitiesRepository => ({
     listAvailabilities: jest.fn(notStubbed('listAvailabilities')),
+    getAvailability: jest.fn(notStubbed('getAvailability')),
     createAvailability: jest.fn(notStubbed('createAvailability')),
     updateAvailability: jest.fn(notStubbed('updateAvailability')),
     makeDefault: jest.fn(notStubbed('makeDefault')),
     deleteAvailability: jest.fn(notStubbed('deleteAvailability')),
-    ...stubs,
-});
-
-export const overridesWith = (stubs: Partial<IOverridesRepository>): IOverridesRepository => ({
-    listOverrides: jest.fn(notStubbed('listOverrides')),
-    setOverride: jest.fn(notStubbed('setOverride')),
-    removeOverride: jest.fn(notStubbed('removeOverride')),
     ...stubs,
 });
 

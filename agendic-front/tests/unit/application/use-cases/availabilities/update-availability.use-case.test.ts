@@ -2,13 +2,12 @@ import { updateAvailabilityUseCase } from '@/src/application/use-cases/availabil
 import { NotFoundError } from '@/src/entities/errors/common';
 import { availabilitiesWith, instrumentation } from '@/tests/unit/stubs';
 
-const availability = { id: 7, employeeId: 3, name: 'Horario', isDefault: true, intervals: [] };
-const input = { availabilityId: 7, name: 'Horario' };
+const input = { availabilityId: 7, name: 'Horario', timeZone: 'UTC', schedule: [[], [], [], [], [], [], []], overrides: [] };
 
 describe('updateAvailabilityUseCase', () => {
-    it('delegates to the repository and returns what it returns', async () => {
-        const updateAvailability = jest.fn().mockResolvedValue(availability);
-        await expect(updateAvailabilityUseCase(instrumentation, availabilitiesWith({ updateAvailability }))(input)).resolves.toEqual(availability);
+    it('delegates to the repository', async () => {
+        const updateAvailability = jest.fn().mockResolvedValue(undefined);
+        await updateAvailabilityUseCase(instrumentation, availabilitiesWith({ updateAvailability }))(input);
         expect(updateAvailability).toHaveBeenCalledWith(input);
     });
 

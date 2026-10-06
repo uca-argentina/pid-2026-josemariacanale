@@ -4,13 +4,15 @@ import {
     invalidIntervals,
     nextInterval,
     summarize,
-    toIntervals,
+    toSchedule,
     toWeek,
     weekValid,
-    type AvailabilityInterval,
 } from '@/app/(app)/_components/availability-week';
+import type { TimeRange } from '@/src/entities/models/availability';
 
-const week = (byDay: Partial<Record<number, AvailabilityInterval[]>>): AvailabilityInterval[][] =>
+const r = (start: string, end: string): TimeRange => ({ start, end });
+
+const week = (byDay: Partial<Record<number, TimeRange[]>>): TimeRange[][] =>
     Array.from({ length: 7 }, (_, i) => byDay[i] ?? []);
 
 describe('summarize', () => {
@@ -19,16 +21,16 @@ describe('summarize', () => {
     });
 
     it('separa con coma los días sueltos y los tramos', () => {
-        const morning: AvailabilityInterval = ['08:00', '13:00'];
+        const morning: TimeRange = r('08:00', '13:00');
         expect(summarize(week({ 0: [morning], 3: [morning], 4: [morning] }))).toEqual(['Lun, Jue - Vie, 08:00 - 13:00']);
     });
 
     it('da una línea por Franja distinta, en orden de aparición', () => {
         const days = week({
-            0: [['08:00', '13:00'], ['17:00', '20:00']],
-            1: [['09:00', '17:00']],
-            2: [['09:00', '17:00']],
-            3: [['08:00', '13:00'], ['17:00', '20:00']],
+            0: [r('08:00', '13:00'), r('17:00', '20:00')],
+            1: [r('09:00', '17:00')],
+            2: [r('09:00', '17:00')],
+            3: [r('08:00', '13:00'), r('17:00', '20:00')],
         });
         expect(summarize(days)).toEqual([
             'Lun, Jue, 08:00 - 13:00',
@@ -44,19 +46,19 @@ describe('summarize', () => {
 
 describe('nextInterval', () => {
     it('agrega una hora a partir del fin de la última Franja', () => {
-        expect(nextInterval([['09:00', '13:00']])).toEqual(['13:00', '14:00']);
+        expect(nextInterval([r('09:00', '13:00')])).toEqual(r('13:00', '14:00'));
     });
 
     it('sin Franjas propone el horario por defecto', () => {
-        expect(nextInterval([])).toEqual(['09:00', '18:00']);
+        expect(nextInterval([])).toEqual(r('09:00', '18:00'));
     });
 
     it('se recorta al final del día', () => {
-        expect(nextInterval([['09:00', '23:15']])).toEqual(['23:15', '23:45']);
+        expect(nextInterval([r('09:00', '23:15')])).toEqual(r('23:15', '23:45'));
     });
 
     it('no propone nada si el día ya está lleno', () => {
-        expect(nextInterval([['09:00', '23:45']])).toBeNull();
+        expect(nextInterval([r('09:00', '23:45')])).toBeNull();
     });
 });
 
@@ -66,70 +68,71 @@ describe('invalidIntervals / intervalsValid', () => {
     });
 
     it('acepta dos Franjas pegadas', () => {
-        expect(intervalsValid([['17:00', '18:00'], ['09:00', '17:00']])).toBe(true);
+        expect(intervalsValid([r('17:00', '18:00'), r('09:00', '17:00')])).toBe(true);
     });
 
     it('marca las dos Franjas que se solapan', () => {
-        expect(invalidIntervals([['09:00', '17:00'], ['12:00', '13:00'], ['16:00', '18:00']])).toEqual([0, 1, 2]);
-        expect(invalidIntervals([['09:00', '12:00'], ['11:00', '13:00'], ['14:00', '15:00']])).toEqual([0, 1]);
+        expect(invalidIntervals([r('09:00', '17:00'), r('12:00', '13:00'), r('16:00', '18:00')])).toEqual([0, 1, 2]);
+        expect(invalidIntervals([r('09:00', '12:00'), r('11:00', '13:00'), r('14:00', '15:00')])).toEqual([0, 1]);
     });
 
     it('marca una Franja que termina antes de empezar o vacía', () => {
-        expect(invalidIntervals([['09:00', '12:00'], ['18:00', '14:00']])).toEqual([1]);
-        expect(intervalsValid([['09:00', '09:00']])).toBe(false);
+        expect(invalidIntervals([r('09:00', '12:00'), r('18:00', '14:00')])).toEqual([1]);
+        expect(intervalsValid([r('09:00', '09:00')])).toBe(false);
     });
 });
 
+const empty = () => Array.from({ length: 7 }, () => [] as TimeRange[]);
+
 describe('toWeek', () => {
-    it('arranca la semana el lunes: weekday 1 cae en el índice 0 y weekday 0 (domingo) en el 6', () => {
-        const result = toWeek([
-            { weekday: 0, startTime: '10:00', endTime: '12:00' },
-            { weekday: 1, startTime: '09:00', endTime: '13:00' },
-        ]);
-        expect(result[0]).toEqual([['09:00', '13:00']]);
-        expect(result[6]).toEqual([['10:00', '12:00']]);
+    it('arranca la semana el lunes: el índice 1 del back (lunes) cae en el 0 y el 0 (domingo) en el 6', () => {
+        const schedule = empty();
+        schedule[0] = [{ start: '10:00', end: '12:00' }];
+        schedule[1] = [{ start: '09:00', end: '13:00' }];
+        const result = toWeek(schedule);
+        expect(result[0]).toEqual([r('09:00', '13:00')]);
+        expect(result[6]).toEqual([r('10:00', '12:00')]);
         expect(result[1]).toEqual([]);
     });
 
     it('ordena las Franjas de un día por hora de inicio', () => {
-        const result = toWeek([
-            { weekday: 2, startTime: '17:00', endTime: '20:00' },
-            { weekday: 2, startTime: '08:00', endTime: '13:00' },
-        ]);
-        expect(result[1]).toEqual([['08:00', '13:00'], ['17:00', '20:00']]);
+        const schedule = empty();
+        schedule[2] = [{ start: '17:00', end: '20:00' }, { start: '08:00', end: '13:00' }];
+        expect(toWeek(schedule)[1]).toEqual([r('08:00', '13:00'), r('17:00', '20:00')]);
     });
 
     it('sin Franjas devuelve los 7 días vacíos', () => {
-        expect(toWeek([])).toEqual(week({}));
+        expect(toWeek(empty())).toEqual(week({}));
     });
 });
 
-describe('toIntervals', () => {
-    it('manda el set entero con weekday 0 = domingo, y los días sin Franjas no aparecen', () => {
-        expect(toIntervals(week({ 0: [['09:00', '13:00']], 6: [['10:00', '12:00']] }))).toEqual([
-            { weekday: 1, startTime: '09:00', endTime: '13:00' },
-            { weekday: 0, startTime: '10:00', endTime: '12:00' },
-        ]);
+describe('toSchedule', () => {
+    it('manda los 7 días con el domingo primero, y los días sin Franjas como []', () => {
+        const schedule = toSchedule(week({ 0: [r('09:00', '13:00')], 6: [r('10:00', '12:00')] }));
+        expect(schedule).toHaveLength(7);
+        expect(schedule[1]).toEqual([{ start: '09:00', end: '13:00' }]);
+        expect(schedule[0]).toEqual([{ start: '10:00', end: '12:00' }]);
+        expect(schedule[2]).toEqual([]);
     });
 
     it('es la inversa de toWeek', () => {
-        const days = week({ 2: [['08:00', '13:00'], ['17:00', '20:00']], 6: [['10:00', '12:00']] });
-        expect(toWeek(toIntervals(days))).toEqual(days);
+        const days = week({ 2: [r('08:00', '13:00'), r('17:00', '20:00')], 6: [r('10:00', '12:00')] });
+        expect(toWeek(toSchedule(days))).toEqual(days);
     });
 });
 
 describe('weekValid', () => {
     it('acepta una semana con días sin Franjas y Franjas pegadas', () => {
-        expect(weekValid(week({ 0: [['09:00', '17:00'], ['17:00', '18:00']] }))).toBe(true);
+        expect(weekValid(week({ 0: [r('09:00', '17:00'), r('17:00', '18:00')] }))).toBe(true);
     });
 
     it('rechaza la semana si un solo día tiene Franjas solapadas', () => {
-        expect(weekValid(week({ 0: [['09:00', '17:00']], 3: [['09:00', '12:00'], ['11:00', '13:00']] }))).toBe(false);
+        expect(weekValid(week({ 0: [r('09:00', '17:00')], 3: [r('09:00', '12:00'), r('11:00', '13:00')] }))).toBe(false);
     });
 
     it('rechaza la semana si un día tiene una Franja vacía o invertida', () => {
-        expect(weekValid(week({ 4: [['09:00', '09:00']] }))).toBe(false);
-        expect(weekValid(week({ 4: [['18:00', '14:00']] }))).toBe(false);
+        expect(weekValid(week({ 4: [r('09:00', '09:00')] }))).toBe(false);
+        expect(weekValid(week({ 4: [r('18:00', '14:00')] }))).toBe(false);
     });
 
     it('acepta la Availability por defecto', () => {

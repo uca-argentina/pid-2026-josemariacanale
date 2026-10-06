@@ -1,20 +1,20 @@
 import { redirect, unstable_rethrow } from 'next/navigation';
 import { isSessionExpired } from '@/app/api-error';
 import { BackendErrorNotice } from '@/app/_components/BackendErrorNotice';
-import { BUSINESS_PATH, SIGN_IN_PATH } from '@/app/routes';
+import { SIGN_IN_PATH } from '@/app/routes';
 import { getInjection } from '@/di/container';
 import { AvailabilityView } from './_components/AvailabilityView';
 
 export const metadata = { title: 'Horas laborables' };
 
-/** Abre en las Horas laborables del Dueño; `?empleado=<id>` elige a otro Empleado del Staff. */
-export default async function AvailabilityPage({ searchParams }: { searchParams: Promise<{ empleado?: string }> }) {
-    const { empleado } = await searchParams;
+/** Las Horas laborables del Usuario con Sesión; `?id=<id>` abre una en su editor. */
+export default async function AvailabilityPage({ searchParams }: { searchParams: Promise<{ id?: string }> }) {
+    const { id } = await searchParams;
 
-    let staff;
+    let view;
     try {
-        staff = await getInjection('IListStaffAvailabilitiesController')({
-            employeeId: empleado && /^\d+$/.test(empleado) ? Number(empleado) : undefined,
+        view = await getInjection('IListMyAvailabilitiesController')({
+            availabilityId: id && /^\d+$/.test(id) ? Number(id) : undefined,
         });
     } catch (error) {
         unstable_rethrow(error);
@@ -23,15 +23,5 @@ export default async function AvailabilityPage({ searchParams }: { searchParams:
         return <BackendErrorNotice />;
     }
 
-    if (!staff) redirect(BUSINESS_PATH);
-
-    return (
-        <AvailabilityView
-            key={staff.employeeId}
-            employees={staff.employees}
-            employeeId={staff.employeeId}
-            availabilities={staff.availabilities}
-            overrides={staff.overrides}
-        />
-    );
+    return <AvailabilityView availabilities={view.availabilities} open={view.open} />;
 }

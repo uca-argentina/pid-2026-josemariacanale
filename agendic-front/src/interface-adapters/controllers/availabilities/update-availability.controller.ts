@@ -8,12 +8,12 @@ import { updateAvailabilitySchema } from '@/src/entities/models/availability';
 export type IUpdateAvailabilityController = ReturnType<typeof updateAvailabilityController>;
 
 /**
- * Renombra Horas laborables y/o reemplaza el set entero de Franjas.
+ * Reemplaza nombre, zona horaria, Franjas y Anulaciones de unas Horas laborables.
  *
  * @throws {UnauthenticatedError} no hay Sesión válida
- * @throws {InputParseError} `availabilityId`, `name` o `intervals` no son válidos
- * @throws {NotFoundError} la Availability no existe
- * @throws {AvailabilityRuleError} Franjas solapadas o que no terminan después de empezar
+ * @throws {InputParseError} el cuerpo no es válido
+ * @throws {NotFoundError} la Availability no existe o no es del Usuario
+ * @throws {AvailabilityRuleError} Franjas inválidas o solapadas, o zona horaria inválida
  */
 export const updateAvailabilityController =
     (
@@ -25,6 +25,6 @@ export const updateAvailabilityController =
         instrumentationService.startSpan({ name: 'updateAvailability Controller' }, async () => {
             await authenticationService.getCurrentUser();
             const { data, error } = updateAvailabilitySchema.safeParse(input);
-            if (error) throw new InputParseError('Invalid data', { cause: error });
+            if (error) throw new InputParseError('Invalid Availability', { cause: error });
             await updateAvailabilityUseCase(data);
         });

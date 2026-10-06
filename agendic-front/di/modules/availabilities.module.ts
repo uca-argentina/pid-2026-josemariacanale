@@ -1,12 +1,13 @@
 import { createModule } from '@evyweb/ioctopus';
 import { DI_SYMBOLS } from '@/di/types';
 import { listAvailabilitiesUseCase } from '@/src/application/use-cases/availabilities/list-availabilities.use-case';
+import { getAvailabilityUseCase } from '@/src/application/use-cases/availabilities/get-availability.use-case';
 import { createAvailabilityUseCase } from '@/src/application/use-cases/availabilities/create-availability.use-case';
 import { updateAvailabilityUseCase } from '@/src/application/use-cases/availabilities/update-availability.use-case';
 import { makeAvailabilityDefaultUseCase } from '@/src/application/use-cases/availabilities/make-availability-default.use-case';
 import { deleteAvailabilityUseCase } from '@/src/application/use-cases/availabilities/delete-availability.use-case';
 import { AvailabilitiesRepository } from '@/src/infrastructure/repositories/availabilities.repository';
-import { listStaffAvailabilitiesController } from '@/src/interface-adapters/controllers/availabilities/list-staff-availabilities.controller';
+import { listMyAvailabilitiesController } from '@/src/interface-adapters/controllers/availabilities/list-my-availabilities.controller';
 import { createAvailabilityController } from '@/src/interface-adapters/controllers/availabilities/create-availability.controller';
 import { updateAvailabilityController } from '@/src/interface-adapters/controllers/availabilities/update-availability.controller';
 import { makeAvailabilityDefaultController } from '@/src/interface-adapters/controllers/availabilities/make-availability-default.controller';
@@ -20,6 +21,10 @@ export function createAvailabilitiesModule() {
     availabilitiesModule
         .bind(DI_SYMBOLS.IListAvailabilitiesUseCase)
         .toHigherOrderFunction(listAvailabilitiesUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IAvailabilitiesRepository]);
+
+    availabilitiesModule
+        .bind(DI_SYMBOLS.IGetAvailabilityUseCase)
+        .toHigherOrderFunction(getAvailabilityUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IAvailabilitiesRepository]);
 
     availabilitiesModule
         .bind(DI_SYMBOLS.ICreateAvailabilityUseCase)
@@ -38,14 +43,12 @@ export function createAvailabilitiesModule() {
         .toHigherOrderFunction(deleteAvailabilityUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IAvailabilitiesRepository]);
 
     availabilitiesModule
-        .bind(DI_SYMBOLS.IListStaffAvailabilitiesController)
-        .toHigherOrderFunction(listStaffAvailabilitiesController, [
+        .bind(DI_SYMBOLS.IListMyAvailabilitiesController)
+        .toHigherOrderFunction(listMyAvailabilitiesController, [
             DI_SYMBOLS.IInstrumentationService,
             DI_SYMBOLS.IAuthenticationService,
-            DI_SYMBOLS.IListBusinessesUseCase,
-            DI_SYMBOLS.IListEmployeesUseCase,
             DI_SYMBOLS.IListAvailabilitiesUseCase,
-            DI_SYMBOLS.IListOverridesUseCase,
+            DI_SYMBOLS.IGetAvailabilityUseCase,
         ]);
 
     availabilitiesModule

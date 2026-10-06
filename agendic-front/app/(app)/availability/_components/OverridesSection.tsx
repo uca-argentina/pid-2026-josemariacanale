@@ -7,48 +7,26 @@ import {
     PanelButton,
     PanelDialog,
     PanelDialogClose,
-    PanelField,
     PanelIconButton,
     PanelInput,
     PanelSection,
-    PanelSelect,
     PanelSwitch,
 } from '@/app/(app)/_components/panel-ui';
 import {
+    byStart,
     DAY_SHORT,
     DEFAULT_INTERVAL,
     formatIntervals,
     intervalsValid,
-    type AvailabilityInterval,
 } from '@/app/(app)/_components/availability-week';
-import type { OverrideInterval } from '@/src/entities/models/override';
+import type { AvailabilityOverride, TimeRange } from '@/src/entities/models/availability';
 import { AddIntervalButton, IntervalsEditor } from './IntervalsEditor';
-import type { StaffMember } from './AvailabilityView';
-
-/** Una Anulación tal como la presenta el controller: `intervals: []` es día libre. */
-export interface OverrideItem {
-    date: string;
-    intervals: OverrideInterval[];
-}
-
-/** Lo que el diálogo guarda: las fechas, las Franjas (`[]` = día libre) y el compañero que cubre, si hay. */
-export interface OverrideDraft {
-    dates: string[];
-    intervals: OverrideInterval[];
-    coveredByEmployeeId?: number;
-}
-
-const NO_COVER = 'none';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 const isoDate = (y: number, m: number, d: number) => `${y}-${pad(m + 1)}-${pad(d)}`;
 
 const LONG_DATE = new Intl.DateTimeFormat('es-AR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
 const MONTH = new Intl.DateTimeFormat('es-AR', { month: 'long' });
-
-const toTuples = (intervals: OverrideInterval[]): AvailabilityInterval[] => intervals.map((i) => [i.startTime, i.endTime]);
-const toObjects = (intervals: AvailabilityInterval[]): OverrideInterval[] =>
-    intervals.map(([startTime, endTime]) => ({ startTime, endTime }));
 
 const formatDate = (date: string) => LONG_DATE.format(new Date(`${date}T00:00:00Z`));
 
@@ -140,19 +118,16 @@ function Calendar({
 function OverrideDialog({
     editing,
     taken,
-    colleagues,
     onClose,
     onSave,
 }: {
-    editing?: OverrideItem;
+    editing?: AvailabilityOverride;
     taken: string[];
-    colleagues: StaffMember[];
     onClose: () => void;
-    onSave: (draft: OverrideDraft) => void;
+    onSave: (dates: string[], ranges: TimeRange[]) => void;
 }) {
     const [selected, setSelected] = useState<string[]>(editing ? [editing.date] : []);
-    const [intervals, setIntervals] = useState<AvailabilityInterval[]>(editing ? toTuples(editing.intervals) : [DEFAULT_INTERVAL]);
-    const [cover, setCover] = useState(NO_COVER);
+    const [intervals, setIntervals] = useState<TimeRange[]>(editing ? editing.ranges : [DEFAULT_INTERVAL]);
     const dayOff = intervals.length === 0;
     const valid = selected.length > 0 && intervalsValid(intervals);
 
@@ -170,13 +145,7 @@ function OverrideDialog({
                     </PanelDialogClose>
                     <PanelButton
                         disabled={!valid}
-                        onClick={() =>
-                            onSave({
-                                dates: [...selected].sort(),
-                                intervals: toObjects(intervals),
-                                coveredByEmployeeId: cover === NO_COVER ? undefined : Number(cover),
-                            })
-                        }
+                        onClick={() => onSave([...selected].sort(), [...intervals].sort(byStart))}
                     >
                         Guardar anulación
                     </PanelButton>
@@ -211,21 +180,6 @@ function OverrideDialog({
                                 Día libre (todo el día)
                             </label>
                         </div>
-                        <PanelField
-                            label="Cobertura"
-                            htmlFor="override-cover"
-                            hint="Un compañero que atiende en su lugar esos días. Tiene que atender los mismos Servicios."
-                        >
-                            <PanelSelect
-                                id="override-cover"
-                                value={cover}
-                                onValueChange={setCover}
-                                options={[
-                                    { value: NO_COVER, label: 'Sin cobertura' },
-                                    ...colleagues.map((c) => ({ value: String(c.id), label: c.name })),
-                                ]}
-                            />
-                        </PanelField>
                     </div>
                 ) : (
                     <p className="m-0 self-center text-center text-[13px] font-medium text-[#9ca3af] md:pl-8">
@@ -238,24 +192,19 @@ function OverrideDialog({
 }
 
 /**
- * Las Anulaciones del Empleado elegido, con su Cobertura opcional. Valen para todos sus Servicios, no
- * para una Availability. Al guardar o sacar una, el server refresca la lista.
+ * Las Anulaciones de la Availability que se edita, en la zona horaria de esa Availability. Cargar una
+ * fecha ya anulada reemplaza la anterior; nada se guarda hasta que el editor guarda.
  */
 export function OverridesSection({
     overrides,
-    colleagues,
     busy,
-    onSave,
-    onRemove,
+    onChange,
 }: {
-    overrides: OverrideItem[];
-    colleagues: StaffMember[];
+    overrides: AvailabilityOverride[];
     busy: boolean;
-    /** Resuelve `true` si el back lo guardó, para cerrar el diálogo. */
-    onSave: (draft: OverrideDraft) => Promise<boolean>;
-    onRemove: (override: OverrideItem) => void;
+    onChange: (overrides: AvailabilityOverride[]) => void;
 }) {
-    const [editing, setEditing] = useState<OverrideItem | 'new' | null>(null);
+    const [editing, setEditing] = useState<AvailabilityOverride | 'new' | null>(null);
 
     return (
         <>
@@ -268,17 +217,12 @@ export function OverridesSection({
                         </span>
                     </>
                 }
-                description="Fechas en las que el horario de este Empleado cambia respecto de su semana."
+                description="Fechas en las que el horario cambia respecto de la semana."
                 action={
-                    <div className="flex flex-wrap items-center gap-2">
-                        <PanelButton variant="ghost" disabled={busy || colleagues.length === 0} onClick={() => setEditing('new')}>
-                            Redirigir tus turnos a otro empleado
-                        </PanelButton>
-                        <PanelButton variant="secondary" disabled={busy} onClick={() => setEditing('new')}>
-                            <Plus className="size-4" />
-                            Agregar una anulación
-                        </PanelButton>
-                    </div>
+                    <PanelButton variant="secondary" disabled={busy} onClick={() => setEditing('new')}>
+                        <Plus className="size-4" />
+                        Agregar una anulación
+                    </PanelButton>
                 }
             >
                 {overrides.length > 0 && (
@@ -288,7 +232,7 @@ export function OverridesSection({
                                 <div className="flex min-w-0 flex-col gap-1">
                                     <span className="text-[14px] font-semibold text-[#0f1b2d]">{formatDate(o.date)}</span>
                                     <span className="text-[13px] font-medium text-[#6b7280]">
-                                        {o.intervals.length ? formatIntervals(toTuples(o.intervals)) : 'Día libre'}
+                                        {o.ranges.length ? formatIntervals(o.ranges) : 'Día libre'}
                                     </span>
                                 </div>
                                 <div className="ml-auto flex gap-2">
@@ -300,7 +244,7 @@ export function OverridesSection({
                                         destructive
                                         label="Quitar anulación"
                                         disabled={busy}
-                                        onClick={() => onRemove(o)}
+                                        onClick={() => onChange(overrides.filter((other) => other.date !== o.date))}
                                     >
                                         <Trash2 />
                                     </PanelIconButton>
@@ -315,10 +259,12 @@ export function OverridesSection({
                 <OverrideDialog
                     editing={editing === 'new' ? undefined : editing}
                     taken={overrides.map((o) => o.date)}
-                    colleagues={colleagues}
                     onClose={() => setEditing(null)}
-                    onSave={async (draft) => {
-                        if (await onSave(draft)) setEditing(null);
+                    onSave={(dates, ranges) => {
+                        const replaced = overrides.filter((o) => !dates.includes(o.date));
+                        const added = dates.map((date) => ({ date, ranges }));
+                        onChange([...replaced, ...added].sort((x, y) => x.date.localeCompare(y.date)));
+                        setEditing(null);
                     }}
                 />
             )}

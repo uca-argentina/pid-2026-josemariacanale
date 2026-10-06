@@ -5,7 +5,7 @@ import {
     saveAvailabilityAction,
 } from '@/app/(app)/availability/actions';
 import { UnauthenticatedError } from '@/src/entities/errors/auth';
-import { AvailabilityInUseError, AvailabilityRuleError } from '@/src/entities/errors/availability';
+import { AvailabilityRuleError } from '@/src/entities/errors/availability';
 import { ApiRequestError, InputParseError, NotFoundError } from '@/src/entities/errors/common';
 
 const mockControllers: Record<string, jest.Mock> = {
@@ -30,7 +30,11 @@ jest.mock('next/navigation', () => ({
     },
 }));
 
-const intervals = [{ weekday: 1, startTime: '09:00', endTime: '13:00' }];
+const content = {
+    timeZone: 'America/Argentina/Buenos_Aires',
+    schedule: [[], [{ start: '09:00', end: '13:00' }], [], [], [], [], []],
+    overrides: [{ date: '2026-12-25', ranges: [] }],
+};
 
 beforeEach(() => {
     jest.clearAllMocks();
@@ -38,11 +42,11 @@ beforeEach(() => {
 });
 
 describe.each([
-    ['createAvailabilityAction', 'ICreateAvailabilityController', () => createAvailabilityAction(3, 'Verano', intervals)],
+    ['createAvailabilityAction', 'ICreateAvailabilityController', () => createAvailabilityAction('Verano', 'UTC')],
     [
         'saveAvailabilityAction',
         'IUpdateAvailabilityController',
-        () => saveAvailabilityAction({ availabilityId: 7, name: 'Verano', intervals, makeDefault: false }),
+        () => saveAvailabilityAction({ availabilityId: 7, name: 'Verano', ...content, makeDefault: false }),
     ],
     ['makeAvailabilityDefaultAction', 'IMakeAvailabilityDefaultController', () => makeAvailabilityDefaultAction(7)],
     ['deleteAvailabilityAction', 'IDeleteAvailabilityController', () => deleteAvailabilityAction(7)],
@@ -66,8 +70,8 @@ describe.each([
     it.each([
         [new AvailabilityRuleError('Dos Franjas del mismo día se solapan'), 'Dos Franjas del mismo día se solapan', false],
         [
-            new AvailabilityInUseError('No se puede borrar la Availability: la usan 2 Servicios'),
-            'No se puede borrar la Availability: la usan 2 Servicios',
+            new AvailabilityRuleError('No se puede borrar la Availability: un Servicio se atiende con ella'),
+            'No se puede borrar la Availability: un Servicio se atiende con ella',
             false,
         ],
         [new NotFoundError('404'), 'Estas horas laborables ya no existen. Actualizamos la lista.', true],
@@ -89,14 +93,14 @@ describe.each([
 });
 
 describe('saveAvailabilityAction', () => {
-    it('sends name and Franjas to the update, not the makeDefault flag', async () => {
-        await saveAvailabilityAction({ availabilityId: 7, name: 'Verano', intervals, makeDefault: false });
-        expect(mockControllers.IUpdateAvailabilityController).toHaveBeenCalledWith({ availabilityId: 7, name: 'Verano', intervals });
+    it('sends the whole content to the update, not the makeDefault flag', async () => {
+        await saveAvailabilityAction({ availabilityId: 7, name: 'Verano', ...content, makeDefault: false });
+        expect(mockControllers.IUpdateAvailabilityController).toHaveBeenCalledWith({ availabilityId: 7, name: 'Verano', ...content });
         expect(mockControllers.IMakeAvailabilityDefaultController).not.toHaveBeenCalled();
     });
 
     it('marks it default after updating when asked', async () => {
-        await expect(saveAvailabilityAction({ availabilityId: 7, name: 'Verano', intervals, makeDefault: true })).resolves.toEqual({
+        await expect(saveAvailabilityAction({ availabilityId: 7, name: 'Verano', ...content, makeDefault: true })).resolves.toEqual({
             ok: true,
         });
         expect(mockControllers.IMakeAvailabilityDefaultController).toHaveBeenCalledWith({ availabilityId: 7 });
@@ -104,10 +108,19 @@ describe('saveAvailabilityAction', () => {
 
     it('does not mark it default when the update failed', async () => {
         mockControllers.IUpdateAvailabilityController.mockRejectedValue(new AvailabilityRuleError('solapadas'));
-        await expect(saveAvailabilityAction({ availabilityId: 7, name: 'Verano', intervals, makeDefault: true })).resolves.toEqual({
+        await expect(saveAvailabilityAction({ availabilityId: 7, name: 'Verano', ...content, makeDefault: true })).resolves.toEqual({
             ok: false,
             message: 'solapadas',
         });
         expect(mockControllers.IMakeAvailabilityDefaultController).not.toHaveBeenCalled();
+    });
+
+    it('says the rest was saved when only marking it default failed', async () => {
+        mockControllers.IMakeAvailabilityDefaultController.mockRejectedValue(new Error('boom'));
+        await expect(saveAvailabilityAction({ availabilityId: 7, name: 'Verano', ...content, makeDefault: true })).resolves.toEqual({
+            ok: false,
+            message: 'Guardamos los cambios, pero no pudimos marcarlas como predeterminadas. Intentá de nuevo.',
+        });
+        expect(mockControllers.IUpdateAvailabilityController).toHaveBeenCalled();
     });
 });

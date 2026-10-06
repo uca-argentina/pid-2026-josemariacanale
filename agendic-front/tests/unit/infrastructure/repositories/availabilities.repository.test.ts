@@ -1,16 +1,12 @@
 import { UnauthenticatedError } from '@/src/entities/errors/auth';
-import { AvailabilityInUseError, AvailabilityRuleError } from '@/src/entities/errors/availability';
+import { AvailabilityRuleError } from '@/src/entities/errors/availability';
 import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
 import { AvailabilitiesRepository } from '@/src/infrastructure/repositories/availabilities.repository';
 import { authWith } from '@/tests/unit/stubs';
 
-const availability = {
-    id: 10,
-    employeeId: 3,
-    name: 'Horario',
-    isDefault: false,
-    intervals: [{ weekday: 1, startTime: '09:00', endTime: '13:00' }],
-};
+const summary = { id: 10, name: 'Horario', isDefault: false, timeZone: 'America/Argentina/Buenos_Aires' };
+const schedule = [[], [{ start: '09:00', end: '13:00' }], [], [], [], [], []];
+const detail = { ...summary, schedule, overrides: [{ date: '2026-12-25', ranges: [] }] };
 
 const repo = (apiUrl: string | undefined = 'http://api') =>
     new AvailabilitiesRepository(authWith({ getAccessToken: jest.fn().mockResolvedValue('tok') }), apiUrl);
@@ -20,44 +16,29 @@ const respond = (status: number, body: unknown) =>
 afterEach(() => jest.restoreAllMocks());
 
 describe('AvailabilitiesRepository.listAvailabilities', () => {
-    it('GETs the Availability of the Empleado with the bearer token and parses them', async () => {
-        const fetchSpy = respond(200, [availability]);
+    it('GETs the Usuario’s Availability with the bearer token and parses them', async () => {
+        const fetchSpy = respond(200, [summary]);
 
-        await expect(repo().listAvailabilities(3)).resolves.toEqual([availability]);
+        await expect(repo().listAvailabilities()).resolves.toEqual([summary]);
         expect(fetchSpy).toHaveBeenCalledWith(
-            'http://api/employees/3/availabilities',
+            'http://api/availabilities',
             expect.objectContaining({ method: 'GET', headers: { Authorization: 'Bearer tok' } }),
         );
     });
 
-    it('translates a 404 to NotFoundError', async () => {
-        respond(404, { statusCode: 404, message: 'Empleado inexistente' });
-        await expect(repo().listAvailabilities(3)).rejects.toBeInstanceOf(NotFoundError);
-    });
-
     it('translates a 401 to UnauthenticatedError', async () => {
         respond(401, { statusCode: 401, message: 'no' });
-        await expect(repo().listAvailabilities(3)).rejects.toBeInstanceOf(UnauthenticatedError);
-    });
-
-    it('translates a 403 to ApiRequestError carrying the status', async () => {
-        respond(403, { statusCode: 403, message: 'No sos el Dueño' });
-        await expect(repo().listAvailabilities(3)).rejects.toMatchObject({ status: 403 });
+        await expect(repo().listAvailabilities()).rejects.toBeInstanceOf(UnauthenticatedError);
     });
 
     it('translates a 500 to ApiRequestError carrying the status', async () => {
         respond(500, { message: 'boom' });
-        await expect(repo().listAvailabilities(3)).rejects.toMatchObject({ status: 500 });
+        await expect(repo().listAvailabilities()).rejects.toMatchObject({ status: 500 });
     });
 
-    it('translates a body that is not JSON to ApiRequestError', async () => {
-        jest.spyOn(global, 'fetch').mockResolvedValue(new Response('<html>', { status: 200 }));
-        await expect(repo().listAvailabilities(3)).rejects.toBeInstanceOf(ApiRequestError);
-    });
-
-    it('translates a body of another shape to ApiRequestError keeping the cause', async () => {
+    it('translates an unexpected body to ApiRequestError keeping the cause', async () => {
         respond(200, [{ id: 'x' }]);
-        const error = await repo().listAvailabilities(3).catch((e) => e);
+        const error = await repo().listAvailabilities().catch((e) => e);
         expect(error).toBeInstanceOf(ApiRequestError);
         expect(error.cause).toBeDefined();
     });
@@ -65,7 +46,7 @@ describe('AvailabilitiesRepository.listAvailabilities', () => {
     it('translates a network failure to ApiRequestError without status, keeping the cause', async () => {
         const cause = new TypeError('offline');
         jest.spyOn(global, 'fetch').mockRejectedValue(cause);
-        const error = await repo().listAvailabilities(3).catch((e) => e);
+        const error = await repo().listAvailabilities().catch((e) => e);
         expect(error).toBeInstanceOf(ApiRequestError);
         expect(error.status).toBeUndefined();
         expect(error.cause).toBe(cause);
@@ -73,68 +54,82 @@ describe('AvailabilitiesRepository.listAvailabilities', () => {
 
     it('fails without calling the API when API_URL is missing', async () => {
         const fetchSpy = jest.spyOn(global, 'fetch');
-        await expect(repo('').listAvailabilities(3)).rejects.toBeInstanceOf(ApiRequestError);
+        await expect(repo('').listAvailabilities()).rejects.toBeInstanceOf(ApiRequestError);
         expect(fetchSpy).not.toHaveBeenCalled();
     });
 });
 
-describe('AvailabilitiesRepository.createAvailability', () => {
-    it('POSTs name and Franjas to the Empleado’s path and parses the 201', async () => {
-        const fetchSpy = respond(201, availability);
+describe('AvailabilitiesRepository.getAvailability', () => {
+    it('GETs one Availability with its schedule and overrides', async () => {
+        const fetchSpy = respond(200, detail);
 
-        await expect(
-            repo().createAvailability({ employeeId: 3, name: 'Horario', intervals: availability.intervals }),
-        ).resolves.toEqual(availability);
+        await expect(repo().getAvailability(10)).resolves.toEqual(detail);
+        expect(fetchSpy).toHaveBeenCalledWith('http://api/availabilities/10', expect.objectContaining({ method: 'GET' }));
+    });
+
+    it('translates a 404 to NotFoundError', async () => {
+        respond(404, { statusCode: 404, message: 'no es tuya' });
+        await expect(repo().getAvailability(10)).rejects.toBeInstanceOf(NotFoundError);
+    });
+
+    it('rejects a schedule that does not have 7 days', async () => {
+        respond(200, { ...detail, schedule: [[]] });
+        await expect(repo().getAvailability(10)).rejects.toBeInstanceOf(ApiRequestError);
+    });
+});
+
+describe('AvailabilitiesRepository.createAvailability', () => {
+    it('POSTs name and time zone', async () => {
+        const fetchSpy = respond(201, summary);
+
+        await expect(repo().createAvailability({ name: 'Horario', timeZone: 'UTC' })).resolves.toBeUndefined();
         expect(fetchSpy).toHaveBeenCalledWith(
-            'http://api/employees/3/availabilities',
+            'http://api/availabilities',
             expect.objectContaining({
                 method: 'POST',
                 headers: { Authorization: 'Bearer tok', 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: 'Horario', intervals: availability.intervals }),
+                body: JSON.stringify({ name: 'Horario', timeZone: 'UTC' }),
             }),
         );
     });
 
     it('translates a 422 to AvailabilityRuleError with the back’s message', async () => {
-        respond(422, { statusCode: 422, message: 'Dos Franjas del mismo día se solapan' });
-        await expect(repo().createAvailability({ employeeId: 3, name: 'H', intervals: [] })).rejects.toThrow(
-            new AvailabilityRuleError('Dos Franjas del mismo día se solapan'),
+        respond(422, { statusCode: 422, message: 'Zona horaria inválida: Marte/Olimpo' });
+        await expect(repo().createAvailability({ name: 'H', timeZone: 'Marte/Olimpo' })).rejects.toThrow(
+            new AvailabilityRuleError('Zona horaria inválida: Marte/Olimpo'),
         );
-    });
-
-    it('translates a 400 to ApiRequestError carrying the status', async () => {
-        respond(400, { statusCode: 400, message: ['name must be a string'] });
-        await expect(repo().createAvailability({ employeeId: 3, name: 'H', intervals: [] })).rejects.toMatchObject({ status: 400 });
     });
 });
 
 describe('AvailabilitiesRepository.updateAvailability', () => {
-    it('PATCHes the changes without the id and parses the 200', async () => {
-        const fetchSpy = respond(200, availability);
+    const body = { name: detail.name, timeZone: detail.timeZone, schedule: detail.schedule, overrides: detail.overrides };
 
-        await expect(repo().updateAvailability({ availabilityId: 10, name: 'Otro' })).resolves.toEqual(availability);
+    it('PUTs the whole body without the id', async () => {
+        const fetchSpy = respond(200, detail);
+
+        await repo().updateAvailability({ availabilityId: 10, ...body });
         expect(fetchSpy).toHaveBeenCalledWith(
             'http://api/availabilities/10',
-            expect.objectContaining({ method: 'PATCH', body: JSON.stringify({ name: 'Otro' }) }),
+            expect.objectContaining({ method: 'PUT', body: JSON.stringify(body) }),
         );
     });
 
     it('translates a 404 to NotFoundError and a 422 to AvailabilityRuleError', async () => {
         respond(404, { message: 'no existe' });
-        await expect(repo().updateAvailability({ availabilityId: 10 })).rejects.toBeInstanceOf(NotFoundError);
-        respond(422, { message: 'Cada Franja tiene que terminar después de empezar' });
-        await expect(repo().updateAvailability({ availabilityId: 10 })).rejects.toBeInstanceOf(AvailabilityRuleError);
+        await expect(repo().updateAvailability({ availabilityId: 10, ...body })).rejects.toBeInstanceOf(NotFoundError);
+        respond(422, { message: 'El miércoles tiene un rango que no termina después de empezar' });
+        await expect(repo().updateAvailability({ availabilityId: 10, ...body })).rejects.toBeInstanceOf(AvailabilityRuleError);
     });
 });
 
 describe('AvailabilitiesRepository.makeDefault', () => {
-    it('POSTs to the default path without a body and parses the 200', async () => {
-        const fetchSpy = respond(200, { ...availability, isDefault: true });
+    it('PATCHes the default path without a body', async () => {
+        const fetchSpy = respond(200, undefined);
 
-        await expect(repo().makeDefault(10)).resolves.toMatchObject({ isDefault: true });
+        await expect(repo().makeDefault(10)).resolves.toBeUndefined();
         expect(fetchSpy).toHaveBeenCalledWith(
             'http://api/availabilities/10/default',
-            expect.objectContaining({ method: 'POST', body: undefined, headers: { Authorization: 'Bearer tok' } }),
+            expect.objectContaining({ method: 'PATCH', body: undefined, headers: { Authorization: 'Bearer tok' } }),
         );
     });
 });
@@ -147,18 +142,11 @@ describe('AvailabilitiesRepository.deleteAvailability', () => {
         expect(fetchSpy).toHaveBeenCalledWith('http://api/availabilities/10', expect.objectContaining({ method: 'DELETE' }));
     });
 
-    it('translates a 422 (the default one) to AvailabilityRuleError', async () => {
+    it('translates a 422 (the default one, or in use by a Servicio) to AvailabilityRuleError', async () => {
         respond(422, { message: 'No se puede borrar la Availability predeterminada' });
         await expect(repo().deleteAvailability(10)).rejects.toThrow(
             new AvailabilityRuleError('No se puede borrar la Availability predeterminada'),
         );
-    });
-
-    it('translates a 409 (used by a Servicio) to AvailabilityInUseError with the count in the message', async () => {
-        respond(409, { message: 'No se puede borrar la Availability: la usan 2 Servicios' });
-        const error = await repo().deleteAvailability(10).catch((e) => e);
-        expect(error).toBeInstanceOf(AvailabilityInUseError);
-        expect(error.message).toBe('No se puede borrar la Availability: la usan 2 Servicios');
     });
 
     it('translates a 404 to NotFoundError', async () => {
