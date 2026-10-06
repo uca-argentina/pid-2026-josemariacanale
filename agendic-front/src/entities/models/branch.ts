@@ -7,8 +7,6 @@ export const branchSchema = z.object({
     businessId: z.number(),
     name: z.string(),
     address: z.string(),
-    opensAt: z.string(),
-    closesAt: z.string(),
     timeZone: z.string(),
     slug: z.string(),
 });

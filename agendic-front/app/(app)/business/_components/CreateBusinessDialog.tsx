@@ -16,7 +16,6 @@ import {
     PanelTextarea,
 } from '@/app/(app)/_components/panel-ui';
 import { bookingLink } from '@/app/(app)/_components/mock-services';
-import { TimeSelect } from '@/app/(app)/_components/TimeSelect';
 import {
     branchSchema,
     businessSchema,
@@ -64,7 +63,7 @@ export function CreateBusinessDialog({ owner, onClose }: { owner: Owner; onClose
     const [business, setBusiness] = useState<BusinessFields>({ name: '', description: '', slug: '' });
     // Una vez que el Dueño edita el Enlace de reserva a mano, deja de seguir al nombre.
     const [slugEdited, setSlugEdited] = useState(false);
-    const [branch, setBranch] = useState<BranchFields>({ name: '', address: '', opensAt: '', closesAt: '', timeZone: 'America/Argentina/Buenos_Aires' });
+    const [branch, setBranch] = useState<BranchFields>({ name: '', address: '', timeZone: 'America/Argentina/Buenos_Aires' });
     const [employees, setEmployees] = useState<string[]>([]);
     // El mini formulario de Invitar; null mientras está cerrado.
     const [draft, setDraft] = useState<InviteFields | null>(null);
@@ -286,26 +285,6 @@ function BranchStep({
                     onValueChange={(tz) => onChange({ ...value, timeZone: tz })}
                 />
             </PanelField>
-            <div className="grid grid-cols-2 gap-4">
-                <PanelField label="Abre a las" htmlFor="branch-opensAt" error={errors.opensAt}>
-                    <TimeSelect
-                        id="branch-opensAt"
-                        placeholder="09:00"
-                        value={value.opensAt}
-                        invalid={!!errors.opensAt}
-                        onChange={(opensAt) => onChange({ ...value, opensAt })}
-                    />
-                </PanelField>
-                <PanelField label="Cierra a las" htmlFor="branch-closesAt" error={errors.closesAt}>
-                    <TimeSelect
-                        id="branch-closesAt"
-                        placeholder="18:00"
-                        value={value.closesAt}
-                        invalid={!!errors.closesAt}
-                        onChange={(closesAt) => onChange({ ...value, closesAt })}
-                    />
-                </PanelField>
-            </div>
         </>
     );
 }
@@ -506,7 +485,6 @@ function SummaryStep({
             <SummaryBlock title="Sucursal" onEdit={() => onEdit(2)}>
                 <SummaryItem label="Nombre" value={branch.name} />
                 <SummaryItem label="Dirección" value={branch.address} />
-                <SummaryItem label="Horario" value={`${branch.opensAt} a ${branch.closesAt}`} />
                 <SummaryItem label="Zona horaria" value={branch.timeZone} />
             </SummaryBlock>
             <SummaryBlock title="Invitaciones" onEdit={() => onEdit(EMPLOYEES_STEP)}>

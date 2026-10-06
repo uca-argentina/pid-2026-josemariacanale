@@ -7,8 +7,8 @@ const TZ = 'America/Argentina/Buenos_Aires';
 describe('getPublicBranchUseCase', () => {
     it('returns the Negocio, the Sucursal of the URL, every Sucursal, its Servicios, its Empleados without duplicates and its Imágenes', async () => {
         const business = { id: 1, name: 'Vitalia', description: 'Desc', slug: 'vitalia', ownerId: 7 };
-        const centro = { id: 10, businessId: 1, name: 'Centro', address: 'Av. 1', opensAt: '09:00', closesAt: '18:00', timeZone: TZ, slug: 'centro' };
-        const palermo = { id: 11, businessId: 1, name: 'Palermo', address: 'Thames 1', opensAt: '10:00', closesAt: '19:00', timeZone: TZ, slug: 'palermo' };
+        const centro = { id: 10, businessId: 1, name: 'Centro', address: 'Av. 1', timeZone: TZ, slug: 'centro' };
+        const palermo = { id: 11, businessId: 1, name: 'Palermo', address: 'Thames 1', timeZone: TZ, slug: 'palermo' };
         const ana = { id: 1, name: 'Ana' };
         const beto = { id: 2, name: 'Beto' };
         const services = [
@@ -46,7 +46,7 @@ describe('getPublicBranchUseCase', () => {
 
     it('returns a Sucursal without Servicios, and so without Empleados, and without Imágenes', async () => {
         const business = { id: 1, name: 'Vitalia', description: 'Desc', slug: 'vitalia', ownerId: 7 };
-        const centro = { id: 10, businessId: 1, name: 'Centro', address: 'Av. 1', opensAt: '09:00', closesAt: '18:00', timeZone: TZ, slug: 'centro' };
+        const centro = { id: 10, businessId: 1, name: 'Centro', address: 'Av. 1', timeZone: TZ, slug: 'centro' };
         const repo = publicBusinessesWith({
             getBusinessBySlug: jest.fn().mockResolvedValue(business),
             listBranches: jest.fn().mockResolvedValue([centro]),
@@ -62,7 +62,7 @@ describe('getPublicBranchUseCase', () => {
     // ADR 0007: `order` is ascending but may have gaps, and the front sorts by it.
     it('sorts the Imágenes by order', async () => {
         const business = { id: 1, name: 'Vitalia', description: 'Desc', slug: 'vitalia', ownerId: 7 };
-        const centro = { id: 10, businessId: 1, name: 'Centro', address: 'Av. 1', opensAt: '09:00', closesAt: '18:00', timeZone: TZ, slug: 'centro' };
+        const centro = { id: 10, businessId: 1, name: 'Centro', address: 'Av. 1', timeZone: TZ, slug: 'centro' };
         const first = { id: 7, branchId: 10, url: 'https://img.example/a.jpg', order: 2 };
         const second = { id: 3, branchId: 10, url: 'https://img.example/b.jpg', order: 5 };
         const repo = publicBusinessesWith({
@@ -79,7 +79,7 @@ describe('getPublicBranchUseCase', () => {
 
     it('with a Servicio tramo, also returns that Servicio as the chosen one, even when it is hidden and so not listed', async () => {
         const business = { id: 1, name: 'Vitalia', description: 'Desc', slug: 'vitalia', ownerId: 7 };
-        const centro = { id: 10, businessId: 1, name: 'Centro', address: 'Av. 1', opensAt: '09:00', closesAt: '18:00', timeZone: TZ, slug: 'centro' };
+        const centro = { id: 10, businessId: 1, name: 'Centro', address: 'Av. 1', timeZone: TZ, slug: 'centro' };
         const visible = { id: 100, branchId: 10, name: 'Masaje', description: null, category: 'SPA' as const, durationMinutes: 60, price: 20000, depositPercent: null, employees: [{ id: 1, name: 'Ana' }] };
         const hidden = { ...visible, id: 101, name: 'Masaje VIP' };
         const repo = publicBusinessesWith({
@@ -98,7 +98,7 @@ describe('getPublicBranchUseCase', () => {
 
     it('propagates NotFoundError when the Sucursal has no active Servicio with that tramo', async () => {
         const business = { id: 1, name: 'Vitalia', description: 'Desc', slug: 'vitalia', ownerId: 7 };
-        const centro = { id: 10, businessId: 1, name: 'Centro', address: 'Av. 1', opensAt: '09:00', closesAt: '18:00', timeZone: TZ, slug: 'centro' };
+        const centro = { id: 10, businessId: 1, name: 'Centro', address: 'Av. 1', timeZone: TZ, slug: 'centro' };
         const repo = publicBusinessesWith({
             getBusinessBySlug: jest.fn().mockResolvedValue(business),
             listBranches: jest.fn().mockResolvedValue([centro]),
@@ -124,7 +124,7 @@ describe('getPublicBranchUseCase', () => {
     // A Sucursal of another Negocio never shows up in this Negocio's list, so it is the same case.
     it('throws NotFoundError when the Negocio has no Sucursal with that tramo', async () => {
         const business = { id: 1, name: 'Vitalia', description: 'Desc', slug: 'vitalia', ownerId: 7 };
-        const centro = { id: 10, businessId: 1, name: 'Centro', address: 'Av. 1', opensAt: '09:00', closesAt: '18:00', timeZone: TZ, slug: 'centro' };
+        const centro = { id: 10, businessId: 1, name: 'Centro', address: 'Av. 1', timeZone: TZ, slug: 'centro' };
         const repo = publicBusinessesWith({
             getBusinessBySlug: jest.fn().mockResolvedValue(business),
             listBranches: jest.fn().mockResolvedValue([centro]),

@@ -19,6 +19,8 @@ const service = {
     hidden: false,
     prepMinutes: 15,
     dailyLimit: 6,
+    slotInterval: 30,
+    minimumNoticeMinutes: 60,
     employees: [
         { id: 1, name: 'Ana', availabilityId: 7 },
         { id: 2, name: 'Juan', availabilityId: 8 },
@@ -73,6 +75,8 @@ describe('getMyServiceController', () => {
                 hidden: false,
                 prepMinutes: 15,
                 dailyLimit: 6,
+                slotInterval: 30,
+                minimumNoticeMinutes: 60,
                 offeredByMe: true,
                 employees: [
                     { id: 1, name: 'Ana' },

@@ -23,6 +23,8 @@ const parsedService = {
     hidden: false,
     prepMinutes: 10,
     dailyLimit: null,
+    slotInterval: null,
+    minimumNoticeMinutes: 0,
     employees: [{ id: 1, name: 'Ana', availabilityId: 7 }],
 };
 /** The back may send fields the panel does not read: they are dropped. */

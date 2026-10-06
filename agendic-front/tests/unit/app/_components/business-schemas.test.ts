@@ -52,22 +52,11 @@ describe('branchSchema', () => {
     const branch = {
         name: 'Sucursal Centro',
         address: 'Av. Cabildo 1234',
-        opensAt: '09:00',
-        closesAt: '18:00',
         timeZone: 'America/Argentina/Buenos_Aires',
     };
 
-    it('acepta una Sucursal que cierra después de abrir', () => {
+    it('acepta una Sucursal con nombre, dirección y zona horaria', () => {
         expect(branchSchema.parse(branch)).toEqual(branch);
-    });
-
-    it('rechaza un cierre anterior o igual a la apertura', () => {
-        const result = branchSchema.safeParse({ ...branch, closesAt: '09:00' });
-
-        expect(result.success).toBe(false);
-        expect(fieldErrorsOf(result.error!).closesAt).toBe(
-            'El cierre tiene que ser posterior a la apertura.',
-        );
     });
 
     it('rechaza una zona horaria vacía', () => {

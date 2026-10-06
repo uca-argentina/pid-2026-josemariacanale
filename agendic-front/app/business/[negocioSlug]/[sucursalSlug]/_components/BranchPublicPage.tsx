@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Clock, MapPin, Images, Building2 } from 'lucide-react';
+import { MapPin, Images, Building2 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/app/_components/ui/avatar';
 import { Button } from '@/app/_components/ui/button';
 import { bookingLinkPath } from '@/app/routes';
@@ -112,10 +112,6 @@ export function BranchPublicPage({
                         <span className="flex items-center gap-1.5">
                             <Building2 className="size-4" />
                             Sucursal {branch.name}
-                        </span>
-                        <span className="flex items-center gap-1.5">
-                            <Clock className="size-4" />
-                            Atiende de {branch.opensAt} a {branch.closesAt}
                         </span>
                         <span className="flex items-center gap-1.5">
                             <MapPin className="size-4" />
@@ -257,13 +253,6 @@ export function BranchPublicPage({
                                 {business.description}
                             </p>
                             <dl className="mt-4 flex flex-col gap-2.5 border-t border-border pt-4 text-[13.5px]">
-                                <div className="flex gap-2">
-                                    <dt className="sr-only">Horario</dt>
-                                    <Clock className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-                                    <dd className="font-medium">
-                                        {branch.opensAt} a {branch.closesAt}
-                                    </dd>
-                                </div>
                                 <div className="flex gap-2">
                                     <dt className="sr-only">Dirección</dt>
                                     <MapPin className="mt-0.5 size-4 shrink-0 text-muted-foreground" />

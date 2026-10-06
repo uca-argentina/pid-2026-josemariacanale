@@ -5,7 +5,7 @@ import { instrumentation } from '@/tests/unit/stubs';
 
 const input = {
     business: { name: 'Estudio', description: 'Desc', slug: 'estudio' },
-    branch: { name: 'Centro', address: 'Av. 1', opensAt: '09:00', closesAt: '18:00', timeZone: 'America/Argentina/Buenos_Aires' },
+    branch: { name: 'Centro', address: 'Av. 1', timeZone: 'America/Argentina/Buenos_Aires' },
     service: { name: 'Consulta', slug: 'consulta', category: 'CLINICA' as const, durationMinutes: 30, price: 100 },
 };
 const business = { id: 1, name: 'Estudio', description: 'Desc', slug: 'estudio', ownerId: 7 };

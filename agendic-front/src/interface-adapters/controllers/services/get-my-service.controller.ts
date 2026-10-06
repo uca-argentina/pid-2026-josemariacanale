@@ -41,6 +41,8 @@ function presenter(
             hidden: service.hidden,
             prepMinutes: service.prepMinutes,
             dailyLimit: service.dailyLimit,
+            slotInterval: service.slotInterval,
+            minimumNoticeMinutes: service.minimumNoticeMinutes,
             offeredByMe: service.employees.some((e) => e.id === group.employeeId),
             employees: service.employees.map((e) => ({ id: e.id, name: e.name })),
         },
