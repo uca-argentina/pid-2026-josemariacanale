@@ -1,6 +1,7 @@
 'use client';
 
-import { AlertDialog, Checkbox, Dialog, DropdownMenu, Select, Switch } from 'radix-ui';
+import { useState } from 'react';
+import { AlertDialog, Checkbox, Dialog, DropdownMenu, Popover, Select, Switch } from 'radix-ui';
 import { Check, ChevronDown } from 'lucide-react';
 import { cn } from '@/app/_components/utils';
 
@@ -344,6 +345,102 @@ export function PanelSelect({
                 </Select.Content>
             </Select.Portal>
         </Select.Root>
+    );
+}
+
+/** Como `PanelSelect`, pero con un buscador arriba de la lista: para listas largas (ej. zonas horarias). */
+export function PanelCombobox({
+    id,
+    value,
+    onValueChange,
+    options,
+    placeholder,
+    disabled,
+    className,
+    'aria-label': ariaLabel,
+}: {
+    id?: string;
+    value: string;
+    onValueChange: (value: string) => void;
+    options: PanelOption[];
+    /** Se ve mientras `value` es ''. */
+    placeholder?: string;
+    disabled?: boolean;
+    className?: string;
+    'aria-label'?: string;
+}) {
+    const [open, setOpen] = useState(false);
+    const [query, setQuery] = useState('');
+    const selected = options.find((o) => o.value === value);
+    const filtered = options.filter((o) => o.label.toLowerCase().includes(query.toLowerCase()));
+
+    return (
+        <Popover.Root
+            open={open}
+            onOpenChange={(next) => {
+                setOpen(next);
+                if (!next) setQuery('');
+            }}
+        >
+            <Popover.Trigger asChild>
+                <button
+                    type="button"
+                    id={id}
+                    aria-label={ariaLabel}
+                    disabled={disabled}
+                    className={cn(
+                        FIELD_BOX,
+                        'justify-between px-3 text-left disabled:cursor-not-allowed disabled:bg-[#f9fafb] disabled:text-[#6b7280]',
+                        className,
+                    )}
+                >
+                    <span className={cn('truncate', !selected && 'text-[#9ca3af]')}>{selected?.label ?? placeholder}</span>
+                    <ChevronDown className="size-4 shrink-0 text-[#0f1b2d]" />
+                </button>
+            </Popover.Trigger>
+            <Popover.Portal>
+                <Popover.Content
+                    align="start"
+                    sideOffset={4}
+                    className="z-50 w-(--radix-popover-trigger-width) overflow-hidden rounded-md border border-[#e5e7eb] bg-white shadow-[0_10px_30px_rgba(15,27,45,0.12)]"
+                >
+                    <div className="border-b border-[#e5e7eb] p-1.5">
+                        <PanelInput
+                            autoFocus
+                            placeholder="Buscar..."
+                            value={query}
+                            onChange={(e) => setQuery(e.target.value)}
+                        />
+                    </div>
+                    <div className="max-h-72 overflow-auto p-1">
+                        {filtered.length === 0 ? (
+                            <div className="px-2.5 py-2 text-[13.5px] font-medium text-[#9ca3af]">Sin resultados</div>
+                        ) : (
+                            filtered.map((o) => (
+                                <button
+                                    type="button"
+                                    key={o.value}
+                                    onClick={() => {
+                                        onValueChange(o.value);
+                                        setOpen(false);
+                                        setQuery('');
+                                    }}
+                                    className="flex w-full cursor-pointer items-center gap-2 rounded px-2.5 py-2 text-left text-[13.5px] font-medium text-[#0f1b2d] outline-none hover:bg-[#f3f4f6]"
+                                >
+                                    <span className="flex-1 truncate">{o.label}</span>
+                                    {o.badge && (
+                                        <span className="rounded bg-[#e0e7ff] px-1.5 py-0.5 text-[11px] font-bold text-[#3730a3]">
+                                            {o.badge}
+                                        </span>
+                                    )}
+                                    {o.value === value && <Check className="size-4 shrink-0" />}
+                                </button>
+                            ))
+                        )}
+                    </div>
+                </Popover.Content>
+            </Popover.Portal>
+        </Popover.Root>
     );
 }
 

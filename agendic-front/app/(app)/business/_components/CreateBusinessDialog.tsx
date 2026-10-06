@@ -7,6 +7,7 @@ import {
     PanelAvatar,
     PanelBadge,
     PanelButton,
+    PanelCombobox,
     PanelDialog,
     PanelDialogClose,
     PanelField,
@@ -277,7 +278,7 @@ function BranchStep({
                 />
             </PanelField>
             <PanelField label="Zona horaria" htmlFor="branch-timezone" error={errors.timeZone}>
-                <PanelSelect
+                <PanelCombobox
                     id="branch-timezone"
                     value={value.timeZone}
                     placeholder="Elegí una zona horaria"
