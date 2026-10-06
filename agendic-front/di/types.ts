@@ -56,6 +56,16 @@ import type { IRetireServiceController } from '@/src/interface-adapters/controll
 import type { IAssignEmployeeController } from '@/src/interface-adapters/controllers/services/assign-employee.controller';
 import type { IRemoveEmployeeController } from '@/src/interface-adapters/controllers/services/remove-employee.controller';
 import type { IChangeEmployeeAvailabilityController } from '@/src/interface-adapters/controllers/services/change-employee-availability.controller';
+import type { IUsersRepository } from '@/src/application/repositories/users.repository.interface';
+import type { IGetMeUseCase } from '@/src/application/use-cases/users/get-me.use-case';
+import type { IUpdateMySlugUseCase } from '@/src/application/use-cases/users/update-my-slug.use-case';
+import type { IGetUserPageUseCase } from '@/src/application/use-cases/users/get-user-page.use-case';
+import type { IUpdateMySlugController } from '@/src/interface-adapters/controllers/users/update-my-slug.controller';
+import type { IGetUserPageController } from '@/src/interface-adapters/controllers/users/get-user-page.controller';
+import type { IListPersonalServicesUseCase } from '@/src/application/use-cases/services/list-personal-services.use-case';
+import type { ICreatePersonalServiceUseCase } from '@/src/application/use-cases/services/create-personal-service.use-case';
+import type { IListMyPersonalServicesController } from '@/src/interface-adapters/controllers/services/list-my-personal-services.controller';
+import type { ICreatePersonalServiceController } from '@/src/interface-adapters/controllers/services/create-personal-service.controller';
 import type { IEmployeeBookingsRepository } from '@/src/application/repositories/employee-bookings.repository.interface';
 import type { IListMyBookingsUseCase } from '@/src/application/use-cases/bookings/list-my-bookings.use-case';
 import type { IListMyBookingsController } from '@/src/interface-adapters/controllers/bookings/list-my-bookings.controller';
@@ -154,6 +164,16 @@ export const DI_SYMBOLS = {
     IAssignEmployeeController: Symbol.for('IAssignEmployeeController'),
     IRemoveEmployeeController: Symbol.for('IRemoveEmployeeController'),
     IChangeEmployeeAvailabilityController: Symbol.for('IChangeEmployeeAvailabilityController'),
+    IUsersRepository: Symbol.for('IUsersRepository'),
+    IGetMeUseCase: Symbol.for('IGetMeUseCase'),
+    IUpdateMySlugUseCase: Symbol.for('IUpdateMySlugUseCase'),
+    IGetUserPageUseCase: Symbol.for('IGetUserPageUseCase'),
+    IUpdateMySlugController: Symbol.for('IUpdateMySlugController'),
+    IGetUserPageController: Symbol.for('IGetUserPageController'),
+    IListPersonalServicesUseCase: Symbol.for('IListPersonalServicesUseCase'),
+    ICreatePersonalServiceUseCase: Symbol.for('ICreatePersonalServiceUseCase'),
+    IListMyPersonalServicesController: Symbol.for('IListMyPersonalServicesController'),
+    ICreatePersonalServiceController: Symbol.for('ICreatePersonalServiceController'),
     IRejectInvitationController: Symbol.for('IRejectInvitationController'),
     IResendInvitationController: Symbol.for('IResendInvitationController'),
     ICancelInvitationController: Symbol.for('ICancelInvitationController'),
@@ -247,6 +267,16 @@ export interface DI_RETURN_TYPES {
     IAssignEmployeeController: IAssignEmployeeController;
     IRemoveEmployeeController: IRemoveEmployeeController;
     IChangeEmployeeAvailabilityController: IChangeEmployeeAvailabilityController;
+    IUsersRepository: IUsersRepository;
+    IGetMeUseCase: IGetMeUseCase;
+    IUpdateMySlugUseCase: IUpdateMySlugUseCase;
+    IGetUserPageUseCase: IGetUserPageUseCase;
+    IUpdateMySlugController: IUpdateMySlugController;
+    IGetUserPageController: IGetUserPageController;
+    IListPersonalServicesUseCase: IListPersonalServicesUseCase;
+    ICreatePersonalServiceUseCase: ICreatePersonalServiceUseCase;
+    IListMyPersonalServicesController: IListMyPersonalServicesController;
+    ICreatePersonalServiceController: ICreatePersonalServiceController;
     IRejectInvitationController: IRejectInvitationController;
     IResendInvitationController: IResendInvitationController;
     ICancelInvitationController: ICancelInvitationController;

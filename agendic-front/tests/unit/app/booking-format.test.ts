@@ -1,4 +1,4 @@
-import { addDays, depositFor, endTime, formatDuration, shortWeekday, todayIn } from '@/app/business/[negocioSlug]/[sucursalSlug]/_components/format';
+import { addDays, depositFor, endTime, formatDuration, shortWeekday, todayIn } from '@/app/_components/booking/format';
 
 describe('depositFor', () => {
     it('reparte el precio entre lo que se adelanta y lo que resta', () => {

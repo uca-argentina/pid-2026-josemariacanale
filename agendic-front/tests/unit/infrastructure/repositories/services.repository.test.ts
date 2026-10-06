@@ -360,3 +360,74 @@ describe('ServicesRepository.changeEmployeeAvailability', () => {
         await expect(repo().changeEmployeeAvailability(change)).rejects.toBeInstanceOf(ApiRequestError);
     });
 });
+
+const parsedPersonal = {
+    id: 200,
+    slug: 'clase',
+    name: 'Clase',
+    description: null,
+    category: 'ACADEMIA',
+    durationMinutes: 45,
+    price: 5000,
+    depositPercent: null,
+    requiresApproval: false,
+    hidden: false,
+    prepMinutes: 0,
+    dailyLimit: null,
+    slotInterval: null,
+    minimumNoticeMinutes: 0,
+    availabilityId: 7,
+};
+/** The back sends a Servicio personal with the fields of any Servicio, empty. */
+const personal = { ...parsedPersonal, branchId: null, userId: 3, employees: [] };
+
+describe('ServicesRepository.listPersonalServices', () => {
+    it('GETs the Servicios personales with the bearer token', async () => {
+        const fetchSpy = respond(200, [personal]);
+
+        await expect(repo().listPersonalServices()).resolves.toEqual([parsedPersonal]);
+        expect(fetchSpy).toHaveBeenCalledWith(
+            'http://api/users/me/services',
+            expect.objectContaining({ method: 'GET', headers: expect.objectContaining({ Authorization: 'Bearer tok' }) }),
+        );
+    });
+});
+
+describe('ServicesRepository.createPersonalService', () => {
+    const fields = {
+        name: 'Clase',
+        slug: 'clase',
+        category: 'ACADEMIA' as const,
+        durationMinutes: 45,
+        price: 5000,
+    };
+
+    it('POSTs the Servicio personal with its Availability and returns it', async () => {
+        const fetchSpy = respond(201, personal);
+
+        await expect(repo().createPersonalService({ ...fields, availabilityId: 7 })).resolves.toEqual(parsedPersonal);
+        expect(fetchSpy).toHaveBeenCalledWith(
+            'http://api/users/me/services',
+            expect.objectContaining({ method: 'POST', body: JSON.stringify({ ...fields, availabilityId: 7 }) }),
+        );
+    });
+
+    it('translates the 409 of the tramo to ServiceSlugTakenError', async () => {
+        respond(409, { statusCode: 409, message: 'Service booking link already in use' });
+        await expect(repo().createPersonalService({ ...fields, availabilityId: 7 })).rejects.toBeInstanceOf(ServiceSlugTakenError);
+    });
+
+    it('translates the 404 of an Availability of someone else to NotFoundError', async () => {
+        respond(404, { statusCode: 404, message: 'Availability 9 not found' });
+        await expect(repo().createPersonalService({ ...fields, availabilityId: 9 })).rejects.toBeInstanceOf(NotFoundError);
+    });
+});
+
+describe('ServicesRepository.updateService of a Servicio personal', () => {
+    it('PATCHes its Availability and returns it as a Servicio personal', async () => {
+        const fetchSpy = respond(200, personal);
+
+        await expect(repo().updateService({ id: 100, availabilityId: 7 })).resolves.toEqual(parsedPersonal);
+        expect(fetchSpy).toHaveBeenCalledWith('http://api/services/100', expect.objectContaining({ body: JSON.stringify({ availabilityId: 7 }) }));
+    });
+});

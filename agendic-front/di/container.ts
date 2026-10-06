@@ -7,6 +7,7 @@ import { createBusinessesModule } from '@/di/modules/businesses.module';
 import { createEmployeesModule } from '@/di/modules/employees.module';
 import { createMonitoringModule } from '@/di/modules/monitoring.module';
 import { createServicesModule } from '@/di/modules/services.module';
+import { createUsersModule } from '@/di/modules/users.module';
 
 const ApplicationContainer = createContainer();
 
@@ -17,6 +18,7 @@ ApplicationContainer.load(Symbol('EmployeesModule'), createEmployeesModule());
 ApplicationContainer.load(Symbol('BookingsModule'), createBookingsModule());
 ApplicationContainer.load(Symbol('AvailabilitiesModule'), createAvailabilitiesModule());
 ApplicationContainer.load(Symbol('ServicesModule'), createServicesModule());
+ApplicationContainer.load(Symbol('UsersModule'), createUsersModule());
 
 export function getInjection<K extends keyof typeof DI_SYMBOLS>(symbol: K): DI_RETURN_TYPES[K] {
     return ApplicationContainer.get<DI_RETURN_TYPES[K]>(DI_SYMBOLS[symbol]);

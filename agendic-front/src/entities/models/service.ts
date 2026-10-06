@@ -74,6 +74,21 @@ export const createServiceSchema = z.object({
 });
 export type CreateService = z.infer<typeof createServiceSchema>;
 
+/**
+ * A Servicio personal (ADR 0021): of a Usuario, attended with one of their Availability, without Sucursal or
+ * Empleados. As GET and POST /users/me/services and the public GET /u/:userSlug return it.
+ */
+export const personalServiceSchema = catalogServiceSchema
+    .omit({ branchId: true, employees: true })
+    .extend({ availabilityId: z.number() });
+export type PersonalService = z.infer<typeof personalServiceSchema>;
+
+/** What POST /users/me/services expects: the body of a Servicio del Negocio without Sucursal or Empleados, with its Availability. */
+export const createPersonalServiceSchema = createServiceSchema
+    .omit({ branchId: true, employeeIds: true })
+    .extend({ availabilityId: z.number().int().positive() });
+export type CreatePersonalService = z.infer<typeof createPersonalServiceSchema>;
+
 /** Where a Servicio sits in the panel's catalog: its Negocio (with the Usuario's role there) and its Sucursal. */
 export interface ServiceInCatalog {
     group: ServiceCatalogGroup;
@@ -81,9 +96,12 @@ export interface ServiceInCatalog {
     service: CatalogService;
 }
 
+/** A Servicio of the Usuario: one of the catalog, with its Negocio and Sucursal, or one of their Servicios personales. */
+export type MyService = ServiceInCatalog | { group: null; branch: null; service: PersonalService };
+
 /**
  * What PATCH /services/:id accepts, plus the Servicio that goes in the path. Every field is optional: only the ones
- * sent change. `depositPercent: null` drops the Seña, `dailyLimit: null` the Límite diario and `slotInterval: null`
+ * sent change, on a Servicio del Negocio or a personal one. `depositPercent: null` drops the Seña, `dailyLimit: null` the Límite diario and `slotInterval: null`
  * the Intervalo.
  */
 export const updateServiceSchema = z.object({
@@ -104,6 +122,8 @@ export const updateServiceSchema = z.object({
     dailyLimit: z.number().int().min(1).nullable().optional(),
     slotInterval: z.number().int().min(1).nullable().optional(),
     minimumNoticeMinutes: z.number().int().min(0).optional(),
+    /** Only a Servicio personal: one of the Usuario's own Availability. */
+    availabilityId: z.number().int().positive().optional(),
 });
 export type UpdateService = z.infer<typeof updateServiceSchema>;
 

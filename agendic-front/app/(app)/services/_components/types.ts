@@ -8,3 +8,7 @@ export type ServiceBranch = ServiceGroup['branches'][number];
 export type ServiceItem = ServiceBranch['services'][number];
 /** El detalle de un Servicio, como lo presenta getMyServiceController. */
 export type ServiceDetailData = Awaited<ReturnType<DI_RETURN_TYPES['IGetMyServiceController']>>;
+/** Los Servicios personales del Usuario, su Enlace de reserva y las Horas laborables para elegir al crear uno. */
+export type PersonalSection = Awaited<ReturnType<DI_RETURN_TYPES['IListMyPersonalServicesController']>>;
+/** Un Servicio personal de la lista. */
+export type PersonalItem = PersonalSection['services'][number];

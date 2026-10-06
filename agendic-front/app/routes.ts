@@ -10,3 +10,6 @@ export const BUSINESS_PATH = '/business';
  */
 export const bookingLinkPath = (businessSlug: string, branchSlug?: string, serviceSlug?: string) =>
     ['/business', businessSlug, branchSlug, branchSlug && serviceSlug].filter(Boolean).join('/');
+
+/** La ruta del Enlace de reserva de un Usuario (ADR 0021): sus Servicios personales, o uno ya elegido. */
+export const userLinkPath = (userSlug: string, serviceSlug?: string) => ['/u', userSlug, serviceSlug].filter(Boolean).join('/');

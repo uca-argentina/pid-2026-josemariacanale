@@ -10,10 +10,13 @@ import {
 } from '@/src/entities/errors/service';
 import {
     catalogServiceSchema,
+    personalServiceSchema,
     removedEmployeeSchema,
     retiredServiceSchema,
     serviceCatalogGroupSchema,
     type CatalogService,
+    type CreatePersonalService,
+    type PersonalService,
     type ServiceEmployeeAvailability,
     type CreateService,
     type RemovedEmployee,
@@ -70,20 +73,49 @@ export class ServicesRepository implements IServicesRepository {
     }
 
     /**
-     * Changes the fields sent of a Servicio: `PATCH /services/:id`.
+     * Lists the Servicios personales: `GET /users/me/services`.
      *
-     * @throws {ServiceSlugTakenError} the tramo is taken in that Sucursal (409)
-     * @throws {ServiceNameTakenError} the name is taken in that Sucursal (409)
-     * @throws {NotFoundError} the Servicio does not exist (404)
+     * @throws {ApiRequestError} the back failed or answered an unexpected body
+     */
+    async listPersonalServices(): Promise<PersonalService[]> {
+        const what = 'GET /users/me/services';
+        const { status, json } = await this.request('GET', '/users/me/services');
+        if (status >= 400) throw apiError(what, status, json);
+        return parseOrFail(() => personalServiceSchema.array().parse(json), what);
+    }
+
+    /**
+     * Creates a Servicio personal: `POST /users/me/services`.
+     *
+     * @throws {ServiceSlugTakenError} the tramo is taken among the Usuario's Servicios personales (409)
+     * @throws {ServiceNameTakenError} the name is taken among the Usuario's Servicios personales (409)
+     * @throws {NotFoundError} the Availability is not the Usuario's (404)
+     * @throws {ApiRequestError} any other failure, or a body that is not a Servicio personal
+     */
+    async createPersonalService(input: CreatePersonalService): Promise<PersonalService> {
+        const what = 'POST /users/me/services';
+        const { status, json } = await this.request('POST', '/users/me/services', input);
+        if (status === 409) throw takenError(json, what, status);
+        if (status === 404) throw new NotFoundError(messageOf(json, what, status));
+        if (status >= 400) throw apiError(what, status, json);
+        return parseOrFail(() => personalServiceSchema.parse(json), what);
+    }
+
+    /**
+     * Changes the fields sent of a Servicio, del Negocio or personal: `PATCH /services/:id`.
+     *
+     * @throws {ServiceSlugTakenError} the tramo is taken in that Sucursal, or among the Usuario's (409)
+     * @throws {ServiceNameTakenError} the name is taken in that Sucursal, or among the Usuario's (409)
+     * @throws {NotFoundError} the Servicio, or the Availability sent, does not exist (404)
      * @throws {ApiRequestError} any other failure, or a body that is not a Servicio
      */
-    async updateService({ id, ...changes }: UpdateService): Promise<CatalogService> {
+    async updateService({ id, ...changes }: UpdateService): Promise<CatalogService | PersonalService> {
         const what = 'PATCH /services/:id';
         const { status, json } = await this.request('PATCH', `/services/${id}`, changes);
         if (status === 409) throw takenError(json, what, status);
         if (status === 404) throw new NotFoundError(messageOf(json, what, status));
         if (status >= 400) throw apiError(what, status, json);
-        return parseOrFail(() => catalogServiceSchema.parse(json), what);
+        return parseOrFail(() => catalogServiceSchema.or(personalServiceSchema).parse(json), what);
     }
 
     /**

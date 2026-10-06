@@ -1,6 +1,7 @@
 import {
     copySlug,
     editFormOf,
+    personalServiceFormSchema,
     serviceChanges,
     serviceFormSchema,
     slugFrom,
@@ -10,6 +11,7 @@ import {
 
 const form: ServiceForm = {
     branchId: '10',
+    availabilityId: '',
     name: ' Masaje relajante ',
     slug: 'masaje-relajante',
     slugEdited: false,
@@ -78,6 +80,27 @@ describe('serviceFormSchema', () => {
         const result = serviceFormSchema.safeParse({ ...form, ...patch });
         expect(result.success).toBe(false);
         expect(result.error?.issues[0].path[0]).toBe(field);
+    });
+});
+
+describe('personalServiceFormSchema', () => {
+    const personal = { ...form, branchId: '', availabilityId: '7' };
+
+    it('convierte el formulario en el cuerpo de POST /users/me/services, sin Sucursal', () => {
+        expect(personalServiceFormSchema.parse(personal)).toEqual({
+            availabilityId: 7,
+            name: 'Masaje relajante',
+            slug: 'masaje-relajante',
+            description: undefined,
+            category: 'SPA',
+            durationMinutes: 60,
+            price: 20000,
+        });
+    });
+
+    it('marca las Horas laborables si no se eligieron', () => {
+        const result = personalServiceFormSchema.safeParse({ ...personal, availabilityId: '' });
+        expect(result.error?.issues[0].path[0]).toBe('availabilityId');
     });
 });
 

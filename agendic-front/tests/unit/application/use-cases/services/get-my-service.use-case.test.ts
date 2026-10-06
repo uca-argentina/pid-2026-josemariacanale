@@ -13,7 +13,7 @@ const group = {
 
 describe('getMyServiceUseCase', () => {
     it('finds the Servicio in the catalog, with its Negocio and its Sucursal', async () => {
-        const repo = servicesWith({ listMyCatalog: jest.fn().mockResolvedValue([group]) });
+        const repo = servicesWith({ listMyCatalog: jest.fn().mockResolvedValue([group]), listPersonalServices: jest.fn().mockResolvedValue([]) });
 
         await expect(getMyServiceUseCase(instrumentation, repo)({ serviceId: 100 })).resolves.toEqual({
             group,
@@ -22,20 +22,37 @@ describe('getMyServiceUseCase', () => {
         });
     });
 
-    it('throws NotFoundError when the Servicio is not in the catalog', async () => {
-        const repo = servicesWith({ listMyCatalog: jest.fn().mockResolvedValue([group]) });
+    it('finds a Servicio personal when it is not in the catalog, without Negocio or Sucursal', async () => {
+        const personal = { id: 200, name: 'Clase', availabilityId: 7 };
+        const repo = servicesWith({
+            listMyCatalog: jest.fn().mockResolvedValue([group]),
+            listPersonalServices: jest.fn().mockResolvedValue([personal]),
+        });
+
+        await expect(getMyServiceUseCase(instrumentation, repo)({ serviceId: 200 })).resolves.toEqual({
+            group: null,
+            branch: null,
+            service: personal,
+        });
+    });
+
+    it('throws NotFoundError when the Servicio is neither in the catalog nor personal', async () => {
+        const repo = servicesWith({ listMyCatalog: jest.fn().mockResolvedValue([group]), listPersonalServices: jest.fn().mockResolvedValue([]) });
 
         await expect(getMyServiceUseCase(instrumentation, repo)({ serviceId: 999 })).rejects.toBeInstanceOf(NotFoundError);
     });
 
-    it('throws NotFoundError when the catalog is empty', async () => {
-        const repo = servicesWith({ listMyCatalog: jest.fn().mockResolvedValue([]) });
+    it('throws NotFoundError when the Usuario has no Servicios', async () => {
+        const repo = servicesWith({ listMyCatalog: jest.fn().mockResolvedValue([]), listPersonalServices: jest.fn().mockResolvedValue([]) });
 
         await expect(getMyServiceUseCase(instrumentation, repo)({ serviceId: 100 })).rejects.toBeInstanceOf(NotFoundError);
     });
 
     it('propagates a failure of the back', async () => {
-        const repo = servicesWith({ listMyCatalog: jest.fn().mockRejectedValue(new ApiRequestError('boom', { status: 500 })) });
+        const repo = servicesWith({
+            listMyCatalog: jest.fn().mockRejectedValue(new ApiRequestError('boom', { status: 500 })),
+            listPersonalServices: jest.fn().mockResolvedValue([]),
+        });
 
         await expect(getMyServiceUseCase(instrumentation, repo)({ serviceId: 100 })).rejects.toBeInstanceOf(ApiRequestError);
     });
