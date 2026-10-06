@@ -17,7 +17,7 @@ import {
   DatabaseOperationError,
   NotFoundError,
 } from '../../domain/errors';
-import { Booking as BookingRow, Prisma } from '../../generated/prisma/client';
+import { Prisma } from '../../generated/prisma/client';
 import { BOOKING_NO_OVERLAP, isExclusionViolation } from '../prisma-errors';
 import { PrismaService } from '../prisma.service';
 
@@ -34,16 +34,26 @@ const DAILY_LIMIT_LOCK = 61;
 const hash = (token: string) =>
   createHash('sha256').update(token).digest('base64url');
 
+/** Every read of a Turno brings its Cliente, which lives in its own table (ADR 0022). */
+const WITH_CLIENT = {
+  client: { select: { name: true, email: true } },
+} satisfies Prisma.BookingInclude;
+
+type BookingRow = Prisma.BookingGetPayload<{ include: typeof WITH_CLIENT }>;
+
 @Injectable()
 export class PrismaBookingsRepository implements BookingsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(data: CreateBookingData, expiresAt: Date) {
     const token = randomBytes(32).toString('base64url');
+    const { clientName, clientEmail, ...booking } = data;
     const row = await this.prisma.booking
       .create({
+        include: WITH_CLIENT,
         data: {
-          ...data,
+          ...booking,
+          client: { create: { name: clientName, email: clientEmail } },
           verificationTokenHash: hash(token),
           verificationTokenExpiresAt: expiresAt,
         },
@@ -108,7 +118,10 @@ export class PrismaBookingsRepository implements BookingsRepository {
 
   async findByVerificationToken(token: string, now: Date) {
     const row = await this.prisma.booking
-      .findFirst({ where: { verificationTokenHash: hash(token) } })
+      .findFirst({
+        where: { verificationTokenHash: hash(token) },
+        include: WITH_CLIENT,
+      })
       .catch(translateError);
     if (
       !row ||
@@ -136,6 +149,7 @@ export class PrismaBookingsRepository implements BookingsRepository {
     const verify = (client: Prisma.TransactionClient) =>
       client.booking.update({
         where: { id },
+        include: WITH_CLIENT,
         data: {
           status,
           verificationTokenHash: null,
@@ -167,10 +181,28 @@ export class PrismaBookingsRepository implements BookingsRepository {
     );
   }
 
+  /**
+   * @throws {DatabaseOperationError} falló la base
+   */
+  async findByClientEmail(email: string) {
+    return (
+      await this.prisma.booking
+        .findMany({
+          where: { client: { email } },
+          include: WITH_CLIENT,
+          orderBy: { startsAt: 'asc' },
+        })
+        .catch(translateError)
+    ).map(toBooking);
+  }
+
   async listByBusiness(businessId: number) {
     return (
       await this.prisma.booking
-        .findMany({ where: { employee: { businessId } } })
+        .findMany({
+          where: { employee: { businessId } },
+          include: WITH_CLIENT,
+        })
         .catch(translateError)
     ).map(toBooking);
   }
@@ -180,7 +212,7 @@ export class PrismaBookingsRepository implements BookingsRepository {
    */
   async findById(id: number) {
     const row = await this.prisma.booking
-      .findUnique({ where: { id } })
+      .findUnique({ where: { id }, include: WITH_CLIENT })
       .catch(translateError);
     if (!row) throw new NotFoundError('Booking not found');
     return toBooking(row);
@@ -232,6 +264,7 @@ export class PrismaBookingsRepository implements BookingsRepository {
       .findMany({
         where: { employeeId: { in: employeeIds } },
         include: {
+          ...WITH_CLIENT,
           service: { include: { branch: { include: { business: true } } } },
         },
         orderBy: { startsAt: 'asc' },
@@ -313,13 +346,14 @@ export class PrismaBookingsRepository implements BookingsRepository {
 const notExcluded = (excludeBookingId?: number) =>
   excludeBookingId === undefined ? {} : { id: { not: excludeBookingId } };
 
+// Every Turno is created with its Cliente, so `client` is never null.
 const toBooking = (row: BookingRow): Booking => ({
   id: row.id,
   serviceId: row.serviceId,
   employeeId: row.employeeId,
   userId: row.userId,
-  clientName: row.clientName,
-  clientEmail: row.clientEmail,
+  clientName: row.client!.name,
+  clientEmail: row.client!.email,
   prepStartsAt: row.prepStartsAt,
   startsAt: row.startsAt,
   endsAt: row.endsAt,

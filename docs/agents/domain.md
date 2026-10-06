@@ -28,7 +28,7 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | Imágenes de Sucursal | `BranchImage` (`url`, `order`) |
 | Zona horaria | `Branch.timeZone` |
 | Usuario | `User` |
-| Cliente | `Booking.clientName` / `Booking.clientEmail` |
+| Cliente | `Client` (`name`, `email`; una fila por Turno vía `Client.bookingId`, índice no único sobre `email`); la API sigue exponiendo `clientName` / `clientEmail` en el Turno |
 | Quien atiende un Turno | `Booking.userId` (siempre); `Booking.employeeId` solo en un Servicio del Negocio |
 | Empleado | `Employee` |
 | Invitación | `Invitation` (`email`, `expiresAt`) |

@@ -60,6 +60,8 @@ export interface BookingsRepository {
     id: number,
     status: BookingStatus.BOOKED | BookingStatus.REJECTED,
   ): Promise<Booking>;
+  /** Every Turno, in any status, whose Cliente was booked with this email, soonest first. */
+  findByClientEmail(email: string): Promise<Booking[]>;
   listByBusiness(businessId: number): Promise<Booking[]>;
   /** PENDING and BOOKED Turnos of this Usuario, personal or of any Negocio, whose [prepStartsAt, endsAt) overlaps [from, to), leaving out `excludeBookingId`. */
   listOccupiedByUser(
