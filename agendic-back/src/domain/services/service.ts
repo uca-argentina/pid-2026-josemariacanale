@@ -13,7 +13,12 @@ export const PREP_MINUTES = [0, 5, 10, 15, 30, 60] as const;
 
 export interface Service {
   id: number;
-  branchId: number;
+  /** Servicio del Negocio: its Sucursal. Null in a Servicio personal (ADR 0021). */
+  branchId: number | null;
+  /** Servicio personal: its Usuario. Null in a Servicio del Negocio. */
+  userId: number | null;
+  /** Servicio personal: the Usuario's own Availability it is attended with, which also gives its time zone. Null in a Servicio del Negocio. */
+  availabilityId: number | null;
   name: string;
   description: string | null;
   category: ServiceCategory;
@@ -24,7 +29,7 @@ export interface Service {
   /** Aprobación manual: its verified Turnos are born PENDING instead of BOOKED. */
   requiresApproval: boolean;
   retiredAt: Date | null;
-  /** Enlace de reserva's last tramo, lowercase; unique per Sucursal among Servicios not dados de baja. */
+  /** Enlace de reserva's last tramo, lowercase; unique per Sucursal or per Usuario among Servicios not dados de baja. */
   slug: string;
   /** Servicio oculto: off the Sucursal's page, reachable only by its own Enlace de reserva. */
   hidden: boolean;
@@ -36,12 +41,16 @@ export interface Service {
   slotInterval: number | null;
   /** Anticipación mínima: minutes that must remain before a Turno starts to Reservar it. 0 means none. */
   minimumNoticeMinutes: number;
-  /** In charge of it: verified and not dados de baja. */
+  /** In charge of it: verified and not dados de baja. Always empty in a Servicio personal. */
   employees: ServiceEmployee[];
 }
 
 /** An Empleado in charge of a Servicio, with the Availability they attend it with. */
-export type ServiceEmployee = EmployeeSummary & { availabilityId: number };
+export type ServiceEmployee = EmployeeSummary & {
+  availabilityId: number;
+  /** The Usuario behind the Empleado: the one whose agenda a Turno occupies. */
+  userId: number;
+};
 
 /** An Empleado attending a Servicio with one of their own Availabilities: a reference, not a copy. */
 export interface EmployeeService {
@@ -67,6 +76,11 @@ export interface CreateServiceInput {
   employeeIds: number[];
 }
 
+/** A Servicio personal's own fields: the Servicio del Negocio's, without Sucursal or Empleados, with its Availability. */
+export type CreatePersonalServiceInput = Omit<CreateServiceInput, 'employeeIds'> & {
+  availabilityId: number;
+};
+
 export interface UpdateServiceInput {
   name?: string;
   description?: string;
@@ -84,4 +98,6 @@ export interface UpdateServiceInput {
   /** Null drops the Intervalo. */
   slotInterval?: number | null;
   minimumNoticeMinutes?: number;
+  /** Servicio personal only: another of the Usuario's own Availabilities. */
+  availabilityId?: number;
 }

@@ -2,6 +2,7 @@ import { Branch } from '../../domain/branches/branch';
 import { BranchesRepository } from '../../domain/branches/branches.repository';
 import { BusinessesRepository } from '../../domain/businesses/businesses.repository';
 import { EmployeesRepository } from '../../domain/employees/employees.repository';
+import { BusinessRuleError } from '../../domain/errors';
 import { Service } from '../../domain/services/service';
 import { assertBranchExists } from '../branches/assert-branch-owner';
 import { assertOwnerOrSelf } from '../employees/assert-owner-or-self';
@@ -10,6 +11,7 @@ import { assertOwnerOrSelf } from '../employees/assert-owner-or-self';
  * Lets through the Dueño of the Service's Negocio, or the Usuario acting on their own active Empleado of it (ADR 0017).
  *
  * @returns the Service's Sucursal, and whether userId is the Dueño
+ * @throws {BusinessRuleError} the Service is personal, so it has no Empleados
  * @throws {NotFoundError} the Service's Sucursal or Negocio doesn't exist
  * @throws {ForbiddenError} userId is neither the Dueño nor that Empleado
  */
@@ -21,6 +23,8 @@ export async function assertServiceOwnerOrSelf(
   employeeId: number,
   userId: number,
 ): Promise<{ branch: Branch; isOwner: boolean }> {
+  if (service.branchId === null)
+    throw new BusinessRuleError('A personal Service has no Employees');
   const branch = await branches.findById(service.branchId);
   assertBranchExists(branch);
   const isOwner = await assertOwnerOrSelf(

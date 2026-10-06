@@ -12,12 +12,16 @@ export class UpdateMeUseCase {
     @Inject(USERS_REPOSITORY) private readonly users: UsersRepository,
   ) {}
 
-  async execute(userId: number, { name }: UpdateMeInput): Promise<User> {
-    if (name === undefined) {
+  /**
+   * @throws {NotFoundError} el Usuario no existe
+   * @throws {ConflictError} el slug ya es el Enlace de reserva de otro Usuario
+   */
+  async execute(userId: number, { name, slug }: UpdateMeInput): Promise<User> {
+    if (name === undefined && slug === undefined) {
       const user = await this.users.findById(userId);
       if (!user) throw new NotFoundError('User not found');
       return user;
     }
-    return this.users.update(userId, { name });
+    return this.users.update(userId, { name, slug });
   }
 }

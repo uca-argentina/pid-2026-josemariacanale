@@ -21,7 +21,7 @@ import { Booking as BookingRow, Prisma } from '../../generated/prisma/client';
 import { BOOKING_NO_OVERLAP, isExclusionViolation } from '../prisma-errors';
 import { PrismaService } from '../prisma.service';
 
-/** Statuses that hold an Empleado's horario, as the Booking_no_overlap constraint does. */
+/** Statuses that hold a Usuario's horario, as the Booking_no_overlap constraint does. */
 const OCCUPYING = [BookingStatus.PENDING, BookingStatus.BOOKED];
 
 /**
@@ -74,7 +74,9 @@ export class PrismaBookingsRepository implements BookingsRepository {
       .catch(translateError);
     return new Map(
       rows.flatMap(({ employeeId, _max }) =>
-        _max.createdAt ? [[employeeId, _max.createdAt] as const] : [],
+        employeeId !== null && _max.createdAt
+          ? [[employeeId, _max.createdAt] as const]
+          : [],
       ),
     );
   }
@@ -202,8 +204,8 @@ export class PrismaBookingsRepository implements BookingsRepository {
     return this.findById(id);
   }
 
-  async listOccupiedByEmployee(
-    employeeId: number,
+  async listOccupiedByUser(
+    userId: number,
     from: Date,
     to: Date,
     excludeBookingId?: number,
@@ -212,7 +214,7 @@ export class PrismaBookingsRepository implements BookingsRepository {
       .findMany({
         where: {
           ...notExcluded(excludeBookingId),
-          employeeId,
+          userId,
           status: { in: OCCUPYING },
           prepStartsAt: { lt: to },
           endsAt: { gt: from },
@@ -235,14 +237,18 @@ export class PrismaBookingsRepository implements BookingsRepository {
         orderBy: { startsAt: 'asc' },
       })
       .catch(translateError);
-    return rows.map((row) => ({
-      ...toBooking(row),
-      serviceName: row.service.name,
-      businessId: row.service.branch.business.id,
-      businessName: row.service.branch.business.name,
-      branchId: row.service.branch.id,
-      branchName: row.service.branch.name,
-    }));
+    return rows.map((row) => {
+      // A Turno with an Empleado is of a Servicio del Negocio, so it has a Sucursal.
+      const branch = row.service.branch!;
+      return {
+        ...toBooking(row),
+        serviceName: row.service.name,
+        businessId: branch.business.id,
+        businessName: branch.business.name,
+        branchId: branch.id,
+        branchName: branch.name,
+      };
+    });
   }
 
   /**
@@ -264,11 +270,11 @@ export class PrismaBookingsRepository implements BookingsRepository {
    */
   async reschedule(
     id: number,
-    { employeeId, prepStartsAt, startsAt, endsAt }: Pick<Booking, 'employeeId' | 'prepStartsAt' | 'startsAt' | 'endsAt'>,
+    { employeeId, userId, prepStartsAt, startsAt, endsAt }: Pick<Booking, 'employeeId' | 'userId' | 'prepStartsAt' | 'startsAt' | 'endsAt'>,
   ) {
     return this.updateBooked(
       id,
-      { employeeId, prepStartsAt, startsAt, endsAt },
+      { employeeId, userId, prepStartsAt, startsAt, endsAt },
       'Turno is not booked',
     );
   }
@@ -311,6 +317,7 @@ const toBooking = (row: BookingRow): Booking => ({
   id: row.id,
   serviceId: row.serviceId,
   employeeId: row.employeeId,
+  userId: row.userId,
   clientName: row.clientName,
   clientEmail: row.clientEmail,
   prepStartsAt: row.prepStartsAt,

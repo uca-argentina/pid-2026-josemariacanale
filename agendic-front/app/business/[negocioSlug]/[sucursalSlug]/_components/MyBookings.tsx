@@ -67,7 +67,7 @@ export function MyBookings({
     booking: Booking;
     onBackToBusiness: () => void;
 }) {
-    const { business, branch, service, employee, date, time, notes } = booking;
+    const { business, branch, service, employeeName, date, time, notes } = booking;
     const deposit = depositFor(service);
     const status = STATUS[booking.status];
 
@@ -174,7 +174,8 @@ export function MyBookings({
                         <div>
                             <p className="font-bold tracking-[-0.02em]">{service.name}</p>
                             <p className="mt-0.5 text-[13px] text-muted-foreground">
-                                {formatDuration(service.durationMinutes)} con {employee.name}
+                                {formatDuration(service.durationMinutes)}
+                                {employeeName && ` con ${employeeName}`}
                             </p>
                         </div>
                         <span className="shrink-0 font-bold">{formatPrice(service.price)}</span>

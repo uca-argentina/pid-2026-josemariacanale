@@ -9,7 +9,10 @@ export enum BookingStatus {
 export interface Booking {
   id: number;
   serviceId: number;
-  employeeId: number;
+  /** The Empleado of a Servicio del Negocio; null in a Servicio personal. */
+  employeeId: number | null;
+  /** The Usuario who attends it: the one whose agenda it occupies. */
+  userId: number;
   clientName: string;
   clientEmail: string;
   /** startsAt minus the Servicio's Tiempo de preparación, fixed at booking: the Empleado is held from here. */

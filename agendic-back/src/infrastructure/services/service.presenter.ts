@@ -4,6 +4,8 @@ import { Service } from '../../domain/services/service';
 export const presentService = (service: Service) => ({
   id: service.id,
   branchId: service.branchId,
+  userId: service.userId,
+  availabilityId: service.availabilityId,
   name: service.name,
   description: service.description,
   category: service.category,

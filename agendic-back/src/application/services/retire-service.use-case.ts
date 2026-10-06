@@ -13,7 +13,7 @@ import {
   SERVICES_REPOSITORY,
   ServicesRepository,
 } from '../../domain/services/services.repository';
-import { assertBranchOwner } from '../branches/assert-branch-owner';
+import { assertServiceOwner } from './assert-service-owner';
 
 @Injectable()
 export class RetireServiceUseCase {
@@ -33,12 +33,7 @@ export class RetireServiceUseCase {
   ): Promise<{ id: number; cancelledBookings: number }> {
     const service = await this.services.findById(serviceId);
     if (!service) throw new NotFoundError('Service not found');
-    await assertBranchOwner(
-      this.branches,
-      this.businesses,
-      service.branchId,
-      userId,
-    );
+    await assertServiceOwner(this.branches, this.businesses, service, userId);
     const { cancelledBookings } = await this.services.retire(
       serviceId,
       this.clock.now(),

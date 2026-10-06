@@ -1,8 +1,10 @@
 // Identifiers follow docs/agents/domain.md (ADR 0003).
 // Hand-written SQL in the migrations, not expressible here (ADR 0004):
-// - no overlapping PENDING or BOOKED Bookings per Employee, Tiempo de preparación included: [prepStartsAt, endsAt) (exclusion constraint)
+// - no overlapping PENDING or BOOKED Bookings per attending User, Tiempo de preparación included: [prepStartsAt, endsAt) (exclusion constraint)
 // - Service name unique in any casing among a Branch's Services not retired
 // - Service slug unique per Branch among its Services not retired (partial unique index, ADR 0018)
+// - a Service is of a User (personal) or of a Branch, exactly one (check); a Branch's has no Availability, a personal one drops it when dado de baja
+// - personal Service name (any casing) and slug unique per User among its Services not retired (partial unique indexes, ADR 0021)
 // - one active Employee (retiredAt null) per (userId, businessId): a User can be re-hired after being dado de baja
 // - at most one default Availability per User (partial unique index)
 // - no overlapping AvailabilityOverride Franjas per (availabilityId, date), half-open, skipping día-libre rows (exclusion constraint)
@@ -39,9 +41,12 @@ model User {
   clerkId   String   @unique // Clerk is the identity's system of record; no local credentials
   name      String
   email     String
+  slug      String?  @unique // Enlace de reserva del Usuario: /u/<slug>, always lowercase; null until they choose it (ADR 0021)
   createdAt DateTime @default(now()) @db.Timestamptz(3)
 
   businesses     Business[]
+  services       Service[]
+  bookings       Booking[]
   employees      Employee[]
   availabilities Availability[]
 }
@@ -101,7 +106,9 @@ model BranchImage {
 
 model Service {
   id               Int             @id @default(autoincrement())
-  branchId         Int
+  branchId         Int? // Servicio del Negocio; null in a Servicio personal (ADR 0021)
+  userId           Int? // Servicio personal; null in a Servicio del Negocio
+  availabilityId   Int? // the Usuario's own Availability a Servicio personal is attended with; null in a Servicio del Negocio and once dado de baja
   name             String
   description      String?
   category         ServiceCategory
@@ -117,9 +124,11 @@ model Service {
   slotInterval     Int? // Intervalo: minutes between Horario reservable starts; null means the duration
   minimumNoticeMinutes Int @default(0) // Anticipación mínima: minutes that must remain before a Turno starts to Reservar it
 
-  branch    Branch            @relation(fields: [branchId], references: [id])
-  employees EmployeeService[]
-  bookings  Booking[]
+  branch       Branch?           @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  user         User?             @relation(fields: [userId], references: [id], onDelete: Restrict)
+  availability Availability?     @relation(fields: [availabilityId], references: [id], onDelete: Restrict)
+  employees    EmployeeService[]
+  bookings     Booking[]
 }
 
 model Employee {
@@ -161,6 +170,7 @@ model Availability {
   intervals AvailabilityInterval[]
   overrides AvailabilityOverride[]
   services  EmployeeService[]
+  personalServices Service[]
 }
 
 /// Franja. Never crosses midnight: endTime is always after startTime.
@@ -191,10 +201,11 @@ model AvailabilityOverride {
 model Booking {
   id                         Int           @id @default(autoincrement())
   serviceId                  Int
-  employeeId                 Int
+  employeeId                 Int? // the Empleado of a Servicio del Negocio; null in a Servicio personal
+  userId                     Int // the User who attends it: occupancy is per User, across Servicios personales and of any Negocio (ADR 0021)
   clientName                 String
   clientEmail                String
-  prepStartsAt               DateTime      @db.Timestamptz(3) // startsAt - Service.prepMinutes, fixed at booking: the Empleado's agenda is held from here
+  prepStartsAt               DateTime      @db.Timestamptz(3) // startsAt - Service.prepMinutes, fixed at booking: the attending User's agenda is held from here
   startsAt                   DateTime      @db.Timestamptz(3)
   endsAt                     DateTime      @db.Timestamptz(3) // startsAt + Service.durationMinutes, fixed at booking
   status                     BookingStatus @default(UNVERIFIED)
@@ -205,5 +216,6 @@ model Booking {
   createdAt                  DateTime      @default(now()) @db.Timestamptz(3)
 
   service  Service  @relation(fields: [serviceId], references: [id])
-  employee Employee @relation(fields: [employeeId], references: [id])
+  employee Employee? @relation(fields: [employeeId], references: [id])
+  user     User      @relation(fields: [userId], references: [id])
 }

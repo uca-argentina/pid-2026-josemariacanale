@@ -9,6 +9,7 @@ import { User } from '../../domain/users/user';
 import { UsersRepository } from '../../domain/users/users.repository';
 import { Prisma, User as UserRow } from '../../generated/prisma/client';
 import { toIntervalRows } from '../availabilities/prisma-availabilities.repository';
+import { violatedIndex } from '../prisma-errors';
 import { PrismaService } from '../prisma.service';
 
 @Injectable()
@@ -59,7 +60,21 @@ export class PrismaUsersRepository implements UsersRepository {
     return row && toUser(row);
   }
 
-  async update(id: number, data: Partial<Pick<User, 'name' | 'email'>>) {
+  async findBySlug(slug: string) {
+    const row = await this.prisma.user
+      .findUnique({ where: { slug } })
+      .catch(translateError);
+    return row && toUser(row);
+  }
+
+  /**
+   * @throws {ConflictError} el slug ya es el Enlace de reserva de otro Usuario
+   * @throws {NotFoundError} el Usuario no existe
+   */
+  async update(
+    id: number,
+    data: Partial<Pick<User, 'name' | 'email'>> & { slug?: string },
+  ) {
     return toUser(
       await this.prisma.user
         .update({ where: { id }, data })
@@ -73,15 +88,19 @@ const toUser = (row: UserRow): User => ({
   clerkId: row.clerkId,
   name: row.name,
   email: row.email,
+  slug: row.slug,
   createdAt: row.createdAt,
 });
 
 const translateError = (error: unknown): never => {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     if (error.code === 'P2002')
-      throw new ConflictError('Clerk identity already registered', {
-        cause: error,
-      });
+      throw new ConflictError(
+        violatedIndex(error) === 'User_slug_key'
+          ? 'Booking link already in use'
+          : 'Clerk identity already registered',
+        { cause: error },
+      );
     if (error.code === 'P2025')
       throw new NotFoundError('User not found', { cause: error });
   }

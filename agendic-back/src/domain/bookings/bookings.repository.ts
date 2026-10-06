@@ -4,7 +4,8 @@ export const BOOKINGS_REPOSITORY = Symbol('BookingsRepository');
 
 export interface CreateBookingData {
   serviceId: number;
-  employeeId: number;
+  employeeId: number | null;
+  userId: number;
   clientName: string;
   clientEmail: string;
   prepStartsAt: Date;
@@ -60,9 +61,9 @@ export interface BookingsRepository {
     status: BookingStatus.BOOKED | BookingStatus.REJECTED,
   ): Promise<Booking>;
   listByBusiness(businessId: number): Promise<Booking[]>;
-  /** PENDING and BOOKED Turnos of this Empleado, in any of their Servicios, whose [prepStartsAt, endsAt) overlaps [from, to), leaving out `excludeBookingId`. */
-  listOccupiedByEmployee(
-    employeeId: number,
+  /** PENDING and BOOKED Turnos of this Usuario, personal or of any Negocio, whose [prepStartsAt, endsAt) overlaps [from, to), leaving out `excludeBookingId`. */
+  listOccupiedByUser(
+    userId: number,
     from: Date,
     to: Date,
     excludeBookingId?: number,
@@ -71,10 +72,10 @@ export interface BookingsRepository {
   listByEmployees(employeeIds: number[]): Promise<EmployeeBooking[]>;
   /** Moves a BOOKED Booking to CANCELLED. Throws BusinessRuleError if it is no longer BOOKED. */
   cancel(id: number): Promise<Booking>;
-  /** Moves a BOOKED Booking to the new times, with the given Empleado (the same or another). Throws BusinessRuleError if it is no longer BOOKED, ConflictError if it now overlaps another. */
+  /** Moves a BOOKED Booking to the new times, with the given Empleado and Usuario (the same or another). Throws BusinessRuleError if it is no longer BOOKED, ConflictError if it now overlaps another. */
   reschedule(
     id: number,
-    times: Pick<Booking, 'employeeId' | 'prepStartsAt' | 'startsAt' | 'endsAt'>,
+    times: Pick<Booking, 'employeeId' | 'userId' | 'prepStartsAt' | 'startsAt' | 'endsAt'>,
   ): Promise<Booking>;
   /** Sets noShowAt on a BOOKED Booking whose endsAt has passed and has none yet. Throws BusinessRuleError otherwise. */
   markNoShow(id: number, now: Date): Promise<Booking>;

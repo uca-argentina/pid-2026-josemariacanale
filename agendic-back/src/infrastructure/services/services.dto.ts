@@ -86,6 +86,13 @@ export class CreateServiceDto extends ServiceFieldsDto {
   employeeIds!: number[];
 }
 
+/** A Servicio personal: the Servicio del Negocio's body without Sucursal or Empleados, with its Availability. */
+export class CreatePersonalServiceDto extends ServiceFieldsDto {
+  /** One of the Usuario's own. */
+  @IsInt()
+  availabilityId!: number;
+}
+
 export class AssignEmployeeDto {
   @IsInt()
   employeeId!: number;
@@ -159,4 +166,9 @@ export class UpdateServiceDto {
   @IfPresent()
   @IsMinimumNotice()
   minimumNoticeMinutes?: number;
+
+  /** Servicio personal only: one of the Usuario's own. */
+  @IfPresent()
+  @IsInt()
+  availabilityId?: number;
 }

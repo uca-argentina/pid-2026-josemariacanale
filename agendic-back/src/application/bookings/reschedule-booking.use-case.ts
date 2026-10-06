@@ -55,15 +55,15 @@ export class RescheduleBookingUseCase {
     const prepStartsAt = new Date(
       startsAt.getTime() - (service?.prepMinutes ?? 0) * 60_000,
     );
-    const employeeId = await pickEmployee(
+    const attendant = await pickEmployee(
       this.listSlots,
       this.bookings,
       booking.serviceId,
       startsAt,
-      { excludeBookingId: bookingId, keepEmployeeId: booking.employeeId },
+      { excludeBookingId: bookingId, keepEmployeeId: booking.employeeId ?? undefined },
     );
     return this.bookings.reschedule(bookingId, {
-      employeeId,
+      ...attendant,
       prepStartsAt,
       startsAt,
       endsAt,

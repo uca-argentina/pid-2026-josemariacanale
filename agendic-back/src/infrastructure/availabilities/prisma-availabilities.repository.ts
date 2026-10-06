@@ -123,16 +123,18 @@ export class PrismaAvailabilitiesRepository implements AvailabilitiesRepository 
   }
 
   async countServices(id: number) {
-    return this.prisma.employeeService
-      .count({ where: { availabilityId: id } })
-      .catch(translateError);
+    const [employeeServices, personalServices] = await Promise.all([
+      this.prisma.employeeService.count({ where: { availabilityId: id } }),
+      this.prisma.service.count({ where: { availabilityId: id } }),
+    ]).catch(translateError);
+    return employeeServices + personalServices;
   }
 
   async delete(id: number) {
     await this.prisma.availability
       .delete({ where: { id } })
       .catch((error: unknown) => {
-        // On a delete, the only foreign key that can fail is EmployeeService's (ADR 0004): a Servicio uses it.
+        // On a delete, the only foreign keys that can fail are EmployeeService's and Service's (ADR 0004): a Servicio uses it.
         if (
           error instanceof Prisma.PrismaClientKnownRequestError &&
           error.code === 'P2003'

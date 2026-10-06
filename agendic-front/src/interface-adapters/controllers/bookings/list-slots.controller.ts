@@ -26,7 +26,6 @@ function presenter({ timeZone, days }: Slots, instrumentationService: IInstrumen
 const inputSchema = z
     .object({
         serviceId: z.number().int().positive(),
-        employeeId: z.number().int().positive(),
         from: z.iso.date(),
         to: z.iso.date(),
     })

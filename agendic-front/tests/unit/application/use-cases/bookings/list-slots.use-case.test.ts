@@ -12,16 +12,16 @@ describe('listSlotsUseCase', () => {
             ],
         };
         const listSlots = jest.fn().mockResolvedValue(slots);
-        const query = { serviceId: 100, employeeId: 1, from: '2026-09-28', to: '2026-09-29' };
+        const query = { serviceId: 100, from: '2026-09-28', to: '2026-09-29' };
 
         await expect(listSlotsUseCase(instrumentation, bookingsWith({ listSlots }))(query)).resolves.toEqual(slots);
         expect(listSlots).toHaveBeenCalledWith(query);
     });
 
-    it('lets a Servicio or Empleado that does not exist through as NotFoundError', async () => {
+    it('lets a Servicio that does not exist through as NotFoundError', async () => {
         const listSlots = jest.fn().mockRejectedValue(new NotFoundError('Service not found'));
         await expect(
-            listSlotsUseCase(instrumentation, bookingsWith({ listSlots }))({ serviceId: 9, employeeId: 1, from: '2026-09-28', to: '2026-09-29' }),
+            listSlotsUseCase(instrumentation, bookingsWith({ listSlots }))({ serviceId: 9, from: '2026-09-28', to: '2026-09-29' }),
         ).rejects.toBeInstanceOf(NotFoundError);
     });
 });

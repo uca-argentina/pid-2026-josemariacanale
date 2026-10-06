@@ -85,6 +85,7 @@ export async function createTestApp() {
     findById: jest.fn(),
     findByClerkId: jest.fn(),
     findByEmail: jest.fn(),
+    findBySlug: jest.fn(),
     update: jest.fn(),
   };
   const mailer: jest.Mocked<Mailer> = {
@@ -145,6 +146,9 @@ export async function createTestApp() {
     findById: jest.fn(),
     listActiveByBranch: jest.fn(),
     findActiveBySlug: jest.fn(),
+    createPersonal: jest.fn(),
+    listActiveByUser: jest.fn(),
+    findActiveByUserSlug: jest.fn(),
     update: jest.fn(),
     retire: jest.fn(),
     addEmployee: jest.fn(),
@@ -162,7 +166,7 @@ export async function createTestApp() {
     findById: jest.fn(),
     resolvePending: jest.fn(),
     listByBusiness: jest.fn(),
-    listOccupiedByEmployee: jest.fn(),
+    listOccupiedByUser: jest.fn(),
     listByEmployees: jest.fn(),
     cancel: jest.fn(),
     reschedule: jest.fn(),
@@ -233,6 +237,7 @@ export const ANA: User = {
   clerkId: 'user_clerk_ana',
   name: 'Ana Pérez',
   email: 'ana@example.com',
+  slug: null,
   createdAt: new Date('2025-12-01T00:00:00.000Z'),
 };
 
@@ -241,6 +246,7 @@ export const BRUNO: User = {
   clerkId: 'user_clerk_bruno',
   name: 'Bruno Díaz',
   email: 'bruno@example.com',
+  slug: null,
   createdAt: new Date('2025-12-01T00:00:00.000Z'),
 };
 
@@ -275,6 +281,8 @@ export const ANAS_EMPLOYEE: Employee = {
 export const ANAS_SERVICE: Service = {
   id: 1,
   branchId: ANAS_BRANCH.id,
+  userId: null,
+  availabilityId: null,
   name: 'Haircut',
   description: 'A basic haircut',
   category: ServiceCategory.SPA,
@@ -290,7 +298,12 @@ export const ANAS_SERVICE: Service = {
   slotInterval: null,
   minimumNoticeMinutes: 0,
   employees: [
-    { id: ANAS_EMPLOYEE.id, name: ANAS_EMPLOYEE.name, availabilityId: 10 },
+    {
+      id: ANAS_EMPLOYEE.id,
+      name: ANAS_EMPLOYEE.name,
+      availabilityId: 10,
+      userId: ANA.id,
+    },
   ],
 };
 
