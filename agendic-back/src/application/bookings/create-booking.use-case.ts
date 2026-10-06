@@ -13,6 +13,7 @@ import {
   BookingsRepository,
 } from '../../domain/bookings/bookings.repository';
 import { CLOCK, Clock } from '../../domain/clock';
+import { NotFoundError } from '../../domain/errors';
 import { MAILER, Mailer } from '../../domain/mailer';
 import {
   SERVICES_REPOSITORY,
@@ -90,7 +91,9 @@ export class CreateBookingUseCase {
     await this.mailer.sendVerificationLink(booking.clientEmail, token);
     // The name is the Empleado's, or the Usuario's own in a Servicio personal; both come from the Usuario.
     const employee = service.employees.find(({ id }) => id === attendant.employeeId);
-    const name = employee?.name ?? (await this.users.findById(attendant.userId))!.name;
-    return { ...booking, employeeName: name };
+    const attendingUser = employee ? null : await this.users.findById(attendant.userId);
+    if (!employee && !attendingUser)
+      throw new NotFoundError(`User ${attendant.userId} not found`);
+    return { ...booking, employeeName: (employee ?? attendingUser!).name };
   }
 }

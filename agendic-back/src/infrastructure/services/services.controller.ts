@@ -64,6 +64,12 @@ export class ServicesController {
     );
   }
 
+  /**
+   * Crea un Servicio personal del Usuario.
+   *
+   * @throws {NotFoundError} la Availability no existe o no es del Usuario
+   * @throws {ConflictError} el tramo o el nombre ya lo usa otro Servicio personal suyo
+   */
   @Post('users/me/services')
   @UseGuards(ClerkGuard)
   async createPersonal(

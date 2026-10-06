@@ -41,7 +41,6 @@ export class UpdateServiceUseCase {
    * @throws {BusinessRuleError} `availabilityId` en un Servicio del Negocio, que no tiene una propia
    * @throws {ConflictError} el nombre o el tramo nuevo ya está en uso
    */
-
   async execute(
     userId: number,
     serviceId: number,
