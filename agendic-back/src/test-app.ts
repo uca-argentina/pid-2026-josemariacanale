@@ -165,6 +165,7 @@ export async function createTestApp() {
     markVerified: jest.fn(),
     findById: jest.fn(),
     resolvePending: jest.fn(),
+    findByClientEmail: jest.fn(),
     listByBusiness: jest.fn(),
     listOccupiedByUser: jest.fn(),
     listByEmployees: jest.fn(),
