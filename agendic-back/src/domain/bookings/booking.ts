@@ -34,7 +34,6 @@ export interface EmployeeBooking extends Booking {
 
 export interface CreateBookingInput {
   serviceId: number;
-  employeeId: number;
   startsAt: Date;
   clientName: string;
   clientEmail: string;

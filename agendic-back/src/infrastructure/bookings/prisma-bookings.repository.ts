@@ -53,28 +53,30 @@ export class PrismaBookingsRepository implements BookingsRepository {
   }
 
   /**
-   * Checks the occupied range of each Turno, [prepStartsAt, endsAt), as the Booking_no_overlap constraint does.
-   *
    * @throws {DatabaseOperationError} falló la base
    */
-  async hasOverlappingOccupied(
-    employeeId: number,
-    from: Date,
-    to: Date,
+  async lastReceivedByEmployee(
+    serviceId: number,
+    employeeIds: number[],
     excludeBookingId?: number,
   ) {
-    const overlapping = await this.prisma.booking
-      .findFirst({
+    const rows = await this.prisma.booking
+      .groupBy({
+        by: ['employeeId'],
         where: {
           ...notExcluded(excludeBookingId),
-          employeeId,
+          serviceId,
+          employeeId: { in: employeeIds },
           status: { in: OCCUPYING },
-          prepStartsAt: { lt: to },
-          endsAt: { gt: from },
         },
+        _max: { createdAt: true },
       })
       .catch(translateError);
-    return overlapping !== null;
+    return new Map(
+      rows.flatMap(({ employeeId, _max }) =>
+        _max.createdAt ? [[employeeId, _max.createdAt] as const] : [],
+      ),
+    );
   }
 
   /**
@@ -262,11 +264,11 @@ export class PrismaBookingsRepository implements BookingsRepository {
    */
   async reschedule(
     id: number,
-    { prepStartsAt, startsAt, endsAt }: Pick<Booking, 'prepStartsAt' | 'startsAt' | 'endsAt'>,
+    { employeeId, prepStartsAt, startsAt, endsAt }: Pick<Booking, 'employeeId' | 'prepStartsAt' | 'startsAt' | 'endsAt'>,
   ) {
     return this.updateBooked(
       id,
-      { prepStartsAt, startsAt, endsAt },
+      { employeeId, prepStartsAt, startsAt, endsAt },
       'Turno is not booked',
     );
   }
@@ -287,7 +289,7 @@ export class PrismaBookingsRepository implements BookingsRepository {
   /** Applies `data` only while the Turno is still BOOKED (and matches `extraWhere`), so a race can't resurrect it. */
   private async updateBooked(
     id: number,
-    data: Prisma.BookingUpdateManyMutationInput,
+    data: Prisma.BookingUncheckedUpdateManyInput,
     message: string,
     extraWhere: Prisma.BookingWhereInput = {},
   ) {

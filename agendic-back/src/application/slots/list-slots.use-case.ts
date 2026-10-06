@@ -37,7 +37,29 @@ function assertValidRange(from: string, to: string): void {
     );
 }
 
-/** Lista los Horarios reservables de un Empleado para un Servicio; `excludeBookingId` deja libre el horario de un Turno que se está Reagendando. */
+/** Horarios reservables de cada Empleado que Ofrece un Servicio, día por día. */
+export interface EmployeeSlots {
+  employeeId: number;
+  days: DaySlots[];
+}
+
+/** La unión de los Horarios reservables de varias listas de días, todas de las mismas fechas. */
+function unionDays(perEmployee: DaySlots[][]): DaySlots[] {
+  return perEmployee[0].map((day, i) => {
+    const slots = [
+      ...new Set(perEmployee.flatMap((days) => days[i].slots)),
+    ].sort();
+    if (slots.length > 0) return { date: day.date, slots };
+    const reasons = perEmployee.map((days) => days[i].reason);
+    return {
+      date: day.date,
+      slots,
+      reason: reasons.includes('FULLY_BOOKED') ? 'FULLY_BOOKED' : 'NOT_WORKING',
+    };
+  });
+}
+
+/** Lista los Horarios reservables de un Servicio: la unión de los de cada Empleado que lo Ofrece. `excludeBookingId` deja libre el horario de un Turno que se está Reagendando. */
 @Injectable()
 export class ListSlotsUseCase {
   constructor(
@@ -51,38 +73,47 @@ export class ListSlotsUseCase {
 
   /**
    * @throws {BusinessRuleError} el rango no es de 1 a 31 días
-   * @throws {NotFoundError} el Servicio está dado de baja, o el Empleado no lo atiende
+   * @throws {NotFoundError} el Servicio está dado de baja
    */
   async execute(
     serviceId: number,
-    employeeId: number,
     from: string,
     to: string,
     excludeBookingId?: number,
   ): Promise<{ timeZone: string; days: DaySlots[] }> {
+    const { timeZone, employees } = await this.executeByEmployee(
+      serviceId,
+      from,
+      to,
+      excludeBookingId,
+    );
+    // A live Servicio always has an Empleado (the last one can't leave), so the guard is only for a corrupt row.
+    return {
+      timeZone,
+      days: employees.length === 0 ? [] : unionDays(employees.map((e) => e.days)),
+    };
+  }
+
+  /**
+   * Lo mismo que `execute`, sin juntar: los Horarios reservables de cada Empleado, para elegir a quién asignar el Turno.
+   *
+   * @throws {BusinessRuleError} el rango no es de 1 a 31 días
+   * @throws {NotFoundError} el Servicio está dado de baja
+   */
+  async executeByEmployee(
+    serviceId: number,
+    from: string,
+    to: string,
+    excludeBookingId?: number,
+  ): Promise<{ timeZone: string; employees: EmployeeSlots[] }> {
     assertValidRange(from, to);
 
     const service = await this.services.findById(serviceId);
     if (!service || service.retiredAt)
       throw new NotFoundError('Service not found or retired');
-    const link = await this.services.findEmployeeLink(serviceId, employeeId);
-    if (!link)
-      throw new NotFoundError('Employee is not in charge of this Service');
 
-    const [branch, availability] = await Promise.all([
-      this.branches.findById(service.branchId),
-      this.availabilities.findById(link.availabilityId),
-    ]);
+    const branch = await this.branches.findById(service.branchId);
     if (!branch) throw new NotFoundError('Branch not found');
-    if (!availability) throw new NotFoundError('Availability not found');
-
-    // A day of slack either side (wider than any UTC offset) keeps every local date in [from, to] covered.
-    const bookedRanges = await this.bookings.listOccupiedByEmployee(
-      employeeId,
-      new Date(new Date(`${from}T00:00:00.000Z`).getTime() - 86_400_000),
-      new Date(new Date(`${to}T00:00:00.000Z`).getTime() + 2 * 86_400_000),
-      excludeBookingId,
-    );
 
     const fullDates = new Set<string>();
     if (service.dailyLimit !== null) {
@@ -102,21 +133,36 @@ export class ListSlotsUseCase {
         if (taken >= service.dailyLimit) fullDates.add(date);
     }
 
-    return {
-      timeZone: branch.timeZone,
-      days: computeSlots({
-        from,
-        to,
-        timeZone: branch.timeZone,
-        availability,
-        bookedRanges,
-        durationMinutes: service.durationMinutes,
-        prepMinutes: service.prepMinutes,
-        slotInterval: service.slotInterval,
-        minimumNoticeMinutes: service.minimumNoticeMinutes,
-        fullDates,
-        now: this.clock.now(),
+    const now = this.clock.now();
+    const employees = await Promise.all(
+      service.employees.map(async ({ id: employeeId, availabilityId }) => {
+        const availability = await this.availabilities.findById(availabilityId);
+        if (!availability) throw new NotFoundError('Availability not found');
+        // A day of slack either side (wider than any UTC offset) keeps every local date in [from, to] covered.
+        const bookedRanges = await this.bookings.listOccupiedByEmployee(
+          employeeId,
+          new Date(new Date(`${from}T00:00:00.000Z`).getTime() - 86_400_000),
+          new Date(new Date(`${to}T00:00:00.000Z`).getTime() + 2 * 86_400_000),
+          excludeBookingId,
+        );
+        return {
+          employeeId,
+          days: computeSlots({
+            from,
+            to,
+            timeZone: branch.timeZone,
+            availability,
+            bookedRanges,
+            durationMinutes: service.durationMinutes,
+            prepMinutes: service.prepMinutes,
+            slotInterval: service.slotInterval,
+            minimumNoticeMinutes: service.minimumNoticeMinutes,
+            fullDates,
+            now,
+          }),
+        };
       }),
-    };
+    );
+    return { timeZone: branch.timeZone, employees };
   }
 }

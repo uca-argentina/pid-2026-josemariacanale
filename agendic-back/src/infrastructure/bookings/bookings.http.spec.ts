@@ -36,7 +36,6 @@ const AVAILABILITY: Availability = {
 
 const VALID_BOOKING = {
   serviceId: SERVICE.id,
-  employeeId: ANAS_EMPLOYEE.id,
   startsAt: '2026-01-01T12:00:00.000Z', // 09:00 in America/Argentina/Buenos_Aires: opening time
   clientName: 'Bruno Díaz',
   clientEmail: 'bruno@example.com',
@@ -66,14 +65,9 @@ describe('Turno', () => {
     beforeEach(() => {
       t.services.findById.mockResolvedValue(SERVICE);
       t.branches.findById.mockResolvedValue(BRANCH);
-      t.services.findEmployeeLink.mockResolvedValue({
-        serviceId: SERVICE.id,
-        employeeId: ANAS_EMPLOYEE.id,
-        availabilityId: AVAILABILITY.id,
-      });
       t.availabilities.findById.mockResolvedValue(AVAILABILITY);
       t.bookings.listOccupiedByEmployee.mockResolvedValue([]);
-      t.bookings.hasOverlappingOccupied.mockResolvedValue(false);
+      t.bookings.lastReceivedByEmployee.mockResolvedValue(new Map());
       t.bookings.create.mockResolvedValue({ booking: BOOKING, token: 'a-token' });
     });
 
@@ -88,6 +82,7 @@ describe('Turno', () => {
         endsAt: BOOKING.endsAt.toISOString(),
         status: 'UNVERIFIED',
         notes: null,
+        employeeName: ANAS_EMPLOYEE.name,
       });
       expect(t.bookings.create).toHaveBeenCalledWith(
         {
@@ -108,7 +103,7 @@ describe('Turno', () => {
       );
     });
 
-    it('holds the Empleado from the Tiempo de preparación on, checking overlaps from there', async () => {
+    it('holds the Empleado from the Tiempo de preparación on', async () => {
       t.services.findById.mockResolvedValue({ ...SERVICE, prepMinutes: 15 });
 
       await t.http
@@ -116,11 +111,6 @@ describe('Turno', () => {
         .send({ ...VALID_BOOKING, startsAt: '2026-01-01T13:00:00.000Z' })
         .expect(201);
 
-      expect(t.bookings.hasOverlappingOccupied).toHaveBeenCalledWith(
-        ANAS_EMPLOYEE.id,
-        new Date('2026-01-01T12:45:00.000Z'),
-        new Date('2026-01-01T13:30:00.000Z'),
-      );
       expect(t.bookings.create).toHaveBeenCalledWith(
         expect.objectContaining({
           prepStartsAt: new Date('2026-01-01T12:45:00.000Z'),
@@ -130,14 +120,16 @@ describe('Turno', () => {
       );
     });
 
-    it('answers 409 when the slot collides with the Tiempo de preparación', async () => {
+    it('answers 422 when the slot collides with the Tiempo de preparación of another Turno', async () => {
       t.services.findById.mockResolvedValue({ ...SERVICE, prepMinutes: 15 });
-      t.bookings.hasOverlappingOccupied.mockResolvedValue(true);
+      t.bookings.listOccupiedByEmployee.mockResolvedValue([
+        { prepStartsAt: new Date('2026-01-01T12:45:00.000Z'), endsAt: new Date('2026-01-01T13:30:00.000Z') },
+      ]);
 
       await t.http
         .post('/bookings')
         .send({ ...VALID_BOOKING, startsAt: '2026-01-01T13:00:00.000Z' })
-        .expect(409);
+        .expect(422);
       expect(t.bookings.create).not.toHaveBeenCalled();
     });
 
@@ -289,20 +281,81 @@ describe('Turno', () => {
       expect(t.bookings.create).not.toHaveBeenCalled();
     });
 
-    it('answers 422 for an Empleado not in charge of the Servicio', async () => {
-      await t.http
-        .post('/bookings')
-        .send({ ...VALID_BOOKING, employeeId: ANAS_EMPLOYEE.id + 1 })
-        .expect(422);
+    it('answers 422 when nobody is free at that time', async () => {
+      t.bookings.listOccupiedByEmployee.mockResolvedValue([
+        { prepStartsAt: BOOKING.startsAt, endsAt: BOOKING.endsAt },
+      ]);
 
+      const res = await t.http.post('/bookings').send(VALID_BOOKING).expect(422);
+
+      expect(res.body.message).toBe(
+        `Slot ${VALID_BOOKING.startsAt} is not available for Service ${SERVICE.id}`,
+      );
       expect(t.bookings.create).not.toHaveBeenCalled();
     });
 
-    it('answers 409 when the slot overlaps a BOOKED Turno of the same Empleado', async () => {
-      t.bookings.hasOverlappingOccupied.mockResolvedValue(true);
+    describe('con varios Empleados', () => {
+      const JUAN = { id: ANAS_EMPLOYEE.id + 1, name: 'Juan', availabilityId: 11 };
 
-      await t.http.post('/bookings').send(VALID_BOOKING).expect(409);
-      expect(t.bookings.create).not.toHaveBeenCalled();
+      beforeEach(() => {
+        t.services.findById.mockResolvedValue({
+          ...SERVICE,
+          employees: [...SERVICE.employees, JUAN],
+        });
+        t.availabilities.findById.mockResolvedValue(AVAILABILITY);
+        t.bookings.create.mockImplementation(async (data) => ({
+          booking: { ...BOOKING, employeeId: data.employeeId },
+          token: 'a-token',
+        }));
+      });
+
+      const employeeOfCreatedBooking = () =>
+        t.bookings.create.mock.calls[0][0].employeeId;
+
+      it('asigna el que hace más tiempo que no recibe un Turno del Servicio', async () => {
+        t.bookings.lastReceivedByEmployee.mockResolvedValue(
+          new Map([
+            [ANAS_EMPLOYEE.id, new Date('2026-01-01T10:00:00.000Z')],
+            [JUAN.id, new Date('2026-01-01T09:00:00.000Z')],
+          ]),
+        );
+
+        const res = await t.http.post('/bookings').send(VALID_BOOKING).expect(201);
+
+        expect(employeeOfCreatedBooking()).toBe(JUAN.id);
+        expect(res.body.employeeName).toBe('Juan');
+      });
+
+      it('sin Turnos previos gana el que nunca recibió uno', async () => {
+        t.bookings.lastReceivedByEmployee.mockResolvedValue(
+          new Map([[ANAS_EMPLOYEE.id, new Date('2026-01-01T10:00:00.000Z')]]),
+        );
+
+        await t.http.post('/bookings').send(VALID_BOOKING).expect(201);
+
+        expect(employeeOfCreatedBooking()).toBe(JUAN.id);
+      });
+
+      it('si empatan, el de menor id', async () => {
+        await t.http.post('/bookings').send(VALID_BOOKING).expect(201);
+
+        expect(employeeOfCreatedBooking()).toBe(ANAS_EMPLOYEE.id);
+      });
+
+      it('un horario en el que solo uno está libre se le asigna a ese', async () => {
+        t.bookings.listOccupiedByEmployee.mockImplementation(async (employeeId) =>
+          employeeId === JUAN.id
+            ? []
+            : [{ prepStartsAt: BOOKING.startsAt, endsAt: BOOKING.endsAt }],
+        );
+        t.bookings.lastReceivedByEmployee.mockResolvedValue(
+          new Map([[JUAN.id, new Date('2026-01-01T10:00:00.000Z')]]),
+        );
+
+        await t.http.post('/bookings').send(VALID_BOOKING).expect(201);
+
+        expect(employeeOfCreatedBooking()).toBe(JUAN.id);
+      });
     });
 
     it("doesn't hold the slot: two Turnos sin verificar for the same Empleado and time can both be created", async () => {
@@ -323,7 +376,6 @@ describe('Turno', () => {
       ['a malformed startsAt', { startsAt: 'not-a-date' }],
       ['a missing startsAt', { startsAt: undefined }],
       ['a missing serviceId', { serviceId: undefined }],
-      ['a missing employeeId', { employeeId: undefined }],
       ['a Comentario del Turno over 500 characters', { notes: 'a'.repeat(501) }],
       ['a non-string Comentario del Turno', { notes: 42 }],
       ['a null Comentario del Turno', { notes: null }],

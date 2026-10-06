@@ -173,10 +173,9 @@ export class ServicesController {
   @Get('services/:id/slots')
   async slots(
     @Param('id', ParseIntPipe) serviceId: number,
-    @Query('employeeId', ParseIntPipe) employeeId: number,
     @Query('from', ParseDatePipe) from: string,
     @Query('to', ParseDatePipe) to: string,
   ) {
-    return this.listSlotsUseCase.execute(serviceId, employeeId, from, to);
+    return this.listSlotsUseCase.execute(serviceId, from, to);
   }
 }

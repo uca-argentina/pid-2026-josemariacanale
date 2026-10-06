@@ -155,7 +155,7 @@ export async function createTestApp() {
   };
   const bookings: jest.Mocked<BookingsRepository> = {
     create: jest.fn(),
-    hasOverlappingOccupied: jest.fn(),
+    lastReceivedByEmployee: jest.fn(),
     listOccupiedStartsByService: jest.fn(),
     findByVerificationToken: jest.fn(),
     markVerified: jest.fn(),

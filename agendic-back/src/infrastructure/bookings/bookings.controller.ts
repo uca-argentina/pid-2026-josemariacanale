@@ -43,16 +43,14 @@ export class BookingsController {
 
   @Post('bookings')
   async create(@Body() dto: CreateBookingDto) {
-    return presentBooking(
-      await this.createBookingUseCase.execute({
-        serviceId: dto.serviceId,
-        employeeId: dto.employeeId,
-        startsAt: new Date(dto.startsAt),
-        clientName: dto.clientName,
-        clientEmail: dto.clientEmail,
-        notes: dto.notes,
-      }),
-    );
+    const booking = await this.createBookingUseCase.execute({
+      serviceId: dto.serviceId,
+      startsAt: new Date(dto.startsAt),
+      clientName: dto.clientName,
+      clientEmail: dto.clientEmail,
+      notes: dto.notes,
+    });
+    return { ...presentBooking(booking), employeeName: booking.employeeName };
   }
 
   @Post('bookings/verification')

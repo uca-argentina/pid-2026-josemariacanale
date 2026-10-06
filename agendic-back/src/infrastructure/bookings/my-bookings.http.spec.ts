@@ -178,13 +178,8 @@ describe('Mis turnos del Empleado', () => {
     };
 
     beforeEach(() => {
-      t.bookings.hasOverlappingOccupied.mockResolvedValue(false);
+      t.bookings.lastReceivedByEmployee.mockResolvedValue(new Map());
       t.services.findById.mockResolvedValue(ANAS_SERVICE);
-      t.services.findEmployeeLink.mockResolvedValue({
-        serviceId: ANAS_SERVICE.id,
-        employeeId: ANAS_EMPLOYEE.id,
-        availabilityId: AVAILABILITY.id,
-      });
       t.branches.findById.mockResolvedValue(ANAS_BRANCH);
       t.availabilities.findById.mockResolvedValue(AVAILABILITY);
       t.bookings.listOccupiedByEmployee.mockResolvedValue([]);
@@ -200,13 +195,8 @@ describe('Mis turnos del Empleado', () => {
 
       const res = await patch({ startsAt: NEW_START }).expect(200);
 
-      expect(t.bookings.hasOverlappingOccupied).toHaveBeenCalledWith(
-        ANAS_EMPLOYEE.id,
-        new Date('2026-01-02T14:45:00.000Z'),
-        new Date('2026-01-02T15:30:00.000Z'),
-        BOOKED.id,
-      );
       expect(t.bookings.reschedule).toHaveBeenCalledWith(BOOKED.id, {
+        employeeId: ANAS_EMPLOYEE.id,
         prepStartsAt: new Date('2026-01-02T14:45:00.000Z'),
         startsAt: new Date(NEW_START),
         endsAt: new Date('2026-01-02T15:30:00.000Z'),
@@ -224,17 +214,53 @@ describe('Mis turnos del Empleado', () => {
       });
     });
 
-    it('answers 409 when the new horario overlaps another Turno of the Empleado', async () => {
-      t.bookings.hasOverlappingOccupied.mockResolvedValue(true);
+    it('answers 422 when the new horario overlaps another Turno of the only Empleado', async () => {
+      t.bookings.listOccupiedByEmployee.mockResolvedValue([
+        { prepStartsAt: new Date(NEW_START), endsAt: new Date('2026-01-02T15:30:00.000Z') },
+      ]);
 
-      await patch({ startsAt: NEW_START }).expect(409);
-      expect(t.bookings.hasOverlappingOccupied).toHaveBeenCalledWith(
-        ANAS_EMPLOYEE.id,
-        new Date(NEW_START),
-        new Date('2026-01-02T15:30:00.000Z'),
-        BOOKED.id,
-      );
+      await patch({ startsAt: NEW_START }).expect(422);
       expect(t.bookings.reschedule).not.toHaveBeenCalled();
+    });
+
+    describe('con varios Empleados', () => {
+      const JUAN = { id: ANAS_EMPLOYEE.id + 1, name: 'Juan', availabilityId: 11 };
+      const busyAtNewStart = [
+        { prepStartsAt: new Date(NEW_START), endsAt: new Date('2026-01-02T15:30:00.000Z') },
+      ];
+
+      beforeEach(() => {
+        t.services.findById.mockResolvedValue({
+          ...ANAS_SERVICE,
+          employees: [...ANAS_SERVICE.employees, JUAN],
+        });
+      });
+
+      it('cambia de Empleado si el original no está libre en el horario nuevo', async () => {
+        t.bookings.listOccupiedByEmployee.mockImplementation(async (employeeId) =>
+          employeeId === ANAS_EMPLOYEE.id ? busyAtNewStart : [],
+        );
+
+        await patch({ startsAt: NEW_START }).expect(200);
+
+        expect(t.bookings.reschedule).toHaveBeenCalledWith(
+          BOOKED.id,
+          expect.objectContaining({ employeeId: JUAN.id }),
+        );
+      });
+
+      it('conserva al Empleado original si está libre, aunque otro lleve más tiempo sin recibir un Turno', async () => {
+        t.bookings.lastReceivedByEmployee.mockResolvedValue(
+          new Map([[ANAS_EMPLOYEE.id, new Date('2026-01-01T10:00:00.000Z')]]),
+        );
+
+        await patch({ startsAt: NEW_START }).expect(200);
+
+        expect(t.bookings.reschedule).toHaveBeenCalledWith(
+          BOOKED.id,
+          expect.objectContaining({ employeeId: ANAS_EMPLOYEE.id }),
+        );
+      });
     });
 
     it('answers 409 when the database catches the overlap in a race', async () => {
