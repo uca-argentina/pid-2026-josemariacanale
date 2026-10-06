@@ -8,6 +8,11 @@ export interface UsersRepository {
   findById(id: number): Promise<User | null>;
   findByClerkId(clerkId: string): Promise<User | null>;
   findByEmail(email: string): Promise<User | null>;
-  /** Leaves undefined fields unchanged. */
-  update(id: number, data: Partial<Pick<User, 'name' | 'email'>>): Promise<User>;
+  /** The Usuario whose Enlace de reserva is that slug, already lowercase. Null if there is none. */
+  findBySlug(slug: string): Promise<User | null>;
+  /** Leaves undefined fields unchanged. Throws ConflictError when the slug is taken. */
+  update(
+    id: number,
+    data: Partial<Pick<User, 'name' | 'email'>> & { slug?: string },
+  ): Promise<User>;
 }

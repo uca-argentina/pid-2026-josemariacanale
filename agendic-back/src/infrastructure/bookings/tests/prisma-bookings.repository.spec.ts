@@ -141,11 +141,11 @@ describe('PrismaBookingsRepository', () => {
     const from = new Date('2026-01-01T00:00:00.000Z');
     const to = new Date('2026-01-02T00:00:00.000Z');
 
-    await repository.listOccupiedByEmployee(1, from, to);
+    await repository.listOccupiedByUser(1, from, to);
 
     expect(prisma.booking.findMany).toHaveBeenCalledWith({
       where: {
-        employeeId: 1,
+        userId: 1,
         status: { in: [BookingStatus.PENDING, BookingStatus.BOOKED] },
         prepStartsAt: { lt: to },
         endsAt: { gt: from },
@@ -236,10 +236,10 @@ describe('PrismaBookingsRepository', () => {
   describe('PENDING Turnos hold their horario', () => {
     const OCCUPYING = { in: [BookingStatus.PENDING, BookingStatus.BOOKED] };
 
-    it('listOccupiedByEmployee looks at PENDING and BOOKED', async () => {
+    it('listOccupiedByUser looks at PENDING and BOOKED', async () => {
       prisma.booking.findMany.mockResolvedValue([]);
 
-      await repository.listOccupiedByEmployee(1, new Date(), new Date());
+      await repository.listOccupiedByUser(1, new Date(), new Date());
 
       expect(prisma.booking.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -333,7 +333,7 @@ describe('PrismaBookingsRepository', () => {
 
       await expect(repository.cancel(1)).rejects.toBeInstanceOf(BusinessRuleError);
       await expect(
-        repository.reschedule(1, { employeeId: 1, prepStartsAt: NOW, startsAt: NOW, endsAt: NOW }),
+        repository.reschedule(1, { employeeId: 1, userId: 1, prepStartsAt: NOW, startsAt: NOW, endsAt: NOW }),
       ).rejects.toBeInstanceOf(BusinessRuleError);
     });
 
@@ -343,7 +343,7 @@ describe('PrismaBookingsRepository', () => {
       prisma.booking.updateMany.mockRejectedValue(cause);
 
       await expect(
-        repository.reschedule(1, { employeeId: 1, prepStartsAt: NOW, startsAt: NOW, endsAt: NOW }),
+        repository.reschedule(1, { employeeId: 1, userId: 1, prepStartsAt: NOW, startsAt: NOW, endsAt: NOW }),
       ).rejects.toBeInstanceOf(ConflictError);
     });
 
@@ -366,7 +366,7 @@ describe('PrismaBookingsRepository', () => {
     it('excludes the given Turno from the occupied horarios', async () => {
       prisma.booking.findMany.mockResolvedValue([]);
 
-      await repository.listOccupiedByEmployee(1, NOW, NOW, 9);
+      await repository.listOccupiedByUser(1, NOW, NOW, 9);
 
       expect(prisma.booking.findMany).toHaveBeenCalledWith(
         expect.objectContaining({

@@ -22,7 +22,9 @@ export const VISIBLE_EMPLOYEES = {
     where: { employee: { retiredAt: null } },
     select: {
       availabilityId: true,
-      employee: { select: { id: true, user: { select: { name: true } } } },
+      employee: {
+        select: { id: true, userId: true, user: { select: { name: true } } },
+      },
     },
   },
 } satisfies Prisma.ServiceInclude;
@@ -30,7 +32,9 @@ export const VISIBLE_EMPLOYEES = {
 type ServiceRowWithEmployees = ServiceRow & {
   employees: {
     availabilityId: number;
-    employee: Pick<EmployeeRow, 'id'> & { user: Pick<UserRow, 'name'> };
+    employee: Pick<EmployeeRow, 'id' | 'userId'> & {
+      user: Pick<UserRow, 'name'>;
+    };
   }[];
 };
 
@@ -68,6 +72,33 @@ export class PrismaServicesRepository implements ServicesRepository {
     );
   }
 
+  async createPersonal(
+    data: Pick<
+      Service,
+      | 'userId'
+      | 'availabilityId'
+      | 'name'
+      | 'description'
+      | 'category'
+      | 'durationMinutes'
+      | 'price'
+      | 'depositPercent'
+      | 'requiresApproval'
+      | 'slug'
+      | 'hidden'
+      | 'prepMinutes'
+      | 'dailyLimit'
+      | 'slotInterval'
+      | 'minimumNoticeMinutes'
+    >,
+  ) {
+    return toService(
+      await this.prisma.service
+        .create({ data, include: VISIBLE_EMPLOYEES })
+        .catch(translateError),
+    );
+  }
+
   async findById(id: number) {
     const row = await this.prisma.service
       .findUnique({ where: { id }, include: VISIBLE_EMPLOYEES })
@@ -84,6 +115,32 @@ export class PrismaServicesRepository implements ServicesRepository {
         })
         .catch(translateError)
     ).map(toService);
+  }
+
+  async listActiveByUser(userId: number) {
+    return (
+      await this.prisma.service
+        .findMany({
+          where: { userId, retiredAt: null },
+          include: VISIBLE_EMPLOYEES,
+        })
+        .catch(translateError)
+    ).map(toService);
+  }
+
+  /**
+   * Uses findFirst, not findUnique: the slug is unique only among the Services not dados de baja (partial index, ADR 0004).
+   *
+   * @throws {DatabaseOperationError} the database failed
+   */
+  async findActiveByUserSlug(userId: number, slug: string) {
+    const row = await this.prisma.service
+      .findFirst({
+        where: { userId, slug, retiredAt: null },
+        include: VISIBLE_EMPLOYEES,
+      })
+      .catch(translateError);
+    return row && toService(row);
   }
 
   /**
@@ -119,6 +176,7 @@ export class PrismaServicesRepository implements ServicesRepository {
         | 'dailyLimit'
         | 'slotInterval'
         | 'minimumNoticeMinutes'
+        | 'availabilityId'
       >
     >,
   ) {
@@ -134,7 +192,8 @@ export class PrismaServicesRepository implements ServicesRepository {
       .$transaction(async (tx) => {
         const row = await tx.service.update({
           where: { id },
-          data: { retiredAt, employees: { deleteMany: {} } },
+          // A Servicio personal drops its Availability too, so the Usuario can delete it.
+          data: { retiredAt, availabilityId: null, employees: { deleteMany: {} } },
           include: VISIBLE_EMPLOYEES,
         });
         const cancelledBookings = await cancelFutureBooked(
@@ -250,6 +309,8 @@ export class PrismaServicesRepository implements ServicesRepository {
 export const toService = (row: ServiceRowWithEmployees): Service => ({
   id: row.id,
   branchId: row.branchId,
+  userId: row.userId,
+  availabilityId: row.availabilityId,
   name: row.name,
   description: row.description,
   category: row.category as Service['category'],
@@ -268,14 +329,18 @@ export const toService = (row: ServiceRowWithEmployees): Service => ({
     id: employee.id,
     name: employee.user.name,
     availabilityId,
+    userId: employee.userId,
   })),
 });
+
+/** The partial unique indexes on a Servicio's slug: per Sucursal, and per Usuario in a Servicio personal. */
+const SLUG_INDEXES = ['Service_branchId_slug_key', 'Service_userId_slug_key'];
 
 const translateError = (error: unknown): never => {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     if (error.code === 'P2002')
       throw new ConflictError(
-        violatedIndex(error) === 'Service_branchId_slug_key'
+        SLUG_INDEXES.includes(violatedIndex(error) ?? '')
           ? 'Service booking link already in use'
           : 'Service name already in use',
         { cause: error },

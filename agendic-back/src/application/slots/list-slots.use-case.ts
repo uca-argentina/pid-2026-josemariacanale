@@ -23,6 +23,7 @@ import {
   localDate,
   localDayBounds,
 } from '../../domain/slots/slot';
+import { serviceTimeZone } from '../services/service-time-zone';
 
 const MAX_RANGE_DAYS = 31;
 
@@ -37,9 +38,13 @@ function assertValidRange(from: string, to: string): void {
     );
 }
 
-/** Horarios reservables de cada Empleado que Ofrece un Servicio, día por día. */
+/**
+ * Horarios reservables de quien atiende un Servicio, día por día: cada Empleado que lo Ofrece, o el propio Usuario
+ * en un Servicio personal (`employeeId` nulo).
+ */
 export interface EmployeeSlots {
-  employeeId: number;
+  employeeId: number | null;
+  userId: number;
   days: DaySlots[];
 }
 
@@ -112,21 +117,24 @@ export class ListSlotsUseCase {
     if (!service || service.retiredAt)
       throw new NotFoundError('Service not found or retired');
 
-    const branch = await this.branches.findById(service.branchId);
-    if (!branch) throw new NotFoundError('Branch not found');
+    const timeZone = await serviceTimeZone(
+      this.branches,
+      this.availabilities,
+      service,
+    );
 
     const fullDates = new Set<string>();
     if (service.dailyLimit !== null) {
       // Noon UTC falls on the intended calendar date in any zone, so localDayBounds picks the right local day.
       const starts = await this.bookings.listOccupiedStartsByService(
         serviceId,
-        localDayBounds(new Date(`${from}T12:00:00.000Z`), branch.timeZone).from,
-        localDayBounds(new Date(`${to}T12:00:00.000Z`), branch.timeZone).to,
+        localDayBounds(new Date(`${from}T12:00:00.000Z`), timeZone).from,
+        localDayBounds(new Date(`${to}T12:00:00.000Z`), timeZone).to,
         excludeBookingId,
       );
       const perDate = new Map<string, number>();
       for (const start of starts) {
-        const date = localDate(start, branch.timeZone);
+        const date = localDate(start, timeZone);
         perDate.set(date, (perDate.get(date) ?? 0) + 1);
       }
       for (const [date, taken] of perDate)
@@ -134,23 +142,39 @@ export class ListSlotsUseCase {
     }
 
     const now = this.clock.now();
+    // A Servicio personal has no Empleados: its Usuario attends it with its own Availability.
+    const attendants =
+      service.userId !== null
+        ? [
+            {
+              employeeId: null,
+              userId: service.userId,
+              availabilityId: service.availabilityId!,
+            },
+          ]
+        : service.employees.map(({ id, userId, availabilityId }) => ({
+            employeeId: id,
+            userId,
+            availabilityId,
+          }));
     const employees = await Promise.all(
-      service.employees.map(async ({ id: employeeId, availabilityId }) => {
+      attendants.map(async ({ employeeId, userId, availabilityId }) => {
         const availability = await this.availabilities.findById(availabilityId);
         if (!availability) throw new NotFoundError(`Availability ${availabilityId} not found`);
         // A day of slack either side (wider than any UTC offset) keeps every local date in [from, to] covered.
-        const bookedRanges = await this.bookings.listOccupiedByEmployee(
-          employeeId,
+        const bookedRanges = await this.bookings.listOccupiedByUser(
+          userId,
           new Date(new Date(`${from}T00:00:00.000Z`).getTime() - 86_400_000),
           new Date(new Date(`${to}T00:00:00.000Z`).getTime() + 2 * 86_400_000),
           excludeBookingId,
         );
         return {
           employeeId,
+          userId,
           days: computeSlots({
             from,
             to,
-            timeZone: branch.timeZone,
+            timeZone,
             availability,
             bookedRanges,
             durationMinutes: service.durationMinutes,
@@ -163,6 +187,6 @@ export class ListSlotsUseCase {
         };
       }),
     );
-    return { timeZone: branch.timeZone, employees };
+    return { timeZone, employees };
   }
 }

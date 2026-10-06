@@ -43,6 +43,8 @@ const EMPLOYEE_ROW = {
 const SERVICE_ROW = {
   id: 30,
   branchId: BRANCH_ROW.id,
+  userId: null,
+  availabilityId: null,
   name: 'Haircut',
   description: 'A basic haircut',
   category: ServiceCategory.SPA,
@@ -158,6 +160,8 @@ describe('PrismaBusinessesRepository', () => {
     expect(created.service).toEqual({
       id: SERVICE_ROW.id,
       branchId: BRANCH_ROW.id,
+      userId: null,
+      availabilityId: null,
       name: 'Haircut',
       description: 'A basic haircut',
       category: ServiceCategory.SPA,

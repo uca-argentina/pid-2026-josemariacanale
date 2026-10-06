@@ -29,6 +29,7 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | Zona horaria | `Branch.timeZone` |
 | Usuario | `User` |
 | Cliente | `Booking.clientName` / `Booking.clientEmail` |
+| Quien atiende un Turno | `Booking.userId` (siempre); `Booking.employeeId` solo en un Servicio del Negocio |
 | Empleado | `Employee` |
 | Invitación | `Invitation` (`email`, `expiresAt`) |
 | Availability | `Availability` (predeterminada → `isDefault`; zona horaria → `Availability.timeZone`; es del Usuario, `userId`) |
@@ -36,6 +37,9 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | Anulación | `AvailabilityOverride` (`availabilityId`) |
 | Horario reservable | `Slot` (`GET /services/:id/slots`) |
 | Servicio | `Service` |
+| Servicio personal | `Service.userId` (con `Service.availabilityId`; sin `branchId` ni Empleados) |
+| Servicio del Negocio | `Service.branchId` (sin `userId`) |
+| Enlace de reserva del Usuario | `User.slug`; la URL del front es `/u/<usuario-slug>`, y `/u/<usuario-slug>/<servicio-slug>` con el tramo del Servicio personal (`Service.slug`, único por `userId` entre los no dados de baja) |
 | Categoría de Servicio | `ServiceCategory` (`Service.category`) |
 | Aprobación manual | `Service.requiresApproval` |
 | Seña | `Service.depositPercent` (opcional) |

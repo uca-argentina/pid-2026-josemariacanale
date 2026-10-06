@@ -14,6 +14,8 @@ import {
 const SERVICE_ROW = {
   id: 1,
   branchId: 1,
+  userId: null,
+  availabilityId: null,
   name: 'Haircut',
   description: 'A basic haircut',
   category: ServiceCategory.SPA,
@@ -29,13 +31,15 @@ const SERVICE_ROW = {
   slotInterval: null,
   minimumNoticeMinutes: 0,
   employees: [
-    { availabilityId: 10, employee: { id: 7, user: { name: 'Ana Pérez' } } },
+    { availabilityId: 10, employee: { id: 7, userId: 1, user: { name: 'Ana Pérez' } } },
   ],
 };
 
 const SERVICE: Service = {
   id: 1,
   branchId: 1,
+  userId: null,
+  availabilityId: null,
   name: 'Haircut',
   description: 'A basic haircut',
   category: ServiceCategory.SPA,
@@ -50,7 +54,7 @@ const SERVICE: Service = {
   dailyLimit: null,
   slotInterval: null,
   minimumNoticeMinutes: 0,
-  employees: [{ id: 7, name: 'Ana Pérez', availabilityId: 10 }],
+  employees: [{ id: 7, name: 'Ana Pérez', availabilityId: 10, userId: 1 }],
 };
 
 const knownError = (code: string) =>
@@ -77,8 +81,8 @@ describe('PrismaServicesRepository', () => {
   const SERVICE_ROW_WITH_TWO: typeof SERVICE_ROW = {
     ...SERVICE_ROW,
     employees: [
-      { availabilityId: 10, employee: { id: 7, user: { name: 'Ana Pérez' } } },
-      { availabilityId: 11, employee: { id: 8, user: { name: 'Bruno Díaz' } } },
+      { availabilityId: 10, employee: { id: 7, userId: 1, user: { name: 'Ana Pérez' } } },
+      { availabilityId: 11, employee: { id: 8, userId: 2, user: { name: 'Bruno Díaz' } } },
     ],
   };
   const repository = new PrismaServicesRepository(
@@ -88,6 +92,47 @@ describe('PrismaServicesRepository', () => {
   beforeEach(() => {
     jest.resetAllMocks();
     prisma.$transaction.mockImplementation((run) => run(tx));
+  });
+
+  it('creates a Servicio personal of a Usuario with its Availability, and no Sucursal', async () => {
+    prisma.service.create.mockResolvedValue({
+      ...SERVICE_ROW,
+      branchId: null,
+      userId: 1,
+      availabilityId: 10,
+      employees: [],
+    });
+    const { employees: _, ...data } = { ...SERVICE, branchId: null, userId: 1, availabilityId: 10 };
+
+    await expect(repository.createPersonal(data)).resolves.toEqual({
+      ...SERVICE,
+      branchId: null,
+      userId: 1,
+      availabilityId: 10,
+      employees: [],
+    });
+    expect(prisma.service.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ userId: 1, availabilityId: 10 }) }),
+    );
+  });
+
+  it('lists the active Servicios personales of a Usuario, hidden or not', async () => {
+    prisma.service.findMany.mockResolvedValue([]);
+
+    await repository.listActiveByUser(1);
+
+    expect(prisma.service.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { userId: 1, retiredAt: null } }),
+    );
+  });
+
+  it('finds a Servicio personal by its slug among the ones not dados de baja', async () => {
+    prisma.service.findFirst.mockResolvedValue(null);
+
+    await expect(repository.findActiveByUserSlug(1, 'consulta')).resolves.toBeNull();
+    expect(prisma.service.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { userId: 1, slug: 'consulta', retiredAt: null } }),
+    );
   });
 
   it('creates a Service linking each Employee to the Availability they attend it with, converting its Decimal price to a number', async () => {
@@ -188,8 +233,8 @@ describe('PrismaServicesRepository', () => {
       ).resolves.toEqual({
         ...SERVICE,
         employees: [
-          { id: 7, name: 'Ana Pérez', availabilityId: 10 },
-          { id: 8, name: 'Bruno Díaz', availabilityId: 11 },
+          { id: 7, name: 'Ana Pérez', availabilityId: 10, userId: 1 },
+          { id: 8, name: 'Bruno Díaz', availabilityId: 11, userId: 2 },
         ],
       });
       expect(prisma.service.update).toHaveBeenCalledWith({
@@ -340,7 +385,7 @@ describe('PrismaServicesRepository', () => {
       expect(prisma.$transaction).toHaveBeenCalledTimes(1);
       expect(tx.service.update).toHaveBeenCalledWith({
         where: { id: 1 },
-        data: { retiredAt, employees: { deleteMany: {} } },
+        data: { retiredAt, availabilityId: null, employees: { deleteMany: {} } },
         include: VISIBLE_EMPLOYEES,
       });
       expect(tx.booking.updateMany).toHaveBeenCalledWith({

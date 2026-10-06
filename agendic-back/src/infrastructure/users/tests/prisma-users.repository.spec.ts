@@ -13,6 +13,7 @@ const ANA: User = {
   clerkId: 'user_clerk_1',
   name: 'Ana',
   email: 'ana@example.com',
+  slug: null,
   createdAt: new Date('2026-01-01T12:00:00.000Z'),
 };
 
@@ -167,6 +168,19 @@ describe('PrismaUsersRepository', () => {
 
       expect(error).toBeInstanceOf(domainError);
       expect(error).toHaveProperty('cause', cause);
+    });
+
+    it('update: a taken slug into ConflictError that names the Enlace de reserva', async () => {
+      const cause = knownError('P2002');
+      cause.meta = {
+        driverAdapterError: { cause: { constraint: { index: 'User_slug_key' } } },
+      };
+      prisma.user.update.mockRejectedValue(cause);
+
+      const error = await repository.update(1, { slug: 'ana' }).catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(ConflictError);
+      expect((error as Error).message).toBe('Booking link already in use');
     });
 
     it.each(

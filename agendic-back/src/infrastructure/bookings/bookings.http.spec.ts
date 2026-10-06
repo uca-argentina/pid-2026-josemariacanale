@@ -45,6 +45,7 @@ const BOOKING: Booking = {
   id: 1,
   serviceId: SERVICE.id,
   employeeId: ANAS_EMPLOYEE.id,
+  userId: ANAS_EMPLOYEE.userId,
   clientName: VALID_BOOKING.clientName,
   clientEmail: VALID_BOOKING.clientEmail,
   prepStartsAt: new Date(VALID_BOOKING.startsAt),
@@ -66,7 +67,7 @@ describe('Turno', () => {
       t.services.findById.mockResolvedValue(SERVICE);
       t.branches.findById.mockResolvedValue(BRANCH);
       t.availabilities.findById.mockResolvedValue(AVAILABILITY);
-      t.bookings.listOccupiedByEmployee.mockResolvedValue([]);
+      t.bookings.listOccupiedByUser.mockResolvedValue([]);
       t.bookings.lastReceivedByEmployee.mockResolvedValue(new Map());
       t.bookings.create.mockResolvedValue({ booking: BOOKING, token: 'a-token' });
     });
@@ -88,6 +89,7 @@ describe('Turno', () => {
         {
           serviceId: SERVICE.id,
           employeeId: ANAS_EMPLOYEE.id,
+          userId: ANAS_EMPLOYEE.userId,
           clientName: VALID_BOOKING.clientName,
           clientEmail: VALID_BOOKING.clientEmail,
           prepStartsAt: new Date(VALID_BOOKING.startsAt),
@@ -122,7 +124,7 @@ describe('Turno', () => {
 
     it('answers 422 when the slot collides with the Tiempo de preparación of another Turno', async () => {
       t.services.findById.mockResolvedValue({ ...SERVICE, prepMinutes: 15 });
-      t.bookings.listOccupiedByEmployee.mockResolvedValue([
+      t.bookings.listOccupiedByUser.mockResolvedValue([
         { prepStartsAt: new Date('2026-01-01T12:45:00.000Z'), endsAt: new Date('2026-01-01T13:30:00.000Z') },
       ]);
 
@@ -282,7 +284,7 @@ describe('Turno', () => {
     });
 
     it('answers 422 when nobody is free at that time', async () => {
-      t.bookings.listOccupiedByEmployee.mockResolvedValue([
+      t.bookings.listOccupiedByUser.mockResolvedValue([
         { prepStartsAt: BOOKING.startsAt, endsAt: BOOKING.endsAt },
       ]);
 
@@ -295,7 +297,12 @@ describe('Turno', () => {
     });
 
     describe('con varios Empleados', () => {
-      const JUAN = { id: ANAS_EMPLOYEE.id + 1, name: 'Juan', availabilityId: 11 };
+      const JUAN = {
+        id: ANAS_EMPLOYEE.id + 1,
+        name: 'Juan',
+        availabilityId: 11,
+        userId: ANAS_EMPLOYEE.userId + 1,
+      };
 
       beforeEach(() => {
         t.services.findById.mockResolvedValue({
@@ -343,8 +350,8 @@ describe('Turno', () => {
       });
 
       it('un horario en el que solo uno está libre se le asigna a ese', async () => {
-        t.bookings.listOccupiedByEmployee.mockImplementation(async (employeeId) =>
-          employeeId === JUAN.id
+        t.bookings.listOccupiedByUser.mockImplementation(async (userId) =>
+          userId === JUAN.userId
             ? []
             : [{ prepStartsAt: BOOKING.startsAt, endsAt: BOOKING.endsAt }],
         );

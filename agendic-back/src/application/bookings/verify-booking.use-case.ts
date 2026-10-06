@@ -1,5 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
+  AVAILABILITIES_REPOSITORY,
+  AvailabilitiesRepository,
+} from '../../domain/availabilities/availabilities.repository';
+import {
   BRANCHES_REPOSITORY,
   BranchesRepository,
 } from '../../domain/branches/branches.repository';
@@ -26,6 +30,8 @@ export class VerifyBookingUseCase {
     @Inject(BOOKINGS_REPOSITORY) private readonly bookings: BookingsRepository,
     @Inject(SERVICES_REPOSITORY) private readonly services: ServicesRepository,
     @Inject(BRANCHES_REPOSITORY) private readonly branches: BranchesRepository,
+    @Inject(AVAILABILITIES_REPOSITORY)
+    private readonly availabilities: AvailabilitiesRepository,
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
@@ -38,11 +44,12 @@ export class VerifyBookingUseCase {
   async execute(token: string): Promise<Booking> {
     const now = this.clock.now();
     const booking = await this.bookings.findByVerificationToken(token, now);
-    const { service, branch } = await assertBookable(
+    const { service, timeZone } = await assertBookable(
       this.services,
       this.branches,
+      this.availabilities,
       booking.serviceId,
-      booking.employeeId,
+      booking.employeeId ?? undefined,
       booking.startsAt,
       now,
     );
@@ -51,7 +58,7 @@ export class VerifyBookingUseCase {
       : BookingStatus.BOOKED;
     if (service.dailyLimit === null)
       return this.bookings.markVerified(booking.id, status);
-    const { from, to } = localDayBounds(booking.startsAt, branch.timeZone);
+    const { from, to } = localDayBounds(booking.startsAt, timeZone);
     return this.bookings.markVerified(booking.id, status, {
       serviceId: service.id,
       limit: service.dailyLimit,

@@ -28,7 +28,7 @@ export const IsNormalizedEmail = () =>
     IsEmail(),
   );
 
-/** An Enlace de reserva tramo (Negocio's or Sucursal's): lowercased on the way in, then words of letters and digits joined by hyphens. */
+/** An Enlace de reserva tramo (Negocio's, Sucursal's, Usuario's or Servicio's): lowercased on the way in, then words of letters and digits joined by hyphens. */
 export const IsSlug = () =>
   applyDecorators(
     trimmed((value) => value.toLowerCase()),
@@ -44,4 +44,9 @@ export class UpdateMeDto {
   @IfPresent()
   @IsName()
   name?: string;
+
+  /** Enlace de reserva del Usuario (ADR 0021). */
+  @IfPresent()
+  @IsSlug()
+  slug?: string;
 }
