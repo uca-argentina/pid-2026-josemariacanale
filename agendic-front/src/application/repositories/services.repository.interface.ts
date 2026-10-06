@@ -1,5 +1,7 @@
 import type {
     CatalogService,
+    CreatePersonalService,
+    PersonalService,
     ServiceEmployeeAvailability,
     CreateService,
     RemovedEmployee,
@@ -29,14 +31,29 @@ export interface IServicesRepository {
      */
     createService(input: CreateService): Promise<CatalogService>;
     /**
-     * Changes the fields sent of a Servicio; `depositPercent: null` drops the Seña.
+     * Lists the Usuario's Servicios personales, the hidden ones included; empty when there is none.
      *
-     * @throws {ServiceSlugTakenError} another Servicio of the Sucursal uses that tramo (409)
-     * @throws {ServiceNameTakenError} another Servicio of the Sucursal has that name (409)
-     * @throws {NotFoundError} the Servicio does not exist or was retired (404)
+     * @throws {ApiRequestError} the back failed or answered an unexpected body
+     */
+    listPersonalServices(): Promise<PersonalService[]>;
+    /**
+     * Creates a Servicio personal of the Usuario, attended with one of their Availability.
+     *
+     * @throws {ServiceSlugTakenError} another Servicio personal of the Usuario uses that tramo (409)
+     * @throws {ServiceNameTakenError} another Servicio personal of the Usuario has that name (409)
+     * @throws {NotFoundError} the Availability does not exist or is not the Usuario's (404)
+     * @throws {ApiRequestError} invalid data (400) or any other failure
+     */
+    createPersonalService(input: CreatePersonalService): Promise<PersonalService>;
+    /**
+     * Changes the fields sent of a Servicio, del Negocio or personal; `depositPercent: null` drops the Seña.
+     *
+     * @throws {ServiceSlugTakenError} another Servicio of the Sucursal, or of the Usuario, uses that tramo (409)
+     * @throws {ServiceNameTakenError} another Servicio of the Sucursal, or of the Usuario, has that name (409)
+     * @throws {NotFoundError} the Servicio, or the Availability sent, does not exist (404)
      * @throws {ApiRequestError} not the Dueño (403), invalid data (400) or any other failure
      */
-    updateService(input: UpdateService): Promise<CatalogService>;
+    updateService(input: UpdateService): Promise<CatalogService | PersonalService>;
     /**
      * Dar de baja: retires the Servicio and cancels its future Turnos.
      *

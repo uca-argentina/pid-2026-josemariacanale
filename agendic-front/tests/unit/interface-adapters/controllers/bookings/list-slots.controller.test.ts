@@ -16,6 +16,7 @@ describe('listSlotsController', () => {
         });
 
         await expect(listSlotsController(instrumentation, useCase)(query)).resolves.toEqual({
+            timeZone: 'America/Argentina/Buenos_Aires',
             days: [
                 {
                     date: '2026-09-28',
@@ -56,6 +57,6 @@ describe('listSlotsController', () => {
         const useCase = jest.fn().mockResolvedValue({ timeZone: 'UTC', days: [] });
         await expect(
             listSlotsController(instrumentation, useCase)({ ...query, from: '2026-09-01', to: '2026-10-01' }),
-        ).resolves.toEqual({ days: [] });
+        ).resolves.toEqual({ timeZone: 'UTC', days: [] });
     });
 });

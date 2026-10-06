@@ -55,6 +55,8 @@ export const availabilitiesWith = (stubs: Partial<IAvailabilitiesRepository>): I
 
 export const servicesWith = (stubs: Partial<IServicesRepository>): IServicesRepository => ({
     listMyCatalog: jest.fn(notStubbed('listMyCatalog')),
+    listPersonalServices: jest.fn(notStubbed('listPersonalServices')),
+    createPersonalService: jest.fn(notStubbed('createPersonalService')),
     createService: jest.fn(notStubbed('createService')),
     updateService: jest.fn(notStubbed('updateService')),
     retireService: jest.fn(notStubbed('retireService')),

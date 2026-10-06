@@ -22,7 +22,7 @@ import {
     PanelToggleRow,
 } from '@/app/(app)/_components/panel-ui';
 import { DAY_NAMES, toWeek } from '@/app/(app)/_components/availability-week';
-import { bookingLinkPath } from '@/app/routes';
+import { bookingLinkPath, userLinkPath } from '@/app/routes';
 import { changeEmployeeAvailabilityAction, updateServiceAction } from '../../actions';
 import { formatPrice } from '../../_components/format';
 import {
@@ -211,14 +211,14 @@ function SetupTab({
 /**
  * La pestaña Horas laborables: si el Usuario atiende el Servicio, elige con cuál de sus Availability lo hace, y se
  * guarda en el momento; debajo, las Franjas de la elegida de lunes a domingo, en solo lectura. Si no lo atiende, lo
- * invita a Ofrecerlo.
+ * invita a Ofrecerlo. Un Servicio personal siempre lo atiende el Usuario.
  */
 function AvailabilityTab({ detail, onStopped }: { detail: ServiceDetailData; onStopped: () => void }) {
-    const { service, availabilities, employeeId } = detail;
+    const { service, availabilities } = detail;
     const [chosenId, setChosenId] = useOptimistic(detail.myAvailabilityId);
     const [saving, startSaving] = useTransition();
 
-    if (!availabilities)
+    if (!availabilities && detail.kind === 'business')
         return (
             <PanelCard className="flex flex-col items-start gap-4">
                 <div className="flex flex-col gap-1">
@@ -227,18 +227,21 @@ function AvailabilityTab({ detail, onStopped }: { detail: ServiceDetailData; onS
                         Ofrecelo para atenderlo con tus Horas laborables predeterminadas. Después podés elegir otras acá.
                     </span>
                 </div>
-                <OfferButton service={service} employeeId={employeeId} onStopped={onStopped} />
+                <OfferButton service={service} employeeId={detail.employeeId} onStopped={onStopped} />
             </PanelCard>
         );
 
-    const chosen = availabilities.find((a) => a.id === chosenId);
+    const chosen = availabilities?.find((a) => a.id === chosenId);
     const week = chosen ? toWeek(chosen.schedule) : [];
 
     const choose = (value: string) =>
         startSaving(async () => {
             const availabilityId = Number(value);
             setChosenId(availabilityId);
-            const result = await changeEmployeeAvailabilityAction({ serviceId: service.id, employeeId, availabilityId });
+            const result =
+                detail.kind === 'personal'
+                    ? await updateServiceAction({ id: service.id, availabilityId })
+                    : await changeEmployeeAvailabilityAction({ serviceId: service.id, employeeId: detail.employeeId, availabilityId });
             if (result.ok) toast.success(`${result.name}: Horas laborables actualizadas`);
             else toast.error(result.message);
         });
@@ -256,7 +259,7 @@ function AvailabilityTab({ detail, onStopped }: { detail: ServiceDetailData; onS
                         value={chosen ? String(chosen.id) : ''}
                         disabled={saving}
                         onValueChange={choose}
-                        options={availabilities.map((a) => ({
+                        options={(availabilities ?? []).map((a) => ({
                             value: String(a.id),
                             label: a.name,
                             badge: a.isDefault ? 'Predeterminada' : undefined,
@@ -292,11 +295,11 @@ function AvailabilityTab({ detail, onStopped }: { detail: ServiceDetailData; onS
             <div className="flex flex-wrap items-center gap-3 border-t border-[#e5e7eb] bg-[#f9fafb] px-6 py-5 text-[13px] font-medium">
                 <span className="flex items-center gap-2">
                     <Globe className="size-4 text-[#6b7280]" />
-                    Hora local de cada Sucursal
+                    {detail.kind === 'personal' ? 'Hora local de estas Horas laborables' : 'Hora local de cada Sucursal'}
                 </span>
                 {detail.role === 'owner' && (
                     <Link
-                        href={`/availability?empleado=${employeeId}`}
+                        href={detail.kind === 'personal' ? '/availability' : `/availability?empleado=${detail.employeeId}`}
                         className="ml-auto flex items-center gap-1.5 font-semibold text-[#6b7280] hover:text-[#0f1b2d]"
                     >
                         Editar Horas laborables
@@ -489,10 +492,16 @@ function EmployeesTab({
 /**
  * El detalle de un Servicio. El Dueño edita y guarda la Configuración, lo oculta y lo da de baja; un Empleado lo ve en
  * solo lectura. Guardar incluye la pestaña Límites. El Dueño además elige quiénes lo atienden, en Empleados. En Horas
- * laborables, cada uno elige con cuál de sus Availability lo atiende, y eso se guarda aparte.
+ * laborables, cada uno elige con cuál de sus Availability lo atiende, y eso se guarda aparte. Un Servicio personal lo
+ * edita todo su Usuario, sin Empleados: su Enlace de reserva cuelga del suyo, y si todavía no lo eligió no hay cómo
+ * abrirlo.
  */
 export function ServiceDetail({ detail }: { detail: ServiceDetailData }) {
-    const { business, branch, service } = detail;
+    const { service } = detail;
+    const personal = detail.kind === 'personal';
+    const linkBase =
+        detail.kind === 'business' ? bookingLinkPath(detail.business.slug, detail.branch.slug) : detail.userSlug && userLinkPath(detail.userSlug);
+    const publicPath = linkBase && `${linkBase}/${service.slug}`;
     const router = useRouter();
     const saved = editFormOf(service);
     const [draft, setDraft] = useState(saved);
@@ -586,23 +595,23 @@ export function ServiceDetail({ detail }: { detail: ServiceDetailData }) {
                 <div className="flex min-w-0 flex-col">
                     <div className="flex min-w-0 items-center gap-2">
                         <h1 className="m-0 min-w-0 truncate text-[21px] font-extrabold tracking-[-0.035em]">{service.name}</h1>
-                        {service.offeredByMe && <PanelBadge className="bg-[#e6f6ec] text-[#15803d]">Lo ofrecés</PanelBadge>}
+                        {!personal && service.offeredByMe && (
+                            <PanelBadge className="bg-[#e6f6ec] text-[#15803d]">Lo ofrecés</PanelBadge>
+                        )}
                     </div>
                     <span className="truncate text-[12.5px] font-medium text-[#6b7280]">
-                        Lo atienden {NAMES.format(service.employees.map((e) => e.name))}
+                        {personal ? 'Servicio personal' : `Lo atienden ${NAMES.format(service.employees.map((e) => e.name))}`}
                     </span>
                 </div>
 
                 <div className="ml-auto flex flex-wrap items-center gap-3">
-                    {isOwner && <HiddenSwitch service={service} showLabel />}
-                    <OfferButton
-                        service={service}
-                        employeeId={detail.employeeId}
-                        onStopped={afterStopping}
-                    />
+                    {isOwner && <HiddenSwitch service={service} page={personal ? 'tu página' : undefined} showLabel />}
+                    {detail.kind === 'business' && (
+                        <OfferButton service={service} employeeId={detail.employeeId} onStopped={afterStopping} />
+                    )}
                     <PanelDivider />
                     <PanelIconGroup>
-                        <PublicLinkButtons path={bookingLinkPath(business.slug, branch.slug, service.slug)} />
+                        {publicPath && <PublicLinkButtons path={publicPath} />}
                         {isOwner && (
                             <PanelIconButton label="Dar de baja" destructive onClick={() => setConfirmRetire(true)}>
                                 <Trash2 />
@@ -650,11 +659,11 @@ export function ServiceDetail({ detail }: { detail: ServiceDetailData }) {
                 </nav>
 
                 <div role="tabpanel" className="flex flex-col gap-6">
-                    {!isOwner && tab !== 'availability' && (
+                    {detail.kind === 'business' && !isOwner && tab !== 'availability' && (
                         <div className="flex items-start gap-2.5 rounded-md bg-[#f3f4f6] px-4 py-3 text-[13px] font-medium text-[#374151]">
                             <Info className="mt-0.5 size-4 shrink-0" />
                             <span>
-                                Solo el Dueño de {business.name} puede editar este servicio. Vos elegís en qué horario lo
+                                Solo el Dueño de {detail.business.name} puede editar este servicio. Vos elegís en qué horario lo
                                 atendés, en Horas laborables.
                             </span>
                         </div>
@@ -664,7 +673,7 @@ export function ServiceDetail({ detail }: { detail: ServiceDetailData }) {
                             draft={draft}
                             set={set}
                             errors={errors}
-                            slugPrefix={`${bookingLinkPath(business.slug, branch.slug)}/`}
+                            slugPrefix={`${linkBase ?? '/u/…'}/`}
                             slugChanged={draft.slug !== saved.slug}
                             readOnly={!isOwner || saving}
                         />

@@ -9,7 +9,7 @@ import { InputParseError, NotFoundError } from '@/src/entities/errors/common';
 // Reservar no pide Sesión (ADR 0005): ninguna de las dos acciones manda a Iniciar sesión.
 
 export type ListSlotsResult =
-    | { ok: true; days: Awaited<ReturnType<DI_RETURN_TYPES['IListSlotsController']>>['days'] }
+    | ({ ok: true } & Awaited<ReturnType<DI_RETURN_TYPES['IListSlotsController']>>)
     | { ok: false; message: string };
 
 export async function listSlotsAction(query: {
@@ -18,8 +18,7 @@ export async function listSlotsAction(query: {
     to: string;
 }): Promise<ListSlotsResult> {
     try {
-        const { days } = await getInjection('IListSlotsController')(query);
-        return { ok: true, days };
+        return { ok: true, ...(await getInjection('IListSlotsController')(query)) };
     } catch (error) {
         unstable_rethrow(error);
         // El Servicio se dio de baja desde que se cargó la página.

@@ -5,6 +5,7 @@ import { redirect, unstable_rethrow } from 'next/navigation';
 import { isSessionExpired } from '@/app/api-error';
 import { SIGN_IN_PATH } from '@/app/routes';
 import { getInjection } from '@/di/container';
+import { InvalidSlugError, SlugTakenError } from '@/src/entities/errors/business';
 import { ApiRequestError, InputParseError, NotFoundError } from '@/src/entities/errors/common';
 import { LastEmployeeError } from '@/src/entities/errors/employee';
 import {
@@ -37,6 +38,51 @@ export async function createServiceAction(payload: unknown): Promise<CreateServi
             return { ok: false, message: 'Solo el Dueño del Negocio puede crear Servicios.' };
         getInjection('ICrashReporterService').report(error);
         return { ok: false, message: 'No pudimos crear el Servicio. Intentá de nuevo.' };
+    }
+}
+
+/**
+ * Nuevo y Duplicar de un Servicio personal: lo crea con las Horas laborables elegidas y refresca la página. Los 409
+ * vuelven con el `message` del back, para mostrarlo bajo su campo.
+ */
+export async function createPersonalServiceAction(payload: unknown): Promise<CreateServiceResult> {
+    try {
+        const created = await getInjection('ICreatePersonalServiceController')(payload);
+        refresh();
+        return { ok: true, name: created.name };
+    } catch (error) {
+        unstable_rethrow(error);
+        if (error instanceof ServiceSlugTakenError) return { ok: false, field: 'slug', message: error.message };
+        if (error instanceof ServiceNameTakenError) return { ok: false, field: 'name', message: error.message };
+        if (error instanceof NotFoundError) return { ok: false, message: 'Esas Horas laborables ya no existen. Elegí otras.' };
+        if (isSessionExpired(error)) redirect(SIGN_IN_PATH);
+        if (error instanceof InputParseError || (error instanceof ApiRequestError && error.status === 400))
+            return { ok: false, message: 'Revisá los datos e intentá de nuevo.' };
+        getInjection('ICrashReporterService').report(error);
+        return { ok: false, message: 'No pudimos crear el Servicio. Intentá de nuevo.' };
+    }
+}
+
+/** El Enlace de reserva guardado, o el error para mostrar bajo el campo o al pie. */
+export type UpdateMySlugResult = { ok: true; slug: string } | { ok: false; message: string; field?: 'slug' };
+
+/**
+ * El Usuario elige o cambia su Enlace de reserva y refresca la página. El 409 se muestra bajo el campo, con el mismo
+ * texto que el del Negocio.
+ */
+export async function updateMySlugAction(payload: unknown): Promise<UpdateMySlugResult> {
+    try {
+        const { slug } = await getInjection('IUpdateMySlugController')(payload);
+        refresh();
+        return { ok: true, slug: slug ?? '' };
+    } catch (error) {
+        unstable_rethrow(error);
+        if (error instanceof SlugTakenError) return { ok: false, field: 'slug', message: 'Esa dirección ya está en uso.' };
+        if (error instanceof InvalidSlugError || error instanceof InputParseError)
+            return { ok: false, field: 'slug', message: 'El Enlace de reserva no es válido.' };
+        if (isSessionExpired(error)) redirect(SIGN_IN_PATH);
+        getInjection('ICrashReporterService').report(error);
+        return { ok: false, message: 'No pudimos guardar tu Enlace de reserva. Intentá de nuevo.' };
     }
 }
 

@@ -2,10 +2,10 @@ import type { IAuthenticationService } from '@/src/application/services/authenti
 import type { IInstrumentationService } from '@/src/application/services/instrumentation.service.interface';
 import type { IUpdateServiceUseCase } from '@/src/application/use-cases/services/update-service.use-case';
 import { InputParseError } from '@/src/entities/errors/common';
-import { updateServiceSchema, type CatalogService } from '@/src/entities/models/service';
+import { updateServiceSchema, type CatalogService, type PersonalService } from '@/src/entities/models/service';
 
 /** Only what the panel needs to confirm the change: the page reloads the catalog afterwards. */
-function presenter(service: CatalogService, instrumentationService: IInstrumentationService) {
+function presenter(service: CatalogService | PersonalService, instrumentationService: IInstrumentationService) {
     return instrumentationService.startSpan({ name: 'updateService Presenter', op: 'serialize' }, () => ({
         id: service.id,
         name: service.name,

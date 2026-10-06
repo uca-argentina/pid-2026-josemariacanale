@@ -31,9 +31,9 @@ const STATUS: Record<Booking['status'], { icon: LucideIcon; badge: string; detai
     PENDING: {
         icon: Hourglass,
         badge: 'Esperando que lo acepten',
-        detail: ({ business }) => (
+        detail: ({ host }) => (
             <>
-                {business.name} tiene que aceptar tu turno. Mientras tanto, el horario queda reservado
+                {host.name} tiene que aceptar tu turno. Mientras tanto, el horario queda reservado
                 para vos.
             </>
         ),
@@ -41,17 +41,17 @@ const STATUS: Record<Booking['status'], { icon: LucideIcon; badge: string; detai
     BOOKED: {
         icon: CalendarCheck,
         badge: 'Turno reservado',
-        detail: ({ client, branch }) => (
+        detail: ({ client, host }) => (
             <>
-                Listo, {client.name.split(' ')[0]}: tu turno quedó reservado. Te esperamos en{' '}
-                {branch.address}.
+                Listo, {client.name.split(' ')[0]}: tu turno quedó reservado.
+                {host.branch && ` Te esperamos en ${host.branch.address}.`}
             </>
         ),
     },
     REJECTED: {
         icon: Ban,
         badge: 'Turno rechazado',
-        detail: ({ business }) => <>{business.name} no aceptó este turno. Podés reservar otro horario.</>,
+        detail: ({ host }) => <>{host.name} no aceptó este turno. Podés reservar otro horario.</>,
     },
     CANCELLED: {
         icon: Ban,
@@ -67,7 +67,9 @@ export function MyBookings({
     booking: Booking;
     onBackToBusiness: () => void;
 }) {
-    const { business, branch, service, employeeName, date, time, notes } = booking;
+    const { host, service, employeeName, date, time, notes } = booking;
+    // Sin Sucursal no hay dirección a la que llegar.
+    const actions = ACTIONS.filter((a) => a.detail !== null || host.branch);
     const deposit = depositFor(service);
     const status = STATUS[booking.status];
 
@@ -94,7 +96,7 @@ export function MyBookings({
                     </div>
                     <div className="flex min-w-0 flex-col gap-0.5">
                         <p className="truncate text-[14.5px] font-bold tracking-[-0.02em]">
-                            {business.name}
+                            {host.name}
                         </p>
                         <p className="text-[13px] text-muted-foreground first-letter:uppercase">
                             {formatDate(date)} a las {time}
@@ -110,7 +112,7 @@ export function MyBookings({
                     onClick={onBackToBusiness}
                     className="mt-5 h-auto w-full rounded-xl py-3 text-[14px] font-bold"
                 >
-                    Volver a {business.name}
+                    Volver a {host.name}
                 </Button>
             </section>
 
@@ -121,12 +123,12 @@ export function MyBookings({
                 <div className="relative h-[240px] sm:h-[320px]">
                     <BranchPhoto
                         src={booking.coverUrl}
-                        alt={`Sucursal ${branch.name} de ${business.name}`}
+                        alt={host.branch ? `Sucursal ${host.branch.name} de ${host.name}` : ''}
                         sizes="(max-width: 1024px) 100vw, 60vw"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-foreground/70 to-transparent" />
                     <h2 className="absolute bottom-6 left-6 max-w-[80%] text-[32px] leading-tight font-extrabold tracking-[-0.03em] text-white">
-                        {business.name}
+                        {host.name}
                     </h2>
                 </div>
 
@@ -149,7 +151,7 @@ export function MyBookings({
                     </p>
 
                     <ul className="mt-6 flex flex-col">
-                        {ACTIONS.map(({ icon: Icon, title, detail }) => (
+                        {actions.map(({ icon: Icon, title, detail }) => (
                             <li
                                 key={title}
                                 className="flex items-center gap-3.5 border-b border-border py-4 last:border-b-0"
@@ -162,7 +164,7 @@ export function MyBookings({
                                         {title}
                                     </span>
                                     <span className="text-[13px] text-muted-foreground">
-                                        {detail ?? branch.address}
+                                        {detail ?? host.branch?.address}
                                     </span>
                                 </span>
                             </li>

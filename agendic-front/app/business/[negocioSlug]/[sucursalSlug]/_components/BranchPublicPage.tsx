@@ -7,53 +7,14 @@ import { Avatar, AvatarFallback } from '@/app/_components/ui/avatar';
 import { Button } from '@/app/_components/ui/button';
 import { bookingLinkPath } from '@/app/routes';
 import { SERVICE_CATEGORIES, type ServiceCategoryValue } from '@/app/_components/business-schemas';
-import { BranchPhoto } from './BranchPhoto';
-import { ChipTabs } from './ChipTabs';
-import { BookingFlow } from './BookingFlow';
-import { MyBookings } from './MyBookings';
-import { formatDuration, formatPrice, initials } from './format';
-import type { Booking, Branch, BranchImage, Business, Employee, OtherBranch, Service } from './types';
-
-function ServiceCard({
-    service,
-    onBook,
-}: {
-    service: Service;
-    onBook: (service: Service) => void;
-}) {
-    return (
-        <article className="flex flex-wrap items-center gap-4 rounded-2xl border border-border p-4.5 transition-colors hover:border-foreground/20 sm:flex-nowrap">
-            <div className="flex min-w-0 flex-1 flex-col gap-1">
-                <h3 className="text-[15.5px] font-bold tracking-[-0.02em]">{service.name}</h3>
-                <span className="text-[13px] font-medium text-muted-foreground">
-                    {formatDuration(service.durationMinutes)}
-                </span>
-                {service.description && (
-                    <p className="mt-0.5 max-w-[62ch] text-[13.5px] leading-relaxed text-muted-foreground">
-                        {service.description}
-                    </p>
-                )}
-                <span className="mt-1.5 flex flex-wrap items-baseline gap-2">
-                    <span className="text-[15px] font-extrabold tracking-[-0.025em]">
-                        {formatPrice(service.price)}
-                    </span>
-                    {!!service.depositPercent && (
-                        <span className="text-[12.5px] font-semibold text-muted-foreground">
-                            {service.depositPercent}% de seña
-                        </span>
-                    )}
-                </span>
-            </div>
-            <Button
-                onClick={() => onBook(service)}
-                variant="outline"
-                className="h-auto shrink-0 rounded-full px-5 py-2.5 text-[13.5px] font-bold"
-            >
-                Reservar
-            </Button>
-        </article>
-    );
-}
+import { BranchPhoto } from '@/app/_components/booking/BranchPhoto';
+import { ChipTabs } from '@/app/_components/booking/ChipTabs';
+import { BookingFlow } from '@/app/_components/booking/BookingFlow';
+import { MyBookings } from '@/app/_components/booking/MyBookings';
+import { ServiceCard } from '@/app/_components/booking/ServiceCard';
+import { initials } from '@/app/_components/booking/format';
+import type { Booking, Service } from '@/app/_components/booking/types';
+import type { Branch, BranchImage, Business, Employee, OtherBranch } from './types';
 
 export function BranchPublicPage({
     business,
@@ -290,8 +251,7 @@ export function BranchPublicPage({
 
             {flowOpen && (
                 <BookingFlow
-                    business={business}
-                    branch={branch}
+                    host={{ name: business.name, branch: { name: branch.name, address: branch.address } }}
                     services={bookable}
                     categories={bookableCategories}
                     coverUrl={cover}

@@ -9,11 +9,13 @@ const MAX_RANGE_DAYS = 31;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 // Each Horario reservable keeps its instant, which is what POST /bookings takes, next to its local
-// time in the Sucursal ('HH:mm'), which is what the Cliente sees. h23: midnight is 00:00, not 24:00.
+// time in the Sucursal ('HH:mm'), which is what the Cliente sees. h23: midnight is 00:00, not 24:00. `timeZone` is
+// the one the days are local to: the Sucursal's, or the Availability's in a Servicio personal.
 function presenter({ timeZone, days }: Slots, instrumentationService: IInstrumentationService) {
     return instrumentationService.startSpan({ name: 'listSlots Presenter', op: 'serialize' }, () => {
         const localTime = new Intl.DateTimeFormat('en-GB', { timeZone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
         return {
+            timeZone,
             days: days.map((day) => ({
                 date: day.date,
                 slots: day.slots.map((startsAt) => ({ startsAt, time: localTime.format(new Date(startsAt)) })),
