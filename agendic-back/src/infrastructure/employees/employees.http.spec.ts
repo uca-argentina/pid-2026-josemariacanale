@@ -402,6 +402,8 @@ describe('Empleado', () => {
         {
           id: 1,
           branchId: 1,
+          userId: null,
+          availabilityId: null,
           name: 'Haircut',
           description: null,
           category: ServiceCategory.SPA,
@@ -421,6 +423,7 @@ describe('Empleado', () => {
               id: OTHER_EMPLOYEE.id,
               name: OTHER_EMPLOYEE.name,
               availabilityId: 20,
+              userId: OTHER_EMPLOYEE.userId,
             },
           ],
         },
@@ -439,6 +442,8 @@ describe('Empleado', () => {
         {
           id: 1,
           branchId: 1,
+          userId: null,
+          availabilityId: null,
           name: 'Haircut',
           description: null,
           category: ServiceCategory.SPA,
@@ -458,8 +463,9 @@ describe('Empleado', () => {
               id: OTHER_EMPLOYEE.id,
               name: OTHER_EMPLOYEE.name,
               availabilityId: 20,
+              userId: OTHER_EMPLOYEE.userId,
             },
-            { id: 99, name: 'Someone Else', availabilityId: 990 },
+            { id: 99, name: 'Someone Else', availabilityId: 990, userId: 99 },
           ],
         },
       ]);

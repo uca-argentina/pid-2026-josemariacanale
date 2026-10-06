@@ -43,7 +43,7 @@ describe('GET /services/:id/slots', () => {
     t.services.findById.mockResolvedValue(SERVICE);
     t.branches.findById.mockResolvedValue(BRANCH);
     t.availabilities.findById.mockResolvedValue(AVAILABILITY);
-    t.bookings.listOccupiedByEmployee.mockResolvedValue([]);
+    t.bookings.listOccupiedByUser.mockResolvedValue([]);
   });
   afterEach(() => t.app.close());
 
@@ -72,7 +72,7 @@ describe('GET /services/:id/slots', () => {
   });
 
   it('descuenta un Turno tomado, en cualquier Servicio del mismo Empleado', async () => {
-    t.bookings.listOccupiedByEmployee.mockResolvedValue([
+    t.bookings.listOccupiedByUser.mockResolvedValue([
       { prepStartsAt: new Date('2026-01-02T14:00:00.000Z'), endsAt: new Date('2026-01-02T14:30:00.000Z') },
     ]);
 
@@ -82,7 +82,7 @@ describe('GET /services/:id/slots', () => {
     expect(day.slots).not.toContain('2026-01-02T14:00:00.000Z'); // inside the booking
     expect(day.slots).toContain('2026-01-02T13:30:00.000Z'); // ends exactly when the booking starts
     expect(day.slots).toContain('2026-01-02T14:30:00.000Z'); // starts exactly when the booking ends
-    expect(t.bookings.listOccupiedByEmployee).toHaveBeenCalledWith(
+    expect(t.bookings.listOccupiedByUser).toHaveBeenCalledWith(
       ANAS_EMPLOYEE.id,
       expect.any(Date),
       expect.any(Date),
@@ -103,7 +103,7 @@ describe('GET /services/:id/slots', () => {
     });
 
     it('un Turno tomado bloquea también su preparación', async () => {
-      t.bookings.listOccupiedByEmployee.mockResolvedValue([
+      t.bookings.listOccupiedByUser.mockResolvedValue([
         // 11:00 to 11:30 ARG, with 15 minutes of preparation from 10:45
         { prepStartsAt: new Date('2026-01-02T13:45:00.000Z'), endsAt: new Date('2026-01-02T14:30:00.000Z') },
       ]);
@@ -117,7 +117,7 @@ describe('GET /services/:id/slots', () => {
 
     it('la preparación del Servicio pedido no puede pisar un Turno tomado, de cualquier Servicio del Empleado', async () => {
       t.services.findById.mockResolvedValue({ ...SERVICE, prepMinutes: 15 });
-      t.bookings.listOccupiedByEmployee.mockResolvedValue([
+      t.bookings.listOccupiedByUser.mockResolvedValue([
         { prepStartsAt: new Date('2026-01-02T14:00:00.000Z'), endsAt: new Date('2026-01-02T14:30:00.000Z') },
       ]);
 
@@ -248,7 +248,7 @@ describe('GET /services/:id/slots', () => {
     ['completamente reservado', '2026-01-02', 'FULLY_BOOKED'],
   ])('un día sin horarios trae su motivo: %s', async (_, date, reason) => {
     if (reason === 'FULLY_BOOKED')
-      t.bookings.listOccupiedByEmployee.mockResolvedValue([
+      t.bookings.listOccupiedByUser.mockResolvedValue([
         { prepStartsAt: new Date('2026-01-02T00:00:00.000Z'), endsAt: new Date('2026-01-03T00:00:00.000Z') },
       ]);
 
@@ -332,7 +332,7 @@ describe('GET /services/:id/slots', () => {
         ...AVAILABILITY,
         schedule: workWeek('09:00', '12:00'),
       });
-      t.bookings.listOccupiedByEmployee.mockResolvedValue([
+      t.bookings.listOccupiedByUser.mockResolvedValue([
         { prepStartsAt: new Date('2026-01-02T12:00:00.000Z'), endsAt: new Date('2026-01-02T12:20:00.000Z') },
       ]);
 
@@ -409,7 +409,12 @@ describe('GET /services/:id/slots', () => {
         ...SERVICE,
         employees: [
           ...SERVICE.employees,
-          { id: JUAN_ID, name: 'Juan', availabilityId: JUANS_AVAILABILITY.id },
+          {
+            id: JUAN_ID,
+            name: 'Juan',
+            availabilityId: JUANS_AVAILABILITY.id,
+            userId: JUANS_AVAILABILITY.userId,
+          },
         ],
       });
       t.availabilities.findById.mockImplementation(async (id) =>
@@ -421,12 +426,12 @@ describe('GET /services/:id/slots', () => {
       const res = await query(t, {}).expect(200);
 
       expect(res.body.days[0].slots).toHaveLength(18); // Juan's 09:00–10:00 is inside Ana's day
-      expect(t.bookings.listOccupiedByEmployee).toHaveBeenCalledTimes(2);
+      expect(t.bookings.listOccupiedByUser).toHaveBeenCalledTimes(2);
     });
 
     it('un horario ocupado para uno sigue ofrecido si el otro está libre', async () => {
-      t.bookings.listOccupiedByEmployee.mockImplementation(async (employeeId) =>
-        employeeId === ANAS_EMPLOYEE.id
+      t.bookings.listOccupiedByUser.mockImplementation(async (userId) =>
+        userId === ANAS_EMPLOYEE.userId
           ? [{ prepStartsAt: new Date('2026-01-02T12:00:00.000Z'), endsAt: new Date('2026-01-02T12:30:00.000Z') }]
           : [],
       );

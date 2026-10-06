@@ -98,6 +98,7 @@ describe('PrismaAvailabilitiesRepository', () => {
       delete: jest.fn(),
     },
     employeeService: { count: jest.fn() },
+    service: { count: jest.fn() },
     $transaction: jest.fn((run: (client: typeof tx) => unknown) => run(tx)),
   };
   const repository = new PrismaAvailabilitiesRepository(
@@ -246,9 +247,13 @@ describe('PrismaAvailabilitiesRepository', () => {
 
   it('counts the Services that use it', async () => {
     prisma.employeeService.count.mockResolvedValue(2);
+    prisma.service.count.mockResolvedValue(1);
 
-    await expect(repository.countServices(1)).resolves.toBe(2);
+    await expect(repository.countServices(1)).resolves.toBe(3);
     expect(prisma.employeeService.count).toHaveBeenCalledWith({
+      where: { availabilityId: 1 },
+    });
+    expect(prisma.service.count).toHaveBeenCalledWith({
       where: { availabilityId: 1 },
     });
   });

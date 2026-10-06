@@ -1,11 +1,16 @@
 import { BookingsRepository } from '../../domain/bookings/bookings.repository';
 import { BusinessRuleError } from '../../domain/errors';
 import { addDays } from '../../domain/slots/slot';
-import { ListSlotsUseCase } from '../slots/list-slots.use-case';
+import { EmployeeSlots, ListSlotsUseCase } from '../slots/list-slots.use-case';
+
+const attendant = ({ employeeId, userId }: EmployeeSlots) => ({
+  employeeId,
+  userId,
+});
 
 /**
- * Elige el Empleado que atiende un Turno de `startsAt`: entre los libres en ese horario, el que hace más tiempo que
- * no recibe un Turno del Servicio (sin Turnos previos, gana ese; si empatan, el de menor id). Recalcula los Horarios
+ * Elige quién atiende un Turno de `startsAt`: en un Servicio personal, su Usuario; en uno del Negocio, entre los
+ * Empleados libres en ese horario, el que hace más tiempo que no recibe un Turno del Servicio (sin Turnos previos, gana ese; si empatan, el de menor id). Recalcula los Horarios
  * reservables ahora, así que también comprueba que `startsAt` lo sea. Con `keepEmployeeId`, si ese Empleado está libre
  * se queda con el Turno.
  *
@@ -17,7 +22,7 @@ export async function pickEmployee(
   serviceId: number,
   startsAt: Date,
   { excludeBookingId, keepEmployeeId }: { excludeBookingId?: number; keepEmployeeId?: number } = {},
-): Promise<number> {
+): Promise<{ employeeId: number | null; userId: number }> {
   // A day of slack either side: the Sucursal's date for `startsAt` is within a day of its UTC date.
   const iso = startsAt.toISOString();
   const utcDate = iso.slice(0, 10);
@@ -27,24 +32,30 @@ export async function pickEmployee(
     addDays(utcDate, 1),
     excludeBookingId,
   );
-  const free = employees
-    .filter(({ days }) => days.some((day) => day.slots.includes(iso)))
-    .map(({ employeeId }) => employeeId);
+  const free = employees.filter(({ days }) =>
+    days.some((day) => day.slots.includes(iso)),
+  );
   if (free.length === 0)
     throw new BusinessRuleError(
       `Slot ${iso} is not available for Service ${serviceId}`,
     );
-  if (keepEmployeeId !== undefined && free.includes(keepEmployeeId))
-    return keepEmployeeId;
+  // A Servicio personal has a single attendant: nothing to choose.
+  if (free[0].employeeId === null) return attendant(free[0]);
+  const freeIds = free.map(({ employeeId }) => employeeId!);
+  const kept = free.find(({ employeeId }) => employeeId === keepEmployeeId);
+  if (kept) return attendant(kept);
   const lastReceived = await bookings.lastReceivedByEmployee(
     serviceId,
-    free,
+    freeIds,
     excludeBookingId,
   );
   // Never received sorts first (0); equal times fall back to the lower id.
-  return [...free].sort(
-    (a, b) =>
-      (lastReceived.get(a)?.getTime() ?? 0) -
-        (lastReceived.get(b)?.getTime() ?? 0) || a - b,
-  )[0];
+  return attendant(
+    [...free].sort(
+      (a, b) =>
+        (lastReceived.get(a.employeeId!)?.getTime() ?? 0) -
+          (lastReceived.get(b.employeeId!)?.getTime() ?? 0) ||
+        a.employeeId! - b.employeeId!,
+    )[0],
+  );
 }

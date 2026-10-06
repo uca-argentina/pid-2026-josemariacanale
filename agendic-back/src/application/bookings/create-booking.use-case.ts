@@ -3,6 +3,10 @@ import {
   BRANCHES_REPOSITORY,
   BranchesRepository,
 } from '../../domain/branches/branches.repository';
+import {
+  AVAILABILITIES_REPOSITORY,
+  AvailabilitiesRepository,
+} from '../../domain/availabilities/availabilities.repository';
 import { Booking, bookingVerificationExpiresAt, CreateBookingInput } from '../../domain/bookings/booking';
 import {
   BOOKINGS_REPOSITORY,
@@ -14,6 +18,10 @@ import {
   SERVICES_REPOSITORY,
   ServicesRepository,
 } from '../../domain/services/services.repository';
+import {
+  USERS_REPOSITORY,
+  UsersRepository,
+} from '../../domain/users/users.repository';
 import { ListSlotsUseCase } from '../slots/list-slots.use-case';
 import { assertBookable, assertUnderDailyLimit } from './assert-booking-rules';
 import { pickEmployee } from './pick-employee';
@@ -23,14 +31,17 @@ export class CreateBookingUseCase {
   constructor(
     @Inject(SERVICES_REPOSITORY) private readonly services: ServicesRepository,
     @Inject(BRANCHES_REPOSITORY) private readonly branches: BranchesRepository,
+    @Inject(AVAILABILITIES_REPOSITORY)
+    private readonly availabilities: AvailabilitiesRepository,
     @Inject(BOOKINGS_REPOSITORY) private readonly bookings: BookingsRepository,
+    @Inject(USERS_REPOSITORY) private readonly users: UsersRepository,
     @Inject(MAILER) private readonly mailer: Mailer,
     @Inject(CLOCK) private readonly clock: Clock,
     private readonly listSlots: ListSlotsUseCase,
   ) {}
 
   /**
-   * Reserva un Turno sin verificar y le asigna el Empleado que hace más tiempo que no recibe uno del Servicio (ver `pickEmployee`). Ocupa la agenda del Empleado desde la preparación del Servicio, que queda fijada acá.
+   * Reserva un Turno sin verificar y le asigna el Empleado que hace más tiempo que no recibe uno del Servicio (ver `pickEmployee`), o al Usuario dueño de un Servicio personal. Ocupa la agenda de quien lo atiende desde la preparación del Servicio, que queda fijada acá.
    *
    * @throws {BusinessRuleError} el Servicio no existe o está dado de baja, el horario ya pasó o no es un Horario reservable de ningún Empleado
    * @throws {ConflictError} el Servicio ya alcanzó su Límite diario ese día
@@ -39,9 +50,10 @@ export class CreateBookingUseCase {
     input: CreateBookingInput,
   ): Promise<Booking & { employeeName: string }> {
     const now = this.clock.now();
-    const { service, branch } = await assertBookable(
+    const { service, timeZone } = await assertBookable(
       this.services,
       this.branches,
+      this.availabilities,
       input.serviceId,
       undefined,
       input.startsAt,
@@ -53,8 +65,8 @@ export class CreateBookingUseCase {
     const prepStartsAt = new Date(
       input.startsAt.getTime() - service.prepMinutes * 60_000,
     );
-    await assertUnderDailyLimit(this.bookings, service, branch, input.startsAt);
-    const employeeId = await pickEmployee(
+    await assertUnderDailyLimit(this.bookings, service, timeZone, input.startsAt);
+    const attendant = await pickEmployee(
       this.listSlots,
       this.bookings,
       input.serviceId,
@@ -64,7 +76,8 @@ export class CreateBookingUseCase {
     const { booking, token } = await this.bookings.create(
       {
         serviceId: input.serviceId,
-        employeeId,
+        employeeId: attendant.employeeId,
+        userId: attendant.userId,
         clientName: input.clientName,
         clientEmail: input.clientEmail,
         prepStartsAt,
@@ -75,8 +88,9 @@ export class CreateBookingUseCase {
       bookingVerificationExpiresAt(now),
     );
     await this.mailer.sendVerificationLink(booking.clientEmail, token);
-    // pickEmployee only picks from the Servicio's own Empleados, so this always finds one.
-    const employee = service.employees.find(({ id }) => id === employeeId)!;
-    return { ...booking, employeeName: employee.name };
+    // The name is the Empleado's, or the Usuario's own in a Servicio personal; both come from the Usuario.
+    const employee = service.employees.find(({ id }) => id === attendant.employeeId);
+    const name = employee?.name ?? (await this.users.findById(attendant.userId))!.name;
+    return { ...booking, employeeName: name };
   }
 }

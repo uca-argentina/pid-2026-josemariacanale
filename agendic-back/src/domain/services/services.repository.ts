@@ -23,7 +23,32 @@ export interface ServicesRepository {
       | 'minimumNoticeMinutes'
     > & { employees: Omit<EmployeeService, 'serviceId'>[] },
   ): Promise<Service>;
+  /** Throws ConflictError when the name (in any casing) or the slug is taken by another active Service of the same Usuario. */
+  createPersonal(
+    data: Pick<
+      Service,
+      | 'userId'
+      | 'availabilityId'
+      | 'name'
+      | 'description'
+      | 'category'
+      | 'durationMinutes'
+      | 'price'
+      | 'depositPercent'
+      | 'requiresApproval'
+      | 'slug'
+      | 'hidden'
+      | 'prepMinutes'
+      | 'dailyLimit'
+      | 'slotInterval'
+      | 'minimumNoticeMinutes'
+    >,
+  ): Promise<Service>;
   findById(id: number): Promise<Service | null>;
+  /** The Usuario's Servicios personales not dados de baja, hidden or not. */
+  listActiveByUser(userId: number): Promise<Service[]>;
+  /** The Servicio personal of that Usuario with that slug among the ones not dados de baja, hidden or not. Null if there is none. */
+  findActiveByUserSlug(userId: number, slug: string): Promise<Service | null>;
   listActiveByBranch(branchId: number): Promise<Service[]>;
   /** The Service of that Branch with that slug among the ones not dados de baja, hidden or not. Null if there is none. */
   findActiveBySlug(branchId: number, slug: string): Promise<Service | null>;
@@ -46,6 +71,7 @@ export interface ServicesRepository {
         | 'dailyLimit'
         | 'slotInterval'
         | 'minimumNoticeMinutes'
+        | 'availabilityId'
       >
     >,
   ): Promise<Service>;

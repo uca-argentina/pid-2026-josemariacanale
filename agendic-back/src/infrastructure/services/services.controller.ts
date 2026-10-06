@@ -13,13 +13,17 @@ import {
 } from '@nestjs/common';
 import { AssignEmployeeUseCase } from '../../application/services/assign-employee.use-case';
 import { ChangeEmployeeAvailabilityUseCase } from '../../application/services/change-employee-availability.use-case';
+import { CreatePersonalServiceUseCase } from '../../application/services/create-personal-service.use-case';
 import { CreateServiceUseCase } from '../../application/services/create-service.use-case';
 import { GetServiceBySlugUseCase } from '../../application/services/get-service-by-slug.use-case';
+import { GetPersonalServiceBySlugUseCase } from '../../application/services/get-personal-service-by-slug.use-case';
 import { ListActiveServicesByBranchUseCase } from '../../application/services/list-active-services-by-branch.use-case';
+import { ListPersonalServicesUseCase } from '../../application/services/list-personal-services.use-case';
 import { ListMyServicesUseCase } from '../../application/services/list-my-services.use-case';
 import { RemoveEmployeeUseCase } from '../../application/services/remove-employee.use-case';
 import { RetireServiceUseCase } from '../../application/services/retire-service.use-case';
 import { UpdateServiceUseCase } from '../../application/services/update-service.use-case';
+import { GetUserPageUseCase } from '../../application/users/get-user-page.use-case';
 import { ListSlotsUseCase } from '../../application/slots/list-slots.use-case';
 import { ParseDatePipe } from '../parse-date.pipe';
 import { ClerkGuard, CurrentUser } from '../users/clerk.guard';
@@ -27,6 +31,7 @@ import { presentCatalogGroup, presentService } from './service.presenter';
 import {
   AssignEmployeeDto,
   ChangeEmployeeAvailabilityDto,
+  CreatePersonalServiceDto,
   CreateServiceDto,
   UpdateServiceDto,
 } from './services.dto';
@@ -44,7 +49,53 @@ export class ServicesController {
     private readonly removeEmployeeUseCase: RemoveEmployeeUseCase,
     private readonly listSlotsUseCase: ListSlotsUseCase,
     private readonly listMyServicesUseCase: ListMyServicesUseCase,
+    private readonly createPersonalServiceUseCase: CreatePersonalServiceUseCase,
+    private readonly listPersonalServicesUseCase: ListPersonalServicesUseCase,
+    private readonly getUserPageUseCase: GetUserPageUseCase,
+    private readonly getPersonalServiceBySlugUseCase: GetPersonalServiceBySlugUseCase,
   ) {}
+
+  /** Los Servicios personales del Usuario, ocultos incluidos. */
+  @Get('users/me/services')
+  @UseGuards(ClerkGuard)
+  async listPersonal(@CurrentUser() userId: number) {
+    return (await this.listPersonalServicesUseCase.execute(userId)).map(
+      presentService,
+    );
+  }
+
+  @Post('users/me/services')
+  @UseGuards(ClerkGuard)
+  async createPersonal(
+    @CurrentUser() userId: number,
+    @Body() dto: CreatePersonalServiceDto,
+  ) {
+    return presentService(
+      await this.createPersonalServiceUseCase.execute(userId, dto),
+    );
+  }
+
+  /** Público: el Enlace de reserva de un Usuario, con sus Servicios personales no ocultos. 404 si no existe. */
+  @Get('u/:userSlug')
+  async getUserPage(@Param('userSlug') userSlug: string) {
+    const { user, services } = await this.getUserPageUseCase.execute(userSlug);
+    return {
+      name: user.name,
+      slug: user.slug,
+      services: services.map(presentService),
+    };
+  }
+
+  /** Público: un Servicio personal por su tramo, aunque esté oculto. 404 si no existe o está dado de baja. */
+  @Get('u/:userSlug/:serviceSlug')
+  async getPersonalServiceBySlug(
+    @Param('userSlug') userSlug: string,
+    @Param('serviceSlug') serviceSlug: string,
+  ) {
+    return presentService(
+      await this.getPersonalServiceBySlugUseCase.execute(userSlug, serviceSlug),
+    );
+  }
 
   /** Catálogo del panel: un grupo por Negocio donde el Usuario es Empleado activo. */
   @Get('employees/me/services')

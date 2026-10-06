@@ -66,7 +66,12 @@ const scriptStaff = ({ employees }: TestApp) =>
   );
 
 const IN_CHARGE = [
-  { id: ANAS_EMPLOYEE.id, name: ANAS_EMPLOYEE.name, availabilityId: 10 },
+  {
+    id: ANAS_EMPLOYEE.id,
+    name: ANAS_EMPLOYEE.name,
+    availabilityId: 10,
+    userId: ANAS_EMPLOYEE.userId,
+  },
 ];
 
 const VALID_SERVICE = {
@@ -82,6 +87,8 @@ const VALID_SERVICE = {
 const SERVICE = {
   id: 1,
   branchId: BRANCH.id,
+  userId: null,
+  availabilityId: null,
   name: VALID_SERVICE.name,
   description: VALID_SERVICE.description,
   category: VALID_SERVICE.category,
@@ -102,6 +109,8 @@ const SERVICE = {
 const PRESENTED_SERVICE = {
   id: SERVICE.id,
   branchId: SERVICE.branchId,
+  userId: null,
+  availabilityId: null,
   name: SERVICE.name,
   description: SERVICE.description,
   category: SERVICE.category,
@@ -115,7 +124,8 @@ const PRESENTED_SERVICE = {
   dailyLimit: SERVICE.dailyLimit,
   slotInterval: SERVICE.slotInterval,
   minimumNoticeMinutes: SERVICE.minimumNoticeMinutes,
-  employees: IN_CHARGE,
+  // The Usuario behind an Empleado is not part of the API.
+  employees: IN_CHARGE.map(({ userId: _, ...employee }) => employee),
 };
 
 describe('Servicio', () => {
@@ -787,6 +797,7 @@ describe('Servicio', () => {
             id: OTHER_EMPLOYEE.id,
             name: OTHER_EMPLOYEE.name,
             availabilityId: 20,
+            userId: OTHER_EMPLOYEE.userId,
           },
         ],
       });
@@ -1115,6 +1126,7 @@ describe('Servicio', () => {
             id: OTHER_EMPLOYEE.id,
             name: OTHER_EMPLOYEE.name,
             availabilityId: 20,
+            userId: OTHER_EMPLOYEE.userId,
           },
         ],
       });
@@ -1141,6 +1153,7 @@ describe('Servicio', () => {
             id: OTHER_EMPLOYEE.id,
             name: OTHER_EMPLOYEE.name,
             availabilityId: 20,
+            userId: OTHER_EMPLOYEE.userId,
           },
         ],
       });
@@ -1212,6 +1225,7 @@ describe('Servicio', () => {
             id: OTHER_EMPLOYEE.id,
             name: OTHER_EMPLOYEE.name,
             availabilityId: 21,
+            userId: OTHER_EMPLOYEE.userId,
           },
         ],
       });
@@ -1443,6 +1457,7 @@ describe('Servicio', () => {
         id: employeeId,
         name: 'x',
         availabilityId: 99,
+        userId: employeeId,
       })),
     });
     const ids = (services: { id: number }[]) => services.map(({ id }) => id);

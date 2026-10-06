@@ -19,6 +19,7 @@ const BOOKED: Booking = {
   id: 7,
   serviceId: ANAS_SERVICE.id,
   employeeId: ANAS_EMPLOYEE.id,
+  userId: ANAS_EMPLOYEE.userId,
   clientName: 'Carla Gómez',
   clientEmail: 'carla@example.com',
   prepStartsAt: new Date('2026-01-02T13:50:00.000Z'),
@@ -182,7 +183,7 @@ describe('Mis turnos del Empleado', () => {
       t.services.findById.mockResolvedValue(ANAS_SERVICE);
       t.branches.findById.mockResolvedValue(ANAS_BRANCH);
       t.availabilities.findById.mockResolvedValue(AVAILABILITY);
-      t.bookings.listOccupiedByEmployee.mockResolvedValue([]);
+      t.bookings.listOccupiedByUser.mockResolvedValue([]);
       t.bookings.reschedule.mockResolvedValue({
         ...BOOKED,
         startsAt: new Date(NEW_START),
@@ -197,11 +198,12 @@ describe('Mis turnos del Empleado', () => {
 
       expect(t.bookings.reschedule).toHaveBeenCalledWith(BOOKED.id, {
         employeeId: ANAS_EMPLOYEE.id,
+        userId: ANAS_EMPLOYEE.userId,
         prepStartsAt: new Date('2026-01-02T14:45:00.000Z'),
         startsAt: new Date(NEW_START),
         endsAt: new Date('2026-01-02T15:30:00.000Z'),
       });
-      expect(t.bookings.listOccupiedByEmployee).toHaveBeenCalledWith(
+      expect(t.bookings.listOccupiedByUser).toHaveBeenCalledWith(
         ANAS_EMPLOYEE.id,
         expect.any(Date),
         expect.any(Date),
@@ -215,7 +217,7 @@ describe('Mis turnos del Empleado', () => {
     });
 
     it('answers 422 when the new horario overlaps another Turno of the only Empleado', async () => {
-      t.bookings.listOccupiedByEmployee.mockResolvedValue([
+      t.bookings.listOccupiedByUser.mockResolvedValue([
         { prepStartsAt: new Date(NEW_START), endsAt: new Date('2026-01-02T15:30:00.000Z') },
       ]);
 
@@ -224,7 +226,12 @@ describe('Mis turnos del Empleado', () => {
     });
 
     describe('con varios Empleados', () => {
-      const JUAN = { id: ANAS_EMPLOYEE.id + 1, name: 'Juan', availabilityId: 11 };
+      const JUAN = {
+        id: ANAS_EMPLOYEE.id + 1,
+        name: 'Juan',
+        availabilityId: 11,
+        userId: ANAS_EMPLOYEE.userId + 1,
+      };
       const busyAtNewStart = [
         { prepStartsAt: new Date(NEW_START), endsAt: new Date('2026-01-02T15:30:00.000Z') },
       ];
@@ -237,8 +244,8 @@ describe('Mis turnos del Empleado', () => {
       });
 
       it('cambia de Empleado si el original no está libre en el horario nuevo', async () => {
-        t.bookings.listOccupiedByEmployee.mockImplementation(async (employeeId) =>
-          employeeId === ANAS_EMPLOYEE.id ? busyAtNewStart : [],
+        t.bookings.listOccupiedByUser.mockImplementation(async (userId) =>
+          userId === ANAS_EMPLOYEE.userId ? busyAtNewStart : [],
         );
 
         await patch({ startsAt: NEW_START }).expect(200);

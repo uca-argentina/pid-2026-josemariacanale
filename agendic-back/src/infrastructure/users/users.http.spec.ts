@@ -1,4 +1,4 @@
-import { DatabaseOperationError } from '../../domain/errors';
+import { ConflictError, DatabaseOperationError } from '../../domain/errors';
 import {
   ANA,
   bearer,
@@ -28,6 +28,7 @@ describe('Usuario', () => {
         id: 1,
         name: 'Ana Pérez',
         email: 'ana@example.com',
+        slug: null,
       });
       expect(t.users.findById).toHaveBeenCalledWith(ANA.id);
     });
@@ -70,6 +71,7 @@ describe('Usuario', () => {
         id: 99,
         name: 'New Owner',
         email: 'new-owner@example.com',
+        slug: null,
       });
     });
 
@@ -103,6 +105,7 @@ describe('Usuario', () => {
         id: ANA.id,
         name: 'Ana María',
         email: 'ana.new@example.com',
+        slug: null,
       });
     });
 
@@ -128,6 +131,7 @@ describe('Usuario', () => {
         id: ANA.id,
         name: ANA.name,
         email: ANA.email,
+        slug: null,
       });
     });
 
@@ -162,6 +166,7 @@ describe('Usuario', () => {
         id: ANA.id,
         name: ANA.name,
         email: ANA.email,
+        slug: null,
       });
     });
 
@@ -216,8 +221,49 @@ describe('Usuario', () => {
         id: 1,
         name: 'Ana María',
         email: 'ana@example.com',
+        slug: null,
       });
     });
+
+    it('sets the Enlace de reserva del Usuario, lowercased', async () => {
+      t.users.update.mockResolvedValue({ ...ANA, slug: 'ana-perez' });
+
+      const res = await t.http
+        .patch('/users/me')
+        .set(bearer(CLERK_TOKEN))
+        .send({ slug: ' Ana-Perez ' })
+        .expect(200);
+
+      expect(t.users.update).toHaveBeenCalledWith(ANA.id, { slug: 'ana-perez' });
+      expect(res.body.slug).toBe('ana-perez');
+    });
+
+    it('answers 409 when the slug is already the Enlace de reserva of another Usuario', async () => {
+      t.users.update.mockRejectedValue(
+        new ConflictError('Booking link already in use'),
+      );
+
+      const res = await t.http
+        .patch('/users/me')
+        .set(bearer(CLERK_TOKEN))
+        .send({ slug: 'taken' })
+        .expect(409);
+
+      expect(res.body.message).toBe('Booking link already in use');
+    });
+
+    it.each(['ab', 'Has Spaces', '-lead', 'a'.repeat(41)])(
+      'rejects the slug %j with 400',
+      async (slug) => {
+        await t.http
+          .patch('/users/me')
+          .set(bearer(CLERK_TOKEN))
+          .send({ slug })
+          .expect(400);
+
+        expect(t.users.update).not.toHaveBeenCalled();
+      },
+    );
 
     it('leaves the Usuario unchanged and answers with it when no field is sent', async () => {
       const res = await t.http
@@ -231,6 +277,7 @@ describe('Usuario', () => {
         id: 1,
         name: 'Ana Pérez',
         email: 'ana@example.com',
+        slug: null,
       });
     });
 

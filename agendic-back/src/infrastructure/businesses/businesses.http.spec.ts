@@ -54,6 +54,8 @@ const PRESENTED_BUSINESS = {
 const ANAS_SERVICE = {
   id: 1,
   branchId: ANAS_BRANCH.id,
+  userId: null,
+  availabilityId: null,
   ...SERVICE_PART,
   depositPercent: null,
   requiresApproval: false,
@@ -64,7 +66,12 @@ const ANAS_SERVICE = {
   slotInterval: null,
   minimumNoticeMinutes: 0,
   employees: [
-    { id: ANAS_EMPLOYEE.id, name: ANAS_EMPLOYEE.name, availabilityId: 10 },
+    {
+    id: ANAS_EMPLOYEE.id,
+    name: ANAS_EMPLOYEE.name,
+    availabilityId: 10,
+    userId: ANAS_EMPLOYEE.userId,
+  },
   ],
 };
 
@@ -118,6 +125,8 @@ describe('Negocio', () => {
         service: {
           id: ANAS_SERVICE.id,
           branchId: ANAS_SERVICE.branchId,
+          userId: null,
+          availabilityId: null,
           name: ANAS_SERVICE.name,
           description: ANAS_SERVICE.description,
           category: ANAS_SERVICE.category,
