@@ -6,8 +6,7 @@ import { DAILY_LIMIT_REACHED } from '../../domain/bookings/booking';
 import { BusinessRuleError, ConflictError } from '../../domain/errors';
 import { Service } from '../../domain/services/service';
 import { ServicesRepository } from '../../domain/services/services.repository';
-import { addDays, localDayBounds } from '../../domain/slots/slot';
-import { ListSlotsUseCase } from '../slots/list-slots.use-case';
+import { localDayBounds } from '../../domain/slots/slot';
 
 export function assertServiceBookable(
   service: Service | null,
@@ -32,34 +31,6 @@ export function assertNotPast(startsAt: Date, now: Date): void {
 }
 
 /**
- * Checks that `startsAt` is one of the Horarios reservables the Cliente was shown, recalculated now.
- *
- * @throws {BusinessRuleError} `startsAt` is not a Horario reservable of the Servicio for that Empleado
- */
-export async function assertSlotAvailable(
-  listSlots: ListSlotsUseCase,
-  serviceId: number,
-  employeeId: number,
-  startsAt: Date,
-  excludeBookingId?: number,
-): Promise<void> {
-  // A day of slack either side: the Sucursal's date for `startsAt` is within a day of its UTC date.
-  const iso = startsAt.toISOString();
-  const utcDate = iso.slice(0, 10);
-  const { days } = await listSlots.execute(
-    serviceId,
-    employeeId,
-    addDays(utcDate, -1),
-    addDays(utcDate, 1),
-    excludeBookingId,
-  );
-  if (!days.some((day) => day.slots.includes(iso)))
-    throw new BusinessRuleError(
-      `Slot ${iso} is not available for Service ${serviceId}`,
-    );
-}
-
-/**
  * Checks the Límite diario of the local day of the Sucursal that `startsAt` falls on.
  *
  * @throws {ConflictError} el Servicio ya tiene `dailyLimit` Turnos pendientes o aceptados ese día de la Sucursal
@@ -79,19 +50,20 @@ export async function assertUnderDailyLimit(
 
 /**
  * Every rule shared by creation and verification, except the Horario reservable check: Reservar runs it
- * apart with `assertSlotAvailable`, and verification does not run it.
+ * apart with `pickEmployee`, and verification does not run it. Without `employeeId` (Reservar, which still
+ * has to assign one) it skips the Empleado check.
  */
 export async function assertBookable(
   services: ServicesRepository,
   branches: BranchesRepository,
   serviceId: number,
-  employeeId: number,
+  employeeId: number | undefined,
   startsAt: Date,
   now: Date,
 ): Promise<{ service: Service; branch: Branch }> {
   const service = await services.findById(serviceId);
   assertServiceBookable(service);
-  assertEmployeeInCharge(service, employeeId);
+  if (employeeId !== undefined) assertEmployeeInCharge(service, employeeId);
   assertNotPast(startsAt, now);
   const branch = await branches.findById(service.branchId);
   assertBranchExists(branch);

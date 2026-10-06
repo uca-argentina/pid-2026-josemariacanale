@@ -174,7 +174,7 @@ Dirección pública que un Negocio comparte para que un Cliente entre a Reservar
 _Avoid_: link del negocio, perfil público, página pública, slug (eso es el identificador en el código)
 
 **Reagendar**:
-Mover un turno existente a otro horario del mismo Servicio, con el mismo Empleado. Libera el horario anterior. Lo puede hacer el Empleado o el Cliente, sobre un Turno pendiente o aceptado.
+Mover un turno existente a otro horario del mismo Servicio. Conserva al Empleado si está libre en el horario nuevo; si no, pasa a otro libre. Libera el horario anterior. Lo puede hacer el Empleado o el Cliente, sobre un Turno pendiente o aceptado.
 _Avoid_: reprogramar, cambiar el turno
 
 **Cancelar**:

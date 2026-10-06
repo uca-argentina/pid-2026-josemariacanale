@@ -1,5 +1,4 @@
 import { Availability } from '../../domain/availabilities/availability';
-import { EmployeeService } from '../../domain/services/service';
 import {
   ANAS_BRANCH,
   ANAS_EMPLOYEE,
@@ -12,15 +11,11 @@ import {
 const BRANCH = ANAS_BRANCH; // America/Argentina/Buenos_Aires
 const SERVICE = ANAS_SERVICE; // durationMinutes 30, so a start every 30 minutes
 
-const LINK: EmployeeService = {
-  serviceId: SERVICE.id,
-  employeeId: ANAS_EMPLOYEE.id,
-  availabilityId: 10,
-};
+const AVAILABILITY_ID = 10;
 
 /** Monday to Friday, 09:00–18:00. 2026-01-02 is a Friday; 2026-01-03/04 is the weekend. */
 const AVAILABILITY: Availability = {
-  id: LINK.availabilityId,
+  id: AVAILABILITY_ID,
   userId: ANAS_EMPLOYEE.userId,
   name: 'Horas laborables',
   timeZone: BRANCH.timeZone,
@@ -37,7 +32,7 @@ const slotsPath = (params: Record<string, string | number>) =>
 
 const query = (t: TestApp, params: Record<string, string | number>) =>
   t.http.get(
-    slotsPath({ employeeId: ANAS_EMPLOYEE.id, from: '2026-01-02', to: '2026-01-02', ...params }),
+    slotsPath({ from: '2026-01-02', to: '2026-01-02', ...params }),
   );
 
 describe('GET /services/:id/slots', () => {
@@ -46,7 +41,6 @@ describe('GET /services/:id/slots', () => {
   beforeEach(async () => {
     t = await createTestApp();
     t.services.findById.mockResolvedValue(SERVICE);
-    t.services.findEmployeeLink.mockResolvedValue(LINK);
     t.branches.findById.mockResolvedValue(BRANCH);
     t.availabilities.findById.mockResolvedValue(AVAILABILITY);
     t.bookings.listOccupiedByEmployee.mockResolvedValue([]);
@@ -401,22 +395,70 @@ describe('GET /services/:id/slots', () => {
     await query(t, {}).expect(404);
   });
 
-  it('answers 404 for an Empleado not in charge of the Servicio', async () => {
-    t.services.findEmployeeLink.mockResolvedValue(null);
+  describe('con varios Empleados', () => {
+    const JUAN_ID = ANAS_EMPLOYEE.id + 1;
+    const JUANS_AVAILABILITY: Availability = {
+      ...AVAILABILITY,
+      id: 11,
+      userId: 99,
+      schedule: workWeek('09:00', '10:00'),
+    };
 
-    await query(t, {}).expect(404);
+    beforeEach(() => {
+      t.services.findById.mockResolvedValue({
+        ...SERVICE,
+        employees: [
+          ...SERVICE.employees,
+          { id: JUAN_ID, name: 'Juan', availabilityId: JUANS_AVAILABILITY.id },
+        ],
+      });
+      t.availabilities.findById.mockImplementation(async (id) =>
+        id === JUANS_AVAILABILITY.id ? JUANS_AVAILABILITY : AVAILABILITY,
+      );
+    });
+
+    it('ofrece la unión de los Horarios reservables de cada uno', async () => {
+      const res = await query(t, {}).expect(200);
+
+      expect(res.body.days[0].slots).toHaveLength(18); // Juan's 09:00–10:00 is inside Ana's day
+      expect(t.bookings.listOccupiedByEmployee).toHaveBeenCalledTimes(2);
+    });
+
+    it('un horario ocupado para uno sigue ofrecido si el otro está libre', async () => {
+      t.bookings.listOccupiedByEmployee.mockImplementation(async (employeeId) =>
+        employeeId === ANAS_EMPLOYEE.id
+          ? [{ prepStartsAt: new Date('2026-01-02T12:00:00.000Z'), endsAt: new Date('2026-01-02T12:30:00.000Z') }]
+          : [],
+      );
+
+      const res = await query(t, {}).expect(200);
+
+      expect(res.body.days[0].slots).toContain('2026-01-02T12:00:00.000Z'); // Juan is free
+    });
+
+    it('si Ana tiene una Anulación de día libre y Juan no, ese día sale con los horarios de Juan', async () => {
+      t.availabilities.findById.mockImplementation(async (id) =>
+        id === JUANS_AVAILABILITY.id
+          ? JUANS_AVAILABILITY
+          : { ...AVAILABILITY, overrides: [{ id: 1, availabilityId: AVAILABILITY.id, date: '2026-01-02', ranges: [] }] },
+      );
+
+      const res = await query(t, {}).expect(200);
+
+      expect(res.body.days[0].slots).toEqual([
+        '2026-01-02T12:00:00.000Z',
+        '2026-01-02T12:30:00.000Z',
+      ]);
+    });
   });
 
   it.each([
-    ['a missing employeeId', { employeeId: undefined }],
     ['a missing from', { from: undefined }],
     ['a missing to', { to: undefined }],
-    ['a malformed employeeId', { employeeId: 'not-a-number' }],
     ['a malformed from', { from: '01-01-2026' }],
     ['a malformed to', { to: 'not-a-date' }],
   ])('rejects %s with 400', async (_, override) => {
     const params: Record<string, string | number | undefined> = {
-      employeeId: ANAS_EMPLOYEE.id,
       from: '2026-01-02',
       to: '2026-01-02',
       ...override,

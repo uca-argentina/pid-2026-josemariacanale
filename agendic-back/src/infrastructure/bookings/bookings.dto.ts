@@ -10,9 +10,6 @@ export class CreateBookingDto {
   @IsInt()
   serviceId!: number;
 
-  @IsInt()
-  employeeId!: number;
-
   @IsDateString()
   startsAt!: string;
 

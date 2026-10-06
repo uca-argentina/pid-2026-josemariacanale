@@ -45,6 +45,7 @@ describe('PrismaBookingsRepository', () => {
       findMany: jest.fn(),
       findUnique: jest.fn(),
       updateMany: jest.fn(),
+      groupBy: jest.fn(),
     },
     $transaction: jest.fn((run: (client: typeof tx) => unknown) => run(tx)),
   };
@@ -116,24 +117,23 @@ describe('PrismaBookingsRepository', () => {
     ).rejects.toBeInstanceOf(BusinessRuleError);
   });
 
-  it('reports whether a BOOKED Booking, its Tiempo de preparación included, overlaps the given window', async () => {
-    prisma.booking.findFirst.mockResolvedValue(BOOKING_ROW);
+  it('maps each Empleado to when they last received a PENDING or BOOKED Turno of the Servicio', async () => {
+    prisma.booking.groupBy.mockResolvedValue([
+      { employeeId: 1, _max: { createdAt: new Date('2026-01-01T10:00:00.000Z') } },
+    ]);
 
-    const overlaps = await repository.hasOverlappingOccupied(
-      1,
-      new Date('2026-01-01T12:00:00.000Z'),
-      new Date('2026-01-01T12:30:00.000Z'),
+    const last = await repository.lastReceivedByEmployee(4, [1, 2]);
+
+    expect(last).toEqual(new Map([[1, new Date('2026-01-01T10:00:00.000Z')]]));
+    expect(prisma.booking.groupBy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          serviceId: 4,
+          employeeId: { in: [1, 2] },
+          status: { in: [BookingStatus.PENDING, BookingStatus.BOOKED] },
+        },
+      }),
     );
-
-    expect(overlaps).toBe(true);
-    expect(prisma.booking.findFirst).toHaveBeenCalledWith({
-      where: {
-        employeeId: 1,
-        status: { in: [BookingStatus.PENDING, BookingStatus.BOOKED] },
-        prepStartsAt: { lt: new Date('2026-01-01T12:30:00.000Z') },
-        endsAt: { gt: new Date('2026-01-01T12:00:00.000Z') },
-      },
-    });
   });
 
   it('lists the occupied range of each Turno of the Empleado, from its preparation', async () => {
@@ -236,16 +236,6 @@ describe('PrismaBookingsRepository', () => {
   describe('PENDING Turnos hold their horario', () => {
     const OCCUPYING = { in: [BookingStatus.PENDING, BookingStatus.BOOKED] };
 
-    it('hasOverlappingOccupied looks at PENDING and BOOKED', async () => {
-      prisma.booking.findFirst.mockResolvedValue(null);
-
-      await repository.hasOverlappingOccupied(1, new Date(), new Date());
-
-      expect(prisma.booking.findFirst).toHaveBeenCalledWith({
-        where: expect.objectContaining({ status: OCCUPYING }),
-      });
-    });
-
     it('listOccupiedByEmployee looks at PENDING and BOOKED', async () => {
       prisma.booking.findMany.mockResolvedValue([]);
 
@@ -343,7 +333,7 @@ describe('PrismaBookingsRepository', () => {
 
       await expect(repository.cancel(1)).rejects.toBeInstanceOf(BusinessRuleError);
       await expect(
-        repository.reschedule(1, { prepStartsAt: NOW, startsAt: NOW, endsAt: NOW }),
+        repository.reschedule(1, { employeeId: 1, prepStartsAt: NOW, startsAt: NOW, endsAt: NOW }),
       ).rejects.toBeInstanceOf(BusinessRuleError);
     });
 
@@ -353,7 +343,7 @@ describe('PrismaBookingsRepository', () => {
       prisma.booking.updateMany.mockRejectedValue(cause);
 
       await expect(
-        repository.reschedule(1, { prepStartsAt: NOW, startsAt: NOW, endsAt: NOW }),
+        repository.reschedule(1, { employeeId: 1, prepStartsAt: NOW, startsAt: NOW, endsAt: NOW }),
       ).rejects.toBeInstanceOf(ConflictError);
     });
 
