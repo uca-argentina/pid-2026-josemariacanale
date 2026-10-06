@@ -16,7 +16,7 @@ export const slotDaySchema = z.object({
 export type SlotDay = z.infer<typeof slotDaySchema>;
 
 /**
- * The Horarios reservables of a Servicio with an Empleado, as GET /services/:id/slots returns them.
+ * The Horarios reservables of a Servicio (the union of its Empleados'), as GET /services/:id/slots returns them.
  * `timeZone` is the Sucursal's, the one the days are local to.
  */
 export const slotsSchema = z.object({
@@ -28,7 +28,6 @@ export type Slots = z.infer<typeof slotsSchema>;
 /** What GET /services/:id/slots asks for: `from`/`to` are local dates of the Sucursal, inclusive. */
 export interface SlotsQuery {
     serviceId: number;
-    employeeId: number;
     from: string;
     to: string;
 }

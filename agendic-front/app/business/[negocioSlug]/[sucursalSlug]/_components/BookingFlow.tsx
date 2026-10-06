@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useTransition } from 'react';
 import { ArrowLeft, Check, ChevronRight, X } from 'lucide-react';
-import { Avatar, AvatarFallback } from '@/app/_components/ui/avatar';
 import { Button } from '@/app/_components/ui/button';
 import { Input } from '@/app/_components/ui/input';
 import { Label } from '@/app/_components/ui/label';
@@ -13,23 +12,18 @@ import { BranchPhoto } from './BranchPhoto';
 import { ChipTabs } from './ChipTabs';
 import { bookSlotAction } from '../actions';
 import { TimeStep } from './TimeStep';
-import { depositFor, endTime, formatDate, formatDuration, formatPrice, initials } from './format';
+import { depositFor, endTime, formatDate, formatDuration, formatPrice } from './format';
 import { STEPS } from './types';
-import type { Booking, BookingDraft, Branch, Business, ClientData, Employee, Service, Step } from './types';
+import type { Booking, BookingDraft, Branch, Business, ClientData, Service, Step } from './types';
 
 const TITLES: Record<Step, string> = {
     service: 'Elegí un servicio',
-    employee: 'Elegí profesional',
     time: 'Elegí día y horario',
     confirm: 'Revisá y confirmá',
 };
 
-// ponytail: el glosario (CONTEXT.md) dice Empleado; el panel ya rotula "Profesionales"
-// ((app)/layout.tsx). Se sigue a la UI existente por consistencia, pero la divergencia con
-// docs/agents/domain.md está sin resolver. El código sí usa el identificador `Employee`.
 const LABELS: Record<Step, string> = {
     service: 'Servicio',
-    employee: 'Profesional',
     time: 'Horario',
     confirm: 'Confirmar',
 };
@@ -142,52 +136,6 @@ function ServiceStep({
                                 )}
                             >
                                 {active ? <Check className="size-4" /> : <span aria-hidden>+</span>}
-                            </span>
-                        </button>
-                    );
-                })}
-            </div>
-        </>
-    );
-}
-
-function EmployeeStep({
-    service,
-    chosen,
-    onChoose,
-}: {
-    service: Service;
-    chosen: Employee | null;
-    onChoose: (e: Employee) => void;
-}) {
-    return (
-        <>
-            <p className="text-[14px] text-muted-foreground">
-                Profesionales que atienden {service.name}.
-            </p>
-            <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                {service.employees.map((employee) => {
-                    const active = chosen?.id === employee.id;
-                    return (
-                        <button
-                            key={employee.id}
-                            type="button"
-                            onClick={() => onChoose(employee)}
-                            aria-pressed={active}
-                            className={cn(
-                                'flex flex-col items-center gap-3 rounded-2xl border px-4 py-6 transition-colors',
-                                active
-                                    ? 'border-foreground ring-1 ring-foreground'
-                                    : 'border-border hover:border-foreground/40',
-                            )}
-                        >
-                            <Avatar className="size-14">
-                                <AvatarFallback className="bg-muted text-[15px] font-extrabold text-foreground">
-                                    {initials(employee.name)}
-                                </AvatarFallback>
-                            </Avatar>
-                            <span className="text-[14px] font-bold tracking-[-0.02em]">
-                                {employee.name}
                             </span>
                         </button>
                     );
@@ -357,7 +305,7 @@ function SummaryPanel({
     booking: boolean;
     onAdvance: () => void;
 }) {
-    const { service, employee, date, slot } = draft;
+    const { service, date, slot } = draft;
     const deposit = service ? depositFor(service) : null;
 
     return (
@@ -401,7 +349,6 @@ function SummaryPanel({
                             </p>
                             <p className="mt-0.5 text-[13px] text-muted-foreground">
                                 {formatDuration(service.durationMinutes)}
-                                {employee ? ` con ${employee.name}` : ''}
                             </p>
                         </div>
                         <span className="shrink-0 text-[14px] font-bold">
@@ -467,10 +414,9 @@ export function BookingFlow({
     onClose: () => void;
     onBooked: (booking: Booking) => void;
 }) {
-    const [step, setStep] = useState<Step>(initialService ? 'employee' : 'service');
+    const [step, setStep] = useState<Step>(initialService ? 'time' : 'service');
     const [draft, setDraft] = useState<BookingDraft>({
         service: initialService,
-        employee: null,
         date: null,
         slot: null,
     });
@@ -488,7 +434,7 @@ export function BookingFlow({
         return () => document.removeEventListener('keydown', onKey);
     }, [onClose]);
 
-    const { service, employee, date, slot } = draft;
+    const { service, date, slot } = draft;
 
     // Volver a elegir lo mismo no puede borrar lo que ya se eligió después: solo un cambio real
     // invalida los pasos siguientes.
@@ -496,18 +442,11 @@ export function BookingFlow({
         setDraft((d) =>
             d.service?.id === next.id
                 ? d
-                : { service: next, employee: null, date: null, slot: null },
-        );
-
-    // Cada Empleado tiene su propia agenda, así que el horario elegido para otro no sirve.
-    const chooseEmployee = (next: Employee) =>
-        setDraft((d) =>
-            d.employee?.id === next.id ? d : { ...d, employee: next, date: null, slot: null },
+                : { service: next, date: null, slot: null },
         );
 
     const canAdvance =
         (step === 'service' && !!service) ||
-        (step === 'employee' && !!employee) ||
         (step === 'time' && !!date && !!slot) ||
         step === 'confirm';
 
@@ -531,13 +470,12 @@ export function BookingFlow({
     };
 
     const confirm = (data: ClientData) => {
-        if (!service || !employee || !date || !slot) return;
+        if (!service || !date || !slot) return;
         setClient(data);
         setConfirmError(null);
         startBooking(async () => {
             const result = await bookSlotAction({
                 serviceId: service.id,
-                employeeId: employee.id,
                 startsAt: slot.startsAt,
                 clientName: data.name,
                 clientEmail: data.email,
@@ -549,7 +487,7 @@ export function BookingFlow({
                     business,
                     branch,
                     service,
-                    employee,
+                    employeeName: result.booking.employeeName,
                     date,
                     time: slot.time,
                     status: result.booking.status,
@@ -614,19 +552,10 @@ export function BookingFlow({
                             />
                         )}
 
-                        {step === 'employee' && service && (
-                            <EmployeeStep
-                                service={service}
-                                chosen={employee}
-                                onChoose={chooseEmployee}
-                            />
-                        )}
-
-                        {step === 'time' && service && employee && (
+                        {step === 'time' && service && (
                             <TimeStep
-                                key={`${service.id}-${employee.id}`}
+                                key={service.id}
                                 service={service}
-                                employee={employee}
                                 branch={branch}
                                 date={date}
                                 slot={slot}
@@ -634,7 +563,6 @@ export function BookingFlow({
                                 onSelect={(nextDate, nextSlot) =>
                                     setDraft((d) => ({ ...d, date: nextDate, slot: nextSlot }))
                                 }
-                                onSeeEmployees={() => goTo('employee')}
                             />
                         )}
 
@@ -669,7 +597,7 @@ export function BookingFlow({
                 <div className="mb-2 flex items-baseline justify-between gap-4">
                     <span className="min-w-0 truncate text-[13px] font-medium text-muted-foreground">
                         {service
-                            ? `${service.name}${employee ? ` con ${employee.name}` : ''}`
+                            ? service.name
                             : 'Todavía no elegiste un servicio.'}
                     </span>
                     <span className="shrink-0 text-[15px] font-extrabold tracking-[-0.02em]">

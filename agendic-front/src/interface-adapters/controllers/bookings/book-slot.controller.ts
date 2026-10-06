@@ -11,12 +11,12 @@ function presenter(booking: Booking, instrumentationService: IInstrumentationSer
         endsAt: booking.endsAt,
         status: booking.status,
         notes: booking.notes ?? null,
+        employeeName: booking.employeeName ?? null,
     }));
 }
 
 const inputSchema = z.object({
     serviceId: z.number().int().positive(),
-    employeeId: z.number().int().positive(),
     startsAt: z.iso.datetime(),
     clientName: z.string().trim().min(1),
     clientEmail: z.string().trim().pipe(z.email()),

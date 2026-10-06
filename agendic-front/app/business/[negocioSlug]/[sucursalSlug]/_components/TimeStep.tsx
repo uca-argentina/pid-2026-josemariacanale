@@ -2,12 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { CalendarX2, Loader2 } from 'lucide-react';
-import { Avatar, AvatarFallback } from '@/app/_components/ui/avatar';
 import { Button } from '@/app/_components/ui/button';
 import { cn } from '@/app/_components/utils';
 import { listSlotsAction } from '../actions';
-import { addDays, endTime, formatDate, initials, shortWeekday, todayIn } from './format';
-import type { Branch, Employee, Service, Slot, SlotDay } from './types';
+import { addDays, endTime, formatDate, shortWeekday, todayIn } from './format';
+import type { Branch, Service, Slot, SlotDay } from './types';
 
 /** Dos semanas desde hoy: entra en el máximo de 31 días que acepta el back. */
 const DAYS_SHOWN = 14;
@@ -18,27 +17,23 @@ const pillButton = 'h-auto rounded-full px-4 py-2.5 text-[13.5px] font-bold';
 
 /**
  * El paso Horario. Pide los Horarios reservables al montarse, así que BookingFlow lo monta con
- * `key` por Servicio y Empleado: cambiar cualquiera de los dos, o volver a este paso, los pide de nuevo.
+ * `key` por Servicio: cambiarlo, o volver a este paso, los pide de nuevo. El Cliente no elige Empleado: el back asigna uno al Reservar.
  */
 export function TimeStep({
     service,
-    employee,
     branch,
     date,
     slot,
     notice,
     onSelect,
-    onSeeEmployees,
 }: {
     service: Service;
-    employee: Employee;
     branch: Branch;
     date: string | null;
     slot: Slot | null;
     /** Un aviso que el paso muestra arriba, por ejemplo que el horario elegido se ocupó. */
     notice: string | null;
     onSelect: (date: string, slot: Slot | null) => void;
-    onSeeEmployees: () => void;
 }) {
     const [load, setLoad] = useState<Load>({ status: 'loading' });
     const [attempt, setAttempt] = useState(0);
@@ -49,7 +44,6 @@ export function TimeStep({
         const from = todayIn(branch.timeZone);
         listSlotsAction({
             serviceId: service.id,
-            employeeId: employee.id,
             from,
             to: addDays(from, DAYS_SHOWN - 1),
         }).then(
@@ -57,7 +51,7 @@ export function TimeStep({
                 if (!current) return;
                 if (!result.ok) return setLoad({ status: 'error', message: result.message });
                 setLoad({ status: 'ready', days: result.days });
-                // Se abre el primer día con lugar, así se ve de entrada si el profesional tiene horarios.
+                // Se abre el primer día con lugar, así se ve de entrada si el servicio tiene horarios.
                 if (!date) {
                     const first = result.days.find((d) => d.slots.length > 0) ?? result.days[0];
                     if (first) onSelect(first.date, null);
@@ -92,23 +86,8 @@ export function TimeStep({
             Ir al próximo día con lugar
         </Button>
     );
-    const seeEmployees = (
-        <Button variant="outline" onClick={onSeeEmployees} className={pillButton}>
-            Ver todos los profesionales
-        </Button>
-    );
-
     return (
         <>
-            <div className="flex items-center gap-2.5 rounded-full border border-border py-1.5 pr-4 pl-1.5">
-                <Avatar>
-                    <AvatarFallback className="bg-muted text-[10px] font-extrabold text-foreground">
-                        {initials(employee.name)}
-                    </AvatarFallback>
-                </Avatar>
-                <span className="text-[14px] font-bold tracking-[-0.02em]">{employee.name}</span>
-            </div>
-
             {notice && (
                 <p role="alert" className="mt-5 rounded-xl bg-muted p-4 text-[13.5px] font-semibold">
                     {notice}
@@ -133,7 +112,7 @@ export function TimeStep({
 
             {load.status === 'ready' && days.length === 0 && (
                 <p className="mt-7 text-[14px] text-muted-foreground">
-                    {employee.name} no tiene horarios en las próximas dos semanas.
+                    No hay horarios en las próximas dos semanas.
                 </p>
             )}
 
@@ -212,23 +191,13 @@ export function TimeStep({
 
             {chosenDay?.reason === 'FULLY_BOOKED' && (
                 <div className="mt-8 flex flex-col items-center gap-2 rounded-2xl border border-border px-5 py-14 text-center">
-                    <Avatar className="size-12">
-                        <AvatarFallback className="bg-muted text-[14px] font-extrabold text-foreground">
-                            {initials(employee.name)}
-                        </AvatarFallback>
-                    </Avatar>
-                    <p className="mt-1 text-[17px] font-extrabold tracking-[-0.02em]">
-                        {employee.name} tiene la agenda completa ese día
-                    </p>
+                    <p className="text-[17px] font-extrabold tracking-[-0.02em]">La agenda está completa ese día</p>
                     {nextWithSlots && (
                         <p className="text-[13.5px] text-muted-foreground first-letter:uppercase">
-                            Tiene lugar el {formatDate(nextWithSlots.date)}
+                            Hay lugar el {formatDate(nextWithSlots.date)}
                         </p>
                     )}
-                    <div className="mt-4 flex flex-wrap justify-center gap-2.5">
-                        {goToNext}
-                        {seeEmployees}
-                    </div>
+                    {goToNext && <div className="mt-4">{goToNext}</div>}
                 </div>
             )}
 
@@ -237,13 +206,8 @@ export function TimeStep({
                     <div className="flex size-11 items-center justify-center rounded-xl bg-muted">
                         <CalendarX2 className="size-5 text-muted-foreground" />
                     </div>
-                    <p className="text-[15px] font-bold tracking-[-0.02em]">
-                        {employee.name} no trabaja o está anulado ese día
-                    </p>
-                    <div className="mt-3 flex flex-wrap justify-center gap-2.5">
-                        {goToNext}
-                        {seeEmployees}
-                    </div>
+                    <p className="text-[15px] font-bold tracking-[-0.02em]">No se atiende ese día</p>
+                    {goToNext && <div className="mt-3">{goToNext}</div>}
                 </div>
             )}
         </>

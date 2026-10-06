@@ -6,7 +6,6 @@ describe('bookSlotUseCase', () => {
     const booking = {
         id: 7,
         serviceId: 100,
-        employeeId: 1,
         startsAt: '2026-09-28T12:00:00.000Z',
         endsAt: '2026-09-28T13:00:00.000Z',
         status: 'UNVERIFIED' as const,
@@ -19,7 +18,6 @@ describe('bookSlotUseCase', () => {
         await expect(
             bookSlotUseCase(instrumentation, bookingsWith({ book }))({
                 serviceId: 100,
-                employeeId: 1,
                 startsAt: '2026-09-28T12:00:00.000Z',
                 clientName: 'Juana Pérez',
                 clientEmail: 'juana@example.com',
@@ -28,7 +26,6 @@ describe('bookSlotUseCase', () => {
         ).resolves.toMatchObject({ id: 7, notes: 'Llego 5 minutos tarde' });
         expect(book).toHaveBeenCalledWith({
             serviceId: 100,
-            employeeId: 1,
             startsAt: '2026-09-28T12:00:00.000Z',
             clientName: 'Juana Pérez',
             clientEmail: 'juana@example.com',
@@ -44,7 +41,6 @@ describe('bookSlotUseCase', () => {
 
         await bookSlotUseCase(instrumentation, bookingsWith({ book }))({
             serviceId: 100,
-            employeeId: 1,
             startsAt: '2026-09-28T12:00:00.000Z',
             clientName: 'Juana Pérez',
             clientEmail: 'juana@example.com',
@@ -58,7 +54,6 @@ describe('bookSlotUseCase', () => {
         await expect(
             bookSlotUseCase(instrumentation, bookingsWith({ book }))({
                 serviceId: 100,
-                employeeId: 1,
                 startsAt: '2026-09-28T12:00:00.000Z',
                 clientName: 'Juana Pérez',
                 clientEmail: 'juana@example.com',

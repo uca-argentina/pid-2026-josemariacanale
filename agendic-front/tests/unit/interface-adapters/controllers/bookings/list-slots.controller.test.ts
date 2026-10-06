@@ -2,7 +2,7 @@ import { InputParseError } from '@/src/entities/errors/common';
 import { listSlotsController } from '@/src/interface-adapters/controllers/bookings/list-slots.controller';
 import { instrumentation } from '@/tests/unit/stubs';
 
-const query = { serviceId: 100, employeeId: 1, from: '2026-09-28', to: '2026-10-11' };
+const query = { serviceId: 100, from: '2026-09-28', to: '2026-10-11' };
 
 describe('listSlotsController', () => {
     it('presents each Horario reservable with its time in the zona horaria of the Sucursal', async () => {
@@ -42,7 +42,6 @@ describe('listSlotsController', () => {
     });
 
     it.each([
-        ['a missing employeeId', { ...query, employeeId: undefined }],
         ['a serviceId that is not an integer', { ...query, serviceId: 1.5 }],
         ['a date that is not YYYY-MM-DD', { ...query, from: '28/09/2026' }],
         ['a to before from', { ...query, from: '2026-10-11', to: '2026-09-28' }],

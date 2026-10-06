@@ -14,7 +14,6 @@ export type ListSlotsResult =
 
 export async function listSlotsAction(query: {
     serviceId: number;
-    employeeId: number;
     from: string;
     to: string;
 }): Promise<ListSlotsResult> {
@@ -23,9 +22,9 @@ export async function listSlotsAction(query: {
         return { ok: true, days };
     } catch (error) {
         unstable_rethrow(error);
-        // El Servicio se dio de baja o el Empleado dejó de atenderlo desde que se cargó la página.
+        // El Servicio se dio de baja desde que se cargó la página.
         if (error instanceof NotFoundError)
-            return { ok: false, message: 'Este profesional ya no atiende este servicio. Recargá la página.' };
+            return { ok: false, message: 'Este servicio ya no está disponible. Recargá la página.' };
         getInjection('ICrashReporterService').report(error);
         return { ok: false, message: 'No pudimos cargar los horarios. Intentá de nuevo.' };
     }

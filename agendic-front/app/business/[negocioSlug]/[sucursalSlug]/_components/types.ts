@@ -23,12 +23,11 @@ export type SlotDay = Awaited<ReturnType<DI_RETURN_TYPES['IListSlotsController']
 export type Slot = SlotDay['slots'][number];
 
 /**
- * Lo que el Cliente lleva elegido. `POST /bookings` necesita serviceId + employeeId + startsAt
+ * Lo que el Cliente lleva elegido. `POST /bookings` necesita serviceId + startsAt
  * + clientName + clientEmail; el día se guarda aparte porque la UI lo elige antes que el horario.
  */
 export interface BookingDraft {
     service: Service | null;
-    employee: Employee | null;
     date: string | null;
     slot: Slot | null;
 }
@@ -50,7 +49,8 @@ export interface Booking {
     business: Business;
     branch: Branch;
     service: Service;
-    employee: Employee;
+    /** El nombre del Empleado que el back le asignó: el Cliente no lo elige. */
+    employeeName: string | null;
     /** 'YYYY-MM-DD', local de la Sucursal. */
     date: string;
     /** 'HH:mm', local de la Sucursal. */
@@ -64,5 +64,5 @@ export interface Booking {
     coverUrl: string | undefined;
 }
 
-export const STEPS = ['service', 'employee', 'time', 'confirm'] as const;
+export const STEPS = ['service', 'time', 'confirm'] as const;
 export type Step = (typeof STEPS)[number];

@@ -10,9 +10,9 @@ const respond = (status: number, body: unknown) =>
 afterEach(() => jest.restoreAllMocks());
 
 describe('BookingsRepository.listSlots', () => {
-    const query = { serviceId: 100, employeeId: 1, from: '2026-09-28', to: '2026-10-11' };
+    const query = { serviceId: 100, from: '2026-09-28', to: '2026-10-11' };
 
-    it('GETs the Horarios reservables of the Servicio with the Empleado, without a Sesión', async () => {
+    it('GETs the Horarios reservables of the Servicio, without a Sesión', async () => {
         const slots = {
             timeZone: 'America/Argentina/Buenos_Aires',
             days: [
@@ -24,7 +24,7 @@ describe('BookingsRepository.listSlots', () => {
         const fetchSpy = respond(200, slots);
 
         await expect(repo().listSlots(query)).resolves.toEqual(slots);
-        expect(fetchSpy).toHaveBeenCalledWith('http://api/services/100/slots?employeeId=1&from=2026-09-28&to=2026-10-11', {});
+        expect(fetchSpy).toHaveBeenCalledWith('http://api/services/100/slots?from=2026-09-28&to=2026-10-11', {});
     });
 
     it('translates a 404 to NotFoundError', async () => {
@@ -69,7 +69,6 @@ describe('BookingsRepository.listSlots', () => {
 describe('BookingsRepository.book', () => {
     const input = {
         serviceId: 100,
-        employeeId: 1,
         startsAt: '2026-09-28T12:00:00.000Z',
         clientName: 'Juana Pérez',
         clientEmail: 'juana@example.com',
@@ -175,7 +174,7 @@ describe('BookingsRepository spans', () => {
         respond(404, { message: 'nope' });
         await spanning.verifyBooking('abc').catch(() => undefined);
         await spanning.book({} as never).catch(() => undefined);
-        await spanning.listSlots({ serviceId: 1, employeeId: 1, from: 'a', to: 'b' }).catch(() => undefined);
+        await spanning.listSlots({ serviceId: 1, from: 'a', to: 'b' }).catch(() => undefined);
         expect(names).toEqual([
             'BookingsRepository > verifyBooking',
             'BookingsRepository > book',

@@ -22,12 +22,12 @@ export class BookingsRepository implements IBookingsRepository {
     ) {}
 
     /**
-     * @throws {NotFoundError} el back respondió 404: el Servicio o el Empleado ya no existen
+     * @throws {NotFoundError} el back respondió 404: el Servicio ya no existe
      * @throws {ApiRequestError} cualquier otra respuesta con error, un cuerpo inesperado o una falla de red
      */
     async listSlots({ serviceId, ...query }: SlotsQuery): Promise<Slots> {
         return this.instrumentationService.startSpan({ name: 'BookingsRepository > listSlots', op: 'http.client' }, async () => {
-            const params = new URLSearchParams({ employeeId: String(query.employeeId), from: query.from, to: query.to });
+            const params = new URLSearchParams({ from: query.from, to: query.to });
             const what = 'GET /services/:id/slots';
             const body = await this.request(`/services/${serviceId}/slots?${params}`, {}, what);
             return parseOrFail(() => slotsSchema.parse(body), what);

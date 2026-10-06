@@ -78,14 +78,12 @@ export function BookingActions({ booking, tab, now }: { booking: Booking; tab: B
                 <X className="size-4" />
                 Cancelar
             </PanelButton>
-            {booking.employeeId !== undefined && (
-                <PanelButton variant="secondary" onClick={() => setDialog('reschedule')}>
-                    <CalendarClock className="size-4" />
-                    Reagendar
-                </PanelButton>
-            )}
-            {dialog === 'reschedule' && booking.employeeId !== undefined && (
-                <RescheduleDialog booking={booking} employeeId={booking.employeeId} now={now} onOpenChange={setOpen('reschedule')} />
+            <PanelButton variant="secondary" onClick={() => setDialog('reschedule')}>
+                <CalendarClock className="size-4" />
+                Reagendar
+            </PanelButton>
+            {dialog === 'reschedule' && (
+                <RescheduleDialog booking={booking} now={now} onOpenChange={setOpen('reschedule')} />
             )}
         </>
     );

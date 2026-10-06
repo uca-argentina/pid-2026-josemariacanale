@@ -20,10 +20,10 @@ const NO_SLOTS_REASON = {
 type Load = { status: 'loading' } | { status: 'error'; message: string } | { status: 'ready'; days: Extract<ListSlotsResult, { ok: true }>['days'] };
 
 /**
- * Elige el nuevo Horario reservable de un Turno aceptado. Pide al back los horarios del mismo Servicio
- * y Empleado, igual que la reserva pública, y al confirmar reagenda. Quien lo monta necesita `employeeId`.
+ * Elige el nuevo Horario reservable de un Turno aceptado. Pide al back los horarios del mismo Servicio,
+ * igual que la reserva pública, y al confirmar reagenda.
  */
-export function RescheduleDialog({ booking, employeeId, now, onOpenChange }: { booking: Booking; employeeId: number; now: number; onOpenChange: (open: boolean) => void }) {
+export function RescheduleDialog({ booking, now, onOpenChange }: { booking: Booking; now: number; onOpenChange: (open: boolean) => void }) {
     const [load, setLoad] = useState<Load>({ status: 'loading' });
     const [attempt, setAttempt] = useState(0);
     const [date, setDate] = useState<string | null>(null);
@@ -34,7 +34,7 @@ export function RescheduleDialog({ booking, employeeId, now, onOpenChange }: { b
     useEffect(() => {
         let current = true;
         const from = dayKey(now);
-        listSlotsAction({ serviceId: booking.serviceId, employeeId, from, to: addDays(from, DAYS_SHOWN - 1) }).then(
+        listSlotsAction({ serviceId: booking.serviceId, from, to: addDays(from, DAYS_SHOWN - 1) }).then(
             (result) => {
                 if (!current) return;
                 if (!result.ok) return setLoad({ status: 'error', message: result.message });
@@ -46,7 +46,7 @@ export function RescheduleDialog({ booking, employeeId, now, onOpenChange }: { b
         return () => {
             current = false;
         };
-    }, [attempt, booking.serviceId, employeeId, now]);
+    }, [attempt, booking.serviceId, now]);
 
     const days = load.status === 'ready' ? load.days : [];
     const chosenDay = days.find((d) => d.date === date);
