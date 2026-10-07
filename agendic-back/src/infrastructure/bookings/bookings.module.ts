@@ -1,10 +1,13 @@
 import { Module } from '@nestjs/common';
 import { CancelBookingUseCase } from '../../application/bookings/cancel-booking.use-case';
+import { CancelBookingByLinkUseCase } from '../../application/bookings/cancel-booking-by-link.use-case';
 import { CancelClientBookingUseCase } from '../../application/bookings/cancel-client-booking.use-case';
+import { GetBookingByLinkUseCase } from '../../application/bookings/get-booking-by-link.use-case';
 import { ListClientBookingsUseCase } from '../../application/bookings/list-client-bookings.use-case';
 import { MarkNoShowUseCase } from '../../application/bookings/mark-no-show.use-case';
 import { RequestClientAccessUseCase } from '../../application/bookings/request-client-access.use-case';
 import { RescheduleBookingUseCase } from '../../application/bookings/reschedule-booking.use-case';
+import { RescheduleBookingByLinkUseCase } from '../../application/bookings/reschedule-booking-by-link.use-case';
 import { RescheduleClientBookingUseCase } from '../../application/bookings/reschedule-client-booking.use-case';
 import { ListSlotsUseCase } from '../../application/slots/list-slots.use-case';
 import { CreateBookingUseCase } from '../../application/bookings/create-booking.use-case';
@@ -13,13 +16,14 @@ import { AcceptBookingUseCase } from '../../application/bookings/accept-booking.
 import { RejectBookingUseCase } from '../../application/bookings/reject-booking.use-case';
 import { RequestBookingCodeUseCase } from '../../application/bookings/request-booking-code.use-case';
 import { UsersModule } from '../users/users.module';
+import { BookingLinksController } from './booking-links.controller';
 import { BookingsController } from './bookings.controller';
 import { ClientAccessGuard } from './client-access.guard';
 import { ClientBookingsController } from './client-bookings.controller';
 
 @Module({
   imports: [UsersModule],
-  controllers: [BookingsController, ClientBookingsController],
+  controllers: [BookingsController, ClientBookingsController, BookingLinksController],
   providers: [
     CreateBookingUseCase,
     RequestBookingCodeUseCase,
@@ -34,6 +38,9 @@ import { ClientBookingsController } from './client-bookings.controller';
     ListClientBookingsUseCase,
     CancelClientBookingUseCase,
     RescheduleClientBookingUseCase,
+    GetBookingByLinkUseCase,
+    CancelBookingByLinkUseCase,
+    RescheduleBookingByLinkUseCase,
     ClientAccessGuard,
   ],
 })

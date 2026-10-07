@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 import {
   Booking,
@@ -42,6 +43,7 @@ const BOOKING_SELECT = {
   status: true,
   notes: true,
   noShowAt: true,
+  link: true,
   client: { select: { name: true, email: true } },
 } satisfies Prisma.BookingSelect;
 
@@ -97,6 +99,7 @@ export class PrismaBookingsRepository implements BookingsRepository {
         select: BOOKING_SELECT,
         data: {
           ...booking,
+          link: generateBookingLink(),
           client: {
             create: { name: clientName, email: normalizeEmail(clientEmail) },
           },
@@ -215,6 +218,17 @@ export class PrismaBookingsRepository implements BookingsRepository {
       .catch(translateError);
     if (!row) throw new NotFoundError('Booking not found');
     return toBooking(row);
+  }
+
+  /**
+   * @throws {NotFoundError} el Enlace no corresponde a ningún Turno
+   */
+  async findByLink(link: string): Promise<ClientBooking> {
+    const row = await this.prisma.booking
+      .findUnique({ where: { link }, select: CLIENT_BOOKING_SELECT })
+      .catch(translateError);
+    if (!row) throw new NotFoundError('Turno not found');
+    return toClientBooking(row);
   }
 
   /**
@@ -422,7 +436,11 @@ const toBooking = (row: BookingRow): Booking => ({
   status: row.status as BookingStatus,
   notes: row.notes,
   noShowAt: row.noShowAt,
+  link: row.link,
 });
+
+/** 256 bits, URL-safe (ADR 0022 pide al menos 128). */
+const generateBookingLink = (): string => randomBytes(32).toString('base64url');
 
 /** The Sucursal's data if the Servicio is del Negocio, with its cover (the first Imagen de Sucursal by order). */
 const toClientBooking = (row: ClientBookingRow): ClientBooking => {

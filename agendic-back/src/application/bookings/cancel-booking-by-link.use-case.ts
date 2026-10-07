@@ -6,22 +6,22 @@ import {
 } from '../../domain/bookings/bookings.repository';
 import { CLOCK, Clock } from '../../domain/clock';
 import { cancelResolvedBooking } from './cancel-resolved-booking';
-import { findClientBooking } from './find-client-booking';
+import { findBookingByLink } from './find-booking-by-link';
 
-/** Cancela un Turno pendiente o aceptado del Cliente, hasta que empieza (ADR 0022). */
+/** Cancela un Turno pendiente o aceptado por su Enlace del Turno, hasta que empieza (ADR 0022). */
 @Injectable()
-export class CancelClientBookingUseCase {
+export class CancelBookingByLinkUseCase {
   constructor(
     @Inject(BOOKINGS_REPOSITORY) private readonly bookings: BookingsRepository,
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
   /**
-   * @throws {NotFoundError} el Turno no existe o no es de este email
+   * @throws {NotFoundError} el Enlace no corresponde a ningún Turno
    * @throws {BusinessRuleError} el Turno no está pendiente ni aceptado, o ya empezó
    */
-  async execute(email: string, bookingId: number): Promise<ClientBooking> {
-    const booking = await findClientBooking(this.bookings, email, bookingId);
+  async execute(link: string): Promise<ClientBooking> {
+    const booking = await findBookingByLink(this.bookings, link);
     return cancelResolvedBooking(this.bookings, this.clock, booking);
   }
 }

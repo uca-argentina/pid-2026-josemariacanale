@@ -208,6 +208,7 @@ model Booking {
   status                     BookingStatus // fijado al crear: BOOKED, o PENDING con Aprobación manual (ADR 0022)
   notes                      String? // Comentario del Turno, up to 500 characters (checked by the API)
   noShowAt                   DateTime?     @db.Timestamptz(3) // Ausencia: when the Empleado marked it; never replaces status
+  link                       String        @unique // Enlace del Turno (ADR 0022): secret, random, URL-safe, generated at creation
   createdAt                  DateTime      @default(now()) @db.Timestamptz(3)
 
   service  Service  @relation(fields: [serviceId], references: [id])

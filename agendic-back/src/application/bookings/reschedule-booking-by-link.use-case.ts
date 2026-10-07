@@ -9,16 +9,15 @@ import {
   ServicesRepository,
 } from '../../domain/services/services.repository';
 import { ListSlotsUseCase } from '../slots/list-slots.use-case';
-import { findClientBooking } from './find-client-booking';
+import { findBookingByLink } from './find-booking-by-link';
 import { rescheduleResolvedBooking } from './reschedule-resolved-booking';
 
 /**
- * Reagenda un Turno pendiente o aceptado del Cliente a otro Horario reservable del mismo Servicio, con el mismo
- * Empleado si está libre y si no con otro (ver `pickEmployee`). Si el Servicio tiene Aprobación manual, el Turno
- * queda (o vuelve a quedar) PENDING (ADR 0022).
+ * Reagenda un Turno pendiente o aceptado por su Enlace del Turno a otro Horario reservable del mismo Servicio, con
+ * las mismas reglas que Reagendar del Cliente (ADR 0022).
  */
 @Injectable()
-export class RescheduleClientBookingUseCase {
+export class RescheduleBookingByLinkUseCase {
   constructor(
     @Inject(BOOKINGS_REPOSITORY) private readonly bookings: BookingsRepository,
     @Inject(SERVICES_REPOSITORY) private readonly services: ServicesRepository,
@@ -26,16 +25,12 @@ export class RescheduleClientBookingUseCase {
   ) {}
 
   /**
-   * @throws {NotFoundError} el Turno no existe o no es de este email
+   * @throws {NotFoundError} el Enlace no corresponde a ningún Turno
    * @throws {BusinessRuleError} el Turno no está pendiente ni aceptado, o `startsAt` no es un Horario reservable de ningún Empleado
    * @throws {ConflictError} el horario nuevo pisa otro Turno del Empleado
    */
-  async execute(
-    email: string,
-    bookingId: number,
-    startsAt: Date,
-  ): Promise<ClientBooking> {
-    const booking = await findClientBooking(this.bookings, email, bookingId);
+  async execute(link: string, startsAt: Date): Promise<ClientBooking> {
+    const booking = await findBookingByLink(this.bookings, link);
     return rescheduleResolvedBooking(
       this.bookings,
       this.services,

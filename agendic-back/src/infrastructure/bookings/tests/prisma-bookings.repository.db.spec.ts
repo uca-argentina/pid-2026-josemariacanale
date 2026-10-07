@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { BookingStatus } from '../../../domain/bookings/booking';
+import { NotFoundError } from '../../../domain/errors';
 import { PrismaService } from '../../prisma.service';
 import { PrismaBookingsRepository } from '../prisma-bookings.repository';
 
@@ -140,6 +141,58 @@ describe('PrismaBookingsRepository (real database)', () => {
       await prisma.branch.deleteMany({ where: { businessId } });
       await prisma.business.deleteMany({ where: { id: businessId } });
       await prisma.user.delete({ where: { id: ownerId } });
+    }
+  }, 60_000);
+
+  it('finds a Turno por su Enlace del Turno, único y generado al crear; 404 si no existe (ADR 0022)', async () => {
+    const linkEmail = `link-${email}`;
+    const { id: linkUserId } = await prisma.user.create({
+      data: { clerkId: `${tag}-link`, name: tag, email: linkEmail },
+    });
+    try {
+      const { id: availabilityId } = await prisma.availability.create({
+        data: {
+          userId: linkUserId,
+          name: 'Horas laborables',
+          timeZone: 'America/Argentina/Buenos_Aires',
+          isDefault: true,
+        },
+      });
+      const { id: serviceId } = await prisma.service.create({
+        data: {
+          userId: linkUserId,
+          availabilityId,
+          name: `${tag}-link`,
+          slug: `${tag}-link`,
+          category: 'CLINICA',
+          durationMinutes: 60,
+          price: 1,
+        },
+      });
+      const created = await repository.create({
+        serviceId,
+        employeeId: null,
+        userId: linkUserId,
+        clientName: 'Dora',
+        clientEmail: linkEmail,
+        prepStartsAt: new Date(Date.UTC(2031, 0, 3, 16)),
+        startsAt: new Date(Date.UTC(2031, 0, 3, 16)),
+        endsAt: new Date(Date.UTC(2031, 0, 3, 17)),
+        notes: null,
+        status: BookingStatus.BOOKED,
+      });
+
+      const found = await repository.findByLink(created.link);
+
+      expect(found.id).toBe(created.id);
+      await expect(repository.findByLink('a-link-nobody-has')).rejects.toThrow(
+        new NotFoundError('Turno not found'),
+      );
+    } finally {
+      await prisma.booking.deleteMany({ where: { userId: linkUserId } });
+      await prisma.service.deleteMany({ where: { userId: linkUserId } });
+      await prisma.availability.deleteMany({ where: { userId: linkUserId } });
+      await prisma.user.delete({ where: { id: linkUserId } });
     }
   }, 60_000);
 });

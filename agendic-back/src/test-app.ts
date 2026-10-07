@@ -98,6 +98,7 @@ export async function createTestApp() {
   };
   const mailer: jest.Mocked<Mailer> = {
     sendVerificationCode: jest.fn(),
+    sendBookingConfirmation: jest.fn(),
   };
   const bookingCodes: jest.Mocked<BookingVerificationCodes> = {
     request: jest.fn(),
@@ -185,6 +186,7 @@ export async function createTestApp() {
     findById: jest.fn(),
     resolvePending: jest.fn(),
     findByClientEmail: jest.fn(),
+    findByLink: jest.fn(),
     listByBusiness: jest.fn(),
     listOccupiedByUser: jest.fn(),
     listByEmployees: jest.fn(),

@@ -23,6 +23,7 @@ import {
 } from '../../domain/bookings/bookings.repository';
 import { CLOCK, Clock } from '../../domain/clock';
 import { InvalidCodeError, NotFoundError } from '../../domain/errors';
+import { MAILER, Mailer } from '../../domain/mailer';
 import { localDayBounds } from '../../domain/slots/slot';
 import {
   SERVICES_REPOSITORY,
@@ -50,6 +51,7 @@ export class CreateBookingUseCase {
     @Inject(CLIENT_ACCESS_TOKENS)
     private readonly accessTokens: ClientAccessTokens,
     @Inject(CLOCK) private readonly clock: Clock,
+    @Inject(MAILER) private readonly mailer: Mailer,
     private readonly listSlots: ListSlotsUseCase,
   ) {}
 
@@ -57,7 +59,8 @@ export class CreateBookingUseCase {
    * Reserva un Turno, ya BOOKED o PENDING con Aprobación manual, y le asigna el Empleado que hace más tiempo que no
    * recibe uno del Servicio (ver `pickEmployee`), o al Usuario dueño de un Servicio personal. Ocupa la agenda de
    * quien lo atiende desde la preparación del Servicio, que queda fijada acá. Exige un Código de verificación vigente
-   * para `clientEmail` (ADR 0022), que al validarse también da acceso a Mis turnos.
+   * para `clientEmail` (ADR 0022), que al validarse también da acceso a Mis turnos. Manda la Confirmación de
+   * reserva con el Enlace del Turno.
    *
    * @throws {InvalidCodeError} el código no es válido para clientEmail en su ventana
    * @throws {BusinessRuleError} el Servicio no existe o está dado de baja, el horario ya pasó o no es un Horario reservable de ningún Empleado
@@ -122,6 +125,7 @@ export class CreateBookingUseCase {
     if (!employee && !attendingUser)
       throw new NotFoundError(`User ${attendant.userId} not found`);
     const { access, expiresAt } = this.accessTokens.sign(input.clientEmail);
+    await this.mailer.sendBookingConfirmation(input.clientEmail, booking.link);
     return {
       ...booking,
       employeeName: (employee ?? attendingUser!).name,
