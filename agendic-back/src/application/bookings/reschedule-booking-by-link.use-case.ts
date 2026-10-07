@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { BookingStatus, ClientBooking } from '../../domain/bookings/booking';
+import { ClientBooking } from '../../domain/bookings/booking';
 import {
   BOOKINGS_REPOSITORY,
   BookingsRepository,
@@ -10,7 +10,7 @@ import {
 } from '../../domain/services/services.repository';
 import { ListSlotsUseCase } from '../slots/list-slots.use-case';
 import { findBookingByLink } from './find-booking-by-link';
-import { pickEmployee } from './pick-employee';
+import { rescheduleResolvedBooking } from './reschedule-resolved-booking';
 
 /**
  * Reagenda un Turno pendiente o aceptado por su Enlace del Turno a otro Horario reservable del mismo Servicio, con
@@ -31,29 +31,12 @@ export class RescheduleBookingByLinkUseCase {
    */
   async execute(link: string, startsAt: Date): Promise<ClientBooking> {
     const booking = await findBookingByLink(this.bookings, link);
-    const endsAt = new Date(
-      startsAt.getTime() + (booking.endsAt.getTime() - booking.startsAt.getTime()),
-    );
-    const service = await this.services.findById(booking.serviceId);
-    const prepStartsAt = new Date(
-      startsAt.getTime() - (service?.prepMinutes ?? 0) * 60_000,
-    );
-    const attendant = await pickEmployee(
-      this.listSlots,
+    return rescheduleResolvedBooking(
       this.bookings,
-      booking.serviceId,
+      this.services,
+      this.listSlots,
+      booking,
       startsAt,
-      { excludeBookingId: booking.id, keepEmployeeId: booking.employeeId ?? undefined },
     );
-    const status = service?.requiresApproval
-      ? BookingStatus.PENDING
-      : BookingStatus.BOOKED;
-    return this.bookings.reschedulePendingOrBooked(booking.id, {
-      ...attendant,
-      prepStartsAt,
-      startsAt,
-      endsAt,
-      status,
-    });
   }
 }

@@ -5,7 +5,7 @@ import {
   BookingsRepository,
 } from '../../domain/bookings/bookings.repository';
 import { CLOCK, Clock } from '../../domain/clock';
-import { BusinessRuleError } from '../../domain/errors';
+import { cancelResolvedBooking } from './cancel-resolved-booking';
 import { findBookingByLink } from './find-booking-by-link';
 
 /** Cancela un Turno pendiente o aceptado por su Enlace del Turno, hasta que empieza (ADR 0022). */
@@ -22,8 +22,6 @@ export class CancelBookingByLinkUseCase {
    */
   async execute(link: string): Promise<ClientBooking> {
     const booking = await findBookingByLink(this.bookings, link);
-    if (booking.startsAt <= this.clock.now())
-      throw new BusinessRuleError(`Turno ${booking.id} already started`);
-    return this.bookings.cancelPendingOrBooked(booking.id);
+    return cancelResolvedBooking(this.bookings, this.clock, booking);
   }
 }
