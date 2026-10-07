@@ -40,6 +40,7 @@ export class ClientBookingsController {
     );
   }
 
+  /** Mis turnos del Cliente: todos sus Turnos, en cualquier Negocio o Servicio personal. */
   @Get('client/bookings')
   @UseGuards(ClientAccessGuard)
   async list(@ClientEmail() email: string) {

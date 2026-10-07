@@ -32,6 +32,7 @@ export class ClientAccessGuard implements CanActivate {
   }
 }
 
+/** El email que `ClientAccessGuard` resolvió del header `X-Client-Access`. */
 export const ClientEmail = createParamDecorator(
   (_: unknown, context: ExecutionContext) =>
     context.switchToHttp().getRequest<ClientAuthenticatedRequest>().clientEmail,

@@ -6,6 +6,7 @@ export interface ClientAccess {
   expiresAt: Date;
 }
 
+/** El acceso a Mis turnos del Cliente, sin cookie ni Sesión (ADR 0022). */
 export interface ClientAccessTokens {
   /** Firma un acceso de 15 minutos para email. */
   sign(email: string): ClientAccess;
