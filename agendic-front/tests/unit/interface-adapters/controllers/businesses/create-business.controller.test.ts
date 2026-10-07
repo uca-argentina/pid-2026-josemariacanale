@@ -5,7 +5,7 @@ import { authWith, instrumentation } from '@/tests/unit/stubs';
 
 const validInput = () => ({
     business: { name: 'Estudio', description: 'Desc', slug: 'estudio' },
-    branch: { name: 'Centro', address: 'Av. 1', timeZone: 'America/Argentina/Buenos_Aires' },
+    branch: { name: 'Centro', address: 'Av. 1', timeZone: 'America/Argentina/Buenos_Aires', slug: 'centro' },
     service: { name: 'Consulta', slug: 'consulta', category: 'CLINICA', durationMinutes: 30, price: 100 },
 });
 const user = { id: 'user_1', name: 'Ana', email: 'a@a.com' };
