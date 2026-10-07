@@ -15,8 +15,10 @@ const normalize = (email: string) => email.trim().toLowerCase();
  * TOTP sin estado: el código de un email en un instante sale de un HMAC con el secreto del back, nada se guarda por
  * código pedido (ADR 0022). Solo el rate limit por email necesita estado, en memoria.
  *
- * ponytail: el rate limit vive en memoria de este proceso; con más de una instancia del back, cada una lleva su
- * propio conteo. Pasar a un contador compartido (Redis, o una tabla con pg_advisory_xact_lock) si eso importa.
+ * ponytail: `requestsByEmail` vive en memoria de este proceso, así que con más de una instancia del back cada una
+ * lleva su propio conteo, y una entrada queda para siempre por cada email que alguna vez pidió un código (nunca se
+ * borra la clave, solo se filtran sus timestamps vencidos). Aceptable por ahora: cada entrada son unos pocos
+ * timestamps. Pasar a un contador compartido con TTL (Redis) si el volumen de emails distintos importa.
  */
 export class TotpBookingVerificationCodes implements BookingVerificationCodes {
   private readonly requestsByEmail = new Map<string, number[]>();
@@ -26,6 +28,7 @@ export class TotpBookingVerificationCodes implements BookingVerificationCodes {
     private readonly clock: Clock,
   ) {}
 
+  /** @throws {TooManyRequestsError} ya se pidieron 5 códigos para ese email en los últimos 15 minutos */
   request(email: string): string {
     const key = normalize(email);
     const now = this.clock.now().getTime();
@@ -41,6 +44,7 @@ export class TotpBookingVerificationCodes implements BookingVerificationCodes {
     return this.codeForStep(key, this.stepAt(now));
   }
 
+  /** True si `code` es el de `email` en el paso vigente o el anterior (ADR 0022). */
   verify(email: string, code: string): boolean {
     const key = normalize(email);
     const step = this.stepAt(this.clock.now().getTime());

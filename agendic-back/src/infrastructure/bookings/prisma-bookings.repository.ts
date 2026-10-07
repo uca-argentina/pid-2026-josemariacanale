@@ -56,6 +56,8 @@ export class PrismaBookingsRepository implements BookingsRepository {
   /**
    * Crea el Turno. Con `dailyLimit`, un advisory lock por Servicio hace que contar y crear sea un solo paso: una
    * segunda creación casi junta del mismo Servicio espera a que la primera confirme, y después cuenta.
+   *
+   * @throws {ConflictError} el horario ya lo ocupa otro Turno pendiente o aceptado del Empleado, o el Servicio ya alcanzó su Límite diario ese día
    */
   async create(data: CreateBookingData, dailyLimit?: DailyLimitGuard) {
     const { clientName, clientEmail, ...booking } = data;

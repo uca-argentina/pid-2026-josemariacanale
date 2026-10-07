@@ -43,6 +43,8 @@ export class BookingsController {
   ) {}
 
   /**
+   * Pide un Código de verificación para Reservar.
+   *
    * @throws {TooManyRequestsError} ya se pidieron 5 códigos para ese email en los últimos 15 minutos
    */
   @Post('bookings/code')
@@ -52,6 +54,8 @@ export class BookingsController {
   }
 
   /**
+   * Reserva un Turno con un Código de verificación ya vigente.
+   *
    * @throws {InvalidCodeError} el código no es válido para clientEmail
    * @throws {BusinessRuleError} el Servicio no existe o está dado de baja, el horario ya pasó o no es un Horario reservable
    * @throws {ConflictError} el horario ya lo ocupa otro Turno, o el Servicio alcanzó su Límite diario ese día

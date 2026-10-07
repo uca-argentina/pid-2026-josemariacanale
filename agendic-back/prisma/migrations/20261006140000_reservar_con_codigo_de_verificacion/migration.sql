@@ -1,4 +1,7 @@
 -- El Turno nace con el email verificado (ADR 0022): desaparecen el estado UNVERIFIED y los campos de token.
+-- Un Turno UNVERIFIED nunca retuvo su horario (ADR 0005/0022), así que se descarta sin backfill.
+DELETE FROM "Booking" WHERE "status" = 'UNVERIFIED';
+
 ALTER TABLE "Booking" DROP COLUMN "verificationTokenHash",
                       DROP COLUMN "verificationTokenExpiresAt",
                       ALTER COLUMN "status" DROP DEFAULT;
