@@ -165,16 +165,22 @@ export function OfferButton({
     );
 }
 
-const HIDDEN_HINT =
-    'Un Servicio oculto no aparece en la página de la Sucursal, pero se puede Reservar entrando por su propio Enlace de reserva.';
-
 /**
- * El switch del Dueño que oculta o muestra un Servicio en la página de su Sucursal. Guarda al tocarlo y muestra el
- * cambio enseguida; si el back falla, vuelve atrás.
+ * El switch del Dueño que oculta o muestra un Servicio en la página de su Sucursal, o el Usuario en la suya si es
+ * personal. Guarda al tocarlo y muestra el cambio enseguida; si el back falla, vuelve atrás.
  *
+ * @param page la página de la que se oculta, como se nombra en los textos
  * @param showLabel muestra al lado si está visible u oculto, además del tooltip
  */
-export function HiddenSwitch({ service, showLabel }: { service: { id: number; hidden: boolean }; showLabel?: boolean }) {
+export function HiddenSwitch({
+    service,
+    page = 'la página de la Sucursal',
+    showLabel,
+}: {
+    service: { id: number; hidden: boolean };
+    page?: string;
+    showLabel?: boolean;
+}) {
     const [hidden, setHidden] = useOptimistic(service.hidden);
     const [saving, startSaving] = useTransition();
 
@@ -183,19 +189,22 @@ export function HiddenSwitch({ service, showLabel }: { service: { id: number; hi
             setHidden(!visible);
             const result = await updateServiceAction({ id: service.id, hidden: !visible });
             if (!result.ok) toast.error(result.message);
-            else if (result.hidden) toast.success(`${result.name}: oculto de la página de la Sucursal`);
-            else toast.success(`${result.name}: visible en la página de la Sucursal`);
+            else if (result.hidden) toast.success(`${result.name}: oculto de ${page}`);
+            else toast.success(`${result.name}: visible en ${page}`);
         });
 
     return (
-        <label className="flex items-center gap-2 text-[12.5px] font-semibold text-[#6b7280]" title={HIDDEN_HINT}>
+        <label
+            className="flex items-center gap-2 text-[12.5px] font-semibold text-[#6b7280]"
+            title={`Un Servicio oculto no aparece en ${page}, pero se puede Reservar entrando por su propio Enlace de reserva.`}
+        >
             <PanelSwitch
                 checked={!hidden}
                 disabled={saving}
                 onCheckedChange={toggle}
-                aria-label={hidden ? 'Mostrar en la página de la Sucursal' : 'Ocultar de la página de la Sucursal'}
+                aria-label={hidden ? `Mostrar en ${page}` : `Ocultar de ${page}`}
             />
-            {showLabel && (hidden ? 'Oculto de la página de la Sucursal' : 'Visible en la página de la Sucursal')}
+            {showLabel && (hidden ? `Oculto de ${page}` : `Visible en ${page}`)}
         </label>
     );
 }

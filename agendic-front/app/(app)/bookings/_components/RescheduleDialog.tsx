@@ -4,8 +4,8 @@ import { useEffect, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { cn } from '@/app/_components/utils';
 import { PanelButton, PanelDialog, PanelDialogClose } from '@/app/(app)/_components/panel-ui';
-import { listSlotsAction, type ListSlotsResult } from '@/app/business/[negocioSlug]/[sucursalSlug]/actions';
-import { addDays, formatDate, shortWeekday } from '@/app/business/[negocioSlug]/[sucursalSlug]/_components/format';
+import { listSlotsAction, type ListSlotsResult } from '@/app/_components/booking/actions';
+import { addDays, formatDate, shortWeekday } from '@/app/_components/booking/format';
 import { rescheduleBookingAction } from '../actions';
 import { dayKey, TIME_ZONE_LABEL, type Booking } from './booking-helpers';
 

@@ -38,7 +38,10 @@ export const copySlug = (slug: string) =>
 
 /** Lo que el diálogo de Nuevo y Duplicar edita, todo como texto de los inputs. */
 export interface ServiceForm {
+    /** La Sucursal de un Servicio del Negocio; vacía en uno personal. */
     branchId: string;
+    /** Las Horas laborables de un Servicio personal; vacías en uno del Negocio. */
+    availabilityId: string;
     name: string;
     slug: string;
     /** Si el Dueño tocó el tramo: desde ahí deja de seguir al nombre. */
@@ -83,6 +86,11 @@ export const serviceFormSchema = z.object({
         .min(1, 'Ingresá el precio.')
         .transform(Number)
         .pipe(z.number({ message: 'El precio tiene que ser un número.' }).min(0, 'El precio no puede ser negativo.')),
+});
+
+/** Valida el formulario de un Servicio personal y lo convierte en el cuerpo de `POST /users/me/services`. */
+export const personalServiceFormSchema = serviceFormSchema.omit({ branchId: true }).extend({
+    availabilityId: z.string().min(1, 'Elegí tus Horas laborables.').transform(Number),
 });
 
 /** Lo que Guardar del detalle edita, todo como texto de los inputs salvo los toggles. Incluye la pestaña Límites. */

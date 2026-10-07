@@ -2,6 +2,8 @@ import { createModule } from '@evyweb/ioctopus';
 import { DI_SYMBOLS } from '@/di/types';
 import { changeEmployeeAvailabilityUseCase } from '@/src/application/use-cases/services/change-employee-availability.use-case';
 import { assignEmployeeUseCase } from '@/src/application/use-cases/services/assign-employee.use-case';
+import { createPersonalServiceUseCase } from '@/src/application/use-cases/services/create-personal-service.use-case';
+import { listPersonalServicesUseCase } from '@/src/application/use-cases/services/list-personal-services.use-case';
 import { createServiceUseCase } from '@/src/application/use-cases/services/create-service.use-case';
 import { getMyServiceUseCase } from '@/src/application/use-cases/services/get-my-service.use-case';
 import { listMyServicesUseCase } from '@/src/application/use-cases/services/list-my-services.use-case';
@@ -11,6 +13,8 @@ import { updateServiceUseCase } from '@/src/application/use-cases/services/updat
 import { ServicesRepository } from '@/src/infrastructure/repositories/services.repository';
 import { changeEmployeeAvailabilityController } from '@/src/interface-adapters/controllers/services/change-employee-availability.controller';
 import { assignEmployeeController } from '@/src/interface-adapters/controllers/services/assign-employee.controller';
+import { createPersonalServiceController } from '@/src/interface-adapters/controllers/services/create-personal-service.controller';
+import { listMyPersonalServicesController } from '@/src/interface-adapters/controllers/services/list-my-personal-services.controller';
 import { createServiceController } from '@/src/interface-adapters/controllers/services/create-service.controller';
 import { getMyServiceController } from '@/src/interface-adapters/controllers/services/get-my-service.controller';
 import { listMyServicesController } from '@/src/interface-adapters/controllers/services/list-my-services.controller';
@@ -20,7 +24,7 @@ import { updateServiceController } from '@/src/interface-adapters/controllers/se
 
 /**
  * The panel's Servicios: the catalog, the alta, the detail, the edit, the baja, who offers each one and with which
- * Availability.
+ * Availability; and the Usuario's Servicios personales.
  */
 export function createServicesModule() {
     const servicesModule = createModule();
@@ -64,6 +68,7 @@ export function createServicesModule() {
             DI_SYMBOLS.IListEmployeesUseCase,
             DI_SYMBOLS.IListAvailabilitiesUseCase,
             DI_SYMBOLS.IGetAvailabilityUseCase,
+            DI_SYMBOLS.IGetMeUseCase,
         ]);
 
     servicesModule
@@ -127,6 +132,32 @@ export function createServicesModule() {
             DI_SYMBOLS.IInstrumentationService,
             DI_SYMBOLS.IAuthenticationService,
             DI_SYMBOLS.IChangeEmployeeAvailabilityUseCase,
+        ]);
+
+    servicesModule
+        .bind(DI_SYMBOLS.IListPersonalServicesUseCase)
+        .toHigherOrderFunction(listPersonalServicesUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IServicesRepository]);
+
+    servicesModule
+        .bind(DI_SYMBOLS.ICreatePersonalServiceUseCase)
+        .toHigherOrderFunction(createPersonalServiceUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IServicesRepository]);
+
+    servicesModule
+        .bind(DI_SYMBOLS.IListMyPersonalServicesController)
+        .toHigherOrderFunction(listMyPersonalServicesController, [
+            DI_SYMBOLS.IInstrumentationService,
+            DI_SYMBOLS.IAuthenticationService,
+            DI_SYMBOLS.IListPersonalServicesUseCase,
+            DI_SYMBOLS.IGetMeUseCase,
+            DI_SYMBOLS.IListAvailabilitiesUseCase,
+        ]);
+
+    servicesModule
+        .bind(DI_SYMBOLS.ICreatePersonalServiceController)
+        .toHigherOrderFunction(createPersonalServiceController, [
+            DI_SYMBOLS.IInstrumentationService,
+            DI_SYMBOLS.IAuthenticationService,
+            DI_SYMBOLS.ICreatePersonalServiceUseCase,
         ]);
 
     return servicesModule;

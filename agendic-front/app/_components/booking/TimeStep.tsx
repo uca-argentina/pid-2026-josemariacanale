@@ -4,9 +4,9 @@ import { useEffect, useState } from 'react';
 import { CalendarX2, Loader2 } from 'lucide-react';
 import { Button } from '@/app/_components/ui/button';
 import { cn } from '@/app/_components/utils';
-import { listSlotsAction } from '../actions';
+import { listSlotsAction } from './actions';
 import { addDays, endTime, formatDate, shortWeekday, todayIn } from './format';
-import type { Branch, Service, Slot, SlotDay } from './types';
+import type { Service, Slot, SlotDay } from './types';
 
 /** Dos semanas desde hoy: entra en el máximo de 31 días que acepta el back. */
 const DAYS_SHOWN = 14;
@@ -21,14 +21,12 @@ const pillButton = 'h-auto rounded-full px-4 py-2.5 text-[13.5px] font-bold';
  */
 export function TimeStep({
     service,
-    branch,
     date,
     slot,
     notice,
     onSelect,
 }: {
     service: Service;
-    branch: Branch;
     date: string | null;
     slot: Slot | null;
     /** Un aviso que el paso muestra arriba, por ejemplo que el horario elegido se ocupó. */
@@ -40,25 +38,28 @@ export function TimeStep({
 
     useEffect(() => {
         let current = true;
-        // Hoy en la Sucursal, no en el reloj del Cliente: el back cuenta las fechas en su zona horaria.
-        const from = todayIn(branch.timeZone);
+        // Las fechas son de la zona de donde se atiende (la Sucursal, o la Availability de un Servicio personal), que
+        // llega con la respuesta. Hoy ahí es ayer, hoy o mañana en UTC: se pide desde ayer y se descarta lo anterior.
+        const from = addDays(todayIn('UTC'), -1);
         listSlotsAction({
             serviceId: service.id,
             from,
-            to: addDays(from, DAYS_SHOWN - 1),
+            to: addDays(from, DAYS_SHOWN + 1),
         }).then(
             (result) => {
                 if (!current) return;
                 if (!result.ok) return setLoad({ status: 'error', message: result.message });
-                setLoad({ status: 'ready', days: result.days });
+                const today = todayIn(result.timeZone);
+                const days = result.days.filter((d) => d.date >= today).slice(0, DAYS_SHOWN);
+                setLoad({ status: 'ready', days });
                 // Se abre el primer día con lugar, así se ve de entrada si el servicio tiene horarios.
                 if (!date) {
-                    const first = result.days.find((d) => d.slots.length > 0) ?? result.days[0];
+                    const first = days.find((d) => d.slots.length > 0) ?? days[0];
                     if (first) onSelect(first.date, null);
                     return;
                 }
                 // Al volver de Confirmar, el horario elegido puede haberse ocupado mientras tanto.
-                const day = result.days.find((d) => d.date === date);
+                const day = days.find((d) => d.date === date);
                 if (slot && !day?.slots.some((s) => s.startsAt === slot.startsAt)) onSelect(date, null);
             },
             () => current && setLoad({ status: 'error', message: 'No pudimos cargar los horarios. Intentá de nuevo.' }),

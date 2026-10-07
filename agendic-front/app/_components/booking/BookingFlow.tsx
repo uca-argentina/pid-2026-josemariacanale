@@ -10,11 +10,11 @@ import { cn } from '@/app/_components/utils';
 import type { ServiceCategoryValue } from '@/app/_components/business-schemas';
 import { BranchPhoto } from './BranchPhoto';
 import { ChipTabs } from './ChipTabs';
-import { bookSlotAction } from '../actions';
+import { bookSlotAction } from './actions';
 import { TimeStep } from './TimeStep';
 import { depositFor, endTime, formatDate, formatDuration, formatPrice } from './format';
 import { STEPS } from './types';
-import type { Booking, BookingDraft, Branch, Business, ClientData, Service, Step } from './types';
+import type { Booking, BookingDraft, ClientData, Host, Service, Step } from './types';
 
 const TITLES: Record<Step, string> = {
     service: 'Elegí un servicio',
@@ -146,13 +146,13 @@ function ServiceStep({
 }
 
 function ConfirmStep({
-    business,
+    host,
     service,
     defaults,
     error,
     onSubmit,
 }: {
-    business: Business;
+    host: Host;
     service: Service;
     defaults: ClientData;
     error: string | null;
@@ -217,7 +217,7 @@ function ConfirmStep({
                         Política de seña
                     </h3>
                     <p className="text-[13.5px] leading-relaxed text-muted-foreground">
-                        {business.name} pide una seña de {formatPrice(deposit.upfront)} (
+                        {host.name} pide una seña de {formatPrice(deposit.upfront)} (
                         {deposit.percent}% de {formatPrice(service.price)}) para sostener el turno.
                         El resto, {formatPrice(deposit.rest)}, lo pagás en el local.
                     </p>
@@ -231,7 +231,7 @@ function ConfirmStep({
             <section className="mt-2 flex flex-col gap-2 border-t border-border pt-5">
                 {/* El Comentario del Turno (Booking.notes): solo viaja si el Cliente escribió algo. */}
                 <Label htmlFor="comentario" className="text-[17px] font-extrabold tracking-[-0.02em]">
-                    Comentario para el negocio
+                    Comentario para {host.name}
                 </Label>
                 <p className="text-[13.5px] text-muted-foreground">Opcional.</p>
                 <Textarea
@@ -287,8 +287,7 @@ function AdvanceButton({
 }
 
 function SummaryPanel({
-    business,
-    branch,
+    host,
     coverUrl,
     draft,
     step,
@@ -296,8 +295,7 @@ function SummaryPanel({
     booking,
     onAdvance,
 }: {
-    business: Business;
-    branch: Branch;
+    host: Host;
     coverUrl: string | undefined;
     draft: BookingDraft;
     step: Step;
@@ -316,11 +314,13 @@ function SummaryPanel({
                 </div>
                 <div className="min-w-0">
                     <h2 className="text-[15px] font-extrabold tracking-[-0.02em]">
-                        {business.name}
+                        {host.name}
                     </h2>
-                    <p className="mt-0.5 text-[13px] text-muted-foreground">
-                        {branch.name} · {branch.address}
-                    </p>
+                    {host.branch && (
+                        <p className="mt-0.5 text-[13px] text-muted-foreground">
+                            {host.branch.name} · {host.branch.address}
+                        </p>
+                    )}
                 </div>
             </div>
 
@@ -396,8 +396,7 @@ function SummaryPanel({
 }
 
 export function BookingFlow({
-    business,
-    branch,
+    host,
     services,
     categories,
     coverUrl,
@@ -405,8 +404,7 @@ export function BookingFlow({
     onClose,
     onBooked,
 }: {
-    business: Business;
-    branch: Branch;
+    host: Host;
     services: Service[];
     categories: readonly { value: ServiceCategoryValue; label: string }[];
     coverUrl: string | undefined;
@@ -484,8 +482,7 @@ export function BookingFlow({
             if (result.ok) {
                 onBooked({
                     id: result.booking.id,
-                    business,
-                    branch,
+                    host,
                     service,
                     employeeName: result.booking.employeeName,
                     date,
@@ -556,7 +553,6 @@ export function BookingFlow({
                             <TimeStep
                                 key={service.id}
                                 service={service}
-                                branch={branch}
                                 date={date}
                                 slot={slot}
                                 notice={slotNotice}
@@ -568,7 +564,7 @@ export function BookingFlow({
 
                         {step === 'confirm' && service && (
                             <ConfirmStep
-                                business={business}
+                                host={host}
                                 service={service}
                                 defaults={client}
                                 error={confirmError}
@@ -579,8 +575,7 @@ export function BookingFlow({
 
                     <aside className="hidden lg:sticky lg:top-6 lg:block">
                         <SummaryPanel
-                            business={business}
-                            branch={branch}
+                            host={host}
                             coverUrl={coverUrl}
                             draft={draft}
                             step={step}

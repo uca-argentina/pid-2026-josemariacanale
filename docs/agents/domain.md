@@ -28,7 +28,7 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | Imágenes de Sucursal | `BranchImage` (`url`, `order`) |
 | Zona horaria | `Branch.timeZone` |
 | Usuario | `User` |
-| Cliente | `Booking.clientName` / `Booking.clientEmail` |
+| Cliente | `Client` (`name`, `email`; una fila por Turno vía `Client.bookingId`, índice no único sobre `email`); la API sigue exponiendo `clientName` / `clientEmail` en el Turno |
 | Quien atiende un Turno | `Booking.userId` (siempre); `Booking.employeeId` solo en un Servicio del Negocio |
 | Empleado | `Employee` |
 | Invitación | `Invitation` (`email`, `expiresAt`) |
@@ -37,6 +37,7 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | Anulación | `AvailabilityOverride` (`availabilityId`) |
 | Horario reservable | `Slot` (`GET /services/:id/slots`) |
 | Servicio | `Service` |
+| Servicio personal (ADR 0021) | `PersonalService` (`Service.userId`, `Service.availabilityId`; sin `branchId`; Enlace de reserva `User.slug`, la URL del front es `/u/<slug>/<servicio>`) |
 | Servicio personal | `Service.userId` (con `Service.availabilityId`; sin `branchId` ni Empleados) |
 | Servicio del Negocio | `Service.branchId` (sin `userId`) |
 | Enlace de reserva del Usuario | `User.slug`; la URL del front es `/u/<usuario-slug>`, y `/u/<usuario-slug>/<servicio-slug>` con el tramo del Servicio personal (`Service.slug`, único por `userId` entre los no dados de baja) |

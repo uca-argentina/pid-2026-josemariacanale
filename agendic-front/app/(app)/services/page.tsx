@@ -7,11 +7,17 @@ import { ServicesList } from './_components/ServicesList';
 
 export const metadata = { title: 'Servicios' };
 
-/** El catálogo de Servicios del Usuario: un grupo por Negocio del que es Empleado activo. */
+/**
+ * Los Servicios del Usuario: los personales, con su Enlace de reserva, y el catálogo, un grupo por Negocio del que es
+ * Empleado activo.
+ */
 export default async function ServicesPage() {
-    let groups;
+    let groups, personal;
     try {
-        groups = await getInjection('IListMyServicesController')();
+        [groups, personal] = await Promise.all([
+            getInjection('IListMyServicesController')(),
+            getInjection('IListMyPersonalServicesController')(),
+        ]);
     } catch (error) {
         unstable_rethrow(error);
         if (isSessionExpired(error)) redirect(SIGN_IN_PATH);
@@ -19,5 +25,5 @@ export default async function ServicesPage() {
         return <BackendErrorNotice />;
     }
 
-    return <ServicesList groups={groups} />;
+    return <ServicesList groups={groups} personal={personal} />;
 }

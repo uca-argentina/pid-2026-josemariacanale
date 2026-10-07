@@ -203,8 +203,6 @@ model Booking {
   serviceId                  Int
   employeeId                 Int? // the Empleado of a Servicio del Negocio; null in a Servicio personal
   userId                     Int // the User who attends it: occupancy is per User, across Servicios personales and of any Negocio (ADR 0021)
-  clientName                 String
-  clientEmail                String
   prepStartsAt               DateTime      @db.Timestamptz(3) // startsAt - Service.prepMinutes, fixed at booking: the attending User's agenda is held from here
   startsAt                   DateTime      @db.Timestamptz(3)
   endsAt                     DateTime      @db.Timestamptz(3) // startsAt + Service.durationMinutes, fixed at booking
@@ -218,4 +216,17 @@ model Booking {
   service  Service  @relation(fields: [serviceId], references: [id])
   employee Employee? @relation(fields: [employeeId], references: [id])
   user     User      @relation(fields: [userId], references: [id])
+  client   Client?
+}
+
+/// Cliente (ADR 0022): una fila por Turno, con el nombre con el que se reservó; el mismo email en tres Turnos son tres filas.
+model Client {
+  id        Int    @id @default(autoincrement())
+  bookingId Int    @unique
+  name      String
+  email     String
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([email]) // Mis turnos looks Turnos up by email
 }
