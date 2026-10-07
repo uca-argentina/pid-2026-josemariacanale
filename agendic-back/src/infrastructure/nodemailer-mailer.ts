@@ -14,14 +14,12 @@ export class NodemailerMailer implements Mailer {
     });
   }
 
-  async sendVerificationLink(email: string, token: string) {
-    const path = `/verify-email?token=${token}`;
-    const link = `${process.env.FRONTEND_URL}${path}`;
+  async sendVerificationCode(email: string, code: string) {
     await this.transporter.sendMail({
       from: process.env.SMTP_FROM,
       to: email,
-      subject: 'Verify your account',
-      html: `<p>Click <a href="${link}">here</a> to verify your account.</p><p>${path}</p>`,
+      subject: 'Your verification code',
+      html: `<p>Your verification code is <strong>${code}</strong>. It expires in 15 minutes.</p>`,
     });
   }
 }

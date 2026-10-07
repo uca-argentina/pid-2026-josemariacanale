@@ -6,16 +6,20 @@ import {
   DomainError,
   ExternalServiceError,
   ForbiddenError,
+  InvalidCodeError,
   NotFoundError,
+  TooManyRequestsError,
   UnauthenticatedError,
 } from '../domain/errors';
 
 const STATUS_BY_ERROR: [typeof DomainError, number][] = [
+  [InvalidCodeError, 400],
   [UnauthenticatedError, 401],
   [ForbiddenError, 403],
   [NotFoundError, 404],
   [ConflictError, 409],
   [BusinessRuleError, 422],
+  [TooManyRequestsError, 429],
   [ExternalServiceError, 502],
 ];
 

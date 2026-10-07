@@ -1,10 +1,11 @@
 import { Global, Module } from '@nestjs/common';
 import { AVAILABILITIES_REPOSITORY } from '../domain/availabilities/availabilities.repository';
-import { CLOCK } from '../domain/clock';
+import { CLOCK, Clock } from '../domain/clock';
 import { FILE_STORAGE } from '../domain/file-storage';
 import { MAILER } from '../domain/mailer';
 import { BRANCH_IMAGES_REPOSITORY } from '../domain/branch-images/branch-images.repository';
 import { BOOKINGS_REPOSITORY } from '../domain/bookings/bookings.repository';
+import { BOOKING_VERIFICATION_CODES } from '../domain/bookings/booking-verification-codes';
 import { BRANCHES_REPOSITORY } from '../domain/branches/branches.repository';
 import { BUSINESSES_REPOSITORY } from '../domain/businesses/businesses.repository';
 import { EMPLOYEES_REPOSITORY } from '../domain/employees/employees.repository';
@@ -15,6 +16,7 @@ import { USERS_REPOSITORY } from '../domain/users/users.repository';
 import { AvailabilitiesModule } from './availabilities/availabilities.module';
 import { PrismaAvailabilitiesRepository } from './availabilities/prisma-availabilities.repository';
 import { PrismaBookingsRepository } from './bookings/prisma-bookings.repository';
+import { readBookingCodeSecret, TotpBookingVerificationCodes } from './bookings/totp-booking-verification-codes';
 import { BookingsModule } from './bookings/bookings.module';
 import { BranchImagesModule } from './branch-images/branch-images.module';
 import { PrismaBranchImagesRepository } from './branch-images/prisma-branch-images.repository';
@@ -72,6 +74,12 @@ import { UsersModule } from './users/users.module';
     },
     { provide: BOOKINGS_REPOSITORY, useClass: PrismaBookingsRepository },
     {
+      provide: BOOKING_VERIFICATION_CODES,
+      useFactory: (clock: Clock) =>
+        new TotpBookingVerificationCodes(readBookingCodeSecret(), clock),
+      inject: [CLOCK],
+    },
+    {
       provide: AVAILABILITIES_REPOSITORY,
       useClass: PrismaAvailabilitiesRepository,
     },
@@ -89,6 +97,7 @@ import { UsersModule } from './users/users.module';
     EMPLOYEES_REPOSITORY,
     INVITATIONS_REPOSITORY,
     BOOKINGS_REPOSITORY,
+    BOOKING_VERIFICATION_CODES,
     AVAILABILITIES_REPOSITORY,
   ],
 })

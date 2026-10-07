@@ -25,11 +25,16 @@ export class CreateBookingDto {
   @IsString()
   @MaxLength(500)
   notes?: string;
+
+  /** El Código de verificación pedido para clientEmail (ADR 0022). */
+  @IsString()
+  code!: string;
 }
 
-export class VerifyBookingDto {
-  @IsString()
-  token!: string;
+/** Body de `POST /bookings/code`: a quién mandarle el Código de verificación. */
+export class RequestBookingCodeDto {
+  @IsNormalizedEmail()
+  email!: string;
 }
 
 /** Body de Reagendar: el nuevo horario de inicio del Turno. */

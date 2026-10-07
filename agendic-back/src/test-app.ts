@@ -20,6 +20,10 @@ import {
   BOOKINGS_REPOSITORY,
   BookingsRepository,
 } from './domain/bookings/bookings.repository';
+import {
+  BOOKING_VERIFICATION_CODES,
+  BookingVerificationCodes,
+} from './domain/bookings/booking-verification-codes';
 import { Business } from './domain/businesses/business';
 import {
   BUSINESSES_REPOSITORY,
@@ -89,7 +93,12 @@ export async function createTestApp() {
     update: jest.fn(),
   };
   const mailer: jest.Mocked<Mailer> = {
-    sendVerificationLink: jest.fn(),
+    sendVerificationCode: jest.fn(),
+  };
+  const bookingCodes: jest.Mocked<BookingVerificationCodes> = {
+    request: jest.fn(),
+    // Most tests exercise paths past code verification; the few testing an invalid code override this.
+    verify: jest.fn().mockReturnValue(true),
   };
   const fileStorage: jest.Mocked<FileStorage> = {
     upload: jest.fn(),
@@ -161,8 +170,6 @@ export async function createTestApp() {
     create: jest.fn(),
     lastReceivedByEmployee: jest.fn(),
     listOccupiedStartsByService: jest.fn(),
-    findByVerificationToken: jest.fn(),
-    markVerified: jest.fn(),
     findById: jest.fn(),
     resolvePending: jest.fn(),
     findByClientEmail: jest.fn(),
@@ -207,6 +214,8 @@ export async function createTestApp() {
     .useValue(invitations)
     .overrideProvider(BOOKINGS_REPOSITORY)
     .useValue(bookings)
+    .overrideProvider(BOOKING_VERIFICATION_CODES)
+    .useValue(bookingCodes)
     .overrideProvider(AVAILABILITIES_REPOSITORY)
     .useValue(availabilities)
     .compile();
@@ -226,6 +235,7 @@ export async function createTestApp() {
     employees,
     invitations,
     bookings,
+    bookingCodes,
     availabilities,
     http: request(app.getHttpServer()),
   };

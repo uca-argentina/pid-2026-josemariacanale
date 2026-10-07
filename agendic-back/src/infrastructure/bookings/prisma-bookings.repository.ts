@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { createHash, randomBytes } from 'node:crypto';
 import {
   Booking,
   BookingStatus,
@@ -30,10 +29,6 @@ const OCCUPYING = [BookingStatus.PENDING, BookingStatus.BOOKED];
  */
 const DAILY_LIMIT_LOCK = 61;
 
-/** Stores only a hash of each verification token, so a leaked table can't be used to verify a Turno. */
-const hash = (token: string) =>
-  createHash('sha256').update(token).digest('base64url');
-
 /** The fields of a Turno that `toBooking` reads, with its Cliente, which lives in its own table (ADR 0022). */
 const BOOKING_SELECT = {
   id: true,
@@ -58,23 +53,44 @@ const normalizeEmail = (email: string) => email.trim().toLowerCase();
 export class PrismaBookingsRepository implements BookingsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(data: CreateBookingData, expiresAt: Date) {
-    const token = randomBytes(32).toString('base64url');
+  /**
+   * Crea el Turno. Con `dailyLimit`, un advisory lock por Servicio hace que contar y crear sea un solo paso: una
+   * segunda creación casi junta del mismo Servicio espera a que la primera confirme, y después cuenta.
+   */
+  async create(data: CreateBookingData, dailyLimit?: DailyLimitGuard) {
     const { clientName, clientEmail, ...booking } = data;
-    const row = await this.prisma.booking
-      .create({
+    const insert = (client: Prisma.TransactionClient | PrismaService) =>
+      client.booking.create({
         select: BOOKING_SELECT,
         data: {
           ...booking,
           client: {
             create: { name: clientName, email: normalizeEmail(clientEmail) },
           },
-          verificationTokenHash: hash(token),
-          verificationTokenExpiresAt: expiresAt,
         },
-      })
-      .catch(translateError);
-    return { booking: toBooking(row), token };
+      });
+    if (!dailyLimit) return toBooking(await insert(this.prisma).catch(translateError));
+    const { serviceId, limit, from, to } = dailyLimit;
+    return toBooking(
+      await this.prisma
+        .$transaction(async (tx) => {
+          await tx.$executeRaw`SELECT pg_advisory_xact_lock(${DAILY_LIMIT_LOCK}::int, ${serviceId}::int)`;
+          const taken = await tx.booking.count({
+            where: {
+              serviceId,
+              status: { in: OCCUPYING },
+              startsAt: { gte: from, lt: to },
+            },
+          });
+          if (taken >= limit) throw new ConflictError(DAILY_LIMIT_REACHED);
+          return insert(tx);
+        })
+        .catch((error: unknown) =>
+          error instanceof ConflictError
+            ? Promise.reject(error)
+            : translateError(error),
+        ),
+    );
   }
 
   /**
@@ -129,71 +145,6 @@ export class PrismaBookingsRepository implements BookingsRepository {
       })
       .catch(translateError);
     return rows.map(({ startsAt }) => startsAt);
-  }
-
-  async findByVerificationToken(token: string, now: Date) {
-    const row = await this.prisma.booking
-      .findFirst({
-        where: { verificationTokenHash: hash(token) },
-        select: { ...BOOKING_SELECT, verificationTokenExpiresAt: true },
-      })
-      .catch(translateError);
-    if (
-      !row ||
-      !row.verificationTokenExpiresAt ||
-      row.verificationTokenExpiresAt <= now
-    )
-      throw new BusinessRuleError(
-        'Unknown, used or expired verification token',
-      );
-    return toBooking(row);
-  }
-
-  /**
-   * Verifies the Turno. With a Límite diario, an advisory lock per Servicio makes counting and verifying one step: a
-   * second verification of the same Servicio waits for the first to commit, then counts it.
-   *
-   * @throws {ConflictError} el horario ya lo ocupa otro Turno pendiente o aceptado del Empleado, o el Servicio ya alcanzó su Límite diario ese día
-   * @throws {NotFoundError} el Turno no existe
-   */
-  async markVerified(
-    id: number,
-    status: BookingStatus.PENDING | BookingStatus.BOOKED,
-    dailyLimit?: DailyLimitGuard,
-  ) {
-    const verify = (client: Prisma.TransactionClient) =>
-      client.booking.update({
-        where: { id },
-        select: BOOKING_SELECT,
-        data: {
-          status,
-          verificationTokenHash: null,
-          verificationTokenExpiresAt: null,
-        },
-      });
-    if (!dailyLimit)
-      return toBooking(await verify(this.prisma).catch(translateError));
-    const { serviceId, limit, from, to } = dailyLimit;
-    return toBooking(
-      await this.prisma
-        .$transaction(async (tx) => {
-          await tx.$executeRaw`SELECT pg_advisory_xact_lock(${DAILY_LIMIT_LOCK}::int, ${serviceId}::int)`;
-          const taken = await tx.booking.count({
-            where: {
-              serviceId,
-              status: { in: OCCUPYING },
-              startsAt: { gte: from, lt: to },
-            },
-          });
-          if (taken >= limit) throw new ConflictError(DAILY_LIMIT_REACHED);
-          return verify(tx);
-        })
-        .catch((error: unknown) =>
-          error instanceof ConflictError
-            ? Promise.reject(error)
-            : translateError(error),
-        ),
-    );
   }
 
   /**
