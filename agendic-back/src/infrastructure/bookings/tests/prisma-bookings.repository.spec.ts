@@ -314,7 +314,7 @@ describe('PrismaBookingsRepository', () => {
       await repository.cancel(1);
 
       expect(prisma.booking.updateMany).toHaveBeenCalledWith({
-        where: { id: 1, status: BookingStatus.BOOKED },
+        where: { id: 1, status: { in: [BookingStatus.BOOKED] } },
         data: { status: BookingStatus.CANCELLED },
       });
     });
@@ -346,7 +346,7 @@ describe('PrismaBookingsRepository', () => {
       expect(prisma.booking.updateMany).toHaveBeenCalledWith({
         where: {
           id: 1,
-          status: BookingStatus.BOOKED,
+          status: { in: [BookingStatus.BOOKED] },
           endsAt: { lte: NOW },
           noShowAt: null,
         },

@@ -30,6 +30,7 @@ describe('PrismaBookingsRepository (real database)', () => {
     if (userId !== undefined) {
       await prisma.booking.deleteMany({ where: { userId } });
       await prisma.service.deleteMany({ where: { userId } });
+      await prisma.availability.deleteMany({ where: { userId } });
       await prisma.user.delete({ where: { id: userId } });
     }
     await prisma.$disconnect();
@@ -39,9 +40,18 @@ describe('PrismaBookingsRepository (real database)', () => {
     userId = (
       await prisma.user.create({ data: { clerkId: tag, name: tag, email } })
     ).id;
+    const { id: availabilityId } = await prisma.availability.create({
+      data: {
+        userId,
+        name: 'Horas laborables',
+        timeZone: 'America/Argentina/Buenos_Aires',
+        isDefault: true,
+      },
+    });
     const { id: serviceId } = await prisma.service.create({
       data: {
         userId,
+        availabilityId,
         name: tag,
         slug: tag,
         category: 'CLINICA',

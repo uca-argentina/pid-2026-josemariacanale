@@ -1,4 +1,4 @@
-import { Booking, BookingStatus, EmployeeBooking } from './booking';
+import { Booking, BookingStatus, ClientBooking, EmployeeBooking } from './booking';
 
 export const BOOKINGS_REPOSITORY = Symbol('BookingsRepository');
 
@@ -52,8 +52,8 @@ export interface BookingsRepository {
     id: number,
     status: BookingStatus.BOOKED | BookingStatus.REJECTED,
   ): Promise<Booking>;
-  /** Every Turno, in any status, whose Cliente was booked with this email, soonest first. */
-  findByClientEmail(email: string): Promise<Booking[]>;
+  /** Every Turno, in any status, whose Cliente was booked with this email, soonest first, with its Mis turnos data (ADR 0022). */
+  findByClientEmail(email: string): Promise<ClientBooking[]>;
   listByBusiness(businessId: number): Promise<Booking[]>;
   /** PENDING and BOOKED Turnos of this Usuario, personal or of any Negocio, whose [prepStartsAt, endsAt) overlaps [from, to), leaving out `excludeBookingId`. */
   listOccupiedByUser(
@@ -66,11 +66,21 @@ export interface BookingsRepository {
   listByEmployees(employeeIds: number[]): Promise<EmployeeBooking[]>;
   /** Moves a BOOKED Booking to CANCELLED. Throws BusinessRuleError if it is no longer BOOKED. */
   cancel(id: number): Promise<Booking>;
+  /** As `cancel`, for the Cliente (ADR 0022): also from PENDING. Throws BusinessRuleError if it is no longer pending or booked. */
+  cancelPendingOrBooked(id: number): Promise<ClientBooking>;
   /** Moves a BOOKED Booking to the new times, with the given Empleado and Usuario (the same or another). Throws BusinessRuleError if it is no longer BOOKED, ConflictError if it now overlaps another. */
   reschedule(
     id: number,
     times: Pick<Booking, 'employeeId' | 'userId' | 'prepStartsAt' | 'startsAt' | 'endsAt'>,
   ): Promise<Booking>;
+  /** As `reschedule`, for the Cliente (ADR 0022): also from PENDING, and sets the new status (PENDING again with Aprobación manual). Throws BusinessRuleError if it is no longer pending or booked, ConflictError if it now overlaps another. */
+  reschedulePendingOrBooked(
+    id: number,
+    times: Pick<
+      Booking,
+      'employeeId' | 'userId' | 'prepStartsAt' | 'startsAt' | 'endsAt' | 'status'
+    >,
+  ): Promise<ClientBooking>;
   /** Sets noShowAt on a BOOKED Booking whose endsAt has passed and has none yet. Throws BusinessRuleError otherwise. */
   markNoShow(id: number, now: Date): Promise<Booking>;
 }

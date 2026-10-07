@@ -42,3 +42,12 @@ export class RescheduleBookingDto {
   @IsDateString()
   startsAt!: string;
 }
+
+/** Body de `POST /client-access`: el Código de verificación a cambiar por un acceso a Mis turnos. */
+export class ClientAccessDto {
+  @IsNormalizedEmail()
+  email!: string;
+
+  @IsString()
+  code!: string;
+}

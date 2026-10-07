@@ -54,7 +54,7 @@ export class BookingsController {
   }
 
   /**
-   * Reserva un Turno con un Código de verificación ya vigente.
+   * Reserva un Turno con un Código de verificación ya vigente; de paso, da acceso a Mis turnos (ADR 0022).
    *
    * @throws {InvalidCodeError} el código no es válido para clientEmail
    * @throws {BusinessRuleError} el Servicio no existe o está dado de baja, el horario ya pasó o no es un Horario reservable
@@ -70,7 +70,12 @@ export class BookingsController {
       notes: dto.notes,
       code: dto.code,
     });
-    return { ...presentBooking(booking), employeeName: booking.employeeName };
+    return {
+      ...presentBooking(booking),
+      employeeName: booking.employeeName,
+      access: booking.access,
+      accessExpiresAt: booking.accessExpiresAt,
+    };
   }
 
   /**
