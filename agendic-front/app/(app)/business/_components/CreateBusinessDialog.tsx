@@ -63,7 +63,14 @@ export function CreateBusinessDialog({ owner, onClose }: { owner: Owner; onClose
     const [business, setBusiness] = useState<BusinessFields>({ name: '', description: '', slug: '' });
     // Una vez que el Dueño edita el Enlace de reserva a mano, deja de seguir al nombre.
     const [slugEdited, setSlugEdited] = useState(false);
-    const [branch, setBranch] = useState<BranchFields>({ name: '', address: '', timeZone: 'America/Argentina/Buenos_Aires' });
+    const [branch, setBranch] = useState<BranchFields>({
+        name: '',
+        address: '',
+        timeZone: 'America/Argentina/Buenos_Aires',
+        slug: '',
+    });
+    // Igual que el del Negocio: sigue al nombre de la Sucursal hasta que el Dueño lo edita.
+    const [branchSlugEdited, setBranchSlugEdited] = useState(false);
     const [employees, setEmployees] = useState<string[]>([]);
     // El mini formulario de Invitar; null mientras está cerrado.
     const [draft, setDraft] = useState<InviteFields | null>(null);
@@ -204,7 +211,21 @@ export function CreateBusinessDialog({ owner, onClose }: { owner: Owner; onClose
                         }}
                     />
                 )}
-                {step === 2 && <BranchStep value={branch} onChange={setBranch} errors={errors} />}
+                {step === 2 && (
+                    <BranchStep
+                        value={branch}
+                        businessSlug={business.slug}
+                        errors={errors}
+                        onChange={(patch) => {
+                            if (patch.slug !== undefined) setBranchSlugEdited(patch.slug !== '');
+                            setBranch((b) => ({
+                                ...b,
+                                ...patch,
+                                ...(patch.name !== undefined && !branchSlugEdited ? { slug: slugify(patch.name) } : {}),
+                            }));
+                        }}
+                    />
+                )}
                 {step === EMPLOYEES_STEP && (
                     <EmployeesStep
                         owner={owner}
@@ -247,11 +268,13 @@ function StepProgress({ step, total }: { step: number; total: number }) {
 
 function BranchStep({
     value,
+    businessSlug,
     onChange,
     errors,
 }: {
     value: BranchFields;
-    onChange: (value: BranchFields) => void;
+    businessSlug: string;
+    onChange: (patch: Partial<BranchFields>) => void;
     errors: FieldErrors;
 }) {
     const timeZones = Intl.supportedValuesOf('timeZone').map(tz => ({ value: tz, label: tz }));
@@ -263,8 +286,18 @@ function BranchStep({
                     id="branch-name"
                     placeholder="Sucursal Centro"
                     value={value.name}
-                    onChange={(e) => onChange({ ...value, name: e.target.value })}
+                    onChange={(e) => onChange({ name: e.target.value })}
                     {...invalid(errors, 'name', 'branch-name')}
+                />
+            </PanelField>
+            <PanelField label="Enlace de reserva" htmlFor="branch-slug" error={errors.slug}>
+                <PanelInput
+                    id="branch-slug"
+                    prefix={`${bookingLink(businessSlug)}/`}
+                    placeholder="sucursal-centro"
+                    value={value.slug}
+                    onChange={(e) => onChange({ slug: e.target.value })}
+                    {...invalid(errors, 'slug', 'branch-slug')}
                 />
             </PanelField>
             <PanelField label="Dirección" htmlFor="branch-address" error={errors.address}>
@@ -272,7 +305,7 @@ function BranchStep({
                     id="branch-address"
                     placeholder="Av. Cabildo 1234"
                     value={value.address}
-                    onChange={(e) => onChange({ ...value, address: e.target.value })}
+                    onChange={(e) => onChange({ address: e.target.value })}
                     {...invalid(errors, 'address', 'branch-address')}
                 />
             </PanelField>
@@ -282,7 +315,7 @@ function BranchStep({
                     value={value.timeZone}
                     placeholder="Elegí una zona horaria"
                     options={timeZones}
-                    onValueChange={(tz) => onChange({ ...value, timeZone: tz })}
+                    onValueChange={(tz) => onChange({ timeZone: tz })}
                 />
             </PanelField>
         </>
@@ -484,6 +517,7 @@ function SummaryStep({
             </SummaryBlock>
             <SummaryBlock title="Sucursal" onEdit={() => onEdit(2)}>
                 <SummaryItem label="Nombre" value={branch.name} />
+                <SummaryItem label="Enlace de reserva" value={`${bookingLink(business.slug)}/${branch.slug}`} />
                 <SummaryItem label="Dirección" value={branch.address} />
                 <SummaryItem label="Zona horaria" value={branch.timeZone} />
             </SummaryBlock>

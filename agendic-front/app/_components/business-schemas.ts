@@ -8,27 +8,29 @@ const required = (field: string) => z.string().trim().min(1, `Ingresá ${field}.
 // Mismo patrón que IsSlug en agendic-back/src/infrastructure/businesses/businesses.dto.ts.
 const SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
+/** Un tramo del Enlace de reserva escrito por el Dueño: el del Negocio o el de su Sucursal. */
+const slugField = required('el Enlace de reserva')
+    .toLowerCase()
+    .pipe(
+        z
+            .string()
+            .min(3, 'El Enlace de reserva tiene que tener al menos 3 caracteres.')
+            .max(40, 'El Enlace de reserva no puede tener más de 40 caracteres.')
+            .regex(SLUG_PATTERN, 'El Enlace de reserva solo puede tener minúsculas, números y guiones.'),
+    );
+
 export const businessSchema = z.object({
     name: required('el nombre del Negocio'),
     description: required('una descripción'),
-    slug: required('el Enlace de reserva')
-        .toLowerCase()
-        .pipe(
-            z
-                .string()
-                .min(3, 'El Enlace de reserva tiene que tener al menos 3 caracteres.')
-                .max(40, 'El Enlace de reserva no puede tener más de 40 caracteres.')
-                .regex(
-                    SLUG_PATTERN,
-                    'El Enlace de reserva solo puede tener minúsculas, números y guiones.',
-                ),
-        ),
+    slug: slugField,
 });
 
 export const branchSchema = z.object({
     name: required('el nombre de la Sucursal'),
     address: required('la dirección'),
     timeZone: required('la zona horaria'),
+    // Sin él, el back le pone a la primera Sucursal el slug del Negocio: /business/<negocio>/<negocio>.
+    slug: slugField,
 });
 
 export const SERVICE_CATEGORIES = [

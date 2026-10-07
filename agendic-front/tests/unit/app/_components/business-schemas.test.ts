@@ -53,10 +53,40 @@ describe('branchSchema', () => {
         name: 'Sucursal Centro',
         address: 'Av. Cabildo 1234',
         timeZone: 'America/Argentina/Buenos_Aires',
+        slug: 'sucursal-centro',
     };
 
-    it('acepta una Sucursal con nombre, dirección y zona horaria', () => {
+    it('acepta una Sucursal con nombre, dirección, zona horaria y su tramo del Enlace de reserva', () => {
         expect(branchSchema.parse(branch)).toEqual(branch);
+    });
+
+    it('acepta el tramo de la Sucursal en mayúsculas normalizándolo a minúsculas', () => {
+        expect(branchSchema.parse({ ...branch, slug: 'Sucursal-CENTRO' }).slug).toBe('sucursal-centro');
+    });
+
+    it('rechaza el tramo de la Sucursal vacío', () => {
+        const result = branchSchema.safeParse({ ...branch, slug: ' ' });
+
+        expect(result.success).toBe(false);
+        expect(fieldErrorsOf(result.error!).slug).toBe('Ingresá el Enlace de reserva.');
+    });
+
+    it('rechaza el tramo de la Sucursal con espacios o símbolos', () => {
+        const result = branchSchema.safeParse({ ...branch, slug: 'sucursal centro!' });
+
+        expect(result.success).toBe(false);
+        expect(fieldErrorsOf(result.error!).slug).toBe(
+            'El Enlace de reserva solo puede tener minúsculas, números y guiones.',
+        );
+    });
+
+    it('rechaza el tramo de la Sucursal de menos de 3 caracteres', () => {
+        const result = branchSchema.safeParse({ ...branch, slug: 'ab' });
+
+        expect(result.success).toBe(false);
+        expect(fieldErrorsOf(result.error!).slug).toBe(
+            'El Enlace de reserva tiene que tener al menos 3 caracteres.',
+        );
     });
 
     it('rechaza una zona horaria vacía', () => {
