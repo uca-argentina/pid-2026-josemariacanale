@@ -1,5 +1,5 @@
 import { bookSlotUseCase } from '@/src/application/use-cases/bookings/book-slot.use-case';
-import { SlotTakenError } from '@/src/entities/errors/booking';
+import { InvalidVerificationCodeError, SlotTakenError } from '@/src/entities/errors/booking';
 import { bookingsWith, instrumentation } from '@/tests/unit/stubs';
 
 describe('bookSlotUseCase', () => {
@@ -8,11 +8,11 @@ describe('bookSlotUseCase', () => {
         serviceId: 100,
         startsAt: '2026-09-28T12:00:00.000Z',
         endsAt: '2026-09-28T13:00:00.000Z',
-        status: 'UNVERIFIED' as const,
+        status: 'BOOKED' as const,
         notes: null,
     };
 
-    it('books the Horario reservable with the Cliente and their Comentario del Turno', async () => {
+    it('books the Horario reservable with the Cliente, su Código de verificación y su Comentario del Turno', async () => {
         const book = jest.fn().mockResolvedValue({ ...booking, notes: 'Llego 5 minutos tarde' });
 
         await expect(
@@ -22,6 +22,7 @@ describe('bookSlotUseCase', () => {
                 clientName: 'Juana Pérez',
                 clientEmail: 'juana@example.com',
                 notes: 'Llego 5 minutos tarde',
+                code: 'ABC123',
             }),
         ).resolves.toMatchObject({ id: 7, notes: 'Llego 5 minutos tarde' });
         expect(book).toHaveBeenCalledWith({
@@ -30,6 +31,7 @@ describe('bookSlotUseCase', () => {
             clientName: 'Juana Pérez',
             clientEmail: 'juana@example.com',
             notes: 'Llego 5 minutos tarde',
+            code: 'ABC123',
         });
     });
 
@@ -45,6 +47,7 @@ describe('bookSlotUseCase', () => {
             clientName: 'Juana Pérez',
             clientEmail: 'juana@example.com',
             notes,
+            code: 'ABC123',
         });
         expect(book.mock.calls[0][0]).not.toHaveProperty('notes');
     });
@@ -57,7 +60,21 @@ describe('bookSlotUseCase', () => {
                 startsAt: '2026-09-28T12:00:00.000Z',
                 clientName: 'Juana Pérez',
                 clientEmail: 'juana@example.com',
+                code: 'ABC123',
             }),
         ).rejects.toBeInstanceOf(SlotTakenError);
+    });
+
+    it('lets an invalid or expired Código de verificación through as InvalidVerificationCodeError', async () => {
+        const book = jest.fn().mockRejectedValue(new InvalidVerificationCodeError('Invalid or expired verification code for juana@example.com'));
+        await expect(
+            bookSlotUseCase(instrumentation, bookingsWith({ book }))({
+                serviceId: 100,
+                startsAt: '2026-09-28T12:00:00.000Z',
+                clientName: 'Juana Pérez',
+                clientEmail: 'juana@example.com',
+                code: 'WRONG1',
+            }),
+        ).rejects.toBeInstanceOf(InvalidVerificationCodeError);
     });
 });

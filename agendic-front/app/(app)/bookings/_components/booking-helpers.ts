@@ -22,7 +22,7 @@ export const localInstant = (day: string, hhmm: string) => new Date(`${day}T${hh
 
 export const isClosed = (b: Booking) => b.status === 'CANCELLED' || b.status === 'REJECTED';
 
-/** La pestaña del Turno; `null` para los que no se muestran (Turno sin verificar). */
+/** La pestaña del Turno. */
 export function tabOf(b: Booking, now: number): BookingTab | null {
     if (isClosed(b)) return 'cancelled';
     if (b.status === 'PENDING') return 'pending';

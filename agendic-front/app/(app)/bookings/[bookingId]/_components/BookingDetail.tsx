@@ -20,8 +20,6 @@ function headerOf(b: Booking, past: boolean) {
             return { icon: X, tone: RED, title: 'Este turno está cancelado' };
         case 'REJECTED':
             return { icon: X, tone: RED, title: 'Este turno fue rechazado' };
-        case 'UNVERIFIED':
-            return { icon: Clock, tone: GRAY, title: `${b.clientName} todavía no verificó su email` };
         case 'PENDING':
             return past
                 ? { icon: Clock, tone: GRAY, title: 'Este turno quedó sin respuesta' }

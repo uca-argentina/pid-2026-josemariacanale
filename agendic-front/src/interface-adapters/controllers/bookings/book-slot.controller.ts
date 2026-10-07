@@ -22,6 +22,8 @@ const inputSchema = z.object({
     clientEmail: z.string().trim().pipe(z.email()),
     // Comentario del Turno: the back's limit (ticket 03, back PR #37). Blank is sent as no Comentario.
     notes: z.string().trim().max(500).optional(),
+    // El Código de verificación ya pedido para clientEmail (ADR 0022).
+    code: z.string().trim().min(1),
 });
 
 export type IBookSlotController = ReturnType<typeof bookSlotController>;

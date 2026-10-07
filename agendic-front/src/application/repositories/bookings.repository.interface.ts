@@ -8,17 +8,15 @@ export interface IBookingsRepository {
      */
     listSlots(query: SlotsQuery): Promise<Slots>;
     /**
+     * Pide un Código de verificación para email (ADR 0022).
+     *
+     * @throws {TooManyVerificationCodeRequestsError} ya se pidieron demasiados para ese email (429)
+     */
+    requestVerificationCode(email: string): Promise<void>;
+    /**
+     * @throws {InvalidVerificationCodeError} el código no es válido para clientEmail, o venció (400)
      * @throws {SlotTakenError} el Horario reservable se ocupó mientras tanto (409)
      * @throws {NotFoundError} el Servicio ya no existe (404)
      */
     book(input: CreateBooking): Promise<Booking>;
-    /**
-     * Verifica el email del Cliente con el token del link del mail. El Turno queda aceptado, o pendiente
-     * si el Servicio tiene Aprobación manual.
-     *
-     * @throws {BookingStateError} el token no existe, ya se usó o venció, o el Turno ya no se puede reservar (422)
-     * @throws {SlotTakenError} el horario se ocupó mientras tanto (409)
-     * @throws {NotFoundError} el Turno ya no existe (404)
-     */
-    verifyBooking(token: string): Promise<Booking>;
 }

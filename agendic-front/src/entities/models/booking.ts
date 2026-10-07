@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
-// UNVERIFIED: the Cliente has not verified their email yet (Turno sin verificar). PENDING: verified,
-// waiting for the Negocio to accept it (Turno pendiente). BOOKED: accepted.
-export const BOOKING_STATUSES = ['UNVERIFIED', 'PENDING', 'BOOKED', 'REJECTED', 'CANCELLED'] as const;
+// PENDING: waiting for the Negocio to accept it (Turno pendiente). BOOKED: accepted. The Turno is
+// born verified (ADR 0022): there is no unverified state.
+export const BOOKING_STATUSES = ['PENDING', 'BOOKED', 'REJECTED', 'CANCELLED'] as const;
 export type BookingStatus = (typeof BOOKING_STATUSES)[number];
 
 // A Turno as POST /bookings returns it. `notes` is the Comentario del Turno: null when the Cliente
@@ -21,9 +21,11 @@ export const bookingSchema = z.object({
 export type Booking = z.infer<typeof bookingSchema>;
 
 // The body of POST /bookings. The Cliente has no account (ADR 0005): their data travels in the Turno.
+// `code` is the Código de verificación already requested for clientEmail (ADR 0022).
 export const createBookingSchema = bookingSchema.pick({ serviceId: true, startsAt: true }).extend({
     clientName: z.string(),
     clientEmail: z.string(),
     notes: z.string().optional(),
+    code: z.string(),
 });
 export type CreateBooking = z.infer<typeof createBookingSchema>;

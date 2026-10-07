@@ -35,8 +35,8 @@ import type { IBookingsRepository } from '@/src/application/repositories/booking
 import type { IListSlotsUseCase } from '@/src/application/use-cases/bookings/list-slots.use-case';
 import type { IBookSlotUseCase } from '@/src/application/use-cases/bookings/book-slot.use-case';
 import type { IListSlotsController } from '@/src/interface-adapters/controllers/bookings/list-slots.controller';
-import type { IVerifyBookingUseCase } from '@/src/application/use-cases/bookings/verify-booking.use-case';
-import type { IVerifyBookingController } from '@/src/interface-adapters/controllers/bookings/verify-booking.controller';
+import type { IRequestVerificationCodeUseCase } from '@/src/application/use-cases/bookings/request-verification-code.use-case';
+import type { IRequestVerificationCodeController } from '@/src/interface-adapters/controllers/bookings/request-verification-code.controller';
 import type { IBookSlotController } from '@/src/interface-adapters/controllers/bookings/book-slot.controller';
 import type { IRetireEmployeeController } from '@/src/interface-adapters/controllers/employees/retire-employee.controller';
 import type { IServicesRepository } from '@/src/application/repositories/services.repository.interface';
@@ -132,7 +132,7 @@ export const DI_SYMBOLS = {
     IListMyInvitationsUseCase: Symbol.for('IListMyInvitationsUseCase'),
     IListSlotsUseCase: Symbol.for('IListSlotsUseCase'),
     IBookSlotUseCase: Symbol.for('IBookSlotUseCase'),
-    IVerifyBookingUseCase: Symbol.for('IVerifyBookingUseCase'),
+    IRequestVerificationCodeUseCase: Symbol.for('IRequestVerificationCodeUseCase'),
     IListMyBookingsUseCase: Symbol.for('IListMyBookingsUseCase'),
     IMarkBookingNoShowUseCase: Symbol.for('IMarkBookingNoShowUseCase'),
     IRescheduleBookingUseCase: Symbol.for('IRescheduleBookingUseCase'),
@@ -181,7 +181,7 @@ export const DI_SYMBOLS = {
     IListMyInvitationsController: Symbol.for('IListMyInvitationsController'),
     IListSlotsController: Symbol.for('IListSlotsController'),
     IBookSlotController: Symbol.for('IBookSlotController'),
-    IVerifyBookingController: Symbol.for('IVerifyBookingController'),
+    IRequestVerificationCodeController: Symbol.for('IRequestVerificationCodeController'),
     IListMyBookingsController: Symbol.for('IListMyBookingsController'),
     IMarkBookingNoShowController: Symbol.for('IMarkBookingNoShowController'),
     IRescheduleBookingController: Symbol.for('IRescheduleBookingController'),
@@ -235,7 +235,7 @@ export interface DI_RETURN_TYPES {
     IListMyInvitationsUseCase: IListMyInvitationsUseCase;
     IListSlotsUseCase: IListSlotsUseCase;
     IBookSlotUseCase: IBookSlotUseCase;
-    IVerifyBookingUseCase: IVerifyBookingUseCase;
+    IRequestVerificationCodeUseCase: IRequestVerificationCodeUseCase;
     IListMyBookingsUseCase: IListMyBookingsUseCase;
     IMarkBookingNoShowUseCase: IMarkBookingNoShowUseCase;
     IRescheduleBookingUseCase: IRescheduleBookingUseCase;
@@ -284,7 +284,7 @@ export interface DI_RETURN_TYPES {
     IListMyInvitationsController: IListMyInvitationsController;
     IListSlotsController: IListSlotsController;
     IBookSlotController: IBookSlotController;
-    IVerifyBookingController: IVerifyBookingController;
+    IRequestVerificationCodeController: IRequestVerificationCodeController;
     IListMyBookingsController: IListMyBookingsController;
     IMarkBookingNoShowController: IMarkBookingNoShowController;
     IRescheduleBookingController: IRescheduleBookingController;
