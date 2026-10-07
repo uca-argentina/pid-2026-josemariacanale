@@ -4,6 +4,7 @@ import {
   BusinessRuleError,
   ConflictError,
   NotFoundError,
+  TooManyRequestsError,
 } from '../../domain/errors';
 import {
   ANAS_BRANCH,
@@ -39,6 +40,7 @@ const VALID_BOOKING = {
   startsAt: '2026-01-01T12:00:00.000Z', // 09:00 in America/Argentina/Buenos_Aires: opening time
   clientName: 'Bruno Díaz',
   clientEmail: 'bruno@example.com',
+  code: 'A2B3C4',
 };
 
 const BOOKING: Booking = {
@@ -51,7 +53,7 @@ const BOOKING: Booking = {
   prepStartsAt: new Date(VALID_BOOKING.startsAt),
   startsAt: new Date(VALID_BOOKING.startsAt),
   endsAt: new Date('2026-01-01T12:30:00.000Z'),
-  status: BookingStatus.UNVERIFIED,
+  status: BookingStatus.BOOKED,
   notes: null,
   noShowAt: null,
 };
@@ -62,6 +64,44 @@ describe('Turno', () => {
   beforeEach(async () => (t = await createTestApp()));
   afterEach(() => t.app.close());
 
+  describe('POST /bookings/code', () => {
+    it('sends a verification code and answers 204', async () => {
+      t.bookingCodes.request.mockReturnValue('A2B3C4');
+
+      await t.http
+        .post('/bookings/code')
+        .send({ email: 'Bruno@Example.COM' })
+        .expect(204);
+
+      expect(t.bookingCodes.request).toHaveBeenCalledWith('bruno@example.com');
+      expect(t.mailer.sendVerificationCode).toHaveBeenCalledWith(
+        'bruno@example.com',
+        'A2B3C4',
+      );
+    });
+
+    it('answers 429 after too many requests for the same email', async () => {
+      t.bookingCodes.request.mockImplementation(() => {
+        throw new TooManyRequestsError(
+          'Too many verification codes requested for bruno@example.com',
+        );
+      });
+
+      const res = await t.http
+        .post('/bookings/code')
+        .send({ email: 'bruno@example.com' })
+        .expect(429);
+      expect(res.body.message).toBe(
+        'Too many verification codes requested for bruno@example.com',
+      );
+    });
+
+    it('answers 400 for a malformed email', async () => {
+      await t.http.post('/bookings/code').send({ email: 'not-an-email' }).expect(400);
+      expect(t.bookingCodes.request).not.toHaveBeenCalled();
+    });
+  });
+
   describe('POST /bookings', () => {
     beforeEach(() => {
       t.services.findById.mockResolvedValue(SERVICE);
@@ -69,10 +109,10 @@ describe('Turno', () => {
       t.availabilities.findById.mockResolvedValue(AVAILABILITY);
       t.bookings.listOccupiedByUser.mockResolvedValue([]);
       t.bookings.lastReceivedByEmployee.mockResolvedValue(new Map());
-      t.bookings.create.mockResolvedValue({ booking: BOOKING, token: 'a-token' });
+      t.bookings.create.mockResolvedValue(BOOKING);
     });
 
-    it('books a Turno as UNVERIFIED, without a Sesión, and sends a verification link', async () => {
+    it('books the Turno as BOOKED, without a Sesión, verifying the code', async () => {
       const res = await t.http.post('/bookings').send(VALID_BOOKING).expect(201);
 
       expect(res.body).toEqual({
@@ -81,10 +121,14 @@ describe('Turno', () => {
         employeeId: BOOKING.employeeId,
         startsAt: BOOKING.startsAt.toISOString(),
         endsAt: BOOKING.endsAt.toISOString(),
-        status: 'UNVERIFIED',
+        status: 'BOOKED',
         notes: null,
         employeeName: ANAS_EMPLOYEE.name,
       });
+      expect(t.bookingCodes.verify).toHaveBeenCalledWith(
+        VALID_BOOKING.clientEmail,
+        VALID_BOOKING.code,
+      );
       expect(t.bookings.create).toHaveBeenCalledWith(
         {
           serviceId: SERVICE.id,
@@ -96,13 +140,34 @@ describe('Turno', () => {
           startsAt: new Date(VALID_BOOKING.startsAt),
           endsAt: new Date('2026-01-01T12:30:00.000Z'),
           notes: null,
+          status: BookingStatus.BOOKED,
         },
-        new Date('2026-01-02T12:00:00.000Z'),
+        undefined,
       );
-      expect(t.mailer.sendVerificationLink).toHaveBeenCalledWith(
-        VALID_BOOKING.clientEmail,
-        'a-token',
+    });
+
+    it('leaves the Turno PENDING when the Servicio requires approval', async () => {
+      t.services.findById.mockResolvedValue({ ...SERVICE, requiresApproval: true });
+      t.bookings.create.mockResolvedValue({ ...BOOKING, status: BookingStatus.PENDING });
+
+      const res = await t.http.post('/bookings').send(VALID_BOOKING).expect(201);
+
+      expect(res.body).toMatchObject({ status: 'PENDING' });
+      expect(t.bookings.create).toHaveBeenCalledWith(
+        expect.objectContaining({ status: BookingStatus.PENDING }),
+        undefined,
       );
+    });
+
+    it('answers 400 for an invalid or expired verification code', async () => {
+      t.bookingCodes.verify.mockReturnValue(false);
+
+      const res = await t.http.post('/bookings').send(VALID_BOOKING).expect(400);
+
+      expect(res.body.message).toBe(
+        `Invalid or expired verification code for ${VALID_BOOKING.clientEmail}`,
+      );
+      expect(t.bookings.create).not.toHaveBeenCalled();
     });
 
     it('holds the Empleado from the Tiempo de preparación on', async () => {
@@ -118,7 +183,7 @@ describe('Turno', () => {
           prepStartsAt: new Date('2026-01-01T12:45:00.000Z'),
           startsAt: new Date('2026-01-01T13:00:00.000Z'),
         }),
-        expect.any(Date),
+        undefined,
       );
     });
 
@@ -135,34 +200,36 @@ describe('Turno', () => {
       expect(t.bookings.create).not.toHaveBeenCalled();
     });
 
-    it('answers 409 when the day already reached the Límite diario, counted in the Sucursal time zone', async () => {
+    it('creates with the Límite diario guard, counted in the Sucursal time zone', async () => {
       t.services.findById.mockResolvedValue({ ...SERVICE, dailyLimit: 2 });
-      t.bookings.listOccupiedStartsByService.mockResolvedValue([
-        new Date('2026-01-01T15:00:00.000Z'),
-        new Date('2026-01-01T16:00:00.000Z'),
-      ]);
+      t.bookings.listOccupiedStartsByService.mockResolvedValue([]);
+
+      await t.http.post('/bookings').send(VALID_BOOKING).expect(201);
+
+      // 2026-01-01 in Buenos Aires (UTC-3): from 03:00Z to 03:00Z of the next day.
+      expect(t.bookings.create).toHaveBeenCalledWith(
+        expect.anything(),
+        {
+          serviceId: SERVICE.id,
+          limit: 2,
+          from: new Date('2026-01-01T03:00:00.000Z'),
+          to: new Date('2026-01-02T03:00:00.000Z'),
+        },
+      );
+    });
+
+    it('answers 409 when the repository finds the Límite diario reached', async () => {
+      t.services.findById.mockResolvedValue({ ...SERVICE, dailyLimit: 1 });
+      t.bookings.listOccupiedStartsByService.mockResolvedValue([]);
+      t.bookings.create.mockRejectedValue(
+        new ConflictError('The Service reached its Límite diario that day'),
+      );
 
       const res = await t.http.post('/bookings').send(VALID_BOOKING).expect(409);
 
       expect(res.body.message).toBe(
         'The Service reached its Límite diario that day',
       );
-      // 2026-01-01 in Buenos Aires (UTC-3): from 03:00Z to 03:00Z of the next day.
-      expect(t.bookings.listOccupiedStartsByService).toHaveBeenCalledWith(
-        SERVICE.id,
-        new Date('2026-01-01T03:00:00.000Z'),
-        new Date('2026-01-02T03:00:00.000Z'),
-      );
-      expect(t.bookings.create).not.toHaveBeenCalled();
-    });
-
-    it('books under the Límite diario', async () => {
-      t.services.findById.mockResolvedValue({ ...SERVICE, dailyLimit: 2 });
-      t.bookings.listOccupiedStartsByService.mockResolvedValue([
-        new Date('2026-01-01T15:00:00.000Z'),
-      ]);
-
-      await t.http.post('/bookings').send(VALID_BOOKING).expect(201);
     });
 
     it('books a Turno for a Servicio oculto just the same', async () => {
@@ -187,15 +254,12 @@ describe('Turno', () => {
           clientName: 'Bruno',
           clientEmail: 'bruno@example.com',
         }),
-        expect.any(Date),
+        undefined,
       );
     });
 
     it('keeps the Comentario del Turno, trimmed, and returns it', async () => {
-      t.bookings.create.mockResolvedValue({
-        booking: { ...BOOKING, notes: 'Llego 5 minutos tarde' },
-        token: 'a-token',
-      });
+      t.bookings.create.mockResolvedValue({ ...BOOKING, notes: 'Llego 5 minutos tarde' });
 
       const res = await t.http
         .post('/bookings')
@@ -204,7 +268,7 @@ describe('Turno', () => {
 
       expect(t.bookings.create).toHaveBeenCalledWith(
         expect.objectContaining({ notes: 'Llego 5 minutos tarde' }),
-        expect.any(Date),
+        undefined,
       );
       expect(res.body.notes).toBe('Llego 5 minutos tarde');
     });
@@ -217,7 +281,7 @@ describe('Turno', () => {
 
       expect(t.bookings.create).toHaveBeenCalledWith(
         expect.objectContaining({ notes: null }),
-        expect.any(Date),
+        undefined,
       );
     });
 
@@ -311,8 +375,9 @@ describe('Turno', () => {
         });
         t.availabilities.findById.mockResolvedValue(AVAILABILITY);
         t.bookings.create.mockImplementation(async (data) => ({
-          booking: { ...BOOKING, employeeId: data.employeeId },
-          token: 'a-token',
+          ...BOOKING,
+          employeeId: data.employeeId,
+          status: data.status,
         }));
       });
 
@@ -365,16 +430,6 @@ describe('Turno', () => {
       });
     });
 
-    it("doesn't hold the slot: two Turnos sin verificar for the same Empleado and time can both be created", async () => {
-      await t.http.post('/bookings').send(VALID_BOOKING).expect(201);
-      await t.http
-        .post('/bookings')
-        .send({ ...VALID_BOOKING, clientEmail: 'other@example.com' })
-        .expect(201);
-
-      expect(t.bookings.create).toHaveBeenCalledTimes(2);
-    });
-
     it.each([
       ['a blank clientName', { clientName: ' ' }],
       ['a missing clientName', { clientName: undefined }],
@@ -386,6 +441,7 @@ describe('Turno', () => {
       ['a Comentario del Turno over 500 characters', { notes: 'a'.repeat(501) }],
       ['a non-string Comentario del Turno', { notes: 42 }],
       ['a null Comentario del Turno', { notes: null }],
+      ['a missing code', { code: undefined }],
     ])('rejects %s with 400, without reaching the repository', async (_, override) => {
       await t.http
         .post('/bookings')
@@ -393,143 +449,6 @@ describe('Turno', () => {
         .expect(400);
 
       expect(t.bookings.create).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('POST /bookings/verification', () => {
-    beforeEach(() => {
-      t.bookings.findByVerificationToken.mockResolvedValue(BOOKING);
-      t.services.findById.mockResolvedValue(SERVICE);
-      t.branches.findById.mockResolvedValue(BRANCH);
-      t.bookings.markVerified.mockResolvedValue({
-        ...BOOKING,
-        status: BookingStatus.BOOKED,
-      });
-    });
-
-    it('books the Turno for real when every rule still holds', async () => {
-      const res = await t.http
-        .post('/bookings/verification')
-        .send({ token: 'a-token' })
-        .expect(201);
-
-      expect(t.bookings.markVerified).toHaveBeenCalledWith(BOOKING.id, BookingStatus.BOOKED);
-      expect(res.body).toMatchObject({ id: BOOKING.id, status: 'BOOKED' });
-    });
-
-    it('leaves the Turno PENDING when the Servicio requires approval', async () => {
-      t.services.findById.mockResolvedValue({
-        ...SERVICE,
-        requiresApproval: true,
-      });
-      t.bookings.markVerified.mockResolvedValue({
-        ...BOOKING,
-        status: BookingStatus.PENDING,
-      });
-
-      const res = await t.http
-        .post('/bookings/verification')
-        .send({ token: 'a-token' })
-        .expect(201);
-
-      expect(t.bookings.markVerified).toHaveBeenCalledWith(
-        BOOKING.id,
-        BookingStatus.PENDING,
-      );
-      expect(res.body).toMatchObject({ status: 'PENDING' });
-    });
-
-    it('verifies under the Límite diario, serialized per Servicio by the repository', async () => {
-      t.services.findById.mockResolvedValue({ ...SERVICE, dailyLimit: 3 });
-
-      await t.http
-        .post('/bookings/verification')
-        .send({ token: 'a-token' })
-        .expect(201);
-
-      expect(t.bookings.markVerified).toHaveBeenCalledWith(
-        BOOKING.id,
-        BookingStatus.BOOKED,
-        {
-          serviceId: SERVICE.id,
-          limit: 3,
-          from: new Date('2026-01-01T03:00:00.000Z'),
-          to: new Date('2026-01-02T03:00:00.000Z'),
-        },
-      );
-    });
-
-    it('answers 409 when the Límite diario was reached meanwhile', async () => {
-      t.services.findById.mockResolvedValue({ ...SERVICE, dailyLimit: 1 });
-      t.bookings.markVerified.mockRejectedValue(
-        new ConflictError('The Service reached its Límite diario that day'),
-      );
-
-      await t.http
-        .post('/bookings/verification')
-        .send({ token: 'a-token' })
-        .expect(409);
-    });
-
-    it('answers 422 for an unknown, used or expired token', async () => {
-      t.bookings.findByVerificationToken.mockRejectedValue(
-        new BusinessRuleError('Unknown, used or expired verification token'),
-      );
-
-      await t.http
-        .post('/bookings/verification')
-        .send({ token: 'stale-token' })
-        .expect(422);
-      expect(t.bookings.markVerified).not.toHaveBeenCalled();
-    });
-
-    it('answers 422 when the Servicio was dado de baja meanwhile', async () => {
-      t.services.findById.mockResolvedValue({
-        ...SERVICE,
-        retiredAt: new Date('2026-01-01T00:00:00.000Z'),
-      });
-
-      await t.http
-        .post('/bookings/verification')
-        .send({ token: 'a-token' })
-        .expect(422);
-      expect(t.bookings.markVerified).not.toHaveBeenCalled();
-    });
-
-    it('answers 422 when the Empleado was taken off the Servicio or dado de baja meanwhile', async () => {
-      t.services.findById.mockResolvedValue({ ...SERVICE, employees: [] });
-
-      await t.http
-        .post('/bookings/verification')
-        .send({ token: 'a-token' })
-        .expect(422);
-      expect(t.bookings.markVerified).not.toHaveBeenCalled();
-    });
-
-    it('answers 422 when the time is now past', async () => {
-      t.clock.advance(2 * 24 * 60 * 60 * 1000);
-
-      await t.http
-        .post('/bookings/verification')
-        .send({ token: 'a-token' })
-        .expect(422);
-      expect(t.bookings.markVerified).not.toHaveBeenCalled();
-    });
-
-    it('answers 409 when an overlapping Turno of the same Empleado was verified first', async () => {
-      t.bookings.markVerified.mockRejectedValue(
-        new ConflictError('Overlaps a booked Turno for this Employee'),
-      );
-
-      await t.http
-        .post('/bookings/verification')
-        .send({ token: 'a-token' })
-        .expect(409);
-    });
-
-    it('rejects a missing token with 400', async () => {
-      await t.http.post('/bookings/verification').send({}).expect(400);
-      expect(t.bookings.findByVerificationToken).not.toHaveBeenCalled();
     });
   });
 

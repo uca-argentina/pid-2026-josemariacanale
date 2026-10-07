@@ -1,5 +1,4 @@
 export enum BookingStatus {
-  UNVERIFIED = 'UNVERIFIED',
   PENDING = 'PENDING',
   BOOKED = 'BOOKED',
   REJECTED = 'REJECTED',
@@ -41,12 +40,9 @@ export interface CreateBookingInput {
   clientName: string;
   clientEmail: string;
   notes?: string;
+  /** El Código de verificación pedido para clientEmail (ADR 0022). */
+  code: string;
 }
 
 /** The 409 of a Servicio whose Límite diario that day is already reached, wherever it is detected. */
 export const DAILY_LIMIT_REACHED = 'The Service reached its Límite diario that day';
-
-const VERIFICATION_TOKEN_LIFETIME_MS = 24 * 60 * 60 * 1000;
-
-export const bookingVerificationExpiresAt = (issuedAt: Date) =>
-  new Date(issuedAt.getTime() + VERIFICATION_TOKEN_LIFETIME_MS);

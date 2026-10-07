@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
   Param,
   ParseIntPipe,
   Patch,
@@ -15,7 +16,7 @@ import { AcceptBookingUseCase } from '../../application/bookings/accept-booking.
 import { RejectBookingUseCase } from '../../application/bookings/reject-booking.use-case';
 import { CreateBookingUseCase } from '../../application/bookings/create-booking.use-case';
 import { ListBookingsByBusinessUseCase } from '../../application/bookings/list-bookings-by-business.use-case';
-import { VerifyBookingUseCase } from '../../application/bookings/verify-booking.use-case';
+import { RequestBookingCodeUseCase } from '../../application/bookings/request-booking-code.use-case';
 import { ClerkGuard, CurrentUser } from '../users/clerk.guard';
 import {
   presentBooking,
@@ -24,15 +25,15 @@ import {
 } from './booking.presenter';
 import {
   CreateBookingDto,
+  RequestBookingCodeDto,
   RescheduleBookingDto,
-  VerifyBookingDto,
 } from './bookings.dto';
 
 @Controller()
 export class BookingsController {
   constructor(
     private readonly createBookingUseCase: CreateBookingUseCase,
-    private readonly verifyBookingUseCase: VerifyBookingUseCase,
+    private readonly requestBookingCodeUseCase: RequestBookingCodeUseCase,
     private readonly listBookingsByBusinessUseCase: ListBookingsByBusinessUseCase,
     private readonly acceptBookingUseCase: AcceptBookingUseCase,
     private readonly rejectBookingUseCase: RejectBookingUseCase,
@@ -41,6 +42,24 @@ export class BookingsController {
     private readonly markNoShowUseCase: MarkNoShowUseCase,
   ) {}
 
+  /**
+   * Pide un Código de verificación para Reservar.
+   *
+   * @throws {TooManyRequestsError} ya se pidieron 5 códigos para ese email en los últimos 15 minutos
+   */
+  @Post('bookings/code')
+  @HttpCode(204)
+  async requestCode(@Body() dto: RequestBookingCodeDto) {
+    await this.requestBookingCodeUseCase.execute(dto.email);
+  }
+
+  /**
+   * Reserva un Turno con un Código de verificación ya vigente.
+   *
+   * @throws {InvalidCodeError} el código no es válido para clientEmail
+   * @throws {BusinessRuleError} el Servicio no existe o está dado de baja, el horario ya pasó o no es un Horario reservable
+   * @throws {ConflictError} el horario ya lo ocupa otro Turno, o el Servicio alcanzó su Límite diario ese día
+   */
   @Post('bookings')
   async create(@Body() dto: CreateBookingDto) {
     const booking = await this.createBookingUseCase.execute({
@@ -49,13 +68,9 @@ export class BookingsController {
       clientName: dto.clientName,
       clientEmail: dto.clientEmail,
       notes: dto.notes,
+      code: dto.code,
     });
     return { ...presentBooking(booking), employeeName: booking.employeeName };
-  }
-
-  @Post('bookings/verification')
-  async verify(@Body() dto: VerifyBookingDto) {
-    return presentBooking(await this.verifyBookingUseCase.execute(dto.token));
   }
 
   /**

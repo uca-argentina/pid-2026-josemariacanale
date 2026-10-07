@@ -217,8 +217,8 @@ propias: la de otro Usuario es 404, como una que no existe.
 
 | Método | Ruta | Auth | Qué hace |
 |---|---|---|---|
-| POST | `/bookings` | no | Crea un turno (el cliente reserva un horario); queda `UNVERIFIED` y se envía email de verificación |
-| POST | `/bookings/verification` | no | Verifica un turno por token (del link del email); re-chequea todas las reglas, puede devolver 409 si el horario se ocupó mientras tanto. Queda `BOOKED`, o `PENDING` si el Servicio tiene `requiresApproval` |
+| POST | `/bookings/code` | no | Pide un Código de verificación para un email, mandado por mail; 204 |
+| POST | `/bookings` | no | Crea un turno con el Código de verificación de `clientEmail` ya validado; queda `BOOKED`, o `PENDING` si el Servicio tiene `requiresApproval` (ADR 0022) |
 | PATCH | `/bookings/:id/accept` | sí | Acepta un Turno pendiente: `PENDING` → `BOOKED` (solo el Empleado asignado) |
 | PATCH | `/bookings/:id/reject` | sí | Rechaza un Turno pendiente: `PENDING` → `REJECTED`, libera el horario (solo el Empleado asignado) |
 | PATCH | `/bookings/:id/cancel` | sí | Cancela un Turno aceptado: `BOOKED` → `CANCELLED`, libera el horario (solo el Empleado asignado) |
@@ -226,27 +226,22 @@ propias: la de otro Usuario es 404, como una que no existe.
 | PATCH | `/bookings/:id/no-show` | sí | Marca la Ausencia de un Turno aceptado cuyo horario ya pasó: guarda `noShowAt` con la hora actual, sin cambiar `status` (solo el Empleado asignado) |
 | GET | `/businesses/:id/bookings` | sí | Lista todos los turnos de un negocio (solo el dueño) |
 
-- `CreateBookingDto`: `{ serviceId, startsAt: ISO date-string, clientName, clientEmail, notes? }`; el Cliente no manda Empleado, el back le asigna uno
+- **Código de verificación** (ADR 0022, reemplaza al flujo por link del ADR 0005/0006 para el Turno): Reservar exige un Código de verificación vigente para `clientEmail`. `RequestBookingCodeDto`: `{ email }` (se recorta y pasa a minúsculas). `POST /bookings/code` manda un TOTP sin estado atado al email, ventana de 15 minutos, 6 caracteres del alfabeto del ADR 0006 (A-Z y 2-9, sin `0/O` ni `1/I`); no se guarda nada por código pedido. 400 si `email` es inválido. 429 `Too many verification codes requested for <email>` al sexto pedido para ese email en 15 minutos. El mismo endpoint sirve para entrar a Mis turnos.
+- `CreateBookingDto`: `{ serviceId, startsAt: ISO date-string, clientName, clientEmail, notes?, code }`; el Cliente no manda Empleado, el back le asigna uno. Falta `code` → 400; no valida para `clientEmail` en su ventana → 400 `Invalid or expired verification code for <email>`, y no crea nada.
 - `notes` (Comentario del Turno): texto libre, se recorta; hasta 500 caracteres. Vacío o solo espacios se guarda como sin Comentario (`null`). Más largo, no string o `null` → 400. No se valida el contenido
-- `VerifyBookingDto`: `{ token }`
 - Respuesta (`presentBooking`): `{ id, serviceId, employeeId, startsAt, endsAt, status, notes }` (`employeeId` es `null` en un Turno de un Servicio personal, que atiende el propio Usuario; la ocupación es por Usuario, así que un Turno personal bloquea ese tramo en sus Servicios del Negocio y al revés, ADR 0021); `notes` es `null` si el Cliente no dejó Comentario del Turno. `POST /bookings` agrega `employeeName`, el nombre del Empleado asignado
 - **Asignación** (ROUND_ROBIN de cal.diy, ADR 0021): entre los Empleados libres en ese horario, `POST /bookings` asigna el que hace más tiempo que no recibe un Turno `PENDING` o `BOOKED` de ese Servicio (por `createdAt`); sin Turnos previos, gana ese; si empatan, el de menor id. Con Aprobación manual el Turno queda `PENDING` para el asignado
 - Respuesta solo-dueño (`presentBookingForOwner`, usada en el listado): agrega `clientName, clientEmail`
-- **Ciclo de vida**: `UNVERIFIED` → (verificar) → `BOOKED`, o `PENDING` si el Servicio tiene Aprobación
-  manual; de `PENDING`, Aceptar → `BOOKED` y Rechazar → `REJECTED`. `POST /bookings` siempre crea
-  `UNVERIFIED`, con o sin `requiresApproval`.
+- **Ciclo de vida** (ADR 0022): no existe el Turno sin verificar. `POST /bookings`, con el código ya validado, crea
+  directamente `BOOKED`, o `PENDING` si el Servicio tiene Aprobación manual; de `PENDING`, Aceptar → `BOOKED` y
+  Rechazar → `REJECTED`.
 - **Aceptar / Rechazar**: exigen Sesión y que el usuario sea el Empleado asignado al Turno (403 `Only the assigned Employee can accept or reject this Turno` si no; 404 si el Turno no existe). Un Turno que no
   está `PENDING` da 422 `Turno is not pending`. Responden el Turno (`presentBooking`).
 - **Cancelar / Reagendar / Ausencia**: exigen Sesión y ser el Empleado asignado al Turno (403 `Only the assigned Employee can act on this Turno`; 404 si el Turno no existe). Un Turno que no está `BOOKED` da 422 `Turno is not booked`. Responden el Turno (`presentBooking`); Ausencia le suma `noShowAt`.
   - `RescheduleBookingDto`: `{ startsAt: ISO date-string }`; la duración se conserva, y la preparación es la que el Servicio tiene hoy. Un día que ya alcanzó el Límite diario no ofrece Horarios reservables, así que mover un Turno ahí es el mismo 422 (sin contar al propio Turno). `startsAt` inválido → 400. Si no es un Horario reservable de ningún Empleado según el mismo cálculo que `GET /services/:id/slots` → 422 `Slot <ISO> is not available for Service <id>`. El horario que el Turno ya ocupaba cuenta como libre. Si el Empleado asignado está libre en el horario nuevo se queda con el Turno; si no, pasa a otro libre (el de la regla de Asignación) y `employeeId` de la respuesta cambia.
   - Ausencia: 422 si el Turno no terminó todavía (`Turno has not ended yet`) o ya tiene Ausencia (`Turno already has an Ausencia`).
-- **Horario ocupado (409 `Overlaps a booked Turno for this Employee`)**. Un Turno sin verificar no
-  mantiene reservado su horario: lo toma recién al verificarse. Por eso:
-  - `POST /bookings` → 422 `Slot <ISO> is not available for Service <id>` si `startsAt` no está entre los Horarios reservables que `GET /services/:id/slots` calcula en ese momento para algún Empleado (nadie libre, fuera de las Franjas, fuera de la grilla del Intervalo, antes de la Anticipación mínima). El front lo muestra como «ese horario ya no está disponible» y vuelve a pedir la lista. La unicidad en Postgres (ADR 0004) sigue siendo la defensa contra dos reservas al mismo tiempo.
-  - `POST /bookings` y `POST /bookings/verification` → 409 `The Service reached its Límite diario that day` si el Servicio ya tiene `dailyLimit` Turnos `PENDING` o `BOOKED` ese día de la Sucursal. Los Turnos sin verificar, cancelados y rechazados no cuentan. Dos verificaciones casi juntas del mismo Servicio no pueden pasarlo (ADR 0004).
-  - Como un Turno sin verificar no ocupa al Empleado, dos `POST /bookings` casi juntos pueden asignar al mismo Empleado; el segundo en verificar recibe el 409 de arriba aunque otro estuviera libre.
-  - Dos `POST /bookings` para el mismo horario, aunque lleguen casi juntos, dan los dos 201: ninguno
-    ocupa el horario todavía.
-  - La carrera se decide al verificar: el primer `POST /bookings/verification` gana y el otro recibe
-    409, aunque los dos verifiquen casi al mismo tiempo. Lo garantiza la exclusion constraint
-    `Booking_no_overlap` de Postgres (ADR 0004), no solo el chequeo del caso de uso.
+- **Horario ocupado (409 `Overlaps a booked Turno for this Employee`)**. Como el Turno nace ya `BOOKED` o
+  `PENDING`, la creación misma es la que puede chocar:
+  - `POST /bookings` → 422 `Slot <ISO> is not available for Service <id>` si `startsAt` no está entre los Horarios reservables que `GET /services/:id/slots` calcula en ese momento para algún Empleado (nadie libre, fuera de las Franjas, fuera de la grilla del Intervalo, antes de la Anticipación mínima). El front lo muestra como «ese horario ya no está disponible» y vuelve a pedir la lista.
+  - Dos `POST /bookings` casi juntos para el mismo horario: uno da 201, el otro 409 `Overlaps a booked Turno for this Employee`. Lo garantiza la exclusion constraint `Booking_no_overlap` de Postgres (ADR 0004), no solo el chequeo del caso de uso.
+  - `POST /bookings` → 409 `The Service reached its Límite diario that day` si el Servicio ya tiene `dailyLimit` Turnos `PENDING` o `BOOKED` ese día de la Sucursal. Dos creaciones casi juntas del mismo Servicio no pueden pasarlo: la creación cuenta y crea dentro de una transacción con `pg_advisory_xact_lock` por Servicio (ADR 0004).

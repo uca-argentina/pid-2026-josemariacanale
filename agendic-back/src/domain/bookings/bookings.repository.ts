@@ -12,6 +12,8 @@ export interface CreateBookingData {
   startsAt: Date;
   endsAt: Date;
   notes: string | null;
+  /** BOOKED, o PENDING si el Servicio tiene Aprobación manual. */
+  status: BookingStatus.PENDING | BookingStatus.BOOKED;
 }
 
 /** The Límite diario a verification must respect: at most `limit` PENDING or BOOKED Turnos of the Servicio starting in [from, to). */
@@ -23,11 +25,13 @@ export interface DailyLimitGuard {
 }
 
 export interface BookingsRepository {
-  /** Generates the id and a single-use token valid until expiresAt; only the token's hash is stored. */
-  create(
-    data: CreateBookingData,
-    expiresAt: Date,
-  ): Promise<{ booking: Booking; token: string }>;
+  /**
+   * Crea el Turno ya BOOKED o PENDING. Con `dailyLimit`, cuenta y crea serializado por Servicio (advisory lock), así
+   * dos creaciones casi juntas no pueden pasar el Límite diario entre las dos.
+   *
+   * @throws {ConflictError} el horario ya lo ocupa otro Turno pendiente o aceptado del Empleado, o el Servicio ya alcanzó su Límite diario ese día
+   */
+  create(data: CreateBookingData, dailyLimit?: DailyLimitGuard): Promise<Booking>;
   /** When each of these Empleados last received a PENDING or BOOKED Turno of the Servicio (its `createdAt`); an Empleado with none is absent. Leaves out `excludeBookingId`. */
   lastReceivedByEmployee(
     serviceId: number,
@@ -41,18 +45,6 @@ export interface BookingsRepository {
     to: Date,
     excludeBookingId?: number,
   ): Promise<Date[]>;
-  /** Throws BusinessRuleError for an unknown, used or expired token. */
-  findByVerificationToken(token: string, now: Date): Promise<Booking>;
-  /**
-   * Moves an UNVERIFIED Booking to PENDING or BOOKED. With a `dailyLimit`, counts and verifies serialized per Servicio,
-   * so two verifications racing can't both pass it. Throws ConflictError if it now overlaps a PENDING or BOOKED
-   * Booking, or the Límite diario is reached.
-   */
-  markVerified(
-    id: number,
-    status: BookingStatus.PENDING | BookingStatus.BOOKED,
-    dailyLimit?: DailyLimitGuard,
-  ): Promise<Booking>;
   /** Throws NotFoundError for an unknown id. */
   findById(id: number): Promise<Booking>;
   /** Moves a PENDING Booking to BOOKED or REJECTED. Throws BusinessRuleError if it is no longer PENDING. */

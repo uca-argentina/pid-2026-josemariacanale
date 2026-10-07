@@ -7,14 +7,19 @@ import {
   AVAILABILITIES_REPOSITORY,
   AvailabilitiesRepository,
 } from '../../domain/availabilities/availabilities.repository';
-import { Booking, bookingVerificationExpiresAt, CreateBookingInput } from '../../domain/bookings/booking';
+import {
+  BOOKING_VERIFICATION_CODES,
+  BookingVerificationCodes,
+} from '../../domain/bookings/booking-verification-codes';
+import { Booking, BookingStatus, CreateBookingInput } from '../../domain/bookings/booking';
 import {
   BOOKINGS_REPOSITORY,
   BookingsRepository,
+  DailyLimitGuard,
 } from '../../domain/bookings/bookings.repository';
 import { CLOCK, Clock } from '../../domain/clock';
-import { NotFoundError } from '../../domain/errors';
-import { MAILER, Mailer } from '../../domain/mailer';
+import { InvalidCodeError, NotFoundError } from '../../domain/errors';
+import { localDayBounds } from '../../domain/slots/slot';
 import {
   SERVICES_REPOSITORY,
   ServicesRepository,
@@ -24,7 +29,7 @@ import {
   UsersRepository,
 } from '../../domain/users/users.repository';
 import { ListSlotsUseCase } from '../slots/list-slots.use-case';
-import { assertBookable, assertUnderDailyLimit } from './assert-booking-rules';
+import { assertBookable } from './assert-booking-rules';
 import { pickEmployee } from './pick-employee';
 
 @Injectable()
@@ -36,21 +41,30 @@ export class CreateBookingUseCase {
     private readonly availabilities: AvailabilitiesRepository,
     @Inject(BOOKINGS_REPOSITORY) private readonly bookings: BookingsRepository,
     @Inject(USERS_REPOSITORY) private readonly users: UsersRepository,
-    @Inject(MAILER) private readonly mailer: Mailer,
+    @Inject(BOOKING_VERIFICATION_CODES)
+    private readonly codes: BookingVerificationCodes,
     @Inject(CLOCK) private readonly clock: Clock,
     private readonly listSlots: ListSlotsUseCase,
   ) {}
 
   /**
-   * Reserva un Turno sin verificar y le asigna el Empleado que hace más tiempo que no recibe uno del Servicio (ver `pickEmployee`), o al Usuario dueño de un Servicio personal. Ocupa la agenda de quien lo atiende desde la preparación del Servicio, que queda fijada acá.
+   * Reserva un Turno, ya BOOKED o PENDING con Aprobación manual, y le asigna el Empleado que hace más tiempo que no
+   * recibe uno del Servicio (ver `pickEmployee`), o al Usuario dueño de un Servicio personal. Ocupa la agenda de
+   * quien lo atiende desde la preparación del Servicio, que queda fijada acá. Exige un Código de verificación vigente
+   * para `clientEmail` (ADR 0022).
    *
+   * @throws {InvalidCodeError} el código no es válido para clientEmail en su ventana
    * @throws {BusinessRuleError} el Servicio no existe o está dado de baja, el horario ya pasó o no es un Horario reservable de ningún Empleado
-   * @throws {ConflictError} el Servicio ya alcanzó su Límite diario ese día
+   * @throws {ConflictError} el horario ya lo ocupa otro Turno del Empleado, o el Servicio ya alcanzó su Límite diario ese día
    */
   async execute(
     input: CreateBookingInput,
   ): Promise<Booking & { employeeName: string }> {
     const now = this.clock.now();
+    if (!this.codes.verify(input.clientEmail, input.code))
+      throw new InvalidCodeError(
+        `Invalid or expired verification code for ${input.clientEmail}`,
+      );
     const { service, timeZone } = await assertBookable(
       this.services,
       this.branches,
@@ -66,15 +80,22 @@ export class CreateBookingUseCase {
     const prepStartsAt = new Date(
       input.startsAt.getTime() - service.prepMinutes * 60_000,
     );
-    await assertUnderDailyLimit(this.bookings, service, timeZone, input.startsAt);
     const attendant = await pickEmployee(
       this.listSlots,
       this.bookings,
       input.serviceId,
       input.startsAt,
     );
+    const status = service.requiresApproval
+      ? BookingStatus.PENDING
+      : BookingStatus.BOOKED;
+    let dailyLimit: DailyLimitGuard | undefined;
+    if (service.dailyLimit !== null) {
+      const { from, to } = localDayBounds(input.startsAt, timeZone);
+      dailyLimit = { serviceId: service.id, limit: service.dailyLimit, from, to };
+    }
 
-    const { booking, token } = await this.bookings.create(
+    const booking = await this.bookings.create(
       {
         serviceId: input.serviceId,
         employeeId: attendant.employeeId,
@@ -85,10 +106,10 @@ export class CreateBookingUseCase {
         startsAt: input.startsAt,
         endsAt,
         notes: input.notes || null, // a blank Comentario del Turno is no Comentario
+        status,
       },
-      bookingVerificationExpiresAt(now),
+      dailyLimit,
     );
-    await this.mailer.sendVerificationLink(booking.clientEmail, token);
     // The name is the Empleado's, or the Usuario's own in a Servicio personal; both come from the Usuario.
     const employee = service.employees.find(({ id }) => id === attendant.employeeId);
     const attendingUser = employee ? null : await this.users.findById(attendant.userId);
