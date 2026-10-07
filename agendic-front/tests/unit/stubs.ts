@@ -49,6 +49,9 @@ export const clientBookingsWith = (stubs: Partial<IClientBookingsRepository>): I
     listBookings: jest.fn(notStubbed('listBookings')),
     cancel: jest.fn(notStubbed('cancel')),
     reschedule: jest.fn(notStubbed('reschedule')),
+    getBookingByLink: jest.fn(notStubbed('getBookingByLink')),
+    cancelBookingByLink: jest.fn(notStubbed('cancelBookingByLink')),
+    rescheduleBookingByLink: jest.fn(notStubbed('rescheduleBookingByLink')),
     ...stubs,
 });
 

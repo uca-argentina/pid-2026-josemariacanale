@@ -88,6 +88,12 @@ import type { ICancelClientBookingUseCase } from '@/src/application/use-cases/bo
 import type { ICancelClientBookingController } from '@/src/interface-adapters/controllers/bookings/cancel-client-booking.controller';
 import type { IRescheduleClientBookingUseCase } from '@/src/application/use-cases/bookings/reschedule-client-booking.use-case';
 import type { IRescheduleClientBookingController } from '@/src/interface-adapters/controllers/bookings/reschedule-client-booking.controller';
+import type { IGetBookingByLinkUseCase } from '@/src/application/use-cases/bookings/get-booking-by-link.use-case';
+import type { IGetBookingByLinkController } from '@/src/interface-adapters/controllers/bookings/get-booking-by-link.controller';
+import type { ICancelBookingByLinkUseCase } from '@/src/application/use-cases/bookings/cancel-booking-by-link.use-case';
+import type { ICancelBookingByLinkController } from '@/src/interface-adapters/controllers/bookings/cancel-booking-by-link.controller';
+import type { IRescheduleBookingByLinkUseCase } from '@/src/application/use-cases/bookings/reschedule-booking-by-link.use-case';
+import type { IRescheduleBookingByLinkController } from '@/src/interface-adapters/controllers/bookings/reschedule-booking-by-link.controller';
 import type { IAvailabilitiesRepository } from '@/src/application/repositories/availabilities.repository.interface';
 import type { IListAvailabilitiesUseCase } from '@/src/application/use-cases/availabilities/list-availabilities.use-case';
 import type { IGetAvailabilityUseCase } from '@/src/application/use-cases/availabilities/get-availability.use-case';
@@ -153,6 +159,9 @@ export const DI_SYMBOLS = {
     IListClientBookingsUseCase: Symbol.for('IListClientBookingsUseCase'),
     ICancelClientBookingUseCase: Symbol.for('ICancelClientBookingUseCase'),
     IRescheduleClientBookingUseCase: Symbol.for('IRescheduleClientBookingUseCase'),
+    IGetBookingByLinkUseCase: Symbol.for('IGetBookingByLinkUseCase'),
+    ICancelBookingByLinkUseCase: Symbol.for('ICancelBookingByLinkUseCase'),
+    IRescheduleBookingByLinkUseCase: Symbol.for('IRescheduleBookingByLinkUseCase'),
     IListAvailabilitiesUseCase: Symbol.for('IListAvailabilitiesUseCase'),
     IGetAvailabilityUseCase: Symbol.for('IGetAvailabilityUseCase'),
     ICreateAvailabilityUseCase: Symbol.for('ICreateAvailabilityUseCase'),
@@ -206,6 +215,9 @@ export const DI_SYMBOLS = {
     IListClientBookingsController: Symbol.for('IListClientBookingsController'),
     ICancelClientBookingController: Symbol.for('ICancelClientBookingController'),
     IRescheduleClientBookingController: Symbol.for('IRescheduleClientBookingController'),
+    IGetBookingByLinkController: Symbol.for('IGetBookingByLinkController'),
+    ICancelBookingByLinkController: Symbol.for('ICancelBookingByLinkController'),
+    IRescheduleBookingByLinkController: Symbol.for('IRescheduleBookingByLinkController'),
     IListMyAvailabilitiesController: Symbol.for('IListMyAvailabilitiesController'),
     ICreateAvailabilityController: Symbol.for('ICreateAvailabilityController'),
     IUpdateAvailabilityController: Symbol.for('IUpdateAvailabilityController'),
@@ -265,6 +277,9 @@ export interface DI_RETURN_TYPES {
     IListClientBookingsUseCase: IListClientBookingsUseCase;
     ICancelClientBookingUseCase: ICancelClientBookingUseCase;
     IRescheduleClientBookingUseCase: IRescheduleClientBookingUseCase;
+    IGetBookingByLinkUseCase: IGetBookingByLinkUseCase;
+    ICancelBookingByLinkUseCase: ICancelBookingByLinkUseCase;
+    IRescheduleBookingByLinkUseCase: IRescheduleBookingByLinkUseCase;
     IListAvailabilitiesUseCase: IListAvailabilitiesUseCase;
     IGetAvailabilityUseCase: IGetAvailabilityUseCase;
     ICreateAvailabilityUseCase: ICreateAvailabilityUseCase;
@@ -318,6 +333,9 @@ export interface DI_RETURN_TYPES {
     IListClientBookingsController: IListClientBookingsController;
     ICancelClientBookingController: ICancelClientBookingController;
     IRescheduleClientBookingController: IRescheduleClientBookingController;
+    IGetBookingByLinkController: IGetBookingByLinkController;
+    ICancelBookingByLinkController: ICancelBookingByLinkController;
+    IRescheduleBookingByLinkController: IRescheduleBookingByLinkController;
     IListMyAvailabilitiesController: IListMyAvailabilitiesController;
     ICreateAvailabilityController: ICreateAvailabilityController;
     IUpdateAvailabilityController: IUpdateAvailabilityController;

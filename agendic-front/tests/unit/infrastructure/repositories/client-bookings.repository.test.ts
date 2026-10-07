@@ -132,6 +132,92 @@ describe('ClientBookingsRepository.reschedule', () => {
     });
 });
 
+describe('ClientBookingsRepository.getBookingByLink', () => {
+    it('GETs el Enlace del Turno sin header de acceso, y devuelve el Turno', async () => {
+        const fetchSpy = respond(200, booking);
+
+        await expect(repo().getBookingByLink('s3cr3t-l1nk')).resolves.toEqual(booking);
+        expect(fetchSpy).toHaveBeenCalledWith('http://api/booking-links/s3cr3t-l1nk', { method: 'GET', headers: {} });
+    });
+
+    it('escapes the link in the path', async () => {
+        const fetchSpy = respond(200, booking);
+        await repo().getBookingByLink('a/b?c');
+        expect(fetchSpy).toHaveBeenCalledWith('http://api/booking-links/a%2Fb%3Fc', expect.anything());
+    });
+
+    it('translates a 404 to NotFoundError, keeping the message', async () => {
+        respond(404, { statusCode: 404, message: 'Turno not found' });
+        const error = await repo().getBookingByLink('unknown').catch((e) => e);
+        expect(error).toBeInstanceOf(NotFoundError);
+        expect(error.message).toBe('Turno not found');
+    });
+
+    it('keeps the link out of the error message when the back responds without one', async () => {
+        respond(500, {});
+        const error = await repo().getBookingByLink('s3cr3t-l1nk').catch((e) => e);
+        expect(error).toBeInstanceOf(ApiRequestError);
+        expect(error.message).not.toContain('s3cr3t-l1nk');
+    });
+});
+
+describe('ClientBookingsRepository.cancelBookingByLink', () => {
+    it('PATCHes sin header de acceso ni body, y devuelve el Turno', async () => {
+        const cancelled = { ...booking, status: 'CANCELLED' };
+        const fetchSpy = respond(200, cancelled);
+
+        await expect(repo().cancelBookingByLink('s3cr3t-l1nk')).resolves.toEqual(cancelled);
+        expect(fetchSpy).toHaveBeenCalledWith('http://api/booking-links/s3cr3t-l1nk/cancel', { method: 'PATCH', headers: {} });
+    });
+
+    it('translates a 404 to NotFoundError', async () => {
+        respond(404, { statusCode: 404, message: 'Turno not found' });
+        await expect(repo().cancelBookingByLink('unknown')).rejects.toBeInstanceOf(NotFoundError);
+    });
+
+    it('translates a 422 to BookingStateError, keeping the message', async () => {
+        respond(422, { statusCode: 422, message: 'Turno 7 already started' });
+        const error = await repo().cancelBookingByLink('s3cr3t-l1nk').catch((e) => e);
+        expect(error).toBeInstanceOf(BookingStateError);
+        expect(error.message).toBe('Turno 7 already started');
+    });
+});
+
+describe('ClientBookingsRepository.rescheduleBookingByLink', () => {
+    const startsAt = '2026-10-11T12:00:00.000Z';
+
+    it('PATCHes startsAt sin header de acceso, y devuelve el Turno', async () => {
+        const fetchSpy = respond(200, booking);
+
+        await expect(repo().rescheduleBookingByLink('s3cr3t-l1nk', startsAt)).resolves.toEqual(booking);
+        expect(fetchSpy).toHaveBeenCalledWith('http://api/booking-links/s3cr3t-l1nk/reschedule', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ startsAt }),
+        });
+    });
+
+    it('translates a 404 to NotFoundError', async () => {
+        respond(404, { statusCode: 404, message: 'Turno not found' });
+        await expect(repo().rescheduleBookingByLink('unknown', startsAt)).rejects.toBeInstanceOf(NotFoundError);
+    });
+
+    it('translates a 409 to SlotTakenError', async () => {
+        respond(409, { statusCode: 409, message: 'Overlaps a booked Turno for this Employee' });
+        await expect(repo().rescheduleBookingByLink('s3cr3t-l1nk', startsAt)).rejects.toBeInstanceOf(SlotTakenError);
+    });
+
+    it('translates the 422 de horario no disponible a SlotUnavailableError', async () => {
+        respond(422, { statusCode: 422, message: 'Slot 2026-10-11T12:00:00.000Z is not available for Service 100' });
+        await expect(repo().rescheduleBookingByLink('s3cr3t-l1nk', startsAt)).rejects.toBeInstanceOf(SlotUnavailableError);
+    });
+
+    it('translates any other 422 to BookingStateError', async () => {
+        respond(422, { statusCode: 422, message: 'Turno is not pending or booked' });
+        await expect(repo().rescheduleBookingByLink('s3cr3t-l1nk', startsAt)).rejects.toBeInstanceOf(BookingStateError);
+    });
+});
+
 describe('ClientBookingsRepository misc', () => {
     it('throws ApiRequestError without calling the back when API_URL is not set', async () => {
         const fetchSpy = jest.spyOn(global, 'fetch');
@@ -156,11 +242,17 @@ describe('ClientBookingsRepository misc', () => {
         await spanning.listBookings('signed-token').catch(() => undefined);
         await spanning.cancel('signed-token', 7).catch(() => undefined);
         await spanning.reschedule('signed-token', 7, '2026-10-11T12:00:00.000Z').catch(() => undefined);
+        await spanning.getBookingByLink('s3cr3t-l1nk').catch(() => undefined);
+        await spanning.cancelBookingByLink('s3cr3t-l1nk').catch(() => undefined);
+        await spanning.rescheduleBookingByLink('s3cr3t-l1nk', '2026-10-11T12:00:00.000Z').catch(() => undefined);
         expect(names).toEqual([
             'ClientBookingsRepository > openAccess',
             'ClientBookingsRepository > listBookings',
             'ClientBookingsRepository > cancel',
             'ClientBookingsRepository > reschedule',
+            'ClientBookingsRepository > getBookingByLink',
+            'ClientBookingsRepository > cancelBookingByLink',
+            'ClientBookingsRepository > rescheduleBookingByLink',
         ]);
     });
 });

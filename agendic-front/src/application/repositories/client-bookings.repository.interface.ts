@@ -1,6 +1,9 @@
 import type { ClientAccess, ClientBooking } from '@/src/entities/models/client-booking';
 
-/** Mis turnos del Cliente (ADR 0022): sin cookie ni Sesión, con un acceso de 15 minutos atado a su email. */
+/**
+ * Turnos del Cliente (ADR 0022), sin cookie ni Sesión: los de Mis turnos, con un acceso de 15 minutos atado a su
+ * email, y el de un Enlace del Turno, que alcanza por sí solo para ese Turno.
+ */
 export interface IClientBookingsRepository {
     /**
      * Cambia un Código de verificación vigente por un acceso de 15 minutos a Mis turnos.
@@ -33,4 +36,27 @@ export interface IClientBookingsRepository {
      * @throws {BookingStateError} el Turno no está pendiente ni aceptado (422)
      */
     reschedule(access: string, bookingId: number, startsAt: string): Promise<ClientBooking>;
+
+    /**
+     * El Turno de un Enlace del Turno, en cualquier estado.
+     *
+     * @throws {NotFoundError} el Enlace no es de ningún Turno (404)
+     */
+    getBookingByLink(link: string): Promise<ClientBooking>;
+
+    /**
+     * @throws {NotFoundError} el Enlace no es de ningún Turno (404)
+     * @throws {BookingStateError} el Turno no está pendiente ni aceptado, o ya empezó (422)
+     */
+    cancelBookingByLink(link: string): Promise<ClientBooking>;
+
+    /**
+     * Reagenda el Turno de un Enlace del Turno a otro Horario reservable del mismo Servicio.
+     *
+     * @throws {NotFoundError} el Enlace no es de ningún Turno (404)
+     * @throws {SlotTakenError} el horario nuevo pisa otro Turno del Empleado (409)
+     * @throws {SlotUnavailableError} `startsAt` no es un Horario reservable de ningún Empleado (422)
+     * @throws {BookingStateError} el Turno no está pendiente ni aceptado (422)
+     */
+    rescheduleBookingByLink(link: string, startsAt: string): Promise<ClientBooking>;
 }

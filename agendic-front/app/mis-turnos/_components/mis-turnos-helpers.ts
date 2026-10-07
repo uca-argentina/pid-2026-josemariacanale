@@ -1,4 +1,4 @@
-import type { ClientBooking } from '../actions';
+import type { ClientBooking } from '@/app/_components/client-booking/types';
 
 export type Tab = 'upcoming' | 'past';
 
@@ -16,10 +16,3 @@ export function sortForTab(tab: Tab, list: ClientBooking[]) {
     const dir = tab === 'upcoming' ? 1 : -1;
     return [...list].sort((a, b) => dir * (Date.parse(a.startsAt) - Date.parse(b.startsAt)));
 }
-
-/** Puede Cancelar o Reagendar: pendiente o aceptado, y todavía no empezó. */
-export function isActionable(b: ClientBooking, now: number) {
-    return (b.status === 'PENDING' || b.status === 'BOOKED') && Date.parse(b.startsAt) > now;
-}
-
-export const hostName = (b: ClientBooking) => b.business?.name ?? b.employeeName;

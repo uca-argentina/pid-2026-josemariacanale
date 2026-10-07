@@ -2,9 +2,10 @@
 
 import { unstable_rethrow } from 'next/navigation';
 import { getInjection } from '@/di/container';
-import type { DI_RETURN_TYPES } from '@/di/types';
-import { BookingStateError, ClientAccessExpiredError, InvalidVerificationCodeError, SlotTakenError, SlotUnavailableError } from '@/src/entities/errors/booking';
-import { InputParseError, NotFoundError } from '@/src/entities/errors/common';
+import { performClientBookingAction } from '@/app/_components/client-booking/perform-client-booking-action';
+import type { ClientBooking } from '@/app/_components/client-booking/types';
+import { ClientAccessExpiredError, InvalidVerificationCodeError } from '@/src/entities/errors/booking';
+import { InputParseError } from '@/src/entities/errors/common';
 
 // Mis turnos es público y sin cookie (ADR 0022): el acceso vive en memoria en el navegador y viaja
 // como parámetro en cada acción, nunca en una cookie ni en la Sesión.
@@ -25,8 +26,6 @@ export async function openClientAccessAction(email: string, code: string): Promi
     }
 }
 
-export type ClientBooking = Awaited<ReturnType<DI_RETURN_TYPES['IListClientBookingsController']>>[number];
-
 export type ListBookingsResult = { ok: true; bookings: ClientBooking[] } | { ok: false; expired: boolean; message: string };
 
 /** Mis turnos del Cliente: todos sus Turnos, en cualquier Negocio o Servicio personal. */
@@ -41,31 +40,9 @@ export async function listClientBookingsAction(access: string): Promise<ListBook
     }
 }
 
-/** `slotTaken` marca el 409 y el 422 de horario no disponible, que se resuelven eligiendo otro horario. */
-export type ClientBookingActionResult =
-    | { ok: true; booking: ClientBooking }
-    | { ok: false; expired: boolean; message: string; slotTaken?: true };
-
-async function perform(run: () => Promise<ClientBooking>, unexpected: string): Promise<ClientBookingActionResult> {
-    try {
-        return { ok: true, booking: await run() };
-    } catch (error) {
-        unstable_rethrow(error);
-        if (error instanceof ClientAccessExpiredError) return { ok: false, expired: true, message: 'Tu acceso venció. Pedí un código nuevo.' };
-        if (error instanceof SlotTakenError) return { ok: false, expired: false, slotTaken: true, message: 'Ese horario se acaba de ocupar. Elegí otro.' };
-        if (error instanceof SlotUnavailableError)
-            return { ok: false, expired: false, slotTaken: true, message: 'Ese horario ya no está disponible. Elegí otro.' };
-        if (error instanceof NotFoundError) return { ok: false, expired: false, message: 'Este turno ya no existe.' };
-        if (error instanceof BookingStateError) return { ok: false, expired: false, message: 'El turno ya no se puede cambiar.' };
-        if (error instanceof InputParseError) return { ok: false, expired: false, message: 'Revisá los datos e intentá de nuevo.' };
-        getInjection('ICrashReporterService').report(error);
-        return { ok: false, expired: false, message: unexpected };
-    }
-}
-
 /** Cancela un Turno pendiente o aceptado; su horario queda libre. */
 export async function cancelClientBookingAction(access: string, bookingId: number) {
-    return perform(
+    return performClientBookingAction(
         () => getInjection('ICancelClientBookingController')({ access, bookingId }),
         'No pudimos cancelar el turno. Intentá de nuevo.',
     );
@@ -73,7 +50,7 @@ export async function cancelClientBookingAction(access: string, bookingId: numbe
 
 /** Reagenda un Turno pendiente o aceptado al Horario reservable `startsAt` (instante ISO). */
 export async function rescheduleClientBookingAction(access: string, bookingId: number, startsAt: string) {
-    return perform(
+    return performClientBookingAction(
         () => getInjection('IRescheduleClientBookingController')({ access, bookingId, startsAt }),
         'No pudimos reagendar el turno. Intentá de nuevo.',
     );
