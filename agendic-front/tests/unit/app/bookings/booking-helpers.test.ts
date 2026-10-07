@@ -30,10 +30,6 @@ describe('tabOf', () => {
         expect(tabOf(booking({ status: 'PENDING', endsAt: '2026-09-15T10:30:00-03:00' }), NOW)).toBe('pending');
     });
 
-    it('un Turno sin verificar no se muestra', () => {
-        expect(tabOf(booking({ status: 'UNVERIFIED' }), NOW)).toBeNull();
-    });
-
     it('un turno en curso sigue siendo próximo hasta que termina', () => {
         expect(tabOf(booking({ startsAt: '2026-09-15T14:45:00-03:00', endsAt: '2026-09-15T15:15:00-03:00' }), NOW)).toBe('upcoming');
     });

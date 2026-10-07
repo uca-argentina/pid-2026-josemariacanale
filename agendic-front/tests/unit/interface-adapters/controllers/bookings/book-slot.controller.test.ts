@@ -9,6 +9,7 @@ const input = {
     clientName: '  Juana Pérez ',
     clientEmail: ' juana@example.com ',
     notes: '  Llego 5 minutos tarde ',
+    code: ' ABC123 ',
 };
 
 const booking = {
@@ -18,12 +19,12 @@ const booking = {
     employeeName: 'Ana',
     startsAt: '2026-09-28T12:00:00.000Z',
     endsAt: '2026-09-28T13:00:00.000Z',
-    status: 'UNVERIFIED',
+    status: 'BOOKED',
     notes: 'Llego 5 minutos tarde',
 };
 
 describe('bookSlotController', () => {
-    it('books with the trimmed data of the Cliente and presents the Turno with its real state', async () => {
+    it('books with the trimmed data of the Cliente y su Código de verificación, y presenta el Turno con su estado real', async () => {
         const useCase = jest.fn().mockResolvedValue({ ...booking, status: 'PENDING' });
 
         await expect(bookSlotController(instrumentation, useCase)(input)).resolves.toEqual({
@@ -40,10 +41,11 @@ describe('bookSlotController', () => {
             clientName: 'Juana Pérez',
             clientEmail: 'juana@example.com',
             notes: 'Llego 5 minutos tarde',
+            code: 'ABC123',
         });
     });
 
-    it('presents a Turno the back returns without notes as one without Comentario', async () => {
+    it('presenta un Turno que el back devuelve sin notes como uno sin Comentario', async () => {
         const withoutNotes = { ...booking, notes: undefined };
         const useCase = jest.fn().mockResolvedValue(withoutNotes);
         await expect(bookSlotController(instrumentation, useCase)({ ...input, notes: undefined })).resolves.toMatchObject({
@@ -57,6 +59,8 @@ describe('bookSlotController', () => {
         ['a blank clientName', { ...input, clientName: '   ' }],
         ['an invalid clientEmail', { ...input, clientEmail: 'juana' }],
         ['a Comentario del Turno over 500 characters', { ...input, notes: 'a'.repeat(501) }],
+        ['a missing code', { ...input, code: undefined }],
+        ['a blank code', { ...input, code: '   ' }],
     ])('throws InputParseError with %s, without calling the use case', async (_case, bad) => {
         const useCase = jest.fn();
         await expect(bookSlotController(instrumentation, useCase)(bad)).rejects.toBeInstanceOf(InputParseError);

@@ -1,6 +1,12 @@
 import type { IBookingsRepository } from '@/src/application/repositories/bookings.repository.interface';
 import type { IInstrumentationService } from '@/src/application/services/instrumentation.service.interface';
-import { BookingStateError, SLOT_UNAVAILABLE_MESSAGE, SlotTakenError, SlotUnavailableError } from '@/src/entities/errors/booking';
+import {
+    InvalidVerificationCodeError,
+    SLOT_UNAVAILABLE_MESSAGE,
+    SlotTakenError,
+    SlotUnavailableError,
+    TooManyVerificationCodeRequestsError,
+} from '@/src/entities/errors/booking';
 import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
 import { bookingSchema, type Booking, type CreateBooking } from '@/src/entities/models/booking';
 import { slotsSchema, type Slots, type SlotsQuery } from '@/src/entities/models/slot';
@@ -35,6 +41,28 @@ export class BookingsRepository implements IBookingsRepository {
     }
 
     /**
+     * Pide un Código de verificación para email (ADR 0022). 204 sin cuerpo.
+     *
+     * @throws {TooManyVerificationCodeRequestsError} el back respondió 429: demasiados pedidos para ese email
+     * @throws {ApiRequestError} cualquier otra respuesta con error, o una falla de red
+     */
+    async requestVerificationCode(email: string): Promise<void> {
+        return this.instrumentationService.startSpan({ name: 'BookingsRepository > requestVerificationCode', op: 'http.client' }, async () => {
+            const what = 'POST /bookings/code';
+            await this.request(
+                '/bookings/code',
+                { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) },
+                what,
+            ).catch((error) => {
+                if (error instanceof ApiRequestError && error.status === 429)
+                    throw new TooManyVerificationCodeRequestsError(error.message, { cause: error });
+                throw error;
+            });
+        });
+    }
+
+    /**
+     * @throws {InvalidVerificationCodeError} el back respondió 400: el código no es válido para clientEmail, o venció
      * @throws {SlotTakenError} el back respondió 409: el horario ya está ocupado
      * @throws {SlotUnavailableError} el back respondió 422: el horario ya no es un Horario reservable
      * @throws {NotFoundError} el back respondió 404: el Servicio ya no existe
@@ -47,28 +75,9 @@ export class BookingsRepository implements IBookingsRepository {
                 '/bookings',
                 { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) },
                 what,
-            );
-            return parseOrFail(() => bookingSchema.parse(body), what);
-        });
-    }
-
-    /**
-     * @throws {BookingStateError} el back respondió cualquier otro 422: token desconocido, usado o vencido, o el Turno ya no se puede reservar (Servicio dado de baja, horario pasado, Empleado que ya no lo atiende)
-     * @throws {SlotTakenError} el back respondió 409: el horario se ocupó mientras tanto
-     * @throws {SlotUnavailableError} el back respondió 422 `Slot … is not available`: el horario dejó de ser reservable
-     * @throws {NotFoundError} el back respondió 404: el Turno ya no existe
-     * @throws {ApiRequestError} cualquier otra respuesta con error, un cuerpo inesperado o una falla de red
-     */
-    async verifyBooking(token: string): Promise<Booking> {
-        return this.instrumentationService.startSpan({ name: 'BookingsRepository > verifyBooking', op: 'http.client' }, async () => {
-            const what = 'POST /bookings/verification';
-            const body = await this.request(
-                '/bookings/verification',
-                { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token }) },
-                what,
             ).catch((error) => {
-                if (error instanceof ApiRequestError && error.status === 422)
-                    throw new BookingStateError(error.message, { cause: error });
+                if (error instanceof ApiRequestError && error.status === 400)
+                    throw new InvalidVerificationCodeError(error.message, { cause: error });
                 throw error;
             });
             return parseOrFail(() => bookingSchema.parse(body), what);
@@ -78,8 +87,8 @@ export class BookingsRepository implements IBookingsRepository {
     /**
      * El 404 pasa a NotFoundError, el 409 a SlotTakenError y el 422 de horario no disponible a
      * SlotUnavailableError; cualquier otro estado con error, a un ApiRequestError que lo lleva. El 400 y los
-     * demás 422 quedan ahí: el controller ya validó el input, así que son un bug del front y se reportan.
-     * `verifyBooking` es la excepción: traduce esos otros 422 por su cuenta.
+     * demás 422 quedan ahí: `book` y `requestVerificationCode` traducen los suyos (código inválido, rate
+     * limit) por su cuenta; sin esa traducción, son un bug del front y se reportan.
      */
     private async request(path: string, init: RequestInit, what: string) {
         if (!this.apiUrl) throw new ApiRequestError(`${what} failed: API_URL is not set`);

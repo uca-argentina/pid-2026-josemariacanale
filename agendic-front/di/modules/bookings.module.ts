@@ -17,8 +17,8 @@ import { acceptBookingUseCase } from '@/src/application/use-cases/bookings/accep
 import { acceptBookingController } from '@/src/interface-adapters/controllers/bookings/accept-booking.controller';
 import { BookingsRepository } from '@/src/infrastructure/repositories/bookings.repository';
 import { bookSlotController } from '@/src/interface-adapters/controllers/bookings/book-slot.controller';
-import { verifyBookingUseCase } from '@/src/application/use-cases/bookings/verify-booking.use-case';
-import { verifyBookingController } from '@/src/interface-adapters/controllers/bookings/verify-booking.controller';
+import { requestVerificationCodeUseCase } from '@/src/application/use-cases/bookings/request-verification-code.use-case';
+import { requestVerificationCodeController } from '@/src/interface-adapters/controllers/bookings/request-verification-code.controller';
 import { listSlotsController } from '@/src/interface-adapters/controllers/bookings/list-slots.controller';
 
 /**
@@ -46,12 +46,15 @@ export function createBookingsModule() {
         .toHigherOrderFunction(bookSlotController, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IBookSlotUseCase]);
 
     bookingsModule
-        .bind(DI_SYMBOLS.IVerifyBookingUseCase)
-        .toHigherOrderFunction(verifyBookingUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IBookingsRepository]);
+        .bind(DI_SYMBOLS.IRequestVerificationCodeUseCase)
+        .toHigherOrderFunction(requestVerificationCodeUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IBookingsRepository]);
 
     bookingsModule
-        .bind(DI_SYMBOLS.IVerifyBookingController)
-        .toHigherOrderFunction(verifyBookingController, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IVerifyBookingUseCase]);
+        .bind(DI_SYMBOLS.IRequestVerificationCodeController)
+        .toHigherOrderFunction(requestVerificationCodeController, [
+            DI_SYMBOLS.IInstrumentationService,
+            DI_SYMBOLS.IRequestVerificationCodeUseCase,
+        ]);
 
     bookingsModule.bind(DI_SYMBOLS.IEmployeeBookingsRepository).toClass(EmployeeBookingsRepository, [DI_SYMBOLS.IAuthenticationService]);
 

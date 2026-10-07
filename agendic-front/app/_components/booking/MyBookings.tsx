@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Ban, CalendarCheck, CalendarPlus, CalendarCog, Hourglass, MailCheck, MapPin, type LucideIcon } from 'lucide-react';
+import { Ban, CalendarCheck, CalendarPlus, CalendarCog, Hourglass, MapPin, type LucideIcon } from 'lucide-react';
 import { Button } from '@/app/_components/ui/button';
 import { BranchPhoto } from './BranchPhoto';
 import { depositFor, endTime, formatDate, formatDuration, formatPrice } from './format';
@@ -12,22 +12,10 @@ const ACTIONS = [
 ];
 
 /**
- * Cómo se ve el Turno según el estado en que lo creó el back. Hoy nace sin verificar (ADR 0005),
- * pero el mensaje sale del estado real: un Servicio con Aprobación manual o un back que acepte
- * solo tienen el suyo.
+ * Cómo se ve el Turno según el estado en que lo creó el back. El Turno nace verificado (ADR 0022):
+ * un Servicio con Aprobación manual lo crea pendiente, el resto ya aceptado.
  */
 const STATUS: Record<Booking['status'], { icon: LucideIcon; badge: string; detail: (b: Booking) => ReactNode }> = {
-    UNVERIFIED: {
-        icon: MailCheck,
-        badge: 'Falta verificar tu email',
-        detail: ({ client }) => (
-            <>
-                Te mandamos un mail a <strong className="font-bold">{client.email}</strong> para que
-                verifiques tu email, {client.name.split(' ')[0]}. Hasta que lo verifiques, el horario
-                sigue disponible para otras personas.
-            </>
-        ),
-    },
     PENDING: {
         icon: Hourglass,
         badge: 'Esperando que lo acepten',

@@ -1,4 +1,4 @@
-import { BookingStateError, SlotTakenError, SlotUnavailableError } from '@/src/entities/errors/booking';
+import { InvalidVerificationCodeError, SlotTakenError, SlotUnavailableError, TooManyVerificationCodeRequestsError } from '@/src/entities/errors/booking';
 import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
 import { BookingsRepository } from '@/src/infrastructure/repositories/bookings.repository';
 import { instrumentation } from '@/tests/unit/stubs';
@@ -73,6 +73,7 @@ describe('BookingsRepository.book', () => {
         clientName: 'Juana Pérez',
         clientEmail: 'juana@example.com',
         notes: 'Llego 5 minutos tarde',
+        code: 'ABC123',
     };
     const booking = {
         id: 7,
@@ -80,7 +81,7 @@ describe('BookingsRepository.book', () => {
         employeeId: 1,
         startsAt: '2026-09-28T12:00:00.000Z',
         endsAt: '2026-09-28T13:00:00.000Z',
-        status: 'UNVERIFIED',
+        status: 'BOOKED',
         notes: 'Llego 5 minutos tarde',
     };
 
@@ -106,12 +107,24 @@ describe('BookingsRepository.book', () => {
         await expect(repo().book(input)).rejects.toBeInstanceOf(SlotTakenError);
     });
 
+    it('translates a 409 por Límite diario a SlotTakenError también', async () => {
+        respond(409, { statusCode: 409, message: 'The Service reached its Límite diario that day' });
+        await expect(repo().book(input)).rejects.toBeInstanceOf(SlotTakenError);
+    });
+
     it('translates a 404 to NotFoundError', async () => {
         respond(404, { statusCode: 404, message: 'Service not found' });
         await expect(repo().book(input)).rejects.toBeInstanceOf(NotFoundError);
     });
 
-    it.each([400, 422, 500])('translates a %i to ApiRequestError carrying the status', async (status) => {
+    it('translates a 400 to InvalidVerificationCodeError, keeping the message', async () => {
+        respond(400, { statusCode: 400, message: 'Invalid or expired verification code for juana@example.com' });
+        const error = await repo().book(input).catch((e) => e);
+        expect(error).toBeInstanceOf(InvalidVerificationCodeError);
+        expect(error.message).toBe('Invalid or expired verification code for juana@example.com');
+    });
+
+    it.each([422, 500])('translates a %i to ApiRequestError carrying the status', async (status) => {
         respond(status, { statusCode: status, message: 'boom' });
         const error = await repo().book(input).catch((e) => e);
         expect(error).toBeInstanceOf(ApiRequestError);
@@ -135,35 +148,23 @@ describe('BookingsRepository.book', () => {
     });
 });
 
-describe('BookingsRepository.verifyBooking', () => {
-    const verified = {
-        id: 7,
-        serviceId: 100,
-        employeeId: 1,
-        startsAt: '2026-09-28T12:00:00.000Z',
-        endsAt: '2026-09-28T13:00:00.000Z',
-        status: 'BOOKED',
-    };
+describe('BookingsRepository.requestVerificationCode', () => {
+    it('POSTs the email without a Sesión, sin devolver nada', async () => {
+        const fetchSpy = respond(204, undefined);
 
-    it('POSTs the token without a Sesión and returns the Turno', async () => {
-        const fetchSpy = respond(201, verified);
-
-        await expect(repo().verifyBooking('abc')).resolves.toEqual(verified);
-        expect(fetchSpy).toHaveBeenCalledWith('http://api/bookings/verification', {
+        await expect(repo().requestVerificationCode('juana@example.com')).resolves.toBeUndefined();
+        expect(fetchSpy).toHaveBeenCalledWith('http://api/bookings/code', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token: 'abc' }),
+            body: JSON.stringify({ email: 'juana@example.com' }),
         });
     });
 
-    it('translates a 422 to BookingStateError', async () => {
-        respond(422, { statusCode: 422, message: 'Unknown, used or expired verification token' });
-        await expect(repo().verifyBooking('abc')).rejects.toBeInstanceOf(BookingStateError);
-    });
-
-    it('translates a 409 to SlotTakenError', async () => {
-        respond(409, { statusCode: 409, message: 'Overlaps a booked Turno for this Employee' });
-        await expect(repo().verifyBooking('abc')).rejects.toBeInstanceOf(SlotTakenError);
+    it('translates a 429 to TooManyVerificationCodeRequestsError, keeping the message', async () => {
+        respond(429, { statusCode: 429, message: 'Too many verification codes requested for juana@example.com' });
+        const error = await repo().requestVerificationCode('juana@example.com').catch((e) => e);
+        expect(error).toBeInstanceOf(TooManyVerificationCodeRequestsError);
+        expect(error.message).toBe('Too many verification codes requested for juana@example.com');
     });
 });
 
@@ -172,11 +173,11 @@ describe('BookingsRepository spans', () => {
         const names: string[] = [];
         const spanning = new BookingsRepository({ startSpan: (options, callback) => (names.push(options.name), callback()) }, 'http://api');
         respond(404, { message: 'nope' });
-        await spanning.verifyBooking('abc').catch(() => undefined);
+        await spanning.requestVerificationCode('juana@example.com').catch(() => undefined);
         await spanning.book({} as never).catch(() => undefined);
         await spanning.listSlots({ serviceId: 1, from: 'a', to: 'b' }).catch(() => undefined);
         expect(names).toEqual([
-            'BookingsRepository > verifyBooking',
+            'BookingsRepository > requestVerificationCode',
             'BookingsRepository > book',
             'BookingsRepository > listSlots',
         ]);
