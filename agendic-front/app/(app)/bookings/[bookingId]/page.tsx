@@ -5,7 +5,7 @@ import { BackendErrorNotice } from '@/app/_components/BackendErrorNotice';
 import { SIGN_IN_PATH } from '@/app/routes';
 import { getInjection } from '@/di/container';
 import { loadMyBookings } from '@/app/(app)/bookings/load-my-bookings';
-import { readClock } from '@/app/(app)/bookings/_components/booking-helpers';
+import { readClock } from '@/app/_components/clock';
 import { BookingDetail } from './_components/BookingDetail';
 
 export default async function BookingPage({

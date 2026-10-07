@@ -8,7 +8,7 @@ import { RescheduleOverlay } from './RescheduleOverlay';
 import type { ClientBooking, ClientBookingActionResult } from './types';
 
 /**
- * El detalle de un Turno del Cliente, con Cancelar y Reagendar abajo cuando todavía se puede. Lo comparten Mis
+ * Muestra el detalle de un Turno del Cliente, con Cancelar y Reagendar abajo cuando todavía se puede. Lo comparten Mis
  * turnos y el Enlace del Turno: cada uno pasa sus propias acciones en `cancel` y `reschedule`, y `onExpired` solo
  * Mis turnos, que es el único con un acceso que vence.
  */

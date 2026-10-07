@@ -38,13 +38,15 @@ export interface IClientBookingsRepository {
     reschedule(access: string, bookingId: number, startsAt: string): Promise<ClientBooking>;
 
     /**
-     * El Turno de un Enlace del Turno, en cualquier estado.
+     * Busca el Turno de un Enlace del Turno, en cualquier estado.
      *
      * @throws {NotFoundError} el Enlace no es de ningún Turno (404)
      */
     getBookingByLink(link: string): Promise<ClientBooking>;
 
     /**
+     * Cancela el Turno de un Enlace del Turno.
+     *
      * @throws {NotFoundError} el Enlace no es de ningún Turno (404)
      * @throws {BookingStateError} el Turno no está pendiente ni aceptado, o ya empezó (422)
      */

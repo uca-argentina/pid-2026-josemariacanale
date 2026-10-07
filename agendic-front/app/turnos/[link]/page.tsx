@@ -1,13 +1,14 @@
 import type { Metadata } from 'next';
 import { unstable_rethrow } from 'next/navigation';
-import { readClock } from '@/app/(app)/bookings/_components/booking-helpers';
+import { readClock } from '@/app/_components/clock';
 import { BackendErrorNotice } from '@/app/_components/BackendErrorNotice';
 import type { ClientBooking } from '@/app/_components/client-booking/types';
 import { Footer } from '@/app/_components/Footer';
 import { Header } from '@/app/_components/Header';
 import { getInjection } from '@/di/container';
 import { InputParseError, NotFoundError } from '@/src/entities/errors/common';
-import { BookingLinkScreen, MisTurnosLink } from './_components/BookingLinkScreen';
+import { BookingLinkScreen } from './_components/BookingLinkScreen';
+import { MisTurnosLink } from './_components/MisTurnosLink';
 
 export const metadata: Metadata = {
     title: 'Tu turno · Agendic',
@@ -36,17 +37,17 @@ async function loadBooking(link: string): Promise<LoadedBooking> {
  * La página del Enlace del Turno (ADR 0022): abre ese Turno sin Código de verificación. Sin Sesión a propósito:
  * quien tiene el Enlace puede ver, Cancelar y Reagendar ese Turno.
  */
-export default async function BookingLinkPage({ params }: { params: Promise<{ enlace: string }> }) {
-    const { enlace } = await params;
+export default async function BookingLinkPage({ params }: { params: Promise<{ link: string }> }) {
+    const { link } = await params;
     const now = readClock();
-    const loaded = await loadBooking(enlace);
+    const loaded = await loadBooking(link);
 
     return (
         <>
             <Header user={null} nav={false} />
             <div className="flex flex-1 flex-col">
                 {loaded.found ? (
-                    <BookingLinkScreen link={enlace} booking={loaded.booking} now={now} />
+                    <BookingLinkScreen link={link} booking={loaded.booking} now={now} />
                 ) : loaded.failed ? (
                     <BackendErrorNotice />
                 ) : (
