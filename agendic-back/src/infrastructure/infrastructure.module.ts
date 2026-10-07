@@ -6,6 +6,7 @@ import { MAILER } from '../domain/mailer';
 import { BRANCH_IMAGES_REPOSITORY } from '../domain/branch-images/branch-images.repository';
 import { BOOKINGS_REPOSITORY } from '../domain/bookings/bookings.repository';
 import { BOOKING_VERIFICATION_CODES } from '../domain/bookings/booking-verification-codes';
+import { CLIENT_ACCESS_TOKENS } from '../domain/bookings/client-access-tokens';
 import { BRANCHES_REPOSITORY } from '../domain/branches/branches.repository';
 import { BUSINESSES_REPOSITORY } from '../domain/businesses/businesses.repository';
 import { EMPLOYEES_REPOSITORY } from '../domain/employees/employees.repository';
@@ -17,6 +18,7 @@ import { AvailabilitiesModule } from './availabilities/availabilities.module';
 import { PrismaAvailabilitiesRepository } from './availabilities/prisma-availabilities.repository';
 import { PrismaBookingsRepository } from './bookings/prisma-bookings.repository';
 import { readBookingCodeSecret, TotpBookingVerificationCodes } from './bookings/totp-booking-verification-codes';
+import { HmacClientAccessTokens, readClientAccessSecret } from './bookings/hmac-client-access-tokens';
 import { BookingsModule } from './bookings/bookings.module';
 import { BranchImagesModule } from './branch-images/branch-images.module';
 import { PrismaBranchImagesRepository } from './branch-images/prisma-branch-images.repository';
@@ -80,6 +82,12 @@ import { UsersModule } from './users/users.module';
       inject: [CLOCK],
     },
     {
+      provide: CLIENT_ACCESS_TOKENS,
+      useFactory: (clock: Clock) =>
+        new HmacClientAccessTokens(readClientAccessSecret(), clock),
+      inject: [CLOCK],
+    },
+    {
       provide: AVAILABILITIES_REPOSITORY,
       useClass: PrismaAvailabilitiesRepository,
     },
@@ -98,6 +106,7 @@ import { UsersModule } from './users/users.module';
     INVITATIONS_REPOSITORY,
     BOOKINGS_REPOSITORY,
     BOOKING_VERIFICATION_CODES,
+    CLIENT_ACCESS_TOKENS,
     AVAILABILITIES_REPOSITORY,
   ],
 })

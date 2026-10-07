@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import {
   Booking,
   BookingStatus,
+  ClientBooking,
   DAILY_LIMIT_REACHED,
   EmployeeBooking,
 } from '../../domain/bookings/booking';
@@ -45,6 +46,36 @@ const BOOKING_SELECT = {
 } satisfies Prisma.BookingSelect;
 
 type BookingRow = Prisma.BookingGetPayload<{ select: typeof BOOKING_SELECT }>;
+
+/** `BOOKING_SELECT` plus the Servicio, Negocio and Sucursal data Mis turnos del Cliente shows (ADR 0022). */
+const CLIENT_BOOKING_SELECT = {
+  ...BOOKING_SELECT,
+  user: { select: { name: true } },
+  employee: { select: { user: { select: { name: true } } } },
+  service: {
+    select: {
+      name: true,
+      durationMinutes: true,
+      price: true,
+      depositPercent: true,
+      availability: { select: { timeZone: true } },
+      branch: {
+        select: {
+          name: true,
+          slug: true,
+          address: true,
+          timeZone: true,
+          business: { select: { name: true, slug: true } },
+          images: { select: { url: true }, orderBy: { order: 'asc' }, take: 1 },
+        },
+      },
+    },
+  },
+} satisfies Prisma.BookingSelect;
+
+type ClientBookingRow = Prisma.BookingGetPayload<{
+  select: typeof CLIENT_BOOKING_SELECT;
+}>;
 
 /** Emails are stored and searched trimmed and lowercased, whatever the caller sent. */
 const normalizeEmail = (email: string) => email.trim().toLowerCase();
@@ -157,11 +188,11 @@ export class PrismaBookingsRepository implements BookingsRepository {
       await this.prisma.booking
         .findMany({
           where: { client: { email: normalizeEmail(email) } },
-          select: BOOKING_SELECT,
+          select: CLIENT_BOOKING_SELECT,
           orderBy: { startsAt: 'asc' },
         })
         .catch(translateError)
-    ).map(toBooking);
+    ).map(toClientBooking);
   }
 
   async listByBusiness(businessId: number) {
@@ -184,6 +215,17 @@ export class PrismaBookingsRepository implements BookingsRepository {
       .catch(translateError);
     if (!row) throw new NotFoundError('Booking not found');
     return toBooking(row);
+  }
+
+  /**
+   * @throws {NotFoundError} el Turno no existe
+   */
+  private async findEnriched(id: number): Promise<ClientBooking> {
+    const row = await this.prisma.booking
+      .findUnique({ where: { id }, select: CLIENT_BOOKING_SELECT })
+      .catch(translateError);
+    if (!row) throw new NotFoundError('Booking not found');
+    return toClientBooking(row);
   }
 
   /**
@@ -268,11 +310,27 @@ export class PrismaBookingsRepository implements BookingsRepository {
    * @throws {NotFoundError} el Turno no existe
    */
   async cancel(id: number) {
-    return this.updateBooked(
+    await this.updateStatus(
       id,
+      [BookingStatus.BOOKED],
       { status: BookingStatus.CANCELLED },
       'Turno is not booked',
     );
+    return this.findById(id);
+  }
+
+  /**
+   * @throws {BusinessRuleError} el Turno ya no está pendiente ni aceptado
+   * @throws {NotFoundError} el Turno no existe
+   */
+  async cancelPendingOrBooked(id: number) {
+    await this.updateStatus(
+      id,
+      OCCUPYING,
+      { status: BookingStatus.CANCELLED },
+      'Turno is not pending or booked',
+    );
+    return this.findEnriched(id);
   }
 
   /**
@@ -284,11 +342,34 @@ export class PrismaBookingsRepository implements BookingsRepository {
     id: number,
     { employeeId, userId, prepStartsAt, startsAt, endsAt }: Pick<Booking, 'employeeId' | 'userId' | 'prepStartsAt' | 'startsAt' | 'endsAt'>,
   ) {
-    return this.updateBooked(
+    await this.updateStatus(
       id,
+      [BookingStatus.BOOKED],
       { employeeId, userId, prepStartsAt, startsAt, endsAt },
       'Turno is not booked',
     );
+    return this.findById(id);
+  }
+
+  /**
+   * @throws {BusinessRuleError} el Turno ya no está pendiente ni aceptado
+   * @throws {ConflictError} el nuevo horario pisa otro Turno pendiente o aceptado del Empleado
+   * @throws {NotFoundError} el Turno no existe
+   */
+  async reschedulePendingOrBooked(
+    id: number,
+    { employeeId, userId, prepStartsAt, startsAt, endsAt, status }: Pick<
+      Booking,
+      'employeeId' | 'userId' | 'prepStartsAt' | 'startsAt' | 'endsAt' | 'status'
+    >,
+  ) {
+    await this.updateStatus(
+      id,
+      OCCUPYING,
+      { employeeId, userId, prepStartsAt, startsAt, endsAt, status },
+      'Turno is not pending or booked',
+    );
+    return this.findEnriched(id);
   }
 
   /**
@@ -296,29 +377,31 @@ export class PrismaBookingsRepository implements BookingsRepository {
    * @throws {NotFoundError} el Turno no existe
    */
   async markNoShow(id: number, now: Date) {
-    return this.updateBooked(
+    await this.updateStatus(
       id,
+      [BookingStatus.BOOKED],
       { noShowAt: now },
       'Turno is not booked, has not ended yet, or already has an Ausencia',
       { endsAt: { lte: now }, noShowAt: null },
     );
+    return this.findById(id);
   }
 
-  /** Applies `data` only while the Turno is still BOOKED (and matches `extraWhere`), so a race can't resurrect it. */
-  private async updateBooked(
+  /** Applies `data` only while the Turno is still one of `fromStatuses` (and matches `extraWhere`), so a race can't resurrect it. */
+  private async updateStatus(
     id: number,
+    fromStatuses: BookingStatus[],
     data: Prisma.BookingUncheckedUpdateManyInput,
     message: string,
     extraWhere: Prisma.BookingWhereInput = {},
   ) {
     const { count } = await this.prisma.booking
       .updateMany({
-        where: { id, status: BookingStatus.BOOKED, ...extraWhere },
+        where: { id, status: { in: fromStatuses }, ...extraWhere },
         data,
       })
       .catch(translateError);
     if (count === 0) throw new BusinessRuleError(message);
-    return this.findById(id);
   }
 }
 
@@ -340,6 +423,33 @@ const toBooking = (row: BookingRow): Booking => ({
   notes: row.notes,
   noShowAt: row.noShowAt,
 });
+
+/** The Sucursal's data if the Servicio is del Negocio, with its cover (the first Imagen de Sucursal by order). */
+const toClientBooking = (row: ClientBookingRow): ClientBooking => {
+  const branch = row.service.branch;
+  return {
+    ...toBooking(row),
+    timeZone: branch ? branch.timeZone : row.service.availability!.timeZone,
+    employeeName: row.employee ? row.employee.user.name : row.user.name,
+    service: {
+      name: row.service.name,
+      durationMinutes: row.service.durationMinutes,
+      price: Number(row.service.price),
+      depositPercent: row.service.depositPercent,
+    },
+    business: branch
+      ? { name: branch.business.name, slug: branch.business.slug }
+      : null,
+    branch: branch
+      ? {
+          name: branch.name,
+          slug: branch.slug,
+          address: branch.address,
+          coverUrl: branch.images[0]?.url ?? null,
+        }
+      : null,
+  };
+};
 
 const translateError = (error: unknown): never => {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {

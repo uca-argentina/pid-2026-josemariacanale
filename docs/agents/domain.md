@@ -58,9 +58,10 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | Rechazar turno | `reject` (`PENDING` → `REJECTED`) |
 | Ausencia | `Booking.noShowAt` (marcado a mano; no reemplaza `status`) |
 | Reservar | `book` |
-| Reagendar | `reschedule` (`RescheduleBookingUseCase`) |
+| Reagendar | `reschedule` (`RescheduleBookingUseCase`); del Cliente, `reschedulePendingOrBooked` (`RescheduleClientBookingUseCase`) |
 | Mis turnos del Empleado | `EmployeeBooking` (`GET /employees/me/bookings`) |
-| Cancelar | `cancel` |
+| Mis turnos del Cliente (ADR 0022) | `ClientBooking` (`GET /client/bookings`); el acceso de 15 minutos → `ClientAccessTokens` (header `X-Client-Access`) |
+| Cancelar | `cancel` (del Empleado); del Cliente, `cancelPendingOrBooked` (también sobre `PENDING`) |
 | Dar de baja | `retire` (`Service.retiredAt`, `Employee.retiredAt`) |
 | Sesión / Iniciar sesión / Cerrar sesión | `Session` / `signIn` / `signOut` |
 

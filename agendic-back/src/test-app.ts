@@ -24,6 +24,10 @@ import {
   BOOKING_VERIFICATION_CODES,
   BookingVerificationCodes,
 } from './domain/bookings/booking-verification-codes';
+import {
+  CLIENT_ACCESS_TOKENS,
+  ClientAccessTokens,
+} from './domain/bookings/client-access-tokens';
 import { Business } from './domain/businesses/business';
 import {
   BUSINESSES_REPOSITORY,
@@ -99,6 +103,14 @@ export async function createTestApp() {
     request: jest.fn(),
     // Most tests exercise paths past code verification; the few testing an invalid code override this.
     verify: jest.fn().mockReturnValue(true),
+  };
+  const clientAccessTokens: jest.Mocked<ClientAccessTokens> = {
+    // Most tests exercise paths past signing; the few testing it script a specific access.
+    sign: jest.fn().mockReturnValue({
+      access: 'client-access-token',
+      expiresAt: new Date('2026-01-01T12:15:00.000Z'),
+    }),
+    verify: jest.fn(),
   };
   const fileStorage: jest.Mocked<FileStorage> = {
     upload: jest.fn(),
@@ -177,7 +189,9 @@ export async function createTestApp() {
     listOccupiedByUser: jest.fn(),
     listByEmployees: jest.fn(),
     cancel: jest.fn(),
+    cancelPendingOrBooked: jest.fn(),
     reschedule: jest.fn(),
+    reschedulePendingOrBooked: jest.fn(),
     markNoShow: jest.fn(),
   };
   const availabilities: jest.Mocked<AvailabilitiesRepository> = {
@@ -216,6 +230,8 @@ export async function createTestApp() {
     .useValue(bookings)
     .overrideProvider(BOOKING_VERIFICATION_CODES)
     .useValue(bookingCodes)
+    .overrideProvider(CLIENT_ACCESS_TOKENS)
+    .useValue(clientAccessTokens)
     .overrideProvider(AVAILABILITIES_REPOSITORY)
     .useValue(availabilities)
     .compile();
@@ -236,6 +252,7 @@ export async function createTestApp() {
     invitations,
     bookings,
     bookingCodes,
+    clientAccessTokens,
     availabilities,
     http: request(app.getHttpServer()),
   };
