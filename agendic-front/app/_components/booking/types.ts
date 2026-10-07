@@ -48,28 +48,5 @@ export interface ClientData {
     notes: string;
 }
 
-/**
- * Un Turno recién reservado, como lo muestra Mis turnos. `status` es el estado real en que lo
- * creó el back: no siempre nace sin verificar.
- */
-export interface Booking {
-    id: number;
-    host: Host;
-    service: Service;
-    /** El nombre del Empleado que el back le asignó: el Cliente no lo elige. */
-    employeeName: string | null;
-    /** 'YYYY-MM-DD', local de donde se atiende. */
-    date: string;
-    /** 'HH:mm', local de donde se atiende. */
-    time: string;
-    status: Awaited<ReturnType<DI_RETURN_TYPES['IBookSlotController']>>['status'];
-    /** El Cliente no tiene cuenta (ADR 0005): sus datos viven en el Turno. */
-    client: { name: string; email: string };
-    /** Comentario del Turno; `null` si no dejó ninguno. */
-    notes: string | null;
-    /** La Imagen de portada de la Sucursal; sin Imágenes, o sin Sucursal, no hay. */
-    coverUrl: string | undefined;
-}
-
 export const STEPS = ['service', 'time', 'confirm'] as const;
 export type Step = (typeof STEPS)[number];

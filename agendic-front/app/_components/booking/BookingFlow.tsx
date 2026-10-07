@@ -14,7 +14,7 @@ import { bookSlotAction, requestVerificationCodeAction } from './actions';
 import { TimeStep } from './TimeStep';
 import { depositFor, endTime, formatDate, formatDuration, formatPrice } from './format';
 import { STEPS } from './types';
-import type { Booking, BookingDraft, ClientData, Host, Service, Step } from './types';
+import type { BookingDraft, ClientData, Host, Service, Step } from './types';
 
 const TITLES: Record<Step, string> = {
     service: 'Elegí un servicio',
@@ -474,7 +474,8 @@ export function BookingFlow({
     coverUrl: string | undefined;
     initialService: Service | null;
     onClose: () => void;
-    onBooked: (booking: Booking) => void;
+    /** El acceso a Mis turnos recién abierto (ADR 0022): la página navega ahí con él. */
+    onBooked: (access: string) => void;
 }) {
     const [step, setStep] = useState<Step>(initialService ? 'time' : 'service');
     const [draft, setDraft] = useState<BookingDraft>({
@@ -561,18 +562,8 @@ export function BookingFlow({
                 code,
             });
             if (result.ok) {
-                onBooked({
-                    id: result.booking.id,
-                    host,
-                    service,
-                    employeeName: result.booking.employeeName,
-                    date,
-                    time: slot.time,
-                    status: result.booking.status,
-                    client: { name: client.name, email: client.email },
-                    notes: result.booking.notes,
-                    coverUrl,
-                });
+                // El código recién se validó: el back siempre devuelve el acceso a Mis turnos (ADR 0022).
+                onBooked(result.booking.access!);
             } else if (result.slotTaken) {
                 // Recuperable: de vuelta a Horario, que vuelve a pedir los horarios libres.
                 setDraft((d) => ({ ...d, slot: null }));

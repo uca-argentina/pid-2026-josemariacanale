@@ -3,6 +3,8 @@
 export const SIGN_IN_PATH = '/sign-in';
 export const SIGNED_IN_HOME_PATH = '/bookings';
 export const BUSINESS_PATH = '/business';
+/** Mis turnos del Cliente (ADR 0022): sin Sesión, con un acceso que llega por el fragmento `#acceso=`. */
+export const MIS_TURNOS_PATH = '/mis-turnos';
 
 /**
  * La ruta del Enlace de reserva (ADR 0014): sin tramo de Sucursal, la página del Negocio; con el tramo de un

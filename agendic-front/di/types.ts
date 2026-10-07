@@ -79,6 +79,15 @@ import type { IRejectBookingUseCase } from '@/src/application/use-cases/bookings
 import type { IRejectBookingController } from '@/src/interface-adapters/controllers/bookings/reject-booking.controller';
 import type { IAcceptBookingUseCase } from '@/src/application/use-cases/bookings/accept-booking.use-case';
 import type { IAcceptBookingController } from '@/src/interface-adapters/controllers/bookings/accept-booking.controller';
+import type { IClientBookingsRepository } from '@/src/application/repositories/client-bookings.repository.interface';
+import type { IOpenClientAccessUseCase } from '@/src/application/use-cases/bookings/open-client-access.use-case';
+import type { IOpenClientAccessController } from '@/src/interface-adapters/controllers/bookings/open-client-access.controller';
+import type { IListClientBookingsUseCase } from '@/src/application/use-cases/bookings/list-client-bookings.use-case';
+import type { IListClientBookingsController } from '@/src/interface-adapters/controllers/bookings/list-client-bookings.controller';
+import type { ICancelClientBookingUseCase } from '@/src/application/use-cases/bookings/cancel-client-booking.use-case';
+import type { ICancelClientBookingController } from '@/src/interface-adapters/controllers/bookings/cancel-client-booking.controller';
+import type { IRescheduleClientBookingUseCase } from '@/src/application/use-cases/bookings/reschedule-client-booking.use-case';
+import type { IRescheduleClientBookingController } from '@/src/interface-adapters/controllers/bookings/reschedule-client-booking.controller';
 import type { IAvailabilitiesRepository } from '@/src/application/repositories/availabilities.repository.interface';
 import type { IListAvailabilitiesUseCase } from '@/src/application/use-cases/availabilities/list-availabilities.use-case';
 import type { IGetAvailabilityUseCase } from '@/src/application/use-cases/availabilities/get-availability.use-case';
@@ -104,6 +113,7 @@ export const DI_SYMBOLS = {
     IEmployeesRepository: Symbol.for('IEmployeesRepository'),
     IBookingsRepository: Symbol.for('IBookingsRepository'),
     IEmployeeBookingsRepository: Symbol.for('IEmployeeBookingsRepository'),
+    IClientBookingsRepository: Symbol.for('IClientBookingsRepository'),
     IAvailabilitiesRepository: Symbol.for('IAvailabilitiesRepository'),
     IServicesRepository: Symbol.for('IServicesRepository'),
 
@@ -139,6 +149,10 @@ export const DI_SYMBOLS = {
     ICancelBookingUseCase: Symbol.for('ICancelBookingUseCase'),
     IRejectBookingUseCase: Symbol.for('IRejectBookingUseCase'),
     IAcceptBookingUseCase: Symbol.for('IAcceptBookingUseCase'),
+    IOpenClientAccessUseCase: Symbol.for('IOpenClientAccessUseCase'),
+    IListClientBookingsUseCase: Symbol.for('IListClientBookingsUseCase'),
+    ICancelClientBookingUseCase: Symbol.for('ICancelClientBookingUseCase'),
+    IRescheduleClientBookingUseCase: Symbol.for('IRescheduleClientBookingUseCase'),
     IListAvailabilitiesUseCase: Symbol.for('IListAvailabilitiesUseCase'),
     IGetAvailabilityUseCase: Symbol.for('IGetAvailabilityUseCase'),
     ICreateAvailabilityUseCase: Symbol.for('ICreateAvailabilityUseCase'),
@@ -188,6 +202,10 @@ export const DI_SYMBOLS = {
     ICancelBookingController: Symbol.for('ICancelBookingController'),
     IRejectBookingController: Symbol.for('IRejectBookingController'),
     IAcceptBookingController: Symbol.for('IAcceptBookingController'),
+    IOpenClientAccessController: Symbol.for('IOpenClientAccessController'),
+    IListClientBookingsController: Symbol.for('IListClientBookingsController'),
+    ICancelClientBookingController: Symbol.for('ICancelClientBookingController'),
+    IRescheduleClientBookingController: Symbol.for('IRescheduleClientBookingController'),
     IListMyAvailabilitiesController: Symbol.for('IListMyAvailabilitiesController'),
     ICreateAvailabilityController: Symbol.for('ICreateAvailabilityController'),
     IUpdateAvailabilityController: Symbol.for('IUpdateAvailabilityController'),
@@ -207,6 +225,7 @@ export interface DI_RETURN_TYPES {
     IEmployeesRepository: IEmployeesRepository;
     IBookingsRepository: IBookingsRepository;
     IEmployeeBookingsRepository: IEmployeeBookingsRepository;
+    IClientBookingsRepository: IClientBookingsRepository;
     IAvailabilitiesRepository: IAvailabilitiesRepository;
     IServicesRepository: IServicesRepository;
 
@@ -242,6 +261,10 @@ export interface DI_RETURN_TYPES {
     ICancelBookingUseCase: ICancelBookingUseCase;
     IRejectBookingUseCase: IRejectBookingUseCase;
     IAcceptBookingUseCase: IAcceptBookingUseCase;
+    IOpenClientAccessUseCase: IOpenClientAccessUseCase;
+    IListClientBookingsUseCase: IListClientBookingsUseCase;
+    ICancelClientBookingUseCase: ICancelClientBookingUseCase;
+    IRescheduleClientBookingUseCase: IRescheduleClientBookingUseCase;
     IListAvailabilitiesUseCase: IListAvailabilitiesUseCase;
     IGetAvailabilityUseCase: IGetAvailabilityUseCase;
     ICreateAvailabilityUseCase: ICreateAvailabilityUseCase;
@@ -291,6 +314,10 @@ export interface DI_RETURN_TYPES {
     ICancelBookingController: ICancelBookingController;
     IRejectBookingController: IRejectBookingController;
     IAcceptBookingController: IAcceptBookingController;
+    IOpenClientAccessController: IOpenClientAccessController;
+    IListClientBookingsController: IListClientBookingsController;
+    ICancelClientBookingController: ICancelClientBookingController;
+    IRescheduleClientBookingController: IRescheduleClientBookingController;
     IListMyAvailabilitiesController: IListMyAvailabilitiesController;
     ICreateAvailabilityController: ICreateAvailabilityController;
     IUpdateAvailabilityController: IUpdateAvailabilityController;

@@ -12,6 +12,9 @@ function presenter(booking: Booking, instrumentationService: IInstrumentationSer
         status: booking.status,
         notes: booking.notes ?? null,
         employeeName: booking.employeeName ?? null,
+        // El acceso a Mis turnos recién abierto (ADR 0022): la pantalla de Reservar navega ahí con él.
+        access: booking.access ?? null,
+        accessExpiresAt: booking.accessExpiresAt ?? null,
     }));
 }
 

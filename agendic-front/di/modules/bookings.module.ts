@@ -20,6 +20,15 @@ import { bookSlotController } from '@/src/interface-adapters/controllers/booking
 import { requestVerificationCodeUseCase } from '@/src/application/use-cases/bookings/request-verification-code.use-case';
 import { requestVerificationCodeController } from '@/src/interface-adapters/controllers/bookings/request-verification-code.controller';
 import { listSlotsController } from '@/src/interface-adapters/controllers/bookings/list-slots.controller';
+import { ClientBookingsRepository } from '@/src/infrastructure/repositories/client-bookings.repository';
+import { openClientAccessUseCase } from '@/src/application/use-cases/bookings/open-client-access.use-case';
+import { openClientAccessController } from '@/src/interface-adapters/controllers/bookings/open-client-access.controller';
+import { listClientBookingsUseCase } from '@/src/application/use-cases/bookings/list-client-bookings.use-case';
+import { listClientBookingsController } from '@/src/interface-adapters/controllers/bookings/list-client-bookings.controller';
+import { cancelClientBookingUseCase } from '@/src/application/use-cases/bookings/cancel-client-booking.use-case';
+import { cancelClientBookingController } from '@/src/interface-adapters/controllers/bookings/cancel-client-booking.controller';
+import { rescheduleClientBookingUseCase } from '@/src/application/use-cases/bookings/reschedule-client-booking.use-case';
+import { rescheduleClientBookingController } from '@/src/interface-adapters/controllers/bookings/reschedule-client-booking.controller';
 
 /**
  * Cablea Turnos. Reservar es público, así que `BookingsRepository` no recibe `IAuthenticationService`.
@@ -128,6 +137,43 @@ export function createBookingsModule() {
             DI_SYMBOLS.IInstrumentationService,
             DI_SYMBOLS.IAuthenticationService,
             DI_SYMBOLS.IMarkBookingNoShowUseCase,
+        ]);
+
+    bookingsModule.bind(DI_SYMBOLS.IClientBookingsRepository).toClass(ClientBookingsRepository, [DI_SYMBOLS.IInstrumentationService]);
+
+    bookingsModule
+        .bind(DI_SYMBOLS.IOpenClientAccessUseCase)
+        .toHigherOrderFunction(openClientAccessUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IClientBookingsRepository]);
+
+    bookingsModule
+        .bind(DI_SYMBOLS.IOpenClientAccessController)
+        .toHigherOrderFunction(openClientAccessController, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IOpenClientAccessUseCase]);
+
+    bookingsModule
+        .bind(DI_SYMBOLS.IListClientBookingsUseCase)
+        .toHigherOrderFunction(listClientBookingsUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IClientBookingsRepository]);
+
+    bookingsModule
+        .bind(DI_SYMBOLS.IListClientBookingsController)
+        .toHigherOrderFunction(listClientBookingsController, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IListClientBookingsUseCase]);
+
+    bookingsModule
+        .bind(DI_SYMBOLS.ICancelClientBookingUseCase)
+        .toHigherOrderFunction(cancelClientBookingUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IClientBookingsRepository]);
+
+    bookingsModule
+        .bind(DI_SYMBOLS.ICancelClientBookingController)
+        .toHigherOrderFunction(cancelClientBookingController, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.ICancelClientBookingUseCase]);
+
+    bookingsModule
+        .bind(DI_SYMBOLS.IRescheduleClientBookingUseCase)
+        .toHigherOrderFunction(rescheduleClientBookingUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IClientBookingsRepository]);
+
+    bookingsModule
+        .bind(DI_SYMBOLS.IRescheduleClientBookingController)
+        .toHigherOrderFunction(rescheduleClientBookingController, [
+            DI_SYMBOLS.IInstrumentationService,
+            DI_SYMBOLS.IRescheduleClientBookingUseCase,
         ]);
 
     return bookingsModule;

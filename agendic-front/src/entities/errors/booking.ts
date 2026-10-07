@@ -43,8 +43,16 @@ export class BookingNotAllowedError extends Error {
 /**
  * 422: el Turno no está en el estado que la acción pide (Aceptar y Rechazar piden pendiente; Cancelar,
  * Reagendar y Ausencia, aceptado) o, para Ausencia, su horario todavía no pasó o ya la tiene marcada.
+ * Del Cliente: no está pendiente ni aceptado, o ya empezó.
  */
 export class BookingStateError extends Error {
+    constructor(message: string, options?: ErrorOptions) {
+        super(message, options);
+    }
+}
+
+/** 401 `Client access missing or expired`: el acceso a Mis turnos falta o venció (ADR 0022). */
+export class ClientAccessExpiredError extends Error {
     constructor(message: string, options?: ErrorOptions) {
         super(message, options);
     }

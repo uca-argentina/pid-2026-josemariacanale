@@ -1,11 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { SERVICE_CATEGORIES } from '@/app/_components/business-schemas';
 import { BookingFlow } from '@/app/_components/booking/BookingFlow';
-import { MyBookings } from '@/app/_components/booking/MyBookings';
 import { ServiceCard } from '@/app/_components/booking/ServiceCard';
-import type { Booking, Service } from '@/app/_components/booking/types';
+import type { Service } from '@/app/_components/booking/types';
+import { MIS_TURNOS_PATH } from '@/app/routes';
 
 /**
  * La página de un Usuario: sus Servicios personales visibles y la reserva, la misma que la de una Sucursal pero sin
@@ -20,9 +21,9 @@ export function UserPublicPage({
     services: Service[];
     selectedService: Service | null;
 }) {
+    const router = useRouter();
     const [initialService, setInitialService] = useState<Service | null>(selectedService);
     const [flowOpen, setFlowOpen] = useState(selectedService !== null);
-    const [booking, setBooking] = useState<Booking | null>(null);
 
     const bookable =
         selectedService && !services.some((s) => s.id === selectedService.id) ? [...services, selectedService] : services;
@@ -32,8 +33,6 @@ export function UserPublicPage({
         setInitialService(service);
         setFlowOpen(true);
     };
-
-    if (booking) return <MyBookings booking={booking} onBack={() => setBooking(null)} />;
 
     return (
         <>
@@ -67,10 +66,7 @@ export function UserPublicPage({
                     coverUrl={undefined}
                     initialService={initialService}
                     onClose={() => setFlowOpen(false)}
-                    onBooked={(created) => {
-                        setFlowOpen(false);
-                        setBooking(created);
-                    }}
+                    onBooked={(access) => router.push(`${MIS_TURNOS_PATH}#acceso=${access}`)}
                 />
             )}
         </>
