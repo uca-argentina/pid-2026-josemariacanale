@@ -56,6 +56,7 @@ const BOOKING: Booking = {
   status: BookingStatus.BOOKED,
   notes: null,
   noShowAt: null,
+  link: 'booking-link-secret',
 };
 
 describe('Turno', () => {
@@ -148,6 +149,10 @@ describe('Turno', () => {
           status: BookingStatus.BOOKED,
         },
         undefined,
+      );
+      expect(t.mailer.sendBookingConfirmation).toHaveBeenCalledWith(
+        VALID_BOOKING.clientEmail,
+        BOOKING.link,
       );
     });
 

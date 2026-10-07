@@ -22,4 +22,14 @@ export class NodemailerMailer implements Mailer {
       html: `<p>Your verification code is <strong>${code}</strong>. It expires in 15 minutes.</p>`,
     });
   }
+
+  async sendBookingConfirmation(email: string, link: string) {
+    const url = `${process.env.FRONT_URL}/turnos/${link}`;
+    await this.transporter.sendMail({
+      from: process.env.SMTP_FROM,
+      to: email,
+      subject: 'Your booking is confirmed',
+      html: `<p>Your Turno is confirmed. Manage it here: <a href="${url}">${url}</a></p>`,
+    });
+  }
 }

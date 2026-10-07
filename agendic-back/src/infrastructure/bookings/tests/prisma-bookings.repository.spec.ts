@@ -281,6 +281,19 @@ describe('PrismaBookingsRepository', () => {
     });
   });
 
+  describe('findByLink', () => {
+    it('answers NotFoundError for an unknown link', async () => {
+      prisma.booking.findUnique.mockResolvedValue(null);
+
+      await expect(repository.findByLink('unknown')).rejects.toThrow(
+        new NotFoundError('Turno not found'),
+      );
+      expect(prisma.booking.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { link: 'unknown' } }),
+      );
+    });
+  });
+
   describe('translates other Prisma errors, keeping the original as cause', () => {
     it('P2025 on create into NotFoundError', async () => {
       const cause = knownError('P2025');

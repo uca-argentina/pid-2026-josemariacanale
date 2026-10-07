@@ -54,6 +54,8 @@ export interface BookingsRepository {
   ): Promise<Booking>;
   /** Every Turno, in any status, whose Cliente was booked with this email, soonest first, with its Mis turnos data (ADR 0022). */
   findByClientEmail(email: string): Promise<ClientBooking[]>;
+  /** The Turno for its Enlace del Turno, in any status, with its Mis turnos data (ADR 0022). Throws NotFoundError for an unknown link. */
+  findByLink(link: string): Promise<ClientBooking>;
   listByBusiness(businessId: number): Promise<Booking[]>;
   /** PENDING and BOOKED Turnos of this Usuario, personal or of any Negocio, whose [prepStartsAt, endsAt) overlaps [from, to), leaving out `excludeBookingId`. */
   listOccupiedByUser(

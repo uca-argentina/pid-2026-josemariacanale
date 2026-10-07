@@ -313,6 +313,7 @@ describe('Servicio personal', () => {
       status: BookingStatus.BOOKED,
       notes: null,
       noShowAt: null,
+      link: 'booking-link-secret',
     };
 
     beforeEach(() => {

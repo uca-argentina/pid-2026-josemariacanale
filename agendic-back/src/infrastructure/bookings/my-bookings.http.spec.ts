@@ -28,6 +28,7 @@ const BOOKED: Booking = {
   status: BookingStatus.BOOKED,
   notes: null,
   noShowAt: null,
+  link: 'booking-link-secret',
 };
 
 const AVAILABILITY: Availability = {
