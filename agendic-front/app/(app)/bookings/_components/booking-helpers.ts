@@ -106,6 +106,3 @@ export function matches(b: Booking, filters: BookingFilter[]) {
         return f.op === 'is' ? actual.toLowerCase() === wanted : actual.toLowerCase().includes(wanted);
     });
 }
-
-/** El instante actual; las páginas lo leen acá y se lo pasan a los componentes, así servidor e hidratación arman las mismas pestañas. */
-export const readClock = () => Date.now();

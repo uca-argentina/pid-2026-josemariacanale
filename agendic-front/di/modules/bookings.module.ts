@@ -29,6 +29,12 @@ import { cancelClientBookingUseCase } from '@/src/application/use-cases/bookings
 import { cancelClientBookingController } from '@/src/interface-adapters/controllers/bookings/cancel-client-booking.controller';
 import { rescheduleClientBookingUseCase } from '@/src/application/use-cases/bookings/reschedule-client-booking.use-case';
 import { rescheduleClientBookingController } from '@/src/interface-adapters/controllers/bookings/reschedule-client-booking.controller';
+import { getBookingByLinkUseCase } from '@/src/application/use-cases/bookings/get-booking-by-link.use-case';
+import { getBookingByLinkController } from '@/src/interface-adapters/controllers/bookings/get-booking-by-link.controller';
+import { cancelBookingByLinkUseCase } from '@/src/application/use-cases/bookings/cancel-booking-by-link.use-case';
+import { cancelBookingByLinkController } from '@/src/interface-adapters/controllers/bookings/cancel-booking-by-link.controller';
+import { rescheduleBookingByLinkUseCase } from '@/src/application/use-cases/bookings/reschedule-booking-by-link.use-case';
+import { rescheduleBookingByLinkController } from '@/src/interface-adapters/controllers/bookings/reschedule-booking-by-link.controller';
 
 /**
  * Cablea Turnos. Reservar es público, así que `BookingsRepository` no recibe `IAuthenticationService`.
@@ -175,6 +181,30 @@ export function createBookingsModule() {
             DI_SYMBOLS.IInstrumentationService,
             DI_SYMBOLS.IRescheduleClientBookingUseCase,
         ]);
+
+    bookingsModule
+        .bind(DI_SYMBOLS.IGetBookingByLinkUseCase)
+        .toHigherOrderFunction(getBookingByLinkUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IClientBookingsRepository]);
+
+    bookingsModule
+        .bind(DI_SYMBOLS.IGetBookingByLinkController)
+        .toHigherOrderFunction(getBookingByLinkController, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IGetBookingByLinkUseCase]);
+
+    bookingsModule
+        .bind(DI_SYMBOLS.ICancelBookingByLinkUseCase)
+        .toHigherOrderFunction(cancelBookingByLinkUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IClientBookingsRepository]);
+
+    bookingsModule
+        .bind(DI_SYMBOLS.ICancelBookingByLinkController)
+        .toHigherOrderFunction(cancelBookingByLinkController, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.ICancelBookingByLinkUseCase]);
+
+    bookingsModule
+        .bind(DI_SYMBOLS.IRescheduleBookingByLinkUseCase)
+        .toHigherOrderFunction(rescheduleBookingByLinkUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IClientBookingsRepository]);
+
+    bookingsModule
+        .bind(DI_SYMBOLS.IRescheduleBookingByLinkController)
+        .toHigherOrderFunction(rescheduleBookingByLinkController, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IRescheduleBookingByLinkUseCase]);
 
     return bookingsModule;
 }

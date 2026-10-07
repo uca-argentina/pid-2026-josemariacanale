@@ -52,7 +52,7 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | Ofrecer un Servicio / dejar de ofrecerlo | `assignEmployee` / `removeEmployee` (`EmployeeService`) |
 | Turno | `Booking` (inicio/fin → `startsAt`/`endsAt`; estado → `BookingStatus.PENDING \| BOOKED \| REJECTED \| CANCELLED`) |
 | Comentario del Turno | `Booking.notes` (opcional) |
-| Enlace del Turno (ADR 0022) | `Booking.link` (secreto, único, generado al crear); `GET/PATCH /booking-links/:secret` |
+| Enlace del Turno (ADR 0022) | `Booking.link` (secreto, único, generado al crear); `GET/PATCH /booking-links/:secret`; en el front, `getBookingByLink` / `cancelBookingByLink` / `rescheduleBookingByLink` y la ruta `/turnos/<link>` |
 | Código de verificación del Turno | `BookingVerificationCodes` (ADR 0006, 0022) |
 | Turno pendiente | `BookingStatus.PENDING` |
 | Aceptar turno | `accept` (`PENDING` → `BOOKED`) |

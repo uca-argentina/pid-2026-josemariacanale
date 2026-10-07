@@ -20,7 +20,7 @@ function parseOrFail<T>(parse: () => T, what: string): T {
 }
 
 /**
- * Mis turnos del Cliente contra la API del back.
+ * Turnos del Cliente contra la API del back: Mis turnos y el Enlace del Turno.
  *
  * Cada método traduce el status del back así: 401 a `ClientAccessExpiredError`, 404 a `NotFoundError`,
  * 409 a `SlotTakenError`, el 422 de horario no disponible a `SlotUnavailableError`, cualquier otro 422 a
@@ -87,6 +87,53 @@ export class ClientBookingsRepository implements IClientBookingsRepository {
             const body = await this.request(what, `/client/bookings/${bookingId}/reschedule`, { method: 'PATCH', access, body: { startsAt } });
             return parseOrFail(() => clientBookingSchema.parse(body), what);
         });
+    }
+
+    /**
+     * @throws {NotFoundError} el back respondió 404
+     * @throws {ApiRequestError} cualquier otra respuesta con error, un cuerpo inesperado o una falla de red
+     */
+    async getBookingByLink(link: string): Promise<ClientBooking> {
+        return this.instrumentationService.startSpan({ name: 'ClientBookingsRepository > getBookingByLink', op: 'http.client' }, async () => {
+            // El Enlace es una credencial: `what` llega a los mensajes de error y a los logs, así que va sin él.
+            const what = 'GET /booking-links/:link';
+            const body = await this.request(what, `/booking-links/${encodeURIComponent(link)}`, { method: 'GET' });
+            return parseOrFail(() => clientBookingSchema.parse(body), what);
+        });
+    }
+
+    /**
+     * @throws {NotFoundError} el back respondió 404
+     * @throws {BookingStateError} el back respondió 422
+     * @throws {ApiRequestError} cualquier otra respuesta con error, un cuerpo inesperado o una falla de red
+     */
+    async cancelBookingByLink(link: string): Promise<ClientBooking> {
+        return this.instrumentationService.startSpan({ name: 'ClientBookingsRepository > cancelBookingByLink', op: 'http.client' }, async () => {
+            const what = 'PATCH /booking-links/:link/cancel';
+            const body = await this.request(what, `/booking-links/${encodeURIComponent(link)}/cancel`, { method: 'PATCH' });
+            return parseOrFail(() => clientBookingSchema.parse(body), what);
+        });
+    }
+
+    /**
+     * @throws {NotFoundError} el back respondió 404
+     * @throws {SlotTakenError} el back respondió 409
+     * @throws {SlotUnavailableError} el back respondió 422 `Slot … is not available`: el horario ya no es reservable
+     * @throws {BookingStateError} el back respondió cualquier otro 422
+     * @throws {ApiRequestError} cualquier otra respuesta con error, un cuerpo inesperado o una falla de red
+     */
+    async rescheduleBookingByLink(link: string, startsAt: string): Promise<ClientBooking> {
+        return this.instrumentationService.startSpan(
+            { name: 'ClientBookingsRepository > rescheduleBookingByLink', op: 'http.client' },
+            async () => {
+                const what = 'PATCH /booking-links/:link/reschedule';
+                const body = await this.request(what, `/booking-links/${encodeURIComponent(link)}/reschedule`, {
+                    method: 'PATCH',
+                    body: { startsAt },
+                });
+                return parseOrFail(() => clientBookingSchema.parse(body), what);
+            },
+        );
     }
 
     private async request(

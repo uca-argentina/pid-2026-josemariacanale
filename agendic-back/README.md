@@ -33,3 +33,15 @@ Proveedor sugerido: **Cloudflare R2** (plan gratis y sin costo de egress). En el
 2. **Manage R2 API Tokens** → crear un token con permiso *Object Read & Write* sobre ese bucket: da `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` y el endpoint `https://<account-id>.r2.cloudflarestorage.com` (`S3_ENDPOINT`).
 
 Cualquier otro proveedor S3-compatible (AWS S3, Supabase Storage, MinIO) sirve cambiando solo estas variables. Los tests no las usan: corren contra un emulador S3 en proceso (`s3rver`).
+
+### Turnos del Cliente
+
+Reservar, Mis turnos y el Enlace del Turno (ADR 0022) necesitan estas variables. Sin ellas el back no arranca y dice cuál falta:
+
+| Variable | Qué es |
+| --- | --- |
+| `BOOKING_CODE_SECRET` | Secreto con el que se firman los Códigos de verificación del Cliente. Cualquier texto largo y aleatorio. |
+| `CLIENT_ACCESS_SECRET` | Secreto con el que se firma el acceso de 15 minutos a Mis turnos. Otro texto largo y aleatorio, distinto del anterior. |
+| `FRONTEND_URL` | Dirección del front (por ejemplo `http://localhost:3000`). La Confirmación de reserva manda el Enlace del Turno como `<FRONTEND_URL>/turnos/<link>`. |
+
+Para generar cada secreto: `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`. Cambiarlos solo invalida los códigos y accesos que estén en vuelo (duran 15 minutos). Los tests no los usan: la app de test reemplaza los códigos, el acceso y el mailer.

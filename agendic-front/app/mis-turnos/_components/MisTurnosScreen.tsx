@@ -1,33 +1,27 @@
 'use client';
 
 import { useEffect, useState, useTransition } from 'react';
-import { Ban, CalendarCheck, Hourglass, type LucideIcon } from 'lucide-react';
 import { Button } from '@/app/_components/ui/button';
 import { Input } from '@/app/_components/ui/input';
 import { Label } from '@/app/_components/ui/label';
 import { ChipTabs } from '@/app/_components/booking/ChipTabs';
 import { requestVerificationCodeAction } from '@/app/_components/booking/actions';
+import { ClientBookingDetail } from '@/app/_components/client-booking/ClientBookingDetail';
+import { STATUS_BADGE, hostName } from '@/app/_components/client-booking/client-booking-helpers';
+import { formatLongDate, formatTime } from '@/app/_components/client-booking/format';
+import type { ClientBooking } from '@/app/_components/client-booking/types';
 import {
     cancelClientBookingAction,
     listClientBookingsAction,
     openClientAccessAction,
-    type ClientBooking,
+    rescheduleClientBookingAction,
 } from '../actions';
-import { formatDuration, formatLongDate, formatPrice, formatTime } from './format';
-import { hostName, isActionable, sortForTab, tabOf, type Tab } from './mis-turnos-helpers';
-import { RescheduleOverlay } from './RescheduleOverlay';
+import { sortForTab, tabOf, type Tab } from './mis-turnos-helpers';
 
 const TABS = [
     { value: 'upcoming' as Tab, label: 'Próximos' },
     { value: 'past' as Tab, label: 'Historial' },
 ];
-
-const STATUS_BADGE: Record<ClientBooking['status'], { icon: LucideIcon; label: string }> = {
-    PENDING: { icon: Hourglass, label: 'Esperando que lo acepten' },
-    BOOKED: { icon: CalendarCheck, label: 'Turno reservado' },
-    REJECTED: { icon: Ban, label: 'Turno rechazado' },
-    CANCELLED: { icon: Ban, label: 'Turno cancelado' },
-};
 
 /** Lee `#acceso=<access>` del fragmento (nunca viaja al servidor) y lo borra de la URL. */
 function readAccessFromHash(): string | null {
@@ -54,9 +48,6 @@ export function MisTurnosScreen() {
     const [phase, setPhase] = useState<Phase>({ step: 'gate' });
     const [tab, setTab] = useState<Tab>('upcoming');
     const [selectedId, setSelectedId] = useState<number | null>(null);
-    const [rescheduling, setRescheduling] = useState(false);
-    const [cancelling, setCancelling] = useState(false);
-    const [notice, setNotice] = useState<string | null>(null);
 
     const load = (access: string) => {
         listClientBookingsAction(access).then((result) => {
@@ -156,143 +147,22 @@ export function MisTurnosScreen() {
                 )}
             </section>
 
-            <section aria-label="Detalle del turno" className="rounded-2xl border border-border p-6">
-                {notice && (
-                    <p role="status" className="mb-5 rounded-xl bg-muted p-4 text-[13.5px] font-semibold">
-                        {notice}
-                    </p>
-                )}
-
-                {!selected ? (
+            {selected ? (
+                // `key`: el aviso y los diálogos abiertos son de ese Turno; al elegir otro, arrancan de cero.
+                <ClientBookingDetail
+                    key={selected.id}
+                    booking={selected}
+                    now={now}
+                    cancel={() => cancelClientBookingAction(access, selected.id)}
+                    reschedule={(startsAt) => rescheduleClientBookingAction(access, selected.id, startsAt)}
+                    onUpdated={replaceBooking}
+                    onExpired={() => setPhase({ step: 'gate' })}
+                />
+            ) : (
+                <section aria-label="Detalle del turno" className="rounded-2xl border border-border p-6">
                     <p className="text-[14.5px] text-muted-foreground">Elegí un turno para ver el detalle.</p>
-                ) : (
-                    <>
-                        {(() => {
-                            const status = STATUS_BADGE[selected.status];
-                            return (
-                                <span className="inline-flex items-center gap-2 rounded-full bg-foreground px-3.5 py-1.5 text-[13px] font-bold text-white">
-                                    <status.icon className="size-4" />
-                                    {status.label}
-                                </span>
-                            );
-                        })()}
-
-                        <h2 className="mt-4 text-[26px] leading-tight font-extrabold tracking-[-0.03em] first-letter:uppercase sm:text-[32px]">
-                            {formatLongDate(selected.startsAt, selected.timeZone)} a las {formatTime(selected.startsAt, selected.timeZone)}
-                        </h2>
-                        <p className="mt-1 text-[14px] text-muted-foreground">
-                            {hostName(selected)} · {formatDuration(selected.service.durationMinutes)}
-                        </p>
-
-                        <h3 className="mt-7 text-[19px] font-extrabold tracking-[-0.02em]">Resumen</h3>
-                        <div className="mt-3 flex items-start justify-between gap-4 text-[14px]">
-                            <div>
-                                <p className="font-bold tracking-[-0.02em]">{selected.service.name}</p>
-                                <p className="mt-0.5 text-[13px] text-muted-foreground">con {selected.employeeName}</p>
-                            </div>
-                            <span className="shrink-0 font-bold">{formatPrice(selected.service.price)}</span>
-                        </div>
-
-                        {selected.branch && (
-                            <p className="mt-4 text-[13.5px] text-muted-foreground">{selected.branch.address}</p>
-                        )}
-
-                        {selected.notes && (
-                            <>
-                                <h4 className="mt-7 text-[17px] font-extrabold tracking-[-0.02em]">Tu comentario</h4>
-                                <p className="mt-2 max-w-[62ch] rounded-xl bg-muted p-4 text-[13.5px] leading-relaxed">{selected.notes}</p>
-                            </>
-                        )}
-
-                        {isActionable(selected, now) && (
-                            <div className="mt-7 flex flex-wrap gap-3 border-t border-border pt-6">
-                                <Button variant="outline" onClick={() => setRescheduling(true)}>
-                                    Reagendar
-                                </Button>
-                                <Button variant="outline" onClick={() => setCancelling(true)}>
-                                    Cancelar
-                                </Button>
-                            </div>
-                        )}
-
-                        {cancelling && (
-                            <CancelConfirm
-                                access={access}
-                                booking={selected}
-                                onClose={() => setCancelling(false)}
-                                onExpired={() => setPhase({ step: 'gate' })}
-                                onCancelled={(updated) => {
-                                    replaceBooking(updated);
-                                    setCancelling(false);
-                                    setNotice('Cancelamos tu turno.');
-                                }}
-                            />
-                        )}
-
-                        {rescheduling && (
-                            <RescheduleOverlay
-                                access={access}
-                                booking={selected}
-                                onClose={() => setRescheduling(false)}
-                                onExpired={() => setPhase({ step: 'gate' })}
-                                onRescheduled={(updated) => {
-                                    replaceBooking(updated);
-                                    setRescheduling(false);
-                                    setNotice(
-                                        updated.status === 'PENDING'
-                                            ? 'Reagendamos tu turno: como el servicio pide aprobación, vuelve a esperar que lo acepten.'
-                                            : 'Reagendamos tu turno.',
-                                    );
-                                }}
-                            />
-                        )}
-                    </>
-                )}
-            </section>
-        </div>
-    );
-}
-
-function CancelConfirm({
-    access,
-    booking,
-    onClose,
-    onExpired,
-    onCancelled,
-}: {
-    access: string;
-    booking: ClientBooking;
-    onClose: () => void;
-    onExpired: () => void;
-    onCancelled: (booking: ClientBooking) => void;
-}) {
-    const [pending, startTransition] = useTransition();
-    const [error, setError] = useState<string | null>(null);
-
-    const confirm = () =>
-        startTransition(async () => {
-            const result = await cancelClientBookingAction(access, booking.id);
-            if (result.ok) return onCancelled(result.booking);
-            if (result.expired) return onExpired();
-            setError(result.message);
-        });
-
-    return (
-        <div role="alertdialog" aria-label="Cancelar turno" className="mt-6 rounded-xl border border-border p-4">
-            <p className="text-[14px] font-semibold">¿Cancelar este turno? El horario queda libre.</p>
-            {error && (
-                <p role="alert" className="mt-2 text-[13px] text-muted-foreground">
-                    {error}
-                </p>
+                </section>
             )}
-            <div className="mt-4 flex gap-3">
-                <Button variant="outline" onClick={onClose} disabled={pending}>
-                    Volver
-                </Button>
-                <Button onClick={confirm} disabled={pending} className="bg-foreground text-white hover:bg-foreground/90">
-                    {pending ? 'Cancelando…' : 'Cancelar turno'}
-                </Button>
-            </div>
         </div>
     );
 }

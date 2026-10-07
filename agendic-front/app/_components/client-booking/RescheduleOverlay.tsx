@@ -5,24 +5,24 @@ import { ArrowLeft, X } from 'lucide-react';
 import { Button } from '@/app/_components/ui/button';
 import { TimeStep } from '@/app/_components/booking/TimeStep';
 import type { Service, Slot } from '@/app/_components/booking/types';
-import { rescheduleClientBookingAction, type ClientBooking } from '../actions';
+import type { ClientBooking, ClientBookingActionResult } from './types';
 
 /**
- * Elige el nuevo Horario reservable de un Turno y reagenda. Reusa `TimeStep`, el mismo paso que
- * Reservar: `service` solo necesita `id` y `durationMinutes`, así que arma uno mínimo con los
- * datos que trae el Turno.
+ * Elige el nuevo Horario reservable de un Turno y reagenda con `reschedule`, que es la acción de Mis turnos o la
+ * del Enlace del Turno. Reusa `TimeStep`, el mismo paso que Reservar: `service` solo necesita `id` y
+ * `durationMinutes`, así que arma uno mínimo con los datos que trae el Turno.
  */
 export function RescheduleOverlay({
-    access,
     booking,
+    reschedule,
     onClose,
     onExpired,
     onRescheduled,
 }: {
-    access: string;
     booking: ClientBooking;
+    reschedule: (startsAt: string) => Promise<ClientBookingActionResult>;
     onClose: () => void;
-    onExpired: () => void;
+    onExpired?: () => void;
     onRescheduled: (booking: ClientBooking) => void;
 }) {
     const [slot, setSlot] = useState<Slot | null>(null);
@@ -44,9 +44,9 @@ export function RescheduleOverlay({
     const confirm = () => {
         if (!slot) return;
         startTransition(async () => {
-            const result = await rescheduleClientBookingAction(access, booking.id, slot.startsAt);
+            const result = await reschedule(slot.startsAt);
             if (result.ok) return onRescheduled(result.booking);
-            if (result.expired) return onExpired();
+            if (result.expired && onExpired) return onExpired();
             setNotice(result.message);
             if (result.slotTaken) setSlot(null);
         });
