@@ -142,7 +142,8 @@ function SidebarContent({
 
 /**
  * La navegación del panel. Desde lg es una columna fija a la izquierda; abajo de lg, una barra
- * superior con un botón que la abre como drawer, que se cierra al elegir una sección.
+ * superior con el botón de menú a la izquierda, del lado del que sale el drawer, que se cierra
+ * al elegir una sección.
  */
 export function Sidebar({ user, navItems }: { user: CurrentBusinessUser; navItems: NavItem[] }) {
     const [open, setOpen] = useState(false);
@@ -150,18 +151,15 @@ export function Sidebar({ user, navItems }: { user: CurrentBusinessUser; navItem
 
     return (
         <>
-            <div className="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between border-b border-border bg-white px-4 lg:hidden">
-                <Link href={SIGNED_IN_HOME_PATH}>
-                    <Logo />
-                </Link>
+            <div className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-border bg-white px-2 lg:hidden">
                 <Dialog.Root open={open} onOpenChange={setOpen}>
                     <Dialog.Trigger
                         aria-label="Abrir menú"
-                        className="relative rounded-[10px] p-2 text-foreground outline-none transition-colors hover:bg-muted focus-visible:bg-muted"
+                        className="relative flex size-11 items-center justify-center rounded-[10px] text-foreground outline-none transition-colors hover:bg-muted focus-visible:bg-muted"
                     >
                         <Menu className="size-5" />
                         {hasPending && (
-                            <span aria-hidden className="absolute top-1.5 right-1.5 size-2 rounded-full bg-primary ring-2 ring-white" />
+                            <span aria-hidden className="absolute top-2.5 right-2.5 size-2 rounded-full bg-primary ring-2 ring-white" />
                         )}
                     </Dialog.Trigger>
                     <Dialog.Portal>
@@ -185,6 +183,9 @@ export function Sidebar({ user, navItems }: { user: CurrentBusinessUser; navItem
                         </Dialog.Content>
                     </Dialog.Portal>
                 </Dialog.Root>
+                <Link href={SIGNED_IN_HOME_PATH}>
+                    <Logo />
+                </Link>
             </div>
 
             <aside className="hidden w-[248px] shrink-0 flex-col gap-5 border-r border-border bg-white p-3.5 pt-4.5 lg:sticky lg:top-0 lg:flex lg:h-screen lg:overflow-y-auto">
