@@ -50,9 +50,9 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | Intervalo | `Service.slotInterval` (minutos, opcional; sin él, `durationMinutes`) |
 | Anticipación mínima | `Service.minimumNoticeMinutes` (minutos, 0 = sin anticipación) |
 | Ofrecer un Servicio / dejar de ofrecerlo | `assignEmployee` / `removeEmployee` (`EmployeeService`) |
-| Turno | `Booking` (inicio/fin → `startsAt`/`endsAt`; estado → `BookingStatus.UNVERIFIED \| PENDING \| BOOKED \| REJECTED \| CANCELLED`) |
+| Turno | `Booking` (inicio/fin → `startsAt`/`endsAt`; estado → `BookingStatus.PENDING \| BOOKED \| REJECTED \| CANCELLED`) |
 | Comentario del Turno | `Booking.notes` (opcional) |
-| Turno sin verificar | `BookingStatus.UNVERIFIED` |
+| Código de verificación del Turno | `BookingVerificationCodes` (ADR 0006, 0022) |
 | Turno pendiente | `BookingStatus.PENDING` |
 | Aceptar turno | `accept` (`PENDING` → `BOOKED`) |
 | Rechazar turno | `reject` (`PENDING` → `REJECTED`) |

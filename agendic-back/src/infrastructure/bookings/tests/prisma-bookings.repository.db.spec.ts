@@ -12,20 +12,18 @@ describe('PrismaBookingsRepository (real database)', () => {
   let userId: number;
 
   const book = (hour: number, clientName: string, clientEmail: string, serviceId: number) =>
-    repository.create(
-      {
-        serviceId,
-        employeeId: null,
-        userId,
-        clientName,
-        clientEmail,
-        prepStartsAt: new Date(Date.UTC(2031, 0, 1, hour)),
-        startsAt: new Date(Date.UTC(2031, 0, 1, hour)),
-        endsAt: new Date(Date.UTC(2031, 0, 1, hour + 1)),
-        notes: null,
-      },
-      new Date(Date.UTC(2031, 0, 2)),
-    );
+    repository.create({
+      serviceId,
+      employeeId: null,
+      userId,
+      clientName,
+      clientEmail,
+      prepStartsAt: new Date(Date.UTC(2031, 0, 1, hour)),
+      startsAt: new Date(Date.UTC(2031, 0, 1, hour)),
+      endsAt: new Date(Date.UTC(2031, 0, 1, hour + 1)),
+      notes: null,
+      status: BookingStatus.BOOKED,
+    });
 
   afterAll(async () => {
     // `deleteMany({ where: { userId: undefined } })` matches every row: skip if the test died before creating the User.
@@ -59,9 +57,9 @@ describe('PrismaBookingsRepository (real database)', () => {
     const found = await repository.findByClientEmail(email.toUpperCase());
 
     expect(found.map((b) => [b.clientName, b.clientEmail, b.status])).toEqual([
-      ['Bruno', email, BookingStatus.UNVERIFIED],
-      ['Bruno D.', email, BookingStatus.UNVERIFIED],
-      ['Bruno M.', email, BookingStatus.UNVERIFIED],
+      ['Bruno', email, BookingStatus.BOOKED],
+      ['Bruno D.', email, BookingStatus.BOOKED],
+      ['Bruno M.', email, BookingStatus.BOOKED],
     ]);
     expect(await prisma.client.count({ where: { email } })).toBe(3);
   }, 60_000);

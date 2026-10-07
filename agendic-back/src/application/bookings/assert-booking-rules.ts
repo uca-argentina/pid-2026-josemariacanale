@@ -1,11 +1,8 @@
 import { AvailabilitiesRepository } from '../../domain/availabilities/availabilities.repository';
 import { BranchesRepository } from '../../domain/branches/branches.repository';
-import { BookingsRepository } from '../../domain/bookings/bookings.repository';
-import { DAILY_LIMIT_REACHED } from '../../domain/bookings/booking';
-import { BusinessRuleError, ConflictError } from '../../domain/errors';
+import { BusinessRuleError } from '../../domain/errors';
 import { Service } from '../../domain/services/service';
 import { ServicesRepository } from '../../domain/services/services.repository';
-import { localDayBounds } from '../../domain/slots/slot';
 import { serviceTimeZone } from '../services/service-time-zone';
 
 export function assertServiceBookable(
@@ -28,24 +25,6 @@ export function assertEmployeeInCharge(
 export function assertNotPast(startsAt: Date, now: Date): void {
   if (startsAt < now)
     throw new BusinessRuleError('startsAt cannot be before now');
-}
-
-/**
- * Checks the Límite diario of the local day, in `timeZone`, that `startsAt` falls on.
- *
- * @throws {ConflictError} el Servicio ya tiene `dailyLimit` Turnos pendientes o aceptados ese día
- */
-export async function assertUnderDailyLimit(
-  bookings: BookingsRepository,
-  service: Service,
-  timeZone: string,
-  startsAt: Date,
-): Promise<void> {
-  if (service.dailyLimit === null) return;
-  const { from, to } = localDayBounds(startsAt, timeZone);
-  const taken = await bookings.listOccupiedStartsByService(service.id, from, to);
-  if (taken.length >= service.dailyLimit)
-    throw new ConflictError(DAILY_LIMIT_REACHED);
 }
 
 /**

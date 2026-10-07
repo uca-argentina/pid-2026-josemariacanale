@@ -310,7 +310,7 @@ describe('Servicio personal', () => {
       prepStartsAt: new Date('2026-01-02T00:00:00.000Z'),
       startsAt: new Date('2026-01-02T00:00:00.000Z'),
       endsAt: new Date('2026-01-02T00:30:00.000Z'),
-      status: BookingStatus.UNVERIFIED,
+      status: BookingStatus.BOOKED,
       notes: null,
       noShowAt: null,
     };
@@ -319,7 +319,7 @@ describe('Servicio personal', () => {
       t.services.findById.mockResolvedValue(PERSONAL);
       t.bookings.listOccupiedByUser.mockResolvedValue([]);
       t.users.findById.mockResolvedValue(ANAS_USER);
-      t.bookings.create.mockResolvedValue({ booking: BOOKING, token: 'a-token' });
+      t.bookings.create.mockResolvedValue(BOOKING);
     });
 
     it('reads the days in the zone of the Availability, and the occupancy by Usuario', async () => {
@@ -362,6 +362,7 @@ describe('Servicio personal', () => {
           startsAt: '2026-01-02T00:00:00.000Z',
           clientName: 'Bruno Díaz',
           clientEmail: 'bruno@example.com',
+          code: 'A1B2C3',
         })
         .expect(201);
 
@@ -371,16 +372,17 @@ describe('Servicio personal', () => {
           employeeId: null,
           userId: ANA.id,
         }),
-        expect.any(Date),
+        undefined,
       );
       expect(res.body.employeeName).toBe(ANA.name);
     });
 
     it('counts the Límite diario in the zone of the Availability', async () => {
       t.services.findById.mockResolvedValue({ ...PERSONAL, dailyLimit: 1 });
-      t.bookings.listOccupiedStartsByService.mockResolvedValue([
-        new Date('2026-01-02T03:00:00.000Z'),
-      ]);
+      t.bookings.listOccupiedStartsByService.mockResolvedValue([]);
+      t.bookings.create.mockRejectedValue(
+        new ConflictError('The Service reached its Límite diario that day'),
+      );
 
       await t.http
         .post('/bookings')
@@ -389,14 +391,19 @@ describe('Servicio personal', () => {
           startsAt: '2026-01-02T00:00:00.000Z',
           clientName: 'Bruno Díaz',
           clientEmail: 'bruno@example.com',
+          code: 'A1B2C3',
         })
         .expect(409);
 
       // The Tokyo day of 2026-01-02 is [2026-01-01T15:00Z, 2026-01-02T15:00Z).
-      expect(t.bookings.listOccupiedStartsByService).toHaveBeenCalledWith(
-        PERSONAL.id,
-        new Date('2026-01-01T15:00:00.000Z'),
-        new Date('2026-01-02T15:00:00.000Z'),
+      expect(t.bookings.create).toHaveBeenCalledWith(
+        expect.anything(),
+        {
+          serviceId: PERSONAL.id,
+          limit: 1,
+          from: new Date('2026-01-01T15:00:00.000Z'),
+          to: new Date('2026-01-02T15:00:00.000Z'),
+        },
       );
     });
   });
