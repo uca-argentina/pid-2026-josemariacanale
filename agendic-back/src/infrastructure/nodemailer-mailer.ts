@@ -2,9 +2,22 @@ import { Injectable } from '@nestjs/common';
 import { createTransport, Transporter } from 'nodemailer';
 import { Mailer } from '../domain/mailer';
 
+/**
+ * Reads the front's base URL, where the Enlace del Turno of the Confirmación de reserva points. Throws when it is
+ * missing, so a misconfigured back fails at startup instead of mailing `undefined/turnos/…` after creating the Turno.
+ */
+export function readFrontendUrl(
+  env: Record<string, string | undefined> = process.env,
+): string {
+  if (!env.FRONTEND_URL)
+    throw new Error('Mailer is not configured: missing FRONTEND_URL');
+  return env.FRONTEND_URL.replace(/\/+$/, '');
+}
+
 @Injectable()
 export class NodemailerMailer implements Mailer {
   private readonly transporter: Transporter;
+  private readonly frontendUrl = readFrontendUrl();
 
   constructor() {
     this.transporter = createTransport({
@@ -24,7 +37,7 @@ export class NodemailerMailer implements Mailer {
   }
 
   async sendBookingConfirmation(email: string, link: string) {
-    const url = `${process.env.FRONT_URL}/turnos/${link}`;
+    const url = `${this.frontendUrl}/turnos/${link}`;
     await this.transporter.sendMail({
       from: process.env.SMTP_FROM,
       to: email,
