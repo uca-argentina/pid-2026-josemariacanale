@@ -11,10 +11,6 @@ import {
   BOOKING_VERIFICATION_CODES,
   BookingVerificationCodes,
 } from '../../domain/bookings/booking-verification-codes';
-import {
-  CLIENT_ACCESS_TOKENS,
-  ClientAccessTokens,
-} from '../../domain/bookings/client-access-tokens';
 import { Booking, BookingStatus, CreateBookingInput } from '../../domain/bookings/booking';
 import {
   BOOKINGS_REPOSITORY,
@@ -48,8 +44,6 @@ export class CreateBookingUseCase {
     @Inject(USERS_REPOSITORY) private readonly users: UsersRepository,
     @Inject(BOOKING_VERIFICATION_CODES)
     private readonly codes: BookingVerificationCodes,
-    @Inject(CLIENT_ACCESS_TOKENS)
-    private readonly accessTokens: ClientAccessTokens,
     @Inject(CLOCK) private readonly clock: Clock,
     @Inject(MAILER) private readonly mailer: Mailer,
     private readonly listSlots: ListSlotsUseCase,
@@ -59,8 +53,7 @@ export class CreateBookingUseCase {
    * Reserva un Turno, ya BOOKED o PENDING con Aprobación manual, y le asigna el Empleado que hace más tiempo que no
    * recibe uno del Servicio (ver `pickEmployee`), o al Usuario dueño de un Servicio personal. Ocupa la agenda de
    * quien lo atiende desde la preparación del Servicio, que queda fijada acá. Exige un Código de verificación vigente
-   * para `clientEmail` (ADR 0022), que al validarse también da acceso a Mis turnos. Manda la Confirmación de
-   * reserva con el Enlace del Turno.
+   * para `clientEmail` (ADR 0022). Manda la Confirmación de reserva con el Enlace del Turno.
    *
    * @throws {InvalidCodeError} el código no es válido para clientEmail en su ventana
    * @throws {BusinessRuleError} el Servicio no existe o está dado de baja, el horario ya pasó o no es un Horario reservable de ningún Empleado
@@ -68,7 +61,7 @@ export class CreateBookingUseCase {
    */
   async execute(
     input: CreateBookingInput,
-  ): Promise<Booking & { employeeName: string; access: string; accessExpiresAt: Date }> {
+  ): Promise<Booking & { employeeName: string }> {
     const now = this.clock.now();
     if (!this.codes.verify(input.clientEmail, input.code))
       throw new InvalidCodeError(
@@ -124,13 +117,10 @@ export class CreateBookingUseCase {
     const attendingUser = employee ? null : await this.users.findById(attendant.userId);
     if (!employee && !attendingUser)
       throw new NotFoundError(`User ${attendant.userId} not found`);
-    const { access, expiresAt } = this.accessTokens.sign(input.clientEmail);
     await this.mailer.sendBookingConfirmation(input.clientEmail, booking.link);
     return {
       ...booking,
       employeeName: (employee ?? attendingUser!).name,
-      access,
-      accessExpiresAt: expiresAt,
     };
   }
 }

@@ -52,17 +52,16 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | Ofrecer un Servicio / dejar de ofrecerlo | `assignEmployee` / `removeEmployee` (`EmployeeService`) |
 | Turno | `Booking` (inicio/fin → `startsAt`/`endsAt`; estado → `BookingStatus.PENDING \| BOOKED \| REJECTED \| CANCELLED`) |
 | Comentario del Turno | `Booking.notes` (opcional) |
-| Enlace del Turno (ADR 0022) | `Booking.link` (secreto, único, generado al crear); `GET/PATCH /booking-links/:secret`; en el front, `getBookingByLink` / `cancelBookingByLink` / `rescheduleBookingByLink` y la ruta `/turnos/<link>` |
+| Enlace del Turno (ADR 0022) | `Booking.link` (secreto, único, generado al crear); `POST /bookings` lo devuelve como `link`; `GET/PATCH /booking-links/:secret` responden el Turno con `ClientBooking` (incluye `user: { slug } \| null`, el Enlace de reserva del Usuario en un Servicio personal); en el front, `getBookingByLink` / `cancelBookingByLink` / `rescheduleBookingByLink` y la ruta `/turnos/<link>` |
 | Código de verificación del Turno | `BookingVerificationCodes` (ADR 0006, 0022) |
 | Turno pendiente | `BookingStatus.PENDING` |
 | Aceptar turno | `accept` (`PENDING` → `BOOKED`) |
 | Rechazar turno | `reject` (`PENDING` → `REJECTED`) |
 | Ausencia | `Booking.noShowAt` (marcado a mano; no reemplaza `status`) |
 | Reservar | `book` |
-| Reagendar | `reschedule` (`RescheduleBookingUseCase`); del Cliente, `reschedulePendingOrBooked` (`RescheduleClientBookingUseCase`) |
+| Reagendar | `reschedule` (`RescheduleBookingUseCase`); por Enlace del Turno, `reschedulePendingOrBooked` (`RescheduleBookingByLinkUseCase`) |
 | Mis turnos del Empleado | `EmployeeBooking` (`GET /employees/me/bookings`) |
-| Mis turnos del Cliente (ADR 0022) | `ClientBooking` (`GET /client/bookings`); el acceso de 15 minutos → `ClientAccessTokens` (header `X-Client-Access`) |
-| Cancelar | `cancel` (del Empleado); del Cliente, `cancelPendingOrBooked` (también sobre `PENDING`) |
+| Cancelar | `cancel` (del Empleado); por Enlace del Turno, `cancelPendingOrBooked` (también sobre `PENDING`) |
 | Dar de baja | `retire` (`Service.retiredAt`, `Employee.retiredAt`) |
 | Sesión / Iniciar sesión / Cerrar sesión | `Session` / `signIn` / `signOut` |
 

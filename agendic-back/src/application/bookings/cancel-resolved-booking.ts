@@ -4,8 +4,7 @@ import { Clock } from '../../domain/clock';
 import { BusinessRuleError } from '../../domain/errors';
 
 /**
- * Cancela un Turno ya identificado y validado como pendiente o aceptado, cualquiera sea cómo se identificó (por
- * email en Mis turnos, o por Enlace del Turno, ADR 0022).
+ * Cancela un Turno ya identificado y validado como pendiente o aceptado, por su Enlace del Turno (ADR 0022).
  *
  * @throws {BusinessRuleError} el Turno ya empezó
  */

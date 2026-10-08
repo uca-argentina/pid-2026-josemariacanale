@@ -46,6 +46,7 @@ const CLIENT_BOOKED: ClientBooking = {
     address: ANAS_BRANCH.address,
     coverUrl: null,
   },
+  user: null,
 };
 
 const AVAILABILITY: Availability = {
@@ -92,6 +93,28 @@ describe('Enlace del Turno', () => {
 
       const res = await t.http.get(`/booking-links/${LINK}`).expect(404);
       expect(res.body.message).toBe('Turno not found');
+    });
+
+    it('answers null user for a Turno de un Servicio del Negocio', async () => {
+      t.bookings.findByLink.mockResolvedValue(CLIENT_BOOKED);
+
+      const res = await t.http.get(`/booking-links/${LINK}`).expect(200);
+
+      expect(res.body).toMatchObject({ user: null });
+    });
+
+    it("answers el Enlace de reserva del Usuario para un Servicio personal", async () => {
+      t.bookings.findByLink.mockResolvedValue({
+        ...CLIENT_BOOKED,
+        employeeId: null,
+        business: null,
+        branch: null,
+        user: { slug: 'ana' },
+      });
+
+      const res = await t.http.get(`/booking-links/${LINK}`).expect(200);
+
+      expect(res.body).toMatchObject({ user: { slug: 'ana' } });
     });
   });
 

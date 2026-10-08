@@ -226,5 +226,5 @@ model Client {
 
   booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 
-  @@index([email]) // Mis turnos looks Turnos up by email
+  @@index([email])
 }
