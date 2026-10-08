@@ -61,7 +61,7 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | Reservar | `book` |
 | Reagendar | `reschedule` (`RescheduleBookingUseCase`); del Cliente, `reschedulePendingOrBooked` (`RescheduleClientBookingUseCase`) |
 | Mis turnos del Empleado | `EmployeeBooking` (`GET /employees/me/bookings`) |
-| Mis turnos del Cliente (ADR 0022) | `ClientBooking` (`GET /client/bookings`); el acceso de 15 minutos → `ClientAccessTokens` (header `X-Client-Access`) |
+| Turno visto por el Cliente (ADR 0022) | `ClientBooking` (respuesta de `GET /booking-links/:secret`) |
 | Cancelar | `cancel` (del Empleado); del Cliente, `cancelPendingOrBooked` (también sobre `PENDING`) |
 | Dar de baja | `retire` (`Service.retiredAt`, `Employee.retiredAt`) |
 | Sesión / Iniciar sesión / Cerrar sesión | `Session` / `signIn` / `signOut` |

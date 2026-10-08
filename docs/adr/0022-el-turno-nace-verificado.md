@@ -2,6 +2,8 @@
 
 Reemplaza al ADR 0005 en cuándo se verifica el Turno y al ADR 0006 en que el Turno se verificaba con un link.
 
+> **Actualización (2026-10-08):** Mis turnos se sacó, con su acceso de 15 minutos y sus endpoints. El Cliente vuelve a su Turno solo por el Enlace del Turno: al Reservar, `POST /bookings` devuelve el `link` y el front lo lleva ahí. Se rehace cuando haga falta. Lo que sigue sobre Mis turnos queda como historia.
+
 Antes, `POST /bookings` creaba un Turno `UNVERIFIED` y mandaba un link con un token de 256 bits; el Turno pasaba a `BOOKED` (o `PENDING`) al abrirlo. Ahora no existe el Turno sin verificar. El Cliente pide un Código de verificación para su email, lo ingresa en la misma pantalla de Reservar, y el pedido de reserva viaja con el código: el back lo valida y recién ahí crea el Turno, ya `BOOKED` o `PENDING`. Es el flujo de cal.diy (`RegularBookingService`).
 
 Motivos:
