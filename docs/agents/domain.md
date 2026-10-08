@@ -27,7 +27,7 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | Sucursal | `Branch` (sin horario de apertura ni de cierre) |
 | Imágenes de Sucursal | `BranchImage` (`url`, `order`) |
 | Zona horaria | `Branch.timeZone` |
-| Usuario | `User` |
+| Usuario | `User` (foto de perfil → `User.imageUrl`, la de Clerk al crearse) |
 | Cliente | `Client` (`name`, `email`; una fila por Turno vía `Client.bookingId`, índice no único sobre `email`); la API sigue exponiendo `clientName` / `clientEmail` en el Turno |
 | Quien atiende un Turno | `Booking.userId` (siempre); `Booking.employeeId` solo en un Servicio del Negocio |
 | Empleado | `Employee` |
@@ -63,7 +63,7 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | Mis turnos del Empleado | `EmployeeBooking` (`GET /employees/me/bookings`) |
 | Mis turnos del Cliente (ADR 0022) | `ClientBooking` (`GET /client/bookings`); el acceso de 15 minutos → `ClientAccessTokens` (header `X-Client-Access`) |
 | Cancelar | `cancel` (del Empleado); del Cliente, `cancelPendingOrBooked` (también sobre `PENDING`) |
-| Dar de baja | `retire` (`Service.retiredAt`, `Employee.retiredAt`) |
+| Dar de baja | `retire` (`User.deletedAt`, `Business.deletedAt`, `Service.deletedAt`, `Employee.deletedAt`; ADR 0023) |
 | Sesión / Iniciar sesión / Cerrar sesión | `Session` / `signIn` / `signOut` |
 
 ## Flag ADR conflicts
