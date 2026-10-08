@@ -8,9 +8,8 @@ import { RescheduleOverlay } from './RescheduleOverlay';
 import type { ClientBooking, ClientBookingActionResult } from './types';
 
 /**
- * Muestra el detalle de un Turno del Cliente, con Cancelar y Reagendar abajo cuando todavía se puede. Lo comparten Mis
- * turnos y el Enlace del Turno: cada uno pasa sus propias acciones en `cancel` y `reschedule`, y `onExpired` solo
- * Mis turnos, que es el único con un acceso que vence.
+ * Muestra el detalle de un Turno del Cliente, con Cancelar y Reagendar abajo cuando todavía se puede. Quien lo usa
+ * pasa sus propias acciones en `cancel` y `reschedule`.
  */
 export function ClientBookingDetail({
     booking,
@@ -18,14 +17,12 @@ export function ClientBookingDetail({
     cancel,
     reschedule,
     onUpdated,
-    onExpired,
 }: {
     booking: ClientBooking;
     now: number;
     cancel: () => Promise<ClientBookingActionResult>;
     reschedule: (startsAt: string) => Promise<ClientBookingActionResult>;
     onUpdated: (booking: ClientBooking) => void;
-    onExpired?: () => void;
 }) {
     const [rescheduling, setRescheduling] = useState(false);
     const [cancelling, setCancelling] = useState(false);
@@ -85,7 +82,6 @@ export function ClientBookingDetail({
                 <CancelConfirm
                     cancel={cancel}
                     onClose={() => setCancelling(false)}
-                    onExpired={onExpired}
                     onCancelled={(updated) => {
                         onUpdated(updated);
                         setCancelling(false);
@@ -99,7 +95,6 @@ export function ClientBookingDetail({
                     booking={booking}
                     reschedule={reschedule}
                     onClose={() => setRescheduling(false)}
-                    onExpired={onExpired}
                     onRescheduled={(updated) => {
                         onUpdated(updated);
                         setRescheduling(false);
@@ -118,12 +113,10 @@ export function ClientBookingDetail({
 function CancelConfirm({
     cancel,
     onClose,
-    onExpired,
     onCancelled,
 }: {
     cancel: () => Promise<ClientBookingActionResult>;
     onClose: () => void;
-    onExpired?: () => void;
     onCancelled: (booking: ClientBooking) => void;
 }) {
     const [pending, startTransition] = useTransition();
@@ -133,7 +126,6 @@ function CancelConfirm({
         startTransition(async () => {
             const result = await cancel();
             if (result.ok) return onCancelled(result.booking);
-            if (result.expired && onExpired) return onExpired();
             setError(result.message);
         });
 

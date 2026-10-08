@@ -8,7 +8,6 @@ import { Header } from '@/app/_components/Header';
 import { getInjection } from '@/di/container';
 import { InputParseError, NotFoundError } from '@/src/entities/errors/common';
 import { BookingLinkScreen } from './_components/BookingLinkScreen';
-import { MisTurnosLink } from './_components/MisTurnosLink';
 
 export const metadata: Metadata = {
     title: 'Tu turno · Agendic',
@@ -64,9 +63,8 @@ function UnknownBookingLink() {
         <div className="mx-auto flex w-full max-w-[420px] flex-1 flex-col justify-center px-4 py-16 sm:px-8">
             <h1 className="text-[32px] leading-none font-extrabold tracking-[-0.03em]">No encontramos este turno</h1>
             <p className="mt-3 text-[14px] text-muted-foreground">
-                Revisá que el link esté completo. Desde Mis turnos podés ver todos los turnos que reservaste con tu email.
+                Revisá que el link esté completo: es el que te llegó por mail cuando reservaste.
             </p>
-            <MisTurnosLink />
         </div>
     );
 }
