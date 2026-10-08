@@ -19,6 +19,7 @@ function presenter(booking: ClientBooking, instrumentationService: IInstrumentat
         employeeName: booking.employeeName,
         business: booking.business,
         branch: booking.branch,
+        user: booking.user,
     }));
 }
 

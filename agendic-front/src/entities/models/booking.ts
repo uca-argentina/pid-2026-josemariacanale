@@ -17,9 +17,8 @@ export const bookingSchema = z.object({
     notes: z.string().nullable().optional(),
     // Only POST /bookings returns it: the Empleado the back assigned (a Cliente does not choose one).
     employeeName: z.string().optional(),
-    // Only POST /bookings returns these: the acceso a Mis turnos recién abierto (ADR 0022).
-    access: z.string().optional(),
-    accessExpiresAt: z.iso.datetime().optional(),
+    // Only POST /bookings returns it: the secreto del Enlace del Turno (ADR 0022).
+    link: z.string().optional(),
 });
 export type Booking = z.infer<typeof bookingSchema>;
 
