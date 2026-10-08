@@ -49,10 +49,10 @@ const BOOKING_SELECT = {
 
 type BookingRow = Prisma.BookingGetPayload<{ select: typeof BOOKING_SELECT }>;
 
-/** `BOOKING_SELECT` plus the Servicio, Negocio and Sucursal data Mis turnos del Cliente shows (ADR 0022). */
+/** `BOOKING_SELECT` plus the Servicio, Negocio and Sucursal data the Enlace del Turno shows (ADR 0022). */
 const CLIENT_BOOKING_SELECT = {
   ...BOOKING_SELECT,
-  user: { select: { name: true } },
+  user: { select: { name: true, slug: true } },
   employee: { select: { user: { select: { name: true } } } },
   service: {
     select: {
@@ -181,21 +181,6 @@ export class PrismaBookingsRepository implements BookingsRepository {
       })
       .catch(translateError);
     return rows.map(({ startsAt }) => startsAt);
-  }
-
-  /**
-   * @throws {DatabaseOperationError} falló la base
-   */
-  async findByClientEmail(email: string) {
-    return (
-      await this.prisma.booking
-        .findMany({
-          where: { client: { email: normalizeEmail(email) } },
-          select: CLIENT_BOOKING_SELECT,
-          orderBy: { startsAt: 'asc' },
-        })
-        .catch(translateError)
-    ).map(toClientBooking);
   }
 
   async listByBusiness(businessId: number) {
@@ -466,6 +451,7 @@ const toClientBooking = (row: ClientBookingRow): ClientBooking => {
           coverUrl: branch.images[0]?.url ?? null,
         }
       : null,
+    user: branch ? null : { slug: row.user.slug },
   };
 };
 

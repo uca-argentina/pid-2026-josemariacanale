@@ -6,9 +6,8 @@ import { pickEmployee } from './pick-employee';
 
 /**
  * Reagenda un Turno ya identificado y validado como pendiente o aceptado a otro Horario reservable del mismo
- * Servicio, cualquiera sea cómo se identificó (por email en Mis turnos, o por Enlace del Turno, ADR 0022). Conserva
- * al Empleado si está libre y si no pasa a otro (ver `pickEmployee`); con Aprobación manual, el Turno queda (o
- * vuelve a quedar) PENDING.
+ * Servicio, por su Enlace del Turno (ADR 0022). Conserva al Empleado si está libre y si no pasa a otro (ver
+ * `pickEmployee`); con Aprobación manual, el Turno queda (o vuelve a quedar) PENDING.
  *
  * @throws {BusinessRuleError} `startsAt` no es un Horario reservable de ningún Empleado
  * @throws {ConflictError} el horario nuevo pisa otro Turno del Empleado
