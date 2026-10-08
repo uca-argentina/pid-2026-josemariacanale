@@ -157,6 +157,10 @@ _Avoid_: cita, reserva (como sustantivo), appointment
 Acción del Cliente de tomar un turno disponible. Exige Verificar email: el Turno recién existe cuando el Cliente ingresa el Código de verificación. No hay forma de Reservar sin verificar.
 _Avoid_: agendar, sacar turno, pedir turno
 
+**Mis turnos**:
+Pantalla del panel donde un Empleado ve los Turnos que atiende, en todos los Negocios donde lo es, y desde donde los Acepta, Rechaza, Cancela, Reagenda o les marca la Ausencia. Es del Empleado: el Cliente no tiene una, vuelve a su Turno por el Enlace del Turno.
+_Avoid_: mis reservas, agenda, turnos del cliente (no existe)
+
 **Enlace del Turno**:
 Dirección secreta de un Turno que llega en la Confirmación de reserva, y a la que el Cliente llega apenas Reserva. Es la única forma de volver a un Turno: abre ese Turno solo, sin Código de verificación, y quien la tenga puede Cancelarlo o Reagendarlo. Prueba que se tiene el Turno, no quién es el Cliente.
 _Avoid_: link de gestión, link de cancelación, uid (eso es el identificador en el código), mis turnos (no existe para el Cliente)

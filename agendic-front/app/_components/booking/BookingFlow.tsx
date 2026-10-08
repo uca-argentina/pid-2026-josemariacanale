@@ -485,7 +485,12 @@ export function BookingFlow({
         });
     };
 
-    // Con el código ya completo, crea el Turno. Devuelve el mensaje del código que no sirvió, o null.
+    /**
+     * Crea el Turno con el código ya completo.
+     *
+     * @returns el mensaje a mostrar en el modal si el código no sirvió; `null` si reservó, o si lo que falló se
+     * resuelve afuera del modal y por eso lo cierra.
+     */
     const book = async (code: string): Promise<string | null> => {
         if (!service || !date || !slot) return null;
         const result = await bookSlotAction({

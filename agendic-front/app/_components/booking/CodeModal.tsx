@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useTransition } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '@/app/_components/ui/button';
 import { CODE_LENGTH, EMPTY_CODE, sanitizeCode, writeCode } from './code-input';
@@ -9,8 +9,8 @@ import { CODE_LENGTH, EMPTY_CODE, sanitizeCode, writeCode } from './code-input';
  * Pide el Código de verificación que acaba de salir por mail y reserva sola al completarse la sexta casilla.
  *
  * `onSubmit` y `onRequestNewCode` devuelven el mensaje a mostrar cuando el pedido falla de forma recuperable, y
- * `null` cuando salió bien. Al Reservar no vuelve nada: qué pasa entonces (navegar al Turno, o volver al paso
- * Horario porque se ocupó) lo decide quien abrió el modal.
+ * `null` cuando no hay nada que mostrar acá: qué pasa al Reservar (navegar al Turno, o volver al paso Horario
+ * porque se ocupó) lo decide quien abrió el modal.
  */
 export function CodeModal({
     email,
@@ -28,7 +28,9 @@ export function CodeModal({
     // Cada intento remonta las casillas, que es lo que le devuelve el foco a la primera con `autoFocus`: cuando
     // se vacían, siguen deshabilitadas hasta que React pinta, así que un `focus()` de acá no entraría.
     const [attempt, setAttempt] = useState(0);
-    const [pending, startTransition] = useTransition();
+    // Qué pedido está en vuelo, no solo si hay uno: las dos cosas deshabilitan las casillas, pero solo Reservar
+    // muestra "Reservando…".
+    const [running, setRunning] = useState<'book' | 'code' | null>(null);
     const boxes = useRef<(HTMLInputElement | null)[]>([]);
 
     // En el document, no en el div: con el foco en el fondo del modal, un onKeyDown de acá no se enteraría.
@@ -46,24 +48,21 @@ export function CodeModal({
         setAttempt((n) => n + 1);
     };
 
+    const run = async (what: 'book' | 'code', action: () => Promise<string | null>) => {
+        setRunning(what);
+        const message = await action();
+        setRunning(null);
+        // Reservar solo arranca de cero cuando falla; el código nuevo, siempre, porque el tipeado ya no sirve.
+        if (what === 'code' || message) restart(message);
+    };
+
     const write = (index: number, raw: string) => {
         const { chars: next, focus } = writeCode(chars, index, raw);
         setChars(next);
         boxes.current[focus]?.focus();
         const code = next.join('');
-        // Completa la sexta casilla: reserva sola, sin botón.
-        if (code.length === CODE_LENGTH)
-            startTransition(async () => {
-                const message = await onSubmit(code);
-                if (message) restart(message);
-            });
+        if (code.length === CODE_LENGTH) void run('book', () => onSubmit(code));
     };
-
-    const requestNewCode = () =>
-        startTransition(async () => {
-            // El código que llega deja al tipeado sin valor: las casillas arrancan de cero.
-            restart(await onRequestNewCode());
-        });
 
     return (
         <div
@@ -74,8 +73,8 @@ export function CodeModal({
         >
             <div className="w-full max-w-[440px] rounded-2xl border border-border bg-background p-6 shadow-lg">
                 <div className="flex items-start justify-between gap-3">
-                    <h2 id="codigo-titulo" className="text-[17px] leading-snug font-extrabold tracking-[-0.02em]">
-                        Te mandamos un código a {email}
+                    <h2 id="codigo-titulo" className="text-[17px] leading-snug font-bold tracking-[-0.02em]">
+                        Te mandamos un código a <strong className="font-extrabold">{email}</strong>
                     </h2>
                     <Button variant="ghost" size="icon" onClick={onClose} aria-label="Cerrar" className="-mt-1 shrink-0 rounded-full">
                         <X className="size-4" />
@@ -98,7 +97,7 @@ export function CodeModal({
                                 boxes.current[index] = box;
                             }}
                             value={char}
-                            disabled={pending}
+                            disabled={running !== null}
                             // El navegador recorta un pegado a un carácter, así que lo atiende onPaste aparte.
                             maxLength={1}
                             inputMode="text"
@@ -112,15 +111,20 @@ export function CodeModal({
                                 event.preventDefault();
                                 write(0, sanitizeCode(event.clipboardData.getData('text')));
                             }}
+                            // Borrar va acá y no por onChange: un value vacío no tiene ningún carácter que escribir,
+                            // así que writeCode lo descartaría y la casilla no se vaciaría nunca.
                             onKeyDown={(event) => {
-                                if (event.key === 'Backspace' && !char && index > 0) boxes.current[index - 1]?.focus();
+                                if (event.key !== 'Backspace') return;
+                                event.preventDefault();
+                                if (char) setChars(chars.map((c, i) => (i === index ? '' : c)));
+                                else boxes.current[index - 1]?.focus();
                             }}
                             className="h-14 w-full min-w-0 rounded-xl border border-input bg-transparent text-center text-[20px] font-extrabold uppercase transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50"
                         />
                     ))}
                 </div>
 
-                {pending && (
+                {running === 'book' && (
                     <p role="status" className="mt-4 text-[13.5px] font-semibold text-muted-foreground">
                         Reservando…
                     </p>
@@ -134,8 +138,8 @@ export function CodeModal({
 
                 <button
                     type="button"
-                    onClick={requestNewCode}
-                    disabled={pending}
+                    onClick={() => void run('code', onRequestNewCode)}
+                    disabled={running !== null}
                     className="mt-5 text-[13.5px] font-bold text-muted-foreground underline underline-offset-2 hover:text-foreground disabled:opacity-50"
                 >
                     Pedir un código nuevo
