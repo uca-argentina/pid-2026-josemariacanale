@@ -13,8 +13,8 @@ import { findBookingByLink } from './find-booking-by-link';
 import { rescheduleResolvedBooking } from './reschedule-resolved-booking';
 
 /**
- * Reagenda un Turno pendiente o aceptado por su Enlace del Turno a otro Horario reservable del mismo Servicio, con
- * las mismas reglas que Reagendar del Cliente (ADR 0022).
+ * Reagenda un Turno pendiente o aceptado por su Enlace del Turno a otro Horario reservable del mismo Servicio
+ * (ADR 0022).
  */
 @Injectable()
 export class RescheduleBookingByLinkUseCase {

@@ -11,7 +11,7 @@ Grupo de Usuarios que comparten Servicios: los Servicios del Negocio los atiende
 _Avoid_: empresa, cuenta, cliente (cuando se refiere al negocio)
 
 **Cliente**:
-Persona que reserva un Turno dejando un nombre y un email, y verificándolo al Reservar. No hace falta que sea un Usuario. Cada Turno tiene su propio Cliente: el mismo email en dos Turnos son dos Clientes, que nada junta.
+Persona que reserva un Turno dejando un nombre y un email, y verificándolo al Reservar. No hace falta que sea un Usuario. Cada Turno tiene su propio Cliente: el mismo email en dos Turnos son dos Clientes, que no se juntan en ninguna parte.
 _Avoid_: usuario final, paciente, consumidor
 
 **Sucursal**:
@@ -80,7 +80,7 @@ Ingresar el Código de verificación recibido por email para probar que la direc
 _Avoid_: confirmar email
 
 **Código de verificación**:
-Código que llega por email para Verificar email. Vence. Al Usuario se lo manda el Proveedor de autenticación y, al ingresarlo, queda con una Sesión abierta. Al Cliente se lo manda Agendic al Reservar; no abre una Sesión.
+Código que llega por email para Verificar email. Vence. Al Usuario se lo manda el Proveedor de autenticación y, al ingresarlo, queda con una Sesión abierta. Al Cliente se lo manda Agendic al Reservar, que lo pide en seis casillas, una por carácter; no abre una Sesión.
 _Avoid_: link de verificación, link de confirmación, magic link
 
 ### Agenda
@@ -157,9 +157,17 @@ _Avoid_: cita, reserva (como sustantivo), appointment
 Acción del Cliente de tomar un turno disponible. Exige Verificar email: el Turno recién existe cuando el Cliente ingresa el Código de verificación. No hay forma de Reservar sin verificar.
 _Avoid_: agendar, sacar turno, pedir turno
 
+**Mis turnos**:
+Pantalla del panel donde un Empleado ve los Turnos que atiende, en todos los Negocios donde lo es, y desde donde los Acepta, Rechaza, Cancela, Reagenda o les marca la Ausencia. Es del Empleado: el Cliente no tiene una, vuelve a su Turno por el Enlace del Turno.
+_Avoid_: mis reservas, agenda, turnos del cliente (no existe)
+
 **Enlace del Turno**:
-Dirección secreta de un Turno que llega en la Confirmación de reserva, y adonde va el Cliente apenas Reserva. Es la única forma que tiene el Cliente de volver a su Turno. Abre ese Turno solo, sin Código de verificación, y quien la tenga puede Cancelarlo o Reagendarlo. Prueba que se tiene el Turno, no quién es el Cliente.
-_Avoid_: link de gestión, link de cancelación, mis turnos, uid (eso es el identificador en el código)
+Dirección secreta de un Turno que llega en la Confirmación de reserva, y a la que el Cliente llega apenas Reserva. Es la única forma de volver a un Turno: abre ese Turno solo, sin Código de verificación, y quien la tenga puede Cancelarlo o Reagendarlo. Prueba que se tiene el Turno, no quién es el Cliente.
+_Avoid_: link de gestión, link de cancelación, uid (eso es el identificador en el código), mis turnos (no existe para el Cliente)
+
+**Reservar de nuevo**:
+Acción del Cliente, desde la página del Enlace del Turno, de volver a donde reservó: la Sucursal del Servicio del Negocio, o la página del Usuario en un Servicio personal. Está en cualquier estado del Turno.
+_Avoid_: repetir turno, volver a reservar
 
 **Comentario del Turno**:
 Texto libre que el Cliente puede dejar al Reservar, para contarle algo al Negocio sobre ese Turno.

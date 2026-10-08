@@ -34,8 +34,7 @@ describe('bookSlotController', () => {
             status: 'PENDING',
             notes: 'Llego 5 minutos tarde',
             employeeName: 'Ana',
-            access: null,
-            accessExpiresAt: null,
+            link: null,
         });
         expect(useCase).toHaveBeenCalledWith({
             serviceId: 100,
@@ -47,14 +46,9 @@ describe('bookSlotController', () => {
         });
     });
 
-    it('presenta el acceso a Mis turnos recién abierto (ADR 0022)', async () => {
-        const useCase = jest
-            .fn()
-            .mockResolvedValue({ ...booking, access: 'signed-token', accessExpiresAt: '2026-09-28T12:15:00.000Z' });
-        await expect(bookSlotController(instrumentation, useCase)(input)).resolves.toMatchObject({
-            access: 'signed-token',
-            accessExpiresAt: '2026-09-28T12:15:00.000Z',
-        });
+    it('presenta el Enlace del Turno recién creado (ADR 0022)', async () => {
+        const useCase = jest.fn().mockResolvedValue({ ...booking, link: 's3cr3t-l1nk' });
+        await expect(bookSlotController(instrumentation, useCase)(input)).resolves.toMatchObject({ link: 's3cr3t-l1nk' });
     });
 
     it('presenta un Turno que el back devuelve sin notes como uno sin Comentario', async () => {

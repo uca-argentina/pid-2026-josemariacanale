@@ -8,21 +8,19 @@ import type { Service, Slot } from '@/app/_components/booking/types';
 import type { ClientBooking, ClientBookingActionResult } from './types';
 
 /**
- * Elige el nuevo Horario reservable de un Turno y reagenda con `reschedule`, que es la acción de Mis turnos o la
- * del Enlace del Turno. Reusa `TimeStep`, el mismo paso que Reservar: `service` solo necesita `id` y
+ * Elige el nuevo Horario reservable de un Turno y reagenda con `reschedule`, la acción del Enlace del Turno.
+ * Reusa `TimeStep`, el mismo paso que Reservar: `service` solo necesita `id` y
  * `durationMinutes`, así que arma uno mínimo con los datos que trae el Turno.
  */
 export function RescheduleOverlay({
     booking,
     reschedule,
     onClose,
-    onExpired,
     onRescheduled,
 }: {
     booking: ClientBooking;
     reschedule: (startsAt: string) => Promise<ClientBookingActionResult>;
     onClose: () => void;
-    onExpired?: () => void;
     onRescheduled: (booking: ClientBooking) => void;
 }) {
     const [slot, setSlot] = useState<Slot | null>(null);
@@ -46,7 +44,6 @@ export function RescheduleOverlay({
         startTransition(async () => {
             const result = await reschedule(slot.startsAt);
             if (result.ok) return onRescheduled(result.booking);
-            if (result.expired && onExpired) return onExpired();
             setNotice(result.message);
             if (result.slotTaken) setSlot(null);
         });

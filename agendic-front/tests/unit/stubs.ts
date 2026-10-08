@@ -45,10 +45,6 @@ export const employeeBookingsWith = (stubs: Partial<IEmployeeBookingsRepository>
 });
 
 export const clientBookingsWith = (stubs: Partial<IClientBookingsRepository>): IClientBookingsRepository => ({
-    openAccess: jest.fn(notStubbed('openAccess')),
-    listBookings: jest.fn(notStubbed('listBookings')),
-    cancel: jest.fn(notStubbed('cancel')),
-    reschedule: jest.fn(notStubbed('reschedule')),
     getBookingByLink: jest.fn(notStubbed('getBookingByLink')),
     cancelBookingByLink: jest.fn(notStubbed('cancelBookingByLink')),
     rescheduleBookingByLink: jest.fn(notStubbed('rescheduleBookingByLink')),

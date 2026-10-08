@@ -3,8 +3,6 @@
 export const SIGN_IN_PATH = '/sign-in';
 export const SIGNED_IN_HOME_PATH = '/bookings';
 export const BUSINESS_PATH = '/business';
-/** Mis turnos del Cliente (ADR 0022): sin Sesión, con un acceso que llega por el fragmento `#acceso=`. */
-export const MIS_TURNOS_PATH = '/mis-turnos';
 
 /**
  * La ruta del Enlace de reserva (ADR 0014): sin tramo de Sucursal, la página del Negocio; con el tramo de un
@@ -15,3 +13,21 @@ export const bookingLinkPath = (businessSlug: string, branchSlug?: string, servi
 
 /** La ruta del Enlace de reserva de un Usuario (ADR 0021): sus Servicios personales, o uno ya elegido. */
 export const userLinkPath = (userSlug: string, serviceSlug?: string) => ['/u', userSlug, serviceSlug].filter(Boolean).join('/');
+
+/** La ruta del Enlace del Turno (ADR 0022): ese Turno solo, sin Código de verificación. */
+export const bookingPath = (link: string) => `/turnos/${link}`;
+
+/**
+ * "Reservar de nuevo" desde un Turno: la Sucursal del Servicio del Negocio, o la página del Usuario en un Servicio
+ * personal, sin tramo de Servicio para que el Cliente pueda elegir otro. `null` si el Turno no trae ninguno de los dos.
+ */
+export const bookAgainPath = (booking: {
+    business: { slug: string } | null;
+    branch: { slug: string } | null;
+    user: { slug: string } | null;
+}) =>
+    booking.user
+        ? userLinkPath(booking.user.slug)
+        : booking.business && booking.branch
+          ? bookingLinkPath(booking.business.slug, booking.branch.slug)
+          : null;

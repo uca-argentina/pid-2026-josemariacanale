@@ -4,11 +4,11 @@ import { useState } from 'react';
 import { ClientBookingDetail } from '@/app/_components/client-booking/ClientBookingDetail';
 import type { ClientBooking } from '@/app/_components/client-booking/types';
 import { cancelBookingByLinkAction, rescheduleBookingByLinkAction } from '../../actions';
-import { MisTurnosLink } from './MisTurnosLink';
+import { BookAgainLink } from './BookAgainLink';
 
 /**
- * Muestra el Turno de un Enlace del Turno (ADR 0022), solo, con Cancelar y Reagendar como en Mis turnos. El Enlace es la
- * credencial: no hay acceso que venza, así que no hay vuelta a pedir un código.
+ * Muestra el Turno de un Enlace del Turno (ADR 0022), solo, con Cancelar y Reagendar. El Enlace es la credencial:
+ * no hay acceso que venza, así que no hay vuelta a pedir un código.
  */
 export function BookingLinkScreen({ link, booking: initial, now }: { link: string; booking: ClientBooking; now: number }) {
     const [booking, setBooking] = useState(initial);
@@ -25,7 +25,7 @@ export function BookingLinkScreen({ link, booking: initial, now }: { link: strin
                 onUpdated={setBooking}
             />
 
-            <MisTurnosLink />
+            <BookAgainLink booking={booking} />
         </div>
     );
 }

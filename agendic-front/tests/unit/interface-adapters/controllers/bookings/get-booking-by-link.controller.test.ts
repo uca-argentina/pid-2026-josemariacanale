@@ -16,6 +16,7 @@ const booking = {
     employeeName: 'Ana',
     business: { name: 'Peluquería Luna', slug: 'peluqueria-luna' },
     branch: { name: 'Centro', slug: 'centro', address: 'Av. Siempreviva 742', coverUrl: null },
+    user: null,
 };
 
 describe('getBookingByLinkController', () => {
@@ -26,6 +27,18 @@ describe('getBookingByLinkController', () => {
 
         expect(useCase).toHaveBeenCalledWith({ link: 's3cr3t-l1nk' });
         expect(result).toEqual(booking);
+    });
+
+    // En un Servicio personal no hay Negocio ni Sucursal: el Enlace de reserva para volver es el del Usuario.
+    it('devuelve el Enlace de reserva del Usuario en un Turno de un Servicio personal', async () => {
+        const personal = { ...booking, business: null, branch: null, user: { slug: 'juana' } };
+        const useCase = jest.fn().mockResolvedValue(personal);
+
+        await expect(getBookingByLinkController(instrumentation, useCase)({ link: 's3cr3t-l1nk' })).resolves.toMatchObject({
+            business: null,
+            branch: null,
+            user: { slug: 'juana' },
+        });
     });
 
     it.each([
