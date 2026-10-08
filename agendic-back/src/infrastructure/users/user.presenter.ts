@@ -5,4 +5,5 @@ export const presentUser = (user: User) => ({
   name: user.name,
   email: user.email,
   slug: user.slug,
+  imageUrl: user.imageUrl,
 });

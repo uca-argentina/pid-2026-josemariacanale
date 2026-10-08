@@ -22,4 +22,4 @@ Motivos:
 
 - El back rechaza con 403 cualquier request de un Usuario dado de baja, salvo repetir la baja (que solo reintenta el borrado en Clerk).
 - El "eliminar cuenta" del perfil de Clerk tiene que quedar apagado: borraría la identidad sin pasar por el back, que es justo el caso que el ADR 0009 aceptó a disgusto.
-- `retiredAt` pasa a llamarse `deletedAt` en `Service` y `Employee`, para que las cuatro bajas (Usuario, Negocio, Servicio, Empleado) usen el mismo nombre. Los ADR 0004 y 0013 lo nombran como `retiredAt`.
+- `retiredAt` pasa a llamarse `deletedAt` en `Service` y `Employee` (#120), para que las cuatro bajas (Usuario, Negocio, Servicio, Empleado) usen el mismo nombre; los ADR 0004 y 0013 ya lo nombran así. `User.deletedAt` y `Business.deletedAt` quedan para #121 y #122.

@@ -11,6 +11,7 @@ import {
   ClerkAuth,
   ClerkIdentity,
   ClerkProfile,
+  ClerkProfileSeed,
 } from '../../domain/users/clerk-auth';
 
 @Injectable()
@@ -36,7 +37,7 @@ export class ClerkBackendAuth implements ClerkAuth {
     }
   }
 
-  async getProfile(clerkId: string): Promise<ClerkProfile> {
+  async getProfile(clerkId: string): Promise<ClerkProfileSeed> {
     const clerkUser = await this.clerkClient.users.getUser(clerkId);
     const email =
       clerkUser.emailAddresses.find(
@@ -47,7 +48,9 @@ export class ClerkBackendAuth implements ClerkAuth {
         .filter(Boolean)
         .join(' ')
         .trim() || email;
-    return { name, email };
+    // hasImage is false when Clerk would only serve its own placeholder.
+    const imageUrl = clerkUser.hasImage ? parseUrl(clerkUser.imageUrl) : null;
+    return { name, email, imageUrl };
   }
 
   async inviteByEmail(email: string): Promise<void> {
@@ -79,4 +82,13 @@ function profileClaims(
   const { name, email } = payload;
   if (typeof name !== 'string' || typeof email !== 'string') return undefined;
   return { name, email };
+}
+
+/** A malformed imageUrl is discarded rather than failing the User's creation. */
+function parseUrl(value: string): string | null {
+  try {
+    return new URL(value).toString();
+  } catch {
+    return null;
+  }
 }

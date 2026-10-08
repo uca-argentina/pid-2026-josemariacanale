@@ -268,6 +268,7 @@ export const ANA: User = {
   name: 'Ana Pérez',
   email: 'ana@example.com',
   slug: null,
+  imageUrl: null,
   createdAt: new Date('2025-12-01T00:00:00.000Z'),
 };
 
@@ -277,6 +278,7 @@ export const BRUNO: User = {
   name: 'Bruno Díaz',
   email: 'bruno@example.com',
   slug: null,
+  imageUrl: null,
   createdAt: new Date('2025-12-01T00:00:00.000Z'),
 };
 
@@ -304,7 +306,8 @@ export const ANAS_EMPLOYEE: Employee = {
   businessId: ANAS_BUSINESS.id,
   name: ANA.name,
   email: ANA.email,
-  retiredAt: null,
+  imageUrl: ANA.imageUrl,
+  deletedAt: null,
 };
 
 /** A Servicio of Ana's Sucursal, attended by Ana. */
@@ -320,7 +323,7 @@ export const ANAS_SERVICE: Service = {
   price: 20,
   depositPercent: null,
   requiresApproval: false,
-  retiredAt: null,
+  deletedAt: null,
   slug: 'haircut',
   hidden: false,
   prepMinutes: 0,
@@ -333,6 +336,7 @@ export const ANAS_SERVICE: Service = {
       name: ANAS_EMPLOYEE.name,
       availabilityId: 10,
       userId: ANA.id,
+      imageUrl: ANAS_EMPLOYEE.imageUrl,
     },
   ],
 };

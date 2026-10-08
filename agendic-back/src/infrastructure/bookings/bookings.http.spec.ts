@@ -350,7 +350,7 @@ describe('Turno', () => {
     it('answers 422 for a Servicio dado de baja', async () => {
       t.services.findById.mockResolvedValue({
         ...SERVICE,
-        retiredAt: new Date('2026-01-01T00:00:00.000Z'),
+        deletedAt: new Date('2026-01-01T00:00:00.000Z'),
       });
 
       await t.http.post('/bookings').send(VALID_BOOKING).expect(422);
@@ -376,6 +376,7 @@ describe('Turno', () => {
         name: 'Juan',
         availabilityId: 11,
         userId: ANAS_EMPLOYEE.userId + 1,
+        imageUrl: null,
       };
 
       beforeEach(() => {

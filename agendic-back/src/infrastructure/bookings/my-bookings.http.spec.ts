@@ -232,6 +232,7 @@ describe('Mis turnos del Empleado', () => {
         name: 'Juan',
         availabilityId: 11,
         userId: ANAS_EMPLOYEE.userId + 1,
+        imageUrl: null,
       };
       const busyAtNewStart = [
         { prepStartsAt: new Date(NEW_START), endsAt: new Date('2026-01-02T15:30:00.000Z') },

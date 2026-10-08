@@ -63,7 +63,7 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | Mis turnos del Empleado | `EmployeeBooking` (`GET /employees/me/bookings`) |
 | Mis turnos del Cliente (ADR 0022) | `ClientBooking` (`GET /client/bookings`); el acceso de 15 minutos → `ClientAccessTokens` (header `X-Client-Access`) |
 | Cancelar | `cancel` (del Empleado); del Cliente, `cancelPendingOrBooked` (también sobre `PENDING`) |
-| Dar de baja | `retire` (`User.deletedAt`, `Business.deletedAt`, `Service.deletedAt`, `Employee.deletedAt`; ADR 0023) |
+| Dar de baja | `retire` (`Service.deletedAt`, `Employee.deletedAt`); ADR 0023 decide sumar `User.deletedAt` y `Business.deletedAt`, todavía no implementados |
 | Sesión / Iniciar sesión / Cerrar sesión | `Session` / `signIn` / `signOut` |
 
 ## Flag ADR conflicts

@@ -14,6 +14,7 @@ const ANA: User = {
   name: 'Ana',
   email: 'ana@example.com',
   slug: null,
+  imageUrl: null,
   createdAt: new Date('2026-01-01T12:00:00.000Z'),
 };
 
@@ -44,6 +45,7 @@ describe('PrismaUsersRepository', () => {
       clerkId: 'user_clerk_1',
       name: 'Ana',
       email: 'ana@example.com',
+      imageUrl: null,
     };
 
     await expect(repository.create(data)).resolves.toEqual(ANA);
@@ -69,6 +71,27 @@ describe('PrismaUsersRepository', () => {
         },
       },
     });
+  });
+
+  it('creates a User with the seeded imageUrl', async () => {
+    const withImage = { ...ANA, imageUrl: 'https://img.clerk.com/ana.png' };
+    prisma.user.create.mockResolvedValue(withImage);
+
+    await expect(
+      repository.create({
+        clerkId: 'user_clerk_1',
+        name: 'Ana',
+        email: 'ana@example.com',
+        imageUrl: 'https://img.clerk.com/ana.png',
+      }),
+    ).resolves.toEqual(withImage);
+    expect(prisma.user.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          imageUrl: 'https://img.clerk.com/ana.png',
+        }),
+      }),
+    );
   });
 
   it('finds by id', async () => {
@@ -146,6 +169,7 @@ describe('PrismaUsersRepository', () => {
           clerkId: 'user_clerk_1',
           name: 'Ana',
           email: 'ana@example.com',
+          imageUrl: null,
         }),
       findById: () => repository.findById(1),
       update: () => repository.update(1, { name: 'Ana' }),

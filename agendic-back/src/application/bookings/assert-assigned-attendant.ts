@@ -19,6 +19,6 @@ export async function assertAssignedAttendant(
     return;
   }
   const employee = await employees.findById(booking.employeeId);
-  if (!employee || employee.retiredAt || employee.userId !== userId)
+  if (!employee || employee.deletedAt || employee.userId !== userId)
     throw new ForbiddenError(message);
 }

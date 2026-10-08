@@ -1,7 +1,7 @@
 # El Empleado es un Usuario
 
 Deroga el ADR 0011. El Empleado deja de ser un dato suelto (nombre y email cargados por el Dueño)
-y pasa a ser el vínculo entre un Usuario y un Negocio: `userId`, `businessId`, `retiredAt`. Nombre y
+y pasa a ser el vínculo entre un Usuario y un Negocio: `userId`, `businessId`, `deletedAt`. Nombre y
 email se leen del Usuario. El Dueño es además Empleado de su propio Negocio desde que lo crea, en
 la misma transacción.
 
@@ -12,7 +12,7 @@ a sí mismo mientras sea Dueño (422). `PATCH /employees/:id` se elimina: el nom
 del Empleado, así que no hay nada que el Dueño pueda editarle ahí.
 
 El índice único que impedía dos Empleados con el mismo email en un Negocio se reemplaza por uno
-parcial sobre `(userId, businessId)` donde `retiredAt` es null (ADR 0004): una persona activa a la
+parcial sobre `(userId, businessId)` donde `deletedAt` es null (ADR 0004): una persona activa a la
 vez por Negocio, y recontratar a alguien dado de baja crea una fila nueva en vez de chocar con la
 vieja.
 

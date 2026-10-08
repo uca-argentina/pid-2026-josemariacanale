@@ -25,7 +25,7 @@ export async function assertOwnerOrSelf(
     !employee ||
     employee.userId !== userId ||
     employee.businessId !== businessId ||
-    employee.retiredAt !== null
+    employee.deletedAt !== null
   )
     throw new ForbiddenError(
       'Only the Dueño or that same Empleado can do this',

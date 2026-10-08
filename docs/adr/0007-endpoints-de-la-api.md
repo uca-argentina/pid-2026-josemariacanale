@@ -41,7 +41,7 @@ actualizarlo a mano cuando se agregue, cambie o borre un endpoint.
 - `VerifyEmailDto`: `{ email, code }`
 - `ResendVerificationDto`: `{ email }`
 - `UpdateMeDto`: `{ name?, email? }`
-- Respuesta (`presentUser`): `{ id, name, email, pendingEmail? (solo si está seteado), role }`
+- Respuesta (`presentUser`): `{ id, name, email, pendingEmail? (solo si está seteado), role }`. Suma `imageUrl: string | null`: la foto de perfil, la de Clerk al crearse el Usuario; `null` sin una foto real o con una URL que no se pudo parsear. No se refresca después.
 
 ## Businesses (Negocio)
 
@@ -154,12 +154,13 @@ Todo Empleado es un Usuario (ADR 0013): nombre y email los presta su cuenta, no 
 | GET | `/employees/me/services` | sí | Catálogo de Servicios del panel: un grupo por cada Negocio del que el Usuario es Empleado activo; `[]` (200) si no lo es de ninguno |
 | GET | `/employees/me/bookings` | sí | Mis turnos: todos los Turnos, en cualquier estado, del Usuario de la Sesión como Empleado activo, en todos los Negocios donde lo es; lista vacía (200) si no es Empleado activo de ninguno |
 
-- Respuesta de `GET /employees/me/services` (`presentCatalogGroup`): `[{ business: { id, name, slug }, role: "owner" | "employee", employeeId, branches: [{ id, name, slug, services: [Servicio] }] }]`. `employeeId` es el Empleado del Usuario en ese Negocio; `role` es `owner` si es su Dueño. Las sucursales van ordenadas por `slug` y aparecen aunque no tengan servicios; no trae servicios dados de baja; un servicio oculto sale solo si el Usuario es Dueño del Negocio o lo atiende. Un Empleado dado de baja de un Negocio deja de recibir ese grupo.
+- Respuesta de `GET /employees/me/services` (`presentCatalogGroup`): `[{ business: { id, name, slug }, role: "owner" | "employee", employeeId, branches: [{ id, name, slug, services: [Servicio] }] }]`. `employeeId` es el Empleado del Usuario en ese Negocio; `role` es `owner` si es su Dueño. Las sucursales van ordenadas por `slug` y aparecen aunque no tengan servicios; no trae servicios dados de baja; un servicio oculto sale solo si el Usuario es Dueño del Negocio o lo atiende. Un Empleado dado de baja de un Negocio deja de recibir ese grupo. Cada elemento de `employees` de un Servicio suma `imageUrl: string | null` (la foto de perfil del Empleado) frente a la vista pública del mismo Servicio (`{ id, name, availabilityId }`), que no lo expone.
 - Respuesta de `GET /employees/me/bookings` (`presentEmployeeBooking`), un elemento por Turno, del más próximo al más lejano: `{ id, employeeId, status, startsAt, endsAt, clientName, clientEmail, noShowAt, serviceId, serviceName, businessId, businessName, branchId, branchName }`; `noShowAt` es `null` mientras el Turno no tiene Ausencia
 
 - `CreateEmployeeDto`: `{ email }`
-- Respuesta (`presentEmployee`): `{ id, userId, name, email }` — vista del dueño; en el array
-  `employees` de un Service la vista pública es solo `{ id, name }`.
+- Respuesta (`presentEmployee`): `{ id, userId, name, email, imageUrl }` — vista del dueño; en el array
+  `employees` de un Service la vista pública es solo `{ id, name }`. `imageUrl: string | null` es la
+  foto de perfil del Usuario detrás del Empleado.
 - Recontratar a alguien dado de baja crea una fila nueva: no hay `PATCH` para reactivarlo.
 
 ## Availability (Horas laborables)

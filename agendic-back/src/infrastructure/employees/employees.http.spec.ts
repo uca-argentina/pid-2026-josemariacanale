@@ -23,7 +23,8 @@ const OTHER_EMPLOYEE = {
   businessId: ANAS_BUSINESS.id,
   name: BRUNO.name,
   email: BRUNO.email,
-  retiredAt: null,
+  imageUrl: BRUNO.imageUrl,
+  deletedAt: null,
 };
 
 describe('Empleado', () => {
@@ -365,7 +366,7 @@ describe('Empleado', () => {
       t.businesses.findById.mockResolvedValue(ANAS_BUSINESS);
       t.services.listActiveByEmployee.mockResolvedValue([]);
       t.employees.retire.mockResolvedValue({
-        employee: { ...OTHER_EMPLOYEE, retiredAt: new Date() },
+        employee: { ...OTHER_EMPLOYEE, deletedAt: new Date() },
         cancelledBookings: 0,
       });
     });
@@ -385,7 +386,7 @@ describe('Empleado', () => {
 
     it('reports how many future Turnos it cancelled', async () => {
       t.employees.retire.mockResolvedValue({
-        employee: { ...OTHER_EMPLOYEE, retiredAt: new Date() },
+        employee: { ...OTHER_EMPLOYEE, deletedAt: new Date() },
         cancelledBookings: 5,
       });
 
@@ -411,7 +412,7 @@ describe('Empleado', () => {
           price: 20,
           depositPercent: null,
           requiresApproval: false,
-          retiredAt: null,
+          deletedAt: null,
           slug: 'haircut',
           hidden: false,
           prepMinutes: 0,
@@ -424,6 +425,7 @@ describe('Empleado', () => {
               name: OTHER_EMPLOYEE.name,
               availabilityId: 20,
               userId: OTHER_EMPLOYEE.userId,
+              imageUrl: OTHER_EMPLOYEE.imageUrl,
             },
           ],
         },
@@ -451,7 +453,7 @@ describe('Empleado', () => {
           price: 20,
           depositPercent: null,
           requiresApproval: false,
-          retiredAt: null,
+          deletedAt: null,
           slug: 'haircut',
           hidden: false,
           prepMinutes: 0,
@@ -464,8 +466,15 @@ describe('Empleado', () => {
               name: OTHER_EMPLOYEE.name,
               availabilityId: 20,
               userId: OTHER_EMPLOYEE.userId,
+              imageUrl: OTHER_EMPLOYEE.imageUrl,
             },
-            { id: 99, name: 'Someone Else', availabilityId: 990, userId: 99 },
+            {
+              id: 99,
+              name: 'Someone Else',
+              availabilityId: 990,
+              userId: 99,
+              imageUrl: null,
+            },
           ],
         },
       ]);
@@ -519,10 +528,10 @@ describe('Empleado', () => {
       t.businesses.findById.mockResolvedValue(ANAS_BUSINESS);
     });
 
-    it('lists the Business Employees not dados de baja as { id, userId, name, email }', async () => {
+    it('lists the Business Employees not dados de baja as { id, userId, name, email, imageUrl }', async () => {
       t.employees.listActiveByBusiness.mockResolvedValue([
         ANAS_EMPLOYEE,
-        OTHER_EMPLOYEE,
+        { ...OTHER_EMPLOYEE, imageUrl: 'https://img.clerk.com/bruno.png' },
       ]);
 
       const res = await t.http
@@ -536,12 +545,14 @@ describe('Empleado', () => {
           userId: ANAS_EMPLOYEE.userId,
           name: ANAS_EMPLOYEE.name,
           email: ANAS_EMPLOYEE.email,
+          imageUrl: null,
         },
         {
           id: OTHER_EMPLOYEE.id,
           userId: OTHER_EMPLOYEE.userId,
           name: OTHER_EMPLOYEE.name,
           email: OTHER_EMPLOYEE.email,
+          imageUrl: 'https://img.clerk.com/bruno.png',
         },
       ]);
       expect(t.employees.listActiveByBusiness).toHaveBeenCalledWith(

@@ -5,6 +5,11 @@ export interface ClerkProfile {
   email: string;
 }
 
+/** `ClerkProfile` plus the photo, read only when seeding a brand-new User (never refreshed after). */
+export interface ClerkProfileSeed extends ClerkProfile {
+  imageUrl: string | null;
+}
+
 export interface ClerkIdentity {
   /** The Clerk user id (`sub`). */
   clerkId: string;
@@ -16,7 +21,7 @@ export interface ClerkAuth {
   /** Verifies a Clerk session JWT. Throws UnauthenticatedError otherwise. */
   verifyToken(token: string | undefined): Promise<ClerkIdentity>;
   /** Fetches the profile Clerk holds for a user id, to seed a local User on its first sight. */
-  getProfile(clerkId: string): Promise<ClerkProfile>;
+  getProfile(clerkId: string): Promise<ClerkProfileSeed>;
   /**
    * Asks Clerk to mail an invitation to create an Agendic account. An email that already has a Clerk account is not an error.
    * Throws ExternalServiceError when Clerk fails.

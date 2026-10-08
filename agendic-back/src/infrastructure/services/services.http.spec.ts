@@ -71,6 +71,7 @@ const IN_CHARGE = [
     name: ANAS_EMPLOYEE.name,
     availabilityId: 10,
     userId: ANAS_EMPLOYEE.userId,
+    imageUrl: ANAS_EMPLOYEE.imageUrl,
   },
 ];
 
@@ -96,7 +97,7 @@ const SERVICE = {
   price: VALID_SERVICE.price,
   depositPercent: null,
   requiresApproval: false,
-  retiredAt: null,
+  deletedAt: null,
   slug: VALID_SERVICE.slug,
   hidden: false,
   prepMinutes: 0,
@@ -124,8 +125,8 @@ const PRESENTED_SERVICE = {
   dailyLimit: SERVICE.dailyLimit,
   slotInterval: SERVICE.slotInterval,
   minimumNoticeMinutes: SERVICE.minimumNoticeMinutes,
-  // The Usuario behind an Empleado is not part of the API.
-  employees: IN_CHARGE.map(({ userId: _, ...employee }) => employee),
+  // The Usuario behind an Empleado, and their foto de perfil, are not part of the public API.
+  employees: IN_CHARGE.map(({ userId: _, imageUrl: _i, ...employee }) => employee),
 };
 
 describe('Servicio', () => {
@@ -311,7 +312,7 @@ describe('Servicio', () => {
 
     it('answers 422 for an Empleado dado de baja', async () => {
       t.employees.listByIds.mockResolvedValue([
-        { ...ANAS_EMPLOYEE, retiredAt: new Date('2026-01-01T00:00:00.000Z') },
+        { ...ANAS_EMPLOYEE, deletedAt: new Date('2026-01-01T00:00:00.000Z') },
       ]);
 
       await t.http
@@ -714,7 +715,7 @@ describe('Servicio', () => {
       t.branches.findById.mockResolvedValue(BRANCH);
       t.businesses.findById.mockResolvedValue(ANAS_BUSINESS);
       t.services.retire.mockResolvedValue({
-        service: { ...SERVICE, retiredAt: new Date() },
+        service: { ...SERVICE, deletedAt: new Date() },
         cancelledBookings: 0,
       });
     });
@@ -745,7 +746,7 @@ describe('Servicio', () => {
 
     it('reports how many future Turnos it cancelled', async () => {
       t.services.retire.mockResolvedValue({
-        service: { ...SERVICE, retiredAt: new Date() },
+        service: { ...SERVICE, deletedAt: new Date() },
         cancelledBookings: 3,
       });
 
@@ -798,6 +799,7 @@ describe('Servicio', () => {
             name: OTHER_EMPLOYEE.name,
             availabilityId: 20,
             userId: OTHER_EMPLOYEE.userId,
+            imageUrl: OTHER_EMPLOYEE.imageUrl,
           },
         ],
       });
@@ -896,7 +898,7 @@ describe('Servicio', () => {
     it('answers 422 for a Servicio dado de baja, and links nothing', async () => {
       t.services.findById.mockResolvedValue({
         ...SERVICE,
-        retiredAt: new Date('2026-01-01T00:00:00.000Z'),
+        deletedAt: new Date('2026-01-01T00:00:00.000Z'),
       });
 
       await t.http
@@ -911,7 +913,7 @@ describe('Servicio', () => {
     it('answers 422 for an Empleado dado de baja', async () => {
       t.employees.findById.mockResolvedValue({
         ...OTHER_EMPLOYEE,
-        retiredAt: new Date('2026-01-01T00:00:00.000Z'),
+        deletedAt: new Date('2026-01-01T00:00:00.000Z'),
       });
 
       await t.http
@@ -977,7 +979,7 @@ describe('Servicio', () => {
     it('answers 403 for an Empleado dado de baja acting on themself', async () => {
       t.employees.findById.mockResolvedValue({
         ...OTHER_EMPLOYEE,
-        retiredAt: new Date('2026-01-01T00:00:00.000Z'),
+        deletedAt: new Date('2026-01-01T00:00:00.000Z'),
       });
 
       await t.http
@@ -1095,7 +1097,7 @@ describe('Servicio', () => {
       t.employees.findById.mockResolvedValue(ANAS_EMPLOYEE);
       t.services.findById.mockResolvedValue({
         ...SERVICE,
-        retiredAt: new Date('2026-01-01T00:00:00.000Z'),
+        deletedAt: new Date('2026-01-01T00:00:00.000Z'),
       });
 
       await t.http
@@ -1127,6 +1129,7 @@ describe('Servicio', () => {
             name: OTHER_EMPLOYEE.name,
             availabilityId: 20,
             userId: OTHER_EMPLOYEE.userId,
+            imageUrl: OTHER_EMPLOYEE.imageUrl,
           },
         ],
       });
@@ -1154,6 +1157,7 @@ describe('Servicio', () => {
             name: OTHER_EMPLOYEE.name,
             availabilityId: 20,
             userId: OTHER_EMPLOYEE.userId,
+            imageUrl: OTHER_EMPLOYEE.imageUrl,
           },
         ],
       });
@@ -1226,6 +1230,7 @@ describe('Servicio', () => {
             name: OTHER_EMPLOYEE.name,
             availabilityId: 21,
             userId: OTHER_EMPLOYEE.userId,
+            imageUrl: OTHER_EMPLOYEE.imageUrl,
           },
         ],
       });
@@ -1458,6 +1463,7 @@ describe('Servicio', () => {
         name: 'x',
         availabilityId: 99,
         userId: employeeId,
+        imageUrl: null,
       })),
     });
     const ids = (services: { id: number }[]) => services.map(({ id }) => id);
