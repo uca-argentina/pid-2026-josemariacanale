@@ -1,5 +1,7 @@
 import 'dotenv/config';
 import { PrismaService } from '../../prisma.service';
+import { PrismaBusinessesRepository } from '../../businesses/prisma-businesses.repository';
+import { PrismaServicesRepository } from '../../services/prisma-services.repository';
 import { PrismaUsersRepository } from '../prisma-users.repository';
 
 /** Runs against the real database: the cascade of Dar de baja un Usuario spans five tables (ADR 0023). */
@@ -216,6 +218,18 @@ describe('PrismaUsersRepository.retire (real database)', () => {
     expect(await statusOf(past.id)).toBe('BOOKED');
     expect(await prisma.branch.count({ where: { businessId: business.id } })).toBe(1);
     expect((await prisma.user.findUniqueOrThrow({ where: { id: worker.id } })).deletedAt).toBeNull();
+
+    // Lo dado de baja deja de verse, pero su Enlace de reserva sigue ocupado.
+    const businesses = new PrismaBusinessesRepository(prisma);
+    expect(await businesses.findBySlug(business.slug)).toBeNull();
+    expect(await businesses.findById(business.id)).toBeNull();
+    expect(await businesses.listByOwner(owner.id)).toEqual([]);
+    expect(await new PrismaServicesRepository(prisma).findActiveBySlug(branch.id, service.slug)).toBeNull();
+    await expect(
+      prisma.business.create({
+        data: { name: tag, description: tag, ownerId: client.id, slug: business.slug },
+      }),
+    ).rejects.toMatchObject({ code: 'P2002' });
   }, 60_000);
 
   it('findByEmail ignores a Usuario dado de baja, so inviting that email reaches Clerk again', async () => {
@@ -225,5 +239,20 @@ describe('PrismaUsersRepository.retire (real database)', () => {
     await repository.retire(user.id, NOW);
 
     expect(await repository.findByEmail(user.email)).toBeNull();
+  }, 60_000);
+
+  it('findByEmail counts the active Usuario when a dado de baja shares the email', async () => {
+    const { user: retired } = await makeUser('sameemail-old');
+    const active = await prisma.user.create({
+      data: {
+        clerkId: `${tag}-sameemail-new`,
+        name: `${tag}-sameemail-new`,
+        email: retired.email,
+      },
+    });
+    created.userIds.push(active.id);
+    await repository.retire(retired.id, NOW);
+
+    expect((await repository.findByEmail(retired.email))?.id).toBe(active.id);
   }, 60_000);
 });
