@@ -15,6 +15,7 @@ import {
     matches,
     sortForTab,
     tabOf,
+    placeOf,
     type Booking,
     type BookingFilter,
     type BookingTab,
@@ -73,7 +74,7 @@ function BookingRow({ booking, tab, now }: { booking: Booking; tab: BookingTab; 
                     <span className={cn('text-[13px] font-medium text-[#6b7280]', isClosed(booking) && 'line-through')}>{formatTimeRange(booking)}</span>
                     <span className="mt-1 flex items-center gap-1 text-[12.5px] font-semibold text-[#6b7280]">
                         <MapPin className="size-3.5" />
-                        {booking.businessName} · {booking.branchName}
+                        {placeOf(booking)}
                     </span>
                 </div>
                 <div className="flex min-w-0 flex-1 flex-col gap-1">

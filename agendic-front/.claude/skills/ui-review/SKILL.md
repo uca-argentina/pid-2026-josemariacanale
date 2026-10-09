@@ -77,6 +77,7 @@ Rules marked **(Agendic)** come from this project and win over any generic UI gu
 - No horizontal scroll at 360 px width.
 - `autoFocus` never opens the keyboard on page load.
 - Images use `next/image` with `width`/`height` or `fill` + `sizes`; the above-the-fold Sucursal photo has `priority`.
+- **(Agendic)** Under `app/(app)/`, content that steps on viewport breakpoints (`sm:`, `md:`, `lg:`) is a finding: its width depends on the sidebar, so it goes on a container query (`@<size>/main:` or its own `@container`). The shell's sidebar and the page padding are exempt. See the `responsive-ui` skill.
 
 ### Motion
 

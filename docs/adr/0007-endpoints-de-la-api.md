@@ -16,7 +16,7 @@ actualizarlo a mano cuando se agregue, cambie o borre un endpoint.
   `Unauthenticated` → 401, `Forbidden` → 403, `NotFound` → 404, `InvalidCode` → 400, `Conflict` →
   409, `Expired` → 410, `BusinessRule` → 422, resto → 500.
 - CORS habilitado para todos los orígenes.
-- Un Usuario dado de baja (ADR 0023) que todavía tiene una Sesión abierta recibe **403** `User <id> is dado de baja` en cualquier endpoint con Sesión. La única excepción es `DELETE /users/me`. El front cierra la Sesión al verlo.
+- Un Usuario dado de baja (ADR 0024) que todavía tiene una Sesión abierta recibe **403** `User <id> is dado de baja` en cualquier endpoint con Sesión. La única excepción es `DELETE /users/me`. El front cierra la Sesión al verlo.
 
 ## Sessions
 
@@ -36,9 +36,11 @@ actualizarlo a mano cuando se agregue, cambie o borre un endpoint.
 | POST | `/users/verification` | no | Verifica email con código de 6 caracteres, devuelve sesión (auto-login) |
 | POST | `/users/verification/resend` | no | Reenvía el código de verificación; 204 |
 | GET | `/users/me` | sí | Perfil del usuario actual |
+| GET | `/users/me/bookings` | sí | Mis turnos (ADR 0023): todos los Turnos, en cualquier estado, que atiende el Usuario de la Sesión: los de sus Servicios personales y los de los Negocios donde es Empleado activo; lista vacía (200) si no tiene ninguno |
 | PATCH | `/users/me` | sí | Actualiza name/email (cambiar email vuelve a disparar verificación vía `pendingEmail`) y `slug`, el Enlace de reserva del Usuario (ADR 0021): se pasa a minúsculas, mismo formato que el del Negocio (3-40 caracteres, `^[a-z0-9]+(-[a-z0-9]+)*$`); formato inválido → 400, ya tomado por otro Usuario → 409 `Booking link already in use` (el mismo mensaje que el del Negocio; el front lo muestra bajo el campo). La respuesta de `GET`/`PATCH /users/me` suma `slug`, `null` hasta que lo elige |
-| DELETE | `/users/me` | sí | Dar de baja al propio Usuario (ADR 0023): marca `deletedAt`, da de baja sus Servicios personales y sus Empleados (aunque sea el último Empleado de un Servicio) y cancela sus Turnos futuros pendientes y aceptados, todo en una transacción; después lo borra en Clerk. **204** sin body, también si ya estaba dado de baja y esta vez Clerk respondió bien (idempotente; que Clerk ya no lo tenga no es error); **502** `No se pudo borrar el Usuario en el Proveedor de autenticación` si Clerk falló (la fila ya quedó dada de baja; repetir el `DELETE` reintenta); **422** `El Dueño no puede darse de baja todavía` (transitorio, hasta que el Dueño arrastre su Negocio, #122). El front muestra el 502 y deja reintentar |
+| DELETE | `/users/me` | sí | Dar de baja al propio Usuario (ADR 0024): marca `deletedAt`, da de baja sus Servicios personales y sus Empleados (aunque sea el último Empleado de un Servicio) y cancela sus Turnos futuros pendientes y aceptados, todo en una transacción; después lo borra en Clerk. **204** sin body, también si ya estaba dado de baja y esta vez Clerk respondió bien (idempotente; que Clerk ya no lo tenga no es error); **502** `No se pudo borrar el Usuario en el Proveedor de autenticación` si Clerk falló (la fila ya quedó dada de baja; repetir el `DELETE` reintenta); **422** `El Dueño no puede darse de baja todavía` (transitorio, hasta que el Dueño arrastre su Negocio, #122). El front muestra el 502 y deja reintentar |
 
+- Respuesta de `GET /users/me/bookings` (`presentUserBooking`), un elemento por Turno, del más próximo al más lejano: `{ id, employeeId, status, startsAt, endsAt, clientName, clientEmail, noShowAt, serviceId, serviceName, business: { id, name } | null, branch: { id, name } | null }`; `employeeId`, `business` y `branch` son `null` en un Servicio personal; `noShowAt` es `null` mientras el Turno no tiene Ausencia
 - `SignUpDto`: `{ name, email, password (12-72 chars) }`
 - `VerifyEmailDto`: `{ email, code }`
 - `ResendVerificationDto`: `{ email }`
@@ -154,14 +156,12 @@ Todo Empleado es un Usuario (ADR 0013): nombre y email los presta su cuenta, no 
 | DELETE | `/employees/:id` | sí | Da de baja (soft-delete) un empleado (solo el dueño); 422 si es el Dueño dándose de baja a sí mismo |
 | GET | `/businesses/:id/employees` | sí | Lista empleados activos de un negocio (solo el dueño) |
 | GET | `/employees/me/services` | sí | Catálogo de Servicios del panel: un grupo por cada Negocio del que el Usuario es Empleado activo; `[]` (200) si no lo es de ninguno |
-| GET | `/employees/me/bookings` | sí | Mis turnos: todos los Turnos, en cualquier estado, del Usuario de la Sesión como Empleado activo, en todos los Negocios donde lo es; lista vacía (200) si no es Empleado activo de ninguno |
 
 - Respuesta de `GET /employees/me/services` (`presentCatalogGroup`): `[{ business: { id, name, slug }, role: "owner" | "employee", employeeId, branches: [{ id, name, slug, services: [Servicio] }] }]`. `employeeId` es el Empleado del Usuario en ese Negocio; `role` es `owner` si es su Dueño. Las sucursales van ordenadas por `slug` y aparecen aunque no tengan servicios; no trae servicios dados de baja; un servicio oculto sale solo si el Usuario es Dueño del Negocio o lo atiende. Un Empleado dado de baja de un Negocio deja de recibir ese grupo. Cada elemento de `employees` de un Servicio suma `imageUrl: string | null` (la foto de perfil del Empleado) frente a la vista pública del mismo Servicio (`{ id, name, availabilityId }`), que no lo expone.
-- Respuesta de `GET /employees/me/bookings` (`presentEmployeeBooking`), un elemento por Turno, del más próximo al más lejano: `{ id, employeeId, status, startsAt, endsAt, clientName, clientEmail, noShowAt, serviceId, serviceName, businessId, businessName, branchId, branchName }`; `noShowAt` es `null` mientras el Turno no tiene Ausencia
 
 - `CreateEmployeeDto`: `{ email }`
 - Respuesta (`presentEmployee`): `{ id, userId, name, email, imageUrl }` — vista del dueño; en el array
-  `employees` de un Service la vista pública es solo `{ id, name }`. `imageUrl: string | null` es la
+  `employees` de un Service la vista pública es solo `{ id, name, availabilityId }`. `imageUrl: string | null` es la
   foto de perfil del Usuario detrás del Empleado.
 - Recontratar a alguien dado de baja crea una fila nueva: no hay `PATCH` para reactivarlo.
 

@@ -1,9 +1,9 @@
 import type { IAuthenticationService } from '@/src/application/services/authentication.service.interface';
 import type { IInstrumentationService } from '@/src/application/services/instrumentation.service.interface';
 import type { IListMyBookingsUseCase } from '@/src/application/use-cases/bookings/list-my-bookings.use-case';
-import type { EmployeeBooking } from '@/src/entities/models/employee-booking';
+import type { UserBooking } from '@/src/entities/models/user-booking';
 
-function presenter(bookings: EmployeeBooking[], instrumentationService: IInstrumentationService) {
+function presenter(bookings: UserBooking[], instrumentationService: IInstrumentationService) {
     return instrumentationService.startSpan({ name: 'listMyBookings Presenter', op: 'serialize' }, () =>
         bookings.map((b) => ({
             id: b.id,
@@ -14,10 +14,10 @@ function presenter(bookings: EmployeeBooking[], instrumentationService: IInstrum
             clientEmail: b.clientEmail,
             noShowAt: b.noShowAt,
             serviceId: b.serviceId,
-            ...(b.employeeId !== undefined && { employeeId: b.employeeId }),
+            employeeId: b.employeeId,
             serviceName: b.serviceName,
-            businessName: b.businessName,
-            branchName: b.branchName,
+            business: b.business,
+            branch: b.branch,
         })),
     );
 }
@@ -26,7 +26,7 @@ function presenter(bookings: EmployeeBooking[], instrumentationService: IInstrum
 export type IListMyBookingsController = ReturnType<typeof listMyBookingsController>;
 
 /**
- * Los Turnos del Empleado logueado, de todos sus Negocios.
+ * Los Turnos que atiende el Usuario logueado (ADR 0023): sus Servicios personales y los de sus Negocios.
  *
  * @throws {UnauthenticatedError} no hay Sesión válida
  */

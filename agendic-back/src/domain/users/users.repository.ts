@@ -18,7 +18,7 @@ export interface UsersRepository {
     data: Partial<Pick<User, 'name' | 'email'>> & { slug?: string },
   ): Promise<User>;
   /**
-   * Dado de baja (ADR 0023): in one transaction sets deletedAt, retires their Servicios personales and Empleados
+   * Dado de baja (ADR 0024): in one transaction sets deletedAt, retires their Servicios personales and Empleados
    * (taking them off every Servicio, even as its last Empleado) and cancels their future PENDING and BOOKED Turnos.
    * Nothing is deleted. Throws NotFoundError when the Usuario does not exist.
    */

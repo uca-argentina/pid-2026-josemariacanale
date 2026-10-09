@@ -3,17 +3,20 @@ import { Check, X } from 'lucide-react';
 import { Toaster } from 'sonner';
 import { getCurrentUser } from '@/app/(public)/(auth)/current-user';
 import { SIGN_IN_PATH } from '@/app/routes';
-import { Sidebar } from './_components/Sidebar';
+import { SidebarInset, SidebarProvider } from '@/app/_components/ui/sidebar';
+import { AppSidebar } from './_components/AppSidebar';
+import { SiteHeader } from './_components/SiteHeader';
 import { getInjection } from '@/di/container';
 import { isSessionExpired } from '@/app/api-error';
 import { loadMyBookings } from '@/app/(app)/bookings/load-my-bookings';
 import type { NavItem } from './_components/types';
 
 const navItems: NavItem[] = [
-    { id: 'bookings', label: 'Turnos' },
-    { id: 'availability', label: 'Horas laborables' },
-    { id: 'services', label: 'Servicios' },
-    { id: 'business', label: 'Mi Negocio' },
+    { id: 'bookings', href: '/bookings', label: 'Turnos' },
+    { id: 'availability', href: '/availability', label: 'Horas laborables' },
+    { id: 'services', href: '/services', label: 'Servicios' },
+    { id: 'business', href: '/business', label: 'Mi Negocio' },
+    { id: 'analytics', href: '/analytics', label: 'Analíticas' },
 ];
 
 function initialsOf(name: string) {
@@ -42,12 +45,23 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     const pendingCount = await countPendingBookings();
 
     return (
-        <div className="flex min-h-screen w-full bg-muted">
-            <Sidebar
-                user={{ name: user.name, initials: initialsOf(user.name), imageUrl: user.imageUrl }}
+        <SidebarProvider
+            style={
+                {
+                    '--sidebar-width': 'calc(var(--spacing) * 72)',
+                    '--header-height': 'calc(var(--spacing) * 12)',
+                } as React.CSSProperties
+            }
+        >
+            <AppSidebar
+                user={{ name: user.name, email: user.email, initials: initialsOf(user.name), imageUrl: user.imageUrl }}
                 navItems={navItems.map((item) => (item.id === 'bookings' ? { ...item, count: pendingCount } : item))}
             />
-            <main className="flex min-w-0 flex-1 flex-col">{children}</main>
+            <SidebarInset className="min-w-0">
+                <SiteHeader sections={navItems} />
+                {/* The pages paint their own white background; rounding it keeps the inset's corners without clipping wide content. */}
+                <div className="@container/main flex flex-1 flex-col md:*:rounded-b-xl">{children}</div>
+            </SidebarInset>
             <Toaster
                 position="bottom-center"
                 closeButton
@@ -60,6 +74,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                     },
                 }}
             />
-        </div>
+        </SidebarProvider>
     );
 }

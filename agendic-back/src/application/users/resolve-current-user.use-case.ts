@@ -10,7 +10,7 @@ import {
 /**
  * Resolves the Clerk JWT of the current request to a local User, creating it on its first sight.
  *
- * @throws {ForbiddenError} el Usuario está dado de baja (ADR 0023) y la ruta no lo admite con `allowRetired`
+ * @throws {ForbiddenError} el Usuario está dado de baja (ADR 0024) y la ruta no lo admite con `allowRetired`
  */
 @Injectable()
 export class ResolveCurrentUserUseCase {

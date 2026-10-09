@@ -12,7 +12,7 @@ import {
 } from '../../domain/users/users.repository';
 
 /**
- * Da de baja al Usuario de la Sesión (ADR 0023): primero en Postgres y después en Clerk, que no comparten
+ * Da de baja al Usuario de la Sesión (ADR 0024): primero en Postgres y después en Clerk, que no comparten
  * transacción. Repetir la baja salta el primer paso y solo reintenta el borrado en Clerk.
  *
  * @throws {NotFoundError} el Usuario no existe
