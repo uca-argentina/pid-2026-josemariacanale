@@ -16,6 +16,7 @@ const ANA: User = {
   slug: null,
   imageUrl: null,
   createdAt: new Date('2026-01-01T12:00:00.000Z'),
+  deletedAt: null,
 };
 
 const knownError = (code: string) =>
@@ -119,7 +120,10 @@ describe('PrismaUsersRepository', () => {
       ANA,
     );
     expect(prisma.user.findFirst).toHaveBeenCalledWith({
-      where: { email: { equals: 'Ana@Example.com', mode: 'insensitive' } },
+      where: {
+        email: { equals: 'Ana@Example.com', mode: 'insensitive' },
+        deletedAt: null,
+      },
     });
   });
 

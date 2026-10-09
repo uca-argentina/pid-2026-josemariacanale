@@ -1,7 +1,8 @@
 import { Prisma } from '../../generated/prisma/client';
 
 /**
- * Cancels future PENDING and BOOKED Turnos of a Servicio, optionally narrowed to one Empleado, inside a caller-owned
+ * Cancels future PENDING and BOOKED Turnos of a Servicio (optionally one Empleado's) or, with `userId`, of every
+ * Turno a Usuario attends across all their Servicios, inside a caller-owned
  * transaction so the cascade and its cancellations commit together. business-model-v2.md's Ports section
  * assigns this capability to the bookings repository, but it must share the caller's transaction to be
  * atomic with the Servicio/Empleado mutation, which a domain port can't be typed against without leaking
@@ -9,7 +10,7 @@ import { Prisma } from '../../generated/prisma/client';
  */
 export async function cancelFutureBooked(
   tx: Prisma.TransactionClient,
-  where: { serviceId?: number; employeeId?: number },
+  where: { serviceId?: number; employeeId?: number; userId?: number },
   now: Date,
 ) {
   const { count } = await tx.booking.updateMany({

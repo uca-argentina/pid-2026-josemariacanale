@@ -29,7 +29,7 @@ export class GetUserPageUseCase {
     userSlug: string,
   ): Promise<{ user: User; services: Service[] }> {
     const user = await this.users.findBySlug(userSlug.toLowerCase());
-    if (!user) throw new NotFoundError('User not found');
+    if (!user || user.deletedAt) throw new NotFoundError('User not found');
     const services = (await this.services.listActiveByUser(user.id)).filter(
       (service) => !service.hidden,
     );

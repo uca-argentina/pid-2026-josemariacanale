@@ -26,7 +26,7 @@ export class GetPersonalServiceBySlugUseCase {
    */
   async execute(userSlug: string, serviceSlug: string): Promise<Service> {
     const user = await this.users.findBySlug(userSlug.toLowerCase());
-    if (!user) throw new NotFoundError('User not found');
+    if (!user || user.deletedAt) throw new NotFoundError('User not found');
     const service = await this.services.findActiveByUserSlug(
       user.id,
       serviceSlug.toLowerCase(),

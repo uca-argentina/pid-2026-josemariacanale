@@ -8,6 +8,7 @@ import { DEFAULT_AVAILABILITY } from '../../domain/availabilities/availability';
 import { User } from '../../domain/users/user';
 import { UsersRepository } from '../../domain/users/users.repository';
 import { Prisma, User as UserRow } from '../../generated/prisma/client';
+import { cancelFutureBooked } from '../bookings/cancel-future-booked';
 import { toIntervalRows } from '../availabilities/prisma-availabilities.repository';
 import { violatedIndex } from '../prisma-errors';
 import { PrismaService } from '../prisma.service';
@@ -55,7 +56,13 @@ export class PrismaUsersRepository implements UsersRepository {
 
   async findByEmail(email: string) {
     const row = await this.prisma.user
-      .findFirst({ where: { email: { equals: email, mode: 'insensitive' } } })
+      .findFirst({
+        where: {
+          email: { equals: email, mode: 'insensitive' },
+          // A Usuario dado de baja is gone for Clerk too: the same email is a new person to invite.
+          deletedAt: null,
+        },
+      })
       .catch(translateError);
     return row && toUser(row);
   }
@@ -81,6 +88,33 @@ export class PrismaUsersRepository implements UsersRepository {
         .catch(translateError),
     );
   }
+
+  /**
+   * @throws {NotFoundError} el Usuario no existe
+   */
+  async retire(id: number, deletedAt: Date) {
+    return this.prisma
+      .$transaction(async (tx) => {
+        await tx.user.update({ where: { id }, data: { deletedAt } });
+        // Their Servicios personales drop the Availability too, as a single retired Servicio does.
+        await tx.service.updateMany({
+          where: { userId: id, deletedAt: null },
+          data: { deletedAt, availabilityId: null },
+        });
+        await tx.employeeService.deleteMany({ where: { employee: { userId: id } } });
+        await tx.employee.updateMany({
+          where: { userId: id, deletedAt: null },
+          data: { deletedAt },
+        });
+        const cancelledBookings = await cancelFutureBooked(
+          tx,
+          { userId: id },
+          deletedAt,
+        );
+        return { cancelledBookings };
+      })
+      .catch(translateError);
+  }
 }
 
 const toUser = (row: UserRow): User => ({
@@ -91,6 +125,7 @@ const toUser = (row: UserRow): User => ({
   slug: row.slug,
   imageUrl: row.imageUrl,
   createdAt: row.createdAt,
+  deletedAt: row.deletedAt,
 });
 
 const translateError = (error: unknown): never => {
