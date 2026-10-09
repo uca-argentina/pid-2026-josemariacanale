@@ -14,6 +14,7 @@ import { BranchPhoto } from './BranchPhoto';
 import { ChipTabs } from './ChipTabs';
 import { CodeStep } from './CodeStep';
 import { bookSlotAction, requestVerificationCodeAction } from './actions';
+import type { BookSlotResult } from './actions';
 import { TimeStep } from './TimeStep';
 import { depositFor, endTime, formatDate, formatDuration, formatPrice } from './format';
 import { STEPS } from './types';
@@ -481,7 +482,7 @@ export function BookingFlow({
         goTo(next);
     };
 
-    // En una transición para que el formulario y el paso del código se crucen con su animación.
+    /** Vuelve al formulario, en una transición para que el paso del código y el formulario se crucen. */
     const closeCode = () => startTransition(() => setCodeOpen(false));
 
     const back = () => {
@@ -519,9 +520,13 @@ export function BookingFlow({
             clientEmail: client.email,
             notes: client.notes,
             code,
-        });
+        }).catch(
+            // La acción no respondió (sin red): sin esto la reserva quedaría bloqueada, sin forma de salir.
+            (): BookSlotResult => ({ ok: false, slotTaken: false, invalidCode: false, message: 'No pudimos reservar tu turno. Intentá de nuevo.' }),
+        );
         if (result.ok) {
-            setCodePhase('booked');
+            // En una transición para que las casillas se fundan en el "¡Listo!".
+            startTransition(() => setCodePhase('booked'));
             // El código recién se validó, así que el back siempre devuelve el Enlace del Turno (ADR 0022). replace: el
             // botón Atrás del navegador no tiene que volver al código. `booked` le da su fundido a la página del Turno.
             const link = result.booking.link!;
@@ -532,14 +537,18 @@ export function BookingFlow({
         if (result.invalidCode) return result.message;
         if (result.slotTaken) {
             // Recuperable: de vuelta a Horario, que vuelve a pedir los horarios libres.
-            setDraft((d) => ({ ...d, slot: null }));
-            setSlotNotice(result.message);
-            setCodeOpen(false);
-            setStep('time');
+            startTransition(() => {
+                setDraft((d) => ({ ...d, slot: null }));
+                setSlotNotice(result.message);
+                setCodeOpen(false);
+                setStep('time');
+            });
             return null;
         }
-        setConfirmError(result.message);
-        setCodeOpen(false);
+        startTransition(() => {
+            setConfirmError(result.message);
+            setCodeOpen(false);
+        });
         return null;
     };
 

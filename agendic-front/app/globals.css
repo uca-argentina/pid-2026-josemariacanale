@@ -33,7 +33,9 @@
 ::view-transition-new(.auth-morph) {
     height: 100%;
 }
-::view-transition-old(.auth-out) {
+/* .step-out: en Reservar, lo que sale (el formulario, las casillas) se va igual de rápido. */
+::view-transition-old(.auth-out),
+::view-transition-old(.step-out) {
     animation: 150ms ease-out both auth-fade reverse;
 }
 ::view-transition-new(.auth-in) {
@@ -48,15 +50,22 @@
     }
 }
 
-/* Reservar: el formulario sale rápido y el paso del código sube un poco al entrar, y al revés con Volver. */
-::view-transition-old(.step-out) {
-    animation: 150ms ease-out both auth-fade reverse;
-}
+/* Reservar: lo que entra (el paso del código, el "¡Listo!", el formulario con Volver) sube un poco. */
 ::view-transition-new(.step-in) {
     animation: 200ms ease-out 150ms both step-rise;
 }
 /* El Turno recién reservado entra cuando ya salió el "¡Listo!". */
 ::view-transition-new(.booked-in) {
+    animation: 200ms ease-out 150ms both auth-fade;
+}
+/*
+ * Y el resto de la página se cruza con la misma curva, no con el fundido por defecto del navegador. Va aparte: un
+ * navegador sin :active-view-transition-type() descartaría la regla entera si compartiera selector con otra.
+ */
+:root:active-view-transition-type(booked)::view-transition-old(root) {
+    animation: 150ms ease-out both auth-fade reverse;
+}
+:root:active-view-transition-type(booked)::view-transition-new(root) {
     animation: 200ms ease-out 150ms both auth-fade;
 }
 @keyframes step-rise {
