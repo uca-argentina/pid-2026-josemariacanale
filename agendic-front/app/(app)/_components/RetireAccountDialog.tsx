@@ -21,8 +21,8 @@ export function RetireAccountDialog({ businessName, onClose }: { businessName: s
         startTransition(async () => {
             const result = await retireMeAction();
             if (result.ok || result.deactivated) {
-                // Clerk ya borró al Usuario: cerrar su Sesión puede fallar, y aun así hay que volver al inicio.
-                await signOut().catch(() => undefined);
+                // Clerk ya borró al Usuario: cerrar su Sesión puede fallar o no responder nunca, y aun así hay que volver al inicio.
+                await Promise.race([signOut().catch(() => undefined), new Promise((resolve) => setTimeout(resolve, 1500))]);
                 window.location.assign('/');
                 return;
             }
