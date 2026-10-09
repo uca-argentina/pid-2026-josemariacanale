@@ -57,10 +57,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 user={{ name: user.name, email: user.email, initials: initialsOf(user.name), imageUrl: user.imageUrl }}
                 navItems={navItems.map((item) => (item.id === 'bookings' ? { ...item, count: pendingCount } : item))}
             />
-            {/* overflow-clip, not hidden: rounds the pages' white corners without turning the inset into a scroll container. */}
-            <SidebarInset className="min-w-0 overflow-clip">
+            <SidebarInset className="min-w-0">
                 <SiteHeader sections={navItems} />
-                <div className="@container/main flex flex-1 flex-col">{children}</div>
+                {/* The pages paint their own white background; rounding it keeps the inset's corners without clipping wide content. */}
+                <div className="@container/main flex flex-1 flex-col md:*:rounded-b-xl">{children}</div>
             </SidebarInset>
             <Toaster
                 position="bottom-center"

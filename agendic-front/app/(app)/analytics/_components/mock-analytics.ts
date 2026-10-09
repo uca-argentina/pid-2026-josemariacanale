@@ -1,3 +1,4 @@
+import type { ChartConfig } from '@/app/_components/ui/chart';
 import { SERVICE_CATEGORIES, type ServiceCategoryValue } from '@/app/_components/business-schemas';
 
 /** El último día con datos: el gráfico filtra hacia atrás desde acá, como el bloque `dashboard-01`. */
@@ -15,6 +16,12 @@ export const bookingsByDay = Array.from({ length: 91 }, (_, i) => {
     };
 });
 
+/** Las series de los dos gráficos de Turnos: aceptados en el primario, cancelados en un celeste visible sobre blanco. */
+export const bookingsChartConfig = {
+    accepted: { label: 'Aceptados', color: '#2d5bff' },
+    cancelled: { label: 'Cancelados', color: '#66b2ff' },
+} satisfies ChartConfig;
+
 /** Turnos de un Servicio por mes, para el detalle. */
 export const bookingsByMonth = [
     { month: 'Abril', accepted: 186, cancelled: 18 },
@@ -25,8 +32,10 @@ export const bookingsByMonth = [
     { month: 'Septiembre', accepted: 214, cancelled: 14 },
 ];
 
+/** Los Empleados de ejemplo, para mostrar y asignar en la tabla. */
 export const EMPLOYEES = ['Ana López', 'Bruno Díaz', 'Carla Méndez', 'Diego Ferreyra'];
 
+/** La etiqueta de cada Categoría de Servicio, la misma lista que el resto del front. */
 export const CATEGORY_LABELS = Object.fromEntries(SERVICE_CATEGORIES.map((c) => [c.value, c.label])) as Record<
     ServiceCategoryValue,
     string
@@ -43,6 +52,7 @@ export interface ServiceRow {
     employee: string | null;
 }
 
+/** Los 15 Servicios de ejemplo de la tabla. */
 export const services: ServiceRow[] = [
     { id: 1, name: 'Consulta clínica', category: 'CLINICA', hidden: false, bookings: 86, dailyLimit: 12, employee: 'Ana López' },
     { id: 2, name: 'Control pediátrico', category: 'CLINICA', hidden: false, bookings: 54, dailyLimit: 8, employee: 'Carla Méndez' },

@@ -51,7 +51,7 @@ const ICONS: Record<SectionId, React.ComponentType> = {
     analytics: ChartColumn,
 };
 
-// The primitive hovers with the active item's token; Calendly hovers a lighter celeste. Only on inactive items:
+// The primitive hovers with the active item's token; the panel hovers a lighter celeste. Only on inactive items:
 // the primitive's data-active styles sit inside :where(), so this hover would beat them on the active one.
 const HOVER = 'hover:bg-[#f2f7ff] hover:text-sidebar-foreground';
 
@@ -60,11 +60,14 @@ const HOVER = 'hover:bg-[#f2f7ff] hover:text-sidebar-foreground';
  * celular es una hoja lateral que se cierra al elegir una sección.
  */
 export function AppSidebar({ user, navItems }: { user: CurrentBusinessUser; navItems: NavItem[] }) {
+    const { setOpenMobile } = useSidebar();
+
     return (
         <Sidebar variant="inset" collapsible="offcanvas">
             <SidebarHeader>
                 <Link
                     href={SIGNED_IN_HOME_PATH}
+                    onClick={() => setOpenMobile(false)}
                     className="w-fit rounded-md p-1.5 outline-hidden focus-visible:ring-2 focus-visible:ring-sidebar-ring"
                 >
                     <Logo />
@@ -143,7 +146,7 @@ function NavSecondary() {
 }
 
 function NavUser({ user }: { user: CurrentBusinessUser }) {
-    const { isMobile } = useSidebar();
+    const { isMobile, setOpenMobile } = useSidebar();
     const { openUserProfile, signOut } = useClerk();
 
     return (
@@ -174,7 +177,13 @@ function NavUser({ user }: { user: CurrentBusinessUser }) {
                         className="w-(--radix-dropdown-menu-trigger-width) min-w-[200px]"
                     >
                         <DropdownMenuLabel>{user.name}</DropdownMenuLabel>
-                        <DropdownMenuItem onSelect={() => openUserProfile()}>
+                        <DropdownMenuItem
+                            // Close the sheet first: its focus trap would hold focus away from Clerk's modal.
+                            onSelect={() => {
+                                setOpenMobile(false);
+                                openUserProfile();
+                            }}
+                        >
                             <User className="size-[15px]" />
                             Mi perfil
                         </DropdownMenuItem>

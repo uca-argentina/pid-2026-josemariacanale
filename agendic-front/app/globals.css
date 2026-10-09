@@ -24,7 +24,7 @@
     --color-accent: #f7f8fb;
     --color-accent-foreground: #0f1b2d;
 
-    /* Panel shell only, in Calendly's secondary palette; the public pages keep the tokens above. */
+    /* Panel shell only; the public pages keep the tokens above. */
     --color-sidebar: #fafafa;
     --color-sidebar-foreground: #0b3558;
     --color-sidebar-accent: #e6f0ff;

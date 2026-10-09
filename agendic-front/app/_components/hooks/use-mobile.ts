@@ -9,7 +9,7 @@ function subscribe(onChange: () => void) {
   return () => mql.removeEventListener("change", onChange)
 }
 
-/** Whether the viewport is under 768px. `false` on the server, like the shadcn hook it replaces. */
+/** Si el viewport mide menos de 768px. `false` en el servidor, como el hook de shadcn al que reemplaza. */
 export function useIsMobile() {
   return React.useSyncExternalStore(
     subscribe,

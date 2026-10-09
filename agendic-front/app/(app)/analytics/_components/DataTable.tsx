@@ -52,7 +52,7 @@ import { toast } from 'sonner';
 import { useIsMobile } from '@/app/_components/hooks/use-mobile';
 import { Badge } from '@/app/_components/ui/badge';
 import { Button } from '@/app/_components/ui/button';
-import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/app/_components/ui/chart';
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/app/_components/ui/chart';
 import { Checkbox } from '@/app/_components/ui/checkbox';
 import {
     Drawer,
@@ -79,7 +79,7 @@ import { Separator } from '@/app/_components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/_components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/_components/ui/tabs';
 import { SERVICE_CATEGORIES } from '@/app/_components/business-schemas';
-import { CATEGORY_LABELS, EMPLOYEES, bookingsByMonth, type ServiceRow } from './mock-analytics';
+import { CATEGORY_LABELS, EMPLOYEES, bookingsByMonth, bookingsChartConfig, type ServiceRow } from './mock-analytics';
 
 // TanStack Table v9: only the registered features end up in the bundle.
 const features = tableFeatures({
@@ -106,7 +106,7 @@ const LABELS: Record<string, string> = {
 
 const VIEWS = [
     { value: 'services', label: 'Servicios' },
-    { value: 'employees', label: 'Empleados', count: 4 },
+    { value: 'employees', label: 'Empleados', count: EMPLOYEES.length },
     { value: 'branches', label: 'Sucursales', count: 2 },
     { value: 'categories', label: 'Categorías' },
 ];
@@ -119,7 +119,7 @@ function saveInline(event: React.FormEvent<HTMLFormElement>) {
     toast.promise(new Promise((resolve) => setTimeout(resolve, 1000)), {
         loading: 'Guardando…',
         success: 'Guardado',
-        error: 'No se pudo guardar',
+        error: 'No se pudo guardar. Probá de nuevo.',
     });
 }
 
@@ -204,7 +204,7 @@ const columns = columnHelper.columns([
                 <Label htmlFor={`${row.original.id}-bookings`} className="sr-only">
                     {LABELS.bookings}
                 </Label>
-                <Input className={INLINE_INPUT} defaultValue={row.original.bookings} id={`${row.original.id}-bookings`} />
+                <Input className={INLINE_INPUT} inputMode="numeric" defaultValue={row.original.bookings} id={`${row.original.id}-bookings`} />
             </form>
         ),
     }),
@@ -215,7 +215,7 @@ const columns = columnHelper.columns([
                 <Label htmlFor={`${row.original.id}-limit`} className="sr-only">
                     {LABELS.dailyLimit}
                 </Label>
-                <Input className={INLINE_INPUT} defaultValue={row.original.dailyLimit} id={`${row.original.id}-limit`} />
+                <Input className={INLINE_INPUT} inputMode="numeric" defaultValue={row.original.dailyLimit} id={`${row.original.id}-limit`} />
             </form>
         ),
     }),
@@ -375,7 +375,8 @@ export function DataTable({ data: initialData }: { data: ServiceRow[] }) {
                         <DropdownMenuTrigger asChild>
                             <Button variant="outline" size="sm">
                                 <Columns3 data-icon="inline-start" />
-                                Personalizar columnas
+                                <span className="hidden @3xl/main:inline">Personalizar columnas</span>
+                                <span className="@3xl/main:hidden">Columnas</span>
                                 <ChevronDown data-icon="inline-end" />
                             </Button>
                         </DropdownMenuTrigger>
@@ -431,7 +432,7 @@ export function DataTable({ data: initialData }: { data: ServiceRow[] }) {
                                 ) : (
                                     <TableRow>
                                         <TableCell colSpan={columns.length} className="h-24 text-center">
-                                            No hay Servicios.
+                                            No hay Servicios. Creá uno con Agregar Servicio.
                                         </TableCell>
                                     </TableRow>
                                 )}
@@ -523,11 +524,6 @@ export function DataTable({ data: initialData }: { data: ServiceRow[] }) {
     );
 }
 
-const chartConfig = {
-    accepted: { label: 'Aceptados', color: '#2d5bff' },
-    cancelled: { label: 'Cancelados', color: '#66b2ff' },
-} satisfies ChartConfig;
-
 function TableCellViewer({ item }: { item: ServiceRow }) {
     const isMobile = useIsMobile();
 
@@ -546,7 +542,7 @@ function TableCellViewer({ item }: { item: ServiceRow }) {
                 <div className="flex flex-col gap-4 overflow-y-auto px-4 text-sm">
                     {!isMobile && (
                         <>
-                            <ChartContainer config={chartConfig}>
+                            <ChartContainer config={bookingsChartConfig}>
                                 <AreaChart accessibilityLayer data={bookingsByMonth} margin={{ left: 0, right: 10 }}>
                                     <CartesianGrid vertical={false} />
                                     <XAxis
@@ -596,10 +592,10 @@ function TableCellViewer({ item }: { item: ServiceRow }) {
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="flex flex-col gap-3">
-                                <Label htmlFor="category">Categoría</Label>
+                                <Label htmlFor="category">Categoría de Servicio</Label>
                                 <Select defaultValue={item.category}>
                                     <SelectTrigger id="category" className="w-full">
-                                        <SelectValue placeholder="Elegí una Categoría" />
+                                        <SelectValue placeholder="Elegí una Categoría de Servicio" />
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectGroup>
@@ -630,11 +626,11 @@ function TableCellViewer({ item }: { item: ServiceRow }) {
                         <div className="grid grid-cols-2 gap-4">
                             <div className="flex flex-col gap-3">
                                 <Label htmlFor="bookings">Turnos del mes</Label>
-                                <Input id="bookings" defaultValue={item.bookings} />
+                                <Input id="bookings" inputMode="numeric" defaultValue={item.bookings} />
                             </div>
                             <div className="flex flex-col gap-3">
                                 <Label htmlFor="limit">Límite diario</Label>
-                                <Input id="limit" defaultValue={item.dailyLimit} />
+                                <Input id="limit" inputMode="numeric" defaultValue={item.dailyLimit} />
                             </div>
                         </div>
                         <div className="flex flex-col gap-3">

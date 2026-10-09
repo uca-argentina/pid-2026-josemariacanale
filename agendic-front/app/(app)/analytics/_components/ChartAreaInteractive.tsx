@@ -4,15 +4,10 @@ import * as React from 'react';
 import { Area, AreaChart, CartesianGrid, XAxis } from 'recharts';
 import { useIsMobile } from '@/app/_components/hooks/use-mobile';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/_components/ui/card';
-import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/app/_components/ui/chart';
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/app/_components/ui/chart';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/_components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from '@/app/_components/ui/toggle-group';
-import { REFERENCE_DATE, bookingsByDay } from './mock-analytics';
-
-const chartConfig = {
-    accepted: { label: 'Aceptados', color: '#2d5bff' },
-    cancelled: { label: 'Cancelados', color: '#66b2ff' },
-} satisfies ChartConfig;
+import { REFERENCE_DATE, bookingsByDay, bookingsChartConfig } from './mock-analytics';
 
 const RANGES = [
     { value: '90d', label: 'Últimos 3 meses', days: 90 },
@@ -26,7 +21,7 @@ const dayMonth = new Intl.DateTimeFormat('es-AR', { day: 'numeric', month: 'shor
 /** El gráfico de Turnos por día, filtrable por período: botones con ancho, desplegable sin él, 7 días en el celular. */
 export function ChartAreaInteractive() {
     const isMobile = useIsMobile();
-    const [chosenRange, setTimeRange] = React.useState<string | null>(null);
+    const [chosenRange, chooseRange] = React.useState<string | null>(null);
     // Until the Usuario picks one, the range follows the screen: 7 days fit a phone, 3 months don't.
     const timeRange = chosenRange ?? (isMobile ? '7d' : '90d');
 
@@ -48,7 +43,7 @@ export function ChartAreaInteractive() {
                         type="single"
                         value={timeRange}
                         // Clicking the selected item would deselect it and leave no range.
-                        onValueChange={(value) => value && setTimeRange(value)}
+                        onValueChange={(value) => value && chooseRange(value)}
                         variant="outline"
                         className="hidden *:data-[slot=toggle-group-item]:px-4! @[767px]/card:flex"
                     >
@@ -58,7 +53,7 @@ export function ChartAreaInteractive() {
                             </ToggleGroupItem>
                         ))}
                     </ToggleGroup>
-                    <Select value={timeRange} onValueChange={setTimeRange}>
+                    <Select value={timeRange} onValueChange={chooseRange}>
                         <SelectTrigger
                             className="flex w-40 **:data-[slot=select-value]:block **:data-[slot=select-value]:truncate @[767px]/card:hidden"
                             size="sm"
@@ -77,7 +72,7 @@ export function ChartAreaInteractive() {
                 </CardAction>
             </CardHeader>
             <CardContent className="px-2 pt-4 @[540px]/card:px-6 @[540px]/card:pt-6">
-                <ChartContainer config={chartConfig} className="aspect-auto h-[250px] w-full">
+                <ChartContainer config={bookingsChartConfig} className="aspect-auto h-[250px] w-full">
                     <AreaChart data={filteredData}>
                         <defs>
                             <linearGradient id="fillAccepted" x1="0" y1="0" x2="0" y2="1">
