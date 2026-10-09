@@ -5,8 +5,8 @@ import type { DI_RETURN_TYPES } from '@/di/types';
 import type { ServiceCategoryValue } from '@/app/_components/business-schemas';
 
 /**
- * Quién recibe el Turno, como lo muestran la reserva y Mis turnos: el Negocio en una de sus Sucursales, o el Usuario
- * de un Servicio personal.
+ * Quién recibe el Turno, como lo muestra la reserva: el Negocio en una de sus Sucursales, o el Usuario de un
+ * Servicio personal.
  */
 export interface Host {
     name: string;

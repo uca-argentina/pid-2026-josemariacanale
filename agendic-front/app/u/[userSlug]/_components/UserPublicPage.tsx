@@ -6,7 +6,7 @@ import { SERVICE_CATEGORIES } from '@/app/_components/business-schemas';
 import { BookingFlow } from '@/app/_components/booking/BookingFlow';
 import { ServiceCard } from '@/app/_components/booking/ServiceCard';
 import type { Service } from '@/app/_components/booking/types';
-import { MIS_TURNOS_PATH } from '@/app/routes';
+import { bookingPath } from '@/app/routes';
 
 /**
  * La página de un Usuario: sus Servicios personales visibles y la reserva, la misma que la de una Sucursal pero sin
@@ -66,7 +66,8 @@ export function UserPublicPage({
                     coverUrl={undefined}
                     initialService={initialService}
                     onClose={() => setFlowOpen(false)}
-                    onBooked={(access) => router.push(`${MIS_TURNOS_PATH}#acceso=${access}`)}
+                    // replace: el botón Atrás del navegador no tiene que volver al modal del código.
+                    onBooked={(link) => router.replace(bookingPath(link))}
                 />
             )}
         </>

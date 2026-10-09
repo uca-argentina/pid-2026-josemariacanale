@@ -1,5 +1,4 @@
 import { Booking, ClientBooking, EmployeeBooking } from '../../domain/bookings/booking';
-import { ClientAccess } from '../../domain/bookings/client-access-tokens';
 
 export const presentBooking = (booking: Booking) => ({
   id: booking.id,
@@ -42,13 +41,7 @@ export const presentEmployeeBooking = (booking: EmployeeBooking) => ({
   branchName: booking.branchName,
 });
 
-/** El acceso a Mis turnos (ADR 0022). */
-export const presentClientAccess = ({ access, expiresAt }: ClientAccess) => ({
-  access,
-  expiresAt,
-});
-
-/** Mis turnos del Cliente: el Turno con los datos de dónde pasa, para quien ya tiene acceso. */
+/** Enlace del Turno: el Turno con los datos de dónde pasa, para quien abre su Enlace. */
 export const presentClientBooking = (booking: ClientBooking) => ({
   id: booking.id,
   status: booking.status,
@@ -63,4 +56,5 @@ export const presentClientBooking = (booking: ClientBooking) => ({
   employeeName: booking.employeeName,
   business: booking.business,
   branch: booking.branch,
+  user: booking.user,
 });

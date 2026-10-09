@@ -125,12 +125,8 @@ describe('Turno', () => {
         status: 'BOOKED',
         notes: null,
         employeeName: ANAS_EMPLOYEE.name,
-        access: 'client-access-token',
-        accessExpiresAt: '2026-01-01T12:15:00.000Z',
+        link: BOOKING.link,
       });
-      expect(t.clientAccessTokens.sign).toHaveBeenCalledWith(
-        VALID_BOOKING.clientEmail,
-      );
       expect(t.bookingCodes.verify).toHaveBeenCalledWith(
         VALID_BOOKING.clientEmail,
         VALID_BOOKING.code,

@@ -52,9 +52,7 @@ export interface BookingsRepository {
     id: number,
     status: BookingStatus.BOOKED | BookingStatus.REJECTED,
   ): Promise<Booking>;
-  /** Every Turno, in any status, whose Cliente was booked with this email, soonest first, with its Mis turnos data (ADR 0022). */
-  findByClientEmail(email: string): Promise<ClientBooking[]>;
-  /** The Turno for its Enlace del Turno, in any status, with its Mis turnos data (ADR 0022). Throws NotFoundError for an unknown link. */
+  /** The Turno for its Enlace del Turno, in any status, with the data to show it (ADR 0022). Throws NotFoundError for an unknown link. */
   findByLink(link: string): Promise<ClientBooking>;
   listByBusiness(businessId: number): Promise<Booking[]>;
   /** PENDING and BOOKED Turnos of this Usuario, personal or of any Negocio, whose [prepStartsAt, endsAt) overlaps [from, to), leaving out `excludeBookingId`. */
@@ -68,14 +66,14 @@ export interface BookingsRepository {
   listByEmployees(employeeIds: number[]): Promise<EmployeeBooking[]>;
   /** Moves a BOOKED Booking to CANCELLED. Throws BusinessRuleError if it is no longer BOOKED. */
   cancel(id: number): Promise<Booking>;
-  /** As `cancel`, for the Cliente (ADR 0022): also from PENDING. Throws BusinessRuleError if it is no longer pending or booked. */
+  /** As `cancel`, by Enlace del Turno (ADR 0022): also from PENDING. Throws BusinessRuleError if it is no longer pending or booked. */
   cancelPendingOrBooked(id: number): Promise<ClientBooking>;
   /** Moves a BOOKED Booking to the new times, with the given Empleado and Usuario (the same or another). Throws BusinessRuleError if it is no longer BOOKED, ConflictError if it now overlaps another. */
   reschedule(
     id: number,
     times: Pick<Booking, 'employeeId' | 'userId' | 'prepStartsAt' | 'startsAt' | 'endsAt'>,
   ): Promise<Booking>;
-  /** As `reschedule`, for the Cliente (ADR 0022): also from PENDING, and sets the new status (PENDING again with Aprobación manual). Throws BusinessRuleError if it is no longer pending or booked, ConflictError if it now overlaps another. */
+  /** As `reschedule`, by Enlace del Turno (ADR 0022): also from PENDING, and sets the new status (PENDING again with Aprobación manual). Throws BusinessRuleError if it is no longer pending or booked, ConflictError if it now overlaps another. */
   reschedulePendingOrBooked(
     id: number,
     times: Pick<

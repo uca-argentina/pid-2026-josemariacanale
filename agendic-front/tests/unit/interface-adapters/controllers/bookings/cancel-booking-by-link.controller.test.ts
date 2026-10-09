@@ -17,6 +17,8 @@ const booking = {
     employeeName: 'Ana',
     business: null,
     branch: null,
+    // Un Turno de un Servicio personal: sin Negocio ni Sucursal, con el Enlace de reserva del Usuario.
+    user: { slug: 'juana' },
 };
 
 describe('cancelBookingByLinkController', () => {

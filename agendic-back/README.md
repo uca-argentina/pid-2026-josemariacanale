@@ -36,12 +36,11 @@ Cualquier otro proveedor S3-compatible (AWS S3, Supabase Storage, MinIO) sirve c
 
 ### Turnos del Cliente
 
-Reservar, Mis turnos y el Enlace del Turno (ADR 0022) necesitan estas variables. Sin ellas el back no arranca y dice cuál falta:
+Reservar y el Enlace del Turno (ADR 0022) necesitan estas variables. Sin ellas el back no arranca y dice cuál falta:
 
 | Variable | Qué es |
 | --- | --- |
 | `BOOKING_CODE_SECRET` | Secreto con el que se firman los Códigos de verificación del Cliente. Cualquier texto largo y aleatorio. |
-| `CLIENT_ACCESS_SECRET` | Secreto con el que se firma el acceso de 15 minutos a Mis turnos. Otro texto largo y aleatorio, distinto del anterior. |
 | `FRONTEND_URL` | Dirección del front (por ejemplo `http://localhost:3000`). La Confirmación de reserva manda el Enlace del Turno como `<FRONTEND_URL>/turnos/<link>`. |
 
-Para generar cada secreto: `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`. Cambiarlos solo invalida los códigos y accesos que estén en vuelo (duran 15 minutos). Los tests no los usan: la app de test reemplaza los códigos, el acceso y el mailer.
+Para generar el secreto: `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`. Cambiarlo solo invalida los códigos que estén en vuelo (duran 15 minutos). Los tests no lo usan: la app de test reemplaza los códigos y el mailer.

@@ -36,7 +36,7 @@ export interface EmployeeBooking extends Booking {
   branchName: string;
 }
 
-/** A Turno as its Cliente sees it in Mis turnos (ADR 0022): with the Servicio, Negocio and Sucursal data to show it. */
+/** A Turno as its Enlace del Turno shows it (ADR 0022): with the Servicio, Negocio and Sucursal data to show it. */
 export interface ClientBooking extends Booking {
   /** The Sucursal's time zone, or the Availability's in a Servicio personal. */
   timeZone: string;
@@ -58,6 +58,8 @@ export interface ClientBooking extends Booking {
     /** The first Imagen de Sucursal by order, if there is one. */
     coverUrl: string | null;
   } | null;
+  /** The Enlace de reserva del Usuario that attends a Servicio personal. Null in a Servicio del Negocio. */
+  user: { slug: string | null } | null;
 }
 
 export interface CreateBookingInput {

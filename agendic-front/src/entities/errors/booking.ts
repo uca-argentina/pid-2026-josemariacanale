@@ -50,10 +50,3 @@ export class BookingStateError extends Error {
         super(message, options);
     }
 }
-
-/** 401 `Client access missing or expired`: el acceso a Mis turnos falta o venció (ADR 0022). */
-export class ClientAccessExpiredError extends Error {
-    constructor(message: string, options?: ErrorOptions) {
-        super(message, options);
-    }
-}

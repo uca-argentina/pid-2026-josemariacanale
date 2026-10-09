@@ -10,6 +10,7 @@ import { cn } from '@/app/_components/utils';
 import type { ServiceCategoryValue } from '@/app/_components/business-schemas';
 import { BranchPhoto } from './BranchPhoto';
 import { ChipTabs } from './ChipTabs';
+import { CodeModal } from './CodeModal';
 import { bookSlotAction, requestVerificationCodeAction } from './actions';
 import { TimeStep } from './TimeStep';
 import { depositFor, endTime, formatDate, formatDuration, formatPrice } from './format';
@@ -149,73 +150,16 @@ function ConfirmStep({
     host,
     service,
     defaults,
-    codeStep,
     error,
-    codeError,
     onSubmitData,
-    onSubmitCode,
-    onRequestNewCode,
 }: {
     host: Host;
     service: Service;
     defaults: ClientData;
-    /** Pedido el Código de verificación, se muestra el campo para ingresarlo en vez de los datos (ADR 0022). */
-    codeStep: boolean;
     error: string | null;
-    codeError: string | null;
     onSubmitData: (data: ClientData) => void;
-    onSubmitCode: (code: string) => void;
-    onRequestNewCode: () => void;
 }) {
     const deposit = depositFor(service);
-
-    if (codeStep)
-        return (
-            <form
-                id={CLIENT_FORM}
-                onSubmit={(e) => {
-                    e.preventDefault();
-                    const data = new FormData(e.currentTarget);
-                    onSubmitCode(String(data.get('codigo') ?? '').trim());
-                }}
-                className="flex max-w-[560px] flex-col gap-4"
-            >
-                <h3 className="text-[17px] font-extrabold tracking-[-0.02em]">Verificá tu email</h3>
-                <p className="text-[13.5px] leading-relaxed text-muted-foreground">
-                    Te mandamos un código a{' '}
-                    <strong className="font-bold text-foreground">{defaults.email}</strong>. Ingresalo
-                    para confirmar tu turno.
-                </p>
-
-                <div className="flex flex-col gap-2">
-                    <Label htmlFor="codigo" className="text-[13.5px] font-bold">
-                        Código de verificación
-                    </Label>
-                    <Input
-                        id="codigo"
-                        name="codigo"
-                        required
-                        autoComplete="one-time-code"
-                        inputMode="text"
-                        placeholder="Código de 6 caracteres"
-                    />
-                </div>
-
-                {codeError && (
-                    <p role="alert" className="rounded-xl bg-muted p-4 text-[13.5px] font-semibold">
-                        {codeError}
-                    </p>
-                )}
-
-                <button
-                    type="button"
-                    onClick={onRequestNewCode}
-                    className="self-start text-[13.5px] font-bold text-muted-foreground underline underline-offset-2 hover:text-foreground"
-                >
-                    Pedir un código nuevo
-                </button>
-            </form>
-        );
 
     return (
         <form
@@ -315,22 +259,19 @@ function ConfirmStep({
 function AdvanceButton({
     step,
     canAdvance,
-    codeStep,
     pending,
     onAdvance,
     className,
 }: {
     step: Step;
     canAdvance: boolean;
-    /** En Revisá y confirmá: ya se pidió el Código de verificación, falta ingresarlo. */
-    codeStep: boolean;
-    /** Mientras se pide el código o se crea el Turno: evita un segundo envío. */
+    /** Mientras se pide el Código de verificación: evita un segundo envío. */
     pending: boolean;
     onAdvance: () => void;
     className?: string;
 }) {
     const last = step === 'confirm';
-    const label = !last ? 'Continuar' : codeStep ? (pending ? 'Confirmando…' : 'Confirmar turno') : pending ? 'Enviando código…' : 'Enviar código';
+    const label = !last ? 'Continuar' : pending ? 'Reservando…' : 'Reservar';
     return (
         <Button
             type={last ? 'submit' : 'button'}
@@ -353,7 +294,6 @@ function SummaryPanel({
     draft,
     step,
     canAdvance,
-    codeStep,
     pending,
     onAdvance,
 }: {
@@ -362,7 +302,6 @@ function SummaryPanel({
     draft: BookingDraft;
     step: Step;
     canAdvance: boolean;
-    codeStep: boolean;
     pending: boolean;
     onAdvance: () => void;
 }) {
@@ -450,7 +389,6 @@ function SummaryPanel({
             <AdvanceButton
                 step={step}
                 canAdvance={canAdvance}
-                codeStep={codeStep}
                 pending={pending}
                 onAdvance={onAdvance}
                 className="mt-auto hidden lg:inline-flex"
@@ -474,8 +412,8 @@ export function BookingFlow({
     coverUrl: string | undefined;
     initialService: Service | null;
     onClose: () => void;
-    /** El acceso a Mis turnos recién abierto (ADR 0022): la página navega ahí con él. */
-    onBooked: (access: string) => void;
+    /** El secreto del Enlace del Turno recién creado (ADR 0022): la página navega a ese Turno. */
+    onBooked: (link: string) => void;
 }) {
     const [step, setStep] = useState<Step>(initialService ? 'time' : 'service');
     const [draft, setDraft] = useState<BookingDraft>({
@@ -487,18 +425,18 @@ export function BookingFlow({
     /** El 409 de horario ocupado: se muestra en el paso Horario, que es donde se resuelve. */
     const [slotNotice, setSlotNotice] = useState<string | null>(null);
     const [confirmError, setConfirmError] = useState<string | null>(null);
-    /** Pedido el Código de verificación para `client.email`, falta ingresarlo (ADR 0022). */
-    const [codeStep, setCodeStep] = useState(false);
-    const [codeError, setCodeError] = useState<string | null>(null);
+    /** Pedido el Código de verificación para `client.email`, el modal lo pide (ADR 0022). */
+    const [codeOpen, setCodeOpen] = useState(false);
     const [pending, startTransition] = useTransition();
 
     useEffect(() => {
         const onKey = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') onClose();
+            // Con el modal del código abierto, Escape lo cierra a él y no a la reserva entera.
+            if (e.key === 'Escape' && !codeOpen) onClose();
         };
         document.addEventListener('keydown', onKey);
         return () => document.removeEventListener('keydown', onKey);
-    }, [onClose]);
+    }, [onClose, codeOpen]);
 
     const { service, date, slot } = draft;
 
@@ -520,8 +458,7 @@ export function BookingFlow({
     const goTo = (next: Step) => {
         setSlotNotice(null);
         setConfirmError(null);
-        setCodeError(null);
-        setCodeStep(false);
+        setCodeOpen(false);
         setStep(next);
     };
 
@@ -537,54 +474,56 @@ export function BookingFlow({
         else onClose();
     };
 
-    // Paso 1: con los datos del Cliente, pide el Código de verificación para su email (ADR 0022).
+    // "Reservar": con los datos del Cliente, pide el Código de verificación para su email y abre el modal (ADR 0022).
     const requestCode = (data: ClientData) => {
         setClient(data);
         setConfirmError(null);
         startTransition(async () => {
             const result = await requestVerificationCodeAction(data.email);
-            if (result.ok) setCodeStep(true);
+            if (result.ok) setCodeOpen(true);
             else setConfirmError(result.message);
         });
     };
 
-    // Paso 2: con el código ya ingresado, crea el Turno.
-    const confirmCode = (code: string) => {
-        if (!service || !date || !slot) return;
-        setCodeError(null);
-        startTransition(async () => {
-            const result = await bookSlotAction({
-                serviceId: service.id,
-                startsAt: slot.startsAt,
-                clientName: client.name,
-                clientEmail: client.email,
-                notes: client.notes,
-                code,
-            });
-            if (result.ok) {
-                // El código recién se validó: el back siempre devuelve el acceso a Mis turnos (ADR 0022).
-                onBooked(result.booking.access!);
-            } else if (result.slotTaken) {
-                // Recuperable: de vuelta a Horario, que vuelve a pedir los horarios libres.
-                setDraft((d) => ({ ...d, slot: null }));
-                setSlotNotice(result.message);
-                setCodeStep(false);
-                setStep('time');
-            } else if (result.invalidCode) {
-                setCodeError(result.message);
-            } else {
-                setConfirmError(result.message);
-            }
+    /**
+     * Crea el Turno con el código ya completo.
+     *
+     * @returns el mensaje a mostrar en el modal si el código no sirvió; `null` si reservó, o si lo que falló se
+     * resuelve afuera del modal y por eso lo cierra.
+     */
+    const book = async (code: string): Promise<string | null> => {
+        if (!service || !date || !slot) return null;
+        const result = await bookSlotAction({
+            serviceId: service.id,
+            startsAt: slot.startsAt,
+            clientName: client.name,
+            clientEmail: client.email,
+            notes: client.notes,
+            code,
         });
+        if (result.ok) {
+            // El código recién se validó, así que el back siempre devuelve el Enlace del Turno (ADR 0022).
+            onBooked(result.booking.link!);
+            return null;
+        }
+        if (result.invalidCode) return result.message;
+        if (result.slotTaken) {
+            // Recuperable: de vuelta a Horario, que vuelve a pedir los horarios libres.
+            setDraft((d) => ({ ...d, slot: null }));
+            setSlotNotice(result.message);
+            setCodeOpen(false);
+            setStep('time');
+            return null;
+        }
+        setConfirmError(result.message);
+        setCodeOpen(false);
+        return null;
     };
 
-    // "Pedir un código nuevo": mismo pedido, sin perder el paso en que está.
-    const requestNewCode = () => {
-        setCodeError(null);
-        startTransition(async () => {
-            const result = await requestVerificationCodeAction(client.email);
-            if (!result.ok) setCodeError(result.message);
-        });
+    // "Pedir un código nuevo", desde el modal: mismo pedido, con el email ya cargado.
+    const requestNewCode = async () => {
+        const result = await requestVerificationCodeAction(client.email);
+        return result.ok ? null : result.message;
     };
 
     return (
@@ -651,12 +590,8 @@ export function BookingFlow({
                                 host={host}
                                 service={service}
                                 defaults={client}
-                                codeStep={codeStep}
                                 error={confirmError}
-                                codeError={codeError}
                                 onSubmitData={requestCode}
-                                onSubmitCode={confirmCode}
-                                onRequestNewCode={requestNewCode}
                             />
                         )}
                     </div>
@@ -668,7 +603,6 @@ export function BookingFlow({
                             draft={draft}
                             step={step}
                             canAdvance={canAdvance}
-                            codeStep={codeStep}
                             pending={pending}
                             onAdvance={advance}
                         />
@@ -694,8 +628,18 @@ export function BookingFlow({
                         {formatPrice(depositFor(service)!.rest)} en el local
                     </p>
                 )}
-                <AdvanceButton step={step} canAdvance={canAdvance} codeStep={codeStep} pending={pending} onAdvance={advance} />
+                <AdvanceButton step={step} canAdvance={canAdvance} pending={pending} onAdvance={advance} />
             </div>
+
+            {codeOpen && (
+                <CodeModal
+                    email={client.email}
+                    onSubmit={book}
+                    onRequestNewCode={requestNewCode}
+                    // La X, Esc y "Cambiar email" hacen lo mismo: volver al formulario con los datos cargados.
+                    onClose={() => setCodeOpen(false)}
+                />
+            )}
         </div>
     );
 }
