@@ -160,7 +160,11 @@ export class BookingsController {
     );
   }
 
-  /** Mis turnos (ADR 0023): los Turnos que atiende el Usuario, personales y de los Negocios donde es Empleado activo. */
+  /**
+   * Mis turnos (ADR 0023): los Turnos que atiende el Usuario, personales y de los Negocios donde es Empleado activo.
+   *
+   * @throws {DatabaseOperationError} falló la base
+   */
   @Get('users/me/bookings')
   @UseGuards(ClerkGuard)
   async listMine(@CurrentUser() userId: number) {

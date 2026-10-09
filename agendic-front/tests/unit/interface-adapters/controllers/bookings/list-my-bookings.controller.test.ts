@@ -18,7 +18,7 @@ const booking = {
 };
 
 describe('listMyBookingsController', () => {
-    it('presents the Turnos with the names of where they happen', async () => {
+    it('presents the Turnos with the Negocio and Sucursal where they happen', async () => {
         const auth = authWith({ getCurrentUser: jest.fn().mockResolvedValue({}) });
         const [presented] = await listMyBookingsController(instrumentation, auth, jest.fn().mockResolvedValue([booking]))();
         expect(presented).toEqual({
@@ -32,8 +32,8 @@ describe('listMyBookingsController', () => {
             serviceId: 2,
             employeeId: 5,
             serviceName: 'Masaje',
-            businessName: 'Spa',
-            branchName: 'Centro',
+            business: { id: 3, name: 'Spa' },
+            branch: { id: 4, name: 'Centro' },
         });
     });
 
@@ -41,7 +41,7 @@ describe('listMyBookingsController', () => {
         const auth = authWith({ getCurrentUser: jest.fn().mockResolvedValue({}) });
         const personal = { ...booking, employeeId: null, business: null, branch: null };
         const [presented] = await listMyBookingsController(instrumentation, auth, jest.fn().mockResolvedValue([personal]))();
-        expect(presented).toMatchObject({ employeeId: null, businessName: null, branchName: null });
+        expect(presented).toMatchObject({ employeeId: null, business: null, branch: null });
     });
 
     it('throws UnauthenticatedError without calling the use case', async () => {

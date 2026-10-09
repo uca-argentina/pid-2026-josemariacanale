@@ -21,7 +21,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 export const localInstant = (day: string, hhmm: string) => new Date(`${day}T${hhmm}:00${UTC_OFFSET}`);
 
 /** Dónde pasa el Turno: "Negocio · Sucursal", o "Servicio personal" si no tiene Negocio. */
-export const placeOf = (b: Booking) => (b.businessName === null ? 'Servicio personal' : `${b.businessName} · ${b.branchName}`);
+export const placeOf = (b: Booking) => (b.business && b.branch ? `${b.business.name} · ${b.branch.name}` : 'Servicio personal');
 
 export const isClosed = (b: Booking) => b.status === 'CANCELLED' || b.status === 'REJECTED';
 

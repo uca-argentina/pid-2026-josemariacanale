@@ -16,9 +16,8 @@ function presenter(bookings: UserBooking[], instrumentationService: IInstrumenta
             serviceId: b.serviceId,
             employeeId: b.employeeId,
             serviceName: b.serviceName,
-            // Null en un Servicio personal: la pantalla lo muestra como tal.
-            businessName: b.business?.name ?? null,
-            branchName: b.branch?.name ?? null,
+            business: b.business,
+            branch: b.branch,
         })),
     );
 }

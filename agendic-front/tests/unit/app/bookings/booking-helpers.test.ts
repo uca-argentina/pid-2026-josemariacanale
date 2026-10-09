@@ -13,15 +13,15 @@ const booking = (patch: Partial<Booking>): Booking => ({
     serviceId: 2,
     employeeId: 5,
     serviceName: 'Masaje',
-    businessName: 'Spa',
-    branchName: 'Centro',
+    business: { id: 3, name: 'Spa' },
+    branch: { id: 4, name: 'Centro' },
     ...patch,
 });
 
 describe('placeOf', () => {
     it('muestra Negocio y Sucursal, o Servicio personal si el Turno no tiene Negocio', () => {
         expect(placeOf(booking({}))).toBe('Spa · Centro');
-        expect(placeOf(booking({ employeeId: null, businessName: null, branchName: null }))).toBe('Servicio personal');
+        expect(placeOf(booking({ employeeId: null, business: null, branch: null }))).toBe('Servicio personal');
     });
 });
 
