@@ -187,6 +187,14 @@ describe('PrismaBookingsRepository (real database)', () => {
       await expect(repository.findByLink('a-link-nobody-has')).rejects.toThrow(
         new NotFoundError('Turno not found'),
       );
+
+      // Dar de baja el Servicio personal le quita su Availability; el Turno sigue abriéndose por su Enlace.
+      await prisma.service.update({
+        where: { id: serviceId },
+        data: { deletedAt: new Date(), availabilityId: null },
+      });
+      const afterRetire = await repository.findByLink(created.link);
+      expect(afterRetire.timeZone).toBe('America/Argentina/Buenos_Aires');
     } finally {
       await prisma.booking.deleteMany({ where: { userId: linkUserId } });
       await prisma.service.deleteMany({ where: { userId: linkUserId } });
