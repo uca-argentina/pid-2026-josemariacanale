@@ -25,7 +25,7 @@ const parsedService = {
     dailyLimit: null,
     slotInterval: null,
     minimumNoticeMinutes: 0,
-    employees: [{ id: 1, name: 'Ana', availabilityId: 7 }],
+    employees: [{ id: 1, name: 'Ana', availabilityId: 7, imageUrl: 'https://img.example/ana.png' }],
 };
 /** The back may send fields the panel does not read: they are dropped. */
 const service = { ...parsedService, createdAt: '2026-09-01T00:00:00.000Z' };

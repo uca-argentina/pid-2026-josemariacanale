@@ -442,7 +442,7 @@ function EmployeesTab({
             <ul className="m-0 flex list-none flex-col divide-y divide-[#e5e7eb] p-0">
                 {service.employees.map((employee) => (
                     <li key={employee.id} className="flex items-center gap-3 py-3 first:pt-0">
-                        <PanelAvatar name={employee.name} />
+                        <PanelAvatar name={employee.name} imageUrl={employee.imageUrl} />
                         <span className="text-[13.5px] font-bold tracking-[-0.01em]">{employee.name}</span>
                         {employee.id === myEmployeeId && <PanelBadge>Vos</PanelBadge>}
                         <PanelButton variant="ghost" className="ml-auto" onClick={() => setRemoving(asOfferingEmployee(employee))}>

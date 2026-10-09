@@ -6,8 +6,9 @@ import { SIGN_IN_PATH } from '@/app/routes';
 import { SidebarInset, SidebarProvider } from '@/app/_components/ui/sidebar';
 import { AppSidebar } from './_components/AppSidebar';
 import { SiteHeader } from './_components/SiteHeader';
+import { SignOutOnDeactivated } from './_components/SignOutOnDeactivated';
 import { getInjection } from '@/di/container';
-import { isSessionExpired } from '@/app/api-error';
+import { isSessionExpired, isUserDeactivated } from '@/app/api-error';
 import { loadMyBookings } from '@/app/(app)/bookings/load-my-bookings';
 import type { NavItem } from './_components/types';
 
@@ -28,21 +29,37 @@ function initialsOf(name: string) {
         .toUpperCase();
 }
 
-/** Cuántos Turnos esperan respuesta del Empleado; si la consulta falla, 0: el contador no vale un error de página. */
+/**
+ * Cuántos Turnos esperan respuesta del Empleado; si la consulta falla, 0: el contador no vale un error de página.
+ * Es la primera llamada con Sesión de cada carga del panel, así que `deactivated` avisa de un Usuario dado de baja
+ * (ADR 0024) cuya Sesión quedó abierta en otro dispositivo.
+ */
 async function countPendingBookings() {
     try {
         const bookings = await loadMyBookings();
-        return bookings.filter((b) => b.status === 'PENDING').length;
+        return { count: bookings.filter((b) => b.status === 'PENDING').length, deactivated: false };
     } catch (error) {
-        if (!isSessionExpired(error)) getInjection('ICrashReporterService').report(error);
-        return 0;
+        const deactivated = isUserDeactivated(error);
+        if (!deactivated && !isSessionExpired(error)) getInjection('ICrashReporterService').report(error);
+        return { count: 0, deactivated };
+    }
+}
+
+/** El nombre del Negocio del Dueño, o null si no es Dueño o la consulta falla: no vale un error de página. */
+async function ownedBusinessName() {
+    try {
+        return (await getInjection('IGetMyBusinessController')())?.name ?? null;
+    } catch (error) {
+        if (!isSessionExpired(error) && !isUserDeactivated(error)) getInjection('ICrashReporterService').report(error);
+        return null;
     }
 }
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
     const user = await getCurrentUser();
     if (!user) redirect(SIGN_IN_PATH);
-    const pendingCount = await countPendingBookings();
+    const [{ count: pendingCount, deactivated }, businessName] = await Promise.all([countPendingBookings(), ownedBusinessName()]);
+    if (deactivated) return <SignOutOnDeactivated />;
 
     return (
         <SidebarProvider
@@ -55,6 +72,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         >
             <AppSidebar
                 user={{ name: user.name, email: user.email, initials: initialsOf(user.name), imageUrl: user.imageUrl }}
+                businessName={businessName}
                 navItems={navItems.map((item) => (item.id === 'bookings' ? { ...item, count: pendingCount } : item))}
             />
             <SidebarInset className="min-w-0">

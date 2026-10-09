@@ -60,6 +60,8 @@ import type { IUsersRepository } from '@/src/application/repositories/users.repo
 import type { IGetMeUseCase } from '@/src/application/use-cases/users/get-me.use-case';
 import type { IUpdateMySlugUseCase } from '@/src/application/use-cases/users/update-my-slug.use-case';
 import type { IGetUserPageUseCase } from '@/src/application/use-cases/users/get-user-page.use-case';
+import type { IRetireMeUseCase } from '@/src/application/use-cases/users/retire-me.use-case';
+import type { IRetireMeController } from '@/src/interface-adapters/controllers/users/retire-me.controller';
 import type { IUpdateMySlugController } from '@/src/interface-adapters/controllers/users/update-my-slug.controller';
 import type { IGetUserPageController } from '@/src/interface-adapters/controllers/users/get-user-page.controller';
 import type { IListPersonalServicesUseCase } from '@/src/application/use-cases/services/list-personal-services.use-case';
@@ -180,6 +182,8 @@ export const DI_SYMBOLS = {
     IUpdateMySlugUseCase: Symbol.for('IUpdateMySlugUseCase'),
     IGetUserPageUseCase: Symbol.for('IGetUserPageUseCase'),
     IUpdateMySlugController: Symbol.for('IUpdateMySlugController'),
+    IRetireMeUseCase: Symbol.for('IRetireMeUseCase'),
+    IRetireMeController: Symbol.for('IRetireMeController'),
     IGetUserPageController: Symbol.for('IGetUserPageController'),
     IListPersonalServicesUseCase: Symbol.for('IListPersonalServicesUseCase'),
     ICreatePersonalServiceUseCase: Symbol.for('ICreatePersonalServiceUseCase'),
@@ -290,6 +294,8 @@ export interface DI_RETURN_TYPES {
     IUpdateMySlugUseCase: IUpdateMySlugUseCase;
     IGetUserPageUseCase: IGetUserPageUseCase;
     IUpdateMySlugController: IUpdateMySlugController;
+    IRetireMeUseCase: IRetireMeUseCase;
+    IRetireMeController: IRetireMeController;
     IGetUserPageController: IGetUserPageController;
     IListPersonalServicesUseCase: IListPersonalServicesUseCase;
     ICreatePersonalServiceUseCase: ICreatePersonalServiceUseCase;

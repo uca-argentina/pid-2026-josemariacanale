@@ -9,6 +9,7 @@ import {
     Switch,
 } from 'radix-ui';
 import { Check, ChevronDown } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/app/_components/ui/avatar';
 import { cn } from '@/app/_components/utils';
 
 // Primitivos del panel (Servicios, Disponibilidad). Si el look se adopta en el resto de la app,
@@ -196,24 +197,21 @@ const initialsOf = (name: string) =>
         .join('')
         .toUpperCase();
 
-/** Círculo navy con las iniciales de un Negocio o de una persona. */
+/** Círculo navy con las iniciales de un Negocio o de una persona; con `imageUrl`, su foto, y las iniciales de respaldo. */
 export function PanelAvatar({
     name,
+    imageUrl,
     className,
 }: {
     name: string;
+    imageUrl?: string | null;
     className?: string;
 }) {
     return (
-        <span
-            aria-hidden
-            className={cn(
-                'flex size-9 shrink-0 items-center justify-center rounded-full bg-[#0f1b2d] text-[12px] font-extrabold text-white',
-                className,
-            )}
-        >
-            {initialsOf(name)}
-        </span>
+        <Avatar aria-hidden className={cn('size-9', className)}>
+            {imageUrl && <AvatarImage src={imageUrl} alt="" />}
+            <AvatarFallback className="bg-[#0f1b2d] text-[12px] font-extrabold text-white">{initialsOf(name)}</AvatarFallback>
+        </Avatar>
     );
 }
 

@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useClerk } from '@clerk/nextjs';
@@ -15,6 +16,7 @@ import {
     Settings,
     Store,
     User,
+    UserX,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/app/_components/ui/avatar';
 import {
@@ -41,6 +43,7 @@ import {
 import { Logo } from '@/app/_components/Logo';
 import { cn } from '@/app/_components/utils';
 import { SIGNED_IN_HOME_PATH, sectionOf } from '@/app/routes';
+import { RetireAccountDialog } from './RetireAccountDialog';
 import type { CurrentBusinessUser, NavItem, SectionId } from './types';
 
 const ICONS: Record<SectionId, React.ComponentType> = {
@@ -57,9 +60,18 @@ const HOVER = 'hover:bg-[#f2f7ff] hover:text-sidebar-foreground';
 
 /**
  * El sidebar del panel: las secciones, con el contador de Turnos pendientes en Turnos, y el Usuario al pie. En el
- * celular es una hoja lateral que se cierra al elegir una sección.
+ * celular es una hoja lateral que se cierra al elegir una sección. `businessName` es el Negocio del Dueño, que el
+ * diálogo de darse de baja nombra; null si no es Dueño.
  */
-export function AppSidebar({ user, navItems }: { user: CurrentBusinessUser; navItems: NavItem[] }) {
+export function AppSidebar({
+    user,
+    navItems,
+    businessName,
+}: {
+    user: CurrentBusinessUser;
+    navItems: NavItem[];
+    businessName: string | null;
+}) {
     const { setOpenMobile } = useSidebar();
 
     return (
@@ -78,7 +90,7 @@ export function AppSidebar({ user, navItems }: { user: CurrentBusinessUser; navI
                 <NavSecondary />
             </SidebarContent>
             <SidebarFooter>
-                <NavUser user={user} />
+                <NavUser user={user} businessName={businessName} />
             </SidebarFooter>
         </Sidebar>
     );
@@ -145,7 +157,8 @@ function NavSecondary() {
     );
 }
 
-function NavUser({ user }: { user: CurrentBusinessUser }) {
+function NavUser({ user, businessName }: { user: CurrentBusinessUser; businessName: string | null }) {
+    const [retiring, setRetiring] = useState(false);
     const { isMobile, setOpenMobile } = useSidebar();
     const { openUserProfile, signOut } = useClerk();
 
@@ -175,6 +188,8 @@ function NavUser({ user }: { user: CurrentBusinessUser }) {
                         side={isMobile ? 'bottom' : 'right'}
                         align="end"
                         className="w-(--radix-dropdown-menu-trigger-width) min-w-[200px]"
+                        // Al cerrarse, el menú devuelve el foco al botón y el diálogo recién abierto lo toma por un clic afuera y se cierra.
+                        onCloseAutoFocus={(event) => retiring && event.preventDefault()}
                     >
                         <DropdownMenuLabel>{user.name}</DropdownMenuLabel>
                         <DropdownMenuItem
@@ -199,9 +214,17 @@ function NavUser({ user }: { user: CurrentBusinessUser }) {
                             <LogOut className="size-[15px]" />
                             Cerrar sesión
                         </DropdownMenuItem>
+                        <DropdownMenuItem
+                            onSelect={() => setRetiring(true)}
+                            className="text-destructive hover:text-destructive focus:text-destructive"
+                        >
+                            <UserX className="size-[15px]" />
+                            Darme de baja
+                        </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
             </SidebarMenuItem>
+            {retiring && <RetireAccountDialog businessName={businessName} onClose={() => setRetiring(false)} />}
         </SidebarMenu>
     );
 }

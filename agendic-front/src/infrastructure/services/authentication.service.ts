@@ -1,3 +1,4 @@
+import { isClerkAPIResponseError } from '@clerk/nextjs/errors';
 import { auth, currentUser } from '@clerk/nextjs/server';
 import type { IAuthenticationService } from '@/src/application/services/authentication.service.interface';
 import { UnauthenticatedError } from '@/src/entities/errors/auth';
@@ -6,7 +7,11 @@ import { userSchema, type User } from '@/src/entities/models/user';
 // The only place in the project that imports the Clerk SDK server-side.
 export class AuthenticationService implements IAuthenticationService {
     async getCurrentUser(): Promise<User> {
-        const clerkUser = await currentUser();
+        const clerkUser = await currentUser().catch((cause: unknown) => {
+            // Darse de baja borra al Usuario en Clerk (ADR 0024) y la Sesión sigue en la cookie hasta que el cliente la cierra: Clerk responde 404.
+            if (isClerkAPIResponseError(cause) && cause.status === 404) throw new UnauthenticatedError('No hay Sesión', { cause });
+            throw cause;
+        });
         if (!clerkUser) throw new UnauthenticatedError('No hay Sesión');
 
         const email = clerkUser.emailAddresses.find((e) => e.id === clerkUser.primaryEmailAddressId)?.emailAddress ?? '';

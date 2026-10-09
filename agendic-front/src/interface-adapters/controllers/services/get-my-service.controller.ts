@@ -28,7 +28,7 @@ const presentService = (service: CatalogService | PersonalService, offeredByMe: 
     slotInterval: service.slotInterval,
     minimumNoticeMinutes: service.minimumNoticeMinutes,
     offeredByMe,
-    employees: 'employees' in service ? service.employees.map((e) => ({ id: e.id, name: e.name })) : [],
+    employees: 'employees' in service ? service.employees.map((e) => ({ id: e.id, name: e.name, imageUrl: e.imageUrl })) : [],
 });
 
 const presentAvailabilities = (availabilities: AvailabilityDetail[] | null) =>
@@ -60,7 +60,7 @@ function presenter(
         employeeId: group.employeeId,
         branch: { id: branch.id, name: branch.name, slug: branch.slug },
         service: presentService(service, service.employees.some((e) => e.id === group.employeeId)),
-        staff: staff && staff.map((e) => ({ id: e.id, name: e.name })),
+        staff: staff && staff.map((e) => ({ id: e.id, name: e.name, imageUrl: e.imageUrl })),
         myAvailabilityId,
         availabilities: presentAvailabilities(availabilities),
     }));

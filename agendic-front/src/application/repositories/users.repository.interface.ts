@@ -31,4 +31,11 @@ export interface IUsersRepository {
      * @throws {ApiRequestError} the back failed or answered an unexpected body
      */
     getPersonalService(userSlug: string, serviceSlug: string): Promise<PersonalService>;
+    /**
+     * Da de baja al Usuario de la Sesión (`DELETE /users/me`, ADR 0024). Repetirla es seguro.
+     *
+     * @throws {AuthProviderDeletionError} el back no pudo borrarlo en el Proveedor de autenticación (502)
+     * @throws {ApiRequestError} any other failure
+     */
+    retireMe(): Promise<void>;
 }
