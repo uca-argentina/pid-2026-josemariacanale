@@ -1,3 +1,4 @@
+import { ClerkAPIResponseError } from '@clerk/nextjs/errors';
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { UnauthenticatedError } from '@/src/entities/errors/auth';
 import { AuthenticationService } from '@/src/infrastructure/services/authentication.service';
@@ -38,6 +39,18 @@ describe('AuthenticationService', () => {
     });
 
     describe('getCurrentUser', () => {
+        it('throws UnauthenticatedError when Clerk no longer has the Usuario (404, dado de baja)', async () => {
+            mockedCurrentUser.mockRejectedValue(new ClerkAPIResponseError('Not Found', { data: [], status: 404 }));
+
+            await expect(authenticationService.getCurrentUser()).rejects.toBeInstanceOf(UnauthenticatedError);
+        });
+
+        it('lets any other Clerk failure through', async () => {
+            mockedCurrentUser.mockRejectedValue(new ClerkAPIResponseError('Server error', { data: [], status: 500 }));
+
+            await expect(authenticationService.getCurrentUser()).rejects.toBeInstanceOf(ClerkAPIResponseError);
+        });
+
         it('returns the Usuario behind the Sesión', async () => {
             mockedCurrentUser.mockResolvedValue(clerkUser() as never);
 
