@@ -3,7 +3,7 @@ import { AlreadyEmployeeError, InvitationNotAcceptableError, InvitationNotPendin
 import { EmployeesRepository } from '@/src/infrastructure/repositories/employees.repository';
 import { authWith } from '@/tests/unit/stubs';
 
-const employee = { id: 3, userId: 9, name: 'Martina', email: 'martina@estudio.com' };
+const employee = { id: 3, userId: 9, name: 'Martina', email: 'martina@estudio.com', imageUrl: null };
 const invitation = { id: 5, email: 'martina@estudio.com', expiresAt: '2026-10-08T00:00:00.000Z' };
 
 const repo = (apiUrl: string | undefined = 'http://api') =>

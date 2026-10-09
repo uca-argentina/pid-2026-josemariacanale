@@ -1,6 +1,7 @@
 import type { IUsersRepository } from '@/src/application/repositories/users.repository.interface';
 import type { IAuthenticationService } from '@/src/application/services/authentication.service.interface';
 import { InvalidSlugError, SlugTakenError } from '@/src/entities/errors/business';
+import { AuthProviderDeletionError } from '@/src/entities/errors/user';
 import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
 import { personalServiceSchema, type PersonalService } from '@/src/entities/models/service';
 import { meSchema, userPageSchema, type Me, type UserPage } from '@/src/entities/models/user';
@@ -76,6 +77,19 @@ export class UsersRepository implements IUsersRepository {
         if (status === 404) throw new NotFoundError(messageOf(json, what, status));
         if (status >= 400) throw apiError(what, status, json);
         return parseOrFail(() => personalServiceSchema.parse(json), what);
+    }
+
+    /**
+     * `DELETE /users/me`.
+     *
+     * @throws {AuthProviderDeletionError} the back answered 502
+     * @throws {ApiRequestError} any other failure; a 403 of a Usuario dado de baja keeps `status` 403
+     */
+    async retireMe(): Promise<void> {
+        const what = 'DELETE /users/me';
+        const { status, json } = await this.request(what, '/users/me', { method: 'DELETE', auth: true });
+        if (status === 502) throw new AuthProviderDeletionError(messageOf(json, what, status));
+        if (status >= 400) throw apiError(what, status, json);
     }
 
     private async request(what: string, path: string, { method, auth, body }: { method: string; auth?: boolean; body?: unknown }) {

@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useClerk } from '@clerk/nextjs';
@@ -12,6 +13,7 @@ import {
     ExternalLink,
     Link as LinkIcon,
     LogOut,
+    UserX,
     User,
 } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback, AvatarBadge } from '@/app/_components/ui/avatar';
@@ -27,6 +29,7 @@ import {
 import { Logo } from '@/app/_components/Logo';
 import { cn } from '@/app/_components/utils';
 import { SIGNED_IN_HOME_PATH } from '@/app/routes';
+import { RetireAccountDialog } from './RetireAccountDialog';
 import type { CurrentBusinessUser, NavItem, SectionId } from './types';
 
 const ICONS: Record<SectionId, React.ComponentType<{ className?: string }>> = {
@@ -38,7 +41,17 @@ const ICONS: Record<SectionId, React.ComponentType<{ className?: string }>> = {
 
 const ITEM = 'flex w-full items-center gap-2.5 rounded-[10px] px-2.5 py-2 text-left font-semibold transition-colors hover:bg-muted';
 
-export function Sidebar({ user, navItems }: { user: CurrentBusinessUser; navItems: NavItem[] }) {
+/** `businessName` es el Negocio del Dueño, que el diálogo de darse de baja nombra; null si no es Dueño. */
+export function Sidebar({
+    user,
+    navItems,
+    businessName,
+}: {
+    user: CurrentBusinessUser;
+    navItems: NavItem[];
+    businessName: string | null;
+}) {
+    const [retiring, setRetiring] = useState(false);
     const pathname = usePathname();
     const { openUserProfile, signOut } = useClerk();
     const isActive = (id: SectionId) => pathname.startsWith(`/${id}`);
@@ -78,6 +91,13 @@ export function Sidebar({ user, navItems }: { user: CurrentBusinessUser; navItem
                             <LogOut className="size-[15px]" />
                             Cerrar sesión
                         </DropdownMenuItem>
+                        <DropdownMenuItem
+                            onSelect={() => setRetiring(true)}
+                            className="text-destructive hover:text-destructive focus:text-destructive"
+                        >
+                            <UserX className="size-[15px]" />
+                            Darme de baja
+                        </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>
@@ -114,6 +134,7 @@ export function Sidebar({ user, navItems }: { user: CurrentBusinessUser; navItem
                     Copiar link para reservar
                 </button>
             </div>
+            {retiring && <RetireAccountDialog businessName={businessName} onClose={() => setRetiring(false)} />}
         </aside>
     );
 }

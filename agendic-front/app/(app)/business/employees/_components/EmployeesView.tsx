@@ -22,7 +22,7 @@ import { RoleBadge, type BusinessRole } from '../../_components/business-ui';
 import { addEmployeeAction, cancelInvitationAction, resendInvitationAction, retireEmployeeAction } from '../actions';
 import { EmployeeSheet } from './EmployeeSheet';
 
-export type EmployeeRow = { id: number; name: string; email: string; role: BusinessRole };
+export type EmployeeRow = { id: number; name: string; email: string; imageUrl: string | null; role: BusinessRole };
 /** Invitación pendiente del Negocio; `expiresAt` es ISO y se muestra en hora de Buenos Aires. */
 export type InvitationRow = { id: number; email: string; expiresAt: string };
 
@@ -178,7 +178,7 @@ export function EmployeesView({
                             <tr key={employee.id} className="transition-colors hover:bg-[#f9fafb]">
                                 <td className="px-6 py-4">
                                     <div className="flex items-center gap-3">
-                                        <PanelAvatar name={employee.name} />
+                                        <PanelAvatar name={employee.name} imageUrl={employee.imageUrl} />
                                         <div className="flex min-w-0 flex-col">
                                             <span className="truncate text-[14px] font-bold tracking-[-0.02em]">{employee.name}</span>
                                             <span className="truncate text-[12.5px] font-medium text-[#6b7280]">{employee.email}</span>

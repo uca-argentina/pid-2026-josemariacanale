@@ -17,7 +17,7 @@ export function EmployeeSheet({ employee, onClose }: { employee: EmployeeRow; on
                         <div className="overflow-hidden rounded-xl border border-[#e5e7eb]">
                             <div className="h-24 bg-linear-to-b from-[#e5e7eb] to-[#f9fafb]" />
                             <div className="-mt-9 flex flex-col gap-3 px-5 pb-5">
-                                <PanelAvatar name={employee.name} className="size-18 text-[20px] ring-4 ring-white" />
+                                <PanelAvatar name={employee.name} imageUrl={employee.imageUrl} className="size-18 text-[20px] ring-4 ring-white" />
                                 <Dialog.Title className="m-0 text-[21px] font-extrabold tracking-[-0.035em]">
                                     {employee.name}
                                 </Dialog.Title>

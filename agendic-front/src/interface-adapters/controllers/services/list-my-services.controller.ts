@@ -25,7 +25,7 @@ function presenter(groups: ServiceCatalogGroup[], instrumentationService: IInstr
                     price: s.price,
                     hidden: s.hidden,
                     offeredByMe: s.employees.some((e) => e.id === group.employeeId),
-                    employees: s.employees.map((e) => ({ id: e.id, name: e.name })),
+                    employees: s.employees.map((e) => ({ id: e.id, name: e.name, imageUrl: e.imageUrl })),
                 })),
             })),
         })),

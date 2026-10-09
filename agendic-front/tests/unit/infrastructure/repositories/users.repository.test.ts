@@ -1,5 +1,6 @@
 import { InvalidSlugError, SlugTakenError } from '@/src/entities/errors/business';
 import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
+import { AuthProviderDeletionError } from '@/src/entities/errors/user';
 import { UsersRepository } from '@/src/infrastructure/repositories/users.repository';
 import { authWith } from '@/tests/unit/stubs';
 
@@ -32,9 +33,9 @@ afterEach(() => jest.restoreAllMocks());
 
 describe('UsersRepository.getMe', () => {
     it('GETs /users/me with the bearer token and keeps the name and the Enlace de reserva', async () => {
-        const fetchSpy = respond(200, { id: 3, name: 'Ana', email: 'ana@x.com', slug: null });
+        const fetchSpy = respond(200, { id: 3, name: 'Ana', email: 'ana@x.com', slug: null, imageUrl: null });
 
-        await expect(repo().getMe()).resolves.toEqual({ name: 'Ana', slug: null });
+        await expect(repo().getMe()).resolves.toEqual({ name: 'Ana', slug: null, imageUrl: null });
         expect(fetchSpy).toHaveBeenCalledWith('http://api/users/me', expect.objectContaining({
             method: 'GET',
             headers: expect.objectContaining({ Authorization: 'Bearer tok' }),
@@ -44,9 +45,9 @@ describe('UsersRepository.getMe', () => {
 
 describe('UsersRepository.updateMySlug', () => {
     it('PATCHes only the slug', async () => {
-        const fetchSpy = respond(200, { id: 3, name: 'Ana', email: 'ana@x.com', slug: 'ana' });
+        const fetchSpy = respond(200, { id: 3, name: 'Ana', email: 'ana@x.com', slug: 'ana', imageUrl: 'https://img.example/ana.png' });
 
-        await expect(repo().updateMySlug('ana')).resolves.toEqual({ name: 'Ana', slug: 'ana' });
+        await expect(repo().updateMySlug('ana')).resolves.toEqual({ name: 'Ana', slug: 'ana', imageUrl: 'https://img.example/ana.png' });
         expect(fetchSpy).toHaveBeenCalledWith('http://api/users/me', expect.objectContaining({
             method: 'PATCH',
             body: JSON.stringify({ slug: 'ana' }),
@@ -99,5 +100,30 @@ describe('UsersRepository.getPersonalService', () => {
         respond(404, { message: 'Service not found' });
 
         await expect(repo().getPersonalService('ana', 'otra')).rejects.toBeInstanceOf(NotFoundError);
+    });
+});
+
+describe('UsersRepository.retireMe', () => {
+    it('DELETEs /users/me with the bearer token and accepts a 204 without body', async () => {
+        const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue(new Response(null, { status: 204 }));
+
+        await expect(repo().retireMe()).resolves.toBeUndefined();
+        expect(fetchSpy).toHaveBeenCalledWith('http://api/users/me', expect.objectContaining({
+            method: 'DELETE',
+            headers: expect.objectContaining({ Authorization: 'Bearer tok' }),
+        }));
+    });
+
+    it('translates a 502 into AuthProviderDeletionError with the back message', async () => {
+        const message = 'No se pudo borrar el Usuario en el Proveedor de autenticación';
+        respond(502, { message });
+
+        await expect(repo().retireMe()).rejects.toThrow(new AuthProviderDeletionError(message));
+    });
+
+    it('keeps the 403 of a Usuario dado de baja as ApiRequestError', async () => {
+        respond(403, { message: 'User 7 is dado de baja' });
+
+        await expect(repo().retireMe()).rejects.toMatchObject({ status: 403 });
     });
 });

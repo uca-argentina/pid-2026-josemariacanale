@@ -6,6 +6,7 @@ export const employeeSchema = z.object({
     userId: z.union([z.number(), z.string()]),
     name: z.string(),
     email: z.string(),
+    imageUrl: z.string().nullable(),
 });
 export type Employee = z.infer<typeof employeeSchema>;
 
