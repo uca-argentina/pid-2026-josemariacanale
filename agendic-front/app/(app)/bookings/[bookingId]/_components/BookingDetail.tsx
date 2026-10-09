@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { cn } from '@/app/_components/utils';
 import { PanelButton } from '@/app/(app)/_components/panel-ui';
 import { cancelBookingAction } from '@/app/(app)/bookings/actions';
-import { formatLongDate, formatTimeRange, isClosed, TIME_ZONE_LABEL, type Booking } from '@/app/(app)/bookings/_components/booking-helpers';
+import { formatLongDate, formatTimeRange, isClosed, placeOf, TIME_ZONE_LABEL, type Booking } from '@/app/(app)/bookings/_components/booking-helpers';
 
 const GREEN = 'bg-[#e6f6ec] text-[#15803d]';
 const RED = 'bg-[#fdecec] text-[#b91c1c]';
@@ -91,7 +91,9 @@ export function BookingDetail({ booking, now, startCancelling }: { booking: Book
                             {booking.clientEmail}
                         </a>
                     </Row>
-                    <Row label="Dónde">{booking.businessName} · Sucursal {booking.branchName}</Row>
+                    <Row label="Dónde">
+                        {booking.business && booking.branch ? `${booking.business.name} · Sucursal ${booking.branch.name}` : placeOf(booking)}
+                    </Row>
                 </dl>
 
                 {cancelling ? (

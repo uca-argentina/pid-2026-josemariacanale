@@ -1,4 +1,4 @@
-import { Booking, ClientBooking, EmployeeBooking } from '../../domain/bookings/booking';
+import { Booking, ClientBooking, UserBooking } from '../../domain/bookings/booking';
 
 export const presentBooking = (booking: Booking) => ({
   id: booking.id,
@@ -23,8 +23,8 @@ export const presentBookingWithNoShow = (booking: Booking) => ({
   noShowAt: booking.noShowAt,
 });
 
-/** Mis turnos: the Cliente's data and where the Turno happens, for the assigned Empleado. */
-export const presentEmployeeBooking = (booking: EmployeeBooking) => ({
+/** Mis turnos (ADR 0023): the Cliente's data and where the Turno happens, for the Usuario who attends it. */
+export const presentUserBooking = (booking: UserBooking) => ({
   id: booking.id,
   employeeId: booking.employeeId,
   status: booking.status,
@@ -35,10 +35,8 @@ export const presentEmployeeBooking = (booking: EmployeeBooking) => ({
   noShowAt: booking.noShowAt,
   serviceId: booking.serviceId,
   serviceName: booking.serviceName,
-  businessId: booking.businessId,
-  businessName: booking.businessName,
-  branchId: booking.branchId,
-  branchName: booking.branchName,
+  business: booking.business,
+  branch: booking.branch,
 });
 
 /** Enlace del Turno: el Turno con los datos de dónde pasa, para quien abre su Enlace. */

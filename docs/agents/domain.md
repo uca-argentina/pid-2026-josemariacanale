@@ -61,7 +61,7 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | Ausencia | `Booking.noShowAt` (marcado a mano; no reemplaza `status`) |
 | Reservar | `book` |
 | Reagendar | `reschedule` (`RescheduleBookingUseCase`); por Enlace del Turno, `reschedulePendingOrBooked` (`RescheduleBookingByLinkUseCase`) |
-| Mis turnos del Empleado | `EmployeeBooking` (`GET /employees/me/bookings`) |
+| Mis turnos del Usuario (ADR 0023) | `UserBooking` (`GET /users/me/bookings`) |
 | Cancelar | `cancel` (del Empleado); por Enlace del Turno, `cancelPendingOrBooked` (también sobre `PENDING`) |
 | Dar de baja | `retire` (`Service.retiredAt`, `Employee.retiredAt`) |
 | Sesión / Iniciar sesión / Cerrar sesión | `Session` / `signIn` / `signOut` |

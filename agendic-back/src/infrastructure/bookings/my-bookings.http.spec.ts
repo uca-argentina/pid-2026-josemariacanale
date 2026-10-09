@@ -41,7 +41,7 @@ const AVAILABILITY: Availability = {
   overrides: [],
 };
 
-describe('Mis turnos del Empleado', () => {
+describe('Mis turnos del Usuario', () => {
   let t: TestApp;
 
   beforeEach(async () => {
@@ -53,43 +53,36 @@ describe('Mis turnos del Empleado', () => {
   });
   afterEach(() => t.app.close());
 
-  describe('GET /employees/me/bookings', () => {
-    const employeeBooking = (
-      id: number,
-      employeeId: number,
-      businessId: number,
-      branchName: string,
-    ) => ({
-      ...BOOKED,
-      id,
-      employeeId,
-      serviceName: 'Haircut',
-      businessId,
-      businessName: `Negocio ${businessId}`,
-      branchId: businessId * 10,
-      branchName,
-    });
-
-    it('lists the Turnos of every Negocio where the Usuario is an active Empleado', async () => {
-      t.employees.listActiveByUser.mockResolvedValue([
-        ANAS_EMPLOYEE,
-        { ...ANAS_EMPLOYEE, id: 2, businessId: 2 },
-      ]);
-      t.bookings.listByEmployees.mockResolvedValue([
-        employeeBooking(1, 1, 1, 'Downtown'),
-        employeeBooking(2, 2, 2, 'Uptown'),
+  describe('GET /users/me/bookings', () => {
+    it('lists the Turnos the Usuario attends, with where they happen', async () => {
+      t.bookings.listByUser.mockResolvedValue([
+        {
+          ...BOOKED,
+          id: 1,
+          serviceName: 'Haircut',
+          business: { id: 1, name: 'Negocio 1' },
+          branch: { id: 10, name: 'Downtown' },
+        },
+        {
+          ...BOOKED,
+          id: 2,
+          employeeId: null,
+          serviceName: 'Clase de guitarra',
+          business: null,
+          branch: null,
+        },
       ]);
 
       const res = await t.http
-        .get('/employees/me/bookings')
+        .get('/users/me/bookings')
         .set(bearer(CLERK_TOKEN))
         .expect(200);
 
-      expect(t.bookings.listByEmployees).toHaveBeenCalledWith([1, 2]);
+      expect(t.bookings.listByUser).toHaveBeenCalledWith(ANAS_EMPLOYEE.userId);
       expect(res.body).toEqual([
         {
           id: 1,
-          employeeId: 1,
+          employeeId: ANAS_EMPLOYEE.id,
           status: 'BOOKED',
           startsAt: BOOKED.startsAt.toISOString(),
           endsAt: BOOKED.endsAt.toISOString(),
@@ -98,33 +91,27 @@ describe('Mis turnos del Empleado', () => {
           noShowAt: null,
           serviceId: ANAS_SERVICE.id,
           serviceName: 'Haircut',
-          businessId: 1,
-          businessName: 'Negocio 1',
-          branchId: 10,
-          branchName: 'Downtown',
+          business: { id: 1, name: 'Negocio 1' },
+          branch: { id: 10, name: 'Downtown' },
         },
         expect.objectContaining({
           id: 2,
-          businessId: 2,
-          branchName: 'Uptown',
+          employeeId: null,
+          business: null,
+          branch: null,
         }),
       ]);
     });
 
-    it('answers 200 with an empty list when the Usuario is no active Empleado', async () => {
-      t.employees.listActiveByUser.mockResolvedValue([]);
-
-      const res = await t.http
-        .get('/employees/me/bookings')
-        .set(bearer(CLERK_TOKEN))
-        .expect(200);
-
-      expect(res.body).toEqual([]);
-      expect(t.bookings.listByEmployees).not.toHaveBeenCalled();
+    it('answers 401 without a Sesión', async () => {
+      await t.http.get('/users/me/bookings').expect(401);
     });
 
-    it('answers 401 without a Sesión', async () => {
-      await t.http.get('/employees/me/bookings').expect(401);
+    it('no longer answers on the Empleado path', async () => {
+      await t.http
+        .get('/employees/me/bookings')
+        .set(bearer(CLERK_TOKEN))
+        .expect(404);
     });
   });
 

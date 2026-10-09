@@ -176,7 +176,7 @@ export async function createTestApp() {
     findByLink: jest.fn(),
     listByBusiness: jest.fn(),
     listOccupiedByUser: jest.fn(),
-    listByEmployees: jest.fn(),
+    listByUser: jest.fn(),
     cancel: jest.fn(),
     cancelPendingOrBooked: jest.fn(),
     reschedule: jest.fn(),

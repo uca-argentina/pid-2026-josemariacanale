@@ -1,6 +1,6 @@
 import type { DI_RETURN_TYPES } from '@/di/types';
 
-/** Un Turno de la lista "mis turnos" del Empleado, como lo arma el controller. */
+/** Un Turno de Mis turnos del Usuario, como lo arma el controller. */
 export type Booking = Awaited<ReturnType<DI_RETURN_TYPES['IListMyBookingsController']>>[number];
 
 /** Pestañas de la lista de Turnos. */
@@ -19,6 +19,9 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** El instante de `day` (`YYYY-MM-DD`) a la hora `hhmm` en la hora de la Sucursal. */
 export const localInstant = (day: string, hhmm: string) => new Date(`${day}T${hhmm}:00${UTC_OFFSET}`);
+
+/** Dónde pasa el Turno: "Negocio · Sucursal", o "Servicio personal" si no tiene Negocio. */
+export const placeOf = (b: Booking) => (b.business && b.branch ? `${b.business.name} · ${b.branch.name}` : 'Servicio personal');
 
 export const isClosed = (b: Booking) => b.status === 'CANCELLED' || b.status === 'REJECTED';
 
@@ -90,7 +93,7 @@ export type BookingFilter = { field: ListField; values: string[] } | { field: Te
 
 const LIST_VALUE: Record<ListField, (b: Booking) => string> = {
     service: (b) => b.serviceName,
-    branch: (b) => `${b.businessName} · ${b.branchName}`,
+    branch: placeOf,
 };
 
 /** El valor que un filtro de lista compara y ofrece como opción. */

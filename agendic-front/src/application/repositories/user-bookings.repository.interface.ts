@@ -1,18 +1,18 @@
-import type { EmployeeBooking } from '@/src/entities/models/employee-booking';
+import type { UserBooking } from '@/src/entities/models/user-booking';
 
 /**
- * Turnos del Empleado con Sesión.
+ * Turnos que atiende el Usuario con Sesión.
  *
- * Las acciones las puede hacer solo el Empleado asignado al Turno; el back responde 403 si no lo es
+ * Las acciones las puede hacer solo quien atiende el Turno; el back responde 403 si no lo es
  * y 404 si el Turno no existe.
  */
-export interface IEmployeeBookingsRepository {
+export interface IUserBookingsRepository {
     /**
-     * Los Turnos de todos los Negocios donde el Usuario es Empleado activo; vacía si no es Empleado.
+     * Los Turnos de sus Servicios personales y de los Negocios donde es Empleado activo (ADR 0023).
      *
      * @throws {UnauthenticatedError} no hay Sesión válida (401)
      */
-    listMyBookings(): Promise<EmployeeBooking[]>;
+    listMyBookings(): Promise<UserBooking[]>;
 
     /**
      * Acepta un Turno pendiente.
