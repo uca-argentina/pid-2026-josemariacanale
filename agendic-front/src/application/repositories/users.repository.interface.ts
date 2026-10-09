@@ -32,9 +32,9 @@ export interface IUsersRepository {
      */
     getPersonalService(userSlug: string, serviceSlug: string): Promise<PersonalService>;
     /**
-     * Da de baja al Usuario de la Sesión (`DELETE /users/me`, ADR 0023). Repetirla es seguro.
+     * Da de baja al Usuario de la SesiÃ³n (`DELETE /users/me`, ADR 0023). Repetirla es seguro.
      *
-     * @throws {AuthProviderDeletionError} el back no pudo borrarlo en el Proveedor de autenticación (502)
+     * @throws {AuthProviderDeletionError} el back no pudo borrarlo en el Proveedor de autenticaciÃ³n (502)
      * @throws {ApiRequestError} any other failure
      */
     retireMe(): Promise<void>;

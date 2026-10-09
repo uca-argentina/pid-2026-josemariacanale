@@ -8,7 +8,7 @@ export function isSessionExpired(error: unknown): boolean {
     return error instanceof UnauthenticatedError || (error instanceof ApiRequestError && error.status === 401);
 }
 
-/** A 403 of a Usuario dado de baja (ADR 0023): the Sesión is still open in Clerk but the back rejects it for good. */
+/** A 403 of a Usuario dado de baja (ADR 0023): the SesiÃ³n is still open in Clerk but the back rejects it for good. */
 export function isUserDeactivated(error: unknown): boolean {
-    return error instanceof ApiRequestError && error.status === 403 && /dado de baja/i.test(error.message);
+    return error instanceof ApiRequestError && error.status === 403 && /^User .+ is dado de baja$/.test(error.message);
 }

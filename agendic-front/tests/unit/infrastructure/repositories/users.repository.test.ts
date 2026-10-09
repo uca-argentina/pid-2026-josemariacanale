@@ -115,7 +115,7 @@ describe('UsersRepository.retireMe', () => {
     });
 
     it('translates a 502 into AuthProviderDeletionError with the back message', async () => {
-        const message = 'No se pudo borrar el Usuario en el Proveedor de autenticación';
+        const message = 'No se pudo borrar el Usuario en el Proveedor de autenticaciÃ³n';
         respond(502, { message });
 
         await expect(repo().retireMe()).rejects.toThrow(new AuthProviderDeletionError(message));
