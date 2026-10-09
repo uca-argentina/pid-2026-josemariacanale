@@ -211,6 +211,7 @@ describe('Servicio personal', () => {
         description: 'Hair and nails',
         ownerId: ANA.id,
         slug: 'anas-salon',
+        deletedAt: null,
       });
 
       await t.http

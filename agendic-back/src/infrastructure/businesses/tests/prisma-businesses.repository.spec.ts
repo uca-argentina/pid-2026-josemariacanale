@@ -15,6 +15,7 @@ const ANAS_BUSINESS: Business = {
   description: 'Hair and nails',
   ownerId: 1,
   slug: 'anas-salon',
+  deletedAt: null,
 };
 
 const knownError = (code: string) =>
@@ -112,6 +113,7 @@ describe('PrismaBusinessesRepository', () => {
     business: {
       create: jest.fn(),
       findUnique: jest.fn(),
+      findFirst: jest.fn(),
       findMany: jest.fn(),
       update: jest.fn(),
     },
@@ -305,23 +307,24 @@ describe('PrismaBusinessesRepository', () => {
       repository.listByOwner(ANAS_BUSINESS.ownerId),
     ).resolves.toEqual([ANAS_BUSINESS]);
     expect(prisma.business.findMany).toHaveBeenCalledWith({
-      where: { ownerId: ANAS_BUSINESS.ownerId },
+      where: { ownerId: ANAS_BUSINESS.ownerId, deletedAt: null },
     });
   });
 
   it('finds a Business by its slug', async () => {
-    prisma.business.findUnique.mockResolvedValue(ANAS_BUSINESS);
+    prisma.business.findFirst.mockResolvedValue(ANAS_BUSINESS);
 
     await expect(repository.findBySlug(ANAS_BUSINESS.slug)).resolves.toEqual(
       ANAS_BUSINESS,
     );
-    expect(prisma.business.findUnique).toHaveBeenCalledWith({
-      where: { slug: ANAS_BUSINESS.slug },
+    // A Negocio dado de baja no abre por su Enlace de reserva, pero su slug sigue ocupado.
+    expect(prisma.business.findFirst).toHaveBeenCalledWith({
+      where: { slug: ANAS_BUSINESS.slug, deletedAt: null },
     });
   });
 
   it('returns null when no Business has that slug', async () => {
-    prisma.business.findUnique.mockResolvedValue(null);
+    prisma.business.findFirst.mockResolvedValue(null);
 
     await expect(repository.findBySlug('unknown-slug')).resolves.toBeNull();
   });
@@ -332,7 +335,7 @@ describe('PrismaBusinessesRepository', () => {
       update: () => repository.update(1, { name: 'New name' }),
     };
     const prismaCall = {
-      findById: prisma.business.findUnique,
+      findById: prisma.business.findFirst,
       update: prisma.business.update,
     };
 

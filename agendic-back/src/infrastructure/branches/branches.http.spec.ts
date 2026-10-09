@@ -25,6 +25,7 @@ const BRUNOS_BUSINESS = {
   description: 'Weights',
   ownerId: BRUNO.id,
   slug: 'brunos-gym',
+  deletedAt: null,
 };
 
 const BRANCH = {

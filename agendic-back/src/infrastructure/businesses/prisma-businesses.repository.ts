@@ -76,14 +76,14 @@ export class PrismaBusinessesRepository implements BusinessesRepository {
 
   async findById(id: number) {
     const row = await this.prisma.business
-      .findUnique({ where: { id } })
+      .findFirst({ where: { id, deletedAt: null } })
       .catch(translateError);
     return row && toBusiness(row);
   }
 
   async findBySlug(slug: string) {
     const row = await this.prisma.business
-      .findUnique({ where: { slug } })
+      .findFirst({ where: { slug, deletedAt: null } })
       .catch(translateError);
     return row && toBusiness(row);
   }
@@ -91,7 +91,7 @@ export class PrismaBusinessesRepository implements BusinessesRepository {
   async listByOwner(ownerId: number) {
     return (
       await this.prisma.business
-        .findMany({ where: { ownerId } })
+        .findMany({ where: { ownerId, deletedAt: null } })
         .catch(translateError)
     ).map(toBusiness);
   }
@@ -114,6 +114,7 @@ const toBusiness = (row: BusinessRow): Business => ({
   description: row.description,
   ownerId: row.ownerId,
   slug: row.slug,
+  deletedAt: row.deletedAt,
 });
 
 const CONFLICT_BY_INDEX: Record<string, string> = {

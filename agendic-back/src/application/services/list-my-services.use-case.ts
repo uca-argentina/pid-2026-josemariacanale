@@ -50,9 +50,11 @@ export class ListMyServicesUseCase {
    */
   async execute(userId: number): Promise<ServiceCatalogGroup[]> {
     const employees = await this.employees.listActiveByUser(userId);
-    return Promise.all(
+    const groups = await Promise.all(
       employees.map(async (employee) => {
-        const business = (await this.businesses.findById(employee.businessId))!;
+        const business = await this.businesses.findById(employee.businessId);
+        // Un Negocio dado de baja deja de verse, aunque quede un Empleado suyo activo.
+        if (!business) return null;
         const isOwner = business.ownerId === userId;
         const branches = (await this.branches.listByBusiness(business.id)).sort(
           (a, b) => a.slug.localeCompare(b.slug),
@@ -77,5 +79,6 @@ export class ListMyServicesUseCase {
         };
       }),
     );
+    return groups.filter((group) => group !== null);
   }
 }

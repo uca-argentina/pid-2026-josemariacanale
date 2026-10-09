@@ -42,7 +42,7 @@ model User {
   email     String
   slug      String?  @unique // Enlace de reserva del Usuario: /u/<slug>, always lowercase; null until they choose it (ADR 0021)
   imageUrl  String? // foto de perfil: Clerk's, seeded on creation only; never refreshed after
-  deletedAt DateTime? @db.Timestamptz(3) // when dado de baja (ADR 0023); null while active
+  deletedAt DateTime? @db.Timestamptz(3) // when dado de baja (ADR 0024); null while active
   createdAt DateTime @default(now()) @db.Timestamptz(3)
 
   businesses     Business[]
@@ -58,6 +58,7 @@ model Business {
   description String
   ownerId     Int    @unique // un Usuario es Dueño de a lo sumo un Negocio (ADR 0012)
   slug        String @unique // Enlace de reserva: /business/<slug>, always lowercase
+  deletedAt   DateTime? @db.Timestamptz(3) // cuándo se dio de baja con su Dueño (ADR 0024); null mientras está activo, también en las filas previas a la migración
 
   owner       User         @relation(fields: [ownerId], references: [id])
   branches    Branch[]

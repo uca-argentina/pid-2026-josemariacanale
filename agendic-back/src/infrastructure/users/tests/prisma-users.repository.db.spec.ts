@@ -1,5 +1,7 @@
 import 'dotenv/config';
 import { PrismaService } from '../../prisma.service';
+import { PrismaBusinessesRepository } from '../../businesses/prisma-businesses.repository';
+import { PrismaServicesRepository } from '../../services/prisma-services.repository';
 import { PrismaUsersRepository } from '../prisma-users.repository';
 
 /** Runs against the real database: the cascade of Dar de baja un Usuario spans five tables (ADR 0024). */
@@ -55,6 +57,7 @@ describe('PrismaUsersRepository.retire (real database)', () => {
   afterAll(async () => {
     const userIds = created.userIds;
     await prisma.booking.deleteMany({ where: { userId: { in: userIds } } });
+    await prisma.invitation.deleteMany({ where: { businessId: { in: created.businessIds } } });
     await prisma.employeeService.deleteMany({
       where: { employee: { userId: { in: userIds } } },
     });
@@ -156,6 +159,79 @@ describe('PrismaUsersRepository.retire (real database)', () => {
     expect((await prisma.employee.findUniqueOrThrow({ where: { id: ownerEmployee.id } })).deletedAt).toBeNull();
   }, 60_000);
 
+  it('retires a Dueño with their Negocio: all its Servicios and Staff, future Turnos and open Invitaciones, keeping Sucursales', async () => {
+    const { user: owner, availability } = await makeUser('boss');
+    const { user: worker, availability: workerAvailability } = await makeUser('worker');
+    const { user: client } = await makeUser('client');
+    const business = await prisma.business.create({
+      data: { name: `${tag}-boss`, description: tag, ownerId: owner.id, slug: `${tag}-boss` },
+    });
+    created.businessIds.push(business.id);
+    const branch = await prisma.branch.create({
+      data: {
+        businessId: business.id,
+        name: 'Downtown',
+        address: '123 Main St',
+        timeZone: 'America/Argentina/Buenos_Aires',
+        slug: 'downtown',
+      },
+    });
+    const service = await prisma.service.create({
+      data: {
+        branchId: branch.id,
+        name: `${tag}-boss-service`,
+        slug: `${tag}-boss-service`,
+        category: 'CLINICA',
+        durationMinutes: 60,
+        price: 1,
+      },
+    });
+    const ownerEmployee = await prisma.employee.create({ data: { userId: owner.id, businessId: business.id } });
+    const workerEmployee = await prisma.employee.create({ data: { userId: worker.id, businessId: business.id } });
+    await prisma.employeeService.createMany({
+      data: [
+        { employeeId: ownerEmployee.id, serviceId: service.id, availabilityId: availability.id },
+        { employeeId: workerEmployee.id, serviceId: service.id, availabilityId: workerAvailability.id },
+      ],
+    });
+    const open = await prisma.invitation.create({
+      data: { businessId: business.id, email: `${tag}-open@example.com`, expiresAt: at(0) },
+    });
+    const workersFuture = await book(client.id, service.id, workerEmployee.id, at(12), 'BOOKED', 'boss-workers');
+    const pending = await book(client.id, service.id, ownerEmployee.id, at(14), 'PENDING', 'boss-pending');
+    const past = await book(client.id, service.id, workerEmployee.id, at(10, 2020), 'BOOKED', 'boss-past');
+
+    const result = await repository.retire(owner.id, NOW);
+
+    expect(result).toEqual({ cancelledBookings: 2 });
+    expect((await prisma.business.findUniqueOrThrow({ where: { id: business.id } })).deletedAt).toEqual(NOW);
+    const retiredService = await prisma.service.findUniqueOrThrow({ where: { id: service.id } });
+    expect(retiredService.deletedAt).toEqual(NOW);
+    expect(retiredService.availabilityId).toBeNull();
+    const staff = await prisma.employee.findMany({ where: { businessId: business.id } });
+    expect(staff.map((e) => e.deletedAt)).toEqual([NOW, NOW]);
+    expect(await prisma.employeeService.count({ where: { serviceId: service.id } })).toBe(0);
+    expect((await prisma.invitation.findUniqueOrThrow({ where: { id: open.id } })).closedAt).toEqual(NOW);
+    const statusOf = async (id: number) => (await prisma.booking.findUniqueOrThrow({ where: { id } })).status;
+    expect(await statusOf(workersFuture.id)).toBe('CANCELLED');
+    expect(await statusOf(pending.id)).toBe('CANCELLED');
+    expect(await statusOf(past.id)).toBe('BOOKED');
+    expect(await prisma.branch.count({ where: { businessId: business.id } })).toBe(1);
+    expect((await prisma.user.findUniqueOrThrow({ where: { id: worker.id } })).deletedAt).toBeNull();
+
+    // Lo dado de baja deja de verse, pero su Enlace de reserva sigue ocupado.
+    const businesses = new PrismaBusinessesRepository(prisma);
+    expect(await businesses.findBySlug(business.slug)).toBeNull();
+    expect(await businesses.findById(business.id)).toBeNull();
+    expect(await businesses.listByOwner(owner.id)).toEqual([]);
+    expect(await new PrismaServicesRepository(prisma).findActiveBySlug(branch.id, service.slug)).toBeNull();
+    await expect(
+      prisma.business.create({
+        data: { name: tag, description: tag, ownerId: client.id, slug: business.slug },
+      }),
+    ).rejects.toMatchObject({ code: 'P2002' });
+  }, 60_000);
+
   it('findByEmail ignores a Usuario dado de baja, so inviting that email reaches Clerk again', async () => {
     const { user } = await makeUser('findbyemail');
     expect((await repository.findByEmail(user.email))?.id).toBe(user.id);
@@ -163,5 +239,20 @@ describe('PrismaUsersRepository.retire (real database)', () => {
     await repository.retire(user.id, NOW);
 
     expect(await repository.findByEmail(user.email)).toBeNull();
+  }, 60_000);
+
+  it('findByEmail counts the active Usuario when a dado de baja shares the email', async () => {
+    const { user: retired } = await makeUser('sameemail-old');
+    const active = await prisma.user.create({
+      data: {
+        clerkId: `${tag}-sameemail-new`,
+        name: `${tag}-sameemail-new`,
+        email: retired.email,
+      },
+    });
+    created.userIds.push(active.id);
+    await repository.retire(retired.id, NOW);
+
+    expect((await repository.findByEmail(retired.email))?.id).toBe(active.id);
   }, 60_000);
 });

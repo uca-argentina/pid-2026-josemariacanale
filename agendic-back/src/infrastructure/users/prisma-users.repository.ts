@@ -106,16 +106,43 @@ export class PrismaUsersRepository implements UsersRepository {
           where: { userId: id, deletedAt: null },
           data: { deletedAt },
         });
-        const cancelledBookings = await cancelFutureBooked(
-          tx,
-          { userId: id },
-          deletedAt,
-        );
+        const ownCancelled = await cancelFutureBooked(tx, { userId: id }, deletedAt);
+        const business = await tx.business.findUnique({
+          where: { ownerId: id },
+          select: { id: true },
+        });
+        const businessCancelled = business
+          ? await retireBusiness(tx, business.id, deletedAt)
+          : 0;
+        const cancelledBookings = ownCancelled + businessCancelled;
         return { cancelledBookings };
       })
       .catch(translateError);
   }
 }
+
+/** El Negocio cae con su Dueño: todo su Staff y sus Servicios, no solo lo del Dueño. Devuelve los Turnos cancelados. */
+const retireBusiness = async (
+  tx: Prisma.TransactionClient,
+  businessId: number,
+  deletedAt: Date,
+) => {
+  await tx.business.update({ where: { id: businessId }, data: { deletedAt } });
+  await tx.service.updateMany({
+    where: { branch: { businessId }, deletedAt: null },
+    data: { deletedAt, availabilityId: null },
+  });
+  await tx.employeeService.deleteMany({ where: { employee: { businessId } } });
+  await tx.employee.updateMany({
+    where: { businessId, deletedAt: null },
+    data: { deletedAt },
+  });
+  await tx.invitation.updateMany({
+    where: { businessId, closedAt: null },
+    data: { closedAt: deletedAt },
+  });
+  return cancelFutureBooked(tx, { businessId }, deletedAt);
+};
 
 const toUser = (row: UserRow): User => ({
   id: row.id,
