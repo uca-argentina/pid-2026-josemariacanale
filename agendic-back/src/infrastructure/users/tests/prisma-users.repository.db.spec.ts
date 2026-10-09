@@ -4,7 +4,7 @@ import { PrismaBusinessesRepository } from '../../businesses/prisma-businesses.r
 import { PrismaServicesRepository } from '../../services/prisma-services.repository';
 import { PrismaUsersRepository } from '../prisma-users.repository';
 
-/** Runs against the real database: the cascade of Dar de baja un Usuario spans five tables (ADR 0023). */
+/** Runs against the real database: the cascade of Dar de baja un Usuario spans five tables (ADR 0024). */
 describe('PrismaUsersRepository.retire (real database)', () => {
   const prisma = new PrismaService();
   const repository = new PrismaUsersRepository(prisma);

@@ -7,7 +7,7 @@ import { retireMeAction } from '@/app/(app)/actions';
 import { PanelButton, PanelDialog, PanelDialogClose } from './panel-ui';
 
 /**
- * Confirma darse de baja (ADR 0023). Con `ok` el back ya dio de baja al Usuario y con `deactivated` ya lo había hecho
+ * Confirma darse de baja (ADR 0024). Con `ok` el back ya dio de baja al Usuario y con `deactivated` ya lo había hecho
  * antes: en ambos casos se cierra la Sesión de Clerk y se vuelve al inicio. Ante un error el diálogo queda
  * abierto para reintentar, que es seguro. `businessName` es el Negocio del Dueño, que el aviso nombra; null si no es Dueño.
  */

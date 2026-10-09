@@ -1,4 +1,4 @@
-import type { IEmployeeBookingsRepository } from '@/src/application/repositories/employee-bookings.repository.interface';
+import type { IUserBookingsRepository } from '@/src/application/repositories/user-bookings.repository.interface';
 import type { IAuthenticationService } from '@/src/application/services/authentication.service.interface';
 import { UnauthenticatedError } from '@/src/entities/errors/auth';
 import {
@@ -9,16 +9,16 @@ import {
     SlotUnavailableError,
 } from '@/src/entities/errors/booking';
 import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
-import { employeeBookingSchema, type EmployeeBooking } from '@/src/entities/models/employee-booking';
+import { userBookingSchema, type UserBooking } from '@/src/entities/models/user-booking';
 
 /**
- * Turnos del Empleado contra la API del back.
+ * Turnos que atiende el Usuario contra la API del back.
  *
  * Cada método traduce el status del back así: 401 a `UnauthenticatedError`, 403 a
  * `BookingNotAllowedError`, 404 a `NotFoundError`, 409 a `SlotTakenError`, 422 a `BookingStateError`;
  * cualquier otro no-OK, o una falla de red, a `ApiRequestError`.
  */
-export class EmployeeBookingsRepository implements IEmployeeBookingsRepository {
+export class UserBookingsRepository implements IUserBookingsRepository {
     constructor(
         private readonly authenticationService: IAuthenticationService,
         private readonly apiUrl = process.env.API_URL,
@@ -28,12 +28,12 @@ export class EmployeeBookingsRepository implements IEmployeeBookingsRepository {
      * @throws {UnauthenticatedError} la API respondió 401
      * @throws {ApiRequestError} falla de red, otro status no-OK o cuerpo inesperado
      */
-    async listMyBookings(): Promise<EmployeeBooking[]> {
-        const json = await this.request('GET', '/employees/me/bookings');
+    async listMyBookings(): Promise<UserBooking[]> {
+        const json = await this.request('GET', '/users/me/bookings');
         try {
-            return employeeBookingSchema.array().parse(json);
+            return userBookingSchema.array().parse(json);
         } catch (cause) {
-            throw new ApiRequestError('GET /employees/me/bookings responded with an unexpected body', { cause });
+            throw new ApiRequestError('GET /users/me/bookings responded with an unexpected body', { cause });
         }
     }
 

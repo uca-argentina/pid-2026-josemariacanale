@@ -14,6 +14,13 @@ export const bookingLinkPath = (businessSlug: string, branchSlug?: string, servi
 /** La ruta del Enlace de reserva de un Usuario (ADR 0021): sus Servicios personales, o uno ya elegido. */
 export const userLinkPath = (userSlug: string, serviceSlug?: string) => ['/u', userSlug, serviceSlug].filter(Boolean).join('/');
 
+/**
+ * La sección del panel en la que está `pathname`: la que tiene esa ruta o un prefijo de ella por tramos, así una
+ * subpantalla (`/services/12`) sigue en su sección. `null` si no está en ninguna.
+ */
+export const sectionOf = <T extends { href: string }>(pathname: string, sections: T[]) =>
+    sections.find(({ href }) => pathname === href || pathname.startsWith(`${href}/`)) ?? null;
+
 /** La ruta del Enlace del Turno (ADR 0022): ese Turno solo, sin Código de verificación. */
 export const bookingPath = (link: string) => `/turnos/${link}`;
 

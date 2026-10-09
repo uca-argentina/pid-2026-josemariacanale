@@ -68,7 +68,7 @@ import type { IListPersonalServicesUseCase } from '@/src/application/use-cases/s
 import type { ICreatePersonalServiceUseCase } from '@/src/application/use-cases/services/create-personal-service.use-case';
 import type { IListMyPersonalServicesController } from '@/src/interface-adapters/controllers/services/list-my-personal-services.controller';
 import type { ICreatePersonalServiceController } from '@/src/interface-adapters/controllers/services/create-personal-service.controller';
-import type { IEmployeeBookingsRepository } from '@/src/application/repositories/employee-bookings.repository.interface';
+import type { IUserBookingsRepository } from '@/src/application/repositories/user-bookings.repository.interface';
 import type { IListMyBookingsUseCase } from '@/src/application/use-cases/bookings/list-my-bookings.use-case';
 import type { IListMyBookingsController } from '@/src/interface-adapters/controllers/bookings/list-my-bookings.controller';
 import type { IMarkBookingNoShowUseCase } from '@/src/application/use-cases/bookings/mark-booking-no-show.use-case';
@@ -112,7 +112,7 @@ export const DI_SYMBOLS = {
     IPublicBusinessesRepository: Symbol.for('IPublicBusinessesRepository'),
     IEmployeesRepository: Symbol.for('IEmployeesRepository'),
     IBookingsRepository: Symbol.for('IBookingsRepository'),
-    IEmployeeBookingsRepository: Symbol.for('IEmployeeBookingsRepository'),
+    IUserBookingsRepository: Symbol.for('IUserBookingsRepository'),
     IClientBookingsRepository: Symbol.for('IClientBookingsRepository'),
     IAvailabilitiesRepository: Symbol.for('IAvailabilitiesRepository'),
     IServicesRepository: Symbol.for('IServicesRepository'),
@@ -224,7 +224,7 @@ export interface DI_RETURN_TYPES {
     IPublicBusinessesRepository: IPublicBusinessesRepository;
     IEmployeesRepository: IEmployeesRepository;
     IBookingsRepository: IBookingsRepository;
-    IEmployeeBookingsRepository: IEmployeeBookingsRepository;
+    IUserBookingsRepository: IUserBookingsRepository;
     IClientBookingsRepository: IClientBookingsRepository;
     IAvailabilitiesRepository: IAvailabilitiesRepository;
     IServicesRepository: IServicesRepository;

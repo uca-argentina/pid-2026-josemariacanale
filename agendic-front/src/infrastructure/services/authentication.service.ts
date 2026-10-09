@@ -8,7 +8,7 @@ import { userSchema, type User } from '@/src/entities/models/user';
 export class AuthenticationService implements IAuthenticationService {
     async getCurrentUser(): Promise<User> {
         const clerkUser = await currentUser().catch((cause: unknown) => {
-            // Darse de baja borra al Usuario en Clerk (ADR 0023) y la Sesión sigue en la cookie hasta que el cliente la cierra: Clerk responde 404.
+            // Darse de baja borra al Usuario en Clerk (ADR 0024) y la Sesión sigue en la cookie hasta que el cliente la cierra: Clerk responde 404.
             if (isClerkAPIResponseError(cause) && cause.status === 404) throw new UnauthenticatedError('No hay Sesión', { cause });
             throw cause;
         });

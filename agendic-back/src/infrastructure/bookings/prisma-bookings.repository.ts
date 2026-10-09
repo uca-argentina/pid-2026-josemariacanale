@@ -5,7 +5,7 @@ import {
   BookingStatus,
   ClientBooking,
   DAILY_LIMIT_REACHED,
-  EmployeeBooking,
+  UserBooking,
 } from '../../domain/bookings/booking';
 import {
   BookingsRepository,
@@ -268,10 +268,14 @@ export class PrismaBookingsRepository implements BookingsRepository {
   /**
    * @throws {DatabaseOperationError} falló la base
    */
-  async listByEmployees(employeeIds: number[]): Promise<EmployeeBooking[]> {
+  async listByUser(userId: number): Promise<UserBooking[]> {
     const rows = await this.prisma.booking
       .findMany({
-        where: { employeeId: { in: employeeIds } },
+        where: {
+          userId,
+          // A Negocio that dio de baja the Usuario no longer shows its Turnos to them.
+          OR: [{ employeeId: null }, { employee: { deletedAt: null } }],
+        },
         select: {
           ...BOOKING_SELECT,
           service: {
@@ -291,15 +295,12 @@ export class PrismaBookingsRepository implements BookingsRepository {
       })
       .catch(translateError);
     return rows.map((row) => {
-      // A Turno with an Empleado is of a Servicio del Negocio, so it has a Sucursal.
-      const branch = row.service.branch!;
+      const branch = row.service.branch;
       return {
         ...toBooking(row),
         serviceName: row.service.name,
-        businessId: branch.business.id,
-        businessName: branch.business.name,
-        branchId: branch.id,
-        branchName: branch.name,
+        business: branch && branch.business,
+        branch: branch && { id: branch.id, name: branch.name },
       };
     });
   }

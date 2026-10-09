@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { unstable_rethrow } from 'next/navigation';
+import { ViewTransition } from 'react';
 import { readClock } from '@/app/_components/clock';
 import { BackendErrorNotice } from '@/app/_components/BackendErrorNotice';
 import type { ClientBooking } from '@/app/_components/client-booking/types';
@@ -44,15 +45,18 @@ export default async function BookingLinkPage({ params }: { params: Promise<{ li
     return (
         <>
             <Header user={null} nav={false} />
-            <div className="flex flex-1 flex-col">
-                {loaded.found ? (
-                    <BookingLinkScreen link={link} booking={loaded.booking} now={now} />
-                ) : loaded.failed ? (
-                    <BackendErrorNotice />
-                ) : (
-                    <UnknownBookingLink />
-                )}
-            </div>
+            {/* `booked` lo pone Reservar al navegar acá: el Turno recién creado entra con un fundido. */}
+            <ViewTransition enter={{ booked: 'booked-in', default: 'none' }} default="none">
+                <div className="flex flex-1 flex-col">
+                    {loaded.found ? (
+                        <BookingLinkScreen link={link} booking={loaded.booking} now={now} />
+                    ) : loaded.failed ? (
+                        <BackendErrorNotice />
+                    ) : (
+                        <UnknownBookingLink />
+                    )}
+                </div>
+            </ViewTransition>
             <Footer />
         </>
     );
