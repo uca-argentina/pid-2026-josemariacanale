@@ -73,7 +73,13 @@ export function Sidebar({
                             <AvatarBadge className="bg-[#16a34a] ring-white" aria-label="Conectado" />
                         </Avatar>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent side="bottom" align="end" className="min-w-[200px]">
+                    <DropdownMenuContent
+                        side="bottom"
+                        align="end"
+                        className="min-w-[200px]"
+                        // Al cerrarse, el menú devuelve el foco al avatar y el diálogo recién abierto lo toma por un clic afuera y se cierra.
+                        onCloseAutoFocus={(event) => retiring && event.preventDefault()}
+                    >
                         <DropdownMenuLabel>{user.name}</DropdownMenuLabel>
                         <DropdownMenuItem onSelect={() => openUserProfile()}>
                             <User className="size-[15px]" />
