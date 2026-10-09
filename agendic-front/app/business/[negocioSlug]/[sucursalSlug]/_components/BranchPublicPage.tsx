@@ -2,11 +2,10 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { MapPin, Images, Building2 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/app/_components/ui/avatar';
 import { Button } from '@/app/_components/ui/button';
-import { bookingLinkPath, bookingPath } from '@/app/routes';
+import { bookingLinkPath } from '@/app/routes';
 import { SERVICE_CATEGORIES, type ServiceCategoryValue } from '@/app/_components/business-schemas';
 import { BranchPhoto } from '@/app/_components/booking/BranchPhoto';
 import { ChipTabs } from '@/app/_components/booking/ChipTabs';
@@ -37,7 +36,6 @@ export function BranchPublicPage({
     // Solo las Categorías que esta Sucursal realmente ofrece, en el orden del enum.
     const categories = SERVICE_CATEGORIES.filter((c) => services.some((s) => s.category === c.value));
     const [category, setCategory] = useState<ServiceCategoryValue | undefined>(categories[0]?.value);
-    const router = useRouter();
     const [initialService, setInitialService] = useState<Service | null>(selectedService);
     const [flowOpen, setFlowOpen] = useState(selectedService !== null);
     const [allImagesOpen, setAllImagesOpen] = useState(false);
@@ -253,8 +251,6 @@ export function BranchPublicPage({
                     coverUrl={cover}
                     initialService={initialService}
                     onClose={() => setFlowOpen(false)}
-                    // replace: el botón Atrás del navegador no tiene que volver al modal del código.
-                    onBooked={(link) => router.replace(bookingPath(link))}
                 />
             )}
         </>

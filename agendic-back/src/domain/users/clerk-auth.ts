@@ -28,7 +28,7 @@ export interface ClerkAuth {
    */
   inviteByEmail(email: string): Promise<void>;
   /**
-   * Deletes the Usuario's identity in Clerk, so registering again with the same email makes a new one (ADR 0023).
+   * Deletes the Usuario's identity in Clerk, so registering again with the same email makes a new one (ADR 0024).
    * A Usuario Clerk no longer has is not an error. Throws ExternalServiceError when Clerk fails.
    */
   deleteUser(clerkId: string): Promise<void>;

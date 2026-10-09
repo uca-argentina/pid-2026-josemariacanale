@@ -14,7 +14,7 @@ type AuthenticatedRequest = Request & { userId: number };
 
 const ALLOW_RETIRED_USER = 'allowRetiredUser';
 
-/** Lets a Usuario dado de baja through `ClerkGuard`; only `DELETE /users/me`, to retry the borrado en Clerk (ADR 0023). */
+/** Lets a Usuario dado de baja through `ClerkGuard`; only `DELETE /users/me`, to retry the borrado en Clerk (ADR 0024). */
 export const AllowRetiredUser = () => SetMetadata(ALLOW_RETIRED_USER, true);
 
 /** Resolves `Authorization: Bearer <Clerk JWT>`; read the result with `@CurrentUser()`. */

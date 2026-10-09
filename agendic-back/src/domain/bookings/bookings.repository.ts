@@ -1,4 +1,4 @@
-import { Booking, BookingStatus, ClientBooking, EmployeeBooking } from './booking';
+import { Booking, BookingStatus, ClientBooking, UserBooking } from './booking';
 
 export const BOOKINGS_REPOSITORY = Symbol('BookingsRepository');
 
@@ -62,8 +62,11 @@ export interface BookingsRepository {
     to: Date,
     excludeBookingId?: number,
   ): Promise<Pick<Booking, 'prepStartsAt' | 'endsAt'>[]>;
-  /** Every Turno, in any status, of these Empleados. */
-  listByEmployees(employeeIds: number[]): Promise<EmployeeBooking[]>;
+  /**
+   * Every Turno, in any status, the Usuario attends: of their Servicios personales and of the Negocios where
+   * they are still an active Empleado.
+   */
+  listByUser(userId: number): Promise<UserBooking[]>;
   /** Moves a BOOKED Booking to CANCELLED. Throws BusinessRuleError if it is no longer BOOKED. */
   cancel(id: number): Promise<Booking>;
   /** As `cancel`, by Enlace del Turno (ADR 0022): also from PENDING. Throws BusinessRuleError if it is no longer pending or booked. */
