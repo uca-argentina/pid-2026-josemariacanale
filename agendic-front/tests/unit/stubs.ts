@@ -1,7 +1,7 @@
 import type { IAvailabilitiesRepository } from '@/src/application/repositories/availabilities.repository.interface';
 import type { IBookingsRepository } from '@/src/application/repositories/bookings.repository.interface';
 import type { IClientBookingsRepository } from '@/src/application/repositories/client-bookings.repository.interface';
-import type { IEmployeeBookingsRepository } from '@/src/application/repositories/employee-bookings.repository.interface';
+import type { IUserBookingsRepository } from '@/src/application/repositories/user-bookings.repository.interface';
 import type { IPublicBusinessesRepository } from '@/src/application/repositories/public-businesses.repository.interface';
 import type { IServicesRepository } from '@/src/application/repositories/services.repository.interface';
 import type { IAuthenticationService } from '@/src/application/services/authentication.service.interface';
@@ -34,7 +34,7 @@ export const bookingsWith = (stubs: Partial<IBookingsRepository>): IBookingsRepo
     ...stubs,
 });
 
-export const employeeBookingsWith = (stubs: Partial<IEmployeeBookingsRepository>): IEmployeeBookingsRepository => ({
+export const userBookingsWith = (stubs: Partial<IUserBookingsRepository>): IUserBookingsRepository => ({
     listMyBookings: jest.fn(notStubbed('listMyBookings')),
     accept: jest.fn(notStubbed('accept')),
     reject: jest.fn(notStubbed('reject')),
@@ -45,10 +45,6 @@ export const employeeBookingsWith = (stubs: Partial<IEmployeeBookingsRepository>
 });
 
 export const clientBookingsWith = (stubs: Partial<IClientBookingsRepository>): IClientBookingsRepository => ({
-    openAccess: jest.fn(notStubbed('openAccess')),
-    listBookings: jest.fn(notStubbed('listBookings')),
-    cancel: jest.fn(notStubbed('cancel')),
-    reschedule: jest.fn(notStubbed('reschedule')),
     getBookingByLink: jest.fn(notStubbed('getBookingByLink')),
     cancelBookingByLink: jest.fn(notStubbed('cancelBookingByLink')),
     rescheduleBookingByLink: jest.fn(notStubbed('rescheduleBookingByLink')),

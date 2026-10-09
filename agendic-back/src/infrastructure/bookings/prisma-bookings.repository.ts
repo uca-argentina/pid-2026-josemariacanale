@@ -5,7 +5,7 @@ import {
   BookingStatus,
   ClientBooking,
   DAILY_LIMIT_REACHED,
-  EmployeeBooking,
+  UserBooking,
 } from '../../domain/bookings/booking';
 import {
   BookingsRepository,
@@ -49,10 +49,10 @@ const BOOKING_SELECT = {
 
 type BookingRow = Prisma.BookingGetPayload<{ select: typeof BOOKING_SELECT }>;
 
-/** `BOOKING_SELECT` plus the Servicio, Negocio and Sucursal data Mis turnos del Cliente shows (ADR 0022). */
+/** `BOOKING_SELECT` plus the Servicio, Negocio and Sucursal data the Enlace del Turno shows (ADR 0022). */
 const CLIENT_BOOKING_SELECT = {
   ...BOOKING_SELECT,
-  user: { select: { name: true } },
+  user: { select: { name: true, slug: true } },
   employee: { select: { user: { select: { name: true } } } },
   service: {
     select: {
@@ -183,21 +183,6 @@ export class PrismaBookingsRepository implements BookingsRepository {
     return rows.map(({ startsAt }) => startsAt);
   }
 
-  /**
-   * @throws {DatabaseOperationError} falló la base
-   */
-  async findByClientEmail(email: string) {
-    return (
-      await this.prisma.booking
-        .findMany({
-          where: { client: { email: normalizeEmail(email) } },
-          select: CLIENT_BOOKING_SELECT,
-          orderBy: { startsAt: 'asc' },
-        })
-        .catch(translateError)
-    ).map(toClientBooking);
-  }
-
   async listByBusiness(businessId: number) {
     return (
       await this.prisma.booking
@@ -283,10 +268,14 @@ export class PrismaBookingsRepository implements BookingsRepository {
   /**
    * @throws {DatabaseOperationError} falló la base
    */
-  async listByEmployees(employeeIds: number[]): Promise<EmployeeBooking[]> {
+  async listByUser(userId: number): Promise<UserBooking[]> {
     const rows = await this.prisma.booking
       .findMany({
-        where: { employeeId: { in: employeeIds } },
+        where: {
+          userId,
+          // A Negocio that dio de baja the Usuario no longer shows its Turnos to them.
+          OR: [{ employeeId: null }, { employee: { deletedAt: null } }],
+        },
         select: {
           ...BOOKING_SELECT,
           service: {
@@ -306,15 +295,12 @@ export class PrismaBookingsRepository implements BookingsRepository {
       })
       .catch(translateError);
     return rows.map((row) => {
-      // A Turno with an Empleado is of a Servicio del Negocio, so it has a Sucursal.
-      const branch = row.service.branch!;
+      const branch = row.service.branch;
       return {
         ...toBooking(row),
         serviceName: row.service.name,
-        businessId: branch.business.id,
-        businessName: branch.business.name,
-        branchId: branch.id,
-        branchName: branch.name,
+        business: branch && branch.business,
+        branch: branch && { id: branch.id, name: branch.name },
       };
     });
   }
@@ -466,6 +452,7 @@ const toClientBooking = (row: ClientBookingRow): ClientBooking => {
           coverUrl: branch.images[0]?.url ?? null,
         }
       : null,
+    user: branch ? null : { slug: row.user.slug },
   };
 };
 

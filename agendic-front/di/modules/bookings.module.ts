@@ -3,7 +3,7 @@ import { DI_SYMBOLS } from '@/di/types';
 import { bookSlotUseCase } from '@/src/application/use-cases/bookings/book-slot.use-case';
 import { listSlotsUseCase } from '@/src/application/use-cases/bookings/list-slots.use-case';
 import { listMyBookingsUseCase } from '@/src/application/use-cases/bookings/list-my-bookings.use-case';
-import { EmployeeBookingsRepository } from '@/src/infrastructure/repositories/employee-bookings.repository';
+import { UserBookingsRepository } from '@/src/infrastructure/repositories/user-bookings.repository';
 import { listMyBookingsController } from '@/src/interface-adapters/controllers/bookings/list-my-bookings.controller';
 import { markBookingNoShowUseCase } from '@/src/application/use-cases/bookings/mark-booking-no-show.use-case';
 import { markBookingNoShowController } from '@/src/interface-adapters/controllers/bookings/mark-booking-no-show.controller';
@@ -21,14 +21,6 @@ import { requestVerificationCodeUseCase } from '@/src/application/use-cases/book
 import { requestVerificationCodeController } from '@/src/interface-adapters/controllers/bookings/request-verification-code.controller';
 import { listSlotsController } from '@/src/interface-adapters/controllers/bookings/list-slots.controller';
 import { ClientBookingsRepository } from '@/src/infrastructure/repositories/client-bookings.repository';
-import { openClientAccessUseCase } from '@/src/application/use-cases/bookings/open-client-access.use-case';
-import { openClientAccessController } from '@/src/interface-adapters/controllers/bookings/open-client-access.controller';
-import { listClientBookingsUseCase } from '@/src/application/use-cases/bookings/list-client-bookings.use-case';
-import { listClientBookingsController } from '@/src/interface-adapters/controllers/bookings/list-client-bookings.controller';
-import { cancelClientBookingUseCase } from '@/src/application/use-cases/bookings/cancel-client-booking.use-case';
-import { cancelClientBookingController } from '@/src/interface-adapters/controllers/bookings/cancel-client-booking.controller';
-import { rescheduleClientBookingUseCase } from '@/src/application/use-cases/bookings/reschedule-client-booking.use-case';
-import { rescheduleClientBookingController } from '@/src/interface-adapters/controllers/bookings/reschedule-client-booking.controller';
 import { getBookingByLinkUseCase } from '@/src/application/use-cases/bookings/get-booking-by-link.use-case';
 import { getBookingByLinkController } from '@/src/interface-adapters/controllers/bookings/get-booking-by-link.controller';
 import { cancelBookingByLinkUseCase } from '@/src/application/use-cases/bookings/cancel-booking-by-link.use-case';
@@ -71,11 +63,11 @@ export function createBookingsModule() {
             DI_SYMBOLS.IRequestVerificationCodeUseCase,
         ]);
 
-    bookingsModule.bind(DI_SYMBOLS.IEmployeeBookingsRepository).toClass(EmployeeBookingsRepository, [DI_SYMBOLS.IAuthenticationService]);
+    bookingsModule.bind(DI_SYMBOLS.IUserBookingsRepository).toClass(UserBookingsRepository, [DI_SYMBOLS.IAuthenticationService]);
 
     bookingsModule
         .bind(DI_SYMBOLS.IListMyBookingsUseCase)
-        .toHigherOrderFunction(listMyBookingsUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IEmployeeBookingsRepository]);
+        .toHigherOrderFunction(listMyBookingsUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IUserBookingsRepository]);
 
     bookingsModule
         .bind(DI_SYMBOLS.IListMyBookingsController)
@@ -87,7 +79,7 @@ export function createBookingsModule() {
 
     bookingsModule
         .bind(DI_SYMBOLS.IAcceptBookingUseCase)
-        .toHigherOrderFunction(acceptBookingUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IEmployeeBookingsRepository]);
+        .toHigherOrderFunction(acceptBookingUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IUserBookingsRepository]);
 
     bookingsModule
         .bind(DI_SYMBOLS.IAcceptBookingController)
@@ -99,7 +91,7 @@ export function createBookingsModule() {
 
     bookingsModule
         .bind(DI_SYMBOLS.IRejectBookingUseCase)
-        .toHigherOrderFunction(rejectBookingUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IEmployeeBookingsRepository]);
+        .toHigherOrderFunction(rejectBookingUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IUserBookingsRepository]);
 
     bookingsModule
         .bind(DI_SYMBOLS.IRejectBookingController)
@@ -111,7 +103,7 @@ export function createBookingsModule() {
 
     bookingsModule
         .bind(DI_SYMBOLS.ICancelBookingUseCase)
-        .toHigherOrderFunction(cancelBookingUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IEmployeeBookingsRepository]);
+        .toHigherOrderFunction(cancelBookingUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IUserBookingsRepository]);
 
     bookingsModule
         .bind(DI_SYMBOLS.ICancelBookingController)
@@ -123,7 +115,7 @@ export function createBookingsModule() {
 
     bookingsModule
         .bind(DI_SYMBOLS.IRescheduleBookingUseCase)
-        .toHigherOrderFunction(rescheduleBookingUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IEmployeeBookingsRepository]);
+        .toHigherOrderFunction(rescheduleBookingUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IUserBookingsRepository]);
 
     bookingsModule
         .bind(DI_SYMBOLS.IRescheduleBookingController)
@@ -135,7 +127,7 @@ export function createBookingsModule() {
 
     bookingsModule
         .bind(DI_SYMBOLS.IMarkBookingNoShowUseCase)
-        .toHigherOrderFunction(markBookingNoShowUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IEmployeeBookingsRepository]);
+        .toHigherOrderFunction(markBookingNoShowUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IUserBookingsRepository]);
 
     bookingsModule
         .bind(DI_SYMBOLS.IMarkBookingNoShowController)
@@ -146,41 +138,6 @@ export function createBookingsModule() {
         ]);
 
     bookingsModule.bind(DI_SYMBOLS.IClientBookingsRepository).toClass(ClientBookingsRepository, [DI_SYMBOLS.IInstrumentationService]);
-
-    bookingsModule
-        .bind(DI_SYMBOLS.IOpenClientAccessUseCase)
-        .toHigherOrderFunction(openClientAccessUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IClientBookingsRepository]);
-
-    bookingsModule
-        .bind(DI_SYMBOLS.IOpenClientAccessController)
-        .toHigherOrderFunction(openClientAccessController, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IOpenClientAccessUseCase]);
-
-    bookingsModule
-        .bind(DI_SYMBOLS.IListClientBookingsUseCase)
-        .toHigherOrderFunction(listClientBookingsUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IClientBookingsRepository]);
-
-    bookingsModule
-        .bind(DI_SYMBOLS.IListClientBookingsController)
-        .toHigherOrderFunction(listClientBookingsController, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IListClientBookingsUseCase]);
-
-    bookingsModule
-        .bind(DI_SYMBOLS.ICancelClientBookingUseCase)
-        .toHigherOrderFunction(cancelClientBookingUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IClientBookingsRepository]);
-
-    bookingsModule
-        .bind(DI_SYMBOLS.ICancelClientBookingController)
-        .toHigherOrderFunction(cancelClientBookingController, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.ICancelClientBookingUseCase]);
-
-    bookingsModule
-        .bind(DI_SYMBOLS.IRescheduleClientBookingUseCase)
-        .toHigherOrderFunction(rescheduleClientBookingUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IClientBookingsRepository]);
-
-    bookingsModule
-        .bind(DI_SYMBOLS.IRescheduleClientBookingController)
-        .toHigherOrderFunction(rescheduleClientBookingController, [
-            DI_SYMBOLS.IInstrumentationService,
-            DI_SYMBOLS.IRescheduleClientBookingUseCase,
-        ]);
 
     bookingsModule
         .bind(DI_SYMBOLS.IGetBookingByLinkUseCase)

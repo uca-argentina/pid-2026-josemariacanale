@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useState, useTransition, ViewTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { ArrowLeft, Check, ChevronRight, X } from 'lucide-react';
 import { Button } from '@/app/_components/ui/button';
 import { Input } from '@/app/_components/ui/input';
@@ -8,9 +9,12 @@ import { Label } from '@/app/_components/ui/label';
 import { Textarea } from '@/app/_components/ui/textarea';
 import { cn } from '@/app/_components/utils';
 import type { ServiceCategoryValue } from '@/app/_components/business-schemas';
+import { bookingPath } from '@/app/routes';
 import { BranchPhoto } from './BranchPhoto';
 import { ChipTabs } from './ChipTabs';
+import { CodeStep } from './CodeStep';
 import { bookSlotAction, requestVerificationCodeAction } from './actions';
+import type { BookSlotResult } from './actions';
 import { TimeStep } from './TimeStep';
 import { depositFor, endTime, formatDate, formatDuration, formatPrice } from './format';
 import { STEPS } from './types';
@@ -30,7 +34,10 @@ const LABELS: Record<Step, string> = {
 
 const CLIENT_FORM = 'datos-del-cliente';
 
-function Breadcrumb({ step, onGo }: { step: Step; onGo: (s: Step) => void }) {
+/** Cuánto se ve el "¡Listo!" antes de ir al Turno. */
+const BOOKED_PAUSE_MS = 800;
+
+function Breadcrumb({ step, locked, onGo }: { step: Step; locked: boolean; onGo: (s: Step) => void }) {
     const current = STEPS.indexOf(step);
 
     return (
@@ -44,7 +51,7 @@ function Breadcrumb({ step, onGo }: { step: Step; onGo: (s: Step) => void }) {
                             <button
                                 type="button"
                                 onClick={() => done && onGo(s)}
-                                disabled={!done}
+                                disabled={!done || locked}
                                 aria-current={i === current ? 'step' : undefined}
                                 className={cn(
                                     'rounded-md px-1 tracking-[-0.01em] transition-colors',
@@ -149,73 +156,16 @@ function ConfirmStep({
     host,
     service,
     defaults,
-    codeStep,
     error,
-    codeError,
     onSubmitData,
-    onSubmitCode,
-    onRequestNewCode,
 }: {
     host: Host;
     service: Service;
     defaults: ClientData;
-    /** Pedido el Código de verificación, se muestra el campo para ingresarlo en vez de los datos (ADR 0022). */
-    codeStep: boolean;
     error: string | null;
-    codeError: string | null;
     onSubmitData: (data: ClientData) => void;
-    onSubmitCode: (code: string) => void;
-    onRequestNewCode: () => void;
 }) {
     const deposit = depositFor(service);
-
-    if (codeStep)
-        return (
-            <form
-                id={CLIENT_FORM}
-                onSubmit={(e) => {
-                    e.preventDefault();
-                    const data = new FormData(e.currentTarget);
-                    onSubmitCode(String(data.get('codigo') ?? '').trim());
-                }}
-                className="flex max-w-[560px] flex-col gap-4"
-            >
-                <h3 className="text-[17px] font-extrabold tracking-[-0.02em]">Verificá tu email</h3>
-                <p className="text-[13.5px] leading-relaxed text-muted-foreground">
-                    Te mandamos un código a{' '}
-                    <strong className="font-bold text-foreground">{defaults.email}</strong>. Ingresalo
-                    para confirmar tu turno.
-                </p>
-
-                <div className="flex flex-col gap-2">
-                    <Label htmlFor="codigo" className="text-[13.5px] font-bold">
-                        Código de verificación
-                    </Label>
-                    <Input
-                        id="codigo"
-                        name="codigo"
-                        required
-                        autoComplete="one-time-code"
-                        inputMode="text"
-                        placeholder="Código de 6 caracteres"
-                    />
-                </div>
-
-                {codeError && (
-                    <p role="alert" className="rounded-xl bg-muted p-4 text-[13.5px] font-semibold">
-                        {codeError}
-                    </p>
-                )}
-
-                <button
-                    type="button"
-                    onClick={onRequestNewCode}
-                    className="self-start text-[13.5px] font-bold text-muted-foreground underline underline-offset-2 hover:text-foreground"
-                >
-                    Pedir un código nuevo
-                </button>
-            </form>
-        );
 
     return (
         <form
@@ -315,22 +265,19 @@ function ConfirmStep({
 function AdvanceButton({
     step,
     canAdvance,
-    codeStep,
     pending,
     onAdvance,
     className,
 }: {
     step: Step;
     canAdvance: boolean;
-    /** En Revisá y confirmá: ya se pidió el Código de verificación, falta ingresarlo. */
-    codeStep: boolean;
-    /** Mientras se pide el código o se crea el Turno: evita un segundo envío. */
+    /** Mientras se pide el Código de verificación: evita un segundo envío. */
     pending: boolean;
     onAdvance: () => void;
     className?: string;
 }) {
     const last = step === 'confirm';
-    const label = !last ? 'Continuar' : codeStep ? (pending ? 'Confirmando…' : 'Confirmar turno') : pending ? 'Enviando código…' : 'Enviar código';
+    const label = !last ? 'Continuar' : pending ? 'Reservando…' : 'Reservar';
     return (
         <Button
             type={last ? 'submit' : 'button'}
@@ -352,8 +299,8 @@ function SummaryPanel({
     coverUrl,
     draft,
     step,
+    codeOpen,
     canAdvance,
-    codeStep,
     pending,
     onAdvance,
 }: {
@@ -361,8 +308,9 @@ function SummaryPanel({
     coverUrl: string | undefined;
     draft: BookingDraft;
     step: Step;
+    /** Con el paso del código no hay botón: reserva sola al completarse el código. */
+    codeOpen: boolean;
     canAdvance: boolean;
-    codeStep: boolean;
     pending: boolean;
     onAdvance: () => void;
 }) {
@@ -447,14 +395,15 @@ function SummaryPanel({
                 )}
             </div>
 
-            <AdvanceButton
-                step={step}
-                canAdvance={canAdvance}
-                codeStep={codeStep}
-                pending={pending}
-                onAdvance={onAdvance}
-                className="mt-auto hidden lg:inline-flex"
-            />
+            {!codeOpen && (
+                <AdvanceButton
+                    step={step}
+                    canAdvance={canAdvance}
+                    pending={pending}
+                    onAdvance={onAdvance}
+                    className="mt-auto hidden lg:inline-flex"
+                />
+            )}
         </div>
     );
 }
@@ -466,7 +415,6 @@ export function BookingFlow({
     coverUrl,
     initialService,
     onClose,
-    onBooked,
 }: {
     host: Host;
     services: Service[];
@@ -474,9 +422,8 @@ export function BookingFlow({
     coverUrl: string | undefined;
     initialService: Service | null;
     onClose: () => void;
-    /** El acceso a Mis turnos recién abierto (ADR 0022): la página navega ahí con él. */
-    onBooked: (access: string) => void;
 }) {
+    const router = useRouter();
     const [step, setStep] = useState<Step>(initialService ? 'time' : 'service');
     const [draft, setDraft] = useState<BookingDraft>({
         service: initialService,
@@ -487,18 +434,23 @@ export function BookingFlow({
     /** El 409 de horario ocupado: se muestra en el paso Horario, que es donde se resuelve. */
     const [slotNotice, setSlotNotice] = useState<string | null>(null);
     const [confirmError, setConfirmError] = useState<string | null>(null);
-    /** Pedido el Código de verificación para `client.email`, falta ingresarlo (ADR 0022). */
-    const [codeStep, setCodeStep] = useState(false);
-    const [codeError, setCodeError] = useState<string | null>(null);
+    /** Pedido el Código de verificación para `client.email`, el paso Confirmar lo pide en vez del formulario (ADR 0022). */
+    const [codeOpen, setCodeOpen] = useState(false);
+    /**
+     * Desde que viaja el código hasta que se navega al Turno, nadie sale del flujo: el Turno puede estar creándose, y
+     * quien cierre ahí se queda sin llegar a su Enlace del Turno.
+     */
+    const [codePhase, setCodePhase] = useState<'idle' | 'verifying' | 'booked'>('idle');
+    const locked = codePhase !== 'idle';
     const [pending, startTransition] = useTransition();
 
     useEffect(() => {
         const onKey = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') onClose();
+            if (e.key === 'Escape' && !locked) onClose();
         };
         document.addEventListener('keydown', onKey);
         return () => document.removeEventListener('keydown', onKey);
-    }, [onClose]);
+    }, [onClose, locked]);
 
     const { service, date, slot } = draft;
 
@@ -520,8 +472,7 @@ export function BookingFlow({
     const goTo = (next: Step) => {
         setSlotNotice(null);
         setConfirmError(null);
-        setCodeError(null);
-        setCodeStep(false);
+        setCodeOpen(false);
         setStep(next);
     };
 
@@ -531,60 +482,80 @@ export function BookingFlow({
         goTo(next);
     };
 
+    /** Vuelve al formulario, en una transición para que el paso del código y el formulario se crucen. */
+    const closeCode = () => startTransition(() => setCodeOpen(false));
+
     const back = () => {
+        if (codeOpen) return closeCode();
         const previous = STEPS[STEPS.indexOf(step) - 1];
         if (previous) goTo(previous);
         else onClose();
     };
 
-    // Paso 1: con los datos del Cliente, pide el Código de verificación para su email (ADR 0022).
+    // "Reservar": con los datos del Cliente, pide el Código de verificación para su email y pasa a pedirlo (ADR 0022).
     const requestCode = (data: ClientData) => {
         setClient(data);
         setConfirmError(null);
         startTransition(async () => {
             const result = await requestVerificationCodeAction(data.email);
-            if (result.ok) setCodeStep(true);
+            // Pasado el await, el set ya no es parte de la transición si no se lo vuelve a envolver.
+            if (result.ok) startTransition(() => setCodeOpen(true));
             else setConfirmError(result.message);
         });
     };
 
-    // Paso 2: con el código ya ingresado, crea el Turno.
-    const confirmCode = (code: string) => {
-        if (!service || !date || !slot) return;
-        setCodeError(null);
-        startTransition(async () => {
-            const result = await bookSlotAction({
-                serviceId: service.id,
-                startsAt: slot.startsAt,
-                clientName: client.name,
-                clientEmail: client.email,
-                notes: client.notes,
-                code,
-            });
-            if (result.ok) {
-                // El código recién se validó: el back siempre devuelve el acceso a Mis turnos (ADR 0022).
-                onBooked(result.booking.access!);
-            } else if (result.slotTaken) {
-                // Recuperable: de vuelta a Horario, que vuelve a pedir los horarios libres.
+    /**
+     * Crea el Turno con el código ya completo.
+     *
+     * @returns el mensaje a mostrar en el paso del código si el código no sirvió; `null` si reservó, o si lo que
+     * falló se resuelve afuera de ese paso y por eso lo cierra.
+     */
+    const book = async (code: string): Promise<string | null> => {
+        if (!service || !date || !slot) return null;
+        setCodePhase('verifying');
+        const result = await bookSlotAction({
+            serviceId: service.id,
+            startsAt: slot.startsAt,
+            clientName: client.name,
+            clientEmail: client.email,
+            notes: client.notes,
+            code,
+        }).catch(
+            // La acción no respondió (sin red): sin esto la reserva quedaría bloqueada, sin forma de salir.
+            (): BookSlotResult => ({ ok: false, slotTaken: false, invalidCode: false, message: 'No pudimos reservar tu turno. Intentá de nuevo.' }),
+        );
+        if (result.ok) {
+            // En una transición para que las casillas se fundan en el "¡Listo!".
+            startTransition(() => setCodePhase('booked'));
+            // El código recién se validó, así que el back siempre devuelve el Enlace del Turno (ADR 0022). replace: el
+            // botón Atrás del navegador no tiene que volver al código. `booked` le da su fundido a la página del Turno.
+            const link = result.booking.link!;
+            setTimeout(() => router.replace(bookingPath(link), { transitionTypes: ['booked'] }), BOOKED_PAUSE_MS);
+            return null;
+        }
+        setCodePhase('idle');
+        if (result.invalidCode) return result.message;
+        if (result.slotTaken) {
+            // Recuperable: de vuelta a Horario, que vuelve a pedir los horarios libres.
+            startTransition(() => {
                 setDraft((d) => ({ ...d, slot: null }));
                 setSlotNotice(result.message);
-                setCodeStep(false);
+                setCodeOpen(false);
                 setStep('time');
-            } else if (result.invalidCode) {
-                setCodeError(result.message);
-            } else {
-                setConfirmError(result.message);
-            }
+            });
+            return null;
+        }
+        startTransition(() => {
+            setConfirmError(result.message);
+            setCodeOpen(false);
         });
+        return null;
     };
 
-    // "Pedir un código nuevo": mismo pedido, sin perder el paso en que está.
-    const requestNewCode = () => {
-        setCodeError(null);
-        startTransition(async () => {
-            const result = await requestVerificationCodeAction(client.email);
-            if (!result.ok) setCodeError(result.message);
-        });
+    // "Pedir un código nuevo", desde el paso del código: mismo pedido, con el email ya cargado.
+    const requestNewCode = async () => {
+        const result = await requestVerificationCodeAction(client.email);
+        return result.ok ? null : result.message;
     };
 
     return (
@@ -599,6 +570,7 @@ export function BookingFlow({
                     variant="ghost"
                     size="icon-lg"
                     onClick={back}
+                    disabled={locked}
                     aria-label="Volver"
                     className="rounded-full"
                 >
@@ -608,6 +580,7 @@ export function BookingFlow({
                     variant="ghost"
                     size="icon-lg"
                     onClick={onClose}
+                    disabled={locked}
                     aria-label="Cerrar"
                     className="rounded-full"
                 >
@@ -619,46 +592,59 @@ export function BookingFlow({
             <div className="mx-auto w-full max-w-[1400px] px-4 pb-32 sm:px-8 lg:px-16 lg:pb-24">
                 <div className="grid items-start gap-10 lg:grid-cols-[1fr_400px]">
                     <div>
-                        <Breadcrumb step={step} onGo={goTo} />
-                        <h1 className="mt-4 mb-6 text-[34px] leading-none font-extrabold tracking-[-0.03em] sm:text-[44px]">
-                            {TITLES[step]}
-                        </h1>
+                        <Breadcrumb step={step} locked={locked} onGo={goTo} />
+                        {/* La key cruza el formulario con el paso del código: uno sale y el otro entra. */}
+                        <ViewTransition key={codeOpen ? 'code' : 'steps'} enter="step-in" exit="step-out" default="none">
+                            <div>
+                                <h1 className="mt-4 mb-6 text-[34px] leading-none font-extrabold tracking-[-0.03em] sm:text-[44px]">
+                                    {codeOpen ? 'Verificá tu email' : TITLES[step]}
+                                </h1>
 
-                        {step === 'service' && (
-                            <ServiceStep
-                                services={services}
-                                categories={categories}
-                                chosen={service}
-                                onChoose={chooseService}
-                            />
-                        )}
+                                {codeOpen ? (
+                                    <CodeStep
+                                        email={client.email}
+                                        booked={codePhase === 'booked'}
+                                        onSubmit={book}
+                                        onRequestNewCode={requestNewCode}
+                                        onChangeEmail={closeCode}
+                                    />
+                                ) : (
+                                    <>
+                                        {step === 'service' && (
+                                            <ServiceStep
+                                                services={services}
+                                                categories={categories}
+                                                chosen={service}
+                                                onChoose={chooseService}
+                                            />
+                                        )}
 
-                        {step === 'time' && service && (
-                            <TimeStep
-                                key={service.id}
-                                service={service}
-                                date={date}
-                                slot={slot}
-                                notice={slotNotice}
-                                onSelect={(nextDate, nextSlot) =>
-                                    setDraft((d) => ({ ...d, date: nextDate, slot: nextSlot }))
-                                }
-                            />
-                        )}
+                                        {step === 'time' && service && (
+                                            <TimeStep
+                                                key={service.id}
+                                                service={service}
+                                                date={date}
+                                                slot={slot}
+                                                notice={slotNotice}
+                                                onSelect={(nextDate, nextSlot) =>
+                                                    setDraft((d) => ({ ...d, date: nextDate, slot: nextSlot }))
+                                                }
+                                            />
+                                        )}
 
-                        {step === 'confirm' && service && (
-                            <ConfirmStep
-                                host={host}
-                                service={service}
-                                defaults={client}
-                                codeStep={codeStep}
-                                error={confirmError}
-                                codeError={codeError}
-                                onSubmitData={requestCode}
-                                onSubmitCode={confirmCode}
-                                onRequestNewCode={requestNewCode}
-                            />
-                        )}
+                                        {step === 'confirm' && service && (
+                                            <ConfirmStep
+                                                host={host}
+                                                service={service}
+                                                defaults={client}
+                                                error={confirmError}
+                                                onSubmitData={requestCode}
+                                            />
+                                        )}
+                                    </>
+                                )}
+                            </div>
+                        </ViewTransition>
                     </div>
 
                     <aside className="hidden lg:sticky lg:top-6 lg:block">
@@ -667,8 +653,8 @@ export function BookingFlow({
                             coverUrl={coverUrl}
                             draft={draft}
                             step={step}
+                            codeOpen={codeOpen}
                             canAdvance={canAdvance}
-                            codeStep={codeStep}
                             pending={pending}
                             onAdvance={advance}
                         />
@@ -676,26 +662,29 @@ export function BookingFlow({
                 </div>
             </div>
 
-            {/* Abajo de lg el panel no entra al lado, así que el resumen queda en una barra fija. */}
-            <div className="fixed inset-x-0 bottom-0 border-t border-border bg-background px-4 py-3 shadow-[0_-1px_2px_rgba(15,27,45,0.06)] sm:px-8 lg:hidden">
-                <div className="mb-2 flex items-baseline justify-between gap-4">
-                    <span className="min-w-0 truncate text-[13px] font-medium text-muted-foreground">
-                        {service
-                            ? service.name
-                            : 'Todavía no elegiste un servicio.'}
-                    </span>
-                    <span className="shrink-0 text-[15px] font-extrabold tracking-[-0.02em]">
-                        {service ? formatPrice(service.price) : '-'}
-                    </span>
+            {/* Abajo de lg el panel no entra al lado, así que el resumen queda en una barra fija. Con el paso del
+                código no hace falta: no hay botón que tocar. */}
+            {!codeOpen && (
+                <div className="fixed inset-x-0 bottom-0 border-t border-border bg-background px-4 py-3 shadow-[0_-1px_2px_rgba(15,27,45,0.06)] sm:px-8 lg:hidden">
+                    <div className="mb-2 flex items-baseline justify-between gap-4">
+                        <span className="min-w-0 truncate text-[13px] font-medium text-muted-foreground">
+                            {service
+                                ? service.name
+                                : 'Todavía no elegiste un servicio.'}
+                        </span>
+                        <span className="shrink-0 text-[15px] font-extrabold tracking-[-0.02em]">
+                            {service ? formatPrice(service.price) : '-'}
+                        </span>
+                    </div>
+                    {step === 'confirm' && service && depositFor(service) && (
+                        <p className="mb-2 text-[12.5px] text-muted-foreground">
+                            Seña ahora {formatPrice(depositFor(service)!.upfront)} · resta{' '}
+                            {formatPrice(depositFor(service)!.rest)} en el local
+                        </p>
+                    )}
+                    <AdvanceButton step={step} canAdvance={canAdvance} pending={pending} onAdvance={advance} />
                 </div>
-                {step === 'confirm' && service && depositFor(service) && (
-                    <p className="mb-2 text-[12.5px] text-muted-foreground">
-                        Seña ahora {formatPrice(depositFor(service)!.upfront)} · resta{' '}
-                        {formatPrice(depositFor(service)!.rest)} en el local
-                    </p>
-                )}
-                <AdvanceButton step={step} canAdvance={canAdvance} codeStep={codeStep} pending={pending} onAdvance={advance} />
-            </div>
+            )}
         </div>
     );
 }

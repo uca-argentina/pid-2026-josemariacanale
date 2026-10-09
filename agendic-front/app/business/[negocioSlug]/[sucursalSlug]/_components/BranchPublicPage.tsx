@@ -2,11 +2,10 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { MapPin, Images, Building2 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/app/_components/ui/avatar';
 import { Button } from '@/app/_components/ui/button';
-import { bookingLinkPath, MIS_TURNOS_PATH } from '@/app/routes';
+import { bookingLinkPath } from '@/app/routes';
 import { SERVICE_CATEGORIES, type ServiceCategoryValue } from '@/app/_components/business-schemas';
 import { BranchPhoto } from '@/app/_components/booking/BranchPhoto';
 import { ChipTabs } from '@/app/_components/booking/ChipTabs';
@@ -37,7 +36,6 @@ export function BranchPublicPage({
     // Solo las Categorías que esta Sucursal realmente ofrece, en el orden del enum.
     const categories = SERVICE_CATEGORIES.filter((c) => services.some((s) => s.category === c.value));
     const [category, setCategory] = useState<ServiceCategoryValue | undefined>(categories[0]?.value);
-    const router = useRouter();
     const [initialService, setInitialService] = useState<Service | null>(selectedService);
     const [flowOpen, setFlowOpen] = useState(selectedService !== null);
     const [allImagesOpen, setAllImagesOpen] = useState(false);
@@ -52,7 +50,7 @@ export function BranchPublicPage({
     };
 
     const shown = services.filter((s) => s.category === category);
-    // La primera Imagen es la de portada: la del resumen, de la reserva y de Mis turnos.
+    // La primera Imagen es la de portada: la del resumen y la de la reserva.
     const cover = images[0]?.url;
     // Desde md se ven la portada y hasta dos más al costado; en mobile, solo la portada.
     const sideImages = images.slice(1, 3);
@@ -253,7 +251,6 @@ export function BranchPublicPage({
                     coverUrl={cover}
                     initialService={initialService}
                     onClose={() => setFlowOpen(false)}
-                    onBooked={(access) => router.push(`${MIS_TURNOS_PATH}#acceso=${access}`)}
                 />
             )}
         </>

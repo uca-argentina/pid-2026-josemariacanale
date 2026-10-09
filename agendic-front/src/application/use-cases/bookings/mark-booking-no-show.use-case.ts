@@ -1,4 +1,4 @@
-import type { IEmployeeBookingsRepository } from '@/src/application/repositories/employee-bookings.repository.interface';
+import type { IUserBookingsRepository } from '@/src/application/repositories/user-bookings.repository.interface';
 import type { IInstrumentationService } from '@/src/application/services/instrumentation.service.interface';
 
 /** Tipo del caso de uso ya compuesto, como lo consumen los controllers. */
@@ -15,8 +15,8 @@ export type IMarkBookingNoShowUseCase = ReturnType<typeof markBookingNoShowUseCa
  * @throws {BookingStateError} el Turno no está aceptado, su horario no pasó o ya tiene Ausencia
  */
 export const markBookingNoShowUseCase =
-    (instrumentationService: IInstrumentationService, employeeBookingsRepository: IEmployeeBookingsRepository) =>
+    (instrumentationService: IInstrumentationService, userBookingsRepository: IUserBookingsRepository) =>
     (bookingId: number): Promise<void> =>
         instrumentationService.startSpan({ name: 'markBookingNoShow Use Case', op: 'function' }, () =>
-            employeeBookingsRepository.markNoShow(bookingId),
+            userBookingsRepository.markNoShow(bookingId),
         );

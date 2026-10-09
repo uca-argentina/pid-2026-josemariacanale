@@ -37,7 +37,7 @@ describe('PrismaBookingsRepository (real database)', () => {
     await prisma.$disconnect();
   });
 
-  it('finds every Turno booked with an email, one Cliente row per Turno', async () => {
+  it('books each Turno with its own Cliente row, normalizing the email', async () => {
     userId = (
       await prisma.user.create({ data: { clerkId: tag, name: tag, email } })
     ).id;
@@ -60,14 +60,11 @@ describe('PrismaBookingsRepository (real database)', () => {
         price: 1,
       },
     });
-    await book(10, 'Bruno', email, serviceId);
-    await book(12, 'Bruno D.', email, serviceId);
-    await book(13, 'Bruno M.', `  ${email.toUpperCase()} `, serviceId);
-    await book(14, 'Otra', `other-${email}`, serviceId);
+    const first = await book(10, 'Bruno', email, serviceId);
+    const second = await book(12, 'Bruno D.', email, serviceId);
+    const third = await book(13, 'Bruno M.', `  ${email.toUpperCase()} `, serviceId);
 
-    const found = await repository.findByClientEmail(email.toUpperCase());
-
-    expect(found.map((b) => [b.clientName, b.clientEmail, b.status])).toEqual([
+    expect([first, second, third].map((b) => [b.clientName, b.clientEmail, b.status])).toEqual([
       ['Bruno', email, BookingStatus.BOOKED],
       ['Bruno D.', email, BookingStatus.BOOKED],
       ['Bruno M.', email, BookingStatus.BOOKED],
@@ -75,7 +72,7 @@ describe('PrismaBookingsRepository (real database)', () => {
     expect(await prisma.client.count({ where: { email } })).toBe(3);
   }, 60_000);
 
-  it('finds a Turno de un Servicio del Negocio, con su Sucursal y Negocio (ADR 0022)', async () => {
+  it('finds a Turno de un Servicio del Negocio por su Enlace, con su Sucursal y Negocio, y sin Usuario (ADR 0022)', async () => {
     const businessEmail = `biz-${email}`;
     const { id: ownerId } = await prisma.user.create({
       data: { clerkId: `${tag}-biz`, name: tag, email: businessEmail },
@@ -107,7 +104,7 @@ describe('PrismaBookingsRepository (real database)', () => {
     });
 
     try {
-      await repository.create({
+      const created = await repository.create({
         serviceId,
         employeeId,
         userId: ownerId,
@@ -120,7 +117,7 @@ describe('PrismaBookingsRepository (real database)', () => {
         status: BookingStatus.BOOKED,
       });
 
-      const [found] = await repository.findByClientEmail(businessEmail);
+      const found = await repository.findByLink(created.link);
 
       expect(found).toMatchObject({
         timeZone: 'America/Argentina/Buenos_Aires',
@@ -133,6 +130,7 @@ describe('PrismaBookingsRepository (real database)', () => {
         },
         business: { name: tag, slug: tag },
         branch: { name: 'Downtown', slug: 'downtown', address: '123 Main St', coverUrl: null },
+        user: null,
       });
     } finally {
       await prisma.booking.deleteMany({ where: { userId: ownerId } });
@@ -144,10 +142,10 @@ describe('PrismaBookingsRepository (real database)', () => {
     }
   }, 60_000);
 
-  it('finds a Turno por su Enlace del Turno, único y generado al crear; 404 si no existe (ADR 0022)', async () => {
+  it('finds a Turno de un Servicio personal por su Enlace del Turno, único y generado al crear, con el Enlace de reserva del Usuario; 404 si no existe (ADR 0022)', async () => {
     const linkEmail = `link-${email}`;
     const { id: linkUserId } = await prisma.user.create({
-      data: { clerkId: `${tag}-link`, name: tag, email: linkEmail },
+      data: { clerkId: `${tag}-link`, name: tag, email: linkEmail, slug: `${tag}-link` },
     });
     try {
       const { id: availabilityId } = await prisma.availability.create({
@@ -185,6 +183,7 @@ describe('PrismaBookingsRepository (real database)', () => {
       const found = await repository.findByLink(created.link);
 
       expect(found.id).toBe(created.id);
+      expect(found.user).toEqual({ slug: `${tag}-link` });
       await expect(repository.findByLink('a-link-nobody-has')).rejects.toThrow(
         new NotFoundError('Turno not found'),
       );
@@ -193,6 +192,97 @@ describe('PrismaBookingsRepository (real database)', () => {
       await prisma.service.deleteMany({ where: { userId: linkUserId } });
       await prisma.availability.deleteMany({ where: { userId: linkUserId } });
       await prisma.user.delete({ where: { id: linkUserId } });
+    }
+  }, 60_000);
+
+  it('lists the Turnos the Usuario attends: personales and of Negocios where they are an active Empleado, not of one that dio de baja them (ADR 0023)', async () => {
+    const mineEmail = `mine-${email}`;
+    const { id: mineUserId } = await prisma.user.create({
+      data: { clerkId: `${tag}-mine`, name: tag, email: mineEmail },
+    });
+    const { id: ownerId } = await prisma.user.create({
+      data: { clerkId: `${tag}-mine-owner`, name: tag, email: `owner-${mineEmail}` },
+    });
+    const { id: businessId } = await prisma.business.create({
+      data: { name: `${tag}-mine`, description: tag, ownerId, slug: `${tag}-mine` },
+    });
+    const { id: branchId } = await prisma.branch.create({
+      data: {
+        businessId,
+        name: 'Uptown',
+        address: '1 Main St',
+        timeZone: 'America/Argentina/Buenos_Aires',
+        slug: 'uptown',
+      },
+    });
+    const { id: availabilityId } = await prisma.availability.create({
+      data: {
+        userId: mineUserId,
+        name: 'Horas laborables',
+        timeZone: 'America/Argentina/Buenos_Aires',
+        isDefault: true,
+      },
+    });
+    const bookAt = (hour: number, serviceId: number, employeeId: number | null) =>
+      repository.create({
+        serviceId,
+        employeeId,
+        userId: mineUserId,
+        clientName: 'Eva',
+        clientEmail: mineEmail,
+        prepStartsAt: new Date(Date.UTC(2031, 0, 4, hour)),
+        startsAt: new Date(Date.UTC(2031, 0, 4, hour)),
+        endsAt: new Date(Date.UTC(2031, 0, 4, hour + 1)),
+        notes: null,
+        status: BookingStatus.BOOKED,
+      });
+
+    try {
+      const personal = await prisma.service.create({
+        data: {
+          userId: mineUserId,
+          availabilityId,
+          name: `${tag}-personal`,
+          slug: `${tag}-personal`,
+          category: 'CLINICA',
+          durationMinutes: 60,
+          price: 1,
+        },
+      });
+      const ofBusiness = await prisma.service.create({
+        data: {
+          branchId,
+          name: `${tag}-business`,
+          slug: `${tag}-business`,
+          category: 'CLINICA',
+          durationMinutes: 60,
+          price: 1,
+        },
+      });
+      const { id: activeId } = await prisma.employee.create({
+        data: { userId: mineUserId, businessId },
+      });
+      const { id: retiredId } = await prisma.employee.create({
+        data: { userId: mineUserId, businessId, deletedAt: new Date() },
+      });
+      await bookAt(10, personal.id, null);
+      await bookAt(12, ofBusiness.id, activeId);
+      await bookAt(14, ofBusiness.id, retiredId);
+
+      const listed = await repository.listByUser(mineUserId);
+
+      expect(listed.map((b) => [b.serviceName, b.business, b.branch])).toEqual([
+        [`${tag}-personal`, null, null],
+        [`${tag}-business`, { id: businessId, name: `${tag}-mine` }, { id: branchId, name: 'Uptown' }],
+      ]);
+    } finally {
+      await prisma.booking.deleteMany({ where: { userId: mineUserId } });
+      await prisma.service.deleteMany({ where: { OR: [{ userId: mineUserId }, { branchId }] } });
+      await prisma.employee.deleteMany({ where: { businessId } });
+      await prisma.availability.deleteMany({ where: { userId: mineUserId } });
+      await prisma.branch.deleteMany({ where: { businessId } });
+      await prisma.business.deleteMany({ where: { id: businessId } });
+      await prisma.user.deleteMany({ where: { id: { in: [mineUserId, ownerId] } } });
     }
   }, 60_000);
 });

@@ -11,7 +11,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { Response } from 'express';
-import { ListMyBookingsUseCase } from '../../application/bookings/list-my-bookings.use-case';
 import { ListEmployeesByBusinessUseCase } from '../../application/employees/list-employees-by-business.use-case';
 import { InviteEmployeeUseCase } from '../../application/invitations/invite-employee.use-case';
 import { ListInvitationsByBusinessUseCase } from '../../application/invitations/list-invitations-by-business.use-case';
@@ -21,7 +20,6 @@ import { RespondToInvitationUseCase } from '../../application/invitations/respon
 import { RetireEmployeeUseCase } from '../../application/employees/retire-employee.use-case';
 import { ClerkGuard, CurrentUser } from '../users/clerk.guard';
 import { presentInvitation } from '../invitations/invitation.presenter';
-import { presentEmployeeBooking } from '../bookings/booking.presenter';
 import { presentEmployee } from './employee.presenter';
 import { CreateEmployeeDto } from './employees.dto';
 
@@ -35,7 +33,6 @@ export class EmployeesController {
     private readonly respondToInvitationUseCase: RespondToInvitationUseCase,
     private readonly manageInvitationUseCase: ManageInvitationUseCase,
     private readonly retireEmployeeUseCase: RetireEmployeeUseCase,
-    private readonly listMyBookingsUseCase: ListMyBookingsUseCase,
   ) {}
 
   @Post('businesses/:id/employees')
@@ -131,15 +128,6 @@ export class EmployeesController {
     @Param('id', ParseIntPipe) id: number,
   ) {
     return this.retireEmployeeUseCase.execute(userId, id);
-  }
-
-  /** Mis turnos: los Turnos del Usuario como Empleado activo, en todos sus Negocios. */
-  @Get('employees/me/bookings')
-  @UseGuards(ClerkGuard)
-  async listMyBookings(@CurrentUser() userId: number) {
-    return (await this.listMyBookingsUseCase.execute(userId)).map(
-      presentEmployeeBooking,
-    );
   }
 
   @Get('businesses/:id/employees')

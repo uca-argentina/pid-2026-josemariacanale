@@ -52,18 +52,18 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | Ofrecer un Servicio / dejar de ofrecerlo | `assignEmployee` / `removeEmployee` (`EmployeeService`) |
 | Turno | `Booking` (inicio/fin → `startsAt`/`endsAt`; estado → `BookingStatus.PENDING \| BOOKED \| REJECTED \| CANCELLED`) |
 | Comentario del Turno | `Booking.notes` (opcional) |
-| Enlace del Turno (ADR 0022) | `Booking.link` (secreto, único, generado al crear); `GET/PATCH /booking-links/:secret`; en el front, `getBookingByLink` / `cancelBookingByLink` / `rescheduleBookingByLink` y la ruta `/turnos/<link>` |
-| Código de verificación del Turno | `BookingVerificationCodes` (ADR 0006, 0022) |
+| Enlace del Turno (ADR 0022) | `Booking.link` (secreto, único, generado al crear); `POST /bookings` lo devuelve como `link`; `GET/PATCH /booking-links/:secret` responden el Turno con `ClientBooking` (incluye `user: { slug } \| null`, el Enlace de reserva del Usuario en un Servicio personal); en el front, `getBookingByLink` / `cancelBookingByLink` / `rescheduleBookingByLink` y la ruta `/turnos/<link>` |
+| Reservar de nuevo | `bookAgainPath` (`app/routes.ts`), el botón `BookAgainLink` al pie de `/turnos/<link>` |
+| Código de verificación del Turno | `BookingVerificationCodes` (ADR 0006, 0022); en el front, las seis casillas de `CodeStep` sobre `code-input.ts` |
 | Turno pendiente | `BookingStatus.PENDING` |
 | Aceptar turno | `accept` (`PENDING` → `BOOKED`) |
 | Rechazar turno | `reject` (`PENDING` → `REJECTED`) |
 | Ausencia | `Booking.noShowAt` (marcado a mano; no reemplaza `status`) |
 | Reservar | `book` |
-| Reagendar | `reschedule` (`RescheduleBookingUseCase`); del Cliente, `reschedulePendingOrBooked` (`RescheduleClientBookingUseCase`) |
-| Mis turnos del Empleado | `EmployeeBooking` (`GET /employees/me/bookings`) |
-| Mis turnos del Cliente (ADR 0022) | `ClientBooking` (`GET /client/bookings`); el acceso de 15 minutos → `ClientAccessTokens` (header `X-Client-Access`) |
-| Cancelar | `cancel` (del Empleado); del Cliente, `cancelPendingOrBooked` (también sobre `PENDING`) |
-| Dar de baja | `retire` (`Service.deletedAt`, `Employee.deletedAt`); ADR 0023 decide sumar `User.deletedAt` y `Business.deletedAt`, todavía no implementados |
+| Reagendar | `reschedule` (`RescheduleBookingUseCase`); por Enlace del Turno, `reschedulePendingOrBooked` (`RescheduleBookingByLinkUseCase`) |
+| Mis turnos del Usuario (ADR 0023) | `UserBooking` (`GET /users/me/bookings`) |
+| Cancelar | `cancel` (del Empleado); por Enlace del Turno, `cancelPendingOrBooked` (también sobre `PENDING`) |
+| Dar de baja | `retire` (`Service.deletedAt`, `Employee.deletedAt`); ADR 0024 decide sumar `User.deletedAt` y `Business.deletedAt`, todavía no implementados |
 | Sesión / Iniciar sesión / Cerrar sesión | `Session` / `signIn` / `signOut` |
 
 ## Flag ADR conflicts

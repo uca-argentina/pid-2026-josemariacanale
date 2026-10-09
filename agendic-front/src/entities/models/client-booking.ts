@@ -1,11 +1,7 @@
 import { z } from 'zod';
 import { BOOKING_STATUSES } from '@/src/entities/models/booking';
 
-/** El acceso a Mis turnos (ADR 0022): 15 minutos, atado al email, sin cookie ni Sesión. */
-export const clientAccessSchema = z.object({ access: z.string(), expiresAt: z.iso.datetime() });
-export type ClientAccess = z.infer<typeof clientAccessSchema>;
-
-/** Un Turno de Mis turnos del Cliente, como lo devuelve `GET /client/bookings`. */
+/** Un Turno del Cliente, como lo devuelven `GET` y los `PATCH` de `/booking-links/:secret`. */
 export const clientBookingSchema = z.object({
     id: z.number(),
     status: z.enum(BOOKING_STATUSES),
@@ -28,5 +24,7 @@ export const clientBookingSchema = z.object({
     branch: z
         .object({ name: z.string(), slug: z.string(), address: z.string(), coverUrl: z.string().nullable() })
         .nullable(),
+    // Al revés que `business` y `branch`: solo viene en un Servicio personal, con el Enlace de reserva del Usuario.
+    user: z.object({ slug: z.string() }).nullable(),
 });
 export type ClientBooking = z.infer<typeof clientBookingSchema>;

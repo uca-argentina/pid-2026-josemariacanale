@@ -15,6 +15,7 @@ import { RescheduleBookingUseCase } from '../../application/bookings/reschedule-
 import { AcceptBookingUseCase } from '../../application/bookings/accept-booking.use-case';
 import { RejectBookingUseCase } from '../../application/bookings/reject-booking.use-case';
 import { CreateBookingUseCase } from '../../application/bookings/create-booking.use-case';
+import { ListMyBookingsUseCase } from '../../application/bookings/list-my-bookings.use-case';
 import { ListBookingsByBusinessUseCase } from '../../application/bookings/list-bookings-by-business.use-case';
 import { RequestBookingCodeUseCase } from '../../application/bookings/request-booking-code.use-case';
 import { ClerkGuard, CurrentUser } from '../users/clerk.guard';
@@ -22,6 +23,7 @@ import {
   presentBooking,
   presentBookingForOwner,
   presentBookingWithNoShow,
+  presentUserBooking,
 } from './booking.presenter';
 import {
   CreateBookingDto,
@@ -40,6 +42,7 @@ export class BookingsController {
     private readonly cancelBookingUseCase: CancelBookingUseCase,
     private readonly rescheduleBookingUseCase: RescheduleBookingUseCase,
     private readonly markNoShowUseCase: MarkNoShowUseCase,
+    private readonly listMyBookingsUseCase: ListMyBookingsUseCase,
   ) {}
 
   /**
@@ -54,7 +57,7 @@ export class BookingsController {
   }
 
   /**
-   * Reserva un Turno con un Código de verificación ya vigente; de paso, da acceso a Mis turnos (ADR 0022).
+   * Reserva un Turno con un Código de verificación ya vigente (ADR 0022).
    *
    * @throws {InvalidCodeError} el código no es válido para clientEmail
    * @throws {BusinessRuleError} el Servicio no existe o está dado de baja, el horario ya pasó o no es un Horario reservable
@@ -73,8 +76,7 @@ export class BookingsController {
     return {
       ...presentBooking(booking),
       employeeName: booking.employeeName,
-      access: booking.access,
-      accessExpiresAt: booking.accessExpiresAt,
+      link: booking.link,
     };
   }
 
@@ -155,6 +157,19 @@ export class BookingsController {
   ) {
     return presentBookingWithNoShow(
       await this.markNoShowUseCase.execute(userId, id),
+    );
+  }
+
+  /**
+   * Mis turnos (ADR 0023): los Turnos que atiende el Usuario, personales y de los Negocios donde es Empleado activo.
+   *
+   * @throws {DatabaseOperationError} falló la base
+   */
+  @Get('users/me/bookings')
+  @UseGuards(ClerkGuard)
+  async listMine(@CurrentUser() userId: number) {
+    return (await this.listMyBookingsUseCase.execute(userId)).map(
+      presentUserBooking,
     );
   }
 

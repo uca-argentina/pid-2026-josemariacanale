@@ -1,4 +1,7 @@
 @import 'tailwindcss';
+@import 'tw-animate-css';
+/* The data-open / data-active / data-checked variants the shadcn primitives are written against. */
+@import 'shadcn/tailwind.css';
 
 @theme inline {
     --color-background: #ffffff;
@@ -16,6 +19,29 @@
     --color-ring: #2d5bff;
     --color-destructive: #dc2626;
     --color-destructive-foreground: #ffffff;
+    --color-popover: #ffffff;
+    --color-popover-foreground: #0f1b2d;
+    --color-accent: #f7f8fb;
+    --color-accent-foreground: #0f1b2d;
+
+    /* Panel shell only; the public pages keep the tokens above. */
+    --color-sidebar: #fafafa;
+    --color-sidebar-foreground: #0b3558;
+    --color-sidebar-accent: #e6f0ff;
+    --color-sidebar-accent-foreground: #004eba;
+    --color-sidebar-primary: #2d5bff;
+    --color-sidebar-primary-foreground: #ffffff;
+    --color-sidebar-border: #e6e9f0;
+    --color-sidebar-ring: #2d5bff;
+}
+
+@layer base {
+    /* Tailwind 4 defaults borders to currentColor; the shadcn primitives draw a bare `border` and expect this. */
+    *,
+    ::after,
+    ::before {
+        @apply border-border;
+    }
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -33,7 +59,9 @@
 ::view-transition-new(.auth-morph) {
     height: 100%;
 }
-::view-transition-old(.auth-out) {
+/* .step-out: en Reservar, lo que sale (el formulario, las casillas) se va igual de rápido. */
+::view-transition-old(.auth-out),
+::view-transition-old(.step-out) {
     animation: 150ms ease-out both auth-fade reverse;
 }
 ::view-transition-new(.auth-in) {
@@ -45,6 +73,75 @@
     }
     to {
         opacity: 1;
+    }
+}
+
+/* Reservar: lo que entra (el paso del código, el "¡Listo!", el formulario con Volver) sube un poco. */
+::view-transition-new(.step-in) {
+    animation: 200ms ease-out 150ms both step-rise;
+}
+/* El Turno recién reservado entra cuando ya salió el "¡Listo!". */
+::view-transition-new(.booked-in) {
+    animation: 200ms ease-out 150ms both auth-fade;
+}
+/*
+ * Y el resto de la página se cruza con la misma curva, no con el fundido por defecto del navegador. Va aparte: un
+ * navegador sin :active-view-transition-type() descartaría la regla entera si compartiera selector con otra.
+ */
+:root:active-view-transition-type(booked)::view-transition-old(root) {
+    animation: 150ms ease-out both auth-fade reverse;
+}
+:root:active-view-transition-type(booked)::view-transition-new(root) {
+    animation: 200ms ease-out 150ms both auth-fade;
+}
+@keyframes step-rise {
+    from {
+        opacity: 0;
+        translate: 0 8px;
+    }
+}
+
+/* Las casillas del Código de verificación: cada carácter que entra, el código que no sirvió y el Turno ya reservado. */
+@theme {
+    --animate-code-pop: code-pop 160ms ease-out;
+    --animate-code-shake: code-shake 360ms ease-in-out;
+    --animate-code-done: code-done 280ms ease-out both;
+
+    @keyframes code-pop {
+        50% {
+            scale: 1.08;
+        }
+    }
+    @keyframes code-shake {
+        20%,
+        60% {
+            translate: -6px;
+        }
+        40%,
+        80% {
+            translate: 6px;
+        }
+    }
+    @keyframes code-done {
+        from {
+            opacity: 0;
+            scale: 0.6;
+        }
+    }
+}
+
+/* Mientras se Reserva, un brillo recorre cada casilla de izquierda a derecha. */
+@utility code-shimmer {
+    background-image: linear-gradient(100deg, transparent 30%, rgb(15 27 45 / 0.08) 50%, transparent 70%);
+    background-size: 250% 100%;
+    animation: code-shimmer 1.2s ease-in-out infinite;
+}
+@keyframes code-shimmer {
+    from {
+        background-position: 100% 0;
+    }
+    to {
+        background-position: 0 0;
     }
 }
 
