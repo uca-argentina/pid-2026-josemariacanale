@@ -29,6 +29,7 @@ export class RetireMeUseCase {
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
+  /** Repetir la baja de un Usuario ya dado de baja solo reintenta el borrado en Clerk. */
   async execute(userId: number): Promise<void> {
     const user = await this.users.findById(userId);
     if (!user) throw new NotFoundError(`User ${userId} not found`);

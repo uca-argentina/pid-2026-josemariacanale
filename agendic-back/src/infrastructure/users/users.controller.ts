@@ -34,6 +34,7 @@ export class UsersController {
     return presentUser(await this.updateMeUseCase.execute(userId, dto));
   }
 
+  /** Da de baja al Usuario de la Sesión (ADR 0023); 204 sin body. */
   @Delete('me')
   @HttpCode(204)
   @UseGuards(ClerkGuard)

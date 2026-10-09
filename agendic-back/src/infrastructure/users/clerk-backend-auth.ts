@@ -68,6 +68,9 @@ export class ClerkBackendAuth implements ClerkAuth {
     }
   }
 
+  /**
+   * @throws {ExternalServiceError} Clerk falló con algo distinto de "el Usuario no existe"
+   */
   async deleteUser(clerkId: string): Promise<void> {
     try {
       await this.clerkClient.users.deleteUser(clerkId);
