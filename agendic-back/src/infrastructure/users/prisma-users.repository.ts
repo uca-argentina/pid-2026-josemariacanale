@@ -106,11 +106,38 @@ export class PrismaUsersRepository implements UsersRepository {
           where: { userId: id, deletedAt: null },
           data: { deletedAt },
         });
-        const cancelledBookings = await cancelFutureBooked(
+        let cancelledBookings = await cancelFutureBooked(
           tx,
           { userId: id },
           deletedAt,
         );
+        const business = await tx.business.findUnique({
+          where: { ownerId: id },
+          select: { id: true },
+        });
+        if (business) {
+          const businessId = business.id;
+          // El Negocio cae con su Dueño: todo su Staff y sus Servicios, no solo lo del Dueño.
+          await tx.business.update({ where: { id: businessId }, data: { deletedAt } });
+          await tx.service.updateMany({
+            where: { branch: { businessId }, deletedAt: null },
+            data: { deletedAt, availabilityId: null },
+          });
+          await tx.employeeService.deleteMany({ where: { employee: { businessId } } });
+          await tx.employee.updateMany({
+            where: { businessId, deletedAt: null },
+            data: { deletedAt },
+          });
+          await tx.invitation.updateMany({
+            where: { businessId, closedAt: null },
+            data: { closedAt: deletedAt },
+          });
+          cancelledBookings += await cancelFutureBooked(
+            tx,
+            { service: { branch: { businessId } } },
+            deletedAt,
+          );
+        }
         return { cancelledBookings };
       })
       .catch(translateError);

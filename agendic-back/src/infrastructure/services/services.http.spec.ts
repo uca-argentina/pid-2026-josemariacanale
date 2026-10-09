@@ -1479,6 +1479,25 @@ describe('Servicio', () => {
       );
     });
 
+    it('leaves out the Negocio dado de baja that an Empleado still has a seat in', async () => {
+      t.employees.listActiveByUser.mockResolvedValue([
+        ANAS_EMPLOYEE,
+        ANAS_SEAT_AT_BRUNOS,
+      ]);
+      t.businesses.findById.mockImplementation(async (id) =>
+        id === ANAS_BUSINESS.id ? ANAS_BUSINESS : null,
+      );
+      t.services.listActiveByBranch.mockResolvedValue([]);
+
+      const res = await t.http
+        .get('/employees/me/services')
+        .set(bearer(CLERK_TOKEN))
+        .expect(200);
+
+      expect(res.body).toHaveLength(1);
+      expect(res.body[0].business.id).toBe(ANAS_BUSINESS.id);
+    });
+
     it('answers a group per Negocio, as Dueño of one and Empleado of another, branches by slug, hidden Servicios only when allowed', async () => {
       t.employees.listActiveByUser.mockResolvedValue([
         ANAS_EMPLOYEE,

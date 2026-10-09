@@ -396,21 +396,6 @@ describe('Usuario', () => {
         .expect(403);
     });
 
-    it('answers 422 to a Dueño and retires nothing', async () => {
-      scriptSession(t);
-      t.users.findById.mockResolvedValue(ANA);
-      t.businesses.listByOwner.mockResolvedValue([ANAS_BUSINESS]);
-
-      const res = await t.http
-        .delete('/users/me')
-        .set(bearer(CLERK_TOKEN))
-        .expect(422);
-
-      expect(res.body.message).toBe('El Dueño no puede darse de baja todavía');
-      expect(t.users.retire).not.toHaveBeenCalled();
-      expect(t.clerkAuth.deleteUser).not.toHaveBeenCalled();
-    });
-
     it('answers 502 when Clerk fails, with the fila already dada de baja, and a repeat only retries Clerk', async () => {
       scriptSession(t);
       t.users.findById.mockResolvedValue(ANA);

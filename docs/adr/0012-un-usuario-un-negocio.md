@@ -8,5 +8,5 @@ Descartamos dos alternativas. Mantener varios Negocios por Dueño obligaba a un 
 
 - `Business.ownerId` es único en Postgres; `POST /businesses` responde 409 si el Usuario ya es Dueño de un Negocio. El front oculta la opción de crear otro, pero la garantía es del back.
 - `GET /businesses` sigue siendo una lista, ahora de 0 o 1 elementos (no se reabre la forma del ADR 0007).
-- No hay borrar ni transferir un Negocio: las equivocaciones se corrigen editando nombre, descripción y Enlace de reserva desde el perfil.
+- No hay borrar ni transferir un Negocio (solo cae con su Dueño al darse de baja, ADR 0023): las equivocaciones se corrigen editando nombre, descripción y Enlace de reserva desde el perfil.
 - Si un día un Dueño necesita varios Negocios, hay que quitar la unicidad, agregar el selector y decidir el Negocio activo. Migrar Usuarios duplicados por email a un solo Usuario no es trivial.
