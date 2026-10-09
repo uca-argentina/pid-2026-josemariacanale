@@ -114,7 +114,7 @@ export class ListSlotsUseCase {
     assertValidRange(from, to);
 
     const service = await this.services.findById(serviceId);
-    if (!service || service.retiredAt)
+    if (!service || service.deletedAt)
       throw new NotFoundError('Service not found or retired');
 
     const timeZone = await serviceTimeZone(

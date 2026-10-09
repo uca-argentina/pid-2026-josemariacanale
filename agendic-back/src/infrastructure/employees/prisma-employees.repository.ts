@@ -19,11 +19,11 @@ import { PrismaService } from '../prisma.service';
 
 /** The Usuario fields the Empleado's view reads instead of storing its own. */
 export const WITH_USER = {
-  user: { select: { name: true, email: true } },
+  user: { select: { name: true, email: true, imageUrl: true } },
 } satisfies Prisma.EmployeeInclude;
 
 type EmployeeRowWithUser = EmployeeRow & {
-  user: Pick<UserRow, 'name' | 'email'>;
+  user: Pick<UserRow, 'name' | 'email' | 'imageUrl'>;
 };
 
 @Injectable()
@@ -59,7 +59,7 @@ export class PrismaEmployeesRepository implements EmployeesRepository {
   async listActiveByUser(userId: number) {
     return (
       await this.prisma.employee
-        .findMany({ where: { userId, retiredAt: null }, include: WITH_USER })
+        .findMany({ where: { userId, deletedAt: null }, include: WITH_USER })
         .catch(translateError)
     ).map(toEmployee);
   }
@@ -68,25 +68,25 @@ export class PrismaEmployeesRepository implements EmployeesRepository {
     return (
       await this.prisma.employee
         .findMany({
-          where: { businessId, retiredAt: null },
+          where: { businessId, deletedAt: null },
           include: WITH_USER,
         })
         .catch(translateError)
     ).map(toEmployee);
   }
 
-  async retire(id: number, retiredAt: Date) {
+  async retire(id: number, deletedAt: Date) {
     return this.prisma
       .$transaction(async (tx) => {
         const row = await tx.employee.update({
           where: { id },
-          data: { retiredAt, services: { deleteMany: {} } },
+          data: { deletedAt, services: { deleteMany: {} } },
           include: WITH_USER,
         });
         const cancelledBookings = await cancelFutureBooked(
           tx,
           { employeeId: id },
-          retiredAt,
+          deletedAt,
         );
         return { employee: toEmployee(row), cancelledBookings };
       })
@@ -100,7 +100,8 @@ export const toEmployee = (row: EmployeeRowWithUser): Employee => ({
   businessId: row.businessId,
   name: row.user.name,
   email: row.user.email,
-  retiredAt: row.retiredAt,
+  imageUrl: row.user.imageUrl,
+  deletedAt: row.deletedAt,
 });
 
 const translateError = (error: unknown): never => {

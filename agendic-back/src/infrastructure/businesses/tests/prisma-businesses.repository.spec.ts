@@ -36,7 +36,7 @@ const EMPLOYEE_ROW = {
   id: 20,
   userId: ANAS_BUSINESS.ownerId,
   businessId: ANAS_BUSINESS.id,
-  retiredAt: null,
+  deletedAt: null,
   user: { name: 'Ana Pérez', email: 'ana@example.com' },
 };
 
@@ -52,7 +52,7 @@ const SERVICE_ROW = {
   price: '20',
   depositPercent: null,
   requiresApproval: false,
-  retiredAt: null,
+  deletedAt: null,
   slug: 'haircut',
   hidden: false,
   prepMinutes: 0,
@@ -155,7 +155,7 @@ describe('PrismaBusinessesRepository', () => {
       businessId: ANAS_BUSINESS.id,
       name: 'Ana Pérez',
       email: 'ana@example.com',
-      retiredAt: null,
+      deletedAt: null,
     });
     expect(created.service).toEqual({
       id: SERVICE_ROW.id,
@@ -169,7 +169,7 @@ describe('PrismaBusinessesRepository', () => {
       price: 20,
       depositPercent: null,
       requiresApproval: false,
-      retiredAt: null,
+      deletedAt: null,
       slug: 'haircut',
       hidden: false,
       prepMinutes: 0,

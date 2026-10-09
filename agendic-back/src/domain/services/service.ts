@@ -28,7 +28,7 @@ export interface Service {
   depositPercent: number | null;
   /** Aprobación manual: its verified Turnos are born PENDING instead of BOOKED. */
   requiresApproval: boolean;
-  retiredAt: Date | null;
+  deletedAt: Date | null;
   /** Enlace de reserva's last tramo, lowercase; unique per Sucursal or per Usuario among Servicios not dados de baja. */
   slug: string;
   /** Servicio oculto: off the Sucursal's page, reachable only by its own Enlace de reserva. */
@@ -50,6 +50,11 @@ export type ServiceEmployee = EmployeeSummary & {
   availabilityId: number;
   /** The Usuario behind the Empleado: the one whose agenda a Turno occupies. */
   userId: number;
+  /**
+   * From the Usuario's foto de perfil. Carried on the domain type for the panel catalog
+   * (`presentCatalogService`); `presentService`'s public employees mapping omits it.
+   */
+  imageUrl: string | null;
 };
 
 /** An Empleado attending a Servicio with one of their own Availabilities: a reference, not a copy. */

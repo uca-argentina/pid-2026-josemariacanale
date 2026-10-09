@@ -27,7 +27,7 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | Sucursal | `Branch` (sin horario de apertura ni de cierre) |
 | Imágenes de Sucursal | `BranchImage` (`url`, `order`) |
 | Zona horaria | `Branch.timeZone` |
-| Usuario | `User` |
+| Usuario | `User` (foto de perfil → `User.imageUrl`, la de Clerk al crearse) |
 | Cliente | `Client` (`name`, `email`; una fila por Turno vía `Client.bookingId`, índice no único sobre `email`); la API sigue exponiendo `clientName` / `clientEmail` en el Turno |
 | Quien atiende un Turno | `Booking.userId` (siempre); `Booking.employeeId` solo en un Servicio del Negocio |
 | Empleado | `Employee` |
@@ -63,7 +63,7 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | Reagendar | `reschedule` (`RescheduleBookingUseCase`); por Enlace del Turno, `reschedulePendingOrBooked` (`RescheduleBookingByLinkUseCase`) |
 | Mis turnos del Usuario (ADR 0023) | `UserBooking` (`GET /users/me/bookings`) |
 | Cancelar | `cancel` (del Empleado); por Enlace del Turno, `cancelPendingOrBooked` (también sobre `PENDING`) |
-| Dar de baja | `retire` (`Service.retiredAt`, `Employee.retiredAt`) |
+| Dar de baja | `retire` (`Service.deletedAt`, `Employee.deletedAt`); ADR 0024 decide sumar `User.deletedAt` y `Business.deletedAt`, todavía no implementados |
 | Sesión / Iniciar sesión / Cerrar sesión | `Session` / `signIn` / `signOut` |
 
 ## Flag ADR conflicts

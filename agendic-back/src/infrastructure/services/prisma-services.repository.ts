@@ -19,11 +19,15 @@ import { PrismaService } from '../prisma.service';
 /** Only the Empleados anyone browsing may see attending a Servicio: not dados de baja. The name comes from the Usuario. */
 export const VISIBLE_EMPLOYEES = {
   employees: {
-    where: { employee: { retiredAt: null } },
+    where: { employee: { deletedAt: null } },
     select: {
       availabilityId: true,
       employee: {
-        select: { id: true, userId: true, user: { select: { name: true } } },
+        select: {
+          id: true,
+          userId: true,
+          user: { select: { name: true, imageUrl: true } },
+        },
       },
     },
   },
@@ -33,7 +37,7 @@ type ServiceRowWithEmployees = ServiceRow & {
   employees: {
     availabilityId: number;
     employee: Pick<EmployeeRow, 'id' | 'userId'> & {
-      user: Pick<UserRow, 'name'>;
+      user: Pick<UserRow, 'name' | 'imageUrl'>;
     };
   }[];
 };
@@ -110,7 +114,7 @@ export class PrismaServicesRepository implements ServicesRepository {
     return (
       await this.prisma.service
         .findMany({
-          where: { branchId, retiredAt: null },
+          where: { branchId, deletedAt: null },
           include: VISIBLE_EMPLOYEES,
         })
         .catch(translateError)
@@ -121,7 +125,7 @@ export class PrismaServicesRepository implements ServicesRepository {
     return (
       await this.prisma.service
         .findMany({
-          where: { userId, retiredAt: null },
+          where: { userId, deletedAt: null },
           include: VISIBLE_EMPLOYEES,
         })
         .catch(translateError)
@@ -136,7 +140,7 @@ export class PrismaServicesRepository implements ServicesRepository {
   async findActiveByUserSlug(userId: number, slug: string) {
     const row = await this.prisma.service
       .findFirst({
-        where: { userId, slug, retiredAt: null },
+        where: { userId, slug, deletedAt: null },
         include: VISIBLE_EMPLOYEES,
       })
       .catch(translateError);
@@ -151,7 +155,7 @@ export class PrismaServicesRepository implements ServicesRepository {
   async findActiveBySlug(branchId: number, slug: string) {
     const row = await this.prisma.service
       .findFirst({
-        where: { branchId, slug, retiredAt: null },
+        where: { branchId, slug, deletedAt: null },
         include: VISIBLE_EMPLOYEES,
       })
       .catch(translateError);
@@ -187,19 +191,19 @@ export class PrismaServicesRepository implements ServicesRepository {
     );
   }
 
-  async retire(id: number, retiredAt: Date) {
+  async retire(id: number, deletedAt: Date) {
     return this.prisma
       .$transaction(async (tx) => {
         const row = await tx.service.update({
           where: { id },
           // A Servicio personal drops its Availability too, so the Usuario can delete it.
-          data: { retiredAt, availabilityId: null, employees: { deleteMany: {} } },
+          data: { deletedAt, availabilityId: null, employees: { deleteMany: {} } },
           include: VISIBLE_EMPLOYEES,
         });
         const cancelledBookings = await cancelFutureBooked(
           tx,
           { serviceId: id },
-          retiredAt,
+          deletedAt,
         );
         return { service: toService(row), cancelledBookings };
       })
@@ -289,7 +293,7 @@ export class PrismaServicesRepository implements ServicesRepository {
     return (
       await this.prisma.service
         .findMany({
-          where: { retiredAt: null, employees: { some: { employeeId } } },
+          where: { deletedAt: null, employees: { some: { employeeId } } },
           include: VISIBLE_EMPLOYEES,
         })
         .catch(translateError)
@@ -318,7 +322,7 @@ export const toService = (row: ServiceRowWithEmployees): Service => ({
   price: Number(row.price),
   depositPercent: row.depositPercent,
   requiresApproval: row.requiresApproval,
-  retiredAt: row.retiredAt,
+  deletedAt: row.deletedAt,
   slug: row.slug,
   hidden: row.hidden,
   prepMinutes: row.prepMinutes,
@@ -330,6 +334,7 @@ export const toService = (row: ServiceRowWithEmployees): Service => ({
     name: employee.user.name,
     availabilityId,
     userId: employee.userId,
+    imageUrl: employee.user.imageUrl,
   })),
 });
 

@@ -186,8 +186,8 @@ Anular un Turno. Su horario queda libre. El Cliente puede Cancelar un Turno pend
 _Avoid_: eliminar, borrar (un turno)
 
 **Dar de baja**:
-Retirar un Servicio de la agenda de un Negocio, o retirar a un Empleado de un Negocio. Sus Turnos futuros en ese Negocio quedan cancelados.
-_Avoid_: eliminar, borrar, desactivar
+Retirar un Servicio de la agenda de un Negocio, retirar a un Empleado de un Negocio, o retirar a un Usuario de Agendic. Sus Turnos futuros en ese Negocio quedan cancelados; los de un Usuario, en todos lados. Lo dado de baja no se borra: queda como historial. Un Usuario dado de baja deja de existir para el Proveedor de autenticación: si vuelve a registrarse con el mismo email, es un Usuario nuevo. Un Usuario solo se da de baja a sí mismo; si es Dueño, su Negocio queda dado de baja con él, y su Enlace de reserva no vuelve a quedar libre.
+_Avoid_: eliminar, borrar, desactivar, bajar (un usuario)
 
 **Ausencia**:
 Turno al que el Cliente no se presentó sin cancelarlo. El Empleado la marca a mano, solo en Turnos ya aceptados cuyo horario ya pasó.

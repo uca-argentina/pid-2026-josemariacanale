@@ -86,7 +86,7 @@ export class CreateServiceUseCase {
     const found = await this.employees.listByIds(employeeIds);
     const eligible = found.filter(
       (employee) =>
-        employee.businessId === businessId && employee.retiredAt === null,
+        employee.businessId === businessId && employee.deletedAt === null,
     );
     if (eligible.length !== new Set(employeeIds).size)
       throw new BusinessRuleError(

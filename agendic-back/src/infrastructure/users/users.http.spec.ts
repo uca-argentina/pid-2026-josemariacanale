@@ -29,6 +29,7 @@ describe('Usuario', () => {
         name: 'Ana Pérez',
         email: 'ana@example.com',
         slug: null,
+        imageUrl: null,
       });
       expect(t.users.findById).toHaveBeenCalledWith(ANA.id);
     });
@@ -41,6 +42,7 @@ describe('Usuario', () => {
       t.clerkAuth.getProfile.mockResolvedValue({
         name: 'New Owner',
         email: 'new-owner@example.com',
+        imageUrl: 'https://img.clerk.com/new-owner.png',
       });
       t.users.create.mockResolvedValue({
         ...ANA,
@@ -48,6 +50,7 @@ describe('Usuario', () => {
         clerkId: 'user_clerk_new',
         name: 'New Owner',
         email: 'new-owner@example.com',
+        imageUrl: 'https://img.clerk.com/new-owner.png',
       });
       t.users.findById.mockResolvedValue({
         ...ANA,
@@ -55,6 +58,7 @@ describe('Usuario', () => {
         clerkId: 'user_clerk_new',
         name: 'New Owner',
         email: 'new-owner@example.com',
+        imageUrl: 'https://img.clerk.com/new-owner.png',
       });
 
       const res = await t.http
@@ -66,13 +70,53 @@ describe('Usuario', () => {
         clerkId: 'user_clerk_new',
         name: 'New Owner',
         email: 'new-owner@example.com',
+        imageUrl: 'https://img.clerk.com/new-owner.png',
       });
       expect(res.body).toEqual({
         id: 99,
         name: 'New Owner',
         email: 'new-owner@example.com',
         slug: null,
+        imageUrl: 'https://img.clerk.com/new-owner.png',
       });
+    });
+
+    it('seeds a null imageUrl when the Clerk profile has none', async () => {
+      t.clerkAuth.verifyToken.mockResolvedValue({
+        clerkId: 'user_clerk_new',
+      });
+      t.users.findByClerkId.mockResolvedValue(null);
+      t.clerkAuth.getProfile.mockResolvedValue({
+        name: 'New Owner',
+        email: 'new-owner@example.com',
+        imageUrl: null,
+      });
+      t.users.create.mockResolvedValue({
+        ...ANA,
+        id: 99,
+        clerkId: 'user_clerk_new',
+        name: 'New Owner',
+        email: 'new-owner@example.com',
+        imageUrl: null,
+      });
+      t.users.findById.mockResolvedValue({
+        ...ANA,
+        id: 99,
+        clerkId: 'user_clerk_new',
+        name: 'New Owner',
+        email: 'new-owner@example.com',
+        imageUrl: null,
+      });
+
+      const res = await t.http
+        .get('/users/me')
+        .set(bearer(CLERK_TOKEN))
+        .expect(200);
+
+      expect(t.users.create).toHaveBeenCalledWith(
+        expect.objectContaining({ imageUrl: null }),
+      );
+      expect(res.body.imageUrl).toBeNull();
     });
 
     it('refreshes the name and email when the token profile differs from the row', async () => {
@@ -106,6 +150,7 @@ describe('Usuario', () => {
         name: 'Ana María',
         email: 'ana.new@example.com',
         slug: null,
+        imageUrl: null,
       });
     });
 
@@ -132,6 +177,7 @@ describe('Usuario', () => {
         name: ANA.name,
         email: ANA.email,
         slug: null,
+        imageUrl: null,
       });
     });
 
@@ -167,6 +213,7 @@ describe('Usuario', () => {
         name: ANA.name,
         email: ANA.email,
         slug: null,
+        imageUrl: null,
       });
     });
 
@@ -222,6 +269,7 @@ describe('Usuario', () => {
         name: 'Ana María',
         email: 'ana@example.com',
         slug: null,
+        imageUrl: null,
       });
     });
 
@@ -278,6 +326,7 @@ describe('Usuario', () => {
         name: 'Ana Pérez',
         email: 'ana@example.com',
         slug: null,
+        imageUrl: null,
       });
     });
 

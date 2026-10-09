@@ -63,7 +63,7 @@ export class AssignEmployeeUseCase {
     const service = await this.services.findById(serviceId);
     if (!service) throw new NotFoundError('Service not found');
     // A Servicio dado de baja has no links: one here would keep its Availability from being deleted.
-    if (service.retiredAt)
+    if (service.deletedAt)
       throw new BusinessRuleError('The Service is retired');
     const { branch, isOwner } = await assertServiceOwnerOrSelf(
       this.branches,
@@ -83,7 +83,7 @@ export class AssignEmployeeUseCase {
     if (!employee) throw new NotFoundError('Employee not found');
     if (
       employee.businessId !== branch.businessId ||
-      employee.retiredAt !== null
+      employee.deletedAt !== null
     )
       throw new BusinessRuleError(
         'The Employee must belong to this Business and not be retired',

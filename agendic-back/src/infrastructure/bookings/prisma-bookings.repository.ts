@@ -274,7 +274,7 @@ export class PrismaBookingsRepository implements BookingsRepository {
         where: {
           userId,
           // A Negocio that dio de baja the Usuario no longer shows its Turnos to them.
-          OR: [{ employeeId: null }, { employee: { retiredAt: null } }],
+          OR: [{ employeeId: null }, { employee: { deletedAt: null } }],
         },
         select: {
           ...BOOKING_SELECT,

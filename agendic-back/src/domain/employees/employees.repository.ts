@@ -17,9 +17,9 @@ export interface EmployeesRepository {
   listActiveByUser(userId: number): Promise<Employee[]>;
   /** The Business's Employees not dados de baja. */
   listActiveByBusiness(businessId: number): Promise<Employee[]>;
-  /** Dado de baja: sets retiredAt, takes the Employee off every Service, and cancels their future BOOKED Bookings, atomically. */
+  /** Dado de baja: sets deletedAt, takes the Employee off every Service, and cancels their future BOOKED Bookings, atomically. */
   retire(
     id: number,
-    retiredAt: Date,
+    deletedAt: Date,
   ): Promise<{ employee: Employee; cancelledBookings: number }>;
 }

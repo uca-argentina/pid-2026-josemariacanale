@@ -389,7 +389,7 @@ describe('GET /services/:id/slots', () => {
   it('answers 404 for a Servicio dado de baja', async () => {
     t.services.findById.mockResolvedValue({
       ...SERVICE,
-      retiredAt: new Date('2026-01-01T00:00:00.000Z'),
+      deletedAt: new Date('2026-01-01T00:00:00.000Z'),
     });
 
     await query(t, {}).expect(404);
@@ -414,6 +414,7 @@ describe('GET /services/:id/slots', () => {
             name: 'Juan',
             availabilityId: JUANS_AVAILABILITY.id,
             userId: JUANS_AVAILABILITY.userId,
+            imageUrl: null,
           },
         ],
       });

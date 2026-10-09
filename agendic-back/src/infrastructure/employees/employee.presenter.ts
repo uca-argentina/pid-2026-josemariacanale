@@ -9,4 +9,5 @@ export const presentEmployee = (employee: Employee) => ({
   userId: employee.userId,
   name: employee.name,
   email: employee.email,
+  imageUrl: employee.imageUrl,
 });

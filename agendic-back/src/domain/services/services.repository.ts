@@ -78,7 +78,7 @@ export interface ServicesRepository {
   /** Also unlinks its Employees, freeing their Availabilities, and cancels its future BOOKED Bookings, atomically. */
   retire(
     id: number,
-    retiredAt: Date,
+    deletedAt: Date,
   ): Promise<{ service: Service; cancelledBookings: number }>;
   /** Throws ConflictError when the Employee is already in charge of the Service. */
   addEmployee(link: EmployeeService): Promise<Service>;

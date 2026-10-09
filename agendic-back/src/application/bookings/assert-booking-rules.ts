@@ -8,7 +8,7 @@ import { serviceTimeZone } from '../services/service-time-zone';
 export function assertServiceBookable(
   service: Service | null,
 ): asserts service is Service {
-  if (!service || service.retiredAt)
+  if (!service || service.deletedAt)
     throw new BusinessRuleError('Service not found or retired');
 }
 

@@ -17,7 +17,7 @@ export class PrismaUsersRepository implements UsersRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   /** The nested create is one transaction: a Usuario never exists without its default Availability. */
-  async create(data: Pick<User, 'clerkId' | 'name' | 'email'>) {
+  async create(data: Pick<User, 'clerkId' | 'name' | 'email' | 'imageUrl'>) {
     return toUser(
       await this.prisma.user
         .create({
@@ -89,6 +89,7 @@ const toUser = (row: UserRow): User => ({
   name: row.name,
   email: row.email,
   slug: row.slug,
+  imageUrl: row.imageUrl,
   createdAt: row.createdAt,
 });
 

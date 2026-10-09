@@ -6,7 +6,7 @@ export function isLastEmployee(
   employeeId: number,
 ): boolean {
   return (
-    service.retiredAt === null &&
+    service.deletedAt === null &&
     service.employees.length === 1 &&
     service.employees[0].id === employeeId
   );

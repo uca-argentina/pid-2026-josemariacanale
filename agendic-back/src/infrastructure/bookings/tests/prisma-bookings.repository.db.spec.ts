@@ -263,7 +263,7 @@ describe('PrismaBookingsRepository (real database)', () => {
         data: { userId: mineUserId, businessId },
       });
       const { id: retiredId } = await prisma.employee.create({
-        data: { userId: mineUserId, businessId, retiredAt: new Date() },
+        data: { userId: mineUserId, businessId, deletedAt: new Date() },
       });
       await bookAt(10, personal.id, null);
       await bookAt(12, ofBusiness.id, activeId);

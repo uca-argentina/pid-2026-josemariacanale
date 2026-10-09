@@ -59,7 +59,7 @@ const ANAS_SERVICE = {
   ...SERVICE_PART,
   depositPercent: null,
   requiresApproval: false,
-  retiredAt: null,
+  deletedAt: null,
   hidden: false,
   prepMinutes: 0,
   dailyLimit: null,
@@ -67,11 +67,12 @@ const ANAS_SERVICE = {
   minimumNoticeMinutes: 0,
   employees: [
     {
-    id: ANAS_EMPLOYEE.id,
-    name: ANAS_EMPLOYEE.name,
-    availabilityId: 10,
-    userId: ANAS_EMPLOYEE.userId,
-  },
+      id: ANAS_EMPLOYEE.id,
+      name: ANAS_EMPLOYEE.name,
+      availabilityId: 10,
+      userId: ANAS_EMPLOYEE.userId,
+      imageUrl: ANAS_EMPLOYEE.imageUrl,
+    },
   ],
 };
 
@@ -153,6 +154,7 @@ describe('Negocio', () => {
           userId: ANAS_EMPLOYEE.userId,
           name: ANAS_EMPLOYEE.name,
           email: ANAS_EMPLOYEE.email,
+          imageUrl: ANAS_EMPLOYEE.imageUrl,
         },
       });
     });

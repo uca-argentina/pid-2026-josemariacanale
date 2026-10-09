@@ -5,7 +5,7 @@
 // - Service slug unique per Branch among its Services not retired (partial unique index, ADR 0018)
 // - a Service is of a User (personal) or of a Branch, exactly one (check); a Branch's has no Availability, a personal one drops it when dado de baja
 // - personal Service name (any casing) and slug unique per User among its Services not retired (partial unique indexes, ADR 0021)
-// - one active Employee (retiredAt null) per (userId, businessId): a User can be re-hired after being dado de baja
+// - one active Employee (deletedAt null) per (userId, businessId): a User can be re-hired after being dado de baja
 // - at most one default Availability per User (partial unique index)
 // - no overlapping AvailabilityOverride Franjas per (availabilityId, date), half-open, skipping día-libre rows (exclusion constraint)
 // - AvailabilityInterval Franjas of one weekday don't overlap: checked by the API only, since `days` is an array (ADR 0020)
@@ -41,6 +41,7 @@ model User {
   name      String
   email     String
   slug      String?  @unique // Enlace de reserva del Usuario: /u/<slug>, always lowercase; null until they choose it (ADR 0021)
+  imageUrl  String? // foto de perfil: Clerk's, seeded on creation only; never refreshed after
   createdAt DateTime @default(now()) @db.Timestamptz(3)
 
   businesses     Business[]
@@ -115,7 +116,7 @@ model Service {
   price            Decimal         @db.Decimal(10, 2)
   depositPercent   Int? // Seña: 0-100, symbolic (never charged); null when the Servicio asks for none
   requiresApproval Boolean         @default(false) // Aprobación manual: verified Turnos are born PENDING instead of BOOKED
-  retiredAt        DateTime?       @db.Timestamptz(3) // when dado de baja; null while offered
+  deletedAt        DateTime?       @db.Timestamptz(3) // when dado de baja; null while offered
   slug             String // Enlace de reserva's last tramo, always lowercase (ADR 0018)
   hidden           Boolean         @default(false) // Servicio oculto: off the Sucursal's page, reachable only by its own Enlace de reserva
   prepMinutes      Int             @default(0) // Tiempo de preparación: 0, 5, 10, 15, 30 or 60 (checked by the API), held before each Turno
@@ -134,7 +135,7 @@ model Employee {
   id         Int       @id @default(autoincrement())
   userId     Int
   businessId Int
-  retiredAt  DateTime? @db.Timestamptz(3) // when dado de baja; null while employed
+  deletedAt  DateTime? @db.Timestamptz(3) // when dado de baja; null while employed
 
   user     User              @relation(fields: [userId], references: [id])
   business Business          @relation(fields: [businessId], references: [id])

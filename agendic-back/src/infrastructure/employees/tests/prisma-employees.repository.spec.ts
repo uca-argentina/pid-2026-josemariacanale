@@ -17,7 +17,8 @@ const EMPLOYEE: Employee = {
   businessId: 1,
   name: 'Ana Pérez',
   email: 'ana@example.com',
-  retiredAt: null,
+  imageUrl: null,
+  deletedAt: null,
 };
 
 /** The row shape Prisma returns with the Usuario joined in. */
@@ -25,8 +26,8 @@ const EMPLOYEE_ROW = {
   id: EMPLOYEE.id,
   userId: EMPLOYEE.userId,
   businessId: EMPLOYEE.businessId,
-  retiredAt: EMPLOYEE.retiredAt,
-  user: { name: EMPLOYEE.name, email: EMPLOYEE.email },
+  deletedAt: EMPLOYEE.deletedAt,
+  user: { name: EMPLOYEE.name, email: EMPLOYEE.email, imageUrl: EMPLOYEE.imageUrl },
 };
 
 const knownError = (code: string) =>
@@ -87,6 +88,17 @@ describe('PrismaEmployeesRepository', () => {
     });
   });
 
+  it('allows recontratar a un Empleado dado de baja: a plain insert, no pre-check against an existing dado-de-baja row for the same (userId, businessId)', async () => {
+    prisma.employee.create.mockResolvedValue({ ...EMPLOYEE_ROW, id: 2 });
+
+    await expect(
+      repository.create({ userId: 1, businessId: 1 }),
+    ).resolves.toEqual({ ...EMPLOYEE, id: 2 });
+    // Rehire is guarded only by the DB's partial unique index (ADR 0004), never by a repository-level lookup.
+    expect(prisma.employee.findUnique).not.toHaveBeenCalled();
+    expect(prisma.employee.findMany).not.toHaveBeenCalled();
+  });
+
   it('finds an Employee by id', async () => {
     prisma.employee.findUnique.mockResolvedValue(EMPLOYEE_ROW);
 
@@ -110,34 +122,34 @@ describe('PrismaEmployeesRepository', () => {
       EMPLOYEE,
     ]);
     expect(prisma.employee.findMany).toHaveBeenCalledWith({
-      where: { businessId: 1, retiredAt: null },
+      where: { businessId: 1, deletedAt: null },
       include: WITH_USER,
     });
   });
 
   describe('retire', () => {
-    const retiredAt = new Date('2026-02-01T00:00:00.000Z');
+    const deletedAt = new Date('2026-02-01T00:00:00.000Z');
 
-    it('sets retiredAt, takes the Employee off every Service, and cancels their future BOOKED Turnos, atomically', async () => {
-      tx.employee.update.mockResolvedValue({ ...EMPLOYEE_ROW, retiredAt });
+    it('sets deletedAt, takes the Employee off every Service, and cancels their future BOOKED Turnos, atomically', async () => {
+      tx.employee.update.mockResolvedValue({ ...EMPLOYEE_ROW, deletedAt });
       tx.booking.updateMany.mockResolvedValue({ count: 4 });
 
-      await expect(repository.retire(1, retiredAt)).resolves.toEqual({
-        employee: { ...EMPLOYEE, retiredAt },
+      await expect(repository.retire(1, deletedAt)).resolves.toEqual({
+        employee: { ...EMPLOYEE, deletedAt },
         cancelledBookings: 4,
       });
 
       expect(prisma.$transaction).toHaveBeenCalledTimes(1);
       expect(tx.employee.update).toHaveBeenCalledWith({
         where: { id: 1 },
-        data: { retiredAt, services: { deleteMany: {} } },
+        data: { deletedAt, services: { deleteMany: {} } },
         include: WITH_USER,
       });
       expect(tx.booking.updateMany).toHaveBeenCalledWith({
         where: {
           employeeId: 1,
           status: { in: ['PENDING', 'BOOKED'] },
-          startsAt: { gt: retiredAt },
+          startsAt: { gt: deletedAt },
         },
         data: { status: 'CANCELLED' },
       });

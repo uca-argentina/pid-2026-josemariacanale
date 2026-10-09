@@ -23,7 +23,7 @@ const SERVICE_ROW = {
   price: '20', // Prisma returns Decimal columns as a Decimal-like; Number() reads a numeric string just as well
   depositPercent: 30,
   requiresApproval: false,
-  retiredAt: null,
+  deletedAt: null,
   slug: 'haircut',
   hidden: false,
   prepMinutes: 0,
@@ -31,7 +31,10 @@ const SERVICE_ROW = {
   slotInterval: null,
   minimumNoticeMinutes: 0,
   employees: [
-    { availabilityId: 10, employee: { id: 7, userId: 1, user: { name: 'Ana Pérez' } } },
+    {
+      availabilityId: 10,
+      employee: { id: 7, userId: 1, user: { name: 'Ana Pérez', imageUrl: null } },
+    },
   ],
 };
 
@@ -47,14 +50,16 @@ const SERVICE: Service = {
   price: 20,
   depositPercent: 30,
   requiresApproval: false,
-  retiredAt: null,
+  deletedAt: null,
   slug: 'haircut',
   hidden: false,
   prepMinutes: 0,
   dailyLimit: null,
   slotInterval: null,
   minimumNoticeMinutes: 0,
-  employees: [{ id: 7, name: 'Ana Pérez', availabilityId: 10, userId: 1 }],
+  employees: [
+    { id: 7, name: 'Ana Pérez', availabilityId: 10, userId: 1, imageUrl: null },
+  ],
 };
 
 const knownError = (code: string) =>
@@ -81,8 +86,14 @@ describe('PrismaServicesRepository', () => {
   const SERVICE_ROW_WITH_TWO: typeof SERVICE_ROW = {
     ...SERVICE_ROW,
     employees: [
-      { availabilityId: 10, employee: { id: 7, userId: 1, user: { name: 'Ana Pérez' } } },
-      { availabilityId: 11, employee: { id: 8, userId: 2, user: { name: 'Bruno Díaz' } } },
+      {
+        availabilityId: 10,
+        employee: { id: 7, userId: 1, user: { name: 'Ana Pérez', imageUrl: null } },
+      },
+      {
+        availabilityId: 11,
+        employee: { id: 8, userId: 2, user: { name: 'Bruno Díaz', imageUrl: null } },
+      },
     ],
   };
   const repository = new PrismaServicesRepository(
@@ -122,7 +133,7 @@ describe('PrismaServicesRepository', () => {
     await repository.listActiveByUser(1);
 
     expect(prisma.service.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { userId: 1, retiredAt: null } }),
+      expect.objectContaining({ where: { userId: 1, deletedAt: null } }),
     );
   });
 
@@ -131,7 +142,7 @@ describe('PrismaServicesRepository', () => {
 
     await expect(repository.findActiveByUserSlug(1, 'consulta')).resolves.toBeNull();
     expect(prisma.service.findFirst).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { userId: 1, slug: 'consulta', retiredAt: null } }),
+      expect.objectContaining({ where: { userId: 1, slug: 'consulta', deletedAt: null } }),
     );
   });
 
@@ -192,7 +203,7 @@ describe('PrismaServicesRepository', () => {
 
     await expect(repository.listActiveByBranch(1)).resolves.toEqual([SERVICE]);
     expect(prisma.service.findMany).toHaveBeenCalledWith({
-      where: { branchId: 1, retiredAt: null },
+      where: { branchId: 1, deletedAt: null },
       include: VISIBLE_EMPLOYEES,
     });
   });
@@ -205,7 +216,7 @@ describe('PrismaServicesRepository', () => {
         SERVICE,
       );
       expect(prisma.service.findFirst).toHaveBeenCalledWith({
-        where: { branchId: 1, slug: 'haircut', retiredAt: null },
+        where: { branchId: 1, slug: 'haircut', deletedAt: null },
         include: VISIBLE_EMPLOYEES,
       });
     });
@@ -233,8 +244,8 @@ describe('PrismaServicesRepository', () => {
       ).resolves.toEqual({
         ...SERVICE,
         employees: [
-          { id: 7, name: 'Ana Pérez', availabilityId: 10, userId: 1 },
-          { id: 8, name: 'Bruno Díaz', availabilityId: 11, userId: 2 },
+          { id: 7, name: 'Ana Pérez', availabilityId: 10, userId: 1, imageUrl: null },
+          { id: 8, name: 'Bruno Díaz', availabilityId: 11, userId: 2, imageUrl: null },
         ],
       });
       expect(prisma.service.update).toHaveBeenCalledWith({
@@ -365,34 +376,34 @@ describe('PrismaServicesRepository', () => {
       SERVICE,
     ]);
     expect(prisma.service.findMany).toHaveBeenCalledWith({
-      where: { retiredAt: null, employees: { some: { employeeId: 7 } } },
+      where: { deletedAt: null, employees: { some: { employeeId: 7 } } },
       include: VISIBLE_EMPLOYEES,
     });
   });
 
   describe('retire', () => {
-    const retiredAt = new Date('2026-02-01T00:00:00.000Z');
+    const deletedAt = new Date('2026-02-01T00:00:00.000Z');
 
-    it('sets retiredAt, unlinks its Employees and cancels the Service future BOOKED Turnos, atomically', async () => {
-      tx.service.update.mockResolvedValue({ ...SERVICE_ROW, retiredAt });
+    it('sets deletedAt, unlinks its Employees and cancels the Service future BOOKED Turnos, atomically', async () => {
+      tx.service.update.mockResolvedValue({ ...SERVICE_ROW, deletedAt });
       tx.booking.updateMany.mockResolvedValue({ count: 3 });
 
-      await expect(repository.retire(1, retiredAt)).resolves.toEqual({
-        service: { ...SERVICE, retiredAt },
+      await expect(repository.retire(1, deletedAt)).resolves.toEqual({
+        service: { ...SERVICE, deletedAt },
         cancelledBookings: 3,
       });
 
       expect(prisma.$transaction).toHaveBeenCalledTimes(1);
       expect(tx.service.update).toHaveBeenCalledWith({
         where: { id: 1 },
-        data: { retiredAt, availabilityId: null, employees: { deleteMany: {} } },
+        data: { deletedAt, availabilityId: null, employees: { deleteMany: {} } },
         include: VISIBLE_EMPLOYEES,
       });
       expect(tx.booking.updateMany).toHaveBeenCalledWith({
         where: {
           serviceId: 1,
           status: { in: ['PENDING', 'BOOKED'] },
-          startsAt: { gt: retiredAt },
+          startsAt: { gt: deletedAt },
         },
         data: { status: 'CANCELLED' },
       });
@@ -444,6 +455,33 @@ describe('PrismaServicesRepository', () => {
         );
       },
     );
+
+    it('allows creating a Service reusing the name and slug of one dado de baja: a plain insert, no pre-check', async () => {
+      prisma.service.create.mockResolvedValue(SERVICE_ROW);
+
+      await expect(
+        repository.create({
+          branchId: 1,
+          name: 'Haircut',
+          description: 'A basic haircut',
+          category: ServiceCategory.SPA,
+          durationMinutes: 30,
+          price: 20,
+          depositPercent: 30,
+          requiresApproval: false,
+          slug: 'haircut',
+          hidden: false,
+          prepMinutes: 0,
+          dailyLimit: null,
+          slotInterval: null,
+          minimumNoticeMinutes: 0,
+          employees: [],
+        }),
+      ).resolves.toEqual(SERVICE);
+      // Reuse is guarded only by the DB's partial unique index, which excludes dados de baja (ADR 0004).
+      expect(prisma.service.findFirst).not.toHaveBeenCalled();
+      expect(prisma.service.findMany).not.toHaveBeenCalled();
+    });
   });
 
   describe('translates Prisma errors, keeping the original as cause', () => {
