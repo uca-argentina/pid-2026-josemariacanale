@@ -3,7 +3,7 @@ import { DI_SYMBOLS } from '@/di/types';
 import { bookSlotUseCase } from '@/src/application/use-cases/bookings/book-slot.use-case';
 import { listSlotsUseCase } from '@/src/application/use-cases/bookings/list-slots.use-case';
 import { listMyBookingsUseCase } from '@/src/application/use-cases/bookings/list-my-bookings.use-case';
-import { EmployeeBookingsRepository } from '@/src/infrastructure/repositories/employee-bookings.repository';
+import { UserBookingsRepository } from '@/src/infrastructure/repositories/user-bookings.repository';
 import { listMyBookingsController } from '@/src/interface-adapters/controllers/bookings/list-my-bookings.controller';
 import { markBookingNoShowUseCase } from '@/src/application/use-cases/bookings/mark-booking-no-show.use-case';
 import { markBookingNoShowController } from '@/src/interface-adapters/controllers/bookings/mark-booking-no-show.controller';
@@ -63,11 +63,11 @@ export function createBookingsModule() {
             DI_SYMBOLS.IRequestVerificationCodeUseCase,
         ]);
 
-    bookingsModule.bind(DI_SYMBOLS.IEmployeeBookingsRepository).toClass(EmployeeBookingsRepository, [DI_SYMBOLS.IAuthenticationService]);
+    bookingsModule.bind(DI_SYMBOLS.IUserBookingsRepository).toClass(UserBookingsRepository, [DI_SYMBOLS.IAuthenticationService]);
 
     bookingsModule
         .bind(DI_SYMBOLS.IListMyBookingsUseCase)
-        .toHigherOrderFunction(listMyBookingsUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IEmployeeBookingsRepository]);
+        .toHigherOrderFunction(listMyBookingsUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IUserBookingsRepository]);
 
     bookingsModule
         .bind(DI_SYMBOLS.IListMyBookingsController)
@@ -79,7 +79,7 @@ export function createBookingsModule() {
 
     bookingsModule
         .bind(DI_SYMBOLS.IAcceptBookingUseCase)
-        .toHigherOrderFunction(acceptBookingUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IEmployeeBookingsRepository]);
+        .toHigherOrderFunction(acceptBookingUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IUserBookingsRepository]);
 
     bookingsModule
         .bind(DI_SYMBOLS.IAcceptBookingController)
@@ -91,7 +91,7 @@ export function createBookingsModule() {
 
     bookingsModule
         .bind(DI_SYMBOLS.IRejectBookingUseCase)
-        .toHigherOrderFunction(rejectBookingUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IEmployeeBookingsRepository]);
+        .toHigherOrderFunction(rejectBookingUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IUserBookingsRepository]);
 
     bookingsModule
         .bind(DI_SYMBOLS.IRejectBookingController)
@@ -103,7 +103,7 @@ export function createBookingsModule() {
 
     bookingsModule
         .bind(DI_SYMBOLS.ICancelBookingUseCase)
-        .toHigherOrderFunction(cancelBookingUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IEmployeeBookingsRepository]);
+        .toHigherOrderFunction(cancelBookingUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IUserBookingsRepository]);
 
     bookingsModule
         .bind(DI_SYMBOLS.ICancelBookingController)
@@ -115,7 +115,7 @@ export function createBookingsModule() {
 
     bookingsModule
         .bind(DI_SYMBOLS.IRescheduleBookingUseCase)
-        .toHigherOrderFunction(rescheduleBookingUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IEmployeeBookingsRepository]);
+        .toHigherOrderFunction(rescheduleBookingUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IUserBookingsRepository]);
 
     bookingsModule
         .bind(DI_SYMBOLS.IRescheduleBookingController)
@@ -127,7 +127,7 @@ export function createBookingsModule() {
 
     bookingsModule
         .bind(DI_SYMBOLS.IMarkBookingNoShowUseCase)
-        .toHigherOrderFunction(markBookingNoShowUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IEmployeeBookingsRepository]);
+        .toHigherOrderFunction(markBookingNoShowUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IUserBookingsRepository]);
 
     bookingsModule
         .bind(DI_SYMBOLS.IMarkBookingNoShowController)

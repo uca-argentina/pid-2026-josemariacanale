@@ -1,4 +1,4 @@
-import type { IEmployeeBookingsRepository } from '@/src/application/repositories/employee-bookings.repository.interface';
+import type { IUserBookingsRepository } from '@/src/application/repositories/user-bookings.repository.interface';
 import type { IInstrumentationService } from '@/src/application/services/instrumentation.service.interface';
 
 /** Tipo del caso de uso ya compuesto, como lo consumen los controllers. */
@@ -16,8 +16,8 @@ export type IRescheduleBookingUseCase = ReturnType<typeof rescheduleBookingUseCa
  * @throws {BookingStateError} el Turno no está aceptado
  */
 export const rescheduleBookingUseCase =
-    (instrumentationService: IInstrumentationService, employeeBookingsRepository: IEmployeeBookingsRepository) =>
+    (instrumentationService: IInstrumentationService, userBookingsRepository: IUserBookingsRepository) =>
     (input: { bookingId: number; startsAt: string }): Promise<void> =>
         instrumentationService.startSpan({ name: 'rescheduleBooking Use Case', op: 'function' }, () =>
-            employeeBookingsRepository.reschedule(input.bookingId, input.startsAt),
+            userBookingsRepository.reschedule(input.bookingId, input.startsAt),
         );

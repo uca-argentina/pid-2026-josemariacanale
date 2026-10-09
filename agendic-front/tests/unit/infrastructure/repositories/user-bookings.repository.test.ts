@@ -1,7 +1,7 @@
 import { UnauthenticatedError } from '@/src/entities/errors/auth';
 import { BookingNotAllowedError, BookingStateError, SlotTakenError, SlotUnavailableError } from '@/src/entities/errors/booking';
 import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
-import { EmployeeBookingsRepository } from '@/src/infrastructure/repositories/employee-bookings.repository';
+import { UserBookingsRepository } from '@/src/infrastructure/repositories/user-bookings.repository';
 import { authWith } from '@/tests/unit/stubs';
 
 const booking = {
@@ -14,28 +14,33 @@ const booking = {
     noShowAt: null,
     serviceId: 2,
     serviceName: 'Masaje',
-    businessId: 3,
-    businessName: 'Spa',
-    branchId: 4,
-    branchName: 'Centro',
+    employeeId: 5,
+    business: { id: 3, name: 'Spa' },
+    branch: { id: 4, name: 'Centro' },
 };
 
 const repo = (apiUrl: string | undefined = 'http://api') =>
-    new EmployeeBookingsRepository(authWith({ getAccessToken: jest.fn().mockResolvedValue('tok') }), apiUrl);
+    new UserBookingsRepository(authWith({ getAccessToken: jest.fn().mockResolvedValue('tok') }), apiUrl);
 const respond = (status: number, body: unknown) =>
     jest.spyOn(global, 'fetch').mockResolvedValue(new Response(JSON.stringify(body), { status }));
 
 afterEach(() => jest.restoreAllMocks());
 
-describe('EmployeeBookingsRepository.listMyBookings', () => {
+describe('UserBookingsRepository.listMyBookings', () => {
     it('GETs the Turnos with the bearer token and parses them', async () => {
         const fetchSpy = respond(200, [booking]);
 
         await expect(repo().listMyBookings()).resolves.toEqual([booking]);
         expect(fetchSpy).toHaveBeenCalledWith(
-            'http://api/employees/me/bookings',
+            'http://api/users/me/bookings',
             expect.objectContaining({ headers: { Authorization: 'Bearer tok' } }),
         );
+    });
+
+    it('parses a Turno of a Servicio personal, without Empleado, Negocio or Sucursal', async () => {
+        const personal = { ...booking, employeeId: null, business: null, branch: null };
+        respond(200, [personal]);
+        await expect(repo().listMyBookings()).resolves.toEqual([personal]);
     });
 
     it('returns an empty list as is', async () => {
@@ -81,7 +86,7 @@ describe('EmployeeBookingsRepository.listMyBookings', () => {
     });
 });
 
-describe('EmployeeBookingsRepository actions', () => {
+describe('UserBookingsRepository actions', () => {
     const actions = [
         ['accept', 'accept', () => repo().accept(7)],
         ['reject', 'reject', () => repo().reject(7)],

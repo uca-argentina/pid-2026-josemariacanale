@@ -1,4 +1,4 @@
-import { groupByDay, matches, sortForTab, tabOf, type Booking } from '@/app/(app)/bookings/_components/booking-helpers';
+import { groupByDay, matches, placeOf, sortForTab, tabOf, type Booking } from '@/app/(app)/bookings/_components/booking-helpers';
 
 const NOW = Date.parse('2026-09-15T15:00:00-03:00');
 
@@ -11,10 +11,18 @@ const booking = (patch: Partial<Booking>): Booking => ({
     clientEmail: 'lucia@gmail.com',
     noShowAt: null,
     serviceId: 2,
+    employeeId: 5,
     serviceName: 'Masaje',
     businessName: 'Spa',
     branchName: 'Centro',
     ...patch,
+});
+
+describe('placeOf', () => {
+    it('muestra Negocio y Sucursal, o Servicio personal si el Turno no tiene Negocio', () => {
+        expect(placeOf(booking({}))).toBe('Spa · Centro');
+        expect(placeOf(booking({ employeeId: null, businessName: null, branchName: null }))).toBe('Servicio personal');
+    });
 });
 
 describe('tabOf', () => {

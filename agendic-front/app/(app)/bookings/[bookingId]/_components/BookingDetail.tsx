@@ -91,7 +91,9 @@ export function BookingDetail({ booking, now, startCancelling }: { booking: Book
                             {booking.clientEmail}
                         </a>
                     </Row>
-                    <Row label="Dónde">{booking.businessName} · Sucursal {booking.branchName}</Row>
+                    <Row label="Dónde">
+                        {booking.businessName === null ? 'Servicio personal' : `${booking.businessName} · Sucursal ${booking.branchName}`}
+                    </Row>
                 </dl>
 
                 {cancelling ? (
