@@ -13,6 +13,7 @@ import {
   ClerkProfile,
   ClerkProfileSeed,
 } from '../../domain/users/clerk-auth';
+import { readFrontendUrl } from '../nodemailer-mailer';
 
 @Injectable()
 export class ClerkBackendAuth implements ClerkAuth {
@@ -59,6 +60,8 @@ export class ClerkBackendAuth implements ClerkAuth {
         emailAddress: email,
         ignoreExisting: true,
         notify: true,
+        // Without it the mail's link lands on Clerk's own accounts portal instead of Agendic's sign-up, which takes the ticket.
+        redirectUrl: `${readFrontendUrl()}/sign-up`,
       });
     } catch (error) {
       if (isExistingAccount(error)) return;
