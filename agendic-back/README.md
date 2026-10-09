@@ -15,6 +15,10 @@ Para que el back refresque el nombre y el email del Usuario (y del Empleado) al 
 
 Sin esta configuración (o con un token viejo que no la tiene todavía), el back sigue funcionando igual: no refresca nada y no llama a la API de Clerk.
 
+### Baja de Usuarios
+
+Un Usuario se da de baja desde Agendic (`DELETE /users/me`, ADR 0023): el back marca la fila y después borra su Usuario en Clerk. Para que no exista otro camino que borre la identidad sin pasar por el back, hay que **apagar "Allow users to delete their accounts"** en el dashboard de Clerk (**User & Authentication → Account deletion** o, según la versión del dashboard, **Configure → Account deletion**). Con eso encendido, el perfil de Clerk le ofrece al Usuario borrar su cuenta por fuera, sin cancelar sus Turnos ni dar de baja sus Servicios y Empleados.
+
 ### Storage de archivos
 
 Los archivos que se suben (por ejemplo, las imágenes de Sucursal) se guardan en un storage de objetos S3-compatible, no en el disco del back (ADR 0015). Sin estas variables el back no arranca y dice cuáles faltan:

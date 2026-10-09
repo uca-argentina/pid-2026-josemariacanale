@@ -67,6 +67,29 @@ export class ClerkBackendAuth implements ClerkAuth {
       });
     }
   }
+
+  async deleteUser(clerkId: string): Promise<void> {
+    try {
+      await this.clerkClient.users.deleteUser(clerkId);
+    } catch (error) {
+      if (isMissingUser(error)) return;
+      throw new ExternalServiceError(
+        'No se pudo borrar el Usuario en el Proveedor de autenticación',
+        { cause: error },
+      );
+    }
+  }
+}
+
+/** Clerk answers 404 `resource_not_found` for a user it no longer has. */
+function isMissingUser(error: unknown): boolean {
+  const { status, errors } = error as {
+    status?: number;
+    errors?: { code?: string }[];
+  };
+  return (
+    status === 404 || !!errors?.some((e) => e.code === 'resource_not_found')
+  );
 }
 
 /** Clerk answers 422 `form_identifier_exists` when the email already has an account. */

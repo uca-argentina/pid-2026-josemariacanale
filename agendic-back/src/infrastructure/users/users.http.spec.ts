@@ -1,6 +1,11 @@
-import { ConflictError, DatabaseOperationError } from '../../domain/errors';
+import {
+  ConflictError,
+  DatabaseOperationError,
+  ExternalServiceError,
+} from '../../domain/errors';
 import {
   ANA,
+  ANAS_BUSINESS,
   bearer,
   CLERK_TOKEN,
   createTestApp,
@@ -351,6 +356,91 @@ describe('Usuario', () => {
         expect(t.users.update).not.toHaveBeenCalled();
       },
     );
+  });
+
+  describe('DELETE /users/me', () => {
+    const RETIRED = { ...ANA, deletedAt: new Date('2026-01-01T12:00:00.000Z') };
+
+    it('dado de baja en Postgres y después en Clerk, 204 sin body', async () => {
+      scriptSession(t);
+      t.users.findById.mockResolvedValue(ANA);
+      t.businesses.listByOwner.mockResolvedValue([]);
+      t.users.retire.mockResolvedValue({ cancelledBookings: 2 });
+
+      const res = await t.http
+        .delete('/users/me')
+        .set(bearer(CLERK_TOKEN))
+        .expect(204);
+
+      expect(res.body).toEqual({});
+      expect(t.users.retire).toHaveBeenCalledWith(ANA.id, t.clock.now());
+      expect(t.clerkAuth.deleteUser).toHaveBeenCalledWith(ANA.clerkId);
+      expect(t.users.retire.mock.invocationCallOrder[0]).toBeLessThan(
+        t.clerkAuth.deleteUser.mock.invocationCallOrder[0],
+      );
+    });
+
+    it('rejects the Usuario dado de baja with 403 on every other endpoint', async () => {
+      scriptSession(t);
+      t.users.findByClerkId.mockResolvedValue(RETIRED);
+
+      const res = await t.http
+        .get('/users/me')
+        .set(bearer(CLERK_TOKEN))
+        .expect(403);
+
+      expect(res.body.message).toBe('User 1 is dado de baja');
+      await t.http
+        .get('/users/me/services')
+        .set(bearer(CLERK_TOKEN))
+        .expect(403);
+    });
+
+    it('answers 422 to a Dueño and retires nothing', async () => {
+      scriptSession(t);
+      t.users.findById.mockResolvedValue(ANA);
+      t.businesses.listByOwner.mockResolvedValue([ANAS_BUSINESS]);
+
+      const res = await t.http
+        .delete('/users/me')
+        .set(bearer(CLERK_TOKEN))
+        .expect(422);
+
+      expect(res.body.message).toBe('El Dueño no puede darse de baja todavía');
+      expect(t.users.retire).not.toHaveBeenCalled();
+      expect(t.clerkAuth.deleteUser).not.toHaveBeenCalled();
+    });
+
+    it('answers 502 when Clerk fails, with the fila already dada de baja, and a repeat only retries Clerk', async () => {
+      scriptSession(t);
+      t.users.findById.mockResolvedValue(ANA);
+      t.businesses.listByOwner.mockResolvedValue([]);
+      t.users.retire.mockResolvedValue({ cancelledBookings: 0 });
+      t.clerkAuth.deleteUser.mockRejectedValueOnce(
+        new ExternalServiceError(
+          'No se pudo borrar el Usuario en el Proveedor de autenticación',
+        ),
+      );
+
+      const res = await t.http
+        .delete('/users/me')
+        .set(bearer(CLERK_TOKEN))
+        .expect(502);
+
+      expect(res.body.message).toBe(
+        'No se pudo borrar el Usuario en el Proveedor de autenticación',
+      );
+      expect(t.users.retire).toHaveBeenCalledTimes(1);
+
+      t.users.findByClerkId.mockResolvedValue(RETIRED);
+      t.users.findById.mockResolvedValue(RETIRED);
+      t.clerkAuth.deleteUser.mockResolvedValue(undefined);
+
+      await t.http.delete('/users/me').set(bearer(CLERK_TOKEN)).expect(204);
+
+      expect(t.users.retire).toHaveBeenCalledTimes(1);
+      expect(t.clerkAuth.deleteUser).toHaveBeenCalledTimes(2);
+    });
   });
 
   it.each(['/users', '/users/1', '/sessions'])(

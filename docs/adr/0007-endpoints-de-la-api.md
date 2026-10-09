@@ -16,6 +16,7 @@ actualizarlo a mano cuando se agregue, cambie o borre un endpoint.
   `Unauthenticated` → 401, `Forbidden` → 403, `NotFound` → 404, `InvalidCode` → 400, `Conflict` →
   409, `Expired` → 410, `BusinessRule` → 422, resto → 500.
 - CORS habilitado para todos los orígenes.
+- Un Usuario dado de baja (ADR 0023) que todavía tiene una Sesión abierta recibe **403** `User <id> is dado de baja` en cualquier endpoint con Sesión. La única excepción es `DELETE /users/me`. El front cierra la Sesión al verlo.
 
 ## Sessions
 
@@ -36,6 +37,7 @@ actualizarlo a mano cuando se agregue, cambie o borre un endpoint.
 | POST | `/users/verification/resend` | no | Reenvía el código de verificación; 204 |
 | GET | `/users/me` | sí | Perfil del usuario actual |
 | PATCH | `/users/me` | sí | Actualiza name/email (cambiar email vuelve a disparar verificación vía `pendingEmail`) y `slug`, el Enlace de reserva del Usuario (ADR 0021): se pasa a minúsculas, mismo formato que el del Negocio (3-40 caracteres, `^[a-z0-9]+(-[a-z0-9]+)*$`); formato inválido → 400, ya tomado por otro Usuario → 409 `Booking link already in use` (el mismo mensaje que el del Negocio; el front lo muestra bajo el campo). La respuesta de `GET`/`PATCH /users/me` suma `slug`, `null` hasta que lo elige |
+| DELETE | `/users/me` | sí | Dar de baja al propio Usuario (ADR 0023): marca `deletedAt`, da de baja sus Servicios personales y sus Empleados (aunque sea el último Empleado de un Servicio) y cancela sus Turnos futuros pendientes y aceptados, todo en una transacción; después lo borra en Clerk. **204** sin body, también si ya estaba dado de baja y esta vez Clerk respondió bien (idempotente; que Clerk ya no lo tenga no es error); **502** `No se pudo borrar el Usuario en el Proveedor de autenticación` si Clerk falló (la fila ya quedó dada de baja; repetir el `DELETE` reintenta); **422** `El Dueño no puede darse de baja todavía` (transitorio, hasta que el Dueño arrastre su Negocio, #122). El front muestra el 502 y deja reintentar |
 
 - `SignUpDto`: `{ name, email, password (12-72 chars) }`
 - `VerifyEmailDto`: `{ email, code }`

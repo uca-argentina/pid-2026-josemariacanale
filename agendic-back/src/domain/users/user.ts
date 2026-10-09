@@ -8,6 +8,8 @@ export interface User {
   /** Foto de perfil: Clerk's, seeded on creation only; null without a real photo, never refreshed after. */
   imageUrl: string | null;
   createdAt: Date;
+  /** When the Usuario was dado de baja (ADR 0023); null while active. */
+  deletedAt: Date | null;
 }
 
 export interface UpdateMeInput {

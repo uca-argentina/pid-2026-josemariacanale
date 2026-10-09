@@ -91,6 +91,7 @@ export async function createTestApp() {
     findByEmail: jest.fn(),
     findBySlug: jest.fn(),
     update: jest.fn(),
+    retire: jest.fn(),
   };
   const mailer: jest.Mocked<Mailer> = {
     sendVerificationCode: jest.fn(),
@@ -113,6 +114,7 @@ export async function createTestApp() {
     ),
     getProfile: jest.fn(),
     inviteByEmail: jest.fn(),
+    deleteUser: jest.fn(),
   };
   const businesses: jest.Mocked<BusinessesRepository> = {
     create: jest.fn(),
@@ -254,6 +256,7 @@ export const ANA: User = {
   slug: null,
   imageUrl: null,
   createdAt: new Date('2025-12-01T00:00:00.000Z'),
+  deletedAt: null,
 };
 
 export const BRUNO: User = {
@@ -264,6 +267,7 @@ export const BRUNO: User = {
   slug: null,
   imageUrl: null,
   createdAt: new Date('2025-12-01T00:00:00.000Z'),
+  deletedAt: null,
 };
 
 export const ANAS_BUSINESS: Business = {

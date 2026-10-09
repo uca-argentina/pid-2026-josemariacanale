@@ -63,7 +63,7 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | Reagendar | `reschedule` (`RescheduleBookingUseCase`); por Enlace del Turno, `reschedulePendingOrBooked` (`RescheduleBookingByLinkUseCase`) |
 | Mis turnos del Empleado | `EmployeeBooking` (`GET /employees/me/bookings`) |
 | Cancelar | `cancel` (del Empleado); por Enlace del Turno, `cancelPendingOrBooked` (también sobre `PENDING`) |
-| Dar de baja | `retire` (`Service.deletedAt`, `Employee.deletedAt`); ADR 0023 decide sumar `User.deletedAt` y `Business.deletedAt`, todavía no implementados |
+| Dar de baja | `retire` (`Service.deletedAt`, `Employee.deletedAt`); ADR 0023: `User.deletedAt` (`RetireMeUseCase`, `DELETE /users/me`; Clerk, `ClerkAuth.deleteUser`); `Business.deletedAt` todavía no implementado |
 | Sesión / Iniciar sesión / Cerrar sesión | `Session` / `signIn` / `signOut` |
 
 ## Flag ADR conflicts
