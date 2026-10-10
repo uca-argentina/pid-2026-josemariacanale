@@ -45,7 +45,7 @@ actualizarlo a mano cuando se agregue, cambie o borre un endpoint.
 - `VerifyEmailDto`: `{ email, code }`
 - `ResendVerificationDto`: `{ email }`
 - `UpdateMeDto`: `{ name?, email? }`
-- Respuesta (`presentUser`): `{ id, name, email, pendingEmail? (solo si está seteado), role }`. Suma `imageUrl: string | null`: la foto de perfil, la de Clerk al crearse el Usuario; `null` sin una foto real o con una URL que no se pudo parsear. No se refresca después.
+- Respuesta (`presentUser`): `{ id, name, email, pendingEmail? (solo si está seteado), role }`. Suma `imageUrl: string | null`: la foto de perfil, la de Clerk al crearse el Usuario; `null` sin una foto real o con una URL que no se pudo parsear. Se refresca en cada request desde los claims `imageUrl` / `hasImage` del session token (como el nombre y el email, ADR 0009): sin los claims no se toca; si Clerk dice que no hay foto real pasa a `null`; si no cambió no se escribe; una falla al refrescar no tumba el request.
 
 ## Businesses (Negocio)
 

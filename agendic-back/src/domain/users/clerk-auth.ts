@@ -5,7 +5,7 @@ export interface ClerkProfile {
   email: string;
 }
 
-/** `ClerkProfile` plus the photo, read only when seeding a brand-new User (never refreshed after). */
+/** `ClerkProfile` plus the photo, read from the Clerk API only when seeding a brand-new User. */
 export interface ClerkProfileSeed extends ClerkProfile {
   imageUrl: string | null;
 }
@@ -15,6 +15,11 @@ export interface ClerkIdentity {
   clerkId: string;
   /** Name and email carried as session token custom claims; absent when not configured in Clerk or on an old token. */
   profile?: ClerkProfile;
+  /**
+   * The foto de perfil carried as a session token custom claim: `null` when Clerk says there is no real one.
+   * Absent (`undefined`) when the claim is not configured or on an old token, which is not the same as `null`.
+   */
+  imageUrl?: string | null;
 }
 
 export interface ClerkAuth {
