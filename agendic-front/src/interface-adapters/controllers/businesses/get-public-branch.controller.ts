@@ -28,6 +28,8 @@ function presenter(
             address: branch.address,
             timeZone: branch.timeZone,
             slug: branch.slug,
+            // The Sucursal's own description replaces the Negocio's on its page.
+            description: branch.description ?? business.description,
         },
         otherBranches: branches
             .filter((b) => b.id !== branch.id)

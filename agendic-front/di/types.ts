@@ -1,4 +1,11 @@
 import type { IBusinessesRepository } from '@/src/application/repositories/businesses.repository.interface';
+import type { IBranchesRepository } from '@/src/application/repositories/branches.repository.interface';
+import type { ICreateBranchUseCase } from '@/src/application/use-cases/branches/create-branch.use-case';
+import type { IUpdateBranchUseCase } from '@/src/application/use-cases/branches/update-branch.use-case';
+import type { IListBranchesWithImagesUseCase } from '@/src/application/use-cases/branches/list-branches-with-images.use-case';
+import type { ICreateBranchController } from '@/src/interface-adapters/controllers/branches/create-branch.controller';
+import type { IUpdateBranchController } from '@/src/interface-adapters/controllers/branches/update-branch.controller';
+import type { IListBranchesWithImagesController } from '@/src/interface-adapters/controllers/branches/list-branches-with-images.controller';
 import type { IPublicBusinessesRepository } from '@/src/application/repositories/public-businesses.repository.interface';
 import type { IGetPublicBusinessUseCase } from '@/src/application/use-cases/businesses/get-public-business.use-case';
 import type { IGetPublicBranchUseCase } from '@/src/application/use-cases/businesses/get-public-branch.use-case';
@@ -110,6 +117,7 @@ export const DI_SYMBOLS = {
     // Repositories
     IBusinessesRepository: Symbol.for('IBusinessesRepository'),
     IPublicBusinessesRepository: Symbol.for('IPublicBusinessesRepository'),
+    IBranchesRepository: Symbol.for('IBranchesRepository'),
     IEmployeesRepository: Symbol.for('IEmployeesRepository'),
     IBookingsRepository: Symbol.for('IBookingsRepository'),
     IUserBookingsRepository: Symbol.for('IUserBookingsRepository'),
@@ -118,6 +126,9 @@ export const DI_SYMBOLS = {
     IServicesRepository: Symbol.for('IServicesRepository'),
 
     // Use cases
+    ICreateBranchUseCase: Symbol.for('ICreateBranchUseCase'),
+    IUpdateBranchUseCase: Symbol.for('IUpdateBranchUseCase'),
+    IListBranchesWithImagesUseCase: Symbol.for('IListBranchesWithImagesUseCase'),
     ICreateBusinessUseCase: Symbol.for('ICreateBusinessUseCase'),
     IListBusinessesUseCase: Symbol.for('IListBusinessesUseCase'),
     IUpdateBusinessUseCase: Symbol.for('IUpdateBusinessUseCase'),
@@ -161,6 +172,9 @@ export const DI_SYMBOLS = {
 
     // Controllers
     IGetCurrentUserController: Symbol.for('IGetCurrentUserController'),
+    ICreateBranchController: Symbol.for('ICreateBranchController'),
+    IUpdateBranchController: Symbol.for('IUpdateBranchController'),
+    IListBranchesWithImagesController: Symbol.for('IListBranchesWithImagesController'),
     ICreateBusinessController: Symbol.for('ICreateBusinessController'),
     IGetMyBusinessController: Symbol.for('IGetMyBusinessController'),
     IUpdateBusinessController: Symbol.for('IUpdateBusinessController'),
@@ -222,6 +236,7 @@ export interface DI_RETURN_TYPES {
     // Repositories
     IBusinessesRepository: IBusinessesRepository;
     IPublicBusinessesRepository: IPublicBusinessesRepository;
+    IBranchesRepository: IBranchesRepository;
     IEmployeesRepository: IEmployeesRepository;
     IBookingsRepository: IBookingsRepository;
     IUserBookingsRepository: IUserBookingsRepository;
@@ -230,6 +245,9 @@ export interface DI_RETURN_TYPES {
     IServicesRepository: IServicesRepository;
 
     // Use cases
+    ICreateBranchUseCase: ICreateBranchUseCase;
+    IUpdateBranchUseCase: IUpdateBranchUseCase;
+    IListBranchesWithImagesUseCase: IListBranchesWithImagesUseCase;
     ICreateBusinessUseCase: ICreateBusinessUseCase;
     IListBusinessesUseCase: IListBusinessesUseCase;
     IUpdateBusinessUseCase: IUpdateBusinessUseCase;
@@ -273,6 +291,9 @@ export interface DI_RETURN_TYPES {
 
     // Controllers
     IGetCurrentUserController: IGetCurrentUserController;
+    ICreateBranchController: ICreateBranchController;
+    IUpdateBranchController: IUpdateBranchController;
+    IListBranchesWithImagesController: IListBranchesWithImagesController;
     ICreateBusinessController: ICreateBusinessController;
     IGetMyBusinessController: IGetMyBusinessController;
     IUpdateBusinessController: IUpdateBusinessController;
