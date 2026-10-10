@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { SERVICE_CATEGORIES, slugSchema } from './business';
 
-/** All the public view of a Servicio knows about an Empleado: the email is only for the Dueño. `imageUrl` is their foto de perfil (null: none). */
+/** All the public view of a Servicio knows about an Empleado: the email is only for the Dueño. */
 export const serviceEmployeeSchema = z.object({
     id: z.number(),
     name: z.string(),
