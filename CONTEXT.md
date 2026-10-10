@@ -15,8 +15,12 @@ Persona que reserva un Turno dejando un nombre y un email, y verificándolo al R
 _Avoid_: usuario final, paciente, consumidor
 
 **Sucursal**:
-Sede física de un Negocio, con zona horaria propia. Un Negocio puede tener varias. No tiene horario de apertura ni de cierre: los Horarios reservables salen solo de las Availability de sus Empleados. Solo los Servicios del Negocio tienen Sucursal.
+Sede física de un Negocio, con zona horaria propia. Un Negocio puede tener varias. No tiene horario de apertura ni de cierre: los Horarios reservables salen solo de las Availability de sus Empleados. Solo los Servicios del Negocio tienen Sucursal. Puede tener una descripción propia, que en su página reemplaza a la del Negocio, y hasta cinco imágenes, en el orden que elige el Dueño; la primera es la principal.
 _Avoid_: sede, local
+
+**Logo del Negocio**:
+Imagen única que identifica a un Negocio en la página de cada Sucursal y en el panel. Opcional: sin ella, se muestran las iniciales del Negocio.
+_Avoid_: avatar, foto de perfil (eso es del Usuario)
 
 **Empleado**:
 Usuario que atiende los Servicios del Negocio. Puede atender cualquiera de ellos. Un Usuario puede ser Empleado de varios Negocios a la vez, sea o no Dueño de otro.
