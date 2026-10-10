@@ -55,8 +55,15 @@ describe('branchSchema', () => {
         timeZone: 'America/Argentina/Buenos_Aires',
     };
 
-    it('acepta una Sucursal con nombre, dirección y zona horaria', () => {
-        expect(branchSchema.parse(branch)).toEqual(branch);
+    it('acepta una Sucursal con nombre, dirección y zona horaria, y deriva su tramo del nombre', () => {
+        expect(branchSchema.parse(branch)).toEqual({ ...branch, slug: 'sucursal-centro' });
+    });
+
+    it('rechaza un nombre del que no sale un tramo de 3 caracteres', () => {
+        const result = branchSchema.safeParse({ ...branch, name: 'Ñ!' });
+
+        expect(result.success).toBe(false);
+        expect(fieldErrorsOf(result.error!).name).toBe('El nombre tiene que tener al menos 3 letras o números.');
     });
 
     it('rechaza una zona horaria vacía', () => {

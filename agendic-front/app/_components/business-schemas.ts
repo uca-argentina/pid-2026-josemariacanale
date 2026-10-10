@@ -25,11 +25,19 @@ export const businessSchema = z.object({
         ),
 });
 
-export const branchSchema = z.object({
-    name: required('el nombre de la Sucursal'),
-    address: required('la dirección'),
-    timeZone: required('la zona horaria'),
-});
+/** El tramo de la Sucursal en el Enlace de reserva se deriva del nombre: 3 a 40 caracteres. */
+const BRANCH_SLUG_MIN = 3;
+const BRANCH_SLUG_MAX = 40;
+
+export const branchSchema = z
+    .object({
+        name: required('el nombre de la Sucursal').refine((n) => slugify(n).length >= BRANCH_SLUG_MIN, {
+            message: `El nombre tiene que tener al menos ${BRANCH_SLUG_MIN} letras o números.`,
+        }),
+        address: required('la dirección'),
+        timeZone: required('la zona horaria'),
+    })
+    .transform((b) => ({ ...b, slug: slugify(b.name).slice(0, BRANCH_SLUG_MAX).replace(/-+$/, '') }));
 
 export const SERVICE_CATEGORIES = [
     { value: 'CLINICA', label: 'Clínica' },
