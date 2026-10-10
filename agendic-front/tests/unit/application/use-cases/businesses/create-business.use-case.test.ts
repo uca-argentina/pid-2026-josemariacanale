@@ -8,7 +8,7 @@ const input = {
     branch: { name: 'Centro', address: 'Av. 1', timeZone: 'America/Argentina/Buenos_Aires' },
     service: { name: 'Consulta', slug: 'consulta', category: 'CLINICA' as const, durationMinutes: 30, price: 100 },
 };
-const business = { id: 1, name: 'Estudio', description: 'Desc', slug: 'estudio', ownerId: 7 };
+const business = { id: 1, name: 'Estudio', description: 'Desc', slug: 'estudio', logoUrl: null, ownerId: 7 };
 
 describe('createBusinessUseCase', () => {
     it('creates the Negocio through the repository', async () => {

@@ -8,6 +8,10 @@ export interface IBusinessesRepository {
     createBusiness(input: CreateBusiness): Promise<Business>;
     // Throws SlugTakenError (409) or InvalidSlugError (400); a non-Dueño gets ApiRequestError (403).
     updateBusiness(input: UpdateBusiness): Promise<Business>;
+    // A non-Dueño gets ApiRequestError (403), a file over 5 MB or not an image (413, 400). Returns the Negocio with its new `logoUrl`.
+    uploadBusinessLogo(businessId: number, file: File): Promise<Business>;
+    // Also resolves if the Negocio had no Logo; a non-Dueño gets ApiRequestError (403).
+    deleteBusinessLogo(businessId: number): Promise<void>;
     // Throws BranchImageLimitError (422); a non-Dueño gets ApiRequestError (403), a file over 5 MB or not an image (413, 400).
     uploadBranchImage(branchId: number, file: File): Promise<BranchImage>;
     // A non-Dueño gets ApiRequestError (403); an image that is not of the Sucursal, NotFoundError (404).

@@ -21,7 +21,7 @@ function presenter(
     instrumentationService: IInstrumentationService,
 ) {
     return instrumentationService.startSpan({ name: 'getPublicBranch Presenter', op: 'serialize' }, () => ({
-        business: { name: business.name, description: business.description, slug: business.slug },
+        business: { name: business.name, description: business.description, slug: business.slug, logoUrl: business.logoUrl },
         branch: {
             id: branch.id,
             name: branch.name,

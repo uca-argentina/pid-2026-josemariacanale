@@ -81,6 +81,25 @@ export class BusinessesRepository implements IBusinessesRepository {
         return parseOrFail(() => businessSchema.parse(body), 'PATCH /businesses/:id');
     }
 
+    async uploadBusinessLogo(businessId: number, file: File): Promise<Business> {
+        const form = new FormData();
+        form.append('file', file);
+        const { response, body, message } = await this.request('PUT /businesses/:id/logo', `/businesses/${businessId}/logo`, {
+            method: 'PUT',
+            body: form,
+        });
+        if (!response.ok) throw new ApiRequestError(message, { status: response.status });
+
+        return parseOrFail(() => businessSchema.parse(body), 'PUT /businesses/:id/logo');
+    }
+
+    async deleteBusinessLogo(businessId: number): Promise<void> {
+        const { response, message } = await this.request('DELETE /businesses/:id/logo', `/businesses/${businessId}/logo`, {
+            method: 'DELETE',
+        });
+        if (!response.ok) throw new ApiRequestError(message, { status: response.status });
+    }
+
     async uploadBranchImage(branchId: number, file: File): Promise<BranchImage> {
         const form = new FormData();
         form.append('file', file);

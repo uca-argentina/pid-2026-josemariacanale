@@ -17,6 +17,8 @@ export const businessSchema = z.object({
     name: z.string(),
     description: z.string(),
     slug: z.string(),
+    // The Logo del Negocio: a URL to the external storage (ADR 0015), null while none was uploaded.
+    logoUrl: z.string().nullable(),
     ownerId: z.union([z.number(), z.string()]),
 });
 export type Business = z.infer<typeof businessSchema>;
@@ -44,3 +46,7 @@ export const updateBusinessSchema = z.object({
     slug: z.string(),
 });
 export type UpdateBusiness = z.infer<typeof updateBusinessSchema>;
+
+// What the controllers of the Logo del Negocio take: the Negocio and, to upload, the file.
+export const uploadBusinessLogoSchema = z.object({ businessId: z.number(), file: z.instanceof(File) });
+export const deleteBusinessLogoSchema = z.object({ businessId: z.number() });

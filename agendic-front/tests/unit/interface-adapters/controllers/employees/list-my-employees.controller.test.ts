@@ -4,7 +4,7 @@ import { authWith, instrumentation } from '@/tests/unit/stubs';
 
 const user = { id: 'user_1', name: 'Ana', email: 'ana@estudio.com' };
 const signedIn = () => authWith({ getCurrentUser: jest.fn().mockResolvedValue(user) });
-const business = { id: 1, name: 'Estudio', description: 'Desc', slug: 'estudio', ownerId: 7 };
+const business = { id: 1, name: 'Estudio', description: 'Desc', slug: 'estudio', logoUrl: null, ownerId: 7 };
 const martina = { id: 4, name: 'Martina', email: 'martina@estudio.com' };
 const ana = { id: 3, name: 'Ana', email: 'Ana@Estudio.com' };
 const invitation = { id: 5, email: 'nuevo@estudio.com', expiresAt: 'x' };

@@ -8,7 +8,7 @@ import { businessSchema, fieldErrorsOf, type BusinessFields, type FieldErrors } 
 import { updateBusinessAction } from '../actions';
 import { BusinessFieldset } from './BusinessFieldset';
 
-export type EditableBusiness = BusinessFields & { id: number };
+export type EditableBusiness = BusinessFields & { id: number; logoUrl?: string | null };
 
 /** Se monta al abrirse. Al guardar, la server action refresca la página con los datos nuevos. */
 export function EditBusinessDialog({ business, onClose }: { business: EditableBusiness; onClose: () => void }) {

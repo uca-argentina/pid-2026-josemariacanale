@@ -7,13 +7,14 @@ const signedIn = () => authWith({ getCurrentUser: jest.fn().mockResolvedValue(us
 
 describe('getMyBusinessController', () => {
     it('returns the presented Negocio of the Dueño', async () => {
-        const useCase = jest.fn().mockResolvedValue([{ id: 1, name: 'Estudio', description: 'Desc', slug: 'estudio', ownerId: 7 }]);
+        const useCase = jest.fn().mockResolvedValue([{ id: 1, name: 'Estudio', description: 'Desc', slug: 'estudio', logoUrl: null, ownerId: 7 }]);
 
         await expect(getMyBusinessController(instrumentation, signedIn(), useCase)()).resolves.toEqual({
             id: 1,
             name: 'Estudio',
             description: 'Desc',
             slug: 'estudio',
+            logoUrl: null,
         });
     });
 

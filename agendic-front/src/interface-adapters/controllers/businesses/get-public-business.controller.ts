@@ -7,7 +7,7 @@ import { slugSchema, type Business } from '@/src/entities/models/business';
 
 function presenter({ business, branches }: { business: Business; branches: Branch[] }, instrumentationService: IInstrumentationService) {
     return instrumentationService.startSpan({ name: 'getPublicBusiness Presenter', op: 'serialize' }, () => ({
-        business: { name: business.name, description: business.description, slug: business.slug },
+        business: { name: business.name, description: business.description, slug: business.slug, logoUrl: business.logoUrl },
         branches: branches.map((b) => ({ id: b.id, name: b.name, address: b.address, slug: b.slug })),
     }));
 }

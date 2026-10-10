@@ -19,6 +19,11 @@ import { deleteBranchImageController } from '@/src/interface-adapters/controller
 import { reorderBranchImagesUseCase } from '@/src/application/use-cases/businesses/reorder-branch-images.use-case';
 import { reorderBranchImagesController } from '@/src/interface-adapters/controllers/businesses/reorder-branch-images.controller';
 
+import { uploadBusinessLogoUseCase } from '@/src/application/use-cases/businesses/upload-business-logo.use-case';
+import { uploadBusinessLogoController } from '@/src/interface-adapters/controllers/businesses/upload-business-logo.controller';
+import { deleteBusinessLogoUseCase } from '@/src/application/use-cases/businesses/delete-business-logo.use-case';
+import { deleteBusinessLogoController } from '@/src/interface-adapters/controllers/businesses/delete-business-logo.controller';
+
 export function createBusinessesModule() {
     const businessesModule = createModule();
 
@@ -58,6 +63,30 @@ export function createBusinessesModule() {
             DI_SYMBOLS.IInstrumentationService,
             DI_SYMBOLS.IAuthenticationService,
             DI_SYMBOLS.IUpdateBusinessUseCase,
+        ]);
+
+    businessesModule
+        .bind(DI_SYMBOLS.IUploadBusinessLogoUseCase)
+        .toHigherOrderFunction(uploadBusinessLogoUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IBusinessesRepository]);
+
+    businessesModule
+        .bind(DI_SYMBOLS.IUploadBusinessLogoController)
+        .toHigherOrderFunction(uploadBusinessLogoController, [
+            DI_SYMBOLS.IInstrumentationService,
+            DI_SYMBOLS.IAuthenticationService,
+            DI_SYMBOLS.IUploadBusinessLogoUseCase,
+        ]);
+
+    businessesModule
+        .bind(DI_SYMBOLS.IDeleteBusinessLogoUseCase)
+        .toHigherOrderFunction(deleteBusinessLogoUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IBusinessesRepository]);
+
+    businessesModule
+        .bind(DI_SYMBOLS.IDeleteBusinessLogoController)
+        .toHigherOrderFunction(deleteBusinessLogoController, [
+            DI_SYMBOLS.IInstrumentationService,
+            DI_SYMBOLS.IAuthenticationService,
+            DI_SYMBOLS.IDeleteBusinessLogoUseCase,
         ]);
 
     businessesModule

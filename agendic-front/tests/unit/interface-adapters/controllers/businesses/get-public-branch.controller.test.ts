@@ -10,7 +10,7 @@ describe('getPublicBranchController', () => {
         const palermo = { id: 11, businessId: 1, name: 'Palermo', address: 'Thames 1', timeZone: TZ, slug: 'palermo', description: null };
         const ana = { id: 1, name: 'Ana' };
         const useCase = jest.fn().mockResolvedValue({
-            business: { id: 1, name: 'Vitalia', description: 'Desc', slug: 'vitalia', ownerId: 7 },
+            business: { id: 1, name: 'Vitalia', description: 'Desc', slug: 'vitalia', logoUrl: null, ownerId: 7 },
             branch: centro,
             branches: [centro, palermo],
             services: [
@@ -26,7 +26,7 @@ describe('getPublicBranchController', () => {
         await expect(
             getPublicBranchController(instrumentation, useCase)({ businessSlug: 'vitalia', branchSlug: 'centro' }),
         ).resolves.toEqual({
-            business: { name: 'Vitalia', description: 'Desc', slug: 'vitalia' },
+            business: { name: 'Vitalia', description: 'Desc', slug: 'vitalia', logoUrl: null },
             branch: { id: 10, name: 'Centro', address: 'Av. 1', timeZone: TZ, slug: 'centro', description: 'Desc' },
             otherBranches: [{ id: 11, name: 'Palermo', address: 'Thames 1', slug: 'palermo' }],
             services: [
@@ -45,7 +45,7 @@ describe('getPublicBranchController', () => {
     it('presents the Sucursal own description over the Negocio one', async () => {
         const centro = { id: 10, businessId: 1, name: 'Centro', address: 'Av. 1', timeZone: TZ, slug: 'centro', description: 'La del centro' };
         const useCase = jest.fn().mockResolvedValue({
-            business: { id: 1, name: 'Vitalia', description: 'Desc', slug: 'vitalia', ownerId: 7 },
+            business: { id: 1, name: 'Vitalia', description: 'Desc', slug: 'vitalia', logoUrl: null, ownerId: 7 },
             branch: centro,
             branches: [centro],
             services: [],
@@ -62,7 +62,7 @@ describe('getPublicBranchController', () => {
     it('presents a Sucursal without Imágenes as an empty list', async () => {
         const centro = { id: 10, businessId: 1, name: 'Centro', address: 'Av. 1', timeZone: TZ, slug: 'centro' };
         const useCase = jest.fn().mockResolvedValue({
-            business: { id: 1, name: 'Vitalia', description: 'Desc', slug: 'vitalia', ownerId: 7 },
+            business: { id: 1, name: 'Vitalia', description: 'Desc', slug: 'vitalia', logoUrl: null, ownerId: 7 },
             branch: centro,
             branches: [centro],
             services: [],
@@ -80,7 +80,7 @@ describe('getPublicBranchController', () => {
         const ana = { id: 1, name: 'Ana' };
         const hidden = { id: 101, branchId: 10, name: 'Masaje VIP', description: null, category: 'SPA', durationMinutes: 90, price: 30000, depositPercent: null, employees: [ana] };
         const useCase = jest.fn().mockResolvedValue({
-            business: { id: 1, name: 'Vitalia', description: 'Desc', slug: 'vitalia', ownerId: 7 },
+            business: { id: 1, name: 'Vitalia', description: 'Desc', slug: 'vitalia', logoUrl: null, ownerId: 7 },
             branch: centro,
             branches: [centro],
             services: [],
@@ -101,7 +101,7 @@ describe('getPublicBranchController', () => {
     it('lowercases both tramos', async () => {
         const centro = { id: 10, businessId: 1, name: 'Centro', address: 'Av. 1', timeZone: TZ, slug: 'centro' };
         const useCase = jest.fn().mockResolvedValue({
-            business: { id: 1, name: 'Vitalia', description: 'Desc', slug: 'vitalia', ownerId: 7 },
+            business: { id: 1, name: 'Vitalia', description: 'Desc', slug: 'vitalia', logoUrl: null, ownerId: 7 },
             branch: centro,
             branches: [centro],
             services: [],
