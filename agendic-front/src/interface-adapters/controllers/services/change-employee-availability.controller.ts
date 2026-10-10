@@ -2,10 +2,10 @@ import type { IAuthenticationService } from '@/src/application/services/authenti
 import type { IInstrumentationService } from '@/src/application/services/instrumentation.service.interface';
 import type { IChangeEmployeeAvailabilityUseCase } from '@/src/application/use-cases/services/change-employee-availability.use-case';
 import { InputParseError } from '@/src/entities/errors/common';
-import { serviceEmployeeAvailabilitySchema, type CatalogService } from '@/src/entities/models/service';
+import { serviceEmployeeAvailabilitySchema, type ManagedService } from '@/src/entities/models/service';
 
 /** Only the Servicio's name, for the confirmation: the page reloads the detail afterwards. */
-function presenter(service: CatalogService, instrumentationService: IInstrumentationService) {
+function presenter(service: ManagedService, instrumentationService: IInstrumentationService) {
     return instrumentationService.startSpan({ name: 'changeEmployeeAvailability Presenter', op: 'serialize' }, () => ({
         name: service.name,
     }));

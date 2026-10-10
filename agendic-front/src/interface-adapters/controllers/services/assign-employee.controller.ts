@@ -2,10 +2,10 @@ import type { IAuthenticationService } from '@/src/application/services/authenti
 import type { IInstrumentationService } from '@/src/application/services/instrumentation.service.interface';
 import type { IAssignEmployeeUseCase } from '@/src/application/use-cases/services/assign-employee.use-case';
 import { InputParseError } from '@/src/entities/errors/common';
-import { serviceEmployeeRefSchema, type CatalogService } from '@/src/entities/models/service';
+import { serviceEmployeeRefSchema, type ManagedService } from '@/src/entities/models/service';
 
 /** The Servicio's name, for the confirmation, and who attends it now. */
-function presenter(service: CatalogService, instrumentationService: IInstrumentationService) {
+function presenter(service: ManagedService, instrumentationService: IInstrumentationService) {
     return instrumentationService.startSpan({ name: 'assignEmployee Presenter', op: 'serialize' }, () => ({
         name: service.name,
         employees: service.employees.map((e) => ({ id: e.id, name: e.name })),

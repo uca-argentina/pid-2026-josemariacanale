@@ -28,16 +28,18 @@ export type Service = z.infer<typeof serviceSchema>;
 /** The Tiempo de preparación a Servicio may ask for, in minutes; 0 is none. */
 export const PREP_MINUTES = [0, 5, 10, 15, 30, 60] as const;
 
-/** An Empleado in charge of a Servicio in the panel's catalog, with the Availability they attend it with. */
-export const catalogServiceEmployeeSchema = serviceEmployeeSchema.extend({ availabilityId: z.number(), imageUrl: z.string().nullable() });
-export type CatalogServiceEmployee = z.infer<typeof catalogServiceEmployeeSchema>;
+/** An Empleado in charge of a Servicio, with the Availability they attend it with. */
+export const managedServiceEmployeeSchema = serviceEmployeeSchema.extend({ availabilityId: z.number() });
+export type ManagedServiceEmployee = z.infer<typeof managedServiceEmployeeSchema>;
 
 /**
- * A Servicio as the panel's catalog and POST /branches/:id/services return it. `hidden` is the Servicio oculto,
+ * A Servicio del Negocio as the panel's writes return it: POST /branches/:id/services, PATCH /services/:id, POST
+ * /services/:id/employees and PATCH /services/:id/employees/:employeeId. Their Empleados come without `imageUrl`,
+ * which only the catalog brings. `hidden` is the Servicio oculto,
  * `prepMinutes` the Tiempo de preparación, `dailyLimit` the Límite diario (null: no limit), `slotInterval` the
  * Intervalo (null: the duration) and `minimumNoticeMinutes` the Anticipación mínima (0: none).
  */
-export const catalogServiceSchema = serviceSchema.extend({
+export const managedServiceSchema = serviceSchema.extend({
     slug: z.string(),
     requiresApproval: z.boolean(),
     hidden: z.boolean(),
@@ -45,8 +47,16 @@ export const catalogServiceSchema = serviceSchema.extend({
     dailyLimit: z.number().nullable(),
     slotInterval: z.number().nullable(),
     minimumNoticeMinutes: z.number(),
-    employees: z.array(catalogServiceEmployeeSchema),
+    employees: z.array(managedServiceEmployeeSchema),
 });
+export type ManagedService = z.infer<typeof managedServiceSchema>;
+
+/** An Empleado in charge of a Servicio in the panel's catalog, with their foto de perfil. */
+export const catalogServiceEmployeeSchema = managedServiceEmployeeSchema.extend({ imageUrl: z.string().nullable() });
+export type CatalogServiceEmployee = z.infer<typeof catalogServiceEmployeeSchema>;
+
+/** A Servicio as the panel's catalog (GET /employees/me/services) returns it. */
+export const catalogServiceSchema = managedServiceSchema.extend({ employees: z.array(catalogServiceEmployeeSchema) });
 export type CatalogService = z.infer<typeof catalogServiceSchema>;
 
 /**
@@ -80,7 +90,7 @@ export type CreateService = z.infer<typeof createServiceSchema>;
  * A Servicio personal (ADR 0021): of a Usuario, attended with one of their Availability, without Sucursal or
  * Empleados. As GET and POST /users/me/services and the public GET /u/:userSlug return it.
  */
-export const personalServiceSchema = catalogServiceSchema
+export const personalServiceSchema = managedServiceSchema
     .omit({ branchId: true, employees: true })
     .extend({ availabilityId: z.number() });
 export type PersonalService = z.infer<typeof personalServiceSchema>;

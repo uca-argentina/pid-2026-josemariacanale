@@ -25,15 +25,21 @@ const parsedService = {
     dailyLimit: null,
     slotInterval: null,
     minimumNoticeMinutes: 0,
-    employees: [{ id: 1, name: 'Ana', availabilityId: 7, imageUrl: 'https://img.example/ana.png' }],
+    employees: [{ id: 1, name: 'Ana', availabilityId: 7 }],
 };
 /** The back may send fields the panel does not read: they are dropped. */
 const service = { ...parsedService, createdAt: '2026-09-01T00:00:00.000Z' };
+/** Only the catalog brings each Empleado's foto de perfil; the writes answer without it. */
+const parsedCatalogService = {
+    ...parsedService,
+    employees: [{ id: 1, name: 'Ana', availabilityId: 7, imageUrl: 'https://img.example/ana.png' }],
+};
+const catalogService = { ...parsedCatalogService, createdAt: '2026-09-01T00:00:00.000Z' };
 const group = {
     business: { id: 1, name: 'Vitalia', slug: 'vitalia', logoUrl: null },
     role: 'owner',
     employeeId: 1,
-    branches: [{ id: 10, name: 'Centro', slug: 'centro', services: [service] }],
+    branches: [{ id: 10, name: 'Centro', slug: 'centro', services: [catalogService] }],
 };
 const input = {
     branchId: 10,
@@ -58,7 +64,7 @@ describe('ServicesRepository.listMyCatalog', () => {
         const fetchSpy = respond(200, [group]);
 
         await expect(repo().listMyCatalog()).resolves.toEqual([
-            { ...group, branches: [{ ...group.branches[0], services: [parsedService] }] },
+            { ...group, branches: [{ ...group.branches[0], services: [parsedCatalogService] }] },
         ]);
         expect(fetchSpy).toHaveBeenCalledWith(
             'http://api/employees/me/services',

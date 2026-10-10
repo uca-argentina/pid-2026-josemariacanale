@@ -1,6 +1,6 @@
 import type { IServicesRepository } from '@/src/application/repositories/services.repository.interface';
 import type { IInstrumentationService } from '@/src/application/services/instrumentation.service.interface';
-import type { CatalogService, ServiceEmployeeRef } from '@/src/entities/models/service';
+import type { ManagedService, ServiceEmployeeRef } from '@/src/entities/models/service';
 
 export type IAssignEmployeeUseCase = ReturnType<typeof assignEmployeeUseCase>;
 /**
@@ -13,7 +13,7 @@ export type IAssignEmployeeUseCase = ReturnType<typeof assignEmployeeUseCase>;
  */
 export const assignEmployeeUseCase =
     (instrumentationService: IInstrumentationService, servicesRepository: IServicesRepository) =>
-    (input: ServiceEmployeeRef): Promise<CatalogService> =>
+    (input: ServiceEmployeeRef): Promise<ManagedService> =>
         instrumentationService.startSpan({ name: 'assignEmployee Use Case', op: 'function' }, () =>
             servicesRepository.assignEmployee(input),
         );

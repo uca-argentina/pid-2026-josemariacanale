@@ -1,6 +1,6 @@
 import type { IServicesRepository } from '@/src/application/repositories/services.repository.interface';
 import type { IInstrumentationService } from '@/src/application/services/instrumentation.service.interface';
-import type { CatalogService, CreateService } from '@/src/entities/models/service';
+import type { CreateService, ManagedService } from '@/src/entities/models/service';
 
 export type ICreateServiceUseCase = ReturnType<typeof createServiceUseCase>;
 /**
@@ -12,7 +12,7 @@ export type ICreateServiceUseCase = ReturnType<typeof createServiceUseCase>;
  */
 export const createServiceUseCase =
     (instrumentationService: IInstrumentationService, servicesRepository: IServicesRepository) =>
-    (input: CreateService): Promise<CatalogService> =>
+    (input: CreateService): Promise<ManagedService> =>
         instrumentationService.startSpan({ name: 'createService Use Case', op: 'function' }, () =>
             servicesRepository.createService(input),
         );

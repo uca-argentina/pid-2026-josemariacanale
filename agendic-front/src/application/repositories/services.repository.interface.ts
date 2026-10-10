@@ -1,9 +1,9 @@
 import type {
-    CatalogService,
     CreatePersonalService,
     PersonalService,
     ServiceEmployeeAvailability,
     CreateService,
+    ManagedService,
     RemovedEmployee,
     RetiredService,
     ServiceCatalogGroup,
@@ -29,7 +29,7 @@ export interface IServicesRepository {
      * @throws {ServiceNameTakenError} another Servicio of the Sucursal has that name (409)
      * @throws {ApiRequestError} not the Dueño (403), invalid data (400) or any other failure
      */
-    createService(input: CreateService): Promise<CatalogService>;
+    createService(input: CreateService): Promise<ManagedService>;
     /**
      * Lists the Usuario's Servicios personales, the hidden ones included; empty when there is none.
      *
@@ -53,7 +53,7 @@ export interface IServicesRepository {
      * @throws {NotFoundError} the Servicio, or the Availability sent, does not exist (404)
      * @throws {ApiRequestError} not the Dueño (403), invalid data (400) or any other failure
      */
-    updateService(input: UpdateService): Promise<CatalogService | PersonalService>;
+    updateService(input: UpdateService): Promise<ManagedService | PersonalService>;
     /**
      * Dar de baja: retires the Servicio and cancels its future Turnos.
      *
@@ -69,7 +69,7 @@ export interface IServicesRepository {
      * @throws {ApiRequestError} acting for another Empleado without being the Dueño (403), already offered (409) or any
      *   other failure
      */
-    assignEmployee(input: ServiceEmployeeRef): Promise<CatalogService>;
+    assignEmployee(input: ServiceEmployeeRef): Promise<ManagedService>;
     /**
      * Dejar de ofrecer un Servicio: cancels the Empleado's future Turnos of it.
      *
@@ -85,5 +85,5 @@ export interface IServicesRepository {
      * @throws {NotFoundError} the Empleado does not attend the Servicio, or it does not exist (404)
      * @throws {ApiRequestError} acting for another Empleado without being the Dueño (403) or any other failure
      */
-    changeEmployeeAvailability(input: ServiceEmployeeAvailability): Promise<CatalogService>;
+    changeEmployeeAvailability(input: ServiceEmployeeAvailability): Promise<ManagedService>;
 }

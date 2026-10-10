@@ -9,16 +9,16 @@ import {
     ServiceSlugTakenError,
 } from '@/src/entities/errors/service';
 import {
-    catalogServiceSchema,
+    managedServiceSchema,
     personalServiceSchema,
     removedEmployeeSchema,
     retiredServiceSchema,
     serviceCatalogGroupSchema,
-    type CatalogService,
     type CreatePersonalService,
     type PersonalService,
     type ServiceEmployeeAvailability,
     type CreateService,
+    type ManagedService,
     type RemovedEmployee,
     type RetiredService,
     type ServiceCatalogGroup,
@@ -64,12 +64,12 @@ export class ServicesRepository implements IServicesRepository {
      * @throws {ServiceNameTakenError} the name is taken in that Sucursal (409)
      * @throws {ApiRequestError} any other failure, or a body that is not a Servicio
      */
-    async createService({ branchId, ...service }: CreateService): Promise<CatalogService> {
+    async createService({ branchId, ...service }: CreateService): Promise<ManagedService> {
         const what = 'POST /branches/:id/services';
         const { status, json } = await this.request('POST', `/branches/${branchId}/services`, service);
         if (status === 409) throw takenError(json, what, status);
         if (status >= 400) throw apiError(what, status, json);
-        return parseOrFail(() => catalogServiceSchema.parse(json), what);
+        return parseOrFail(() => managedServiceSchema.parse(json), what);
     }
 
     /**
@@ -109,13 +109,13 @@ export class ServicesRepository implements IServicesRepository {
      * @throws {NotFoundError} the Servicio, or the Availability sent, does not exist (404)
      * @throws {ApiRequestError} any other failure, or a body that is not a Servicio
      */
-    async updateService({ id, ...changes }: UpdateService): Promise<CatalogService | PersonalService> {
+    async updateService({ id, ...changes }: UpdateService): Promise<ManagedService | PersonalService> {
         const what = 'PATCH /services/:id';
         const { status, json } = await this.request('PATCH', `/services/${id}`, changes);
         if (status === 409) throw takenError(json, what, status);
         if (status === 404) throw new NotFoundError(messageOf(json, what, status));
         if (status >= 400) throw apiError(what, status, json);
-        return parseOrFail(() => catalogServiceSchema.or(personalServiceSchema).parse(json), what);
+        return parseOrFail(() => managedServiceSchema.or(personalServiceSchema).parse(json), what);
     }
 
     /**
@@ -139,13 +139,13 @@ export class ServicesRepository implements IServicesRepository {
      * @throws {NotFoundError} the Servicio or the Empleado do not exist (404)
      * @throws {ApiRequestError} any other failure, or a body that is not a Servicio
      */
-    async assignEmployee({ serviceId, employeeId }: ServiceEmployeeRef): Promise<CatalogService> {
+    async assignEmployee({ serviceId, employeeId }: ServiceEmployeeRef): Promise<ManagedService> {
         const what = 'POST /services/:id/employees';
         const { status, json } = await this.request('POST', `/services/${serviceId}/employees`, { employeeId });
         if (status === 422) throw new EmployeeNotAssignableError(messageOf(json, what, status));
         if (status === 404) throw new NotFoundError(messageOf(json, what, status));
         if (status >= 400) throw apiError(what, status, json);
-        return parseOrFail(() => catalogServiceSchema.parse(json), what);
+        return parseOrFail(() => managedServiceSchema.parse(json), what);
     }
 
     /**
@@ -175,7 +175,7 @@ export class ServicesRepository implements IServicesRepository {
         serviceId,
         employeeId,
         availabilityId,
-    }: ServiceEmployeeAvailability): Promise<CatalogService> {
+    }: ServiceEmployeeAvailability): Promise<ManagedService> {
         const what = 'PATCH /services/:id/employees/:employeeId';
         const { status, json } = await this.request('PATCH', `/services/${serviceId}/employees/${employeeId}`, {
             availabilityId,
@@ -183,7 +183,7 @@ export class ServicesRepository implements IServicesRepository {
         if (status === 422) throw new AvailabilityNotOfEmployeeError(messageOf(json, what, status));
         if (status === 404) throw new NotFoundError(messageOf(json, what, status));
         if (status >= 400) throw apiError(what, status, json);
-        return parseOrFail(() => catalogServiceSchema.parse(json), what);
+        return parseOrFail(() => managedServiceSchema.parse(json), what);
     }
 
     private async request(method: string, path: string, body?: unknown) {
