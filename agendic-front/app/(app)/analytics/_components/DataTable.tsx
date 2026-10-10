@@ -55,15 +55,15 @@ import { Button } from '@/app/_components/ui/button';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/app/_components/ui/chart';
 import { Checkbox } from '@/app/_components/ui/checkbox';
 import {
-    Drawer,
-    DrawerClose,
-    DrawerContent,
-    DrawerDescription,
-    DrawerFooter,
-    DrawerHeader,
-    DrawerTitle,
-    DrawerTrigger,
-} from '@/app/_components/ui/drawer';
+    Sheet,
+    SheetClose,
+    SheetContent,
+    SheetDescription,
+    SheetFooter,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
+} from '@/app/_components/ui/sheet';
 import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
@@ -528,18 +528,18 @@ function TableCellViewer({ item }: { item: ServiceRow }) {
     const isMobile = useIsMobile();
 
     return (
-        <Drawer direction={isMobile ? 'bottom' : 'right'}>
-            <DrawerTrigger asChild>
+        <Sheet>
+            <SheetTrigger asChild>
                 <Button variant="link" className="w-fit px-0 text-left text-foreground">
                     {item.name}
                 </Button>
-            </DrawerTrigger>
-            <DrawerContent>
-                <DrawerHeader className="gap-1">
-                    <DrawerTitle>{item.name}</DrawerTitle>
-                    <DrawerDescription>Turnos de los últimos 6 meses</DrawerDescription>
-                </DrawerHeader>
-                <div className="flex flex-col gap-4 overflow-y-auto px-4 text-sm">
+            </SheetTrigger>
+            <SheetContent side={isMobile ? 'bottom' : 'right'} className="max-h-[85vh] data-[side=right]:max-h-none">
+                <SheetHeader className="gap-1">
+                    <SheetTitle>{item.name}</SheetTitle>
+                    <SheetDescription>Turnos de los últimos 6 meses</SheetDescription>
+                </SheetHeader>
+                <div className="flex min-h-0 flex-col gap-4 overflow-y-auto px-4 text-sm">
                     {!isMobile && (
                         <>
                             <ChartContainer config={bookingsChartConfig}>
@@ -652,13 +652,13 @@ function TableCellViewer({ item }: { item: ServiceRow }) {
                         </div>
                     </form>
                 </div>
-                <DrawerFooter>
+                <SheetFooter>
                     <Button>Guardar</Button>
-                    <DrawerClose asChild>
+                    <SheetClose asChild>
                         <Button variant="outline">Cerrar</Button>
-                    </DrawerClose>
-                </DrawerFooter>
-            </DrawerContent>
-        </Drawer>
+                    </SheetClose>
+                </SheetFooter>
+            </SheetContent>
+        </Sheet>
     );
 }
