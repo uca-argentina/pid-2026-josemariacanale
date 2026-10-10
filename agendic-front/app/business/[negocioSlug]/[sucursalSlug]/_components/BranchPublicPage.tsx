@@ -177,6 +177,7 @@ export function BranchPublicPage({
                                             className="flex items-center gap-2.5 rounded-full border border-border py-1.5 pr-4 pl-1.5"
                                         >
                                             <Avatar>
+                                                {employee.imageUrl && <AvatarImage src={employee.imageUrl} alt="" />}
                                                 <AvatarFallback className="bg-muted text-[10px] font-extrabold text-foreground">
                                                     {initials(employee.name)}
                                                 </AvatarFallback>
