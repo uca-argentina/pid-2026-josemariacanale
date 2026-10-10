@@ -2,13 +2,14 @@ import type { IAuthenticationService } from '@/src/application/services/authenti
 import type { IInstrumentationService } from '@/src/application/services/instrumentation.service.interface';
 import type { ICreateBusinessUseCase } from '@/src/application/use-cases/businesses/create-business.use-case';
 import { InputParseError } from '@/src/entities/errors/common';
-import { createBusinessSchema, type Business } from '@/src/entities/models/business';
+import { createBusinessSchema, type CreatedBusiness } from '@/src/entities/models/business';
 
-function presenter(business: Business, instrumentationService: IInstrumentationService) {
+function presenter({ business, branch }: CreatedBusiness, instrumentationService: IInstrumentationService) {
     return instrumentationService.startSpan({ name: 'createBusiness Presenter', op: 'serialize' }, () => ({
         id: business.id,
         name: business.name,
         slug: business.slug,
+        branchId: branch.id,
     }));
 }
 

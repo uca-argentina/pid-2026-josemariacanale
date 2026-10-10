@@ -3,7 +3,14 @@ import type { IAuthenticationService } from '@/src/application/services/authenti
 import { AlreadyOwnerError, BranchImageLimitError, InvalidSlugError, SlugTakenError } from '@/src/entities/errors/business';
 import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
 import { branchImageSchema, type BranchImage } from '@/src/entities/models/branch-image';
-import { businessSchema, type Business, type CreateBusiness, type UpdateBusiness } from '@/src/entities/models/business';
+import {
+    businessSchema,
+    createdBusinessSchema,
+    type Business,
+    type CreateBusiness,
+    type CreatedBusiness,
+    type UpdateBusiness,
+} from '@/src/entities/models/business';
 
 /**
  * A body the back answered with but the schema rejects is a failure of the back, not of the Usuario: it becomes an
@@ -60,7 +67,7 @@ export class BusinessesRepository implements IBusinessesRepository {
      * como `ApiRequestError` con su mensaje real, para no disfrazarlo de slug. Los dos 409 (ya es Dueño, dirección en
      * uso) el back los distingue solo por el mensaje (ticket 11).
      */
-    async createBusiness(input: CreateBusiness): Promise<Business> {
+    async createBusiness(input: CreateBusiness): Promise<CreatedBusiness> {
         const { response, body, message } = await this.request('POST /businesses', '/businesses', { method: 'POST', json: input });
         if (response.status === 409) {
             throw /ya ten[eé]s un negocio/i.test(message) ? new AlreadyOwnerError(message) : new SlugTakenError(message);
@@ -68,7 +75,7 @@ export class BusinessesRepository implements IBusinessesRepository {
         if (response.status === 400 && /business\.slug/i.test(message)) throw new InvalidSlugError(message);
         if (!response.ok) throw new ApiRequestError(message, { status: response.status });
 
-        return parseOrFail(() => businessSchema.parse(body?.business), 'POST /businesses');
+        return parseOrFail(() => createdBusinessSchema.parse(body), 'POST /businesses');
     }
 
     async updateBusiness({ id, ...changes }: UpdateBusiness): Promise<Business> {
