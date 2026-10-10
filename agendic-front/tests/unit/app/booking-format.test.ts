@@ -1,4 +1,4 @@
-import { addDays, depositFor, endTime, formatDuration, shortWeekday, todayIn } from '@/app/_components/booking/format';
+import { addDays, depositFor, endTime, formatDuration, formatWeekRange, shortWeekday, todayIn, weekIndexOf, weekStart } from '@/app/_components/booking/format';
 
 describe('depositFor', () => {
     it('reparte el precio entre lo que se adelanta y lo que resta', () => {
@@ -52,5 +52,39 @@ describe('shortWeekday', () => {
     it('nombra el día de la fecha sin depender de la zona horaria', () => {
         expect(shortWeekday('2026-09-28')).toBe('Lun');
         expect(shortWeekday('2026-10-04')).toBe('Dom');
+    });
+});
+
+describe('weekStart', () => {
+    it('la semana 0 arranca hoy y cada una corre siete días', () => {
+        expect(weekStart('2026-10-10', 0)).toBe('2026-10-10');
+        expect(weekStart('2026-10-10', 2)).toBe('2026-10-24');
+    });
+});
+
+describe('weekIndexOf', () => {
+    it('cuenta semanas móviles desde hoy', () => {
+        expect(weekIndexOf('2026-10-10', '2026-10-10')).toBe(0);
+        expect(weekIndexOf('2026-10-16', '2026-10-10')).toBe(0);
+        expect(weekIndexOf('2026-10-17', '2026-10-10')).toBe(1);
+    });
+
+    it('cruza meses y años', () => {
+        expect(weekIndexOf('2027-01-02', '2026-12-31')).toBe(0);
+        expect(weekIndexOf('2027-01-07', '2026-12-31')).toBe(1);
+    });
+
+    it('un día anterior a hoy cae en la semana 0', () => {
+        expect(weekIndexOf('2026-10-09', '2026-10-10')).toBe(0);
+    });
+});
+
+describe('formatWeekRange', () => {
+    it('una semana dentro de un mes nombra el mes una vez', () => {
+        expect(formatWeekRange('2026-10-10')).toBe('10 – 16 de octubre');
+    });
+
+    it('una semana que cruza de mes nombra los dos', () => {
+        expect(formatWeekRange('2026-09-28')).toBe('28 de septiembre – 4 de octubre');
     });
 });

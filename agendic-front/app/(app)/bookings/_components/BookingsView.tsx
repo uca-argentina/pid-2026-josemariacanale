@@ -61,7 +61,7 @@ function badgesOf(b: Booking): { label: string; className: string }[] {
     ].filter((badge) => !!badge);
 }
 
-function BookingRow({ booking, tab, now }: { booking: Booking; tab: BookingTab; now: number }) {
+function BookingRow({ booking, tab }: { booking: Booking; tab: BookingTab }) {
     const badges = badgesOf(booking);
     return (
         <li className="flex flex-wrap items-start gap-4 px-6 py-5 transition-colors hover:bg-[#f9fafb]">
@@ -94,7 +94,7 @@ function BookingRow({ booking, tab, now }: { booking: Booking; tab: BookingTab; 
                 </div>
             </Link>
             <div className="ml-auto flex items-center gap-2">
-                <BookingActions booking={booking} tab={tab} now={now} />
+                <BookingActions booking={booking} tab={tab} />
             </div>
         </li>
     );
@@ -178,7 +178,7 @@ export function BookingsView({ bookings, now }: { bookings: Booking[]; now: numb
                                 </h2>
                                 <ul className="m-0 list-none divide-y divide-[#e5e7eb] p-0">
                                     {group.items.map((b) => (
-                                        <BookingRow key={b.id} booking={b} tab={tab} now={now} />
+                                        <BookingRow key={b.id} booking={b} tab={tab} />
                                     ))}
                                 </ul>
                             </section>

@@ -15,7 +15,7 @@ type Dialog = 'reschedule' | 'reject' | 'no-show' | null;
  * Las acciones de un Turno en la lista, según su pestaña: Aceptar y Rechazar en Pendientes; Cancelar
  * y Reagendar en Próximos; Ausencia en Pasados. Cada una pega contra el back y la página se refresca.
  */
-export function BookingActions({ booking, tab, now }: { booking: Booking; tab: BookingTab; now: number }) {
+export function BookingActions({ booking, tab }: { booking: Booking; tab: BookingTab }) {
     const router = useRouter();
     const [dialog, setDialog] = useState<Dialog>(null);
     const [pending, startTransition] = useTransition();
@@ -83,7 +83,7 @@ export function BookingActions({ booking, tab, now }: { booking: Booking; tab: B
                 Reagendar
             </PanelButton>
             {dialog === 'reschedule' && (
-                <RescheduleDialog booking={booking} now={now} onOpenChange={setOpen('reschedule')} />
+                <RescheduleDialog booking={booking} onOpenChange={setOpen('reschedule')} />
             )}
         </>
     );
