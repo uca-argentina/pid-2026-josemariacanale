@@ -15,7 +15,7 @@ export default async function BranchesPage() {
         business = await getInjection('IGetMyBusinessController')();
         branches = business ? await getInjection('IListBranchesWithImagesController')({ businessId: business.id }) : [];
     } catch (error) {
-        unstable_rethrow(error); // redirect/notFound/dynamic usage are Next's control flow, not failures
+        unstable_rethrow(error);
         if (isSessionExpired(error)) redirect(SIGN_IN_PATH);
         getInjection('ICrashReporterService').report(error);
         return <BackendErrorNotice />;

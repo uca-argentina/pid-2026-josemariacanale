@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useMemo, useState, useTransition } from 'react';
 import { Loader2, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { PanelButton, PanelCard } from '@/app/(app)/_components/panel-ui';
@@ -18,6 +18,7 @@ import {
 import { AddBranchDialog } from './AddBranchDialog';
 import { BranchFormFields as Fields } from './BranchFormFields';
 
+/** Una Sucursal con sus imágenes, como la lista la página. */
 export type BranchItem = {
     id: number;
     name: string;
@@ -70,11 +71,13 @@ function RemoteUploader({
         }
     }
 
+    const images = useMemo(() => [...saved, ...uploading], [saved, uploading]);
+
     return (
         <ImageUploader
-            images={[...saved, ...uploading]}
+            images={images}
             max={max}
-            reorderable={reorderable}
+            reorderable={reorderable && uploading.length === 0}
             onUpload={onUpload}
             onDelete={async (id) => toastIfFailed(await remove(id))}
             onReorder={
@@ -124,7 +127,6 @@ function BranchCard({ branch, businessSlug }: { branch: BranchItem; businessSlug
         if (!parsed.success) return setErrors(fieldErrorsOf(parsed.error));
         setErrors({});
         startTransition(async () => {
-            // `null` le saca la descripción propia a la Sucursal.
             const result = await updateBranchAction({ id: branch.id, ...parsed.data, description: parsed.data.description || null });
             if (result.ok) toast.success(`${parsed.data.name}: cambios guardados`);
             else if (result.field) setErrors({ [result.field]: result.message });

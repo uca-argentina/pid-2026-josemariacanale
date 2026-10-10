@@ -90,7 +90,12 @@ export function AddBranchDialog({
                         onUpload={(files) =>
                             setImages((list) => [...list, ...files.map((file) => ({ id: crypto.randomUUID(), file, url: URL.createObjectURL(file) }))])
                         }
-                        onDelete={(id) => setImages((list) => list.filter((i) => i.id !== id))}
+                        onDelete={(id) =>
+                            setImages((list) => {
+                                list.filter((i) => i.id === id).forEach((i) => URL.revokeObjectURL(i.url));
+                                return list.filter((i) => i.id !== id);
+                            })
+                        }
                         onReorder={(ids) => setImages((list) => ids.flatMap((id) => list.find((i) => i.id === id) ?? []))}
                     />
                 </div>
