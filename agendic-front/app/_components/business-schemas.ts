@@ -25,14 +25,25 @@ export const businessSchema = z.object({
         ),
 });
 
-export const branchSchema = z.object({
-    name: required('el nombre de la Sucursal'),
+/** El tramo de la Sucursal en el Enlace de reserva se deriva del nombre: 3 a 40 caracteres. */
+const BRANCH_SLUG_MIN = 3;
+const BRANCH_SLUG_MAX = 40;
+
+const branchFields = z.object({
+    name: required('el nombre de la Sucursal').refine((n) => slugify(n).length >= BRANCH_SLUG_MIN, {
+        message: `El nombre tiene que tener al menos ${BRANCH_SLUG_MIN} letras o números.`,
+    }),
     address: required('la dirección'),
     timeZone: required('la zona horaria'),
 });
 
+export const branchSchema = branchFields.transform((b) => ({
+    ...b,
+    slug: slugify(b.name).slice(0, BRANCH_SLUG_MAX).replace(/-+$/, ''),
+}));
+
 /** Una Sucursal editable: lo del wizard más su tramo del Enlace de reserva y su descripción propia (opcional). */
-export const branchFormSchema = branchSchema.extend({
+export const branchFormSchema = branchFields.extend({
     slug: businessSchema.shape.slug,
     description: z.string().trim(),
 });

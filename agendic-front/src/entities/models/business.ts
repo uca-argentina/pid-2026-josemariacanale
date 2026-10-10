@@ -32,7 +32,7 @@ export const createBusinessSchema = z.object({
         name: z.string(),
         address: z.string(),
         timeZone: z.string(),
-        slug: z.string().optional(),
+        slug: z.string(),
         description: z.string().optional(),
     }),
 });

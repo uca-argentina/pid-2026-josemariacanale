@@ -35,7 +35,6 @@ export const IsTimeZone = () => (object: object, propertyName: string) =>
     },
   });
 
-/** Every field of a new Sucursal but its slug, which Crear Negocio lets default. */
 export class BranchFieldsDto {
   @IsName()
   name!: string;
