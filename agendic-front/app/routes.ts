@@ -3,6 +3,7 @@
 export const SIGN_IN_PATH = '/sign-in';
 export const SIGNED_IN_HOME_PATH = '/bookings';
 export const BUSINESS_PATH = '/business';
+export const BRANCHES_PATH = '/business/branches';
 export const SERVICES_PATH = '/services';
 
 /**
