@@ -3,6 +3,7 @@
 export const SIGN_IN_PATH = '/sign-in';
 export const SIGNED_IN_HOME_PATH = '/bookings';
 export const BUSINESS_PATH = '/business';
+export const SERVICES_PATH = '/services';
 
 /**
  * La ruta del Enlace de reserva (ADR 0014): sin tramo de Sucursal, la página del Negocio; con el tramo de un
@@ -38,3 +39,6 @@ export const bookAgainPath = (booking: {
         : booking.business && booking.branch
           ? bookingLinkPath(booking.business.slug, booking.branch.slug)
           : null;
+
+/** Servicios con el modal de alta abierto, apuntado al Negocio `businessId` (la tarjeta "Crear servicio" de Mi Negocio). */
+export const newServicePath = (businessId: number) => `${SERVICES_PATH}?nuevo=${businessId}`;

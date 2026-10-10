@@ -1,5 +1,5 @@
 import type { BranchImage } from '@/src/entities/models/branch-image';
-import type { Business, CreateBusiness, UpdateBusiness } from '@/src/entities/models/business';
+import type { Business, CreateBusiness, CreatedBusiness, UpdateBusiness } from '@/src/entities/models/business';
 
 /** The Negocio of the Dueño of the Sesión, its Logo and the Imágenes of its Sucursales. */
 export interface IBusinessesRepository {
@@ -10,7 +10,7 @@ export interface IBusinessesRepository {
      * @throws {SlugTakenError} 409, the Enlace de reserva is in use
      * @throws {InvalidSlugError} 400 on the Enlace de reserva
      */
-    createBusiness(input: CreateBusiness): Promise<Business>;
+    createBusiness(input: CreateBusiness): Promise<CreatedBusiness>;
     /**
      * @throws {SlugTakenError} 409
      * @throws {InvalidSlugError} 400 on the Enlace de reserva

@@ -9,17 +9,51 @@ import { AlreadyOwnerError, InvalidSlugError, SlugTakenError } from '@/src/entit
 import { InputParseError } from '@/src/entities/errors/common';
 import { InvitationNotAcceptableError } from '@/src/entities/errors/employee';
 
-export type CreateBusinessResult = { ok: true; failedEmployees: string[] } | { ok: false; message: string };
+/** `failedUploads` nombra lo que no se pudo subir (el Logo, imágenes): el Negocio ya existe y se carga después. */
+export type CreateBusinessResult =
+    | { ok: true; failedEmployees: string[]; failedUploads: string[] }
+    | { ok: false; message: string };
 
-// Crear Negocio y después mandar las Invitaciones del wizard. El back no las recibe juntas: si falla
-// una, el Negocio ya existe y el Dueño la manda después desde Empleados.
-export async function createBusinessAction(
-    payload: unknown,
-    emails: string[],
-): Promise<CreateBusinessResult> {
+/** @throws {InputParseError} el campo del formulario no es JSON */
+function parseJson<T>(value: FormDataEntryValue | null): T {
+    try {
+        return JSON.parse(String(value));
+    } catch (cause) {
+        throw new InputParseError('Invalid form data', { cause });
+    }
+}
+
+/** Corre un paso posterior a crear el Negocio: si falla lo reporta y sigue, devolviendo false. */
+async function attempt(step: () => Promise<unknown>): Promise<boolean> {
+    try {
+        await step();
+        return true;
+    } catch (error) {
+        unstable_rethrow(error);
+        getInjection('ICrashReporterService').report(error);
+        return false;
+    }
+}
+
+/**
+ * Crea el Negocio con su Sucursal y después, de a una, manda las Invitaciones, sube el Logo y las imágenes.
+ *
+ * El back no las recibe juntas: si algo falla, el Negocio ya existe y el Dueño lo carga después desde Empleados o
+ * Sucursales. Las imágenes van en el orden elegido; el back agrega cada una al final, así que no hace falta reordenar.
+ *
+ * Un `payload` o `emails` que no sea JSON vuelve como `ok: false`, sin crear nada.
+ *
+ * @param form `payload` (JSON con Negocio y Sucursal), `emails` (JSON), `logo` (opcional) e `images` en orden
+ */
+export async function createBusinessAction(form: FormData): Promise<CreateBusinessResult> {
+    const logo = form.get('logo');
+    const images = form.getAll('images').filter((image): image is File => image instanceof File);
+
+    let emails: string[];
     let business;
     try {
-        business = await getInjection('ICreateBusinessController')(payload);
+        emails = parseJson<string[]>(form.get('emails') ?? '[]');
+        business = await getInjection('ICreateBusinessController')(parseJson(form.get('payload')));
     } catch (error) {
         unstable_rethrow(error); // redirect/notFound/dynamic usage are Next's control flow, not failures
         if (error instanceof AlreadyOwnerError) {
@@ -37,16 +71,23 @@ export async function createBusinessAction(
 
     const failedEmployees: string[] = [];
     for (const email of emails) {
-        try {
-            await getInjection('IAddEmployeeController')({ email, businessId: business.id });
-        } catch (error) {
-            unstable_rethrow(error);
-            getInjection('ICrashReporterService').report(error);
+        if (!(await attempt(() => getInjection('IAddEmployeeController')({ email, businessId: business.id })))) {
             failedEmployees.push(email);
         }
     }
+
+    const failedUploads: string[] = [];
+    if (logo instanceof File && !(await attempt(() => getInjection('IUploadBusinessLogoController')({ businessId: business.id, file: logo })))) {
+        failedUploads.push('el Logo');
+    }
+    for (const file of images) {
+        if (!(await attempt(() => getInjection('IUploadBranchImageController')({ branchId: business.branchId, file })))) {
+            failedUploads.push(`la imagen ${file.name}`);
+        }
+    }
+
     refresh();
-    return { ok: true, failedEmployees };
+    return { ok: true, failedEmployees, failedUploads };
 }
 
 export type UpdateBusinessResult =
