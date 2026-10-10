@@ -20,10 +20,24 @@ export class BranchesRepository implements IBranchesRepository {
         private readonly apiUrl = process.env.API_URL,
     ) {}
 
+    /**
+     * `POST /businesses/:id/branches`.
+     *
+     * @throws {SlugTakenError} 409
+     * @throws {InvalidSlugError} 400 sobre el tramo
+     * @throws {ApiRequestError} cualquier otra falla, o un body que no es una Sucursal
+     */
     async createBranch({ businessId, ...fields }: CreateBranch): Promise<Branch> {
         return this.send('POST', `/businesses/${businessId}/branches`, fields, 'POST /businesses/:id/branches');
     }
 
+    /**
+     * `PATCH /branches/:id`.
+     *
+     * @throws {SlugTakenError} 409
+     * @throws {InvalidSlugError} 400 sobre el tramo
+     * @throws {ApiRequestError} cualquier otra falla, o un body que no es una Sucursal
+     */
     async updateBranch({ id, ...changes }: UpdateBranch): Promise<Branch> {
         return this.send('PATCH', `/branches/${id}`, changes, 'PATCH /branches/:id');
     }

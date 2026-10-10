@@ -24,7 +24,12 @@ function presenter(items: BranchWithImages[], instrumentationService: IInstrumen
 const inputSchema = z.object({ businessId: z.number() });
 
 export type IListBranchesWithImagesController = ReturnType<typeof listBranchesWithImagesController>;
-// The panel's list: the Sucursales of the Negocio of the Dueño, each with its Imágenes in gallery order.
+/**
+ * Lista las Sucursales del Negocio para el panel, cada una con sus Imágenes en el orden de la galería.
+ *
+ * @throws {UnauthenticatedError} no hay Sesión
+ * @throws {InputParseError} el input no tiene la forma esperada
+ */
 export const listBranchesWithImagesController =
     (
         instrumentationService: IInstrumentationService,

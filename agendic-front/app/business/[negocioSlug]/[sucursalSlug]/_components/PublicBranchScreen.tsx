@@ -24,7 +24,7 @@ export async function publicBranchMetadata({ businessSlug, branchSlug, serviceSl
     try {
         const { business, branch, selectedService } = await getPublicBranch(businessSlug, branchSlug, serviceSlug);
         const service = selectedService ? `${selectedService.name} · ` : '';
-        return { title: `${service}${business.name} · ${branch.name} · Reservá tu turno`, description: business.description };
+        return { title: `${service}${business.name} · ${branch.name} · Reservá tu turno`, description: branch.description };
     } catch {
         return {};
     }

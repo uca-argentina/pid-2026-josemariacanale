@@ -3,9 +3,10 @@ import type { IInstrumentationService } from '@/src/application/services/instrum
 import type { Branch } from '@/src/entities/models/branch';
 import type { BranchImage } from '@/src/entities/models/branch-image';
 
+/** Una Sucursal con sus Imágenes. */
 export interface BranchWithImages {
     branch: Branch;
-    // In gallery order.
+    /** En el orden de la galería. */
     images: BranchImage[];
 }
 

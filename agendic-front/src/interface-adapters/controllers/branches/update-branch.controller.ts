@@ -16,6 +16,12 @@ function presenter(branch: Branch, instrumentationService: IInstrumentationServi
 }
 
 export type IUpdateBranchController = ReturnType<typeof updateBranchController>;
+/**
+ * Edita una Sucursal del Negocio del Dueño.
+ *
+ * @throws {UnauthenticatedError} no hay Sesión
+ * @throws {InputParseError} el input no tiene la forma esperada
+ */
 export const updateBranchController =
     (
         instrumentationService: IInstrumentationService,
