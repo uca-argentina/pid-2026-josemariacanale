@@ -277,6 +277,7 @@ export const ANAS_BUSINESS: Business = {
   ownerId: ANA.id,
   slug: 'anas-salon',
   deletedAt: null,
+  logoUrl: null,
 };
 
 export const ANAS_BRANCH: Branch = {

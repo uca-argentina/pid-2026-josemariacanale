@@ -16,6 +16,7 @@ const ANAS_BUSINESS: Business = {
   ownerId: 1,
   slug: 'anas-salon',
   deletedAt: null,
+  logoUrl: null,
 };
 
 const knownError = (code: string) =>

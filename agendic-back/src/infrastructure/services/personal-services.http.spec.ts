@@ -212,6 +212,7 @@ describe('Servicio personal', () => {
         ownerId: ANA.id,
         slug: 'anas-salon',
         deletedAt: null,
+        logoUrl: null,
       });
 
       await t.http
