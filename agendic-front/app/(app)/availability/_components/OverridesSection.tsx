@@ -97,7 +97,7 @@ function Calendar({
                             className={cn(
                                 'relative flex aspect-square items-center justify-center rounded-md text-[14px] font-semibold transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[#0f1b2d]',
                                 disabled
-                                    ? 'cursor-not-allowed font-medium text-[#9ca3af]'
+                                    ? 'font-medium text-[#9ca3af]'
                                     : on
                                       ? 'bg-[#0f1b2d] text-white'
                                       : 'bg-[#f3f4f6] text-[#0f1b2d] hover:bg-[#e5e7eb]',

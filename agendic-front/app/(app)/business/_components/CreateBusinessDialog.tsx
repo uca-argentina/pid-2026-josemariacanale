@@ -16,6 +16,7 @@ import {
     PanelTextarea,
 } from '@/app/(app)/_components/panel-ui';
 import { bookingLink } from '@/app/(app)/_components/mock-services';
+import { TimeZoneCombobox } from '@/app/(app)/_components/TimeZoneCombobox';
 import {
     branchSchema,
     businessSchema,
@@ -254,8 +255,6 @@ function BranchStep({
     onChange: (value: BranchFields) => void;
     errors: FieldErrors;
 }) {
-    const timeZones = Intl.supportedValuesOf('timeZone').map(tz => ({ value: tz, label: tz }));
-
     return (
         <>
             <PanelField label="Nombre de la Sucursal" htmlFor="branch-name" error={errors.name}>
@@ -277,12 +276,10 @@ function BranchStep({
                 />
             </PanelField>
             <PanelField label="Zona horaria" htmlFor="branch-timezone" error={errors.timeZone}>
-                <PanelSelect
+                <TimeZoneCombobox
                     id="branch-timezone"
                     value={value.timeZone}
-                    placeholder="Elegí una zona horaria"
-                    options={timeZones}
-                    onValueChange={(tz) => onChange({ ...value, timeZone: tz })}
+                    onChange={(tz) => onChange({ ...value, timeZone: tz })}
                 />
             </PanelField>
         </>
