@@ -3,7 +3,7 @@ import { PublicBusinessesRepository } from '@/src/infrastructure/repositories/pu
 
 const business = { id: 1, name: 'Vitalia', description: 'Desc', slug: 'vitalia', logoUrl: null, ownerId: 7 };
 const branch = { id: 10, businessId: 1, name: 'Centro', address: 'Av. 1', timeZone: 'America/Argentina/Buenos_Aires', slug: 'centro', description: null };
-const service = { id: 100, branchId: 10, name: 'Masaje', description: null, category: 'SPA', durationMinutes: 60, price: 20000, depositPercent: null, employees: [{ id: 1, name: 'Ana' }] };
+const service = { id: 100, branchId: 10, name: 'Masaje', description: null, category: 'SPA', durationMinutes: 60, price: 20000, depositPercent: null, employees: [{ id: 1, name: 'Ana', imageUrl: null }] };
 
 const repo = (apiUrl: string | undefined = 'http://api') => new PublicBusinessesRepository(apiUrl);
 const respond = (status: number, body: unknown) =>

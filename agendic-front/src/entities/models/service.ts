@@ -5,6 +5,7 @@ import { SERVICE_CATEGORIES, slugSchema } from './business';
 export const serviceEmployeeSchema = z.object({
     id: z.number(),
     name: z.string(),
+    imageUrl: z.string().nullable(),
 });
 export type ServiceEmployee = z.infer<typeof serviceEmployeeSchema>;
 
@@ -29,7 +30,7 @@ export type Service = z.infer<typeof serviceSchema>;
 export const PREP_MINUTES = [0, 5, 10, 15, 30, 60] as const;
 
 /** An Empleado in charge of a Servicio in the panel's catalog, with the Availability they attend it with. */
-export const catalogServiceEmployeeSchema = serviceEmployeeSchema.extend({ availabilityId: z.number(), imageUrl: z.string().nullable() });
+export const catalogServiceEmployeeSchema = serviceEmployeeSchema.extend({ availabilityId: z.number() });
 export type CatalogServiceEmployee = z.infer<typeof catalogServiceEmployeeSchema>;
 
 /**

@@ -13,7 +13,7 @@ const presentService = (s: Service) => ({
     durationMinutes: s.durationMinutes,
     price: s.price,
     depositPercent: s.depositPercent,
-    employees: s.employees.map((e) => ({ id: e.id, name: e.name })),
+    employees: s.employees.map((e) => ({ id: e.id, name: e.name, imageUrl: e.imageUrl })),
 });
 
 function presenter(
@@ -34,7 +34,7 @@ function presenter(
             .filter((b) => b.id !== branch.id)
             .map((b) => ({ id: b.id, name: b.name, address: b.address, slug: b.slug })),
         services: services.map(presentService),
-        employees: employees.map((e) => ({ id: e.id, name: e.name })),
+        employees: employees.map((e) => ({ id: e.id, name: e.name, imageUrl: e.imageUrl })),
         images: images.map((i) => ({ id: i.id, url: i.url })),
         selectedService: selectedService ? presentService(selectedService) : null,
     }));

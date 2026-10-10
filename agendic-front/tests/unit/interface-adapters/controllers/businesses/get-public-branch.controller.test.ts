@@ -42,6 +42,32 @@ describe('getPublicBranchController', () => {
         expect(useCase).toHaveBeenCalledWith({ businessSlug: 'vitalia', branchSlug: 'centro' });
     });
 
+    it('presents each Empleado with their foto de perfil, or null without one', async () => {
+        const centro = { id: 10, businessId: 1, name: 'Centro', address: 'Av. 1', timeZone: TZ, slug: 'centro' };
+        // `email` y `userId` llegan del caso de uso y no tienen que salir: el email es solo del Dueño.
+        const ana = { id: 1, name: 'Ana', imageUrl: 'https://img.clerk.com/ana.png', email: 'ana@example.com', userId: 7 };
+        const beto = { id: 2, name: 'Beto', imageUrl: null, email: 'beto@example.com', userId: 8 };
+        const masaje = { id: 100, branchId: 10, name: 'Masaje', description: null, category: 'SPA', durationMinutes: 60, price: 20000, depositPercent: null, employees: [ana, beto] };
+        const useCase = jest.fn().mockResolvedValue({
+            business: { id: 1, name: 'Vitalia', description: 'Desc', slug: 'vitalia', logoUrl: null, ownerId: 7 },
+            branch: centro,
+            branches: [centro],
+            services: [masaje],
+            employees: [ana, beto],
+            images: [],
+            selectedService: null,
+        });
+
+        const page = await getPublicBranchController(instrumentation, useCase)({ businessSlug: 'vitalia', branchSlug: 'centro' });
+
+        const shown = [
+            { id: 1, name: 'Ana', imageUrl: 'https://img.clerk.com/ana.png' },
+            { id: 2, name: 'Beto', imageUrl: null },
+        ];
+        expect(page.employees).toEqual(shown);
+        expect(page.services[0].employees).toEqual(shown);
+    });
+
     it('presents the Sucursal own description over the Negocio one', async () => {
         const centro = { id: 10, businessId: 1, name: 'Centro', address: 'Av. 1', timeZone: TZ, slug: 'centro', description: 'La del centro' };
         const useCase = jest.fn().mockResolvedValue({
