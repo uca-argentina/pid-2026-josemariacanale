@@ -80,7 +80,9 @@ export class PrismaUsersRepository implements UsersRepository {
    */
   async update(
     id: number,
-    data: Partial<Pick<User, 'name' | 'email'>> & { slug?: string },
+    data: Partial<Pick<User, 'name' | 'email' | 'imageUrl'>> & {
+      slug?: string;
+    },
   ) {
     return toUser(
       await this.prisma.user
@@ -101,12 +103,18 @@ export class PrismaUsersRepository implements UsersRepository {
           where: { userId: id, deletedAt: null },
           data: { deletedAt, availabilityId: null },
         });
-        await tx.employeeService.deleteMany({ where: { employee: { userId: id } } });
+        await tx.employeeService.deleteMany({
+          where: { employee: { userId: id } },
+        });
         await tx.employee.updateMany({
           where: { userId: id, deletedAt: null },
           data: { deletedAt },
         });
-        const ownCancelled = await cancelFutureBooked(tx, { userId: id }, deletedAt);
+        const ownCancelled = await cancelFutureBooked(
+          tx,
+          { userId: id },
+          deletedAt,
+        );
         const business = await tx.business.findUnique({
           where: { ownerId: id },
           select: { id: true },

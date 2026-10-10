@@ -30,6 +30,7 @@ export class ClerkBackendAuth implements ClerkAuth {
       return {
         clerkId: payload.sub,
         profile: profileClaims(payload),
+        imageUrl: imageUrlClaim(payload),
       };
     } catch (error) {
       throw new UnauthenticatedError('Invalid or expired Clerk token', {
@@ -111,6 +112,19 @@ function profileClaims(
   const { name, email } = payload;
   if (typeof name !== 'string' || typeof email !== 'string') return undefined;
   return { name, email };
+}
+
+/**
+ * Reads the `imageUrl`/`hasImage` session token custom claims. `hasImage` false (Clerk would only serve
+ * its placeholder) or an unparseable URL gives `null`; either claim missing gives `undefined`.
+ */
+function imageUrlClaim(
+  payload: Record<string, unknown>,
+): string | null | undefined {
+  const { imageUrl, hasImage } = payload;
+  if (typeof imageUrl !== 'string' || typeof hasImage !== 'boolean')
+    return undefined;
+  return hasImage ? parseUrl(imageUrl) : null;
 }
 
 /** A malformed imageUrl is discarded rather than failing the User's creation. */

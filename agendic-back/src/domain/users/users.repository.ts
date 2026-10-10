@@ -15,7 +15,9 @@ export interface UsersRepository {
   /** Leaves undefined fields unchanged. Throws ConflictError when the slug is taken. */
   update(
     id: number,
-    data: Partial<Pick<User, 'name' | 'email'>> & { slug?: string },
+    data: Partial<Pick<User, 'name' | 'email' | 'imageUrl'>> & {
+      slug?: string;
+    },
   ): Promise<User>;
   /**
    * Dado de baja (ADR 0024): in one transaction sets deletedAt, retires their Servicios personales and Empleados

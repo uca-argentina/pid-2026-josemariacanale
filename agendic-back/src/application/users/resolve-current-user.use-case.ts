@@ -23,7 +23,8 @@ export class ResolveCurrentUserUseCase {
     token: string | undefined,
     { allowRetired = false }: { allowRetired?: boolean } = {},
   ): Promise<User> {
-    const { clerkId, profile } = await this.clerkAuth.verifyToken(token);
+    const { clerkId, profile, imageUrl } =
+      await this.clerkAuth.verifyToken(token);
     const existing = await this.users.findByClerkId(clerkId);
     if (!existing) {
       const seed = await this.clerkAuth.getProfile(clerkId);
@@ -38,9 +39,15 @@ export class ResolveCurrentUserUseCase {
     }
     if (existing.deletedAt && !allowRetired)
       throw new ForbiddenError(`User ${existing.id} is dado de baja`);
-    if (existing.deletedAt || !profile) return existing;
-    if (profile.name === existing.name && profile.email === existing.email)
-      return existing;
-    return this.users.update(existing.id, profile).catch(() => existing);
+    if (existing.deletedAt) return existing;
+    const changes = {
+      ...(profile &&
+        (profile.name !== existing.name || profile.email !== existing.email) &&
+        profile),
+      ...(imageUrl !== undefined &&
+        imageUrl !== existing.imageUrl && { imageUrl }),
+    };
+    if (Object.keys(changes).length === 0) return existing;
+    return this.users.update(existing.id, changes).catch(() => existing);
   }
 }

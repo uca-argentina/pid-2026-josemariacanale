@@ -166,6 +166,22 @@ describe('PrismaUsersRepository', () => {
     });
   });
 
+  it('updates only the imageUrl, and a null drops it', async () => {
+    prisma.user.update.mockResolvedValue(ANA);
+
+    await repository.update(1, { imageUrl: 'https://img.clerk.com/ana.png' });
+    await repository.update(1, { imageUrl: null });
+
+    expect(prisma.user.update).toHaveBeenNthCalledWith(1, {
+      where: { id: 1 },
+      data: { imageUrl: 'https://img.clerk.com/ana.png' },
+    });
+    expect(prisma.user.update).toHaveBeenNthCalledWith(2, {
+      where: { id: 1 },
+      data: { imageUrl: null },
+    });
+  });
+
   describe('translates Prisma errors, keeping the original as cause', () => {
     const calls = {
       create: () =>
@@ -201,11 +217,15 @@ describe('PrismaUsersRepository', () => {
     it('update: a taken slug into ConflictError that names the Enlace de reserva', async () => {
       const cause = knownError('P2002');
       cause.meta = {
-        driverAdapterError: { cause: { constraint: { index: 'User_slug_key' } } },
+        driverAdapterError: {
+          cause: { constraint: { index: 'User_slug_key' } },
+        },
       };
       prisma.user.update.mockRejectedValue(cause);
 
-      const error = await repository.update(1, { slug: 'ana' }).catch((e: unknown) => e);
+      const error = await repository
+        .update(1, { slug: 'ana' })
+        .catch((e: unknown) => e);
 
       expect(error).toBeInstanceOf(ConflictError);
       expect((error as Error).message).toBe('Booking link already in use');

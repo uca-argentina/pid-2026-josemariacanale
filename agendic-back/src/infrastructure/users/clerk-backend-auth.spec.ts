@@ -1,4 +1,5 @@
 import { ExternalServiceError } from '../../domain/errors';
+import { verifyToken as verifyClerkToken } from '@clerk/backend';
 import { ClerkBackendAuth } from './clerk-backend-auth';
 
 const getUser = jest.fn();
@@ -39,7 +40,10 @@ describe('ClerkBackendAuth.getProfile', () => {
 
   it('seeds a null imageUrl when hasImage is false, even with an imageUrl set', async () => {
     getUser.mockResolvedValue(
-      clerkUser({ hasImage: false, imageUrl: 'https://img.clerk.com/placeholder.png' }),
+      clerkUser({
+        hasImage: false,
+        imageUrl: 'https://img.clerk.com/placeholder.png',
+      }),
     );
 
     const profile = await auth.getProfile('user_1');
@@ -108,5 +112,45 @@ describe('ClerkBackendAuth.inviteByEmail', () => {
       notify: true,
       redirectUrl: 'http://localhost:3000/sign-up',
     });
+  });
+});
+
+describe('ClerkBackendAuth.verifyToken image claims', () => {
+  const auth = new ClerkBackendAuth();
+  const verify = verifyClerkToken as jest.Mock;
+
+  beforeEach(() => jest.resetAllMocks());
+
+  it('reads the foto de perfil from the claims', async () => {
+    verify.mockResolvedValue({
+      sub: 'user_1',
+      imageUrl: 'https://img.clerk.com/ana.png',
+      hasImage: true,
+    });
+
+    const identity = await auth.verifyToken('jwt');
+
+    expect(identity.imageUrl).toBe('https://img.clerk.com/ana.png');
+  });
+
+  it('gives null when Clerk says there is no real foto, or the URL does not parse', async () => {
+    verify.mockResolvedValue({
+      sub: 'u',
+      imageUrl: 'https://x.io/p.png',
+      hasImage: false,
+    });
+    expect((await auth.verifyToken('jwt')).imageUrl).toBeNull();
+
+    verify.mockResolvedValue({
+      sub: 'u',
+      imageUrl: 'not a url',
+      hasImage: true,
+    });
+    expect((await auth.verifyToken('jwt')).imageUrl).toBeNull();
+  });
+
+  it('gives undefined, not null, when a claim is missing', async () => {
+    verify.mockResolvedValue({ sub: 'u', imageUrl: 'https://x.io/p.png' });
+    expect((await auth.verifyToken('jwt')).imageUrl).toBeUndefined();
   });
 });
