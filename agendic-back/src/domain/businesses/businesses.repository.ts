@@ -34,6 +34,7 @@ export interface CreateBusinessData {
 export interface CreatedBusiness {
   business: Business;
   branch: Branch;
+  /** `null` si el Negocio se creó sin Servicio. */
   service: Service | null;
   employee: Employee;
 }

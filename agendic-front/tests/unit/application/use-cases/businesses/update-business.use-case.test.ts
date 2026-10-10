@@ -1,7 +1,7 @@
 import type { IBusinessesRepository } from '@/src/application/repositories/businesses.repository.interface';
 import { updateBusinessUseCase } from '@/src/application/use-cases/businesses/update-business.use-case';
 import { SlugTakenError } from '@/src/entities/errors/business';
-import { instrumentation } from '@/tests/unit/stubs';
+import { imagesStub, instrumentation } from '@/tests/unit/stubs';
 
 const input = { id: 1, name: 'Estudio', description: 'Desc', slug: 'estudio' };
 const business = { ...input, ownerId: 7 };
@@ -9,6 +9,7 @@ const repoWith = (updateBusiness: jest.Mock): IBusinessesRepository => ({
     listBusinesses: jest.fn(),
     createBusiness: jest.fn(),
     updateBusiness,
+    ...imagesStub,
 });
 
 describe('updateBusinessUseCase', () => {
