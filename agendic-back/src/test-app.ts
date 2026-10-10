@@ -96,6 +96,9 @@ export async function createTestApp() {
   const mailer: jest.Mocked<Mailer> = {
     sendVerificationCode: jest.fn(),
     sendBookingConfirmation: jest.fn(),
+    sendBookingCancellation: jest.fn(),
+    sendBookingReschedule: jest.fn(),
+    sendBookingRejection: jest.fn(),
   };
   const bookingCodes: jest.Mocked<BookingVerificationCodes> = {
     request: jest.fn(),
@@ -364,3 +367,10 @@ export function scriptOtherSession({ clerkAuth, users }: TestApp) {
 export const bearer = (token: string) => ({
   Authorization: `Bearer ${token}`,
 });
+
+/** `count` future Turnos cancelled by a baja, as the repositories report them to the use case that mails their Clientes. */
+export const cancelledBookings = (count: number) =>
+  Array.from({ length: count }, (_, i) => ({
+    clientEmail: `cliente${i + 1}@example.com`,
+    link: `link-cancelado-${i + 1}`,
+  }));

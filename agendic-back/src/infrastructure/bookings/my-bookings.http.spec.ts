@@ -131,6 +131,20 @@ describe('Mis turnos del Usuario', () => {
 
       expect(t.bookings.cancel).toHaveBeenCalledWith(BOOKED.id);
       expect(res.body).toMatchObject({ id: BOOKED.id, status: 'CANCELLED' });
+      expect(t.mailer.sendBookingCancellation).toHaveBeenCalledWith(
+        BOOKED.clientEmail,
+        BOOKED.link,
+      );
+    });
+
+    it('still answers 200 when the Cliente mail fails, since the Turno is already cancelled', async () => {
+      t.bookings.cancel.mockResolvedValue({
+        ...BOOKED,
+        status: BookingStatus.CANCELLED,
+      });
+      t.mailer.sendBookingCancellation.mockRejectedValue(new Error('SMTP down'));
+
+      await patch(CLERK_TOKEN).expect(200);
     });
 
     it.each([BookingStatus.PENDING, BookingStatus.CANCELLED])(
@@ -202,6 +216,10 @@ describe('Mis turnos del Usuario', () => {
         status: 'BOOKED',
         startsAt: NEW_START,
       });
+      expect(t.mailer.sendBookingReschedule).toHaveBeenCalledWith(
+        BOOKED.clientEmail,
+        BOOKED.link,
+      );
     });
 
     it('answers 422 when the new horario overlaps another Turno of the only Empleado', async () => {

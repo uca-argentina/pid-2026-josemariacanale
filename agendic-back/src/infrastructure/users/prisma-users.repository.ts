@@ -113,8 +113,8 @@ export class PrismaUsersRepository implements UsersRepository {
         });
         const businessCancelled = business
           ? await retireBusiness(tx, business.id, deletedAt)
-          : 0;
-        const cancelledBookings = ownCancelled + businessCancelled;
+          : [];
+        const cancelledBookings = [...ownCancelled, ...businessCancelled];
         return { cancelledBookings };
       })
       .catch(translateError);

@@ -8,13 +8,15 @@ import {
   SERVICES_REPOSITORY,
   ServicesRepository,
 } from '../../domain/services/services.repository';
+import { MAILER, Mailer } from '../../domain/mailer';
 import { ListSlotsUseCase } from '../slots/list-slots.use-case';
+import { notifyClients } from './notify-clients';
 import { findBookingByLink } from './find-booking-by-link';
 import { rescheduleResolvedBooking } from './reschedule-resolved-booking';
 
 /**
  * Reagenda un Turno pendiente o aceptado por su Enlace del Turno a otro Horario reservable del mismo Servicio
- * (ADR 0022).
+ * (ADR 0022), y le avisa por mail al Cliente.
  */
 @Injectable()
 export class RescheduleBookingByLinkUseCase {
@@ -22,6 +24,7 @@ export class RescheduleBookingByLinkUseCase {
     @Inject(BOOKINGS_REPOSITORY) private readonly bookings: BookingsRepository,
     @Inject(SERVICES_REPOSITORY) private readonly services: ServicesRepository,
     private readonly listSlots: ListSlotsUseCase,
+    @Inject(MAILER) private readonly mailer: Mailer,
   ) {}
 
   /**
@@ -31,12 +34,16 @@ export class RescheduleBookingByLinkUseCase {
    */
   async execute(link: string, startsAt: Date): Promise<ClientBooking> {
     const booking = await findBookingByLink(this.bookings, link);
-    return rescheduleResolvedBooking(
+    const rescheduled = await rescheduleResolvedBooking(
       this.bookings,
       this.services,
       this.listSlots,
       booking,
       startsAt,
     );
+    await notifyClients([rescheduled], (email, link) =>
+      this.mailer.sendBookingReschedule(email, link),
+    );
+    return rescheduled;
   }
 }

@@ -27,6 +27,9 @@ export interface Booking {
   link: string;
 }
 
+/** Who to tell, and where to send them, when a Turno is cancelled in bulk by a baja. */
+export type CancelledBooking = Pick<Booking, 'clientEmail' | 'link'>;
+
 /** A Turno as the Usuario who attends it sees it in Mis turnos (ADR 0023): with the names of where it happens. */
 export interface UserBooking extends Booking {
   serviceName: string;

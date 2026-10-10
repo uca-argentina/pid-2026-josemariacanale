@@ -8,15 +8,18 @@ import {
   EMPLOYEES_REPOSITORY,
   EmployeesRepository,
 } from '../../domain/employees/employees.repository';
+import { MAILER, Mailer } from '../../domain/mailer';
+import { notifyClients } from './notify-clients';
 import { findOwnBookedBooking } from './find-own-booked-booking';
 
-/** Cancela un Turno aceptado, liberando su horario. */
+/** Cancela un Turno aceptado, liberando su horario, y le avisa por mail al Cliente. */
 @Injectable()
 export class CancelBookingUseCase {
   constructor(
     @Inject(BOOKINGS_REPOSITORY) private readonly bookings: BookingsRepository,
     @Inject(EMPLOYEES_REPOSITORY)
     private readonly employees: EmployeesRepository,
+    @Inject(MAILER) private readonly mailer: Mailer,
   ) {}
 
   /**
@@ -31,6 +34,10 @@ export class CancelBookingUseCase {
       userId,
       bookingId,
     );
-    return this.bookings.cancel(bookingId);
+    const cancelled = await this.bookings.cancel(bookingId);
+    await notifyClients([cancelled], (email, link) =>
+      this.mailer.sendBookingCancellation(email, link),
+    );
+    return cancelled;
   }
 }

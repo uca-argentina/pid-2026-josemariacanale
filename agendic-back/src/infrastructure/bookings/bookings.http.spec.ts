@@ -484,6 +484,25 @@ describe('Turno', () => {
       expect(res.body).toMatchObject({ id: BOOKING.id, status });
     });
 
+    it(
+      action === 'reject'
+        ? 'mails the Cliente the Aviso de cambio del Turno, and a mail failure does not undo the Rechazo'
+        : 'sends the Cliente no Aviso de cambio del Turno',
+      async () => {
+        t.mailer.sendBookingRejection.mockRejectedValue(new Error('SMTP down'));
+
+        await patch(CLERK_TOKEN).expect(200);
+
+        if (action === 'reject')
+          expect(t.mailer.sendBookingRejection).toHaveBeenCalledWith(
+            BOOKING.clientEmail,
+            BOOKING.link,
+          );
+        else expect(t.mailer.sendBookingRejection).not.toHaveBeenCalled();
+        expect(t.mailer.sendBookingCancellation).not.toHaveBeenCalled();
+      },
+    );
+
     it('answers 422 when the Turno is not PENDING', async () => {
       t.bookings.findById.mockResolvedValue(BOOKING);
 

@@ -14,8 +14,11 @@ import {
   ServicesRepository,
 } from '../../domain/services/services.repository';
 import { isLastEmployee } from '../services/is-last-employee';
+import { MAILER, Mailer } from '../../domain/mailer';
+import { notifyClients } from '../bookings/notify-clients';
 import { assertEmployeeOwner } from './assert-employee-owner';
 
+/** Da de baja un Empleado y cancela sus Turnos futuros, avisando por mail al Cliente de cada uno. */
 @Injectable()
 export class RetireEmployeeUseCase {
   constructor(
@@ -26,6 +29,7 @@ export class RetireEmployeeUseCase {
     @Inject(SERVICES_REPOSITORY)
     private readonly services: ServicesRepository,
     @Inject(CLOCK) private readonly clock: Clock,
+    @Inject(MAILER) private readonly mailer: Mailer,
   ) {}
 
   async execute(
@@ -52,6 +56,9 @@ export class RetireEmployeeUseCase {
       employee.id,
       this.clock.now(),
     );
-    return { cancelledBookings };
+    await notifyClients(cancelledBookings, (email, link) =>
+      this.mailer.sendBookingCancellation(email, link),
+    );
+    return { cancelledBookings: cancelledBookings.length };
   }
 }

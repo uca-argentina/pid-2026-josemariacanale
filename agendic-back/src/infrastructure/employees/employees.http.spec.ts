@@ -15,6 +15,7 @@ import {
   scriptSession,
   CLERK_TOKEN,
   TestApp,
+  cancelledBookings,
 } from '../../test-app';
 
 const OTHER_EMPLOYEE = {
@@ -367,7 +368,7 @@ describe('Empleado', () => {
       t.services.listActiveByEmployee.mockResolvedValue([]);
       t.employees.retire.mockResolvedValue({
         employee: { ...OTHER_EMPLOYEE, deletedAt: new Date() },
-        cancelledBookings: 0,
+        cancelledBookings: cancelledBookings(0),
       });
     });
 
@@ -387,7 +388,7 @@ describe('Empleado', () => {
     it('reports how many future Turnos it cancelled', async () => {
       t.employees.retire.mockResolvedValue({
         employee: { ...OTHER_EMPLOYEE, deletedAt: new Date() },
-        cancelledBookings: 5,
+        cancelledBookings: cancelledBookings(5),
       });
 
       const res = await t.http
@@ -396,6 +397,26 @@ describe('Empleado', () => {
         .expect(200);
 
       expect(res.body).toEqual({ cancelledBookings: 5 });
+      expect(t.mailer.sendBookingCancellation).toHaveBeenCalledTimes(5);
+      expect(t.mailer.sendBookingCancellation).toHaveBeenCalledWith(
+        'cliente1@example.com',
+        'link-cancelado-1',
+      );
+    });
+
+    it('still answers 200 when a Cliente mail fails, since the Turnos are already cancelled', async () => {
+      t.employees.retire.mockResolvedValue({
+        employee: { ...OTHER_EMPLOYEE, deletedAt: new Date() },
+        cancelledBookings: cancelledBookings(1),
+      });
+      t.mailer.sendBookingCancellation.mockRejectedValue(new Error('SMTP down'));
+
+      const res = await t.http
+        .delete(`/employees/${OTHER_EMPLOYEE.id}`)
+        .set(bearer(CLERK_TOKEN))
+        .expect(200);
+
+      expect(res.body).toEqual({ cancelledBookings: 1 });
     });
 
     it("answers 422 and changes nothing when they're the last Empleado of a Servicio not dado de baja", async () => {
