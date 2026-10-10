@@ -37,12 +37,56 @@ export class NodemailerMailer implements Mailer {
   }
 
   async sendBookingConfirmation(email: string, link: string) {
+    await this.sendBookingMail(
+      email,
+      link,
+      'Your booking is confirmed',
+      'Your Turno is confirmed. Manage it here',
+    );
+  }
+
+  /** Avisa que el Turno quedó cancelado. */
+  async sendBookingCancellation(email: string, link: string) {
+    await this.sendBookingMail(
+      email,
+      link,
+      'Your booking was cancelled',
+      'Your Turno was cancelled. See it here',
+    );
+  }
+
+  /** Avisa que el Turno pasó a otro horario. */
+  async sendBookingReschedule(email: string, link: string) {
+    await this.sendBookingMail(
+      email,
+      link,
+      'Your booking was rescheduled',
+      'Your Turno was moved to another time. See the new time here',
+    );
+  }
+
+  /** Avisa que el Negocio rechazó el Turno pendiente. */
+  async sendBookingRejection(email: string, link: string) {
+    await this.sendBookingMail(
+      email,
+      link,
+      'Your booking was rejected',
+      'Your Turno was rejected. See it here',
+    );
+  }
+
+  private async sendBookingMail(
+    email: string,
+    link: string,
+    subject: string,
+    text: string,
+  ) {
     const url = `${this.frontendUrl}/turnos/${link}`;
     await this.transporter.sendMail({
       from: process.env.SMTP_FROM,
       to: email,
-      subject: 'Your booking is confirmed',
-      html: `<p>Your Turno is confirmed. Manage it here: <a href="${url}">${url}</a></p>`,
+      subject,
+      html: `<p>${text}: <a href="${url}">${url}</a></p>`,
     });
   }
 }

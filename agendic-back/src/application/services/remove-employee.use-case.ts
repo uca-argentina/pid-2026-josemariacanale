@@ -17,6 +17,8 @@ import {
   SERVICES_REPOSITORY,
   ServicesRepository,
 } from '../../domain/services/services.repository';
+import { MAILER, Mailer } from '../../domain/mailer';
+import { notifyClients } from '../bookings/notify-clients';
 import { assertServiceOwnerOrSelf } from './assert-service-owner-or-self';
 import { isLastEmployee } from './is-last-employee';
 
@@ -32,10 +34,12 @@ export class RemoveEmployeeUseCase {
     @Inject(EMPLOYEES_REPOSITORY)
     private readonly employees: EmployeesRepository,
     @Inject(CLOCK) private readonly clock: Clock,
+    @Inject(MAILER) private readonly mailer: Mailer,
   ) {}
 
   /**
    * Dejar de ofrecer: lo hace el Dueño por cualquiera del Staff, o el propio Empleado por sí mismo (ADR 0017).
+   * Avisa por mail al Cliente de cada Turno futuro que cancela.
    *
    * @throws {NotFoundError} el Servicio, su Sucursal o el Empleado no existen
    * @throws {ForbiddenError} no es el Dueño ni ese Empleado
@@ -67,6 +71,9 @@ export class RemoveEmployeeUseCase {
       employeeId,
       this.clock.now(),
     );
-    return { cancelledBookings };
+    await notifyClients(cancelledBookings, (email, link) =>
+      this.mailer.sendBookingCancellation(email, link),
+    );
+    return { cancelledBookings: cancelledBookings.length };
   }
 }

@@ -1,3 +1,4 @@
+import { ClientNotice } from '../bookings/booking';
 import { Employee } from './employee';
 
 export const EMPLOYEES_REPOSITORY = Symbol('EmployeesRepository');
@@ -21,5 +22,5 @@ export interface EmployeesRepository {
   retire(
     id: number,
     deletedAt: Date,
-  ): Promise<{ employee: Employee; cancelledBookings: number }>;
+  ): Promise<{ employee: Employee; cancelledBookings: ClientNotice[] }>;
 }

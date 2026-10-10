@@ -14,6 +14,7 @@ import {
   scriptSession,
   CLERK_TOKEN,
   TestApp,
+  cancelledBookings,
 } from '../../test-app';
 
 const BRANCH = ANAS_BRANCH;
@@ -716,7 +717,7 @@ describe('Servicio', () => {
       t.businesses.findById.mockResolvedValue(ANAS_BUSINESS);
       t.services.retire.mockResolvedValue({
         service: { ...SERVICE, deletedAt: new Date() },
-        cancelledBookings: 0,
+        cancelledBookings: cancelledBookings(0),
       });
     });
 
@@ -747,7 +748,7 @@ describe('Servicio', () => {
     it('reports how many future Turnos it cancelled', async () => {
       t.services.retire.mockResolvedValue({
         service: { ...SERVICE, deletedAt: new Date() },
-        cancelledBookings: 3,
+        cancelledBookings: cancelledBookings(3),
       });
 
       const res = await t.http
@@ -756,6 +757,11 @@ describe('Servicio', () => {
         .expect(200);
 
       expect(res.body).toEqual({ id: SERVICE.id, cancelledBookings: 3 });
+      expect(t.mailer.sendBookingCancellation).toHaveBeenCalledTimes(3);
+      expect(t.mailer.sendBookingCancellation).toHaveBeenCalledWith(
+        'cliente2@example.com',
+        'link-cancelado-2',
+      );
     });
 
     it('answers 401 without a Sesión', async () => {
@@ -1050,7 +1056,7 @@ describe('Servicio', () => {
       t.employees.findById.mockResolvedValue(OTHER_EMPLOYEE);
       t.services.removeEmployee.mockResolvedValue({
         service: SERVICE,
-        cancelledBookings: 0,
+        cancelledBookings: cancelledBookings(0),
       });
     });
 
@@ -1071,7 +1077,7 @@ describe('Servicio', () => {
     it('reports how many future Turnos of that Empleado it cancelled', async () => {
       t.services.removeEmployee.mockResolvedValue({
         service: SERVICE,
-        cancelledBookings: 2,
+        cancelledBookings: cancelledBookings(2),
       });
 
       const res = await t.http
@@ -1080,6 +1086,7 @@ describe('Servicio', () => {
         .expect(200);
 
       expect(res.body).toEqual({ cancelledBookings: 2 });
+      expect(t.mailer.sendBookingCancellation).toHaveBeenCalledTimes(2);
     });
 
     it("answers 422 and changes nothing when they're the Servicio's last Empleado", async () => {

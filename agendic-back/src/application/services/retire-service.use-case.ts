@@ -13,8 +13,11 @@ import {
   SERVICES_REPOSITORY,
   ServicesRepository,
 } from '../../domain/services/services.repository';
+import { MAILER, Mailer } from '../../domain/mailer';
+import { notifyClients } from '../bookings/notify-clients';
 import { assertServiceOwner } from './assert-service-owner';
 
+/** Da de baja un Servicio y cancela sus Turnos futuros, avisando por mail al Cliente de cada uno. */
 @Injectable()
 export class RetireServiceUseCase {
   constructor(
@@ -25,8 +28,13 @@ export class RetireServiceUseCase {
     @Inject(SERVICES_REPOSITORY)
     private readonly services: ServicesRepository,
     @Inject(CLOCK) private readonly clock: Clock,
+    @Inject(MAILER) private readonly mailer: Mailer,
   ) {}
 
+  /**
+   * @throws {NotFoundError} el Servicio no existe
+   * @throws {ForbiddenError} el Usuario no es el Dueño del Servicio
+   */
   async execute(
     userId: number,
     serviceId: number,
@@ -38,6 +46,9 @@ export class RetireServiceUseCase {
       serviceId,
       this.clock.now(),
     );
-    return { id: serviceId, cancelledBookings };
+    await notifyClients(cancelledBookings, (email, link) =>
+      this.mailer.sendBookingCancellation(email, link),
+    );
+    return { id: serviceId, cancelledBookings: cancelledBookings.length };
   }
 }

@@ -14,6 +14,7 @@ import {
   scriptSession,
   TestApp,
   workWeek,
+  cancelledBookings,
 } from '../../test-app';
 
 /** Ana's Availability, in Tokyo: a Servicio personal reads its days there, not in any Sucursal's zone. */
@@ -158,7 +159,7 @@ describe('Servicio personal', () => {
       t.services.update.mockResolvedValue({ ...PERSONAL, hidden: true });
       t.services.retire.mockResolvedValue({
         service: PERSONAL,
-        cancelledBookings: 2,
+        cancelledBookings: cancelledBookings(2),
       });
     });
 

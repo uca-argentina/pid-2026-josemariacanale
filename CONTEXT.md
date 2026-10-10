@@ -211,6 +211,10 @@ _Avoid_: cancelar (eso aplica a un turno ya aceptado)
 Aviso automático que recibe el Cliente cuando su turno queda creado.
 _Avoid_: confirmación (a secas)
 
+**Aviso de cambio del Turno**:
+Aviso automático por mail que recibe el Cliente cuando su Turno se Cancela, se Reagenda, se Rechaza o queda cancelado por una baja, lo haga el Empleado o el propio Cliente. Lleva el Enlace del Turno. Si el mail falla, el cambio igual queda hecho.
+_Avoid_: notificación (a secas), recordatorio
+
 **Confirmación de asistencia**:
 Acción del Cliente, previa al turno, indicando que va a asistir.
 _Avoid_: confirmación (a secas), confirmar turno
