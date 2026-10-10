@@ -80,7 +80,9 @@ export class PrismaUsersRepository implements UsersRepository {
    */
   async update(
     id: number,
-    data: Partial<Pick<User, 'name' | 'email'>> & { slug?: string },
+    data: Partial<Pick<User, 'name' | 'email' | 'imageUrl'>> & {
+      slug?: string;
+    },
   ) {
     return toUser(
       await this.prisma.user

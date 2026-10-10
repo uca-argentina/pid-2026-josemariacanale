@@ -4,14 +4,18 @@
 
 ### Custom claims de Clerk
 
-Para que el back refresque el nombre y el email del Usuario (y del Empleado) al vuelo, el session token de Clerk tiene que traer esos datos como custom claims. Configurarlo en el dashboard de Clerk, **Sessions → Customize session token**, agregando:
+Para que el back refresque el nombre, el email y la foto de perfil del Usuario (y del Empleado) al vuelo, el session token de Clerk tiene que traer esos datos como custom claims. Configurarlo en el dashboard de Clerk, **Sessions → Customize session token**, agregando:
 
 ```json
 {
   "name": "{{user.full_name}}",
-  "email": "{{user.primary_email_address}}"
+  "email": "{{user.primary_email_address}}",
+  "imageUrl": "{{user.image_url}}",
+  "hasImage": "{{user.has_image}}"
 }
 ```
+
+``hasImage` evita guardar la imagen genérica de Clerk: en `false` la foto del Usuario pasa a `null`. Una URL que no se puede parsear se ignora y deja la foto guardada. La foto se refresca aparte del nombre y el email: sin `imageUrl` o sin `hasImage` en el token, solo esa parte queda sin refrescar.
 
 Sin esta configuración (o con un token viejo que no la tiene todavía), el back sigue funcionando igual: no refresca nada y no llama a la API de Clerk.
 

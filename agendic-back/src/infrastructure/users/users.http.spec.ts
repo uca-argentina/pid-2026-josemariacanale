@@ -199,6 +199,96 @@ describe('Usuario', () => {
       expect(t.users.update).not.toHaveBeenCalled();
     });
 
+    it('refreshes the foto de perfil when the token carries a different one', async () => {
+      const imageUrl = 'https://img.clerk.com/ana-new.png';
+      t.clerkAuth.verifyToken.mockResolvedValue({
+        clerkId: ANA.clerkId,
+        profile: { name: ANA.name, email: ANA.email },
+        imageUrl,
+      });
+      t.users.findByClerkId.mockResolvedValue(ANA);
+      t.users.update.mockResolvedValue({ ...ANA, imageUrl });
+      t.users.findById.mockResolvedValue({ ...ANA, imageUrl });
+
+      const res = await t.http
+        .get('/users/me')
+        .set(bearer(CLERK_TOKEN))
+        .expect(200);
+
+      expect(t.users.update).toHaveBeenCalledWith(ANA.id, { imageUrl });
+      expect(res.body.imageUrl).toBe(imageUrl);
+    });
+
+    it('drops the foto de perfil when the token says Clerk has no real one', async () => {
+      const withPhoto = { ...ANA, imageUrl: 'https://img.clerk.com/ana.png' };
+      t.clerkAuth.verifyToken.mockResolvedValue({
+        clerkId: ANA.clerkId,
+        imageUrl: null,
+      });
+      t.users.findByClerkId.mockResolvedValue(withPhoto);
+      t.users.update.mockResolvedValue(ANA);
+      t.users.findById.mockResolvedValue(ANA);
+
+      const res = await t.http
+        .get('/users/me')
+        .set(bearer(CLERK_TOKEN))
+        .expect(200);
+
+      expect(t.users.update).toHaveBeenCalledWith(ANA.id, { imageUrl: null });
+      expect(res.body.imageUrl).toBeNull();
+    });
+
+    it('does not update when the token foto de perfil matches the row', async () => {
+      const withPhoto = { ...ANA, imageUrl: 'https://img.clerk.com/ana.png' };
+      t.clerkAuth.verifyToken.mockResolvedValue({
+        clerkId: ANA.clerkId,
+        imageUrl: withPhoto.imageUrl,
+      });
+      t.users.findByClerkId.mockResolvedValue(withPhoto);
+      t.users.findById.mockResolvedValue(withPhoto);
+
+      await t.http.get('/users/me').set(bearer(CLERK_TOKEN)).expect(200);
+
+      expect(t.users.update).not.toHaveBeenCalled();
+    });
+
+    it('responds with the stale foto when refreshing it fails', async () => {
+      t.clerkAuth.verifyToken.mockResolvedValue({
+        clerkId: ANA.clerkId,
+        imageUrl: 'https://img.clerk.com/ana-new.png',
+      });
+      t.users.findByClerkId.mockResolvedValue(ANA);
+      t.users.update.mockRejectedValue(new Error('connection refused'));
+      t.users.findById.mockResolvedValue(ANA);
+
+      const res = await t.http
+        .get('/users/me')
+        .set(bearer(CLERK_TOKEN))
+        .expect(200);
+
+      expect(res.body.imageUrl).toBeNull();
+    });
+
+    it('does not call update or getProfile when the token has name and email but no foto claim', async () => {
+      t.clerkAuth.verifyToken.mockResolvedValue({
+        clerkId: ANA.clerkId,
+        profile: { name: ANA.name, email: ANA.email },
+      });
+      t.users.findByClerkId.mockResolvedValue({
+        ...ANA,
+        imageUrl: 'https://img.clerk.com/ana.png',
+      });
+      t.users.findById.mockResolvedValue({
+        ...ANA,
+        imageUrl: 'https://img.clerk.com/ana.png',
+      });
+
+      await t.http.get('/users/me').set(bearer(CLERK_TOKEN)).expect(200);
+
+      expect(t.users.update).not.toHaveBeenCalled();
+      expect(t.clerkAuth.getProfile).not.toHaveBeenCalled();
+    });
+
     it('does not call update or getProfile when the token carries no profile claims', async () => {
       t.clerkAuth.verifyToken.mockResolvedValue({
         clerkId: ANA.clerkId,

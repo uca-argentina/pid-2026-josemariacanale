@@ -41,7 +41,7 @@ model User {
   name      String
   email     String
   slug      String?   @unique // Enlace de reserva del Usuario: /u/<slug>, always lowercase; null until they choose it (ADR 0021)
-  imageUrl  String? // foto de perfil: Clerk's, seeded on creation only; never refreshed after
+  imageUrl  String? // foto de perfil: Clerk's, seeded on creation and refreshed from the session token claims
   deletedAt DateTime? @db.Timestamptz(3) // when dado de baja (ADR 0024); null while active
   createdAt DateTime  @default(now()) @db.Timestamptz(3)
 

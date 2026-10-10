@@ -166,6 +166,22 @@ describe('PrismaUsersRepository', () => {
     });
   });
 
+  it('updates only the imageUrl, and a null drops it', async () => {
+    prisma.user.update.mockResolvedValue(ANA);
+
+    await repository.update(1, { imageUrl: 'https://img.clerk.com/ana.png' });
+    await repository.update(1, { imageUrl: null });
+
+    expect(prisma.user.update).toHaveBeenNthCalledWith(1, {
+      where: { id: 1 },
+      data: { imageUrl: 'https://img.clerk.com/ana.png' },
+    });
+    expect(prisma.user.update).toHaveBeenNthCalledWith(2, {
+      where: { id: 1 },
+      data: { imageUrl: null },
+    });
+  });
+
   describe('translates Prisma errors, keeping the original as cause', () => {
     const calls = {
       create: () =>
