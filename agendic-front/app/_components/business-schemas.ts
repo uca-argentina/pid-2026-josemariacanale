@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-// La forma exacta que espera POST /businesses del back. El wizard la arma en dos pasos; no lleva Servicio.
+// La forma exacta que espera POST /businesses del back. No lleva Servicio.
 // Ver agendic-back/src/infrastructure/businesses/businesses.dto.ts.
 
 const required = (field: string) => z.string().trim().min(1, `Ingresá ${field}.`);

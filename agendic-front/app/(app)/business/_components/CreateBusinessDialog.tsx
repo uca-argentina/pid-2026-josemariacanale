@@ -43,7 +43,7 @@ const SUMMARY_STEP = STEPS.length;
 const LOGO_MAX = 1;
 const BRANCH_IMAGES_MAX = 5;
 
-const EMAILS = new Intl.ListFormat('es', { type: 'conjunction' });
+const LIST = new Intl.ListFormat('es', { type: 'conjunction' });
 const invalid = (errors: FieldErrors, field: string, id: string) =>
     errors[field] ? { 'aria-invalid': true, 'aria-describedby': `${id}-error` } : {};
 
@@ -157,9 +157,9 @@ export function CreateBusinessDialog({ owner, onClose }: { owner: Owner; onClose
             }
             toast.success(`${payload.business.name}: negocio creado`);
             if (result.failedEmployees.length)
-                toast.error(`No pudimos sumar a ${EMAILS.format(result.failedEmployees)}. Invitalos desde Empleados.`);
+                toast.error(`No pudimos sumar a ${LIST.format(result.failedEmployees)}. Invitalos desde Empleados.`);
             if (result.failedUploads.length)
-                toast.error(`No pudimos subir ${EMAILS.format(result.failedUploads)}. Cargala desde Sucursales.`);
+                toast.error(`No pudimos subir ${LIST.format(result.failedUploads)}. Cargala desde Sucursales.`);
             onClose();
         });
     };

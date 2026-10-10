@@ -108,4 +108,12 @@ describe('createBusinessAction', () => {
         expect(mockControllers.IUploadBusinessLogoController).not.toHaveBeenCalled();
         expect(mockControllers.IUploadBranchImageController).not.toHaveBeenCalled();
     });
+
+    it('answers ok: false, without creating anything, when the form is not JSON', async () => {
+        const data = form();
+        data.set('payload', '{nope');
+
+        await expect(createBusinessAction(data)).resolves.toEqual({ ok: false, message: 'Revisá los datos e intentá de nuevo.' });
+        expect(mockControllers.ICreateBusinessController).not.toHaveBeenCalled();
+    });
 });

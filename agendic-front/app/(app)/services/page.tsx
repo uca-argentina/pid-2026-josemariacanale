@@ -26,5 +26,5 @@ export default async function ServicesPage({ searchParams }: { searchParams: Pro
         return <BackendErrorNotice />;
     }
 
-    return <ServicesList groups={groups} personal={personal} newForBusinessId={nuevo ? Number(nuevo) : undefined} />;
+    return <ServicesList groups={groups} personal={personal} newForBusinessId={Number.isInteger(Number(nuevo)) && nuevo ? Number(nuevo) : undefined} />;
 }

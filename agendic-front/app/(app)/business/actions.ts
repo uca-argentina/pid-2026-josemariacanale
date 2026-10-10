@@ -14,6 +14,15 @@ export type CreateBusinessResult =
     | { ok: true; failedEmployees: string[]; failedUploads: string[] }
     | { ok: false; message: string };
 
+/** @throws {InputParseError} el campo del formulario no es JSON */
+function parseJson<T>(value: FormDataEntryValue | null): T {
+    try {
+        return JSON.parse(String(value));
+    } catch (cause) {
+        throw new InputParseError('Invalid form data', { cause });
+    }
+}
+
 /** Corre un paso posterior a crear el Negocio: si falla lo reporta y sigue, devolviendo false. */
 async function attempt(step: () => Promise<unknown>): Promise<boolean> {
     try {
@@ -32,16 +41,19 @@ async function attempt(step: () => Promise<unknown>): Promise<boolean> {
  * El back no las recibe juntas: si algo falla, el Negocio ya existe y el Dueño lo carga después desde Empleados o
  * Sucursales. Las imágenes van en el orden elegido; el back agrega cada una al final, así que no hace falta reordenar.
  *
+ * Un `payload` o `emails` que no sea JSON vuelve como `ok: false`, sin crear nada.
+ *
  * @param form `payload` (JSON con Negocio y Sucursal), `emails` (JSON), `logo` (opcional) e `images` en orden
  */
 export async function createBusinessAction(form: FormData): Promise<CreateBusinessResult> {
-    const emails: string[] = JSON.parse(String(form.get('emails') ?? '[]'));
     const logo = form.get('logo');
     const images = form.getAll('images').filter((image): image is File => image instanceof File);
 
+    let emails: string[];
     let business;
     try {
-        business = await getInjection('ICreateBusinessController')(JSON.parse(String(form.get('payload'))));
+        emails = parseJson<string[]>(form.get('emails') ?? '[]');
+        business = await getInjection('ICreateBusinessController')(parseJson(form.get('payload')));
     } catch (error) {
         unstable_rethrow(error); // redirect/notFound/dynamic usage are Next's control flow, not failures
         if (error instanceof AlreadyOwnerError) {
