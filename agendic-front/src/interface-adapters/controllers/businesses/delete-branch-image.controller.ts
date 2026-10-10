@@ -5,6 +5,12 @@ import { InputParseError } from '@/src/entities/errors/common';
 import { deleteBranchImageSchema } from '@/src/entities/models/branch-image';
 
 export type IDeleteBranchImageController = ReturnType<typeof deleteBranchImageController>;
+/**
+ * Borra una imagen de la Sucursal.
+ *
+ * @throws {UnauthenticatedError} no hay Sesión
+ * @throws {InputParseError} el input no es válido
+ */
 export const deleteBranchImageController =
     (
         instrumentationService: IInstrumentationService,

@@ -5,6 +5,12 @@ import { InputParseError } from '@/src/entities/errors/common';
 import { reorderBranchImagesSchema } from '@/src/entities/models/branch-image';
 
 export type IReorderBranchImagesController = ReturnType<typeof reorderBranchImagesController>;
+/**
+ * Reordena las imágenes de la Sucursal.
+ *
+ * @throws {UnauthenticatedError} no hay Sesión
+ * @throws {InputParseError} el input no es válido
+ */
 export const reorderBranchImagesController =
     (
         instrumentationService: IInstrumentationService,

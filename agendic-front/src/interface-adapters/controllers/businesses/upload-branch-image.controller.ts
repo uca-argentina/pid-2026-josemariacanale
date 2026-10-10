@@ -5,6 +5,12 @@ import { InputParseError } from '@/src/entities/errors/common';
 import { uploadBranchImageSchema } from '@/src/entities/models/branch-image';
 
 export type IUploadBranchImageController = ReturnType<typeof uploadBranchImageController>;
+/**
+ * Sube una imagen a la Sucursal.
+ *
+ * @throws {UnauthenticatedError} no hay Sesión
+ * @throws {InputParseError} el input no es válido
+ */
 export const uploadBranchImageController =
     (
         instrumentationService: IInstrumentationService,

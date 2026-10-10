@@ -3,7 +3,12 @@ import type { IInstrumentationService } from '@/src/application/services/instrum
 import type { BranchImage } from '@/src/entities/models/branch-image';
 
 export type IReorderBranchImagesUseCase = ReturnType<typeof reorderBranchImagesUseCase>;
-// "Only the Dueño" and "every image included" are enforced by the back (403, 422, 404).
+/**
+ * Reordena las imágenes de la Sucursal; `imageIds` lleva todas, en el orden nuevo.
+ *
+ * @throws {NotFoundError} sobra alguna imagen que no es de la Sucursal
+ * @throws {ApiRequestError} no es el Dueño o falta alguna imagen
+ */
 export const reorderBranchImagesUseCase =
     (instrumentationService: IInstrumentationService, businessesRepository: IBusinessesRepository) =>
     (branchId: number, imageIds: number[]): Promise<BranchImage[]> =>

@@ -36,7 +36,7 @@ type Props = {
 function Card({ image, reorderable, onDelete }: { image: UploaderImage; reorderable: boolean; onDelete: Props['onDelete'] }) {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
         id: image.id,
-        disabled: !reorderable,
+        disabled: !reorderable || image.uploading,
     });
 
     return (
@@ -59,6 +59,7 @@ function Card({ image, reorderable, onDelete }: { image: UploaderImage; reordera
                 aria-label="Borrar imagen"
                 onPointerDown={(e) => e.stopPropagation()}
                 onKeyDown={(e) => e.stopPropagation()}
+                disabled={image.uploading}
                 onClick={() => onDelete(image.id)}
                 className="absolute right-1 top-1 rounded-full bg-background/80 p-0.5 hover:bg-background"
             >
@@ -75,21 +76,22 @@ function Card({ image, reorderable, onDelete }: { image: UploaderImage; reordera
  */
 export function ImageUploader({ images, max, reorderable = false, onUpload, onDelete, onReorder }: Props) {
     const input = useRef<HTMLInputElement>(null);
-    // Orden optimista mientras el PUT está en vuelo.
-    const [pending, setPending] = useState<UploaderImage['id'][] | null>(null);
+    // Orden optimista, válido mientras `images` sea la lista sobre la que se arrastró: cuando el padre la reemplaza
+    // con el orden confirmado, deja de aplicar y no hay parpadeo entre el PUT y el nuevo `images`.
+    const [pending, setPending] = useState<{ ids: UploaderImage['id'][]; base: UploaderImage[] } | null>(null);
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
         useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
         useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
     );
 
-    const shown = pending ? pending.map((id) => images.find((i) => i.id === id)).filter((i): i is UploaderImage => !!i) : images;
+    const shown = pending?.base === images ? pending.ids.map((id) => images.find((i) => i.id === id)).filter((i): i is UploaderImage => !!i) : images;
     const full = images.length >= max;
 
     function pick(list: FileList | null) {
         const { accepted, dropped } = takeUpToLimit(Array.from(list ?? []), max, images.length);
         if (input.current) input.current.value = '';
-        if (dropped > 0) toast.error(`Solo entran ${max} imágenes: ${dropped} quedaron afuera`);
+        if (dropped > 0) toast.error(`Solo entran ${accepted.length} imágenes más (tope ${max}): ${dropped} quedaron afuera`);
         if (accepted.length) onUpload(accepted);
     }
 
@@ -97,13 +99,12 @@ export function ImageUploader({ images, max, reorderable = false, onUpload, onDe
         if (!over || active.id === over.id || !onReorder) return;
         const ids = shown.map((i) => i.id);
         const next = arrayMove(ids, ids.indexOf(active.id), ids.indexOf(over.id));
-        setPending(next);
+        setPending({ ids: next, base: images });
         try {
             await onReorder(next);
         } catch {
-            toast.error('No se pudo guardar el orden de las imágenes');
-        } finally {
             setPending(null);
+            toast.error('No se pudo guardar el orden de las imágenes');
         }
     }
 
