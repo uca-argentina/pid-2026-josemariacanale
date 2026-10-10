@@ -8,11 +8,10 @@ export const BUSINESSES_REPOSITORY = Symbol('BusinessesRepository');
 /** Everything a Negocio needs to take Turnos, written at once. */
 export interface CreateBusinessData {
   business: Pick<Business, 'name' | 'description' | 'ownerId' | 'slug'>;
-  branch: Pick<
-    Branch,
-    'name' | 'address' | 'timeZone' | 'slug'
-  >;
-  service: Pick<
+  branch: Pick<Branch, 'name' | 'address' | 'timeZone' | 'slug'> &
+    Partial<Pick<Branch, 'description'>>;
+  /** Without it the Negocio is created with no Servicio. */
+  service?: Pick<
     Service,
     | 'name'
     | 'description'
@@ -35,7 +34,8 @@ export interface CreateBusinessData {
 export interface CreatedBusiness {
   business: Business;
   branch: Branch;
-  service: Service;
+  /** `null` si el Negocio se creó sin Servicio. */
+  service: Service | null;
   employee: Employee;
 }
 
@@ -49,6 +49,6 @@ export interface BusinessesRepository {
   /** Leaves undefined fields unchanged. */
   update(
     id: number,
-    data: Partial<Pick<Business, 'name' | 'description' | 'slug'>>,
+    data: Partial<Pick<Business, 'name' | 'description' | 'slug' | 'logoUrl'>>,
   ): Promise<Business>;
 }

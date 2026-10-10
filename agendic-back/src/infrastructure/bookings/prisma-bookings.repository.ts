@@ -18,6 +18,7 @@ import {
   DatabaseOperationError,
   NotFoundError,
 } from '../../domain/errors';
+import { DEFAULT_AVAILABILITY } from '../../domain/availabilities/availability';
 import { Prisma } from '../../generated/prisma/client';
 import { BOOKING_NO_OVERLAP, isExclusionViolation } from '../prisma-errors';
 import { PrismaService } from '../prisma.service';
@@ -52,7 +53,17 @@ type BookingRow = Prisma.BookingGetPayload<{ select: typeof BOOKING_SELECT }>;
 /** `BOOKING_SELECT` plus the Servicio, Negocio and Sucursal data the Enlace del Turno shows (ADR 0022). */
 const CLIENT_BOOKING_SELECT = {
   ...BOOKING_SELECT,
-  user: { select: { name: true, slug: true } },
+  user: {
+    select: {
+      name: true,
+      slug: true,
+      availabilities: {
+        where: { isDefault: true },
+        select: { timeZone: true },
+        take: 1,
+      },
+    },
+  },
   employee: { select: { user: { select: { name: true } } } },
   service: {
     select: {
@@ -433,7 +444,11 @@ const toClientBooking = (row: ClientBookingRow): ClientBooking => {
   const branch = row.service.branch;
   return {
     ...toBooking(row),
-    timeZone: branch ? branch.timeZone : row.service.availability!.timeZone,
+    // A personal Service dado de baja has lost its Availability: its Turnos fall back to the Usuario's default one.
+    timeZone: branch
+      ? branch.timeZone
+      : (row.service.availability ?? row.user.availabilities[0])?.timeZone ??
+        DEFAULT_AVAILABILITY.timeZone,
     employeeName: row.employee ? row.employee.user.name : row.user.name,
     service: {
       name: row.service.name,

@@ -3,8 +3,8 @@ import {
     branchSchema,
     inviteEmployeeSchema,
     fieldErrorsOf,
-    serviceSchema,
     slugify,
+    type CreateBusinessPayload,
 } from '@/app/_components/business-schemas';
 
 describe('businessSchema', () => {
@@ -55,6 +55,15 @@ describe('branchSchema', () => {
         timeZone: 'America/Argentina/Buenos_Aires',
     };
 
+    it('no pide Servicio: la Sucursal y el Negocio alcanzan para Crear Negocio', () => {
+        const payload: CreateBusinessPayload = {
+            business: businessSchema.parse({ name: 'Estudio', description: 'Desc', slug: 'estudio' }),
+            branch: branchSchema.parse(branch),
+        };
+
+        expect(Object.keys(payload)).toEqual(['business', 'branch']);
+    });
+
     it('acepta una Sucursal con nombre, dirección y zona horaria, y deriva su tramo del nombre', () => {
         expect(branchSchema.parse(branch)).toEqual({ ...branch, slug: 'sucursal-centro' });
     });
@@ -71,69 +80,6 @@ describe('branchSchema', () => {
         
         expect(result.success).toBe(false);
         expect(fieldErrorsOf(result.error!).timeZone).toBe('Ingresá la zona horaria.');
-    });
-});
-
-describe('serviceSchema', () => {
-    const service = { name: 'Consulta inicial', category: 'CLINICA', durationMinutes: '30', price: '15000' };
-
-    it('convierte duración y precio a número', () => {
-        expect(serviceSchema.parse(service)).toMatchObject({
-            category: 'CLINICA',
-            durationMinutes: 30,
-            price: 15000,
-        });
-    });
-
-    it('deriva el slug del nombre', () => {
-        expect(serviceSchema.parse({ ...service, name: 'Consulta Inicial Ñandú' }).slug).toBe('consulta-inicial-nandu');
-    });
-
-    it('recorta el slug a 40 caracteres sin dejar un guion al final', () => {
-        const slug = serviceSchema.parse({ ...service, name: `${'a'.repeat(39)} bbb` }).slug;
-
-        expect(slug).toBe('a'.repeat(39));
-    });
-
-    it.each(['ab', '!!', '  a '])('rechaza el nombre demasiado corto %j', (name) => {
-        const result = serviceSchema.safeParse({ ...service, name });
-
-        expect(result.success).toBe(false);
-        expect(fieldErrorsOf(result.error!).name).toBe('El nombre tiene que tener al menos 3 letras o números.');
-    });
-
-    it('rechaza una duración menor a un minuto', () => {
-        const result = serviceSchema.safeParse({ ...service, durationMinutes: '0' });
-
-        expect(result.success).toBe(false);
-        expect(fieldErrorsOf(result.error!).durationMinutes).toBe(
-            'La duración tiene que ser de al menos 1 minuto.',
-        );
-    });
-
-    it('rechaza un precio negativo', () => {
-        const result = serviceSchema.safeParse({ ...service, price: '-1' });
-
-        expect(result.success).toBe(false);
-        expect(fieldErrorsOf(result.error!).price).toBe('El precio no puede ser negativo.');
-    });
-
-    it('rechaza una Categoría de Servicio que no existe', () => {
-        const result = serviceSchema.safeParse({ ...service, category: 'PELUQUERIA' });
-
-        expect(result.success).toBe(false);
-        expect(fieldErrorsOf(result.error!).category).toBe('Elegí una Categoría de Servicio.');
-    });
-
-    it('manda la descripción vacía como ausente, no como texto vacío', () => {
-        expect(serviceSchema.parse({ ...service, description: '' }).description).toBeUndefined();
-        expect(serviceSchema.parse({ ...service, description: '   ' }).description).toBeUndefined();
-    });
-
-    it('conserva una descripción con contenido', () => {
-        expect(serviceSchema.parse({ ...service, description: 'Incluye evaluación' }).description).toBe(
-            'Incluye evaluación',
-        );
     });
 });
 

@@ -1,11 +1,27 @@
 import { applyDecorators } from '@nestjs/common';
-import { Matches, registerDecorator } from 'class-validator';
+import { Transform } from 'class-transformer';
+import {
+  IsString,
+  Matches,
+  ValidateIf,
+  registerDecorator,
+} from 'class-validator';
 import { IfPresent, IsName, IsSlug, IsText } from '../users/users.dto';
 import { isIanaTimeZone } from '../../domain/time-zone';
 
 export const IsTimeOfDay = () =>
   applyDecorators(
     Matches(/^([01]\d|2[0-3]):[0-5]\d$/, { message: 'must be a HH:mm time' }),
+  );
+
+/** Free text that may be absent or `null`; blank is stored as `null`. */
+const IsNullableText = () =>
+  applyDecorators(
+    Transform(({ value }) =>
+      typeof value === 'string' ? value.trim() || null : value,
+    ),
+    ValidateIf((_, value) => value != null),
+    IsString(),
   );
 
 export const IsTimeZone = () => (object: object, propertyName: string) =>
@@ -28,6 +44,9 @@ export class BranchFieldsDto {
 
   @IsTimeZone()
   timeZone!: string;
+
+  @IsNullableText()
+  description?: string | null;
 }
 
 export class CreateBranchDto extends BranchFieldsDto {
@@ -51,4 +70,7 @@ export class UpdateBranchDto {
   @IfPresent()
   @IsSlug()
   slug?: string;
+
+  @IsNullableText()
+  description?: string | null;
 }

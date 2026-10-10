@@ -7,7 +7,7 @@ import { slugSchema, type Business } from '@/src/entities/models/business';
 
 function presenter({ business, branches }: { business: Business; branches: Branch[] }, instrumentationService: IInstrumentationService) {
     return instrumentationService.startSpan({ name: 'getPublicBusiness Presenter', op: 'serialize' }, () => ({
-        business: { name: business.name, description: business.description, slug: business.slug },
+        business: { name: business.name, description: business.description, slug: business.slug, logoUrl: business.logoUrl },
         branches: branches.map((b) => ({ id: b.id, name: b.name, address: b.address, slug: b.slug })),
     }));
 }
@@ -15,7 +15,12 @@ function presenter({ business, branches }: { business: Business; branches: Branc
 const inputSchema = z.object({ businessSlug: slugSchema });
 
 export type IGetPublicBusinessController = ReturnType<typeof getPublicBusinessController>;
-// Public: the page of an Enlace de reserva does not depend on a Sesión, so there is no authentication.
+/**
+ * The Negocio of an Enlace de reserva and its Sucursales. Public: the page does not depend on a Sesión, so there is no
+ * authentication.
+ *
+ * @throws {InputParseError} the Enlace de reserva is not a valid tramo
+ */
 export const getPublicBusinessController =
     (instrumentationService: IInstrumentationService, getPublicBusinessUseCase: IGetPublicBusinessUseCase) =>
     async (input: Partial<z.input<typeof inputSchema>>): Promise<ReturnType<typeof presenter>> =>

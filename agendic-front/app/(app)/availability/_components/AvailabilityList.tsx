@@ -15,7 +15,7 @@ import {
     PanelMenu,
 } from '@/app/(app)/_components/panel-ui';
 import type { Availability } from '@/src/entities/models/availability';
-import { TimeZoneSelect } from './TimeZoneSelect';
+import { TimeZoneCombobox } from '@/app/(app)/_components/TimeZoneCombobox';
 
 function NewAvailabilityDialog({ onClose, onCreate }: { onClose: () => void; onCreate: (name: string, timeZone: string) => void }) {
     const [name, setName] = useState('');
@@ -55,7 +55,7 @@ function NewAvailabilityDialog({ onClose, onCreate }: { onClose: () => void; onC
                     />
                 </PanelField>
                 <PanelField label="Zona horaria" htmlFor="new-availability-time-zone">
-                    <TimeZoneSelect id="new-availability-time-zone" value={timeZone} onChange={setTimeZone} />
+                    <TimeZoneCombobox id="new-availability-time-zone" value={timeZone} onChange={setTimeZone} />
                 </PanelField>
             </form>
         </PanelDialog>

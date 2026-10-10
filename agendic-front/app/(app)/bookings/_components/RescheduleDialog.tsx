@@ -1,54 +1,37 @@
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
+import { useState, useTransition } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/app/_components/utils';
 import { PanelButton, PanelDialog, PanelDialogClose } from '@/app/(app)/_components/panel-ui';
-import { listSlotsAction, type ListSlotsResult } from '@/app/_components/booking/actions';
-import { addDays, formatDate, shortWeekday } from '@/app/_components/booking/format';
+import { formatDate, shortWeekday } from '@/app/_components/booking/format';
+import { useSlotWeek } from '@/app/_components/booking/use-slot-week';
 import { rescheduleBookingAction } from '../actions';
-import { dayKey, TIME_ZONE_LABEL, type Booking } from './booking-helpers';
-
-/** Dos semanas desde hoy: entra en el máximo de 31 días que acepta el back. */
-const DAYS_SHOWN = 14;
+import { TIME_ZONE_LABEL, type Booking } from './booking-helpers';
 
 const NO_SLOTS_REASON = {
     NOT_WORKING: 'No atendés ese día.',
     FULLY_BOOKED: 'Tenés la agenda completa ese día.',
 } as const;
 
-type Load = { status: 'loading' } | { status: 'error'; message: string } | { status: 'ready'; days: Extract<ListSlotsResult, { ok: true }>['days'] };
-
 /**
  * Elige el nuevo Horario reservable de un Turno aceptado. Pide al back los horarios del mismo Servicio,
- * igual que la reserva pública, y al confirmar reagenda.
+ * de a una semana, igual que la reserva pública, y al confirmar reagenda.
  */
-export function RescheduleDialog({ booking, now, onOpenChange }: { booking: Booking; now: number; onOpenChange: (open: boolean) => void }) {
-    const [load, setLoad] = useState<Load>({ status: 'loading' });
-    const [attempt, setAttempt] = useState(0);
+export function RescheduleDialog({ booking, onOpenChange }: { booking: Booking; onOpenChange: (open: boolean) => void }) {
+    const { status, message, week, days, label, canGoBack, goToWeek, retry, reload } = useSlotWeek(booking.serviceId, null);
     const [date, setDate] = useState<string | null>(null);
     const [startsAt, setStartsAt] = useState<string | null>(null);
     const [notice, setNotice] = useState<string | null>(null);
     const [pending, startTransition] = useTransition();
 
-    useEffect(() => {
-        let current = true;
-        const from = dayKey(now);
-        listSlotsAction({ serviceId: booking.serviceId, from, to: addDays(from, DAYS_SHOWN - 1) }).then(
-            (result) => {
-                if (!current) return;
-                if (!result.ok) return setLoad({ status: 'error', message: result.message });
-                setLoad({ status: 'ready', days: result.days });
-                setDate((chosen) => chosen ?? (result.days.find((d) => d.slots.length > 0) ?? result.days[0])?.date ?? null);
-            },
-            () => current && setLoad({ status: 'error', message: 'No pudimos cargar los horarios. Intentá de nuevo.' }),
-        );
-        return () => {
-            current = false;
-        };
-    }, [attempt, booking.serviceId, now]);
+    // Al abrir y al cambiar de semana se elige el primer día con lugar, así se ve de entrada si hay horarios.
+    if (status === 'ready' && days.length > 0 && !days.some((d) => d.date === date)) {
+        setDate((days.find((d) => d.slots.length > 0) ?? days[0]).date);
+        setStartsAt(null);
+    }
 
-    const days = load.status === 'ready' ? load.days : [];
     const chosenDay = days.find((d) => d.date === date);
 
     const confirm = () => {
@@ -62,8 +45,7 @@ export function RescheduleDialog({ booking, now, onOpenChange }: { booking: Book
             setNotice(result.message);
             if (result.slotTaken) {
                 setStartsAt(null);
-                setLoad({ status: 'loading' });
-                setAttempt((a) => a + 1);
+                reload();
             }
         });
     };
@@ -92,33 +74,44 @@ export function RescheduleDialog({ booking, now, onOpenChange }: { booking: Book
                     </p>
                 )}
 
-                {load.status === 'loading' && (
+                {label && (
+                    <div className="flex items-center justify-between gap-2">
+                        <PanelButton variant="secondary" onClick={() => goToWeek(week - 1)} disabled={!canGoBack} aria-label="Semana anterior" className="w-9 px-0 disabled:opacity-50">
+                            <ChevronLeft className="size-4" />
+                        </PanelButton>
+                        <p aria-live="polite" className="m-0 text-[13px] font-bold text-[#0f1b2d]">
+                            {label}
+                        </p>
+                        <PanelButton variant="secondary" onClick={() => goToWeek(week + 1)} aria-label="Semana siguiente" className="w-9 px-0">
+                            <ChevronRight className="size-4" />
+                        </PanelButton>
+                    </div>
+                )}
+
+                {status === 'loading' && (
                     <p role="status" className="m-0 text-[13px] font-medium text-[#6b7280]">
                         Buscando horarios…
                     </p>
                 )}
 
-                {load.status === 'error' && (
+                {status === 'error' && (
                     <div role="alert" className="flex flex-col items-start gap-3">
-                        <p className="m-0 text-[13px] font-medium text-[#6b7280]">{load.message}</p>
+                        <p className="m-0 text-[13px] font-medium text-[#6b7280]">{message}</p>
                         <PanelButton
                             variant="secondary"
-                            onClick={() => {
-                                setLoad({ status: 'loading' });
-                                setAttempt((a) => a + 1);
-                            }}
+                            onClick={retry}
                         >
                             Reintentar
                         </PanelButton>
                     </div>
                 )}
 
-                {load.status === 'ready' && days.length === 0 && (
-                    <p className="m-0 text-[13px] font-medium text-[#6b7280]">No tenés horarios en las próximas dos semanas.</p>
+                {status === 'ready' && days.length === 0 && (
+                    <p className="m-0 text-[13px] font-medium text-[#6b7280]">No tenés horarios esta semana.</p>
                 )}
 
                 {days.length > 0 && (
-                    <ol aria-label="Días" className="m-0 flex list-none flex-wrap gap-2 p-0">
+                    <ol aria-label="Días" className="m-0 grid list-none grid-cols-7 gap-1 p-0">
                         {days.map((day) => {
                             const active = day.date === date;
                             return (
@@ -132,7 +125,7 @@ export function RescheduleDialog({ booking, now, onOpenChange }: { booking: Book
                                             setStartsAt(null);
                                         }}
                                         className={cn(
-                                            'flex w-[52px] flex-col items-center rounded-md border py-1.5 text-[13px] font-bold transition-colors',
+                                            'flex w-full flex-col items-center rounded-md border py-1.5 text-[13px] font-bold transition-colors',
                                             active ? 'border-[#0f1b2d] bg-[#0f1b2d] text-white' : 'border-[#e5e7eb] hover:border-[#0f1b2d]/40',
                                             day.slots.length === 0 && !active && 'text-[#6b7280] line-through',
                                         )}

@@ -19,6 +19,8 @@ Sin esta configuración (o con un token viejo que no la tiene todavía), el back
 
 Un Usuario se da de baja desde Agendic (`DELETE /users/me`, ADR 0023): el back marca la fila y después borra su Usuario en Clerk. Para que no exista otro camino que borre la identidad sin pasar por el back, hay que **apagar "Allow users to delete their accounts"** en el dashboard de Clerk (**User & Authentication → Account deletion** o, según la versión del dashboard, **Configure → Account deletion**). Con eso encendido, el perfil de Clerk le ofrece al Usuario borrar su cuenta por fuera, sin cancelar sus Turnos ni dar de baja sus Servicios y Empleados.
 
+> **Pendiente (producción):** este ajuste hay que hacerlo en la instancia de Clerk de **producción**, no solo en la de desarrollo. Hasta que se apague ahí, un Usuario de producción puede borrar su identidad desde el perfil de Clerk sin pasar por el back (queda el Negocio huérfano y los Turnos en pie). Tildar acá cuando esté hecho: `[ ]` "Allow users to delete their accounts" apagado en Clerk producción.
+
 ### Storage de archivos
 
 Los archivos que se suben (por ejemplo, las imágenes de Sucursal) se guardan en un storage de objetos S3-compatible, no en el disco del back (ADR 0015). Sin estas variables el back no arranca y dice cuáles faltan:

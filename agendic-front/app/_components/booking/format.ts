@@ -38,6 +38,27 @@ export function addDays(date: string, days: number) {
     return d.toISOString().slice(0, 10);
 }
 
+/** El primer día de la semana `index` de la tira: la 0 arranca hoy y cada una corre siete días. */
+export const weekStart = (today: string, index: number) => addDays(today, 7 * index);
+
+/** La semana de la tira donde cae `date`; una fecha anterior a hoy cuenta como la 0. */
+export function weekIndexOf(date: string, today: string) {
+    const days = Math.round((Date.parse(`${date}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / 86_400_000);
+    return Math.max(0, Math.floor(days / 7));
+}
+
+const DAY_MONTH = new Intl.DateTimeFormat('es-AR', { day: 'numeric', month: 'long', timeZone: 'UTC' });
+const MONTH = new Intl.DateTimeFormat('es-AR', { month: 'long', timeZone: 'UTC' });
+
+/** '10 – 16 de octubre', o '28 de septiembre – 4 de octubre' si la semana cruza de mes. */
+export function formatWeekRange(start: string) {
+    const end = addDays(start, 6);
+    const first = new Date(`${start}T00:00:00Z`);
+    const last = new Date(`${end}T00:00:00Z`);
+    if (MONTH.format(first) === MONTH.format(last)) return `${first.getUTCDate()} – ${DAY_MONTH.format(last)}`;
+    return `${DAY_MONTH.format(first)} – ${DAY_MONTH.format(last)}`;
+}
+
 export const toMinutes = (hhmm: string) => {
     const [h, m] = hhmm.split(':').map(Number);
     return h * 60 + m;

@@ -7,12 +7,9 @@ export interface BranchesRepository {
   create(
     data: Pick<
       Branch,
-      | 'businessId'
-      | 'name'
-      | 'address'
-      | 'timeZone'
-      | 'slug'
-    >,
+      'businessId' | 'name' | 'address' | 'timeZone' | 'slug'
+    > &
+      Partial<Pick<Branch, 'description'>>,
   ): Promise<Branch>;
   findById(id: number): Promise<Branch | null>;
   listByBusiness(businessId: number): Promise<Branch[]>;
@@ -20,10 +17,7 @@ export interface BranchesRepository {
   update(
     id: number,
     data: Partial<
-      Pick<
-        Branch,
-        'name' | 'address' | 'timeZone' | 'slug'
-      >
+      Pick<Branch, 'name' | 'address' | 'timeZone' | 'slug' | 'description'>
     >,
   ): Promise<Branch>;
 }

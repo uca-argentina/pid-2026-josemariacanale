@@ -36,14 +36,14 @@ enum ServiceCategory {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  clerkId   String   @unique // Clerk is the identity's system of record; no local credentials
+  id        Int       @id @default(autoincrement())
+  clerkId   String    @unique // Clerk is the identity's system of record; no local credentials
   name      String
   email     String
-  slug      String?  @unique // Enlace de reserva del Usuario: /u/<slug>, always lowercase; null until they choose it (ADR 0021)
+  slug      String?   @unique // Enlace de reserva del Usuario: /u/<slug>, always lowercase; null until they choose it (ADR 0021)
   imageUrl  String? // foto de perfil: Clerk's, seeded on creation only; never refreshed after
   deletedAt DateTime? @db.Timestamptz(3) // when dado de baja (ADR 0024); null while active
-  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
 
   businesses     Business[]
   services       Service[]
@@ -53,12 +53,13 @@ model User {
 }
 
 model Business {
-  id          Int    @id @default(autoincrement())
+  id          Int       @id @default(autoincrement())
   name        String
   description String
-  ownerId     Int    @unique // un Usuario es Dueño de a lo sumo un Negocio (ADR 0012)
-  slug        String @unique // Enlace de reserva: /business/<slug>, always lowercase
+  ownerId     Int       @unique // un Usuario es Dueño de a lo sumo un Negocio (ADR 0012)
+  slug        String    @unique // Enlace de reserva: /business/<slug>, always lowercase
   deletedAt   DateTime? @db.Timestamptz(3) // cuándo se dio de baja con su Dueño (ADR 0024); null mientras está activo, también en las filas previas a la migración
+  logoUrl     String? // Logo del Negocio en el storage externo (ADR 0015); null si no tiene
 
   owner       User         @relation(fields: [ownerId], references: [id])
   branches    Branch[]
@@ -80,12 +81,13 @@ model Invitation {
 }
 
 model Branch {
-  id         Int      @id @default(autoincrement())
-  businessId Int
-  name       String
-  address    String
-  timeZone   String // IANA name (e.g. America/Argentina/Buenos_Aires), never a UTC offset; the only source of time zone in the system
-  slug       String // Enlace de reserva's second tramo: /business/<business slug>/<slug>, always lowercase (ADR 0014)
+  id          Int     @id @default(autoincrement())
+  businessId  Int
+  name        String
+  address     String
+  timeZone    String // IANA name (e.g. America/Argentina/Buenos_Aires), never a UTC offset; the only source of time zone in the system
+  slug        String // Enlace de reserva's second tramo: /business/<business slug>/<slug>, always lowercase (ADR 0014)
+  description String? // shown on the public page instead of the Negocio's own; null = none
 
   business Business      @relation(fields: [businessId], references: [id])
   services Service[]
@@ -107,24 +109,24 @@ model BranchImage {
 }
 
 model Service {
-  id               Int             @id @default(autoincrement())
-  branchId         Int? // Servicio del Negocio; null in a Servicio personal (ADR 0021)
-  userId           Int? // Servicio personal; null in a Servicio del Negocio
-  availabilityId   Int? // the Usuario's own Availability a Servicio personal is attended with; null in a Servicio del Negocio and once dado de baja
-  name             String
-  description      String?
-  category         ServiceCategory
-  durationMinutes  Int
-  price            Decimal         @db.Decimal(10, 2)
-  depositPercent   Int? // Seña: 0-100, symbolic (never charged); null when the Servicio asks for none
-  requiresApproval Boolean         @default(false) // Aprobación manual: verified Turnos are born PENDING instead of BOOKED
-  deletedAt        DateTime?       @db.Timestamptz(3) // when dado de baja; null while offered
-  slug             String // Enlace de reserva's last tramo, always lowercase (ADR 0018)
-  hidden           Boolean         @default(false) // Servicio oculto: off the Sucursal's page, reachable only by its own Enlace de reserva
-  prepMinutes      Int             @default(0) // Tiempo de preparación: 0, 5, 10, 15, 30 or 60 (checked by the API), held before each Turno
-  dailyLimit       Int? // Límite diario: PENDING and BOOKED Turnos per local day of the Sucursal; null when there is none
-  slotInterval     Int? // Intervalo: minutes between Horario reservable starts; null means the duration
-  minimumNoticeMinutes Int @default(0) // Anticipación mínima: minutes that must remain before a Turno starts to Reservar it
+  id                   Int             @id @default(autoincrement())
+  branchId             Int? // Servicio del Negocio; null in a Servicio personal (ADR 0021)
+  userId               Int? // Servicio personal; null in a Servicio del Negocio
+  availabilityId       Int? // the Usuario's own Availability a Servicio personal is attended with; null in a Servicio del Negocio and once dado de baja
+  name                 String
+  description          String?
+  category             ServiceCategory
+  durationMinutes      Int
+  price                Decimal         @db.Decimal(10, 2)
+  depositPercent       Int? // Seña: 0-100, symbolic (never charged); null when the Servicio asks for none
+  requiresApproval     Boolean         @default(false) // Aprobación manual: verified Turnos are born PENDING instead of BOOKED
+  deletedAt            DateTime?       @db.Timestamptz(3) // when dado de baja; null while offered
+  slug                 String // Enlace de reserva's last tramo, always lowercase (ADR 0018)
+  hidden               Boolean         @default(false) // Servicio oculto: off the Sucursal's page, reachable only by its own Enlace de reserva
+  prepMinutes          Int             @default(0) // Tiempo de preparación: 0, 5, 10, 15, 30 or 60 (checked by the API), held before each Turno
+  dailyLimit           Int? // Límite diario: PENDING and BOOKED Turnos per local day of the Sucursal; null when there is none
+  slotInterval         Int? // Intervalo: minutes between Horario reservable starts; null means the duration
+  minimumNoticeMinutes Int             @default(0) // Anticipación mínima: minutes that must remain before a Turno starts to Reservar it
 
   branch       Branch?           @relation(fields: [branchId], references: [id], onDelete: Restrict)
   user         User?             @relation(fields: [userId], references: [id], onDelete: Restrict)
@@ -168,10 +170,10 @@ model Availability {
   timeZone  String // IANA name; its Franjas and Anulaciones are read in this zone, not the Branch's (ADR 0020)
   isDefault Boolean // exactly one per User
 
-  user      User                   @relation(fields: [userId], references: [id])
-  intervals AvailabilityInterval[]
-  overrides AvailabilityOverride[]
-  services  EmployeeService[]
+  user             User                   @relation(fields: [userId], references: [id])
+  intervals        AvailabilityInterval[]
+  overrides        AvailabilityOverride[]
+  services         EmployeeService[]
   personalServices Service[]
 }
 
@@ -201,20 +203,20 @@ model AvailabilityOverride {
 }
 
 model Booking {
-  id                         Int           @id @default(autoincrement())
-  serviceId                  Int
-  employeeId                 Int? // the Empleado of a Servicio del Negocio; null in a Servicio personal
-  userId                     Int // the User who attends it: occupancy is per User, across Servicios personales and of any Negocio (ADR 0021)
-  prepStartsAt               DateTime      @db.Timestamptz(3) // startsAt - Service.prepMinutes, fixed at booking: the attending User's agenda is held from here
-  startsAt                   DateTime      @db.Timestamptz(3)
-  endsAt                     DateTime      @db.Timestamptz(3) // startsAt + Service.durationMinutes, fixed at booking
-  status                     BookingStatus // fijado al crear: BOOKED, o PENDING con Aprobación manual (ADR 0022)
-  notes                      String? // Comentario del Turno, up to 500 characters (checked by the API)
-  noShowAt                   DateTime?     @db.Timestamptz(3) // Ausencia: when the Empleado marked it; never replaces status
-  link                       String        @unique // Enlace del Turno (ADR 0022): secret, random, URL-safe, generated at creation
-  createdAt                  DateTime      @default(now()) @db.Timestamptz(3)
+  id           Int           @id @default(autoincrement())
+  serviceId    Int
+  employeeId   Int? // the Empleado of a Servicio del Negocio; null in a Servicio personal
+  userId       Int // the User who attends it: occupancy is per User, across Servicios personales and of any Negocio (ADR 0021)
+  prepStartsAt DateTime      @db.Timestamptz(3) // startsAt - Service.prepMinutes, fixed at booking: the attending User's agenda is held from here
+  startsAt     DateTime      @db.Timestamptz(3)
+  endsAt       DateTime      @db.Timestamptz(3) // startsAt + Service.durationMinutes, fixed at booking
+  status       BookingStatus // fijado al crear: BOOKED, o PENDING con Aprobación manual (ADR 0022)
+  notes        String? // Comentario del Turno, up to 500 characters (checked by the API)
+  noShowAt     DateTime?     @db.Timestamptz(3) // Ausencia: when the Empleado marked it; never replaces status
+  link         String        @unique // Enlace del Turno (ADR 0022): secret, random, URL-safe, generated at creation
+  createdAt    DateTime      @default(now()) @db.Timestamptz(3)
 
-  service  Service  @relation(fields: [serviceId], references: [id])
+  service  Service   @relation(fields: [serviceId], references: [id])
   employee Employee? @relation(fields: [employeeId], references: [id])
   user     User      @relation(fields: [userId], references: [id])
   client   Client?

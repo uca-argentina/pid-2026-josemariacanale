@@ -3,9 +3,13 @@ import { ClerkBackendAuth } from './clerk-backend-auth';
 
 const getUser = jest.fn();
 const deleteUser = jest.fn();
+const createInvitation = jest.fn();
 
 jest.mock('@clerk/backend', () => ({
-  createClerkClient: () => ({ users: { getUser, deleteUser } }),
+  createClerkClient: () => ({
+    users: { getUser, deleteUser },
+    invitations: { createInvitation },
+  }),
   verifyToken: jest.fn(),
 }));
 
@@ -81,6 +85,28 @@ describe('ClerkBackendAuth.deleteUser', () => {
       constructor: ExternalServiceError,
       message: 'No se pudo borrar el Usuario en el Proveedor de autenticación',
       cause: failure,
+    });
+  });
+});
+
+describe('ClerkBackendAuth.inviteByEmail', () => {
+  const auth = new ClerkBackendAuth();
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+    process.env.FRONTEND_URL = 'http://localhost:3000/';
+  });
+
+  it('sends the invitee to the front sign-up, not to Clerk accounts portal', async () => {
+    createInvitation.mockResolvedValue({});
+
+    await auth.inviteByEmail('beto@example.com');
+
+    expect(createInvitation).toHaveBeenCalledWith({
+      emailAddress: 'beto@example.com',
+      ignoreExisting: true,
+      notify: true,
+      redirectUrl: 'http://localhost:3000/sign-up',
     });
   });
 });

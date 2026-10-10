@@ -30,7 +30,7 @@ const parsedService = {
 /** The back may send fields the panel does not read: they are dropped. */
 const service = { ...parsedService, createdAt: '2026-09-01T00:00:00.000Z' };
 const group = {
-    business: { id: 1, name: 'Vitalia', slug: 'vitalia' },
+    business: { id: 1, name: 'Vitalia', slug: 'vitalia', logoUrl: null },
     role: 'owner',
     employeeId: 1,
     branches: [{ id: 10, name: 'Centro', slug: 'centro', services: [service] }],

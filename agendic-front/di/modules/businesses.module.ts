@@ -12,7 +12,21 @@ import { getPublicBusinessUseCase } from '@/src/application/use-cases/businesses
 import { getPublicBranchUseCase } from '@/src/application/use-cases/businesses/get-public-branch.use-case';
 import { getPublicBusinessController } from '@/src/interface-adapters/controllers/businesses/get-public-business.controller';
 import { getPublicBranchController } from '@/src/interface-adapters/controllers/businesses/get-public-branch.controller';
+import { uploadBranchImageUseCase } from '@/src/application/use-cases/businesses/upload-branch-image.use-case';
+import { uploadBranchImageController } from '@/src/interface-adapters/controllers/businesses/upload-branch-image.controller';
+import { deleteBranchImageUseCase } from '@/src/application/use-cases/businesses/delete-branch-image.use-case';
+import { deleteBranchImageController } from '@/src/interface-adapters/controllers/businesses/delete-branch-image.controller';
+import { reorderBranchImagesUseCase } from '@/src/application/use-cases/businesses/reorder-branch-images.use-case';
+import { reorderBranchImagesController } from '@/src/interface-adapters/controllers/businesses/reorder-branch-images.controller';
+import { uploadBusinessLogoUseCase } from '@/src/application/use-cases/businesses/upload-business-logo.use-case';
+import { uploadBusinessLogoController } from '@/src/interface-adapters/controllers/businesses/upload-business-logo.controller';
+import { deleteBusinessLogoUseCase } from '@/src/application/use-cases/businesses/delete-business-logo.use-case';
+import { deleteBusinessLogoController } from '@/src/interface-adapters/controllers/businesses/delete-business-logo.controller';
 
+/**
+ * Negocios del Dueño, su Logo, las Imágenes de Sucursal y la página del Enlace de reserva. Esa página es pública, por
+ * eso su repositorio no recibe IAuthenticationService.
+ */
 export function createBusinessesModule() {
     const businessesModule = createModule();
 
@@ -54,7 +68,66 @@ export function createBusinessesModule() {
             DI_SYMBOLS.IUpdateBusinessUseCase,
         ]);
 
-    // The page of the Enlace de reserva: public, so its repository takes no IAuthenticationService.
+    businessesModule
+        .bind(DI_SYMBOLS.IUploadBusinessLogoUseCase)
+        .toHigherOrderFunction(uploadBusinessLogoUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IBusinessesRepository]);
+
+    businessesModule
+        .bind(DI_SYMBOLS.IUploadBusinessLogoController)
+        .toHigherOrderFunction(uploadBusinessLogoController, [
+            DI_SYMBOLS.IInstrumentationService,
+            DI_SYMBOLS.IAuthenticationService,
+            DI_SYMBOLS.IUploadBusinessLogoUseCase,
+        ]);
+
+    businessesModule
+        .bind(DI_SYMBOLS.IDeleteBusinessLogoUseCase)
+        .toHigherOrderFunction(deleteBusinessLogoUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IBusinessesRepository]);
+
+    businessesModule
+        .bind(DI_SYMBOLS.IDeleteBusinessLogoController)
+        .toHigherOrderFunction(deleteBusinessLogoController, [
+            DI_SYMBOLS.IInstrumentationService,
+            DI_SYMBOLS.IAuthenticationService,
+            DI_SYMBOLS.IDeleteBusinessLogoUseCase,
+        ]);
+
+    businessesModule
+        .bind(DI_SYMBOLS.IUploadBranchImageUseCase)
+        .toHigherOrderFunction(uploadBranchImageUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IBusinessesRepository]);
+
+    businessesModule
+        .bind(DI_SYMBOLS.IUploadBranchImageController)
+        .toHigherOrderFunction(uploadBranchImageController, [
+            DI_SYMBOLS.IInstrumentationService,
+            DI_SYMBOLS.IAuthenticationService,
+            DI_SYMBOLS.IUploadBranchImageUseCase,
+        ]);
+
+    businessesModule
+        .bind(DI_SYMBOLS.IDeleteBranchImageUseCase)
+        .toHigherOrderFunction(deleteBranchImageUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IBusinessesRepository]);
+
+    businessesModule
+        .bind(DI_SYMBOLS.IDeleteBranchImageController)
+        .toHigherOrderFunction(deleteBranchImageController, [
+            DI_SYMBOLS.IInstrumentationService,
+            DI_SYMBOLS.IAuthenticationService,
+            DI_SYMBOLS.IDeleteBranchImageUseCase,
+        ]);
+
+    businessesModule
+        .bind(DI_SYMBOLS.IReorderBranchImagesUseCase)
+        .toHigherOrderFunction(reorderBranchImagesUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IBusinessesRepository]);
+
+    businessesModule
+        .bind(DI_SYMBOLS.IReorderBranchImagesController)
+        .toHigherOrderFunction(reorderBranchImagesController, [
+            DI_SYMBOLS.IInstrumentationService,
+            DI_SYMBOLS.IAuthenticationService,
+            DI_SYMBOLS.IReorderBranchImagesUseCase,
+        ]);
+
     businessesModule.bind(DI_SYMBOLS.IPublicBusinessesRepository).toClass(PublicBusinessesRepository);
 
     businessesModule

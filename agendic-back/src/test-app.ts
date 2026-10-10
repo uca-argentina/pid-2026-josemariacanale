@@ -277,6 +277,7 @@ export const ANAS_BUSINESS: Business = {
   ownerId: ANA.id,
   slug: 'anas-salon',
   deletedAt: null,
+  logoUrl: null,
 };
 
 export const ANAS_BRANCH: Branch = {
@@ -286,6 +287,7 @@ export const ANAS_BRANCH: Branch = {
   address: '123 Main St',
   timeZone: 'America/Argentina/Buenos_Aires',
   slug: 'downtown',
+  description: null,
 };
 
 /** Ana as the Empleado of her own Negocio. */

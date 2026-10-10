@@ -30,7 +30,7 @@ export class CreateBusinessUseCase {
     return this.businesses.create({
       business: { ...input.business, ownerId },
       branch: input.branch,
-      service: {
+      service: input.service && {
         ...input.service,
         description: input.service.description ?? null,
         depositPercent: input.service.depositPercent ?? null,

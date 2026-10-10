@@ -109,6 +109,7 @@ describe('Imágenes de Sucursal', () => {
       expect(t.branchImages.append).toHaveBeenCalledWith(
         ANAS_BRANCH.id,
         'https://files.example.com/new',
+        5,
       );
       expect(res.body).toEqual({
         id: 12,
@@ -134,6 +135,25 @@ describe('Imágenes de Sucursal', () => {
         .expect(500);
 
       expect(res.body.message).toBe('Database operation failed');
+      expect(t.fileStorage.delete).toHaveBeenCalledWith(
+        'https://files.example.com/new',
+      );
+    });
+
+    it('answers 422 when the Sucursal already has five images, deleting the uploaded file', async () => {
+      t.fileStorage.upload.mockResolvedValue('https://files.example.com/new');
+      t.branchImages.append.mockResolvedValue(null);
+
+      const res = await t.http
+        .post(`/branches/${ANAS_BRANCH.id}/images`)
+        .set(bearer(CLERK_TOKEN))
+        .attach('file', PNG, {
+          filename: 'front.png',
+          contentType: 'image/png',
+        })
+        .expect(422);
+
+      expect(res.body.message).toBe('La Sucursal ya tiene 5 imágenes');
       expect(t.fileStorage.delete).toHaveBeenCalledWith(
         'https://files.example.com/new',
       );

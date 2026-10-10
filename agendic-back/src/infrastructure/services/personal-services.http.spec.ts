@@ -204,6 +204,7 @@ describe('Servicio personal', () => {
         address: '123 Main St',
         timeZone: 'America/Argentina/Buenos_Aires',
         slug: 'downtown',
+        description: null,
       });
       t.businesses.findById.mockResolvedValue({
         id: 1,
@@ -212,6 +213,7 @@ describe('Servicio personal', () => {
         ownerId: ANA.id,
         slug: 'anas-salon',
         deletedAt: null,
+        logoUrl: null,
       });
 
       await t.http
@@ -398,15 +400,12 @@ describe('Servicio personal', () => {
         .expect(409);
 
       // The Tokyo day of 2026-01-02 is [2026-01-01T15:00Z, 2026-01-02T15:00Z).
-      expect(t.bookings.create).toHaveBeenCalledWith(
-        expect.anything(),
-        {
-          serviceId: PERSONAL.id,
-          limit: 1,
-          from: new Date('2026-01-01T15:00:00.000Z'),
-          to: new Date('2026-01-02T15:00:00.000Z'),
-        },
-      );
+      expect(t.bookings.create).toHaveBeenCalledWith(expect.anything(), {
+        serviceId: PERSONAL.id,
+        limit: 1,
+        from: new Date('2026-01-01T15:00:00.000Z'),
+        to: new Date('2026-01-02T15:00:00.000Z'),
+      });
     });
   });
 });

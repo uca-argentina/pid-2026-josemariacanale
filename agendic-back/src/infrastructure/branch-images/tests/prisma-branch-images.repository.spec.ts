@@ -54,10 +54,13 @@ describe('PrismaBranchImagesRepository', () => {
   });
 
   it('appends an image after the last order of its Sucursal, locking it against concurrent uploads', async () => {
-    tx.branchImage.aggregate.mockResolvedValue({ _max: { order: 4 } });
+    tx.branchImage.aggregate.mockResolvedValue({
+      _count: 4,
+      _max: { order: 4 },
+    });
     tx.branchImage.create.mockResolvedValue({ ...ROW, order: 5 });
 
-    await expect(repository.append(1, ROW.url)).resolves.toEqual({
+    await expect(repository.append(1, ROW.url, 5)).resolves.toEqual({
       ...ROW,
       order: 5,
     });
@@ -66,6 +69,7 @@ describe('PrismaBranchImagesRepository', () => {
     expect(tx.$queryRaw.mock.calls[0][1]).toBe(1);
     expect(tx.branchImage.aggregate).toHaveBeenCalledWith({
       where: { branchId: 1 },
+      _count: true,
       _max: { order: true },
     });
     expect(tx.branchImage.create).toHaveBeenCalledWith({
@@ -74,14 +78,58 @@ describe('PrismaBranchImagesRepository', () => {
   });
 
   it('gives the first image of a Sucursal order 0', async () => {
-    tx.branchImage.aggregate.mockResolvedValue({ _max: { order: null } });
+    tx.branchImage.aggregate.mockResolvedValue({
+      _count: 0,
+      _max: { order: null },
+    });
     tx.branchImage.create.mockResolvedValue(ROW);
 
-    await repository.append(1, ROW.url);
+    await repository.append(1, ROW.url, 5);
 
     expect(tx.branchImage.create).toHaveBeenCalledWith({
       data: { branchId: 1, url: ROW.url, order: 0 },
     });
+  });
+
+  it('creates nothing when the Sucursal already has the limit of images', async () => {
+    tx.branchImage.aggregate.mockResolvedValue({
+      _count: 5,
+      _max: { order: 4 },
+    });
+
+    await expect(repository.append(1, ROW.url, 5)).resolves.toBeNull();
+    expect(tx.branchImage.create).not.toHaveBeenCalled();
+  });
+
+  it('lets only one of two concurrent uploads take the last place, by locking the Sucursal', async () => {
+    // A Postgres row lock, simulated: a transaction starts only once the previous one has finished.
+    let rows = 4;
+    let queue = Promise.resolve();
+    prisma.$transaction.mockImplementation((run) => {
+      const result = queue.then(() => run(tx));
+      queue = result.then(
+        () => undefined,
+        () => undefined,
+      );
+      return result;
+    });
+    tx.branchImage.aggregate.mockImplementation(async () => ({
+      _count: rows,
+      _max: { order: rows - 1 },
+    }));
+    tx.branchImage.create.mockImplementation(async ({ data }) => {
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      rows += 1;
+      return { ...ROW, ...data };
+    });
+
+    const results = await Promise.all([
+      repository.append(1, 'https://files.example.com/a', 5),
+      repository.append(1, 'https://files.example.com/b', 5),
+    ]);
+
+    expect(results.filter(Boolean)).toHaveLength(1);
+    expect(rows).toBe(5);
   });
 
   it('gives each image its position in the list as its order, within the Sucursal', async () => {

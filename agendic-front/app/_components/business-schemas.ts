@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-// La forma exacta que espera POST /businesses del back. El wizard la arma en tres pasos.
+// La forma exacta que espera POST /businesses del back. No lleva Servicio.
 // Ver agendic-back/src/infrastructure/businesses/businesses.dto.ts.
 
 const required = (field: string) => z.string().trim().min(1, `Ingresá ${field}.`);
@@ -29,15 +29,24 @@ export const businessSchema = z.object({
 const BRANCH_SLUG_MIN = 3;
 const BRANCH_SLUG_MAX = 40;
 
-export const branchSchema = z
-    .object({
-        name: required('el nombre de la Sucursal').refine((n) => slugify(n).length >= BRANCH_SLUG_MIN, {
-            message: `El nombre tiene que tener al menos ${BRANCH_SLUG_MIN} letras o números.`,
-        }),
-        address: required('la dirección'),
-        timeZone: required('la zona horaria'),
-    })
-    .transform((b) => ({ ...b, slug: slugify(b.name).slice(0, BRANCH_SLUG_MAX).replace(/-+$/, '') }));
+const branchFields = z.object({
+    name: required('el nombre de la Sucursal').refine((n) => slugify(n).length >= BRANCH_SLUG_MIN, {
+        message: `El nombre tiene que tener al menos ${BRANCH_SLUG_MIN} letras o números.`,
+    }),
+    address: required('la dirección'),
+    timeZone: required('la zona horaria'),
+});
+
+export const branchSchema = branchFields.transform((b) => ({
+    ...b,
+    slug: slugify(b.name).slice(0, BRANCH_SLUG_MAX).replace(/-+$/, ''),
+}));
+
+/** Una Sucursal editable: lo del wizard más su tramo del Enlace de reserva y su descripción propia (opcional). */
+export const branchFormSchema = branchFields.extend({
+    slug: businessSchema.shape.slug,
+    description: z.string().trim(),
+});
 
 export const SERVICE_CATEGORIES = [
     { value: 'CLINICA', label: 'Clínica' },
@@ -49,45 +58,6 @@ export const SERVICE_CATEGORIES = [
 
 export type ServiceCategoryValue = (typeof SERVICE_CATEGORIES)[number]['value'];
 
-/** El tramo del Servicio en el Enlace de reserva se deriva del nombre: 3 a 40 caracteres. */
-const SERVICE_SLUG_MIN = 3;
-const SERVICE_SLUG_MAX = 40;
-
-export const serviceSchema = z
-    .object({
-    name: required('el nombre del Servicio').refine((n) => slugify(n).length >= SERVICE_SLUG_MIN, {
-        message: `El nombre tiene que tener al menos ${SERVICE_SLUG_MIN} letras o números.`,
-    }),
-    category: z.enum(
-        SERVICE_CATEGORIES.map((c) => c.value),
-        { message: 'Elegí una Categoría de Servicio.' },
-    ),
-    // Los inputs numéricos entregan string: se valida el texto y recién ahí se convierte,
-    // así el estado del formulario sigue siendo string y el payload sale con números.
-    durationMinutes: required('la duración en minutos')
-        .transform(Number)
-        .pipe(
-            z
-                .number({ message: 'La duración tiene que ser un número.' })
-                .int('La duración va en minutos enteros.')
-                .min(1, 'La duración tiene que ser de al menos 1 minuto.'),
-        ),
-    price: required('el precio')
-        .transform(Number)
-        .pipe(
-            z
-                .number({ message: 'El precio tiene que ser un número.' })
-                .min(0, 'El precio no puede ser negativo.'),
-        ),
-    // El back trata la ausencia de descripción como "sin descripción", nunca como texto vacío.
-    description: z
-        .string()
-        .trim()
-        .optional()
-        .transform((d) => d || undefined),
-    })
-    .transform((s) => ({ ...s, slug: slugify(s.name).slice(0, SERVICE_SLUG_MAX).replace(/-+$/, '') }));
-
 /** La forma de POST /businesses/:id/employees (una Invitación): solo el email. */
 export const inviteEmployeeSchema = z.object({
     email: required('el email').pipe(z.email('Ingresá un email válido.')),
@@ -95,13 +65,12 @@ export const inviteEmployeeSchema = z.object({
 
 export type BusinessFields = z.input<typeof businessSchema>;
 export type BranchFields = z.input<typeof branchSchema>;
-export type ServiceFields = z.input<typeof serviceSchema>;
+export type BranchFormFields = z.input<typeof branchFormSchema>;
 export type InviteFields = z.input<typeof inviteEmployeeSchema>;
 
 export type CreateBusinessPayload = {
     business: z.output<typeof businessSchema>;
     branch: z.output<typeof branchSchema>;
-    service: z.output<typeof serviceSchema>;
 };
 
 /** Los errores de un paso, indexados por nombre de campo, como los muestra el formulario. */

@@ -1,23 +1,19 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { CalendarX2, Loader2 } from 'lucide-react';
+import { useEffect } from 'react';
+import { CalendarX2, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { Button } from '@/app/_components/ui/button';
 import { cn } from '@/app/_components/utils';
-import { listSlotsAction } from './actions';
-import { addDays, endTime, formatDate, shortWeekday, todayIn } from './format';
-import type { Service, Slot, SlotDay } from './types';
-
-/** Dos semanas desde hoy: entra en el máximo de 31 días que acepta el back. */
-const DAYS_SHOWN = 14;
-
-type Load = { status: 'loading' } | { status: 'error'; message: string } | { status: 'ready'; days: SlotDay[] };
+import { endTime, formatDate, shortWeekday } from './format';
+import type { Service, Slot } from './types';
+import { useSlotWeek } from './use-slot-week';
 
 const pillButton = 'h-auto rounded-full px-4 py-2.5 text-[13.5px] font-bold';
 
 /**
- * El paso Horario. Pide los Horarios reservables al montarse, así que BookingFlow lo monta con
- * `key` por Servicio: cambiarlo, o volver a este paso, los pide de nuevo. El Cliente no elige Empleado: el back asigna uno al Reservar.
+ * El paso Horario. Muestra los días de a una semana, con flechas para pasar de una a otra, y pide los Horarios
+ * reservables al montarse, así que BookingFlow lo monta con `key` por Servicio: cambiarlo, o volver a este paso, los pide
+ * de nuevo. El Cliente no elige Empleado: el back asigna uno al Reservar.
  */
 export function TimeStep({
     service,
@@ -33,58 +29,33 @@ export function TimeStep({
     notice: string | null;
     onSelect: (date: string, slot: Slot | null) => void;
 }) {
-    const [load, setLoad] = useState<Load>({ status: 'loading' });
-    const [attempt, setAttempt] = useState(0);
+    const { status, message, week, days, label, canGoBack, goToWeek, retry } = useSlotWeek(service.id, date);
 
     useEffect(() => {
-        let current = true;
-        // Las fechas son de la zona de donde se atiende (la Sucursal, o la Availability de un Servicio personal), que
-        // llega con la respuesta. Hoy ahí es ayer, hoy o mañana en UTC: se pide desde ayer y se descarta lo anterior.
-        const from = addDays(todayIn('UTC'), -1);
-        listSlotsAction({
-            serviceId: service.id,
-            from,
-            to: addDays(from, DAYS_SHOWN + 1),
-        }).then(
-            (result) => {
-                if (!current) return;
-                if (!result.ok) return setLoad({ status: 'error', message: result.message });
-                const today = todayIn(result.timeZone);
-                const days = result.days.filter((d) => d.date >= today).slice(0, DAYS_SHOWN);
-                setLoad({ status: 'ready', days });
-                // Se abre el primer día con lugar, así se ve de entrada si el servicio tiene horarios.
-                if (!date) {
-                    const first = days.find((d) => d.slots.length > 0) ?? days[0];
-                    if (first) onSelect(first.date, null);
-                    return;
-                }
-                // Al volver de Confirmar, el horario elegido puede haberse ocupado mientras tanto.
-                const day = days.find((d) => d.date === date);
-                if (slot && !day?.slots.some((s) => s.startsAt === slot.startsAt)) onSelect(date, null);
-            },
-            () => current && setLoad({ status: 'error', message: 'No pudimos cargar los horarios. Intentá de nuevo.' }),
-        );
-        return () => {
-            current = false;
-        };
-        // Solo al montarse y al reintentar: `date` y `onSelect` cambian con cada elección del Cliente.
+        if (status !== 'ready' || days.length === 0) return;
+        const day = days.find((d) => d.date === date);
+        // Se abre el primer día con lugar de la semana, así se ve de entrada si hay horarios; lo mismo al cambiar de semana.
+        if (!day) {
+            const first = days.find((d) => d.slots.length > 0) ?? days[0];
+            return onSelect(first.date, null);
+        }
+        // Al volver de Confirmar, el horario elegido puede haberse ocupado mientras tanto.
+        if (slot && !day.slots.some((s) => s.startsAt === slot.startsAt)) onSelect(date!, null);
+        // `onSelect` cambia con cada elección del Cliente.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [attempt]);
+    }, [status, days, date]);
 
-    const retry = () => {
-        setLoad({ status: 'loading' });
-        setAttempt((a) => a + 1);
-    };
-
-    const days = load.status === 'ready' ? load.days : [];
     const chosenDay = days.find((d) => d.date === date) ?? null;
-    // El próximo después del elegido; si no hay, el primero de la tira.
-    const withSlots = days.filter((d) => d.slots.length > 0 && d.date !== date);
-    const nextWithSlots = withSlots.find((d) => !date || d.date > date) ?? withSlots[0];
+    // El próximo día con lugar después del elegido, dentro de la semana que se ve.
+    const nextWithSlots = days.find((d) => d.slots.length > 0 && (!date || d.date > date));
 
-    const goToNext = nextWithSlots && (
+    const goToNext = nextWithSlots ? (
         <Button variant="outline" onClick={() => onSelect(nextWithSlots.date, null)} className={pillButton}>
             Ir al próximo día con lugar
+        </Button>
+    ) : (
+        <Button variant="outline" onClick={() => goToWeek(week + 1)} className={pillButton}>
+            Ver la semana siguiente
         </Button>
     );
     return (
@@ -95,30 +66,57 @@ export function TimeStep({
                 </p>
             )}
 
-            {load.status === 'loading' && (
+            {label && (
+                <div className="mt-6 flex items-center justify-between gap-3">
+                    <Button
+                        variant="outline"
+                        size="icon-lg"
+                        onClick={() => goToWeek(week - 1)}
+                        disabled={!canGoBack}
+                        aria-label="Semana anterior"
+                        className="size-11 rounded-full"
+                    >
+                        <ChevronLeft className="size-4" />
+                    </Button>
+                    <p aria-live="polite" className="text-[14px] font-bold tracking-[-0.01em]">
+                        {label}
+                    </p>
+                    <Button
+                        variant="outline"
+                        size="icon-lg"
+                        onClick={() => goToWeek(week + 1)}
+                        aria-label="Semana siguiente"
+                        className="size-11 rounded-full"
+                    >
+                        <ChevronRight className="size-4" />
+                    </Button>
+                </div>
+            )}
+
+            {status === 'loading' && (
                 <p className="mt-7 flex items-center gap-2 text-[14px] text-muted-foreground" role="status">
                     <Loader2 className="size-4 animate-spin" />
                     Buscando horarios…
                 </p>
             )}
 
-            {load.status === 'error' && (
+            {status === 'error' && (
                 <div className="mt-7 flex flex-col items-start gap-3" role="alert">
-                    <p className="text-[14px] text-muted-foreground">{load.message}</p>
+                    <p className="text-[14px] text-muted-foreground">{message}</p>
                     <Button variant="outline" onClick={retry} className={pillButton}>
                         Reintentar
                     </Button>
                 </div>
             )}
 
-            {load.status === 'ready' && days.length === 0 && (
+            {status === 'ready' && days.length === 0 && (
                 <p className="mt-7 text-[14px] text-muted-foreground">
-                    No hay horarios en las próximas dos semanas.
+                    No hay horarios esta semana.
                 </p>
             )}
 
             {days.length > 0 && (
-                <ol className="mt-6 flex flex-wrap gap-3" aria-label="Días disponibles">
+                <ol className="mt-4 grid grid-cols-7 gap-1" aria-label="Días disponibles">
                     {days.map((day) => {
                         const noSlots = day.slots.length === 0;
                         const active = day.date === date;
@@ -130,7 +128,7 @@ export function TimeStep({
                                     aria-pressed={active}
                                     aria-label={`${formatDate(day.date)}${noSlots ? ', sin horarios' : ''}`}
                                     className={cn(
-                                        'flex size-[58px] items-center justify-center rounded-full border text-[18px] font-extrabold tracking-[-0.03em] transition-colors',
+                                        'flex aspect-square w-full max-w-[58px] items-center justify-center rounded-full border text-[16px] font-extrabold tracking-[-0.03em] transition-colors sm:text-[18px]',
                                         active
                                             ? 'border-foreground bg-foreground text-white'
                                             : 'border-border hover:border-foreground/40',

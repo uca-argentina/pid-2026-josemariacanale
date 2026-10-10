@@ -24,7 +24,7 @@ import type { AvailabilityDetail, TimeRange } from '@/src/entities/models/availa
 import type { AvailabilityDraft } from './AvailabilityView';
 import { AddIntervalButton, IntervalsEditor } from './IntervalsEditor';
 import { OverridesSection } from './OverridesSection';
-import { TimeZoneSelect } from './TimeZoneSelect';
+import { TimeZoneCombobox } from '@/app/(app)/_components/TimeZoneCombobox';
 
 function CopyIntervals({
     fromDay,
@@ -258,7 +258,7 @@ export function AvailabilityEditor({
             <div className="mt-8 flex max-w-[1080px] flex-col gap-6">
                 <PanelSection title="Zona horaria" description="Las Franjas y las Anulaciones se leen en esta zona.">
                     <div className="max-w-[420px] px-6 py-4">
-                        <TimeZoneSelect value={draft.timeZone} onChange={(timeZone) => setDraft((d) => ({ ...d, timeZone }))} />
+                        <TimeZoneCombobox value={draft.timeZone} onChange={(timeZone) => setDraft((d) => ({ ...d, timeZone }))} />
                     </div>
                 </PanelSection>
                 <PanelSection title="Horas semanales" description="Establecé los horarios en los que atiende cada día.">

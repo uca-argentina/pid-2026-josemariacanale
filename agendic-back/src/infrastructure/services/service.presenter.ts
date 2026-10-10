@@ -47,7 +47,12 @@ export const presentCatalogGroup = ({
   employeeId,
   branches,
 }: ServiceCatalogGroup) => ({
-  business: { id: business.id, name: business.name, slug: business.slug },
+  business: {
+    id: business.id,
+    name: business.name,
+    slug: business.slug,
+    logoUrl: business.logoUrl,
+  },
   role,
   employeeId,
   branches: branches.map(({ id, name, slug, services }) => ({

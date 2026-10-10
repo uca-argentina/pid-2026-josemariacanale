@@ -1,4 +1,4 @@
-import { ConflictError } from '../../domain/errors';
+import { ConflictError, DatabaseOperationError } from '../../domain/errors';
 import { ServiceCategory } from '../../domain/services/service';
 import {
   ANA,
@@ -50,6 +50,7 @@ const PRESENTED_BUSINESS = {
   description: ANAS_BUSINESS.description,
   ownerId: ANAS_BUSINESS.ownerId,
   slug: ANAS_BUSINESS.slug,
+  logoUrl: null,
 };
 
 const ANAS_SERVICE = {
@@ -158,6 +159,44 @@ describe('Negocio', () => {
           imageUrl: ANAS_EMPLOYEE.imageUrl,
         },
       });
+    });
+
+    it('creates the Negocio without a Servicio, answering service null', async () => {
+      t.businesses.create.mockResolvedValue({ ...CREATED, service: null });
+
+      const res = await t.http
+        .post('/businesses')
+        .set(bearer(CLERK_TOKEN))
+        .send({ ...VALID_BODY, service: undefined })
+        .expect(201);
+
+      expect(t.businesses.create).toHaveBeenCalledWith({
+        business: { ...BUSINESS_PART, ownerId: ANA.id },
+        branch: { ...BRANCH_PART, slug: ANAS_BUSINESS.slug },
+        service: undefined,
+        employee: { userId: ANA.id },
+      });
+      expect(res.body.service).toBeNull();
+      expect(res.body.employee.userId).toBe(ANA.id);
+    });
+
+    it('creates the first Sucursal with a description', async () => {
+      t.businesses.create.mockResolvedValue(CREATED);
+
+      await t.http
+        .post('/businesses')
+        .set(bearer(CLERK_TOKEN))
+        .send({
+          ...VALID_BODY,
+          branch: { ...BRANCH_PART, description: 'Centro' },
+        })
+        .expect(201);
+
+      expect(t.businesses.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          branch: expect.objectContaining({ description: 'Centro' }),
+        }),
+      );
     });
 
     it('gives the first Sucursal the slug it is sent, in lowercase', async () => {
@@ -346,7 +385,6 @@ describe('Negocio', () => {
         'a UTC offset as Sucursal timeZone',
         { branch: { ...BRANCH_PART, timeZone: '-03:00' } },
       ],
-      ['a missing Servicio', { service: undefined }],
       ['a blank Servicio name', { service: { ...SERVICE_PART, name: ' ' } }],
       [
         'a fractional durationMinutes',
@@ -481,6 +519,185 @@ describe('Negocio', () => {
     );
   });
 
+  describe('PUT /businesses/:id/logo', () => {
+    const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
+    const LOGO_URL = 'https://files.example.com/logo';
+    const OLD_LOGO_URL = 'https://files.example.com/old';
+    const put = (id: number = ANAS_BUSINESS.id) =>
+      t.http.put(`/businesses/${id}/logo`);
+    const withPng = (req: ReturnType<typeof put>) =>
+      req.attach('file', PNG, { filename: 'logo.png', contentType: 'image/png' });
+
+    beforeEach(() => {
+      scriptSession(t);
+      scriptOtherSession(t);
+      t.businesses.findById.mockResolvedValue(ANAS_BUSINESS);
+      t.businesses.update.mockImplementation(async (_, data) => ({
+        ...ANAS_BUSINESS,
+        ...data,
+      }));
+      t.fileStorage.upload.mockResolvedValue(LOGO_URL);
+      t.fileStorage.delete.mockResolvedValue();
+    });
+
+    it('uploads the file and sets it as the Logo, for the Dueño', async () => {
+      const res = await withPng(put().set(bearer(CLERK_TOKEN))).expect(200);
+
+      expect(t.fileStorage.upload).toHaveBeenCalledWith({
+        content: expect.any(Uint8Array),
+        contentType: 'image/png',
+      });
+      expect(t.businesses.update).toHaveBeenCalledWith(ANAS_BUSINESS.id, {
+        logoUrl: LOGO_URL,
+      });
+      expect(res.body).toEqual({ ...PRESENTED_BUSINESS, logoUrl: LOGO_URL });
+      expect(t.fileStorage.delete).not.toHaveBeenCalled();
+    });
+
+    it('replaces the previous Logo and deletes its file', async () => {
+      t.businesses.findById.mockResolvedValue({
+        ...ANAS_BUSINESS,
+        logoUrl: OLD_LOGO_URL,
+      });
+
+      await withPng(put().set(bearer(CLERK_TOKEN))).expect(200);
+
+      expect(t.fileStorage.delete).toHaveBeenCalledWith(OLD_LOGO_URL);
+    });
+
+    it('still answers 200 when the previous file cannot be deleted', async () => {
+      t.businesses.findById.mockResolvedValue({
+        ...ANAS_BUSINESS,
+        logoUrl: OLD_LOGO_URL,
+      });
+      t.fileStorage.delete.mockRejectedValue(new Error('storage down'));
+
+      await withPng(put().set(bearer(CLERK_TOKEN))).expect(200);
+    });
+
+    it('deletes the uploaded file when the Logo cannot be saved', async () => {
+      t.businesses.update.mockRejectedValue(
+        new DatabaseOperationError('Database operation failed'),
+      );
+
+      await withPng(put().set(bearer(CLERK_TOKEN))).expect(500);
+
+      expect(t.fileStorage.delete).toHaveBeenCalledWith(LOGO_URL);
+    });
+
+    it('answers 403 for another Usuario, without uploading anything', async () => {
+      await withPng(put().set(bearer(OTHER_CLERK_TOKEN))).expect(403);
+
+      expect(t.fileStorage.upload).not.toHaveBeenCalled();
+    });
+
+    it('answers 404 for an unknown Negocio', async () => {
+      t.businesses.findById.mockResolvedValue(null);
+
+      await withPng(put(999).set(bearer(CLERK_TOKEN))).expect(404);
+
+      expect(t.fileStorage.upload).not.toHaveBeenCalled();
+    });
+
+    it('answers 401 without a Sesión', async () => {
+      await withPng(put()).expect(401);
+    });
+
+    it('answers 400 without a file', async () => {
+      const res = await put().set(bearer(CLERK_TOKEN)).expect(400);
+
+      expect(res.body.message).toBe('file is required');
+      expect(t.fileStorage.upload).not.toHaveBeenCalled();
+    });
+
+    it('answers 400 for a file that is not JPEG, PNG, WebP or GIF', async () => {
+      const res = await put()
+        .set(bearer(CLERK_TOKEN))
+        .attach('file', Buffer.from('%PDF'), {
+          filename: 'logo.pdf',
+          contentType: 'application/pdf',
+        })
+        .expect(400);
+
+      expect(res.body.message).toBe(
+        'La imagen tiene que ser JPEG, PNG, WebP o GIF',
+      );
+      expect(t.fileStorage.upload).not.toHaveBeenCalled();
+    });
+
+    it('answers 413 for a file over 5 MB', async () => {
+      await put()
+        .set(bearer(CLERK_TOKEN))
+        .attach('file', Buffer.alloc(5 * 1024 * 1024 + 1), {
+          filename: 'logo.png',
+          contentType: 'image/png',
+        })
+        .expect(413);
+
+      expect(t.fileStorage.upload).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('DELETE /businesses/:id/logo', () => {
+    const LOGO_URL = 'https://files.example.com/logo';
+    const del = (id: number = ANAS_BUSINESS.id) =>
+      t.http.delete(`/businesses/${id}/logo`);
+
+    beforeEach(() => {
+      scriptSession(t);
+      scriptOtherSession(t);
+      t.businesses.findById.mockResolvedValue({
+        ...ANAS_BUSINESS,
+        logoUrl: LOGO_URL,
+      });
+      t.businesses.update.mockImplementation(async (_, data) => ({
+        ...ANAS_BUSINESS,
+        ...data,
+      }));
+      t.fileStorage.delete.mockResolvedValue();
+    });
+
+    it('clears the Logo and deletes its file, for the Dueño', async () => {
+      await del().set(bearer(CLERK_TOKEN)).expect(204);
+
+      expect(t.businesses.update).toHaveBeenCalledWith(ANAS_BUSINESS.id, {
+        logoUrl: null,
+      });
+      expect(t.fileStorage.delete).toHaveBeenCalledWith(LOGO_URL);
+    });
+
+    it('answers 204 when the Negocio has no Logo, touching nothing', async () => {
+      t.businesses.findById.mockResolvedValue(ANAS_BUSINESS);
+
+      await del().set(bearer(CLERK_TOKEN)).expect(204);
+
+      expect(t.businesses.update).not.toHaveBeenCalled();
+      expect(t.fileStorage.delete).not.toHaveBeenCalled();
+    });
+
+    it('answers 204 even when the file cannot be deleted', async () => {
+      t.fileStorage.delete.mockRejectedValue(new Error('storage down'));
+
+      await del().set(bearer(CLERK_TOKEN)).expect(204);
+    });
+
+    it('answers 403 for another Usuario', async () => {
+      await del().set(bearer(OTHER_CLERK_TOKEN)).expect(403);
+
+      expect(t.businesses.update).not.toHaveBeenCalled();
+    });
+
+    it('answers 404 for an unknown Negocio', async () => {
+      t.businesses.findById.mockResolvedValue(null);
+
+      await del(999).set(bearer(CLERK_TOKEN)).expect(404);
+    });
+
+    it('answers 401 without a Sesión', async () => {
+      await del().expect(401);
+    });
+  });
+
   describe('GET /businesses', () => {
     beforeEach(() => {
       scriptSession(t);
@@ -522,6 +739,7 @@ describe('Negocio', () => {
           description: brunosBusiness.description,
           ownerId: BRUNO.id,
           slug: brunosBusiness.slug,
+          logoUrl: null,
         },
       ]);
     });

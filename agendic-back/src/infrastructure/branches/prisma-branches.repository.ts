@@ -17,12 +17,9 @@ export class PrismaBranchesRepository implements BranchesRepository {
   async create(
     data: Pick<
       Branch,
-      | 'businessId'
-      | 'name'
-      | 'address'
-      | 'timeZone'
-      | 'slug'
-    >,
+      'businessId' | 'name' | 'address' | 'timeZone' | 'slug'
+    > &
+      Partial<Pick<Branch, 'description'>>,
   ) {
     return toBranch(
       await this.prisma.branch
@@ -33,6 +30,7 @@ export class PrismaBranchesRepository implements BranchesRepository {
             address: data.address,
             timeZone: data.timeZone,
             slug: data.slug,
+            description: data.description,
           },
         })
         .catch(translateError),
@@ -57,10 +55,7 @@ export class PrismaBranchesRepository implements BranchesRepository {
   async update(
     id: number,
     data: Partial<
-      Pick<
-        Branch,
-        'name' | 'address' | 'timeZone' | 'slug'
-      >
+      Pick<Branch, 'name' | 'address' | 'timeZone' | 'slug' | 'description'>
     >,
   ) {
     return toBranch(
@@ -72,6 +67,7 @@ export class PrismaBranchesRepository implements BranchesRepository {
             address: data.address,
             timeZone: data.timeZone,
             slug: data.slug,
+            description: data.description,
           },
         })
         .catch(translateError),
@@ -89,6 +85,7 @@ export const toBranch = (row: BranchRow): Branch => ({
   address: row.address,
   timeZone: row.timeZone,
   slug: row.slug,
+  description: row.description,
 });
 
 const translateError = (error: unknown): never => {

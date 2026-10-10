@@ -33,22 +33,23 @@ export class PrismaBranchImagesRepository implements BranchImagesRepository {
     return row && toBranchImage(row);
   }
 
-  async append(branchId: number, url: string) {
-    return toBranchImage(
-      await this.prisma
-        .$transaction(async (tx) => {
-          // Locks the Sucursal so concurrent uploads queue up instead of reading the same last order.
-          await tx.$queryRaw`SELECT 1 FROM "Branch" WHERE "id" = ${branchId} FOR UPDATE`;
-          const { _max } = await tx.branchImage.aggregate({
-            where: { branchId },
-            _max: { order: true },
-          });
-          return tx.branchImage.create({
-            data: { branchId, url, order: (_max.order ?? -1) + 1 },
-          });
-        })
-        .catch(translateError),
-    );
+  async append(branchId: number, url: string, limit: number) {
+    const row = await this.prisma
+      .$transaction(async (tx) => {
+        // Locks the Sucursal so concurrent uploads queue up instead of reading the same count and last order.
+        await tx.$queryRaw`SELECT 1 FROM "Branch" WHERE "id" = ${branchId} FOR UPDATE`;
+        const { _count, _max } = await tx.branchImage.aggregate({
+          where: { branchId },
+          _count: true,
+          _max: { order: true },
+        });
+        if (_count >= limit) return null;
+        return tx.branchImage.create({
+          data: { branchId, url, order: (_max.order ?? -1) + 1 },
+        });
+      })
+      .catch(translateError);
+    return row && toBranchImage(row);
   }
 
   async delete(id: number) {

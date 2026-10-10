@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { MapPin, Images, Building2 } from 'lucide-react';
-import { Avatar, AvatarFallback } from '@/app/_components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/app/_components/ui/avatar';
 import { Button } from '@/app/_components/ui/button';
 import { bookingLinkPath } from '@/app/routes';
 import { SERVICE_CATEGORIES, type ServiceCategoryValue } from '@/app/_components/business-schemas';
@@ -15,6 +15,11 @@ import { initials } from '@/app/_components/booking/format';
 import type { Service } from '@/app/_components/booking/types';
 import type { Branch, BranchImage, Business, Employee, OtherBranch } from './types';
 
+/**
+ * Página pública de la Sucursal. Muestra solo las Categorías que la Sucursal ofrece, en el orden del enum. La primera
+ * Imagen es la portada, la del resumen y la de la reserva; desde md se ven la portada y hasta dos más al costado, en
+ * mobile solo la portada.
+ */
 export function BranchPublicPage({
     business,
     branch,
@@ -33,7 +38,6 @@ export function BranchPublicPage({
     /** El Servicio del Enlace de reserva: la reserva abre con él ya elegido. Puede ser oculto, y no estar en `services`. */
     selectedService: Service | null;
 }) {
-    // Solo las Categorías que esta Sucursal realmente ofrece, en el orden del enum.
     const categories = SERVICE_CATEGORIES.filter((c) => services.some((s) => s.category === c.value));
     const [category, setCategory] = useState<ServiceCategoryValue | undefined>(categories[0]?.value);
     const [initialService, setInitialService] = useState<Service | null>(selectedService);
@@ -50,9 +54,7 @@ export function BranchPublicPage({
     };
 
     const shown = services.filter((s) => s.category === category);
-    // La primera Imagen es la de portada: la del resumen y la de la reserva.
     const cover = images[0]?.url;
-    // Desde md se ven la portada y hasta dos más al costado; en mobile, solo la portada.
     const sideImages = images.slice(1, 3);
     const hasSide = sideImages.length > 0;
 
@@ -60,6 +62,12 @@ export function BranchPublicPage({
         <>
             <div className="mx-auto w-full max-w-[1400px] flex-1 px-4 pb-20 sm:px-8 lg:px-16">
                 <header className="pt-6 pb-7">
+                    <Avatar className="mb-4 size-16">
+                        {business.logoUrl && <AvatarImage src={business.logoUrl} alt={`Logo de ${business.name}`} />}
+                        <AvatarFallback className="bg-foreground text-[20px] font-extrabold text-white">
+                            {initials(business.name)}
+                        </AvatarFallback>
+                    </Avatar>
                     <h1 className="text-[40px] leading-[1.05] font-extrabold tracking-[-0.03em] sm:text-[52px]">
                         {business.name}
                     </h1>
@@ -205,7 +213,7 @@ export function BranchPublicPage({
                                 </Button>
                             )}
                             <p className="mt-3.5 text-[13.5px] leading-relaxed text-muted-foreground">
-                                {business.description}
+                                {branch.description}
                             </p>
                             <dl className="mt-4 flex flex-col gap-2.5 border-t border-border pt-4 text-[13.5px]">
                                 <div className="flex gap-2">

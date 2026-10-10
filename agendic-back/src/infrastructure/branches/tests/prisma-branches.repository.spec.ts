@@ -15,6 +15,7 @@ const BRANCH: Branch = {
   address: '123 Main St',
   timeZone: 'America/Argentina/Buenos_Aires',
   slug: 'downtown',
+  description: null,
 };
 
 const BRANCH_ROW = {
@@ -24,6 +25,7 @@ const BRANCH_ROW = {
   address: '123 Main St',
   timeZone: 'America/Argentina/Buenos_Aires',
   slug: 'downtown',
+  description: null,
 };
 
 const knownError = (code: string) =>
@@ -110,9 +112,7 @@ describe('PrismaBranchesRepository', () => {
       update: prisma.branch.update,
     };
 
-    it.each([
-      ['update', 'P2025', NotFoundError],
-    ] as const)(
+    it.each([['update', 'P2025', NotFoundError]] as const)(
       '%s: %s into %p',
       async (method, code, domainError) => {
         const cause = knownError(code);

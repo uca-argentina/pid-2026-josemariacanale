@@ -153,3 +153,18 @@
         animation-delay: 0s !important;
     }
 }
+
+/* Cuerpo scrolleable de los modales: scrollbar fina siempre visible y texto que se desvanece solo del lado con contenido escondido (data-fade-* los pone ScrollFade). */
+.scroll-fade {
+    --fade-top: 0px;
+    --fade-bottom: 0px;
+    scrollbar-width: thin;
+    scrollbar-color: #d1d5db transparent;
+    mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade-top), #000 calc(100% - var(--fade-bottom)), transparent 100%);
+}
+.scroll-fade[data-fade-top] {
+    --fade-top: 28px;
+}
+.scroll-fade[data-fade-bottom] {
+    --fade-bottom: 28px;
+}

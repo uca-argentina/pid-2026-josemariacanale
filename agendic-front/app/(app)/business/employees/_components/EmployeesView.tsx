@@ -20,7 +20,7 @@ import { cn } from '@/app/_components/utils';
 import { inviteEmployeeSchema, fieldErrorsOf, type FieldErrors } from '@/app/_components/business-schemas';
 import { RoleBadge, type BusinessRole } from '../../_components/business-ui';
 import { addEmployeeAction, cancelInvitationAction, resendInvitationAction, retireEmployeeAction } from '../actions';
-import { EmployeeSheet } from './EmployeeSheet';
+import { EmployeeDialog } from './EmployeeDialog';
 
 export type EmployeeRow = { id: number; name: string; email: string; imageUrl: string | null; role: BusinessRole };
 /** Invitación pendiente del Negocio; `expiresAt` es ISO y se muestra en hora de Buenos Aires. */
@@ -257,7 +257,7 @@ export function EmployeesView({
             </p>
 
             {inviting && <InviteEmployeeDialog businessId={businessId} onClose={() => setInviting(false)} />}
-            {viewing && <EmployeeSheet employee={viewing} onClose={() => setViewing(undefined)} />}
+            {viewing && <EmployeeDialog employee={viewing} onClose={() => setViewing(undefined)} />}
             <PanelConfirm
                 open={Boolean(retiring)}
                 onOpenChange={(open) => !open && setRetiring(undefined)}

@@ -6,4 +6,5 @@ export const presentBusiness = (business: Business) => ({
   description: business.description,
   ownerId: business.ownerId,
   slug: business.slug,
+  logoUrl: business.logoUrl,
 });

@@ -73,3 +73,12 @@ export const servicesWith = (stubs: Partial<IServicesRepository>): IServicesRepo
     changeEmployeeAvailability: jest.fn(notStubbed('changeEmployeeAvailability')),
     ...stubs,
 });
+
+// The Imágenes de Sucursal methods of IBusinessesRepository, for tests that build the whole repository.
+export const imagesStub = {
+    uploadBranchImage: jest.fn(),
+    deleteBranchImage: jest.fn(),
+    reorderBranchImages: jest.fn(),
+    uploadBusinessLogo: jest.fn(),
+    deleteBusinessLogo: jest.fn(),
+};

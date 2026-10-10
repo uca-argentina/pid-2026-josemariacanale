@@ -21,9 +21,7 @@ import { FileUpload } from '../../domain/file-storage';
 import { ClerkGuard, CurrentUser } from '../users/clerk.guard';
 import { presentBranchImage } from './branch-image.presenter';
 import { ReorderBranchImagesDto } from './branch-images.dto';
-import { ImageFilePipe } from './image-file.pipe';
-
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+import { ImageFilePipe, MAX_IMAGE_BYTES } from './image-file.pipe';
 
 @Controller()
 export class BranchImagesController {
