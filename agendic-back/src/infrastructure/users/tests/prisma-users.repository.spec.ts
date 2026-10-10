@@ -217,15 +217,11 @@ describe('PrismaUsersRepository', () => {
     it('update: a taken slug into ConflictError that names the Enlace de reserva', async () => {
       const cause = knownError('P2002');
       cause.meta = {
-        driverAdapterError: {
-          cause: { constraint: { index: 'User_slug_key' } },
-        },
+        driverAdapterError: { cause: { constraint: { index: 'User_slug_key' } } },
       };
       prisma.user.update.mockRejectedValue(cause);
 
-      const error = await repository
-        .update(1, { slug: 'ana' })
-        .catch((e: unknown) => e);
+      const error = await repository.update(1, { slug: 'ana' }).catch((e: unknown) => e);
 
       expect(error).toBeInstanceOf(ConflictError);
       expect((error as Error).message).toBe('Booking link already in use');

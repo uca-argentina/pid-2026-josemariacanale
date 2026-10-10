@@ -116,15 +116,18 @@ function profileClaims(
 
 /**
  * Reads the `imageUrl`/`hasImage` session token custom claims. `hasImage` false (Clerk would only serve
- * its placeholder) or an unparseable URL gives `null`; either claim missing gives `undefined`.
+ * its placeholder) gives `null`. Either claim missing, `hasImage` not a boolean, or an unparseable URL
+ * gives `undefined`: a claim we cannot trust must not erase the stored foto.
  */
 function imageUrlClaim(
   payload: Record<string, unknown>,
 ): string | null | undefined {
-  const { imageUrl, hasImage } = payload;
-  if (typeof imageUrl !== 'string' || typeof hasImage !== 'boolean')
-    return undefined;
-  return hasImage ? parseUrl(imageUrl) : null;
+  const { imageUrl } = payload;
+  // Clerk renders a quoted shortcode as a string, so `"true"` / `"false"` count too.
+  const hasImage = { true: true, false: false }[String(payload.hasImage)];
+  if (typeof imageUrl !== 'string' || hasImage === undefined) return undefined;
+  if (!hasImage) return null;
+  return parseUrl(imageUrl) ?? undefined;
 }
 
 /** A malformed imageUrl is discarded rather than failing the User's creation. */

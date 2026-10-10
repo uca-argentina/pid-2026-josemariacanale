@@ -74,7 +74,7 @@ El nombre y el email viajan como claims del session token, configurados en el da
 
 ## Foto de perfil (#165)
 
-La foto (`User.imageUrl`) se refresca por el mismo camino, con dos claims más: `imageUrl` y `hasImage`. `hasImage` en `false` (Clerk solo serviría su imagen genérica) o una URL que no se puede parsear dan `null`. Si falta cualquiera de los dos claims no se refresca la foto, aparte de nombre y email. Si no cambió no se escribe; una falla al refrescar sigue con la fila vieja.
+La foto (`User.imageUrl`) se refresca por el mismo camino, con dos claims más: `imageUrl` y `hasImage`. `hasImage` en `false` (Clerk solo serviría su imagen genérica) da `null`; una URL que no se puede parsear se ignora y deja la foto guardada. Si falta cualquiera de los dos claims no se refresca la foto, aparte de nombre y email. Si no cambió no se escribe; una falla al refrescar sigue con la fila vieja.
 
 ## Out of Scope
 

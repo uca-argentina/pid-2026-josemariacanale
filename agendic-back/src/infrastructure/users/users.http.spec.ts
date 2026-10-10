@@ -269,6 +269,26 @@ describe('Usuario', () => {
       expect(res.body.imageUrl).toBeNull();
     });
 
+    it('does not call update or getProfile when the token has name and email but no foto claim', async () => {
+      t.clerkAuth.verifyToken.mockResolvedValue({
+        clerkId: ANA.clerkId,
+        profile: { name: ANA.name, email: ANA.email },
+      });
+      t.users.findByClerkId.mockResolvedValue({
+        ...ANA,
+        imageUrl: 'https://img.clerk.com/ana.png',
+      });
+      t.users.findById.mockResolvedValue({
+        ...ANA,
+        imageUrl: 'https://img.clerk.com/ana.png',
+      });
+
+      await t.http.get('/users/me').set(bearer(CLERK_TOKEN)).expect(200);
+
+      expect(t.users.update).not.toHaveBeenCalled();
+      expect(t.clerkAuth.getProfile).not.toHaveBeenCalled();
+    });
+
     it('does not call update or getProfile when the token carries no profile claims', async () => {
       t.clerkAuth.verifyToken.mockResolvedValue({
         clerkId: ANA.clerkId,
@@ -357,9 +377,7 @@ describe('Usuario', () => {
         .send({ slug: ' Ana-Perez ' })
         .expect(200);
 
-      expect(t.users.update).toHaveBeenCalledWith(ANA.id, {
-        slug: 'ana-perez',
-      });
+      expect(t.users.update).toHaveBeenCalledWith(ANA.id, { slug: 'ana-perez' });
       expect(res.body.slug).toBe('ana-perez');
     });
 

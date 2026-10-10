@@ -15,7 +15,7 @@ Para que el back refresque el nombre, el email y la foto de perfil del Usuario (
 }
 ```
 
-`hasImage` evita guardar la imagen genérica de Clerk: en `false` la foto del Usuario pasa a `null`. La foto se refresca aparte del nombre y el email: sin `imageUrl` o sin `hasImage` en el token, solo esa parte queda sin refrescar.
+``hasImage` evita guardar la imagen genérica de Clerk: en `false` la foto del Usuario pasa a `null`. Una URL que no se puede parsear se ignora y deja la foto guardada. La foto se refresca aparte del nombre y el email: sin `imageUrl` o sin `hasImage` en el token, solo esa parte queda sin refrescar.
 
 Sin esta configuración (o con un token viejo que no la tiene todavía), el back sigue funcionando igual: no refresca nada y no llama a la API de Clerk.
 

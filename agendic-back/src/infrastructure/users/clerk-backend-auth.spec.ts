@@ -40,10 +40,7 @@ describe('ClerkBackendAuth.getProfile', () => {
 
   it('seeds a null imageUrl when hasImage is false, even with an imageUrl set', async () => {
     getUser.mockResolvedValue(
-      clerkUser({
-        hasImage: false,
-        imageUrl: 'https://img.clerk.com/placeholder.png',
-      }),
+      clerkUser({ hasImage: false, imageUrl: 'https://img.clerk.com/placeholder.png' }),
     );
 
     const profile = await auth.getProfile('user_1');
@@ -133,7 +130,7 @@ describe('ClerkBackendAuth.verifyToken image claims', () => {
     expect(identity.imageUrl).toBe('https://img.clerk.com/ana.png');
   });
 
-  it('gives null when Clerk says there is no real foto, or the URL does not parse', async () => {
+  it('gives null when Clerk says there is no real foto, as a boolean or a string', async () => {
     verify.mockResolvedValue({
       sub: 'u',
       imageUrl: 'https://x.io/p.png',
@@ -143,10 +140,24 @@ describe('ClerkBackendAuth.verifyToken image claims', () => {
 
     verify.mockResolvedValue({
       sub: 'u',
-      imageUrl: 'not a url',
-      hasImage: true,
+      imageUrl: 'https://x.io/p.png',
+      hasImage: 'false',
     });
     expect((await auth.verifyToken('jwt')).imageUrl).toBeNull();
+  });
+
+  it('reads a hasImage rendered as a string', async () => {
+    verify.mockResolvedValue({
+      sub: 'u',
+      imageUrl: 'https://x.io/p.png',
+      hasImage: 'true',
+    });
+    expect((await auth.verifyToken('jwt')).imageUrl).toBe('https://x.io/p.png');
+  });
+
+  it('gives undefined, not null, when the URL does not parse, so the stored foto stays', async () => {
+    verify.mockResolvedValue({ sub: 'u', imageUrl: 'not a url', hasImage: true });
+    expect((await auth.verifyToken('jwt')).imageUrl).toBeUndefined();
   });
 
   it('gives undefined, not null, when a claim is missing', async () => {

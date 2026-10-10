@@ -103,18 +103,12 @@ export class PrismaUsersRepository implements UsersRepository {
           where: { userId: id, deletedAt: null },
           data: { deletedAt, availabilityId: null },
         });
-        await tx.employeeService.deleteMany({
-          where: { employee: { userId: id } },
-        });
+        await tx.employeeService.deleteMany({ where: { employee: { userId: id } } });
         await tx.employee.updateMany({
           where: { userId: id, deletedAt: null },
           data: { deletedAt },
         });
-        const ownCancelled = await cancelFutureBooked(
-          tx,
-          { userId: id },
-          deletedAt,
-        );
+        const ownCancelled = await cancelFutureBooked(tx, { userId: id }, deletedAt);
         const business = await tx.business.findUnique({
           where: { ownerId: id },
           select: { id: true },

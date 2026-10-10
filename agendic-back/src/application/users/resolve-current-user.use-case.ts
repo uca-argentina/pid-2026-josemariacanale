@@ -40,13 +40,16 @@ export class ResolveCurrentUserUseCase {
     if (existing.deletedAt && !allowRetired)
       throw new ForbiddenError(`User ${existing.id} is dado de baja`);
     if (existing.deletedAt) return existing;
-    const changes = {
-      ...(profile &&
-        (profile.name !== existing.name || profile.email !== existing.email) &&
-        profile),
-      ...(imageUrl !== undefined &&
-        imageUrl !== existing.imageUrl && { imageUrl }),
-    };
+    const changes: Parameters<UsersRepository['update']>[1] = {};
+    if (
+      profile &&
+      (profile.name !== existing.name || profile.email !== existing.email)
+    ) {
+      changes.name = profile.name;
+      changes.email = profile.email;
+    }
+    if (imageUrl !== undefined && imageUrl !== existing.imageUrl)
+      changes.imageUrl = imageUrl;
     if (Object.keys(changes).length === 0) return existing;
     return this.users.update(existing.id, changes).catch(() => existing);
   }

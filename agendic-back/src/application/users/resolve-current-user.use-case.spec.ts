@@ -33,10 +33,7 @@ describe('Resolver el Usuario de la Sesión', () => {
       create: async () => created,
     } as unknown as UsersRepository;
 
-    const result = await new ResolveCurrentUserUseCase(
-      clerkAuth,
-      users,
-    ).execute('token');
+    const result = await new ResolveCurrentUserUseCase(clerkAuth, users).execute('token');
 
     expect(result).toBe(created);
   });
@@ -51,10 +48,7 @@ describe('Resolver el Usuario de la Sesión', () => {
       },
     } as unknown as UsersRepository;
 
-    const result = await new ResolveCurrentUserUseCase(
-      clerkAuth,
-      users,
-    ).execute('token');
+    const result = await new ResolveCurrentUserUseCase(clerkAuth, users).execute('token');
 
     expect(result).toBe(winner);
   });
