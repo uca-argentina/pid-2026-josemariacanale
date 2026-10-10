@@ -41,6 +41,7 @@ export class PrismaBusinessesRepository implements BusinessesRepository {
             address: data.branch.address,
             timeZone: data.branch.timeZone,
             slug: data.branch.slug,
+            description: data.branch.description,
           },
         });
         const employee = await tx.employee.create({
@@ -51,23 +52,25 @@ export class PrismaBusinessesRepository implements BusinessesRepository {
           where: { userId: data.employee.userId, isDefault: true },
           select: { id: true },
         });
-        const service = await tx.service.create({
-          data: {
-            branchId: branch.id,
-            ...data.service,
-            employees: {
-              create: {
-                employeeId: employee.id,
-                availabilityId: availability.id,
+        const service =
+          data.service &&
+          (await tx.service.create({
+            data: {
+              branchId: branch.id,
+              ...data.service,
+              employees: {
+                create: {
+                  employeeId: employee.id,
+                  availabilityId: availability.id,
+                },
               },
             },
-          },
-          include: VISIBLE_EMPLOYEES,
-        });
+            include: VISIBLE_EMPLOYEES,
+          }));
         return {
           business: toBusiness(business),
           branch: toBranch(branch),
-          service: toService(service),
+          service: service ? toService(service) : null,
           employee: toEmployee(employee),
         };
       })

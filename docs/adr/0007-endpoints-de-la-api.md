@@ -51,13 +51,13 @@ actualizarlo a mano cuando se agregue, cambie o borre un endpoint.
 
 | Método | Ruta | Auth | Qué hace |
 |---|---|---|---|
-| POST | `/businesses` | sí | Crea un negocio junto con su primera sucursal, servicio y empleado (alta todo-en-uno); el Empleado creado es el propio Dueño (su Usuario de Sesión, ADR 0013), y el primer servicio queda atendido por ese Empleado con la Availability predeterminada de su Usuario (ADR 0020), todo en la misma transacción; 409 si el Usuario ya es Dueño de un Negocio (ADR 0012) |
+| POST | `/businesses` | sí | Crea un negocio junto con su primera sucursal y su empleado, y opcionalmente su primer servicio; el Empleado creado es el propio Dueño (su Usuario de Sesión, ADR 0013), y el primer servicio, si viene, queda atendido por ese Empleado con la Availability predeterminada de su Usuario (ADR 0020), todo en la misma transacción; sin `service`, la respuesta trae `service: null`; 409 si el Usuario ya es Dueño de un Negocio (ADR 0012) |
 | PATCH | `/businesses/:id` | sí | Actualiza name/description/slug (solo el dueño); cambiar el slug deja de servir el Enlace de reserva anterior |
 | GET | `/businesses` | sí | Lista solo los negocios del Dueño de la sesión (0 o 1) |
 | GET | `/businesses/:id` | no | Detalle de un negocio |
 | GET | `/businesses/by-slug/:slug` | no | Detalle de un negocio por su Enlace de reserva; el slug se compara en minúsculas; 404 si no existe o si el Negocio está dado de baja (ADR 0024; su slug no se libera, otro Negocio no puede tomarlo: 409) |
 
-- `CreateBusinessDto`: `{ business: { name, description, slug }, branch: { name, address, timeZone, slug? }, service: ServiceFieldsDto }`; `branch` valida sus campos igual que `CreateBranchDto` del endpoint de Sucursales, salvo que su `slug` es opcional: sin él, la primera Sucursal toma el `slug` del Negocio
+- `CreateBusinessDto`: `{ business: { name, description, slug }, branch: { name, address, timeZone, slug? }, service?: ServiceFieldsDto }`; `service` es opcional; `branch` valida sus campos igual que `CreateBranchDto` del endpoint de Sucursales, salvo que su `slug` es opcional: sin él, la primera Sucursal toma el `slug` del Negocio
 - `UpdateBusinessDto`: `{ name?, description?, slug? }`
 - `slug` (Enlace de reserva): se pasa a minúsculas, 3-40 caracteres, palabras de letras y dígitos unidas por guiones (`^[a-z0-9]+(-[a-z0-9]+)*$`); formato inválido → 400, slug ya tomado → 409
 - Respuesta (`presentBusiness`): `{ id, name, description, slug, ownerId }`
@@ -71,11 +71,12 @@ actualizarlo a mano cuando se agregue, cambie o borre un endpoint.
 | PATCH | `/branches/:id` | sí | Actualiza una sucursal (solo el dueño); 409 si su `slug` ya está en uso en ese negocio; cambiar el `slug` deja de servir el Enlace de reserva anterior de esa sucursal |
 | GET | `/businesses/:businessId/branches` | no | Lista sucursales de un negocio |
 
-- `CreateBranchDto`: `{ name, address, timeZone, slug }`. La Sucursal no tiene horario de apertura ni de cierre (ADR 0020): los Horarios reservables salen solo de las Availability
+- `CreateBranchDto`: `{ name, address, timeZone, slug, description? }`. La Sucursal no tiene horario de apertura ni de cierre (ADR 0020): los Horarios reservables salen solo de las Availability
 - `slug` (tramo de Sucursal del Enlace de reserva, ADR 0014: `/business/<slug del negocio>/<slug de la sucursal>`): mismo formato que el `slug` del Negocio (se pasa a minúsculas, 3-40 caracteres, `^[a-z0-9]+(-[a-z0-9]+)*$`); requerido en creación, opcional en `UpdateBranchDto`; formato inválido → 400; ya usado por otra sucursal del mismo negocio → 409 `Booking link already in use` (dos negocios distintos sí pueden repetirlo)
 - `timeZone`: nombre IANA (por ejemplo `America/Argentina/Buenos_Aires`), nunca un offset; requerido en creación, opcional en `UpdateBranchDto`; inválido → 400
+- `description`: texto libre opcional de la Sucursal, que en su página pública reemplaza al del Negocio; un string vacío (o en blanco) se guarda como `null`. También vale en el `branch` de `POST /businesses`. En `UpdateBranchDto`, `description: null` la quita
 - `UpdateBranchDto`: los mismos campos, todos opcionales
-- Respuesta (`presentBranch`): `{ id, businessId, name, address, timeZone, slug }`
+- Respuesta (`presentBranch`): `{ id, businessId, name, address, timeZone, slug, description }` (`description: string | null`)
 
 ## Imágenes de Sucursal (BranchImage)
 

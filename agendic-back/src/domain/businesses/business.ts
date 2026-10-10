@@ -12,13 +12,13 @@ export interface Business {
   deletedAt: Date | null;
 }
 
-/** A Negocio is created complete: it, its first Sucursal, its first Servicio and the Dueño as its Empleado, with their default Availability. */
+/** A Negocio is created with its first Sucursal and the Dueño as its Empleado (with their default Availability), and optionally its first Servicio. */
 export interface CreateBusinessInput {
   business: { name: string; description: string; slug: string };
   /** Without a `slug`, the first Sucursal takes the Negocio's own: a new Negocio has no other to clash with. */
   branch: Omit<CreateBranchInput, 'slug'> & { slug?: string };
   /** No `employeeIds`: the Dueño is the only Empleado there is to put in charge. */
-  service: Omit<CreateServiceInput, 'employeeIds'>;
+  service?: Omit<CreateServiceInput, 'employeeIds'>;
 }
 
 export interface UpdateBusinessInput {

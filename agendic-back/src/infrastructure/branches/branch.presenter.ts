@@ -7,4 +7,5 @@ export const presentBranch = (branch: Branch) => ({
   address: branch.address,
   timeZone: branch.timeZone,
   slug: branch.slug,
+  description: branch.description,
 });

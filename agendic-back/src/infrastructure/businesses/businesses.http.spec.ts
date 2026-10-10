@@ -159,6 +159,44 @@ describe('Negocio', () => {
       });
     });
 
+    it('creates the Negocio without a Servicio, answering service null', async () => {
+      t.businesses.create.mockResolvedValue({ ...CREATED, service: null });
+
+      const res = await t.http
+        .post('/businesses')
+        .set(bearer(CLERK_TOKEN))
+        .send({ ...VALID_BODY, service: undefined })
+        .expect(201);
+
+      expect(t.businesses.create).toHaveBeenCalledWith({
+        business: { ...BUSINESS_PART, ownerId: ANA.id },
+        branch: { ...BRANCH_PART, slug: ANAS_BUSINESS.slug },
+        service: undefined,
+        employee: { userId: ANA.id },
+      });
+      expect(res.body.service).toBeNull();
+      expect(res.body.employee.userId).toBe(ANA.id);
+    });
+
+    it('creates the first Sucursal with a description', async () => {
+      t.businesses.create.mockResolvedValue(CREATED);
+
+      await t.http
+        .post('/businesses')
+        .set(bearer(CLERK_TOKEN))
+        .send({
+          ...VALID_BODY,
+          branch: { ...BRANCH_PART, description: 'Centro' },
+        })
+        .expect(201);
+
+      expect(t.businesses.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          branch: expect.objectContaining({ description: 'Centro' }),
+        }),
+      );
+    });
+
     it('gives the first Sucursal the slug it is sent, in lowercase', async () => {
       t.businesses.create.mockResolvedValue(CREATED);
 
@@ -341,7 +379,6 @@ describe('Negocio', () => {
         'a UTC offset as Sucursal timeZone',
         { branch: { ...BRANCH_PART, timeZone: '-03:00' } },
       ],
-      ['a missing Servicio', { service: undefined }],
       ['a blank Servicio name', { service: { ...SERVICE_PART, name: ' ' } }],
       [
         'a fractional durationMinutes',

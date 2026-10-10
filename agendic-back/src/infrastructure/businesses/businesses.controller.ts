@@ -37,7 +37,7 @@ export class BusinessesController {
     return {
       business: presentBusiness(created.business),
       branch: presentBranch(created.branch),
-      service: presentService(created.service),
+      service: created.service && presentService(created.service),
       employee: presentEmployee(created.employee),
     };
   }
