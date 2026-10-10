@@ -3,6 +3,7 @@
 export const SIGN_IN_PATH = '/sign-in';
 export const SIGNED_IN_HOME_PATH = '/bookings';
 export const BUSINESS_PATH = '/business';
+export const BRANCHES_PATH = '/business/branches';
 
 /**
  * La ruta del Enlace de reserva (ADR 0014): sin tramo de Sucursal, la página del Negocio; con el tramo de un

@@ -31,6 +31,12 @@ export const branchSchema = z.object({
     timeZone: required('la zona horaria'),
 });
 
+/** Una Sucursal editable: lo del wizard más su tramo del Enlace de reserva y su descripción propia (opcional). */
+export const branchFormSchema = branchSchema.extend({
+    slug: businessSchema.shape.slug,
+    description: z.string().trim(),
+});
+
 export const SERVICE_CATEGORIES = [
     { value: 'CLINICA', label: 'Clínica' },
     { value: 'SPA', label: 'Spa' },
@@ -87,6 +93,7 @@ export const inviteEmployeeSchema = z.object({
 
 export type BusinessFields = z.input<typeof businessSchema>;
 export type BranchFields = z.input<typeof branchSchema>;
+export type BranchFormFields = z.input<typeof branchFormSchema>;
 export type ServiceFields = z.input<typeof serviceSchema>;
 export type InviteFields = z.input<typeof inviteEmployeeSchema>;
 
