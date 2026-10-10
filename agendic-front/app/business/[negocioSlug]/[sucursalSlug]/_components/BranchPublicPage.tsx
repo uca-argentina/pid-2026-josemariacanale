@@ -73,6 +73,11 @@ export function BranchPublicPage({
                             {branch.address}
                         </span>
                     </div>
+                    {branch.description && (
+                        <p className="mt-4 max-w-3xl text-[15.5px] leading-relaxed text-muted-foreground">
+                            {branch.description}
+                        </p>
+                    )}
                 </header>
 
                 {/* Sin Imágenes no hay galería: la página arranca directo en los Servicios. */}
