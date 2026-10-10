@@ -15,6 +15,7 @@ export interface CreateBranchInput {
   address: string;
   timeZone: string;
   slug: string;
+  /** Opcional; sin ella, la Sucursal queda sin descripción propia (`null`). */
   description?: string | null;
 }
 
