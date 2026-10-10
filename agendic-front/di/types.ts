@@ -10,6 +10,12 @@ import type { IInstrumentationService } from '@/src/application/services/instrum
 import type { IListBusinessesUseCase } from '@/src/application/use-cases/businesses/list-businesses.use-case';
 import type { IGetMyBusinessController } from '@/src/interface-adapters/controllers/businesses/get-my-business.controller';
 import type { ICreateBusinessUseCase } from '@/src/application/use-cases/businesses/create-business.use-case';
+import type { IUploadBranchImageUseCase } from '@/src/application/use-cases/businesses/upload-branch-image.use-case';
+import type { IUploadBranchImageController } from '@/src/interface-adapters/controllers/businesses/upload-branch-image.controller';
+import type { IDeleteBranchImageUseCase } from '@/src/application/use-cases/businesses/delete-branch-image.use-case';
+import type { IDeleteBranchImageController } from '@/src/interface-adapters/controllers/businesses/delete-branch-image.controller';
+import type { IReorderBranchImagesUseCase } from '@/src/application/use-cases/businesses/reorder-branch-images.use-case';
+import type { IReorderBranchImagesController } from '@/src/interface-adapters/controllers/businesses/reorder-branch-images.controller';
 import type { IUpdateBusinessUseCase } from '@/src/application/use-cases/businesses/update-business.use-case';
 import type { IUpdateBusinessController } from '@/src/interface-adapters/controllers/businesses/update-business.controller';
 import type { ICreateBusinessController } from '@/src/interface-adapters/controllers/businesses/create-business.controller';
@@ -121,6 +127,9 @@ export const DI_SYMBOLS = {
     ICreateBusinessUseCase: Symbol.for('ICreateBusinessUseCase'),
     IListBusinessesUseCase: Symbol.for('IListBusinessesUseCase'),
     IUpdateBusinessUseCase: Symbol.for('IUpdateBusinessUseCase'),
+    IUploadBranchImageUseCase: Symbol.for('IUploadBranchImageUseCase'),
+    IDeleteBranchImageUseCase: Symbol.for('IDeleteBranchImageUseCase'),
+    IReorderBranchImagesUseCase: Symbol.for('IReorderBranchImagesUseCase'),
     IGetPublicBusinessUseCase: Symbol.for('IGetPublicBusinessUseCase'),
     IGetPublicBranchUseCase: Symbol.for('IGetPublicBranchUseCase'),
     IListEmployeesUseCase: Symbol.for('IListEmployeesUseCase'),
@@ -164,6 +173,9 @@ export const DI_SYMBOLS = {
     ICreateBusinessController: Symbol.for('ICreateBusinessController'),
     IGetMyBusinessController: Symbol.for('IGetMyBusinessController'),
     IUpdateBusinessController: Symbol.for('IUpdateBusinessController'),
+    IUploadBranchImageController: Symbol.for('IUploadBranchImageController'),
+    IDeleteBranchImageController: Symbol.for('IDeleteBranchImageController'),
+    IReorderBranchImagesController: Symbol.for('IReorderBranchImagesController'),
     IGetPublicBusinessController: Symbol.for('IGetPublicBusinessController'),
     IGetPublicBranchController: Symbol.for('IGetPublicBranchController'),
     IListMyEmployeesController: Symbol.for('IListMyEmployeesController'),
@@ -233,6 +245,9 @@ export interface DI_RETURN_TYPES {
     ICreateBusinessUseCase: ICreateBusinessUseCase;
     IListBusinessesUseCase: IListBusinessesUseCase;
     IUpdateBusinessUseCase: IUpdateBusinessUseCase;
+    IUploadBranchImageUseCase: IUploadBranchImageUseCase;
+    IDeleteBranchImageUseCase: IDeleteBranchImageUseCase;
+    IReorderBranchImagesUseCase: IReorderBranchImagesUseCase;
     IGetPublicBusinessUseCase: IGetPublicBusinessUseCase;
     IGetPublicBranchUseCase: IGetPublicBranchUseCase;
     IListEmployeesUseCase: IListEmployeesUseCase;
@@ -276,6 +291,9 @@ export interface DI_RETURN_TYPES {
     ICreateBusinessController: ICreateBusinessController;
     IGetMyBusinessController: IGetMyBusinessController;
     IUpdateBusinessController: IUpdateBusinessController;
+    IUploadBranchImageController: IUploadBranchImageController;
+    IDeleteBranchImageController: IDeleteBranchImageController;
+    IReorderBranchImagesController: IReorderBranchImagesController;
     IGetPublicBusinessController: IGetPublicBusinessController;
     IGetPublicBranchController: IGetPublicBranchController;
     IListMyEmployeesController: IListMyEmployeesController;

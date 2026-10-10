@@ -18,3 +18,10 @@ export class AlreadyOwnerError extends Error {
         super(message, options);
     }
 }
+
+// 422: the Sucursal already has its five Imágenes.
+export class BranchImageLimitError extends Error {
+    constructor(message: string, options?: ErrorOptions) {
+        super(message, options);
+    }
+}
