@@ -134,6 +134,16 @@ describe('Enlace del Turno', () => {
 
       expect(t.bookings.cancelPendingOrBooked).toHaveBeenCalledWith(BOOKED.id);
       expect(res.body).toMatchObject({ id: BOOKED.id, status: 'CANCELLED' });
+      expect(t.mailer.sendBookingCancellation).toHaveBeenCalledWith(
+        BOOKED.clientEmail,
+        BOOKED.link,
+      );
+    });
+
+    it('sigue respondiendo 200 si falla el mail al Cliente, porque el Turno ya quedó cancelado', async () => {
+      t.mailer.sendBookingCancellation.mockRejectedValue(new Error('SMTP down'));
+
+      await patch().expect(200);
     });
 
     it('cancela un Turno PENDING por su Enlace', async () => {
@@ -203,6 +213,10 @@ describe('Enlace del Turno', () => {
         status: BookingStatus.BOOKED,
       });
       expect(res.body).toMatchObject({ id: BOOKED.id, startsAt: NEW_START });
+      expect(t.mailer.sendBookingReschedule).toHaveBeenCalledWith(
+        BOOKED.clientEmail,
+        BOOKED.link,
+      );
     });
 
     it('deja PENDING un Turno cuando el Servicio pide Aprobación manual', async () => {

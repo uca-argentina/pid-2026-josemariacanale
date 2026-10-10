@@ -11,6 +11,7 @@ import {
   createTestApp,
   scriptSession,
   TestApp,
+  cancelledBookings,
 } from '../../test-app';
 
 describe('Usuario', () => {
@@ -365,7 +366,7 @@ describe('Usuario', () => {
       scriptSession(t);
       t.users.findById.mockResolvedValue(ANA);
       t.businesses.listByOwner.mockResolvedValue([]);
-      t.users.retire.mockResolvedValue({ cancelledBookings: 2 });
+      t.users.retire.mockResolvedValue({ cancelledBookings: cancelledBookings(2) });
 
       const res = await t.http
         .delete('/users/me')
@@ -374,6 +375,11 @@ describe('Usuario', () => {
 
       expect(res.body).toEqual({});
       expect(t.users.retire).toHaveBeenCalledWith(ANA.id, t.clock.now());
+      expect(t.mailer.sendBookingCancellation).toHaveBeenCalledTimes(2);
+      expect(t.mailer.sendBookingCancellation).toHaveBeenCalledWith(
+        'cliente1@example.com',
+        'link-cancelado-1',
+      );
       expect(t.clerkAuth.deleteUser).toHaveBeenCalledWith(ANA.clerkId);
       expect(t.users.retire.mock.invocationCallOrder[0]).toBeLessThan(
         t.clerkAuth.deleteUser.mock.invocationCallOrder[0],
@@ -400,7 +406,7 @@ describe('Usuario', () => {
       scriptSession(t);
       t.users.findById.mockResolvedValue(ANA);
       t.businesses.listByOwner.mockResolvedValue([]);
-      t.users.retire.mockResolvedValue({ cancelledBookings: 0 });
+      t.users.retire.mockResolvedValue({ cancelledBookings: cancelledBookings(0) });
       t.clerkAuth.deleteUser.mockRejectedValueOnce(
         new ExternalServiceError(
           'No se pudo borrar el Usuario en el Proveedor de autenticación',

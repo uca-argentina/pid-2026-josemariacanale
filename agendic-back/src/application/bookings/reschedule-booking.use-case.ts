@@ -12,11 +12,13 @@ import {
   SERVICES_REPOSITORY,
   ServicesRepository,
 } from '../../domain/services/services.repository';
+import { MAILER, Mailer } from '../../domain/mailer';
 import { ListSlotsUseCase } from '../slots/list-slots.use-case';
+import { notifyClients } from './notify-clients';
 import { pickEmployee } from './pick-employee';
 import { findOwnBookedBooking } from './find-own-booked-booking';
 
-/** Mueve un Turno aceptado a otro Horario reservable del mismo Servicio, con el mismo Empleado si está libre y si no con otro (ver `pickEmployee`). */
+/** Mueve un Turno aceptado a otro Horario reservable del mismo Servicio, con el mismo Empleado si está libre y si no con otro (ver `pickEmployee`), y le avisa por mail al Cliente. */
 @Injectable()
 export class RescheduleBookingUseCase {
   constructor(
@@ -25,6 +27,7 @@ export class RescheduleBookingUseCase {
     private readonly employees: EmployeesRepository,
     @Inject(SERVICES_REPOSITORY) private readonly services: ServicesRepository,
     private readonly listSlots: ListSlotsUseCase,
+    @Inject(MAILER) private readonly mailer: Mailer,
   ) {}
 
   /**
@@ -62,11 +65,15 @@ export class RescheduleBookingUseCase {
       startsAt,
       { excludeBookingId: bookingId, keepEmployeeId: booking.employeeId ?? undefined },
     );
-    return this.bookings.reschedule(bookingId, {
+    const rescheduled = await this.bookings.reschedule(bookingId, {
       ...attendant,
       prepStartsAt,
       startsAt,
       endsAt,
     });
+    await notifyClients([rescheduled], (email, link) =>
+      this.mailer.sendBookingReschedule(email, link),
+    );
+    return rescheduled;
   }
 }

@@ -51,6 +51,7 @@ describe('PrismaUsersRepository.retire (real database)', () => {
         endsAt: new Date(startsAt.getTime() + 3_600_000),
         status,
         link: `${tag}-${label}`,
+        client: { create: { name: 'Cliente', email: `${tag}-${label}@example.com` } },
       },
     });
 
@@ -134,7 +135,13 @@ describe('PrismaUsersRepository.retire (real database)', () => {
 
     const result = await repository.retire(user.id, NOW);
 
-    expect(result).toEqual({ cancelledBookings: 2 });
+    expect(result.cancelledBookings).toHaveLength(2);
+    expect(result.cancelledBookings).toEqual(
+      expect.arrayContaining([
+        { clientEmail: `${tag}-personal-pending@example.com`, link: `${tag}-personal-pending` },
+        { clientEmail: `${tag}-shared-booked@example.com`, link: `${tag}-shared-booked` },
+      ]),
+    );
     expect((await prisma.user.findUniqueOrThrow({ where: { id: user.id } })).deletedAt).toEqual(NOW);
     const retiredPersonal = await prisma.service.findUniqueOrThrow({ where: { id: personal.id } });
     expect(retiredPersonal.deletedAt).toEqual(NOW);
@@ -203,7 +210,13 @@ describe('PrismaUsersRepository.retire (real database)', () => {
 
     const result = await repository.retire(owner.id, NOW);
 
-    expect(result).toEqual({ cancelledBookings: 2 });
+    expect(result.cancelledBookings).toHaveLength(2);
+    expect(result.cancelledBookings).toEqual(
+      expect.arrayContaining([
+        { clientEmail: `${tag}-boss-workers@example.com`, link: `${tag}-boss-workers` },
+        { clientEmail: `${tag}-boss-pending@example.com`, link: `${tag}-boss-pending` },
+      ]),
+    );
     expect((await prisma.business.findUniqueOrThrow({ where: { id: business.id } })).deletedAt).toEqual(NOW);
     const retiredService = await prisma.service.findUniqueOrThrow({ where: { id: service.id } });
     expect(retiredService.deletedAt).toEqual(NOW);

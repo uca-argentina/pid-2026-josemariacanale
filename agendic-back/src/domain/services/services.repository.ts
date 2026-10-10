@@ -1,3 +1,4 @@
+import { ClientNotice } from '../bookings/booking';
 import { EmployeeService, Service } from './service';
 
 export const SERVICES_REPOSITORY = Symbol('ServicesRepository');
@@ -79,7 +80,7 @@ export interface ServicesRepository {
   retire(
     id: number,
     deletedAt: Date,
-  ): Promise<{ service: Service; cancelledBookings: number }>;
+  ): Promise<{ service: Service; cancelledBookings: ClientNotice[] }>;
   /** Throws ConflictError when the Employee is already in charge of the Service. */
   addEmployee(link: EmployeeService): Promise<Service>;
   /** Points the Employee's link to another of their Availabilities; touches no Booking. Throws NotFoundError when they don't attend it. */
@@ -89,7 +90,7 @@ export interface ServicesRepository {
     serviceId: number,
     employeeId: number,
     now: Date,
-  ): Promise<{ service: Service; cancelledBookings: number }>;
+  ): Promise<{ service: Service; cancelledBookings: ClientNotice[] }>;
   /** Services not dados de baja that this Employee is in charge of, verified or not. */
   listActiveByEmployee(employeeId: number): Promise<Service[]>;
   /** The (Employee, Service) link, with the Availability the Employee uses for it. Null if they don't attend it. */

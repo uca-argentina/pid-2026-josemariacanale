@@ -39,7 +39,7 @@ const knownError = (code: string) =>
 describe('PrismaEmployeesRepository', () => {
   const tx = {
     employee: { update: jest.fn() },
-    booking: { updateMany: jest.fn() },
+    booking: { findMany: jest.fn(), updateMany: jest.fn() },
   };
   const prisma = {
     employee: {
@@ -132,11 +132,18 @@ describe('PrismaEmployeesRepository', () => {
 
     it('sets deletedAt, takes the Employee off every Service, and cancels their future BOOKED Turnos, atomically', async () => {
       tx.employee.update.mockResolvedValue({ ...EMPLOYEE_ROW, deletedAt });
-      tx.booking.updateMany.mockResolvedValue({ count: 4 });
+      tx.booking.findMany.mockResolvedValue([
+        { id: 10, link: 'l-10', client: { email: 'a@example.com' } },
+        { id: 11, link: 'l-11', client: { email: 'b@example.com' } },
+      ]);
+      tx.booking.updateMany.mockResolvedValue({ count: 2 });
 
       await expect(repository.retire(1, deletedAt)).resolves.toEqual({
         employee: { ...EMPLOYEE, deletedAt },
-        cancelledBookings: 4,
+        cancelledBookings: [
+          { clientEmail: 'a@example.com', link: 'l-10' },
+          { clientEmail: 'b@example.com', link: 'l-11' },
+        ],
       });
 
       expect(prisma.$transaction).toHaveBeenCalledTimes(1);
@@ -145,12 +152,16 @@ describe('PrismaEmployeesRepository', () => {
         data: { deletedAt, services: { deleteMany: {} } },
         include: WITH_USER,
       });
-      expect(tx.booking.updateMany).toHaveBeenCalledWith({
+      expect(tx.booking.findMany).toHaveBeenCalledWith({
         where: {
           employeeId: 1,
           status: { in: ['PENDING', 'BOOKED'] },
           startsAt: { gt: deletedAt },
         },
+        select: { id: true, link: true, client: { select: { email: true } } },
+      });
+      expect(tx.booking.updateMany).toHaveBeenCalledWith({
+        where: { id: { in: [10, 11] } },
         data: { status: 'CANCELLED' },
       });
     });

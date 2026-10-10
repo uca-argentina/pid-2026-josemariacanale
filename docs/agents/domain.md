@@ -55,6 +55,7 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | Comentario del Turno | `Booking.notes` (opcional) |
 | Enlace del Turno (ADR 0022) | `Booking.link` (secreto, único, generado al crear); `POST /bookings` lo devuelve como `link`; `GET/PATCH /booking-links/:secret` responden el Turno con `ClientBooking` (incluye `user: { slug } \| null`, el Enlace de reserva del Usuario en un Servicio personal); en el front, `getBookingByLink` / `cancelBookingByLink` / `rescheduleBookingByLink` y la ruta `/turnos/<link>` |
 | Reservar de nuevo | `bookAgainPath` (`app/routes.ts`), el botón `BookAgainLink` al pie de `/turnos/<link>` |
+| Aviso de cambio del Turno | `Mailer.sendBookingCancellation` / `sendBookingReschedule` / `sendBookingRejection` (`notifyClients`: un mail que falla se loguea y no deshace el cambio) |
 | Código de verificación del Turno | `BookingVerificationCodes` (ADR 0006, 0022); en el front, las seis casillas de `CodeStep` sobre `code-input.ts` |
 | Turno pendiente | `BookingStatus.PENDING` |
 | Aceptar turno | `accept` (`PENDING` → `BOOKED`) |
