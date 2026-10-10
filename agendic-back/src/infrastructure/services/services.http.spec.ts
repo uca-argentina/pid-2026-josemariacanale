@@ -125,8 +125,8 @@ const PRESENTED_SERVICE = {
   dailyLimit: SERVICE.dailyLimit,
   slotInterval: SERVICE.slotInterval,
   minimumNoticeMinutes: SERVICE.minimumNoticeMinutes,
-  // The Usuario behind an Empleado, and their foto de perfil, are not part of the public API.
-  employees: IN_CHARGE.map(({ userId: _, imageUrl: _i, ...employee }) => employee),
+  // The Usuario behind an Empleado is not part of the public API; their foto de perfil is.
+  employees: IN_CHARGE.map(({ userId: _, ...employee }) => employee),
 };
 
 describe('Servicio', () => {
@@ -819,6 +819,7 @@ describe('Servicio', () => {
         id: OTHER_EMPLOYEE.id,
         name: OTHER_EMPLOYEE.name,
         availabilityId: 20,
+        imageUrl: OTHER_EMPLOYEE.imageUrl,
       });
     });
 
@@ -1252,6 +1253,7 @@ describe('Servicio', () => {
         id: OTHER_EMPLOYEE.id,
         name: OTHER_EMPLOYEE.name,
         availabilityId: 21,
+        imageUrl: OTHER_EMPLOYEE.imageUrl,
       });
       for (const method of Object.values(t.bookings))
         expect(method).not.toHaveBeenCalled();
@@ -1352,6 +1354,38 @@ describe('Servicio', () => {
 
       expect(res.body).toEqual([PRESENTED_SERVICE]);
       expect(JSON.stringify(res.body)).not.toContain(ANAS_EMPLOYEE.email);
+    });
+
+    it("shows each Empleado's foto de perfil, or null without one, and nothing else of the Usuario", async () => {
+      t.branches.findById.mockResolvedValue(BRANCH);
+      t.services.listActiveByBranch.mockResolvedValue([
+        {
+          ...SERVICE,
+          employees: [
+            { ...IN_CHARGE[0], imageUrl: 'https://img.clerk.com/ana.png' },
+            { ...IN_CHARGE[0], id: 2, imageUrl: null },
+          ],
+        },
+      ]);
+
+      const res = await t.http
+        .get(`/branches/${BRANCH.id}/services`)
+        .expect(200);
+
+      expect(res.body[0].employees).toEqual([
+        {
+          id: IN_CHARGE[0].id,
+          name: IN_CHARGE[0].name,
+          availabilityId: 10,
+          imageUrl: 'https://img.clerk.com/ana.png',
+        },
+        {
+          id: 2,
+          name: IN_CHARGE[0].name,
+          availabilityId: 10,
+          imageUrl: null,
+        },
+      ]);
     });
 
     it('leaves out the Servicios ocultos', async () => {
