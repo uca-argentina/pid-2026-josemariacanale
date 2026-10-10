@@ -25,6 +25,7 @@ const BRANCH_PART = {
   name: ANAS_BRANCH.name,
   address: ANAS_BRANCH.address,
   timeZone: ANAS_BRANCH.timeZone,
+  slug: ANAS_BRANCH.slug,
 };
 
 const SERVICE_PART = {
@@ -107,7 +108,7 @@ describe('Negocio', () => {
 
       expect(t.businesses.create).toHaveBeenCalledWith({
         business: { ...BUSINESS_PART, ownerId: ANA.id },
-        branch: { ...BRANCH_PART, slug: ANAS_BUSINESS.slug },
+        branch: BRANCH_PART,
         service: {
           ...SERVICE_PART,
           depositPercent: null,
@@ -325,6 +326,10 @@ describe('Negocio', () => {
         { business: { ...BUSINESS_PART, slug: 'a'.repeat(41) } },
       ],
       ['a missing Sucursal', { branch: undefined }],
+      [
+        'a missing Sucursal slug',
+        { branch: { ...BRANCH_PART, slug: undefined } },
+      ],
       [
         'a malformed Sucursal slug',
         { branch: { ...BRANCH_PART, slug: 'centro!' } },

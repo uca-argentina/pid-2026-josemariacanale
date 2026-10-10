@@ -57,7 +57,7 @@ actualizarlo a mano cuando se agregue, cambie o borre un endpoint.
 | GET | `/businesses/:id` | no | Detalle de un negocio |
 | GET | `/businesses/by-slug/:slug` | no | Detalle de un negocio por su Enlace de reserva; el slug se compara en minúsculas; 404 si no existe o si el Negocio está dado de baja (ADR 0024; su slug no se libera, otro Negocio no puede tomarlo: 409) |
 
-- `CreateBusinessDto`: `{ business: { name, description, slug }, branch: { name, address, timeZone, slug? }, service: ServiceFieldsDto }`; `branch` valida sus campos igual que `CreateBranchDto` del endpoint de Sucursales, salvo que su `slug` es opcional: sin él, la primera Sucursal toma el `slug` del Negocio
+- `CreateBusinessDto`: `{ business: { name, description, slug }, branch: { name, address, timeZone, slug }, service: ServiceFieldsDto }`; `branch` valida sus campos igual que `CreateBranchDto` del endpoint de Sucursales, `slug` incluido: es requerido y sin él es 400 (antes, sin él la primera Sucursal tomaba el `slug` del Negocio y el Enlace de reserva quedaba `/business/x/x`)
 - `UpdateBusinessDto`: `{ name?, description?, slug? }`
 - `slug` (Enlace de reserva): se pasa a minúsculas, 3-40 caracteres, palabras de letras y dígitos unidas por guiones (`^[a-z0-9]+(-[a-z0-9]+)*$`); formato inválido → 400, slug ya tomado → 409
 - Respuesta (`presentBusiness`): `{ id, name, description, slug, ownerId }`
