@@ -33,7 +33,7 @@ export class CreateBusinessUseCase {
         ...input.branch,
         slug: input.branch.slug ?? input.business.slug,
       },
-      service: {
+      service: input.service && {
         ...input.service,
         description: input.service.description ?? null,
         depositPercent: input.service.depositPercent ?? null,

@@ -24,7 +24,7 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | Negocio | `Business` |
 | Dueño | `owner` (`Business.ownerId`) |
 | Enlace de reserva | `Business.slug` (tramo del Negocio) + `Branch.slug` (tramo de la Sucursal, único por `businessId`); la URL del front es `/business/<negocio-slug>/<sucursal-slug>`, y `/business/<negocio-slug>/<sucursal-slug>/<servicio-slug>` con el tramo del Servicio (`Service.slug`, único por `branchId` entre los no dados de baja) |
-| Sucursal | `Branch` (sin horario de apertura ni de cierre) |
+| Sucursal | `Branch` (sin horario de apertura ni de cierre; descripción propia opcional → `Branch.description`) |
 | Imágenes de Sucursal | `BranchImage` (`url`, `order`) |
 | Zona horaria | `Branch.timeZone` |
 | Usuario | `User` (foto de perfil → `User.imageUrl`, la de Clerk al crearse) |
