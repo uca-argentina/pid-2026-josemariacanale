@@ -30,8 +30,8 @@ export class CancelBookingByLinkUseCase {
       this.clock,
       booking,
     );
-    await notifyClients([cancelled], (email, link) =>
-      this.mailer.sendBookingCancellation(email, link),
+    await notifyClients([cancelled], (email, noticeLink) =>
+      this.mailer.sendBookingCancellation(email, noticeLink),
     );
     return cancelled;
   }

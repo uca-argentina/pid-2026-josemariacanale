@@ -31,6 +31,10 @@ export class RetireServiceUseCase {
     @Inject(MAILER) private readonly mailer: Mailer,
   ) {}
 
+  /**
+   * @throws {NotFoundError} el Servicio no existe
+   * @throws {ForbiddenError} el Usuario no es el Dueño del Servicio
+   */
   async execute(
     userId: number,
     serviceId: number,

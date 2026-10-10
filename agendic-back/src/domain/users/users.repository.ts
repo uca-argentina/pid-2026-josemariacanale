@@ -1,4 +1,4 @@
-import { CancelledBooking } from '../bookings/booking';
+import { ClientNotice } from '../bookings/booking';
 import { User } from './user';
 
 export const USERS_REPOSITORY = Symbol('UsersRepository');
@@ -23,5 +23,5 @@ export interface UsersRepository {
    * (taking them off every Servicio, even as its last Empleado) and cancels their future PENDING and BOOKED Turnos.
    * Nothing is deleted. Throws NotFoundError when the Usuario does not exist.
    */
-  retire(id: number, deletedAt: Date): Promise<{ cancelledBookings: CancelledBooking[] }>;
+  retire(id: number, deletedAt: Date): Promise<{ cancelledBookings: ClientNotice[] }>;
 }

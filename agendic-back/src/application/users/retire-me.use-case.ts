@@ -12,8 +12,10 @@ import {
 /**
  * Da de baja al Usuario de la Sesión (ADR 0024).
  *
- * Si es Dueño, su Negocio cae con él. Avisa por mail al Cliente de cada Turno futuro que se cancela. Primero en Postgres y después en Clerk, que no comparten
+ * Si es Dueño, su Negocio cae con él. Primero en Postgres y después en Clerk, que no comparten
  * transacción. Repetir la baja salta el primer paso y solo reintenta el borrado en Clerk.
+ *
+ * Entre los dos pasos le avisa por mail al Cliente de cada Turno futuro que se canceló.
  *
  * @throws {NotFoundError} el Usuario no existe
  * @throws {ExternalServiceError} Clerk falló; la fila ya quedó dada de baja

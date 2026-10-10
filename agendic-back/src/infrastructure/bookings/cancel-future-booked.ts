@@ -1,4 +1,4 @@
-import { CancelledBooking } from '../../domain/bookings/booking';
+import { ClientNotice } from '../../domain/bookings/booking';
 import { Prisma } from '../../generated/prisma/client';
 
 /**
@@ -19,7 +19,7 @@ export async function cancelFutureBooked(
     businessId?: number;
   },
   now: Date,
-): Promise<CancelledBooking[]> {
+): Promise<ClientNotice[]> {
   const { businessId, ...rest } = where;
   const rows = await tx.booking.findMany({
     where: {

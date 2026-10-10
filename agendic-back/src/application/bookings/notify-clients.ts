@@ -1,5 +1,5 @@
 import { Logger } from '@nestjs/common';
-import { CancelledBooking } from '../../domain/bookings/booking';
+import { ClientNotice } from '../../domain/bookings/booking';
 
 const logger = new Logger('NotifyClients');
 
@@ -10,7 +10,7 @@ const logger = new Logger('NotifyClients');
  * antes de borrarlo en Clerk) no lo desharía.
  */
 export async function notifyClients(
-  bookings: CancelledBooking[],
+  bookings: ClientNotice[],
   send: (email: string, link: string) => Promise<void>,
 ): Promise<void> {
   const results = await Promise.allSettled(
@@ -19,7 +19,7 @@ export async function notifyClients(
   results.forEach((result, index) => {
     if (result.status === 'rejected')
       logger.error(
-        `Aviso de cambio del Turno to ${bookings[index].clientEmail} failed`,
+        `Turno change notice to ${bookings[index].clientEmail} failed`,
         result.reason instanceof Error ? result.reason.stack : String(result.reason),
       );
   });

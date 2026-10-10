@@ -32,6 +32,11 @@ export class RetireEmployeeUseCase {
     @Inject(MAILER) private readonly mailer: Mailer,
   ) {}
 
+  /**
+   * @throws {NotFoundError} el Empleado no existe
+   * @throws {ForbiddenError} el Usuario no es el Dueño del Negocio
+   * @throws {BusinessRuleError} es el Dueño, o es el último Empleado de algún Servicio
+   */
   async execute(
     userId: number,
     employeeId: number,

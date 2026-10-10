@@ -45,6 +45,7 @@ export class NodemailerMailer implements Mailer {
     );
   }
 
+  /** Avisa que el Turno quedó cancelado. */
   async sendBookingCancellation(email: string, link: string) {
     await this.sendBookingMail(
       email,
@@ -54,6 +55,7 @@ export class NodemailerMailer implements Mailer {
     );
   }
 
+  /** Avisa que el Turno pasó a otro horario. */
   async sendBookingReschedule(email: string, link: string) {
     await this.sendBookingMail(
       email,
@@ -63,6 +65,7 @@ export class NodemailerMailer implements Mailer {
     );
   }
 
+  /** Avisa que el Negocio rechazó el Turno pendiente. */
   async sendBookingRejection(email: string, link: string) {
     await this.sendBookingMail(
       email,

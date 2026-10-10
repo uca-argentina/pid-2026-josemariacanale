@@ -41,8 +41,8 @@ export class RescheduleBookingByLinkUseCase {
       booking,
       startsAt,
     );
-    await notifyClients([rescheduled], (email, link) =>
-      this.mailer.sendBookingReschedule(email, link),
+    await notifyClients([rescheduled], (email, noticeLink) =>
+      this.mailer.sendBookingReschedule(email, noticeLink),
     );
     return rescheduled;
   }
