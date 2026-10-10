@@ -8,6 +8,7 @@ import {
     Select,
     Switch,
 } from 'radix-ui';
+import { useEffect, useRef, useState } from 'react';
 import { Check, ChevronDown } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/app/_components/ui/avatar';
 import { cn } from '@/app/_components/utils';
@@ -39,7 +40,7 @@ export function PanelButton({
         <button
             type="button"
             className={cn(
-                'inline-flex h-9 items-center justify-center gap-1.5 rounded-md px-3.5 text-[13px] font-bold whitespace-nowrap transition-colors disabled:cursor-not-allowed',
+                'inline-flex h-9 items-center justify-center gap-1.5 rounded-md px-3.5 text-[13px] font-bold whitespace-nowrap transition-colors',
                 FOCUS,
                 BUTTON_VARIANTS[variant],
                 className,
@@ -76,7 +77,7 @@ export function PanelIconButton({
             aria-label={label}
             title={label}
             className={cn(
-                'flex size-9 items-center justify-center transition-colors hover:bg-[#f3f4f6] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent [&_svg]:size-4',
+                'flex size-9 items-center justify-center transition-colors hover:bg-[#f3f4f6] disabled:opacity-40 disabled:hover:bg-transparent [&_svg]:size-4',
                 destructive ? 'text-[#b91c1c]' : 'text-[#374151]',
                 FOCUS,
                 bordered
@@ -138,7 +139,7 @@ export function PanelSwitch({
     return (
         <Switch.Root
             className={cn(
-                'relative inline-flex h-6 w-11 shrink-0 items-center rounded-full bg-[#e5e7eb] transition-colors data-[state=checked]:bg-[#0f1b2d] disabled:cursor-not-allowed disabled:opacity-50',
+                'relative inline-flex h-6 w-11 shrink-0 items-center rounded-full bg-[#e5e7eb] transition-colors data-[state=checked]:bg-[#0f1b2d] disabled:opacity-50',
                 FOCUS,
                 className,
             )}
@@ -156,7 +157,7 @@ export function PanelCheckbox({
     return (
         <Checkbox.Root
             className={cn(
-                'flex size-4 shrink-0 items-center justify-center rounded-[4px] border border-[#d1d5db] bg-white transition-colors data-[state=checked]:border-[#0f1b2d] data-[state=checked]:bg-[#0f1b2d] disabled:cursor-not-allowed disabled:opacity-50',
+                'flex size-4 shrink-0 items-center justify-center rounded-[4px] border border-[#d1d5db] bg-white transition-colors data-[state=checked]:border-[#0f1b2d] data-[state=checked]:bg-[#0f1b2d] disabled:opacity-50',
                 FOCUS,
                 className,
             )}
@@ -316,7 +317,7 @@ export function PanelToggleRow({
 }
 
 export const FIELD_BOX =
-    'flex h-9 w-full items-center rounded-md border border-[#d1d5db] bg-white text-[13.5px] font-medium text-[#0f1b2d] transition-colors hover:border-[#9ca3af] focus-within:border-[#0f1b2d] focus-within:ring-1 focus-within:ring-[#0f1b2d] has-[:disabled]:cursor-not-allowed has-[:disabled]:bg-[#f9fafb] has-[:disabled]:text-[#6b7280] has-[:disabled]:hover:border-[#d1d5db]';
+    'flex h-9 w-full items-center rounded-md border border-[#d1d5db] bg-white text-[13.5px] font-medium text-[#0f1b2d] transition-colors hover:border-[#9ca3af] focus-within:border-[#0f1b2d] focus-within:ring-1 focus-within:ring-[#0f1b2d] has-[:disabled]:bg-[#f9fafb] has-[:disabled]:text-[#6b7280] has-[:disabled]:hover:border-[#d1d5db]';
 
 export function PanelInput({
     prefix,
@@ -336,7 +337,7 @@ export function PanelInput({
             )}
             <input
                 className={cn(
-                    'h-full min-w-0 flex-1 bg-transparent px-3 outline-none placeholder:text-[#9ca3af] disabled:cursor-not-allowed',
+                    'h-full min-w-0 flex-1 bg-transparent px-3 outline-none placeholder:text-[#9ca3af]',
                     prefix && 'pl-1',
                 )}
                 {...props}
@@ -357,7 +358,7 @@ export function PanelTextarea({
     return (
         <textarea
             className={cn(
-                'min-h-24 w-full rounded-md border border-[#d1d5db] bg-white px-3 py-2 text-[13.5px] font-medium leading-relaxed text-[#0f1b2d] transition-colors outline-none placeholder:text-[#9ca3af] hover:border-[#9ca3af] focus:border-[#0f1b2d] focus:ring-1 focus:ring-[#0f1b2d] disabled:cursor-not-allowed disabled:bg-[#f9fafb] disabled:text-[#6b7280]',
+                'min-h-24 w-full rounded-md border border-[#d1d5db] bg-white px-3 py-2 text-[13.5px] font-medium leading-relaxed text-[#0f1b2d] transition-colors outline-none placeholder:text-[#9ca3af] hover:border-[#9ca3af] focus:border-[#0f1b2d] focus:ring-1 focus:ring-[#0f1b2d] disabled:bg-[#f9fafb] disabled:text-[#6b7280]',
                 className,
             )}
             {...props}
@@ -402,7 +403,7 @@ export function PanelSelect({
                 aria-label={ariaLabel}
                 className={cn(
                     FIELD_BOX,
-                    'justify-between px-3 text-left data-[disabled]:cursor-not-allowed data-[disabled]:bg-[#f9fafb] data-[disabled]:text-[#6b7280]',
+                    'justify-between px-3 text-left data-[disabled]:bg-[#f9fafb] data-[disabled]:text-[#6b7280]',
                     className,
                 )}
             >
@@ -446,6 +447,52 @@ export function PanelSelect({
     );
 }
 
+/** Entrada y salida de los modales; sin animación con `prefers-reduced-motion`. */
+const OVERLAY_MOTION =
+    'motion-reduce:animate-none! data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:duration-150 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:duration-100';
+const CONTENT_MOTION = `${OVERLAY_MOTION} data-[state=open]:zoom-in-96 data-[state=closed]:zoom-out-96`;
+
+/**
+ * Cuerpo scrolleable de un modal: el texto se desvanece (`.scroll-fade`, globals.css) solo del lado
+ * donde queda contenido escondido.
+ */
+function ScrollFade({ className, children }: { className?: string; children: React.ReactNode }) {
+    const ref = useRef<HTMLDivElement>(null);
+    const [top, setTop] = useState(false);
+    const [bottom, setBottom] = useState(false);
+
+    const update = () => {
+        const el = ref.current;
+        if (!el) return;
+        setTop(el.scrollTop > 0);
+        setBottom(el.scrollHeight - el.scrollTop - el.clientHeight > 1);
+    };
+
+    // Sin dependencias: el contenido cambia con cada render del modal (por ejemplo, de paso).
+    useEffect(update);
+
+    useEffect(() => {
+        const el = ref.current;
+        if (!el) return;
+        // El alto del contenedor cambia con el viewport.
+        const observer = new ResizeObserver(update);
+        observer.observe(el);
+        return () => observer.disconnect();
+    }, []);
+
+    return (
+        <div
+            ref={ref}
+            onScroll={update}
+            data-fade-top={top || undefined}
+            data-fade-bottom={bottom || undefined}
+            className={cn('scroll-fade overflow-y-auto', className)}
+        >
+            {children}
+        </div>
+    );
+}
+
 export function PanelDialog({
     open,
     onOpenChange,
@@ -466,26 +513,25 @@ export function PanelDialog({
     return (
         <Dialog.Root open={open} onOpenChange={onOpenChange}>
             <Dialog.Portal>
-                <Dialog.Overlay className="fixed inset-0 z-40 bg-[#0f1b2d]/50" />
+                <Dialog.Overlay className={cn('fixed inset-0 z-40 bg-[#0f1b2d]/50', OVERLAY_MOTION)} />
                 <Dialog.Content
                     className={cn(
                         'fixed top-1/2 left-1/2 z-50 flex max-h-[90vh] w-[calc(100vw-32px)] max-w-[600px] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-xl bg-white shadow-[0_24px_60px_rgba(15,27,45,0.25)] outline-none',
+                        CONTENT_MOTION,
                         className,
                     )}
                 >
-                    <div className="flex flex-col gap-6 overflow-y-auto px-8 pt-8 pb-10">
-                        <div className="flex flex-col gap-1">
-                            <Dialog.Title className="m-0 text-[21px] font-extrabold tracking-[-0.035em] text-[#0f1b2d]">
-                                {title}
-                            </Dialog.Title>
-                            {description && (
-                                <Dialog.Description className="m-0 text-[13px] font-medium text-[#6b7280]">
-                                    {description}
-                                </Dialog.Description>
-                            )}
-                        </div>
-                        {children}
+                    <div className="flex flex-col gap-1 px-8 pt-8 pb-6">
+                        <Dialog.Title className="m-0 text-[21px] font-extrabold tracking-[-0.035em] text-[#0f1b2d]">
+                            {title}
+                        </Dialog.Title>
+                        {description && (
+                            <Dialog.Description className="m-0 text-[13px] font-medium text-[#6b7280]">
+                                {description}
+                            </Dialog.Description>
+                        )}
                     </div>
+                    <ScrollFade className="flex flex-col gap-6 px-8 pb-10">{children}</ScrollFade>
                     <div className="flex justify-end gap-2 border-t border-[#e5e7eb] bg-[#f9fafb] px-8 py-4">
                         {footer}
                     </div>
@@ -522,8 +568,8 @@ export function PanelConfirm({
     return (
         <AlertDialog.Root open={open} onOpenChange={onOpenChange}>
             <AlertDialog.Portal>
-                <AlertDialog.Overlay className="fixed inset-0 z-40 bg-[#0f1b2d]/50" />
-                <AlertDialog.Content className="fixed top-1/2 left-1/2 z-50 w-[calc(100vw-32px)] max-w-[480px] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-xl bg-white shadow-[0_24px_60px_rgba(15,27,45,0.25)] outline-none">
+                <AlertDialog.Overlay className={cn('fixed inset-0 z-40 bg-[#0f1b2d]/50', OVERLAY_MOTION)} />
+                <AlertDialog.Content className={cn('fixed top-1/2 left-1/2 z-50 w-[calc(100vw-32px)] max-w-[480px] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-xl bg-white shadow-[0_24px_60px_rgba(15,27,45,0.25)] outline-none', CONTENT_MOTION)}>
                     <div className="flex flex-col gap-2 px-8 pt-8 pb-8">
                         <AlertDialog.Title className="m-0 text-[19px] font-extrabold tracking-[-0.03em] text-[#0f1b2d]">
                             {title}
@@ -591,7 +637,7 @@ export function PanelMenu({
                             disabled={item.disabled}
                             onSelect={item.onSelect}
                             className={cn(
-                                'flex cursor-pointer items-center gap-2 rounded px-2.5 py-2 text-[13px] font-semibold outline-none data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50 data-[highlighted]:bg-[#f3f4f6] [&_svg]:size-4',
+                                'flex cursor-pointer items-center gap-2 rounded px-2.5 py-2 text-[13px] font-semibold outline-none data-[disabled]:opacity-50 data-[highlighted]:bg-[#f3f4f6] [&_svg]:size-4',
                                 item.destructive
                                     ? 'text-[#b91c1c]'
                                     : 'text-[#0f1b2d]',
