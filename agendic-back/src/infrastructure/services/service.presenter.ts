@@ -19,20 +19,6 @@ export const presentService = (service: Service) => ({
   dailyLimit: service.dailyLimit,
   slotInterval: service.slotInterval,
   minimumNoticeMinutes: service.minimumNoticeMinutes,
-  employees: service.employees.map(({ id, name, availabilityId }) => ({
-    id,
-    name,
-    availabilityId,
-  })),
-});
-
-/**
- * The panel catalog's view of a Servicio: `presentService` plus each Empleado's `imageUrl`.
- * Only the owner/Empleado-authenticated catalog shows it; every public Servicio response
- * (Branch page, Servicio by tramo, Horarios reservables) stays on `presentService`.
- */
-export const presentCatalogService = (service: Service) => ({
-  ...presentService(service),
   employees: service.employees.map(({ id, name, availabilityId, imageUrl }) => ({
     id,
     name,
@@ -59,6 +45,6 @@ export const presentCatalogGroup = ({
     id,
     name,
     slug,
-    services: services.map(presentCatalogService),
+    services: services.map(presentService),
   })),
 });
