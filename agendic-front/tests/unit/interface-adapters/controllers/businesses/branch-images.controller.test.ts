@@ -17,6 +17,18 @@ describe('Imágenes de Sucursal controllers', () => {
         expect(useCase).toHaveBeenCalledWith(3, file);
     });
 
+    it('presents only the fields of the image', async () => {
+        const stored = { id: 1, branchId: 3, url: 'u', order: 0, extra: 'x' };
+        const presented = { id: 1, branchId: 3, url: 'u', order: 0 };
+
+        await expect(
+            uploadBranchImageController(instrumentation, signedIn(), jest.fn().mockResolvedValue(stored))({ branchId: 3, file }),
+        ).resolves.toEqual(presented);
+        await expect(
+            reorderBranchImagesController(instrumentation, signedIn(), jest.fn().mockResolvedValue([stored]))({ branchId: 3, imageIds: [1] }),
+        ).resolves.toEqual([presented]);
+    });
+
     it('delete passes the Sucursal and the image to the use case', async () => {
         const useCase = jest.fn().mockResolvedValue(undefined);
 

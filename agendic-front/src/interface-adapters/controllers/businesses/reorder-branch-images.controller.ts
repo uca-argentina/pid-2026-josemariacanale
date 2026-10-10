@@ -2,7 +2,13 @@ import type { IAuthenticationService } from '@/src/application/services/authenti
 import type { IInstrumentationService } from '@/src/application/services/instrumentation.service.interface';
 import type { IReorderBranchImagesUseCase } from '@/src/application/use-cases/businesses/reorder-branch-images.use-case';
 import { InputParseError } from '@/src/entities/errors/common';
-import { reorderBranchImagesSchema } from '@/src/entities/models/branch-image';
+import { reorderBranchImagesSchema, type BranchImage } from '@/src/entities/models/branch-image';
+
+function presenter(images: BranchImage[], instrumentationService: IInstrumentationService) {
+    return instrumentationService.startSpan({ name: 'reorderBranchImages Presenter', op: 'serialize' }, () =>
+        images.map((image) => ({ id: image.id, branchId: image.branchId, url: image.url, order: image.order })),
+    );
+}
 
 export type IReorderBranchImagesController = ReturnType<typeof reorderBranchImagesController>;
 /**
@@ -17,10 +23,10 @@ export const reorderBranchImagesController =
         authenticationService: IAuthenticationService,
         reorderBranchImagesUseCase: IReorderBranchImagesUseCase,
     ) =>
-    async (input: unknown) =>
+    async (input: unknown): Promise<ReturnType<typeof presenter>> =>
         instrumentationService.startSpan({ name: 'reorderBranchImages Controller' }, async () => {
             await authenticationService.getCurrentUser(); // throws UnauthenticatedError
             const { data, error } = reorderBranchImagesSchema.safeParse(input);
             if (error) throw new InputParseError('Invalid data', { cause: error });
-            return reorderBranchImagesUseCase(data.branchId, data.imageIds);
+            return presenter(await reorderBranchImagesUseCase(data.branchId, data.imageIds), instrumentationService);
         });

@@ -2,7 +2,16 @@ import type { IAuthenticationService } from '@/src/application/services/authenti
 import type { IInstrumentationService } from '@/src/application/services/instrumentation.service.interface';
 import type { IUploadBranchImageUseCase } from '@/src/application/use-cases/businesses/upload-branch-image.use-case';
 import { InputParseError } from '@/src/entities/errors/common';
-import { uploadBranchImageSchema } from '@/src/entities/models/branch-image';
+import { uploadBranchImageSchema, type BranchImage } from '@/src/entities/models/branch-image';
+
+function presenter(image: BranchImage, instrumentationService: IInstrumentationService) {
+    return instrumentationService.startSpan({ name: 'uploadBranchImage Presenter', op: 'serialize' }, () => ({
+        id: image.id,
+        branchId: image.branchId,
+        url: image.url,
+        order: image.order,
+    }));
+}
 
 export type IUploadBranchImageController = ReturnType<typeof uploadBranchImageController>;
 /**
@@ -17,10 +26,10 @@ export const uploadBranchImageController =
         authenticationService: IAuthenticationService,
         uploadBranchImageUseCase: IUploadBranchImageUseCase,
     ) =>
-    async (input: unknown) =>
+    async (input: unknown): Promise<ReturnType<typeof presenter>> =>
         instrumentationService.startSpan({ name: 'uploadBranchImage Controller' }, async () => {
             await authenticationService.getCurrentUser(); // throws UnauthenticatedError
             const { data, error } = uploadBranchImageSchema.safeParse(input);
             if (error) throw new InputParseError('Invalid data', { cause: error });
-            return uploadBranchImageUseCase(data.branchId, data.file);
+            return presenter(await uploadBranchImageUseCase(data.branchId, data.file), instrumentationService);
         });
