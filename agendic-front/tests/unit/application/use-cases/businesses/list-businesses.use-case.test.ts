@@ -4,7 +4,7 @@ import { imagesStub, instrumentation } from '@/tests/unit/stubs';
 
 describe('listBusinessesUseCase', () => {
     it('returns the Negocios from the repository', async () => {
-        const business = { id: 1, name: 'Estudio', description: 'Desc', slug: 'estudio', ownerId: 7 };
+        const business = { id: 1, name: 'Estudio', description: 'Desc', slug: 'estudio', logoUrl: null, ownerId: 7 };
         const repo: IBusinessesRepository = { listBusinesses: jest.fn().mockResolvedValue([business]), createBusiness: jest.fn(), updateBusiness: jest.fn(), ...imagesStub };
 
         await expect(listBusinessesUseCase(instrumentation, repo)()).resolves.toEqual([business]);

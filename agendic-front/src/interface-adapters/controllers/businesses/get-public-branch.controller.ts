@@ -21,14 +21,13 @@ function presenter(
     instrumentationService: IInstrumentationService,
 ) {
     return instrumentationService.startSpan({ name: 'getPublicBranch Presenter', op: 'serialize' }, () => ({
-        business: { name: business.name, description: business.description, slug: business.slug },
+        business: { name: business.name, description: business.description, slug: business.slug, logoUrl: business.logoUrl },
         branch: {
             id: branch.id,
             name: branch.name,
             address: branch.address,
             timeZone: branch.timeZone,
             slug: branch.slug,
-            // The Sucursal's own description replaces the Negocio's on its page.
             description: branch.description ?? business.description,
         },
         otherBranches: branches
@@ -45,7 +44,12 @@ function presenter(
 const inputSchema = z.object({ businessSlug: slugSchema, branchSlug: slugSchema, serviceSlug: slugSchema.optional() });
 
 export type IGetPublicBranchController = ReturnType<typeof getPublicBranchController>;
-// Public: the page of an Enlace de reserva does not depend on a Sesión, so there is no authentication.
+/**
+ * The page of a Sucursal by its Enlace de reserva. Public: it does not depend on a Sesión, so there is no
+ * authentication. The Sucursal's own description replaces the Negocio's on its page.
+ *
+ * @throws {InputParseError} a tramo of the Enlace de reserva is not valid
+ */
 export const getPublicBranchController =
     (instrumentationService: IInstrumentationService, getPublicBranchUseCase: IGetPublicBranchUseCase) =>
     async (input: Partial<z.input<typeof inputSchema>>): Promise<ReturnType<typeof presenter>> =>

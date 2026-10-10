@@ -51,7 +51,7 @@ export function BusinessCard({
     actions,
     children,
 }: {
-    business: { name: string; slug: string };
+    business: { name: string; slug: string; logoUrl?: string | null };
     role: BusinessRole;
     actions?: React.ReactNode;
     children?: React.ReactNode;
@@ -59,7 +59,7 @@ export function BusinessCard({
     return (
         <section className="overflow-hidden rounded-xl border border-[#e5e7eb] bg-white">
             <div className="flex flex-wrap items-center gap-3 px-6 py-5">
-                <PanelAvatar name={business.name} />
+                <PanelAvatar name={business.name} imageUrl={business.logoUrl} />
                 <div className="flex min-w-0 flex-col">
                     <span className="truncate text-[14.5px] font-bold tracking-[-0.02em]">{business.name}</span>
                     <span className="truncate text-[12.5px] font-medium text-[#6b7280]">{bookingLink(business.slug)}</span>

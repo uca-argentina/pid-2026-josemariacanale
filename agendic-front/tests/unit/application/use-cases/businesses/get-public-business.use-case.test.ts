@@ -4,7 +4,7 @@ import { instrumentation, publicBusinessesWith } from '@/tests/unit/stubs';
 
 describe('getPublicBusinessUseCase', () => {
     it('returns the Negocio with its Sucursales', async () => {
-        const business = { id: 1, name: 'Vitalia', description: 'Desc', slug: 'vitalia', ownerId: 7 };
+        const business = { id: 1, name: 'Vitalia', description: 'Desc', slug: 'vitalia', logoUrl: null, ownerId: 7 };
         const branches = [
             { id: 10, businessId: 1, name: 'Centro', address: 'Av. 1', timeZone: 'America/Argentina/Buenos_Aires', slug: 'centro' },
         ];
@@ -19,7 +19,7 @@ describe('getPublicBusinessUseCase', () => {
     });
 
     it('returns a Negocio without Sucursales', async () => {
-        const business = { id: 1, name: 'Vitalia', description: 'Desc', slug: 'vitalia', ownerId: 7 };
+        const business = { id: 1, name: 'Vitalia', description: 'Desc', slug: 'vitalia', logoUrl: null, ownerId: 7 };
         const repo = publicBusinessesWith({
             getBusinessBySlug: jest.fn().mockResolvedValue(business),
             listBranches: jest.fn().mockResolvedValue([]),

@@ -79,4 +79,6 @@ export const imagesStub = {
     uploadBranchImage: jest.fn(),
     deleteBranchImage: jest.fn(),
     reorderBranchImages: jest.fn(),
+    uploadBusinessLogo: jest.fn(),
+    deleteBusinessLogo: jest.fn(),
 };

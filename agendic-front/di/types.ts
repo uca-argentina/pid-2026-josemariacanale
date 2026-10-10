@@ -23,6 +23,10 @@ import type { IDeleteBranchImageUseCase } from '@/src/application/use-cases/busi
 import type { IDeleteBranchImageController } from '@/src/interface-adapters/controllers/businesses/delete-branch-image.controller';
 import type { IReorderBranchImagesUseCase } from '@/src/application/use-cases/businesses/reorder-branch-images.use-case';
 import type { IReorderBranchImagesController } from '@/src/interface-adapters/controllers/businesses/reorder-branch-images.controller';
+import type { IUploadBusinessLogoUseCase } from '@/src/application/use-cases/businesses/upload-business-logo.use-case';
+import type { IUploadBusinessLogoController } from '@/src/interface-adapters/controllers/businesses/upload-business-logo.controller';
+import type { IDeleteBusinessLogoUseCase } from '@/src/application/use-cases/businesses/delete-business-logo.use-case';
+import type { IDeleteBusinessLogoController } from '@/src/interface-adapters/controllers/businesses/delete-business-logo.controller';
 import type { IUpdateBusinessUseCase } from '@/src/application/use-cases/businesses/update-business.use-case';
 import type { IUpdateBusinessController } from '@/src/interface-adapters/controllers/businesses/update-business.controller';
 import type { ICreateBusinessController } from '@/src/interface-adapters/controllers/businesses/create-business.controller';
@@ -115,12 +119,10 @@ import type { IMakeAvailabilityDefaultController } from '@/src/interface-adapter
 import type { IDeleteAvailabilityController } from '@/src/interface-adapters/controllers/availabilities/delete-availability.controller';
 
 export const DI_SYMBOLS = {
-    // Services
     IInstrumentationService: Symbol.for('IInstrumentationService'),
     ICrashReporterService: Symbol.for('ICrashReporterService'),
     IAuthenticationService: Symbol.for('IAuthenticationService'),
 
-    // Repositories
     IBusinessesRepository: Symbol.for('IBusinessesRepository'),
     IPublicBusinessesRepository: Symbol.for('IPublicBusinessesRepository'),
     IBranchesRepository: Symbol.for('IBranchesRepository'),
@@ -131,13 +133,14 @@ export const DI_SYMBOLS = {
     IAvailabilitiesRepository: Symbol.for('IAvailabilitiesRepository'),
     IServicesRepository: Symbol.for('IServicesRepository'),
 
-    // Use cases
     ICreateBranchUseCase: Symbol.for('ICreateBranchUseCase'),
     IUpdateBranchUseCase: Symbol.for('IUpdateBranchUseCase'),
     IListBranchesWithImagesUseCase: Symbol.for('IListBranchesWithImagesUseCase'),
     ICreateBusinessUseCase: Symbol.for('ICreateBusinessUseCase'),
     IListBusinessesUseCase: Symbol.for('IListBusinessesUseCase'),
     IUpdateBusinessUseCase: Symbol.for('IUpdateBusinessUseCase'),
+    IUploadBusinessLogoUseCase: Symbol.for('IUploadBusinessLogoUseCase'),
+    IDeleteBusinessLogoUseCase: Symbol.for('IDeleteBusinessLogoUseCase'),
     IUploadBranchImageUseCase: Symbol.for('IUploadBranchImageUseCase'),
     IDeleteBranchImageUseCase: Symbol.for('IDeleteBranchImageUseCase'),
     IReorderBranchImagesUseCase: Symbol.for('IReorderBranchImagesUseCase'),
@@ -179,7 +182,6 @@ export const DI_SYMBOLS = {
     IMakeAvailabilityDefaultUseCase: Symbol.for('IMakeAvailabilityDefaultUseCase'),
     IDeleteAvailabilityUseCase: Symbol.for('IDeleteAvailabilityUseCase'),
 
-    // Controllers
     IGetCurrentUserController: Symbol.for('IGetCurrentUserController'),
     ICreateBranchController: Symbol.for('ICreateBranchController'),
     IUpdateBranchController: Symbol.for('IUpdateBranchController'),
@@ -187,6 +189,8 @@ export const DI_SYMBOLS = {
     ICreateBusinessController: Symbol.for('ICreateBusinessController'),
     IGetMyBusinessController: Symbol.for('IGetMyBusinessController'),
     IUpdateBusinessController: Symbol.for('IUpdateBusinessController'),
+    IUploadBusinessLogoController: Symbol.for('IUploadBusinessLogoController'),
+    IDeleteBusinessLogoController: Symbol.for('IDeleteBusinessLogoController'),
     IUploadBranchImageController: Symbol.for('IUploadBranchImageController'),
     IDeleteBranchImageController: Symbol.for('IDeleteBranchImageController'),
     IReorderBranchImagesController: Symbol.for('IReorderBranchImagesController'),
@@ -240,12 +244,10 @@ export const DI_SYMBOLS = {
 };
 
 export interface DI_RETURN_TYPES {
-    // Services
     IInstrumentationService: IInstrumentationService;
     ICrashReporterService: ICrashReporterService;
     IAuthenticationService: IAuthenticationService;
 
-    // Repositories
     IBusinessesRepository: IBusinessesRepository;
     IPublicBusinessesRepository: IPublicBusinessesRepository;
     IBranchesRepository: IBranchesRepository;
@@ -256,13 +258,14 @@ export interface DI_RETURN_TYPES {
     IAvailabilitiesRepository: IAvailabilitiesRepository;
     IServicesRepository: IServicesRepository;
 
-    // Use cases
     ICreateBranchUseCase: ICreateBranchUseCase;
     IUpdateBranchUseCase: IUpdateBranchUseCase;
     IListBranchesWithImagesUseCase: IListBranchesWithImagesUseCase;
     ICreateBusinessUseCase: ICreateBusinessUseCase;
     IListBusinessesUseCase: IListBusinessesUseCase;
     IUpdateBusinessUseCase: IUpdateBusinessUseCase;
+    IUploadBusinessLogoUseCase: IUploadBusinessLogoUseCase;
+    IDeleteBusinessLogoUseCase: IDeleteBusinessLogoUseCase;
     IUploadBranchImageUseCase: IUploadBranchImageUseCase;
     IDeleteBranchImageUseCase: IDeleteBranchImageUseCase;
     IReorderBranchImagesUseCase: IReorderBranchImagesUseCase;
@@ -304,7 +307,6 @@ export interface DI_RETURN_TYPES {
     IMakeAvailabilityDefaultUseCase: IMakeAvailabilityDefaultUseCase;
     IDeleteAvailabilityUseCase: IDeleteAvailabilityUseCase;
 
-    // Controllers
     IGetCurrentUserController: IGetCurrentUserController;
     ICreateBranchController: ICreateBranchController;
     IUpdateBranchController: IUpdateBranchController;
@@ -312,6 +314,8 @@ export interface DI_RETURN_TYPES {
     ICreateBusinessController: ICreateBusinessController;
     IGetMyBusinessController: IGetMyBusinessController;
     IUpdateBusinessController: IUpdateBusinessController;
+    IUploadBusinessLogoController: IUploadBusinessLogoController;
+    IDeleteBusinessLogoController: IDeleteBusinessLogoController;
     IUploadBranchImageController: IUploadBranchImageController;
     IDeleteBranchImageController: IDeleteBranchImageController;
     IReorderBranchImagesController: IReorderBranchImagesController;

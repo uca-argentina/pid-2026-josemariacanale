@@ -12,7 +12,7 @@ const user = { id: 'user_1', name: 'Ana', email: 'a@a.com' };
 
 describe('createBusinessController', () => {
     it('returns the presented Negocio', async () => {
-        const useCase = jest.fn().mockResolvedValue({ id: 1, name: 'Estudio', description: 'Desc', slug: 'estudio', ownerId: 7 });
+        const useCase = jest.fn().mockResolvedValue({ id: 1, name: 'Estudio', description: 'Desc', slug: 'estudio', logoUrl: null, ownerId: 7 });
         const controller = createBusinessController(
             instrumentation,
             authWith({ getCurrentUser: jest.fn().mockResolvedValue(user) }),

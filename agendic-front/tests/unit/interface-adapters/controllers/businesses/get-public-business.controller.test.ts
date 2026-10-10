@@ -7,12 +7,12 @@ const TZ = 'America/Argentina/Buenos_Aires';
 describe('getPublicBusinessController', () => {
     it('presents the Negocio and the tramo of each Sucursal, and nothing of the Dueño', async () => {
         const useCase = jest.fn().mockResolvedValue({
-            business: { id: 1, name: 'Vitalia', description: 'Desc', slug: 'vitalia', ownerId: 7 },
+            business: { id: 1, name: 'Vitalia', description: 'Desc', slug: 'vitalia', logoUrl: null, ownerId: 7 },
             branches: [{ id: 10, businessId: 1, name: 'Centro', address: 'Av. 1', timeZone: TZ, slug: 'centro' }],
         });
 
         await expect(getPublicBusinessController(instrumentation, useCase)({ businessSlug: 'vitalia' })).resolves.toEqual({
-            business: { name: 'Vitalia', description: 'Desc', slug: 'vitalia' },
+            business: { name: 'Vitalia', description: 'Desc', slug: 'vitalia', logoUrl: null },
             branches: [{ id: 10, name: 'Centro', address: 'Av. 1', slug: 'centro' }],
         });
         expect(useCase).toHaveBeenCalledWith({ businessSlug: 'vitalia' });
@@ -20,7 +20,7 @@ describe('getPublicBusinessController', () => {
 
     it('lowercases the tramo, since nobody copies a link that carefully', async () => {
         const useCase = jest.fn().mockResolvedValue({
-            business: { id: 1, name: 'Vitalia', description: 'Desc', slug: 'vitalia', ownerId: 7 },
+            business: { id: 1, name: 'Vitalia', description: 'Desc', slug: 'vitalia', logoUrl: null, ownerId: 7 },
             branches: [],
         });
 
