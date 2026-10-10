@@ -9,9 +9,10 @@ export const metadata = { title: 'Servicios' };
 
 /**
  * Los Servicios del Usuario: los personales, con su Enlace de reserva, y el catálogo, un grupo por Negocio del que es
- * Empleado activo.
+ * Empleado activo. Con `?nuevo=<businessId>` abre el alta de Servicio de ese Negocio.
  */
-export default async function ServicesPage() {
+export default async function ServicesPage({ searchParams }: { searchParams: Promise<{ nuevo?: string }> }) {
+    const { nuevo } = await searchParams;
     let groups, personal;
     try {
         [groups, personal] = await Promise.all([
@@ -25,5 +26,5 @@ export default async function ServicesPage() {
         return <BackendErrorNotice />;
     }
 
-    return <ServicesList groups={groups} personal={personal} />;
+    return <ServicesList groups={groups} personal={personal} newForBusinessId={Number.isInteger(Number(nuevo)) && nuevo ? Number(nuevo) : undefined} />;
 }

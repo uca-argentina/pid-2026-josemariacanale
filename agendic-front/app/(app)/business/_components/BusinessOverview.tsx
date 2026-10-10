@@ -2,10 +2,10 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, Link2, MoreHorizontal, Pencil, Store, UserPlus } from 'lucide-react';
+import { ArrowRight, Link2, MoreHorizontal, Pencil, Plus, Store, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { PanelIconButton, PanelIconGroup, PanelMenu } from '@/app/(app)/_components/panel-ui';
-import { BRANCHES_PATH } from '@/app/routes';
+import { BRANCHES_PATH, newServicePath } from '@/app/routes';
 import { bookingLink } from '@/app/(app)/_components/mock-services';
 import { BusinessCard } from './business-ui';
 import { EditBusinessDialog, type EditableBusiness } from './EditBusinessDialog';
@@ -81,6 +81,13 @@ export function BusinessOverview({ business }: { business: EditableBusiness }) {
                         description="Los turnos salen mejor con todo tu equipo. Invitalos ahora."
                         href="/business/employees"
                         action="Invitar"
+                    />
+                    <NextStep
+                        icon={<Plus className="text-[#2563eb]" />}
+                        title="Crear servicio"
+                        description="Publicá lo que tus Clientes pueden reservar en tu Negocio."
+                        href={newServicePath(business.id)}
+                        action="Crear"
                     />
                     <NextStep
                         icon={<Store className="text-[#7c3aed]" />}

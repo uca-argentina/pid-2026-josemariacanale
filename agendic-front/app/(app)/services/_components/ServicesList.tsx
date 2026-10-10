@@ -21,7 +21,7 @@ import {
     PanelSelect,
     PanelTextarea,
 } from '@/app/(app)/_components/panel-ui';
-import { BUSINESS_PATH, bookingLinkPath, userLinkPath } from '@/app/routes';
+import { BUSINESS_PATH, SERVICES_PATH, bookingLinkPath, userLinkPath } from '@/app/routes';
 import { createPersonalServiceAction, createServiceAction, updateMySlugAction } from '../actions';
 import { formatPrice } from './format';
 import { HiddenSwitch, OfferButton, PublicLinkButtons, RetireServiceConfirm } from './service-actions';
@@ -436,10 +436,24 @@ const emptyClass = 'm-0 rounded-md border border-dashed border-[#e5e7eb] px-6 py
  * Los Servicios del panel: primero los personales del Usuario, con su Enlace de reserva; después el catálogo, un grupo
  * por Negocio, sus Servicios agrupados por Sucursal en el orden en que llegan.
  */
-export function ServicesList({ groups, personal }: { groups: ServiceGroup[]; personal: PersonalSection }) {
+export function ServicesList({
+    groups,
+    personal,
+    newForBusinessId,
+}: {
+    groups: ServiceGroup[];
+    personal: PersonalSection;
+    /** El Negocio para el que abrir el alta al entrar (`?nuevo=`); solo vale si el Usuario es su Dueño. */
+    newForBusinessId?: number;
+}) {
     const router = useRouter();
     const [query, setQuery] = useState('');
-    const [dialog, setDialog] = useState<DialogState | null>(null);
+    const [dialog, setDialog] = useState<DialogState | null>(() => {
+        const group = groups.find((g) => g.business.id === newForBusinessId && g.role === 'owner' && g.branches.length > 0);
+        if (!group) return null;
+        const target: Target = { kind: 'business', group };
+        return { target, initial: emptyForm(target) };
+    });
     const [editingLink, setEditingLink] = useState(false);
     const [retiring, setRetiring] = useState<{ id: number; name: string } | null>(null);
 
@@ -576,7 +590,10 @@ export function ServicesList({ groups, personal }: { groups: ServiceGroup[]; per
                 <NewServiceDialog
                     key={dialog.initial.slug + (dialog.target.kind === 'business' ? dialog.target.group.business.id : 'personal')}
                     state={dialog}
-                    onClose={() => setDialog(null)}
+                    onClose={() => {
+                        setDialog(null);
+                        if (newForBusinessId !== undefined) router.replace(SERVICES_PATH);
+                    }}
                 />
             )}
             {editingLink && <UserLinkDialog slug={personal.slug} onClose={() => setEditingLink(false)} />}

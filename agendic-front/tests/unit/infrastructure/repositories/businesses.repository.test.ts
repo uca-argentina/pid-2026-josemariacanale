@@ -6,7 +6,6 @@ import { authWith } from '@/tests/unit/stubs';
 const input = {
     business: { name: 'Estudio', description: 'Desc', slug: 'estudio' },
     branch: { name: 'Centro', address: 'Av. 1', timeZone: 'America/Argentina/Buenos_Aires' },
-    service: { name: 'Consulta', slug: 'consulta', category: 'CLINICA' as const, durationMinutes: 30, price: 100 },
 };
 const business = { id: 1, name: 'Estudio', description: 'Desc', slug: 'estudio', logoUrl: null, ownerId: 7 };
 
@@ -18,10 +17,10 @@ const respond = (status: number, body: unknown) =>
 afterEach(() => jest.restoreAllMocks());
 
 describe('BusinessesRepository.createBusiness', () => {
-    it('POSTs with the bearer token and returns the Negocio', async () => {
-        const fetchSpy = respond(201, { business, branch: {}, service: {}, employee: {} });
+    it('POSTs with the bearer token and returns the Negocio with the id of its Sucursal', async () => {
+        const fetchSpy = respond(201, { business, branch: { id: 3 }, service: null, employee: {} });
 
-        await expect(repo().createBusiness(input)).resolves.toEqual(business);
+        await expect(repo().createBusiness(input)).resolves.toEqual({ business, branch: { id: 3 } });
         expect(fetchSpy).toHaveBeenCalledWith(
             'http://api/businesses',
             expect.objectContaining({

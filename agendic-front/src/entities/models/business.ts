@@ -25,20 +25,22 @@ export const businessSchema = z.object({
 });
 export type Business = z.infer<typeof businessSchema>;
 
-/** The exact shape POST /businesses expects. */
+/** The exact shape POST /businesses expects: a Negocio with its first Sucursal, without a Servicio. */
 export const createBusinessSchema = z.object({
     business: z.object({ name: z.string(), description: z.string(), slug: z.string() }),
-    branch: z.object({ name: z.string(), address: z.string(), timeZone: z.string() }),
-    service: z.object({
+    branch: z.object({
         name: z.string(),
-        slug: z.string(),
-        category: z.enum(SERVICE_CATEGORIES),
-        durationMinutes: z.number().int().min(1),
-        price: z.number().min(0),
+        address: z.string(),
+        timeZone: z.string(),
+        slug: z.string().optional(),
         description: z.string().optional(),
     }),
 });
 export type CreateBusiness = z.infer<typeof createBusinessSchema>;
+
+/** What POST /businesses answers with: the Negocio and the id of its first Sucursal, where the images go. */
+export const createdBusinessSchema = z.object({ business: businessSchema, branch: z.object({ id: z.number() }) });
+export type CreatedBusiness = z.infer<typeof createdBusinessSchema>;
 
 /** The exact shape PATCH /businesses/:id expects, plus the id that goes in the path. */
 export const updateBusinessSchema = z.object({
