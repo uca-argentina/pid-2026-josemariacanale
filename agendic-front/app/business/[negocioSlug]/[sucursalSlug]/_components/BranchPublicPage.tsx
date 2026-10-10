@@ -205,7 +205,7 @@ export function BranchPublicPage({
                                 </Button>
                             )}
                             <p className="mt-3.5 text-[13.5px] leading-relaxed text-muted-foreground">
-                                {business.description}
+                                {branch.description}
                             </p>
                             <dl className="mt-4 flex flex-col gap-2.5 border-t border-border pt-4 text-[13.5px]">
                                 <div className="flex gap-2">
