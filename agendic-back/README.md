@@ -17,6 +17,8 @@ Para que el back refresque el nombre, el email y la foto de perfil del Usuario (
 
 ``hasImage` evita guardar la imagen genérica de Clerk: en `false` la foto del Usuario pasa a `null`. Una URL que no se puede parsear se ignora y deja la foto guardada. La foto se refresca aparte del nombre y el email: sin `imageUrl` o sin `hasImage` en el token, solo esa parte queda sin refrescar.
 
+> **Pendiente (producción):** los claims `name`, `email`, `imageUrl` y `hasImage` hay que configurarlos también en la instancia de Clerk de **producción**, no solo en la de desarrollo: los claims no se copian de una instancia a otra. Hasta que estén, el refresco de nombre, email y foto no hace nada en producción (no rompe nada, pero la foto queda desactualizada). Tildar acá cuando esté hecho: `[ ]` claims de perfil configurados en Clerk producción.
+
 Sin esta configuración (o con un token viejo que no la tiene todavía), el back sigue funcionando igual: no refresca nada y no llama a la API de Clerk.
 
 ### Baja de Usuarios
