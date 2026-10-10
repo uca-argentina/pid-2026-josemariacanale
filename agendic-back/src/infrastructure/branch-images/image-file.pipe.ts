@@ -7,6 +7,9 @@ interface UploadedMultipartFile {
   mimetype: string;
 }
 
+/** Size limit of an uploaded image (Sucursal images and Logo del Negocio); over it is a 413. */
+export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+
 /** The formats every browser shows in an <img>. */
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 

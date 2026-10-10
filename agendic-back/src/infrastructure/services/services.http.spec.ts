@@ -1479,6 +1479,27 @@ describe('Servicio', () => {
       );
     });
 
+    it("shows the Logo of each Negocio in its group's business", async () => {
+      t.employees.listActiveByUser.mockResolvedValue([ANAS_EMPLOYEE]);
+      t.businesses.findById.mockResolvedValue({
+        ...ANAS_BUSINESS,
+        logoUrl: 'https://files.example.com/logo',
+      });
+      t.services.listActiveByBranch.mockResolvedValue([]);
+
+      const res = await t.http
+        .get('/employees/me/services')
+        .set(bearer(CLERK_TOKEN))
+        .expect(200);
+
+      expect(res.body[0].business).toEqual({
+        id: ANAS_BUSINESS.id,
+        name: ANAS_BUSINESS.name,
+        slug: ANAS_BUSINESS.slug,
+        logoUrl: 'https://files.example.com/logo',
+      });
+    });
+
     it('leaves out the Negocio dado de baja that an Empleado still has a seat in', async () => {
       t.employees.listActiveByUser.mockResolvedValue([
         ANAS_EMPLOYEE,

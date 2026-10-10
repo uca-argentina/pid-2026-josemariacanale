@@ -48,6 +48,6 @@ export interface BusinessesRepository {
   /** Leaves undefined fields unchanged. */
   update(
     id: number,
-    data: Partial<Pick<Business, 'name' | 'description' | 'slug'>>,
+    data: Partial<Pick<Business, 'name' | 'description' | 'slug' | 'logoUrl'>>,
   ): Promise<Business>;
 }

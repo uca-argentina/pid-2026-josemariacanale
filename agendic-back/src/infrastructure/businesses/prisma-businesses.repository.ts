@@ -101,7 +101,7 @@ export class PrismaBusinessesRepository implements BusinessesRepository {
 
   async update(
     id: number,
-    data: Partial<Pick<Business, 'name' | 'description' | 'slug'>>,
+    data: Partial<Pick<Business, 'name' | 'description' | 'slug' | 'logoUrl'>>,
   ) {
     return toBusiness(
       await this.prisma.business
@@ -118,6 +118,7 @@ const toBusiness = (row: BusinessRow): Business => ({
   ownerId: row.ownerId,
   slug: row.slug,
   deletedAt: row.deletedAt,
+  logoUrl: row.logoUrl,
 });
 
 const CONFLICT_BY_INDEX: Record<string, string> = {

@@ -59,6 +59,7 @@ model Business {
   ownerId     Int       @unique // un Usuario es Dueño de a lo sumo un Negocio (ADR 0012)
   slug        String    @unique // Enlace de reserva: /business/<slug>, always lowercase
   deletedAt   DateTime? @db.Timestamptz(3) // cuándo se dio de baja con su Dueño (ADR 0024); null mientras está activo, también en las filas previas a la migración
+  logoUrl     String? // Logo del Negocio en el storage externo (ADR 0015); null si no tiene
 
   owner       User         @relation(fields: [ownerId], references: [id])
   branches    Branch[]

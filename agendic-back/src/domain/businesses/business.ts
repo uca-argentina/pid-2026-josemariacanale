@@ -10,6 +10,8 @@ export interface Business {
   slug: string;
   /** Cuándo se dio de baja con su Dueño (ADR 0024); `null` mientras está activo. */
   deletedAt: Date | null;
+  /** Logo del Negocio: public URL in the file storage (ADR 0015); `null` while it has none. */
+  logoUrl: string | null;
 }
 
 /** A Negocio is created with its first Sucursal and the Dueño as its Empleado (with their default Availability), and optionally its first Servicio. */
