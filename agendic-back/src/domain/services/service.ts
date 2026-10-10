@@ -51,8 +51,7 @@ export type ServiceEmployee = EmployeeSummary & {
   /** The Usuario behind the Empleado: the one whose agenda a Turno occupies. */
   userId: number;
   /**
-   * From the Usuario's foto de perfil. Carried on the domain type for the panel catalog
-   * (`presentCatalogService`); `presentService`'s public employees mapping omits it.
+   * From the Usuario's foto de perfil; public along with the Empleado's name (ADR 0007).
    */
   imageUrl: string | null;
 };
