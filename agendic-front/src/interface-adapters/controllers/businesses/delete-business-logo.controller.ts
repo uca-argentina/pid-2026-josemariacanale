@@ -19,7 +19,7 @@ export const deleteBusinessLogoController =
     ) =>
     async (input: unknown) =>
         instrumentationService.startSpan({ name: 'deleteBusinessLogo Controller' }, async () => {
-            await authenticationService.getCurrentUser(); // throws UnauthenticatedError
+            await authenticationService.getCurrentUser();
             const { data, error } = deleteBusinessLogoSchema.safeParse(input);
             if (error) throw new InputParseError('Invalid data', { cause: error });
             await deleteBusinessLogoUseCase(data.businessId);

@@ -119,12 +119,10 @@ import type { IMakeAvailabilityDefaultController } from '@/src/interface-adapter
 import type { IDeleteAvailabilityController } from '@/src/interface-adapters/controllers/availabilities/delete-availability.controller';
 
 export const DI_SYMBOLS = {
-    // Services
     IInstrumentationService: Symbol.for('IInstrumentationService'),
     ICrashReporterService: Symbol.for('ICrashReporterService'),
     IAuthenticationService: Symbol.for('IAuthenticationService'),
 
-    // Repositories
     IBusinessesRepository: Symbol.for('IBusinessesRepository'),
     IPublicBusinessesRepository: Symbol.for('IPublicBusinessesRepository'),
     IBranchesRepository: Symbol.for('IBranchesRepository'),
@@ -135,7 +133,6 @@ export const DI_SYMBOLS = {
     IAvailabilitiesRepository: Symbol.for('IAvailabilitiesRepository'),
     IServicesRepository: Symbol.for('IServicesRepository'),
 
-    // Use cases
     ICreateBranchUseCase: Symbol.for('ICreateBranchUseCase'),
     IUpdateBranchUseCase: Symbol.for('IUpdateBranchUseCase'),
     IListBranchesWithImagesUseCase: Symbol.for('IListBranchesWithImagesUseCase'),
@@ -185,7 +182,6 @@ export const DI_SYMBOLS = {
     IMakeAvailabilityDefaultUseCase: Symbol.for('IMakeAvailabilityDefaultUseCase'),
     IDeleteAvailabilityUseCase: Symbol.for('IDeleteAvailabilityUseCase'),
 
-    // Controllers
     IGetCurrentUserController: Symbol.for('IGetCurrentUserController'),
     ICreateBranchController: Symbol.for('ICreateBranchController'),
     IUpdateBranchController: Symbol.for('IUpdateBranchController'),
@@ -248,12 +244,10 @@ export const DI_SYMBOLS = {
 };
 
 export interface DI_RETURN_TYPES {
-    // Services
     IInstrumentationService: IInstrumentationService;
     ICrashReporterService: ICrashReporterService;
     IAuthenticationService: IAuthenticationService;
 
-    // Repositories
     IBusinessesRepository: IBusinessesRepository;
     IPublicBusinessesRepository: IPublicBusinessesRepository;
     IBranchesRepository: IBranchesRepository;
@@ -264,7 +258,6 @@ export interface DI_RETURN_TYPES {
     IAvailabilitiesRepository: IAvailabilitiesRepository;
     IServicesRepository: IServicesRepository;
 
-    // Use cases
     ICreateBranchUseCase: ICreateBranchUseCase;
     IUpdateBranchUseCase: IUpdateBranchUseCase;
     IListBranchesWithImagesUseCase: IListBranchesWithImagesUseCase;
@@ -314,7 +307,6 @@ export interface DI_RETURN_TYPES {
     IMakeAvailabilityDefaultUseCase: IMakeAvailabilityDefaultUseCase;
     IDeleteAvailabilityUseCase: IDeleteAvailabilityUseCase;
 
-    // Controllers
     IGetCurrentUserController: IGetCurrentUserController;
     ICreateBranchController: ICreateBranchController;
     IUpdateBranchController: IUpdateBranchController;

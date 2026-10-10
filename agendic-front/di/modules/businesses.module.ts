@@ -18,12 +18,15 @@ import { deleteBranchImageUseCase } from '@/src/application/use-cases/businesses
 import { deleteBranchImageController } from '@/src/interface-adapters/controllers/businesses/delete-branch-image.controller';
 import { reorderBranchImagesUseCase } from '@/src/application/use-cases/businesses/reorder-branch-images.use-case';
 import { reorderBranchImagesController } from '@/src/interface-adapters/controllers/businesses/reorder-branch-images.controller';
-
 import { uploadBusinessLogoUseCase } from '@/src/application/use-cases/businesses/upload-business-logo.use-case';
 import { uploadBusinessLogoController } from '@/src/interface-adapters/controllers/businesses/upload-business-logo.controller';
 import { deleteBusinessLogoUseCase } from '@/src/application/use-cases/businesses/delete-business-logo.use-case';
 import { deleteBusinessLogoController } from '@/src/interface-adapters/controllers/businesses/delete-business-logo.controller';
 
+/**
+ * Negocios del Dueño, su Logo, las Imágenes de Sucursal y la página del Enlace de reserva. Esa página es pública, por
+ * eso su repositorio no recibe IAuthenticationService.
+ */
 export function createBusinessesModule() {
     const businessesModule = createModule();
 
@@ -125,7 +128,6 @@ export function createBusinessesModule() {
             DI_SYMBOLS.IReorderBranchImagesUseCase,
         ]);
 
-    // The page of the Enlace de reserva: public, so its repository takes no IAuthenticationService.
     businessesModule.bind(DI_SYMBOLS.IPublicBusinessesRepository).toClass(PublicBusinessesRepository);
 
     businessesModule

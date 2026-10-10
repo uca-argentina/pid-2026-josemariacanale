@@ -5,8 +5,10 @@ import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
 import { branchImageSchema, type BranchImage } from '@/src/entities/models/branch-image';
 import { businessSchema, type Business, type CreateBusiness, type UpdateBusiness } from '@/src/entities/models/business';
 
-// A body the back answered with but the schema rejects is a failure of the back, not of the
-// Usuario: it becomes an ApiRequestError without status, like a network failure.
+/**
+ * A body the back answered with but the schema rejects is a failure of the back, not of the Usuario: it becomes an
+ * ApiRequestError without status, like a network failure.
+ */
 function parseOrFail<T>(parse: () => T, what: string): T {
     try {
         return parse();
@@ -55,11 +57,11 @@ export class BusinessesRepository implements IBusinessesRepository {
 
     /**
      * Solo un 400 que habla del `business.slug` se traduce a `InvalidSlugError`; cualquier otro campo inválido sale
-     * como `ApiRequestError` con su mensaje real, para no disfrazarlo de slug.
+     * como `ApiRequestError` con su mensaje real, para no disfrazarlo de slug. Los dos 409 (ya es Dueño, dirección en
+     * uso) el back los distingue solo por el mensaje (ticket 11).
      */
     async createBusiness(input: CreateBusiness): Promise<Business> {
         const { response, body, message } = await this.request('POST /businesses', '/businesses', { method: 'POST', json: input });
-        // Two 409s; the back tells them apart by message (ticket 11).
         if (response.status === 409) {
             throw /ya ten[eé]s un negocio/i.test(message) ? new AlreadyOwnerError(message) : new SlugTakenError(message);
         }
@@ -81,6 +83,11 @@ export class BusinessesRepository implements IBusinessesRepository {
         return parseOrFail(() => businessSchema.parse(body), 'PATCH /businesses/:id');
     }
 
+    /**
+     * `PUT /businesses/:id/logo`: sube el Logo del Negocio y devuelve el Negocio con su `logoUrl` nuevo.
+     *
+     * @throws {ApiRequestError} 400 / 403 / 404 / 413, o un body que no es un Negocio
+     */
     async uploadBusinessLogo(businessId: number, file: File): Promise<Business> {
         const form = new FormData();
         form.append('file', file);
@@ -93,6 +100,11 @@ export class BusinessesRepository implements IBusinessesRepository {
         return parseOrFail(() => businessSchema.parse(body), 'PUT /businesses/:id/logo');
     }
 
+    /**
+     * `DELETE /businesses/:id/logo`: no falla si el Negocio no tenía Logo.
+     *
+     * @throws {ApiRequestError} 403 / 404 u otra falla de la API
+     */
     async deleteBusinessLogo(businessId: number): Promise<void> {
         const { response, message } = await this.request('DELETE /businesses/:id/logo', `/businesses/${businessId}/logo`, {
             method: 'DELETE',

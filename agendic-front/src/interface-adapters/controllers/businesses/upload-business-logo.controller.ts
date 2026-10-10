@@ -26,7 +26,7 @@ export const uploadBusinessLogoController =
     ) =>
     async (input: unknown): Promise<ReturnType<typeof presenter>> =>
         instrumentationService.startSpan({ name: 'uploadBusinessLogo Controller' }, async () => {
-            await authenticationService.getCurrentUser(); // throws UnauthenticatedError
+            await authenticationService.getCurrentUser();
             const { data, error } = uploadBusinessLogoSchema.safeParse(input);
             if (error) throw new InputParseError('Invalid data', { cause: error });
             return presenter(await uploadBusinessLogoUseCase(data.businessId, data.file), instrumentationService);

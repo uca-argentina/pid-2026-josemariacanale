@@ -1,15 +1,17 @@
 import { z } from 'zod';
 import { SERVICE_CATEGORIES, slugSchema } from './business';
 
-// All the public view of a Servicio knows about an Empleado: the email is only for the Dueño.
+/** All the public view of a Servicio knows about an Empleado: the email is only for the Dueño. */
 export const serviceEmployeeSchema = z.object({
     id: z.number(),
     name: z.string(),
 });
 export type ServiceEmployee = z.infer<typeof serviceEmployeeSchema>;
 
-// An active Servicio as GET /branches/:id/services returns it. `depositPercent` is the Seña;
-// null means the Servicio asks for none.
+/**
+ * An active Servicio as GET /branches/:id/services returns it. `depositPercent` is the Seña; null means the Servicio
+ * asks for none.
+ */
 export const serviceSchema = z.object({
     id: z.number(),
     branchId: z.number(),
@@ -52,7 +54,7 @@ export type CatalogService = z.infer<typeof catalogServiceSchema>;
  * Empleado there, and its Sucursales (by tramo, even without Servicios) with the Servicios the Usuario may see.
  */
 export const serviceCatalogGroupSchema = z.object({
-    business: z.object({ id: z.number(), name: z.string(), slug: z.string() }),
+    business: z.object({ id: z.number(), name: z.string(), slug: z.string(), logoUrl: z.string().nullable() }),
     role: z.enum(['owner', 'employee']),
     employeeId: z.number(),
     branches: z.array(

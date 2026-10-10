@@ -10,7 +10,11 @@ function presenter(business: Business | undefined, instrumentationService: IInst
 }
 
 export type IGetMyBusinessController = ReturnType<typeof getMyBusinessController>;
-// The Negocio the Usuario owns, or null if they have not done Crear Negocio yet (ADR 0012).
+/**
+ * The Negocio the Usuario owns, or null if they have not done Crear Negocio yet (ADR 0012).
+ *
+ * @throws {UnauthenticatedError} no hay Sesión
+ */
 export const getMyBusinessController =
     (
         instrumentationService: IInstrumentationService,
@@ -19,7 +23,7 @@ export const getMyBusinessController =
     ) =>
     async (): Promise<ReturnType<typeof presenter>> =>
         instrumentationService.startSpan({ name: 'getMyBusiness Controller' }, async () => {
-            await authenticationService.getCurrentUser(); // throws UnauthenticatedError
+            await authenticationService.getCurrentUser();
             const [business] = await listBusinessesUseCase();
             return presenter(business, instrumentationService);
         });
