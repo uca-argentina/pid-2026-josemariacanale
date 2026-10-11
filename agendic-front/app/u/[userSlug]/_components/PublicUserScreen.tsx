@@ -46,7 +46,7 @@ export async function PublicUserScreen({ userSlug, serviceSlug }: PublicUserSlug
     }
 
     return (
-        <>
+        <div className="flex flex-1 flex-col bg-sidebar">
             <Header user={null} nav={false} />
             <div className="flex flex-1 flex-col">
                 {page ? (
@@ -56,6 +56,6 @@ export async function PublicUserScreen({ userSlug, serviceSlug }: PublicUserSlug
                 )}
             </div>
             <Footer />
-        </>
+        </div>
     );
 }

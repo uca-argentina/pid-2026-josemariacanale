@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Tabs } from 'radix-ui';
+import { Tabs } from '@base-ui/react/tabs';
 import { ArrowLeft, ArrowRight, CalendarDays, MapPin } from 'lucide-react';
 import { cn } from '@/app/_components/utils';
 import { PanelBadge, PanelIconButton, PanelSelect } from '@/app/(app)/_components/panel-ui';
@@ -143,16 +143,16 @@ export function BookingsView({ bookings, now }: { bookings: Booking[]; now: numb
             >
                 <Tabs.List aria-label="Turnos" className="mt-8 flex flex-wrap gap-1">
                     {TABS.map((t) => (
-                        <Tabs.Trigger
+                        <Tabs.Tab
                             key={t.id}
                             value={t.id}
-                            className="inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-[13.5px] font-bold text-[#6b7280] transition-colors outline-none hover:text-[#0f1b2d] focus-visible:ring-2 focus-visible:ring-[#0f1b2d] data-[state=active]:bg-[#f3f4f6] data-[state=active]:text-[#0f1b2d]"
+                            className="inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-[13.5px] font-bold text-[#6b7280] transition-colors outline-none hover:text-[#0f1b2d] focus-visible:ring-2 focus-visible:ring-[#0f1b2d] data-[active]:bg-[#f3f4f6] data-[active]:text-[#0f1b2d]"
                         >
                             {t.label}
                             {t.id === 'pending' && pendingCount > 0 && (
                                 <span className="rounded-full bg-[#0f1b2d] px-1.5 text-[11px] leading-[18px] font-bold text-white">{pendingCount}</span>
                             )}
-                        </Tabs.Trigger>
+                        </Tabs.Tab>
                     ))}
                 </Tabs.List>
             </Tabs.Root>

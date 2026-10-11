@@ -151,7 +151,8 @@ const columns = columnHelper.columns([
         header: ({ table }) => (
             <div className="flex items-center justify-center">
                 <Checkbox
-                    checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && 'indeterminate')}
+                    checked={table.getIsAllPageRowsSelected()}
+                    indeterminate={table.getIsSomePageRowsSelected() && !table.getIsAllPageRowsSelected()}
                     onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
                     aria-label="Seleccionar todas"
                 />
@@ -257,15 +258,17 @@ const columns = columnHelper.columns([
         id: 'actions',
         cell: ({ row }) => (
             <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button
-                        variant="ghost"
-                        className="flex size-8 text-muted-foreground data-[state=open]:bg-muted"
-                        size="icon"
-                        aria-label={`Acciones de ${row.original.name}`}
-                    >
-                        <EllipsisVertical />
-                    </Button>
+                <DropdownMenuTrigger
+                    render={
+                        <Button
+                            variant="ghost"
+                            className="flex size-8 text-muted-foreground data-popup-open:bg-muted"
+                            size="icon"
+                            aria-label={`Acciones de ${row.original.name}`}
+                        />
+                    }
+                >
+                    <EllipsisVertical />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-32">
                     <DropdownMenuItem>Editar</DropdownMenuItem>
@@ -344,7 +347,7 @@ export function DataTable({ data: initialData }: { data: ServiceRow[] }) {
                 <Label htmlFor="view-selector" className="sr-only">
                     Vista
                 </Label>
-                <Select value={view} onValueChange={setView}>
+                <Select value={view} onValueChange={(value) => value && setView(value)}>
                     <SelectTrigger className="flex w-fit @4xl/main:hidden" size="sm" id="view-selector">
                         <SelectValue placeholder="Elegí una vista" />
                     </SelectTrigger>
@@ -372,13 +375,11 @@ export function DataTable({ data: initialData }: { data: ServiceRow[] }) {
                 </TabsList>
                 <div className="flex items-center gap-2">
                     <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="outline" size="sm">
-                                <Columns3 data-icon="inline-start" />
-                                <span className="hidden @3xl/main:inline">Personalizar columnas</span>
-                                <span className="@3xl/main:hidden">Columnas</span>
-                                <ChevronDown data-icon="inline-end" />
-                            </Button>
+                        <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
+                            <Columns3 data-icon="inline-start" />
+                            <span className="hidden @3xl/main:inline">Personalizar columnas</span>
+                            <span className="@3xl/main:hidden">Columnas</span>
+                            <ChevronDown data-icon="inline-end" />
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-56">
                             {table
@@ -529,10 +530,8 @@ function TableCellViewer({ item }: { item: ServiceRow }) {
 
     return (
         <Sheet>
-            <SheetTrigger asChild>
-                <Button variant="link" className="w-fit px-0 text-left text-foreground">
-                    {item.name}
-                </Button>
+            <SheetTrigger render={<Button variant="link" className="w-fit px-0 text-left text-foreground" />}>
+                {item.name}
             </SheetTrigger>
             <SheetContent side={isMobile ? 'bottom' : 'right'} className="max-h-[85vh] data-[side=right]:max-h-none">
                 <SheetHeader className="gap-1">
@@ -654,9 +653,7 @@ function TableCellViewer({ item }: { item: ServiceRow }) {
                 </div>
                 <SheetFooter>
                     <Button>Guardar</Button>
-                    <SheetClose asChild>
-                        <Button variant="outline">Cerrar</Button>
-                    </SheetClose>
+                    <SheetClose render={<Button variant="outline" />}>Cerrar</SheetClose>
                 </SheetFooter>
             </SheetContent>
         </Sheet>

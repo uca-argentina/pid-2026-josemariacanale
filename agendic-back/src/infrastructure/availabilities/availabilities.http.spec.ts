@@ -52,13 +52,14 @@ describe('Availability', () => {
     scriptSession(t);
     scriptOtherSession(t);
     t.availabilities.findById.mockImplementation(
-      async (id) => [GENERAL, AFTERNOON, BRUNOS].find((a) => a.id === id) ?? null,
+      async (id) =>
+        [GENERAL, AFTERNOON, BRUNOS].find((a) => a.id === id) ?? null,
     );
   });
   afterEach(() => t.app.close());
 
   describe('GET /availabilities', () => {
-    it('lists the Usuario Availabilities without their Franjas, the default marked', async () => {
+    it('lists the Usuario Availabilities with their Franjas but not their Anulaciones, the default marked', async () => {
       t.availabilities.listByUser.mockResolvedValue([GENERAL, AFTERNOON]);
 
       const res = await t.http
@@ -72,12 +73,14 @@ describe('Availability', () => {
           name: 'Horas laborables',
           isDefault: true,
           timeZone: 'America/Argentina/Buenos_Aires',
+          schedule: workWeek('09:00', '17:00'),
         },
         {
           id: 2,
           name: 'Turno tarde',
           isDefault: false,
           timeZone: 'Europe/Madrid',
+          schedule: [[], [], [], [], [], [], []],
         },
       ]);
       expect(t.availabilities.listByUser).toHaveBeenCalledWith(ANA.id);
@@ -218,7 +221,10 @@ describe('Availability', () => {
     });
 
     it.each([
-      ['a range that ends before it starts', [{ start: '17:00', end: '09:00' }]],
+      [
+        'a range that ends before it starts',
+        [{ start: '17:00', end: '09:00' }],
+      ],
       ['a range that ends when it starts', [{ start: '09:00', end: '09:00' }]],
     ])('answers 422 for %s, naming the day', async (_, ranges) => {
       const schedule = emptySchedule();

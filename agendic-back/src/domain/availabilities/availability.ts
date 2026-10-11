@@ -24,7 +24,8 @@ export interface Availability {
   overrides: AvailabilityOverride[];
 }
 
-export type AvailabilitySummary = Omit<Availability, 'schedule' | 'overrides'>;
+/** An Availability without its Anulaciones: what the list answers. */
+export type AvailabilitySummary = Omit<Availability, 'overrides'>;
 
 export type AvailabilityFields = Pick<
   Availability,

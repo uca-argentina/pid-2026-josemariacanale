@@ -17,6 +17,7 @@ import {
     PanelIconButton,
     PanelIconGroup,
     PanelInput,
+    PanelNumberField,
     PanelSelect,
     PanelTextarea,
     PanelToggleRow,
@@ -136,28 +137,28 @@ function SetupTab({
 
             <PanelCard className="flex flex-col gap-6">
                 <PanelField label="Duración" htmlFor="service-duration" error={errors.durationMinutes}>
-                    <PanelInput
+                    <PanelNumberField
                         id="service-duration"
-                        type="number"
                         min={1}
+                        step={5}
                         suffix="Minutos"
                         value={draft.durationMinutes}
                         disabled={readOnly}
                         aria-describedby={describedBy('durationMinutes', 'service-duration')}
-                        onChange={(e) => set({ durationMinutes: e.target.value })}
+                        onValueChange={(durationMinutes) => set({ durationMinutes })}
                     />
                 </PanelField>
                 <PanelField label="Precio" htmlFor="service-price" error={errors.price}>
-                    <PanelInput
+                    <PanelNumberField
                         id="service-price"
-                        type="number"
                         min={0}
+                        grouping
                         prefix="$"
                         suffix="ARS"
                         value={draft.price}
                         disabled={readOnly}
                         aria-describedby={describedBy('price', 'service-price')}
-                        onChange={(e) => set({ price: e.target.value })}
+                        onValueChange={(price) => set({ price })}
                     />
                 </PanelField>
             </PanelCard>
@@ -174,18 +175,18 @@ function SetupTab({
                 {draft.depositEnabled && (
                     <div className="flex flex-col gap-2 pl-14">
                         <div className="flex flex-wrap items-center gap-3">
-                            <PanelInput
+                            <PanelNumberField
                                 id="service-deposit-percent"
                                 aria-label="Porcentaje de la seña"
-                                type="number"
                                 min={1}
                                 max={100}
+                                step={5}
                                 suffix="%"
                                 className="w-[120px]"
                                 value={draft.depositPercent}
                                 disabled={readOnly}
                                 aria-describedby={describedBy('depositPercent', 'service-deposit-percent')}
-                                onChange={(e) => set({ depositPercent: e.target.value })}
+                                onValueChange={(depositPercent) => set({ depositPercent })}
                             />
                             <span className="text-[13px] font-medium text-[#6b7280]">
                                 Seña de <strong className="font-bold text-[#0f1b2d]">{formatPrice(deposit)}</strong> · resta{' '}
@@ -347,15 +348,15 @@ function LimitsTab({
                     error={errors.slotInterval}
                     hint="Cada cuántos minutos arranca un horario reservable. Vacío, es la duración del Servicio."
                 >
-                    <PanelInput
+                    <PanelNumberField
                         id="service-slot-interval"
-                        type="number"
                         min={1}
+                        step={5}
                         suffix="minutos"
                         className="w-[220px]"
                         value={draft.slotInterval}
                         disabled={readOnly}
-                        onChange={(e) => set({ slotInterval: e.target.value })}
+                        onValueChange={(slotInterval) => set({ slotInterval })}
                     />
                 </PanelField>
                 <PanelField
@@ -364,15 +365,15 @@ function LimitsTab({
                     error={errors.minimumNoticeMinutes}
                     hint="Minutos que tienen que faltar como mínimo para el inicio de un Turno al reservarlo. 0, hasta el último momento."
                 >
-                    <PanelInput
+                    <PanelNumberField
                         id="service-minimum-notice"
-                        type="number"
                         min={0}
+                        step={5}
                         suffix="minutos"
                         className="w-[220px]"
                         value={draft.minimumNoticeMinutes}
                         disabled={readOnly}
-                        onChange={(e) => set({ minimumNoticeMinutes: e.target.value })}
+                        onValueChange={(minimumNoticeMinutes) => set({ minimumNoticeMinutes })}
                     />
                 </PanelField>
             </PanelCard>
@@ -388,17 +389,17 @@ function LimitsTab({
                 />
                 {draft.dailyLimitEnabled && (
                     <div className="flex flex-col gap-2 pl-14">
-                        <PanelInput
+                        <PanelNumberField
                             id="service-daily-limit-max"
                             aria-label="Máximo de Turnos por día"
-                            type="number"
                             min={1}
+                            step={1}
                             suffix="Turnos por día"
                             className="w-[220px]"
                             value={draft.dailyLimit}
                             disabled={readOnly}
                             aria-describedby={errors.dailyLimit ? 'service-daily-limit-max-error' : undefined}
-                            onChange={(e) => set({ dailyLimit: e.target.value })}
+                            onValueChange={(dailyLimit) => set({ dailyLimit })}
                         />
                         <InlineFieldError id="service-daily-limit-max" error={errors.dailyLimit} />
                     </div>

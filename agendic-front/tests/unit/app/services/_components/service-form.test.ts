@@ -237,6 +237,39 @@ describe('serviceChanges', () => {
         expect(result).toEqual({ ok: false, errors: { dailyLimit: 'El Límite diario es de al menos 1 Turno, en enteros.' } });
     });
 
+    describe('campo vacío del NumberField', () => {
+        it('Intervalo vacío es sin Intervalo', () => {
+            const withInterval = editFormOf({ ...service, slotInterval: 30 });
+            expect(serviceChanges(withInterval, { ...withInterval, slotInterval: '' })).toEqual({
+                ok: true,
+                changes: { slotInterval: null },
+            });
+        });
+
+        it('Anticipación mínima vacía es 0', () => {
+            const withNotice = editFormOf({ ...service, minimumNoticeMinutes: 60 });
+            expect(serviceChanges(withNotice, { ...withNotice, minimumNoticeMinutes: '' })).toEqual({
+                ok: true,
+                changes: { minimumNoticeMinutes: 0 },
+            });
+        });
+
+        it('Límite diario vacío, con el límite apagado, es sin Límite diario', () => {
+            const limited = editFormOf({ ...service, dailyLimit: 6 });
+            expect(serviceChanges(limited, { ...limited, dailyLimitEnabled: false, dailyLimit: '' })).toEqual({
+                ok: true,
+                changes: { dailyLimit: null },
+            });
+        });
+
+        it.each(['durationMinutes', 'price'] as const)('%s vacío da error de validación', (field) => {
+            expect(serviceChanges(saved, { ...saved, [field]: '' })).toMatchObject({
+                ok: false,
+                errors: { [field]: expect.any(String) },
+            });
+        });
+    });
+
     it('no deja borrar una descripción que ya tenía, porque el back no la vacía', () => {
         expect(serviceChanges(saved, { ...saved, description: '  ' })).toEqual({
             ok: false,

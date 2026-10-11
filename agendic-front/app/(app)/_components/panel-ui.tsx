@@ -1,15 +1,14 @@
 'use client';
 
-import {
-    AlertDialog,
-    Checkbox,
-    Dialog,
-    DropdownMenu,
-    Select,
-    Switch,
-} from 'radix-ui';
+import { AlertDialog } from '@base-ui/react/alert-dialog';
+import { Checkbox } from '@base-ui/react/checkbox';
+import { Dialog } from '@base-ui/react/dialog';
+import { Menu } from '@base-ui/react/menu';
+import { NumberField } from '@base-ui/react/number-field';
+import { Select } from '@base-ui/react/select';
+import { Switch } from '@base-ui/react/switch';
 import { useEffect, useRef, useState } from 'react';
-import { Check, ChevronDown } from 'lucide-react';
+import { Check, ChevronDown, Minus, Plus } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/app/_components/ui/avatar';
 import { cn } from '@/app/_components/utils';
 
@@ -135,17 +134,17 @@ export function PanelSection({
 export function PanelSwitch({
     className,
     ...props
-}: React.ComponentProps<typeof Switch.Root>) {
+}: Switch.Root.Props) {
     return (
         <Switch.Root
             className={cn(
-                'relative inline-flex h-6 w-11 shrink-0 items-center rounded-full bg-[#e5e7eb] transition-colors data-[state=checked]:bg-[#0f1b2d] disabled:opacity-50',
+                'relative inline-flex h-6 w-11 shrink-0 items-center rounded-full bg-[#e5e7eb] transition-colors data-[checked]:bg-[#0f1b2d] data-[disabled]:opacity-50',
                 FOCUS,
                 className,
             )}
             {...props}
         >
-            <Switch.Thumb className="block size-5 translate-x-0.5 rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.2)] transition-transform data-[state=checked]:translate-x-[22px]" />
+            <Switch.Thumb className="block size-5 translate-x-0.5 rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.2)] transition-transform data-[checked]:translate-x-[22px]" />
         </Switch.Root>
     );
 }
@@ -153,11 +152,11 @@ export function PanelSwitch({
 export function PanelCheckbox({
     className,
     ...props
-}: React.ComponentProps<typeof Checkbox.Root>) {
+}: Checkbox.Root.Props) {
     return (
         <Checkbox.Root
             className={cn(
-                'flex size-4 shrink-0 items-center justify-center rounded-[4px] border border-[#d1d5db] bg-white transition-colors data-[state=checked]:border-[#0f1b2d] data-[state=checked]:bg-[#0f1b2d] disabled:opacity-50',
+                'flex size-4 shrink-0 items-center justify-center rounded-[4px] border border-[#d1d5db] bg-white transition-colors data-[checked]:border-[#0f1b2d] data-[checked]:bg-[#0f1b2d] data-[disabled]:opacity-50',
                 FOCUS,
                 className,
             )}
@@ -351,6 +350,86 @@ export function PanelInput({
     );
 }
 
+const STEPPER =
+    'flex h-full w-8 shrink-0 items-center justify-center text-[#6b7280] outline-none select-none hover:bg-[#f3f4f6] hover:text-[#0f1b2d] disabled:pointer-events-none disabled:opacity-40';
+
+/**
+ * Campo numérico del panel sobre el NumberField de Base UI. El formulario guarda el número como texto: `''` es vacío
+ * y el resto, su string. El paso solo mueve los botones y las flechas del teclado; se puede tipear cualquier valor
+ * válido. Sin `step` no hay botones `−` / `+`. La rueda del mouse no cambia el valor.
+ */
+export function PanelNumberField({
+    id,
+    value,
+    onValueChange,
+    min,
+    max,
+    step,
+    grouping = false,
+    prefix,
+    suffix,
+    className,
+    disabled,
+    placeholder,
+    'aria-label': ariaLabel,
+    'aria-describedby': ariaDescribedBy,
+}: {
+    id?: string;
+    value: string;
+    onValueChange: (value: string) => void;
+    min?: number;
+    max?: number;
+    step?: number;
+    /** Separador de miles `es-AR` (`12.500`). */
+    grouping?: boolean;
+    prefix?: string;
+    suffix?: string;
+    className?: string;
+    disabled?: boolean;
+    placeholder?: string;
+    'aria-label'?: string;
+    'aria-describedby'?: string;
+}) {
+    const steppers = step !== undefined;
+    return (
+        <NumberField.Root
+            id={id}
+            value={value.trim() === '' ? null : Number(value)}
+            onValueChange={(next) => onValueChange(next === null ? '' : String(next))}
+            min={min}
+            max={max}
+            step={step}
+            disabled={disabled}
+            locale="es-AR"
+            format={{ useGrouping: grouping }}
+        >
+            <NumberField.Group className={cn(FIELD_BOX, className)}>
+                {steppers && (
+                    <NumberField.Decrement aria-label="Restar" className={cn(STEPPER, 'border-r border-[#e5e7eb]')}>
+                        <Minus className="size-3.5" />
+                    </NumberField.Decrement>
+                )}
+                {prefix && <span className="shrink-0 pl-3 text-[#9ca3af] select-none">{prefix}</span>}
+                <NumberField.Input
+                    aria-label={ariaLabel}
+                    aria-describedby={ariaDescribedBy}
+                    placeholder={placeholder}
+                    className={cn(
+                        'h-full min-w-0 flex-1 bg-transparent px-3 outline-none placeholder:text-[#9ca3af]',
+                        prefix && 'pl-1',
+                    )}
+                />
+                {suffix && <span className="shrink-0 pr-3 text-[#9ca3af] select-none">{suffix}</span>}
+                {steppers && (
+                    <NumberField.Increment aria-label="Sumar" className={cn(STEPPER, 'border-l border-[#e5e7eb]')}>
+                        <Plus className="size-3.5" />
+                    </NumberField.Increment>
+                )}
+            </NumberField.Group>
+        </NumberField.Root>
+    );
+}
+
 export function PanelTextarea({
     className,
     ...props
@@ -395,7 +474,8 @@ export function PanelSelect({
     return (
         <Select.Root
             value={value}
-            onValueChange={onValueChange}
+            onValueChange={(next) => next !== null && onValueChange(next)}
+            items={options}
             disabled={disabled}
         >
             <Select.Trigger
@@ -412,17 +492,16 @@ export function PanelSelect({
                         <span className="text-[#9ca3af]">{placeholder}</span>
                     }
                 />
-                <Select.Icon asChild>
-                    <ChevronDown className="size-4 text-[#0f1b2d]" />
-                </Select.Icon>
+                <Select.Icon render={<ChevronDown className="size-4 text-[#0f1b2d]" />} />
             </Select.Trigger>
             <Select.Portal>
-                <Select.Content
-                    position="popper"
+                <Select.Positioner
+                    alignItemWithTrigger={false}
                     sideOffset={4}
-                    className="z-50 max-h-[min(288px,var(--radix-select-content-available-height))] w-(--radix-select-trigger-width) overflow-hidden rounded-md border border-[#e5e7eb] bg-white p-1 shadow-[0_10px_30px_rgba(15,27,45,0.12)]"
+                    className="z-50"
                 >
-                    <Select.Viewport>
+                <Select.Popup className="max-h-[min(288px,var(--available-height))] w-(--anchor-width) overflow-y-auto rounded-md border border-[#e5e7eb] bg-white p-1 shadow-[0_10px_30px_rgba(15,27,45,0.12)]">
+                    <Select.List>
                         {options.map((o) => (
                             <Select.Item
                                 key={o.value}
@@ -440,8 +519,9 @@ export function PanelSelect({
                                 </Select.ItemIndicator>
                             </Select.Item>
                         ))}
-                    </Select.Viewport>
-                </Select.Content>
+                    </Select.List>
+                </Select.Popup>
+                </Select.Positioner>
             </Select.Portal>
         </Select.Root>
     );
@@ -449,8 +529,8 @@ export function PanelSelect({
 
 /** Entrada y salida de los modales; sin animación con `prefers-reduced-motion`. */
 const OVERLAY_MOTION =
-    'motion-reduce:animate-none! data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:duration-150 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:duration-100';
-const CONTENT_MOTION = `${OVERLAY_MOTION} data-[state=open]:zoom-in-96 data-[state=closed]:zoom-out-96`;
+    'motion-reduce:animate-none! data-[open]:animate-in data-[open]:fade-in-0 data-[open]:duration-150 data-[closed]:animate-out data-[closed]:fade-out-0 data-[closed]:duration-100';
+const CONTENT_MOTION = `${OVERLAY_MOTION} data-[open]:zoom-in-96 data-[closed]:zoom-out-96`;
 
 /**
  * Cuerpo scrolleable de un modal: el texto se desvanece (`.scroll-fade`, globals.css) solo del lado
@@ -513,8 +593,8 @@ export function PanelDialog({
     return (
         <Dialog.Root open={open} onOpenChange={onOpenChange}>
             <Dialog.Portal>
-                <Dialog.Overlay className={cn('fixed inset-0 z-40 bg-[#0f1b2d]/50', OVERLAY_MOTION)} />
-                <Dialog.Content
+                <Dialog.Backdrop className={cn('fixed inset-0 z-40 bg-[#0f1b2d]/50', OVERLAY_MOTION)} />
+                <Dialog.Popup
                     className={cn(
                         'fixed top-1/2 left-1/2 z-50 flex max-h-[90vh] w-[calc(100vw-32px)] max-w-[600px] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-xl bg-white shadow-[0_24px_60px_rgba(15,27,45,0.25)] outline-none',
                         CONTENT_MOTION,
@@ -535,14 +615,14 @@ export function PanelDialog({
                     <div className="flex justify-end gap-2 border-t border-[#e5e7eb] bg-[#f9fafb] px-8 py-4">
                         {footer}
                     </div>
-                </Dialog.Content>
+                </Dialog.Popup>
             </Dialog.Portal>
         </Dialog.Root>
     );
 }
 
-export function PanelDialogClose({ children }: { children: React.ReactNode }) {
-    return <Dialog.Close asChild>{children}</Dialog.Close>;
+export function PanelDialogClose({ children }: { children: React.ReactElement }) {
+    return <Dialog.Close render={children} />;
 }
 
 export function PanelConfirm({
@@ -568,8 +648,8 @@ export function PanelConfirm({
     return (
         <AlertDialog.Root open={open} onOpenChange={onOpenChange}>
             <AlertDialog.Portal>
-                <AlertDialog.Overlay className={cn('fixed inset-0 z-40 bg-[#0f1b2d]/50', OVERLAY_MOTION)} />
-                <AlertDialog.Content className={cn('fixed top-1/2 left-1/2 z-50 w-[calc(100vw-32px)] max-w-[480px] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-xl bg-white shadow-[0_24px_60px_rgba(15,27,45,0.25)] outline-none', CONTENT_MOTION)}>
+                <AlertDialog.Backdrop className={cn('fixed inset-0 z-40 bg-[#0f1b2d]/50', OVERLAY_MOTION)} />
+                <AlertDialog.Popup className={cn('fixed top-1/2 left-1/2 z-50 w-[calc(100vw-32px)] max-w-[480px] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-xl bg-white shadow-[0_24px_60px_rgba(15,27,45,0.25)] outline-none', CONTENT_MOTION)}>
                     <div className="flex flex-col gap-2 px-8 pt-8 pb-8">
                         <AlertDialog.Title className="m-0 text-[19px] font-extrabold tracking-[-0.03em] text-[#0f1b2d]">
                             {title}
@@ -579,28 +659,32 @@ export function PanelConfirm({
                         </AlertDialog.Description>
                     </div>
                     <div className="flex justify-end gap-2 border-t border-[#e5e7eb] bg-[#f9fafb] px-8 py-4">
-                        <AlertDialog.Cancel asChild>
-                            <PanelButton
-                                variant={confirmLabel ? 'ghost' : 'primary'}
-                            >
-                                {cancelLabel}
-                            </PanelButton>
-                        </AlertDialog.Cancel>
-                        {confirmLabel && (
-                            <AlertDialog.Action asChild>
+                        <AlertDialog.Close
+                            render={
                                 <PanelButton
-                                    onClick={onConfirm}
-                                    className={cn(
-                                        destructive &&
-                                            'bg-[#b91c1c] hover:bg-[#991b1b]',
-                                    )}
-                                >
-                                    {confirmLabel}
-                                </PanelButton>
-                            </AlertDialog.Action>
+                                    variant={confirmLabel ? 'ghost' : 'primary'}
+                                />
+                            }
+                        >
+                            {cancelLabel}
+                        </AlertDialog.Close>
+                        {confirmLabel && (
+                            <AlertDialog.Close
+                                onClick={onConfirm}
+                                render={
+                                    <PanelButton
+                                        className={cn(
+                                            destructive &&
+                                                'bg-[#b91c1c] hover:bg-[#991b1b]',
+                                        )}
+                                    />
+                                }
+                            >
+                                {confirmLabel}
+                            </AlertDialog.Close>
                         )}
                     </div>
-                </AlertDialog.Content>
+                </AlertDialog.Popup>
             </AlertDialog.Portal>
         </AlertDialog.Root>
     );
@@ -618,24 +702,23 @@ export function PanelMenu({
     trigger,
     items,
 }: {
-    trigger: React.ReactNode;
+    trigger: React.ReactElement;
     items: PanelMenuItem[];
 }) {
     return (
         // No modal: si un ítem abre un diálogo, el menú modal le deja `pointer-events: none` al body.
-        <DropdownMenu.Root modal={false}>
-            <DropdownMenu.Trigger asChild>{trigger}</DropdownMenu.Trigger>
-            <DropdownMenu.Portal>
-                <DropdownMenu.Content
-                    align="end"
-                    sideOffset={4}
-                    className="z-50 min-w-[180px] rounded-md border border-[#e5e7eb] bg-white p-1 shadow-[0_10px_30px_rgba(15,27,45,0.12)]"
+        <Menu.Root modal={false}>
+            <Menu.Trigger render={trigger} />
+            <Menu.Portal>
+                <Menu.Positioner align="end" sideOffset={4} className="z-50">
+                <Menu.Popup
+                    className="min-w-[180px] rounded-md border border-[#e5e7eb] bg-white p-1 shadow-[0_10px_30px_rgba(15,27,45,0.12)]"
                 >
                     {items.map((item) => (
-                        <DropdownMenu.Item
+                        <Menu.Item
                             key={item.label}
                             disabled={item.disabled}
-                            onSelect={item.onSelect}
+                            onClick={item.onSelect}
                             className={cn(
                                 'flex cursor-pointer items-center gap-2 rounded px-2.5 py-2 text-[13px] font-semibold outline-none data-[disabled]:opacity-50 data-[highlighted]:bg-[#f3f4f6] [&_svg]:size-4',
                                 item.destructive
@@ -645,10 +728,11 @@ export function PanelMenu({
                         >
                             {item.icon}
                             {item.label}
-                        </DropdownMenu.Item>
+                        </Menu.Item>
                     ))}
-                </DropdownMenu.Content>
-            </DropdownMenu.Portal>
-        </DropdownMenu.Root>
+                </Menu.Popup>
+                </Menu.Positioner>
+            </Menu.Portal>
+        </Menu.Root>
     );
 }
