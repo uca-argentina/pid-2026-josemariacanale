@@ -1,5 +1,6 @@
 import { UnauthenticatedError } from '@/src/entities/errors/auth';
-import { ApiRequestError } from '@/src/entities/errors/common';
+import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
+import { OutOfOfficeConflictError, OutOfOfficeRuleError } from '@/src/entities/errors/out-of-office';
 import { OutOfOfficeRepository } from '@/src/infrastructure/repositories/out-of-office.repository';
 import { authWith, instrumentation } from '@/tests/unit/stubs';
 
@@ -58,5 +59,60 @@ describe('OutOfOfficeRepository.listOutOfOffice', () => {
         const fetchSpy = jest.spyOn(global, 'fetch');
         await expect(repo('').listOutOfOffice()).rejects.toBeInstanceOf(ApiRequestError);
         expect(fetchSpy).not.toHaveBeenCalled();
+    });
+});
+
+describe('OutOfOfficeRepository writes', () => {
+    const body = { startDate: '2026-10-11', endDate: '2026-10-13', reason: 'VACATION' as const, notes: 'Playa', showNotePublicly: true };
+
+    it('POSTs the body', async () => {
+        const fetchSpy = respond(201, periodo);
+        await repo().createOutOfOffice(body);
+        expect(fetchSpy).toHaveBeenCalledWith(
+            'http://api/users/me/out-of-office',
+            expect.objectContaining({ method: 'POST', body: JSON.stringify(body) }),
+        );
+    });
+
+    it('PUTs the body to the período without the id in it', async () => {
+        const fetchSpy = respond(200, periodo);
+        await repo().updateOutOfOffice({ outOfOfficeId: 7, ...body });
+        expect(fetchSpy).toHaveBeenCalledWith(
+            'http://api/users/me/out-of-office/7',
+            expect.objectContaining({ method: 'PUT', body: JSON.stringify(body) }),
+        );
+    });
+
+    it('DELETEs the período', async () => {
+        const fetchSpy = respond(204, undefined);
+        await repo().deleteOutOfOffice(7);
+        expect(fetchSpy).toHaveBeenCalledWith('http://api/users/me/out-of-office/7', expect.objectContaining({ method: 'DELETE' }));
+    });
+
+    it.each([
+        ['createOutOfOffice', (r: OutOfOfficeRepository) => r.createOutOfOffice(body)],
+        ['updateOutOfOffice', (r: OutOfOfficeRepository) => r.updateOutOfOffice({ outOfOfficeId: 7, ...body })],
+    ])('%s translates 422 and 409 keeping the back’s message', async (_name, run) => {
+        respond(422, { message: 'La fecha de fin no puede ser anterior a la de inicio' });
+        await expect(run(repo())).rejects.toEqual(new OutOfOfficeRuleError('La fecha de fin no puede ser anterior a la de inicio'));
+        jest.restoreAllMocks();
+        respond(409, { message: 'Ya hay un período Fuera de la oficina con esas fechas' });
+        await expect(run(repo())).rejects.toBeInstanceOf(OutOfOfficeConflictError);
+    });
+
+    it.each([
+        ['updateOutOfOffice', (r: OutOfOfficeRepository) => r.updateOutOfOffice({ outOfOfficeId: 7, ...body })],
+        ['deleteOutOfOffice', (r: OutOfOfficeRepository) => r.deleteOutOfOffice(7)],
+    ])('%s translates 404 to NotFoundError', async (_name, run) => {
+        respond(404, { message: 'Out of office 7 not found' });
+        await expect(run(repo())).rejects.toBeInstanceOf(NotFoundError);
+    });
+
+    it('translates a 401 to UnauthenticatedError and a 500 to ApiRequestError with its status', async () => {
+        respond(401, { message: 'no' });
+        await expect(repo().deleteOutOfOffice(7)).rejects.toBeInstanceOf(UnauthenticatedError);
+        jest.restoreAllMocks();
+        respond(500, { message: 'boom' });
+        await expect(repo().createOutOfOffice(body)).rejects.toMatchObject({ status: 500 });
     });
 });

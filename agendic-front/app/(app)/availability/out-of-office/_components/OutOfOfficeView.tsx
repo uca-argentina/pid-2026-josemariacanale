@@ -1,15 +1,31 @@
 'use client';
 
 import { useState } from 'react';
-import { Clock } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Clock, Ellipsis, Pencil, Plus, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { PaginationControls } from '@/app/_components/PaginationControls';
+import { Button } from '@/app/_components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/app/_components/ui/dropdown-menu';
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/app/_components/ui/empty';
 import type { OutOfOffice } from '@/src/entities/models/out-of-office';
+import { deleteOutOfOfficeAction } from '../actions';
 import { formatOutOfOfficeDate } from './format-out-of-office-date';
+import { OutOfOfficeDialog } from './OutOfOfficeDialog';
 import { OUT_OF_OFFICE_REASONS } from './out-of-office-reasons';
 
-/** Una fila: el emoji del Motivo en un círculo, el rango y debajo "Motivo · nota". */
-function OutOfOfficeRow({ period }: { period: OutOfOffice }) {
+/** Una fila: el emoji del Motivo en un círculo, el rango y debajo "Motivo · nota"; su menú ⋯ edita o borra el período. */
+function OutOfOfficeRow({
+    period,
+    busy,
+    onEdit,
+    onDelete,
+}: {
+    period: OutOfOffice;
+    busy: boolean;
+    onEdit: () => void;
+    onDelete: () => void;
+}) {
     const { emoji, label } = OUT_OF_OFFICE_REASONS[period.reason];
 
     return (
@@ -21,33 +37,86 @@ function OutOfOfficeRow({ period }: { period: OutOfOffice }) {
                 </p>
                 <p className="m-0 truncate text-sm text-muted-foreground">{period.notes ? `${label} · ${period.notes}` : label}</p>
             </div>
+            <DropdownMenu>
+                <DropdownMenuTrigger
+                    render={<Button type="button" variant="outline" size="icon" className="ml-auto" aria-label="Más acciones" disabled={busy} />}
+                >
+                    <Ellipsis />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                    <DropdownMenuItem className="min-w-40" onClick={onEdit}>
+                        <Pencil />
+                        Editar
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                        className="min-w-40 text-destructive hover:bg-destructive/10 focus:bg-destructive/10 data-highlighted:bg-destructive/10"
+                        onClick={onDelete}
+                    >
+                        <Trash2 />
+                        Borrar
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
         </li>
     );
 }
 
 /**
  * La pantalla Fuera de la oficina: los períodos del Usuario que llegan del server, paginados acá sobre la
- * lista completa (10 por página al principio).
+ * lista completa (10 por página al principio). "Añadir" abre el modal de período nuevo, y con `openNew`
+ * (`?nuevo`) arranca abierto. `weekStart` es el primer día de la semana del Usuario, para el Calendar del modal.
  */
-export function OutOfOfficeView({ periods }: { periods: OutOfOffice[] }) {
+export function OutOfOfficeView({ periods, openNew, weekStart }: { periods: OutOfOffice[]; openNew: boolean; weekStart: number }) {
+    const router = useRouter();
+    const [dialog, setDialog] = useState<{ period: OutOfOffice | null } | null>(openNew ? { period: null } : null);
+    const [busy, setBusy] = useState(false);
     const [pageSize, setPageSize] = useState(10);
     const [page, setPage] = useState(0);
     const pageCount = Math.max(1, Math.ceil(periods.length / pageSize));
     const current = Math.min(page, pageCount - 1);
     const visible = periods.slice(current * pageSize, (current + 1) * pageSize);
 
+    const closeDialog = () => {
+        setDialog(null);
+        if (openNew) router.replace('/availability/out-of-office');
+    };
+
+    const remove = async (period: OutOfOffice) => {
+        setBusy(true);
+        const result = await deleteOutOfOfficeAction(period.id);
+        setBusy(false);
+        if (result.ok) toast.success('Período borrado');
+        else toast.error(result.message);
+    };
+
+    const addButton = (
+        <Button type="button" onClick={() => setDialog({ period: null })}>
+            <Plus />
+            Añadir
+        </Button>
+    );
+
     return (
         <div className="flex-1 bg-background px-4 py-8 text-foreground sm:px-8">
-            <header className="flex min-w-0 flex-col gap-1">
-                <h1 className="m-0 text-xl font-extrabold tracking-tight">Fuera de la oficina</h1>
-                <p className="m-0 text-sm text-muted-foreground">Informá a tus Clientes cuando estés fuera de la oficina.</p>
+            <header className="flex items-start justify-between gap-4">
+                <div className="flex min-w-0 flex-col gap-1">
+                    <h1 className="m-0 text-xl font-extrabold tracking-tight">Fuera de la oficina</h1>
+                    <p className="m-0 text-sm text-muted-foreground">Informá a tus Clientes cuando estés fuera de la oficina.</p>
+                </div>
+                {addButton}
             </header>
 
             {periods.length > 0 ? (
                 <>
                     <ul className="m-0 mt-8 list-none divide-y overflow-hidden rounded-md border p-0">
                         {visible.map((period) => (
-                            <OutOfOfficeRow key={period.id} period={period} />
+                            <OutOfOfficeRow
+                                key={period.id}
+                                period={period}
+                                busy={busy}
+                                onEdit={() => setDialog({ period })}
+                                onDelete={() => remove(period)}
+                            />
                         ))}
                     </ul>
                     <PaginationControls
@@ -70,8 +139,11 @@ export function OutOfOfficeView({ periods }: { periods: OutOfOffice[] }) {
                         <EmptyTitle>Crear un período</EmptyTitle>
                         <EmptyDescription>Comunicá a tus Clientes cuando no estés disponible para tomar Turnos.</EmptyDescription>
                     </EmptyHeader>
+                    {addButton}
                 </Empty>
             )}
+
+            {dialog && <OutOfOfficeDialog key={dialog.period?.id ?? 'new'} period={dialog.period} weekStart={weekStart} onClose={closeDialog} />}
         </div>
     );
 }

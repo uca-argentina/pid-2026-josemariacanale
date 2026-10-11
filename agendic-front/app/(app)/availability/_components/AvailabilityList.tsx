@@ -146,7 +146,7 @@ export function AvailabilityList({
 
             <p className="mt-4 mb-16 text-center text-sm text-muted-foreground">
                 ¿Fuera de la oficina temporalmente?{' '}
-                <Link href="/availability/out-of-office" className="underline">
+                <Link href="/availability/out-of-office?nuevo" className="underline">
                     Cargar un período
                 </Link>
             </p>
