@@ -4,11 +4,11 @@ import { InputParseError } from '@/src/entities/errors/common';
 import { authWith, instrumentation } from '@/tests/unit/stubs';
 
 const signedIn = authWith({ getCurrentUser: jest.fn().mockResolvedValue({}) });
-const horario = { id: 10, name: 'Horario', isDefault: true, timeZone: 'UTC' };
-const verano = { id: 11, name: 'Verano', isDefault: false, timeZone: 'America/Argentina/Buenos_Aires' };
+const schedule = [[], [{ start: '09:00', end: '13:00' }], [], [], [], [], []];
+const horario = { id: 10, name: 'Horario', isDefault: true, timeZone: 'UTC', schedule };
+const verano = { id: 11, name: 'Verano', isDefault: false, timeZone: 'America/Argentina/Buenos_Aires', schedule: [[], [], [], [], [], [], []] };
 const detail = {
     ...horario,
-    schedule: [[], [{ start: '09:00', end: '13:00' }], [], [], [], [], []],
     overrides: [{ date: '2026-12-24', ranges: [{ start: '09:00', end: '12:00' }] }],
 };
 
@@ -24,6 +24,14 @@ describe('listMyAvailabilitiesController', () => {
 
         await expect(controller({})).resolves.toEqual({ availabilities: [horario, verano], open: null });
         expect(get).not.toHaveBeenCalled();
+    });
+
+    it('brings the Franjas of each Availability', async () => {
+        const { controller } = build();
+
+        const { availabilities } = await controller({});
+        expect(availabilities[0].schedule).toEqual(schedule);
+        expect(availabilities[1].schedule).toEqual([[], [], [], [], [], [], []]);
     });
 
     it('opens the chosen one with its schedule and overrides', async () => {
