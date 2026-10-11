@@ -119,6 +119,9 @@ import type { ICreateAvailabilityUseCase } from '@/src/application/use-cases/ava
 import type { IUpdateAvailabilityUseCase } from '@/src/application/use-cases/availabilities/update-availability.use-case';
 import type { IMakeAvailabilityDefaultUseCase } from '@/src/application/use-cases/availabilities/make-availability-default.use-case';
 import type { IDeleteAvailabilityUseCase } from '@/src/application/use-cases/availabilities/delete-availability.use-case';
+import type { IOutOfOfficeRepository } from '@/src/application/repositories/out-of-office.repository.interface';
+import type { IListOutOfOfficeUseCase } from '@/src/application/use-cases/out-of-office/list-out-of-office.use-case';
+import type { IListMyOutOfOfficeController } from '@/src/interface-adapters/controllers/out-of-office/list-my-out-of-office.controller';
 import type { IListMyAvailabilitiesController } from '@/src/interface-adapters/controllers/availabilities/list-my-availabilities.controller';
 import type { ICreateAvailabilityController } from '@/src/interface-adapters/controllers/availabilities/create-availability.controller';
 import type { IUpdateAvailabilityController } from '@/src/interface-adapters/controllers/availabilities/update-availability.controller';
@@ -138,6 +141,7 @@ export const DI_SYMBOLS = {
     IUserBookingsRepository: Symbol.for('IUserBookingsRepository'),
     IClientBookingsRepository: Symbol.for('IClientBookingsRepository'),
     IAvailabilitiesRepository: Symbol.for('IAvailabilitiesRepository'),
+    IOutOfOfficeRepository: Symbol.for('IOutOfOfficeRepository'),
     IServicesRepository: Symbol.for('IServicesRepository'),
 
     ICreateBranchUseCase: Symbol.for('ICreateBranchUseCase'),
@@ -190,6 +194,7 @@ export const DI_SYMBOLS = {
     IUpdateAvailabilityUseCase: Symbol.for('IUpdateAvailabilityUseCase'),
     IMakeAvailabilityDefaultUseCase: Symbol.for('IMakeAvailabilityDefaultUseCase'),
     IDeleteAvailabilityUseCase: Symbol.for('IDeleteAvailabilityUseCase'),
+    IListOutOfOfficeUseCase: Symbol.for('IListOutOfOfficeUseCase'),
 
     IGetCurrentUserController: Symbol.for('IGetCurrentUserController'),
     ICreateBranchController: Symbol.for('ICreateBranchController'),
@@ -255,6 +260,7 @@ export const DI_SYMBOLS = {
     IUpdateAvailabilityController: Symbol.for('IUpdateAvailabilityController'),
     IMakeAvailabilityDefaultController: Symbol.for('IMakeAvailabilityDefaultController'),
     IDeleteAvailabilityController: Symbol.for('IDeleteAvailabilityController'),
+    IListMyOutOfOfficeController: Symbol.for('IListMyOutOfOfficeController'),
 };
 
 export interface DI_RETURN_TYPES {
@@ -270,6 +276,7 @@ export interface DI_RETURN_TYPES {
     IUserBookingsRepository: IUserBookingsRepository;
     IClientBookingsRepository: IClientBookingsRepository;
     IAvailabilitiesRepository: IAvailabilitiesRepository;
+    IOutOfOfficeRepository: IOutOfOfficeRepository;
     IServicesRepository: IServicesRepository;
 
     ICreateBranchUseCase: ICreateBranchUseCase;
@@ -322,6 +329,7 @@ export interface DI_RETURN_TYPES {
     IUpdateAvailabilityUseCase: IUpdateAvailabilityUseCase;
     IMakeAvailabilityDefaultUseCase: IMakeAvailabilityDefaultUseCase;
     IDeleteAvailabilityUseCase: IDeleteAvailabilityUseCase;
+    IListOutOfOfficeUseCase: IListOutOfOfficeUseCase;
 
     IGetCurrentUserController: IGetCurrentUserController;
     ICreateBranchController: ICreateBranchController;
@@ -387,4 +395,5 @@ export interface DI_RETURN_TYPES {
     IUpdateAvailabilityController: IUpdateAvailabilityController;
     IMakeAvailabilityDefaultController: IMakeAvailabilityDefaultController;
     IDeleteAvailabilityController: IDeleteAvailabilityController;
+    IListMyOutOfOfficeController: IListMyOutOfOfficeController;
 }

@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { Clock, Plus } from 'lucide-react';
@@ -142,6 +143,13 @@ export function AvailabilityList({
                     </div>
                 )}
             </div>
+
+            <p className="mt-4 mb-16 text-center text-sm text-muted-foreground">
+                ¿Fuera de la oficina temporalmente?{' '}
+                <Link href="/availability/out-of-office" className="underline">
+                    Cargar un período
+                </Link>
+            </p>
 
             <NewAvailabilityDialog open={creating} onOpenChange={setCreating} onCreate={onCreate} />
         </div>
