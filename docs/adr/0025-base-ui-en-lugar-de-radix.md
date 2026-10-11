@@ -2,7 +2,11 @@
 
 Solo aplica al front (`agendic-front/`); el back no tiene primitivos de UI.
 
+## Contexto
+
 Hacía falta un NumberField y Radix no lo tiene. Base UI sí, y shadcn publica el mismo design system sobre Base UI (`base-nova`).
+
+## Decisión
 
 El front pasa de Radix (`radix-nova`) a Base UI como librería de primitivos:
 

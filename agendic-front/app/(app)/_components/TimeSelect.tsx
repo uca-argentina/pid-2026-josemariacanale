@@ -61,7 +61,10 @@ export function TimeSelect({
     };
 
     return (
-        <Popover.Root open={open && options.length > 0} onOpenChange={setOpen}>
+        <Popover.Root open={open && options.length > 0} onOpenChange={(next, details) => {
+            // El input maneja su propio foco: un clic en él no es "afuera" y el blur ya cierra la lista.
+            if (next || details.reason === 'escape-key') setOpen(next);
+        }}>
             <div ref={anchorRef} className={cn(FIELD_BOX, invalid && 'border-[#b91c1c] hover:border-[#b91c1c]', className)}>
                     <input
                         id={id}
