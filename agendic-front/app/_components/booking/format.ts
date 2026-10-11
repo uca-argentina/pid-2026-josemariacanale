@@ -4,7 +4,10 @@ import type { Service } from './types';
 
 const THOUSANDS = new Intl.NumberFormat('es-AR');
 
-export const formatPrice = (price: number) => `$${THOUSANDS.format(price)}`;
+const WITH_CENTS = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+/** '$3.600'; con centavos ('$149,85') solo cuando los hay. */
+export const formatPrice = (price: number) => `$${(Number.isInteger(price) ? THOUSANDS : WITH_CENTS).format(price)}`;
 
 export function formatDuration(minutes: number) {
     const h = Math.floor(minutes / 60);
@@ -72,11 +75,11 @@ export function endTime(time: string, durationMinutes: number) {
     return toTime(toMinutes(time) + durationMinutes);
 }
 
-/** La Seña: lo que el Cliente adelanta y lo que queda para pagar en el local; `null` si el Servicio no pide. */
+/** La Seña: lo que el Cliente adelanta y lo que queda para pagar en el local, redondeado al centavo como en el back; `null` si el Servicio no pide. */
 export function depositFor(service: Pick<Service, 'price' | 'depositPercent'>) {
     if (!service.depositPercent) return null;
-    const upfront = Math.round((service.price * service.depositPercent) / 100);
-    return { percent: service.depositPercent, upfront, rest: service.price - upfront };
+    const upfront = Math.round(service.price * service.depositPercent) / 100;
+    return { percent: service.depositPercent, upfront, rest: Math.round((service.price - upfront) * 100) / 100 };
 }
 
 /** Iniciales para el avatar, igual que en el panel. */

@@ -85,7 +85,7 @@ function SetupTab({
 }) {
     const price = Number(draft.price) || 0;
     const percent = Number(draft.depositPercent) || 0;
-    const deposit = Math.round((price * percent) / 100);
+    const deposit = Math.round(price * percent) / 100;
     const describedBy = (field: string, id: string) => (errors[field] ? `${id}-error` : undefined);
 
     return (
@@ -168,7 +168,7 @@ function SetupTab({
                 <PanelToggleRow
                     id="service-deposit"
                     title="Pedir seña"
-                    description="El cliente declara al reservar que adelanta un porcentaje del precio."
+                    description="El turno nace debiendo la seña hasta que el cliente la paga desde el enlace del turno."
                     checked={draft.depositEnabled}
                     disabled={readOnly}
                     onCheckedChange={(depositEnabled) => set({ depositEnabled })}

@@ -25,6 +25,10 @@ export const placeOf = (b: Booking) => (b.business && b.branch ? `${b.business.n
 
 export const isClosed = (b: Booking) => b.status === 'CANCELLED' || b.status === 'REJECTED';
 
+/** Un Turno pendiente o aceptado cuya Seña todavía no se pagó. */
+export const hasPendingDeposit = (b: Booking) =>
+    (b.status === 'PENDING' || b.status === 'BOOKED') && b.depositAmount !== null && b.depositPaidAt === null;
+
 /** La pestaña del Turno. */
 export function tabOf(b: Booking, now: number): BookingTab | null {
     if (isClosed(b)) return 'cancelled';
