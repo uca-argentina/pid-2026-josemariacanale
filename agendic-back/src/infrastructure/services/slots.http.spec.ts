@@ -63,6 +63,77 @@ describe('GET /services/:id/slots', () => {
     expect(day.slots).toHaveLength(18);
   });
 
+  describe('con employeeId (Empleado elegido)', () => {
+    const JUAN_ID = ANAS_EMPLOYEE.id + 1;
+    const JUANS_AVAILABILITY: Availability = {
+      ...AVAILABILITY,
+      id: 11,
+      userId: ANAS_EMPLOYEE.userId + 1,
+    };
+    const JUAN = {
+      id: JUAN_ID,
+      name: 'Juan',
+      availabilityId: JUANS_AVAILABILITY.id,
+      userId: JUANS_AVAILABILITY.userId,
+      imageUrl: null,
+      slug: null,
+    };
+    const BUSY_ALL_MORNING = {
+      prepStartsAt: new Date('2026-01-02T12:00:00.000Z'),
+      endsAt: new Date('2026-01-02T16:00:00.000Z'),
+    };
+
+    beforeEach(() => {
+      t.services.findById.mockResolvedValue({
+        ...SERVICE,
+        employees: [...SERVICE.employees, JUAN],
+      });
+      t.availabilities.findById.mockResolvedValue(AVAILABILITY);
+    });
+
+    it('trae solo los Horarios reservables de ese Empleado, no la unión', async () => {
+      t.bookings.listOccupiedByUser.mockImplementation(async (userId) =>
+        userId === ANAS_EMPLOYEE.userId ? [BUSY_ALL_MORNING] : [],
+      );
+
+      const anas = await query(t, { employeeId: ANAS_EMPLOYEE.id }).expect(200);
+      const juans = await query(t, { employeeId: JUAN_ID }).expect(200);
+      const both = await query(t, {}).expect(200);
+
+      expect(anas.body.days[0].slots).not.toContain('2026-01-02T12:00:00.000Z');
+      expect(juans.body.days[0].slots).toContain('2026-01-02T12:00:00.000Z');
+      expect(both.body.days[0].slots).toContain('2026-01-02T12:00:00.000Z');
+      expect(t.bookings.listOccupiedByUser).toHaveBeenCalledWith(
+        ANAS_EMPLOYEE.userId,
+        expect.any(Date),
+        expect.any(Date),
+        undefined,
+      );
+    });
+
+    it('responde 404 si el Empleado no Ofrece el Servicio, o lo dejó de ofrecer', async () => {
+      const res = await query(t, { employeeId: 999 }).expect(404);
+
+      expect(res.body.message).toBe(`Employee 999 does not offer Service ${SERVICE.id}`);
+    });
+
+    it('responde 400 en un Servicio personal', async () => {
+      t.services.findById.mockResolvedValue({
+        ...SERVICE,
+        branchId: null,
+        userId: ANAS_EMPLOYEE.userId,
+        availabilityId: AVAILABILITY_ID,
+        employees: [],
+      });
+
+      await query(t, { employeeId: ANAS_EMPLOYEE.id }).expect(400);
+    });
+
+    it('responde 400 si employeeId no es un entero', async () => {
+      await query(t, { employeeId: 'ana' }).expect(400);
+    });
+  });
+
   it('un Servicio oculto tiene Horarios reservables igual que uno visible', async () => {
     t.services.findById.mockResolvedValue({ ...SERVICE, hidden: true });
 
@@ -415,6 +486,7 @@ describe('GET /services/:id/slots', () => {
             availabilityId: JUANS_AVAILABILITY.id,
             userId: JUANS_AVAILABILITY.userId,
             imageUrl: null,
+            slug: null,
           },
         ],
       });

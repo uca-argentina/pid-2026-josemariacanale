@@ -25,6 +25,8 @@ export interface Booking {
   noShowAt: Date | null;
   /** Enlace del Turno (ADR 0022): identificador secreto, único y no adivinable que abre este Turno sin Código de verificación. */
   link: string;
+  /** Empleado elegido: the Cliente came in by this Empleado's Enlace de reserva, so the Turno stays with them. */
+  employeeChosen: boolean;
 }
 
 /** Who to send an Aviso de cambio del Turno to: the Cliente's email and the Turno's Enlace del Turno. */
@@ -71,6 +73,8 @@ export interface CreateBookingInput {
   clientName: string;
   clientEmail: string;
   notes?: string;
+  /** Empleado elegido: only this Empleado is considered, with no round robin. Servicio del Negocio only. */
+  employeeId?: number;
   /** El Código de verificación pedido para clientEmail (ADR 0022). */
   code: string;
 }

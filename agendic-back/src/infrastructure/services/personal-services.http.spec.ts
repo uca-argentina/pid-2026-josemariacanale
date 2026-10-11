@@ -333,6 +333,7 @@ describe('Servicio personal', () => {
       notes: null,
       noShowAt: null,
       link: 'booking-link-secret',
+      employeeChosen: false,
     };
 
     beforeEach(() => {

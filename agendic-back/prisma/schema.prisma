@@ -208,18 +208,19 @@ model AvailabilityOverride {
 }
 
 model Booking {
-  id           Int           @id @default(autoincrement())
-  serviceId    Int
-  employeeId   Int? // the Empleado of a Servicio del Negocio; null in a Servicio personal
-  userId       Int // the User who attends it: occupancy is per User, across Servicios personales and of any Negocio (ADR 0021)
-  prepStartsAt DateTime      @db.Timestamptz(3) // startsAt - Service.prepMinutes, fixed at booking: the attending User's agenda is held from here
-  startsAt     DateTime      @db.Timestamptz(3)
-  endsAt       DateTime      @db.Timestamptz(3) // startsAt + Service.durationMinutes, fixed at booking
-  status       BookingStatus // fijado al crear: BOOKED, o PENDING con Aprobación manual (ADR 0022)
-  notes        String? // Comentario del Turno, up to 500 characters (checked by the API)
-  noShowAt     DateTime?     @db.Timestamptz(3) // Ausencia: when the Empleado marked it; never replaces status
-  link         String        @unique // Enlace del Turno (ADR 0022): secret, random, URL-safe, generated at creation
-  createdAt    DateTime      @default(now()) @db.Timestamptz(3)
+  id             Int           @id @default(autoincrement())
+  serviceId      Int
+  employeeId     Int? // the Empleado of a Servicio del Negocio; null in a Servicio personal
+  userId         Int // the User who attends it: occupancy is per User, across Servicios personales and of any Negocio (ADR 0021)
+  prepStartsAt   DateTime      @db.Timestamptz(3) // startsAt - Service.prepMinutes, fixed at booking: the attending User's agenda is held from here
+  startsAt       DateTime      @db.Timestamptz(3)
+  endsAt         DateTime      @db.Timestamptz(3) // startsAt + Service.durationMinutes, fixed at booking
+  status         BookingStatus // fijado al crear: BOOKED, o PENDING con Aprobación manual (ADR 0022)
+  notes          String? // Comentario del Turno, up to 500 characters (checked by the API)
+  noShowAt       DateTime?     @db.Timestamptz(3) // Ausencia: when the Empleado marked it; never replaces status
+  link           String        @unique // Enlace del Turno (ADR 0022): secret, random, URL-safe, generated at creation
+  employeeChosen Boolean       @default(false) // Empleado elegido (ADR 0026): the Cliente came in by this Empleado's Enlace de reserva; Reagendar never moves it to another
+  createdAt      DateTime      @default(now()) @db.Timestamptz(3)
 
   service  Service   @relation(fields: [serviceId], references: [id])
   employee Employee? @relation(fields: [employeeId], references: [id])
