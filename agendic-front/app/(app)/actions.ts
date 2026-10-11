@@ -1,5 +1,6 @@
 'use server';
 
+import { refresh } from 'next/cache';
 import { redirect, unstable_rethrow } from 'next/navigation';
 import { isSessionExpired, isUserDeactivated } from '@/app/api-error';
 import { SIGN_IN_PATH } from '@/app/routes';
@@ -29,10 +30,12 @@ export async function retireMeAction(): Promise<RetireMeResult> {
 
 export type UpdateMyPreferencesResult = { ok: true; preferences: Preferences } | { ok: false; message: string };
 
-/** Guarda las preferencias de hora y semana del Usuario; `payload` lleva solo lo que cambió. */
+/** Guarda las preferencias de hora y semana del Usuario; `payload` lleva solo lo que cambió. Refresca la página, que las muestra. */
 export async function updateMyPreferencesAction(payload: unknown): Promise<UpdateMyPreferencesResult> {
     try {
-        return { ok: true, preferences: await getInjection('IUpdateMyPreferencesController')(payload) };
+        const preferences = await getInjection('IUpdateMyPreferencesController')(payload);
+        refresh();
+        return { ok: true, preferences };
     } catch (error) {
         unstable_rethrow(error); // redirect/notFound/dynamic usage are Next's control flow, not failures
         if (isSessionExpired(error)) redirect(SIGN_IN_PATH);

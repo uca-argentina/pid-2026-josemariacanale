@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { toSchedule } from '@/app/(app)/_components/availability-week';
 import type { Availability, AvailabilityDetail, AvailabilityOverride, TimeRange } from '@/src/entities/models/availability';
+import type { Preferences } from '@/src/entities/models/user';
 import {
     createAvailabilityAction,
     deleteAvailabilityAction,
@@ -19,7 +19,7 @@ import { AvailabilityList } from './AvailabilityList';
 export interface AvailabilityDraft {
     name: string;
     timeZone: string;
-    days: TimeRange[][];
+    schedule: TimeRange[][];
     overrides: AvailabilityOverride[];
     isDefault: boolean;
 }
@@ -28,7 +28,15 @@ export interface AvailabilityDraft {
  * Horas laborables del Usuario: la lista y, con `open`, el editor de una. Todo sale de las props que trae
  * el server; cada acción las refresca.
  */
-export function AvailabilityView({ availabilities, open }: { availabilities: Availability[]; open: AvailabilityDetail | null }) {
+export function AvailabilityView({
+    availabilities,
+    open,
+    preferences,
+}: {
+    availabilities: Availability[];
+    open: AvailabilityDetail | null;
+    preferences: Preferences;
+}) {
     const router = useRouter();
     const [busy, setBusy] = useState(false);
 
@@ -50,6 +58,7 @@ export function AvailabilityView({ availabilities, open }: { availabilities: Ava
         <AvailabilityEditor
             key={open.id}
             availability={open}
+            preferences={preferences}
             busy={busy}
             onBack={() => router.push('/availability')}
             onSave={(draft) =>
@@ -59,7 +68,7 @@ export function AvailabilityView({ availabilities, open }: { availabilities: Ava
                             availabilityId: open.id,
                             name: draft.name,
                             timeZone: draft.timeZone,
-                            schedule: toSchedule(draft.days),
+                            schedule: draft.schedule,
                             overrides: draft.overrides,
                             makeDefault: draft.isDefault && !open.isDefault,
                         }),

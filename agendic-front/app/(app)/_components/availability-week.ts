@@ -76,9 +76,47 @@ export function toWeek(schedule: TimeRange[][]): TimeRange[][] {
     return week;
 }
 
-/** El `schedule` que espera el back: 7 días, domingo primero, cada uno ordenado por inicio; un día sin Franjas es `[]`. */
-export const toSchedule = (week: TimeRange[][]): TimeRange[][] =>
-    Array.from({ length: 7 }, (_, day) => [...week[(day + 6) % 7]].sort(byStart));
+/** Una Franja como la maneja el editor copiado de cal.diy: la hora del día como instante UTC del 1970-01-01. */
+export type DateRange = { start: Date; end: Date };
+
+/** El fin del día de cal.diy: `23:59` es `23:59:59.999`, para que ninguna Franja siguiente quepa después. */
+const END_OF_DAY = '23:59';
+export const END_OF_DAY_MS = 24 * 60 * 60 * 1000 - 1;
+
+/** `HH:mm` → el instante UTC de esa hora el 1970-01-01. */
+const toDate = (time: string) => new Date(time === END_OF_DAY ? END_OF_DAY_MS : toMinutes(time) * 60_000);
+
+/** El instante → su `HH:mm` UTC; los segundos se descartan. */
+const toHHmm = (date: Date) => date.toISOString().slice(11, 16);
+
+/** Las Franjas del back (`HH:mm`) como las ve el editor copiado de cal.diy (`Date`). Conserva el orden. */
+export const toDateRanges = (ranges: TimeRange[]): DateRange[] =>
+    ranges.map(({ start, end }) => ({ start: toDate(start), end: toDate(end) }));
+
+/** Las Franjas del editor (`Date`) como las manda el back (`HH:mm`). Conserva el orden; `[]` sigue siendo `[]`. */
+export const toTimeRanges = (ranges: DateRange[]): TimeRange[] =>
+    ranges.map(({ start, end }) => ({ start: toHHmm(start), end: toHHmm(end) }));
+
+/** El `schedule` del back al formulario del editor: mismo orden de días (0 = domingo), Franjas por hora de inicio. */
+export const toFormSchedule = (schedule: TimeRange[][]): DateRange[][] =>
+    schedule.map((ranges) => toDateRanges([...ranges].sort(byStart)));
+
+/** El formulario del editor al `schedule` que espera el back: 7 días, domingo primero, Franjas por hora de inicio. */
+export const fromFormSchedule = (days: DateRange[][]): TimeRange[][] =>
+    days.map((ranges) => toTimeRanges(ranges).sort(byStart));
+
+/**
+ * Los días de la semana empezando en `weekStart` (0 = domingo), cada uno con su índice en el `schedule` del back y su
+ * nombre. El índice no depende de `weekStart`: el domingo es siempre el 0.
+ */
+export function weekdays(weekStart: number): { index: number; name: string }[] {
+    const format = new Intl.DateTimeFormat('es', { weekday: 'long', timeZone: 'UTC' });
+    return Array.from({ length: 7 }, (_, i) => {
+        const index = (weekStart + i) % 7;
+        // El 2024-01-07 fue domingo.
+        return { index, name: format.format(new Date(Date.UTC(2024, 0, 7 + index))) };
+    });
+}
 
 /** Si el editor puede guardar: ningún día tiene una Franja vacía, invertida o solapada. */
 export const weekValid = (week: TimeRange[][]) => week.every(intervalsValid);

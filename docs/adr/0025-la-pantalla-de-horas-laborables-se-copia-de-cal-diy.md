@@ -10,7 +10,7 @@ Motivos:
 
 ## Dependencias que suma el spec
 
-`react-hook-form`, `react-select`, `react-timezone-select`, `dayjs` y `react-day-picker`. Con este ADR llegan `react-select`, `react-timezone-select` y `dayjs`; el resto lo suman los tickets que copian el formulario y el calendario.
+`react-hook-form`, `react-select`, `react-timezone-select`, `dayjs` y `react-day-picker`. Con este ADR llegan `react-select`, `react-timezone-select` y `dayjs`; `react-hook-form` llega con los días y Franjas del editor; el resto lo suman los tickets que copian el calendario.
 
 ## Qué no se copia
 
