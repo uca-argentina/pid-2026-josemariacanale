@@ -148,6 +148,7 @@ describe('Negocio', () => {
               id: ANAS_EMPLOYEE.id,
               name: ANAS_EMPLOYEE.name,
               availabilityId: 10,
+              imageUrl: ANAS_EMPLOYEE.imageUrl,
             },
           ],
         },
@@ -172,7 +173,7 @@ describe('Negocio', () => {
 
       expect(t.businesses.create).toHaveBeenCalledWith({
         business: { ...BUSINESS_PART, ownerId: ANA.id },
-        branch: { ...BRANCH_PART, slug: ANAS_BUSINESS.slug },
+        branch: BRANCH_PART,
         service: undefined,
         employee: { userId: ANA.id },
       });
