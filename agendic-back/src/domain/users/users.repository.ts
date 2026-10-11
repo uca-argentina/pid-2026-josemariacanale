@@ -13,7 +13,7 @@ export interface UsersRepository {
   findByEmail(email: string): Promise<User | null>;
   /** The Usuario whose Enlace de reserva is that slug, already lowercase. Null if there is none. */
   findBySlug(slug: string): Promise<User | null>;
-  /** Leaves undefined fields unchanged. Throws ConflictError when the slug is taken. */
+  /** Leaves undefined fields unchanged. Throws ConflictError when the slug is taken by a Negocio or another Usuario (ADR 0026). */
   update(
     id: number,
     data: Partial<

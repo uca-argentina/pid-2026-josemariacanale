@@ -23,7 +23,8 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | --- | --- |
 | Negocio | `Business` |
 | Dueño | `owner` (`Business.ownerId`) |
-| Enlace de reserva | `Business.slug` (tramo del Negocio) + `Branch.slug` (tramo de la Sucursal, único por `businessId`); la URL del front es `/business/<negocio-slug>/<sucursal-slug>`, y `/business/<negocio-slug>/<sucursal-slug>/<servicio-slug>` con el tramo del Servicio (`Service.slug`, único por `branchId` entre los no dados de baja) |
+| Enlace de reserva | `Business.slug` (tramo del Negocio) + `Branch.slug` (tramo de la Sucursal, único por `businessId`); la URL del front, sin prefijo (ADR 0026), es `/<negocio-slug>/<sucursal-slug>`, y `/<negocio-slug>/<sucursal-slug>/<servicio-slug>` con el tramo del Servicio (`Service.slug`, único por `branchId` entre los no dados de baja) |
+| Primer tramo del Enlace de reserva (ADR 0026) | `BookingSlug` (`slug` clave primaria, `businessId` o `userId`, exactamente uno; la escriben `PrismaBusinessesRepository` y `PrismaUsersRepository` con el slug); palabras reservadas → `RESERVED_SLUGS`; `GET /slugs/:slug` → `ResolveSlugUseCase` |
 | Sucursal | `Branch` (sin horario de apertura ni de cierre; descripción propia opcional → `Branch.description`) |
 | Logo del Negocio | `Business.logoUrl` (`string \| null`; `PUT` / `DELETE /businesses/:id/logo`) |
 | Imágenes de Sucursal | `BranchImage` (`url`, `order`) |
@@ -39,10 +40,10 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | Anulación | `AvailabilityOverride` (`availabilityId`) |
 | Horario reservable | `Slot` (`GET /services/:id/slots`) |
 | Servicio | `Service` |
-| Servicio personal (ADR 0021) | `PersonalService` (`Service.userId`, `Service.availabilityId`; sin `branchId`; Enlace de reserva `User.slug`, la URL del front es `/u/<slug>/<servicio>`) |
+| Servicio personal (ADR 0021) | `PersonalService` (`Service.userId`, `Service.availabilityId`; sin `branchId`; Enlace de reserva `User.slug`, la URL del front es `/<slug>/<servicio>`) |
 | Servicio personal | `Service.userId` (con `Service.availabilityId`; sin `branchId` ni Empleados) |
 | Servicio del Negocio | `Service.branchId` (sin `userId`) |
-| Enlace de reserva del Usuario | `User.slug`; la URL del front es `/u/<usuario-slug>`, y `/u/<usuario-slug>/<servicio-slug>` con el tramo del Servicio personal (`Service.slug`, único por `userId` entre los no dados de baja) |
+| Enlace de reserva del Usuario | `User.slug`; la URL del front es `/<usuario-slug>`, y `/<usuario-slug>/<servicio-slug>` con el tramo del Servicio personal (`Service.slug`, único por `userId` entre los no dados de baja) |
 | Categoría de Servicio | `ServiceCategory` (`Service.category`) |
 | Aprobación manual | `Service.requiresApproval` |
 | Seña | `Service.depositPercent` (opcional) |

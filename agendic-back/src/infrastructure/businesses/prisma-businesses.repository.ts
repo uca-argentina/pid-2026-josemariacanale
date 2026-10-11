@@ -34,6 +34,9 @@ export class PrismaBusinessesRepository implements BusinessesRepository {
     return this.prisma
       .$transaction(async (tx) => {
         const business = await tx.business.create({ data: data.business });
+        await tx.bookingSlug.create({
+          data: { slug: business.slug, businessId: business.id },
+        });
         const branch = await tx.branch.create({
           data: {
             businessId: business.id,
@@ -103,11 +106,25 @@ export class PrismaBusinessesRepository implements BusinessesRepository {
     id: number,
     data: Partial<Pick<Business, 'name' | 'description' | 'slug' | 'logoUrl'>>,
   ) {
-    return toBusiness(
-      await this.prisma.business
-        .update({ where: { id }, data })
-        .catch(translateError),
-    );
+    const { slug } = data;
+    if (slug === undefined)
+      return toBusiness(
+        await this.prisma.business
+          .update({ where: { id }, data })
+          .catch(translateError),
+      );
+    return this.prisma
+      .$transaction(async (tx) => {
+        const row = await tx.business.update({ where: { id }, data });
+        // The old slug is freed by moving the row: a Negocio holds exactly one BookingSlug.
+        await tx.bookingSlug.upsert({
+          where: { businessId: id },
+          create: { slug, businessId: id },
+          update: { slug },
+        });
+        return toBusiness(row);
+      })
+      .catch(translateError);
   }
 }
 
@@ -123,6 +140,7 @@ const toBusiness = (row: BusinessRow): Business => ({
 
 const CONFLICT_BY_INDEX: Record<string, string> = {
   Business_slug_key: 'Booking link already in use',
+  BookingSlug_pkey: 'Booking link already in use',
   Business_ownerId_key: 'Ya tenés un Negocio',
   Service_branchId_name_ci_key: 'Service name already in use',
   Service_branchId_slug_key: 'Service booking link already in use',

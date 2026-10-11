@@ -94,7 +94,7 @@ Servicio de un Usuario, sin Negocio ni Sucursal. Lo atiende solo ese Usuario, co
 _Avoid_: servicio individual, servicio propio
 
 **Servicio del Negocio**:
-Servicio de una Sucursal de un Negocio, atendido por los Empleados que lo Ofrecen. El Cliente no elige con quién: al Reservar se le asigna un Empleado libre en ese horario, el que hace más tiempo que no recibe un Turno de ese Servicio.
+Servicio de una Sucursal de un Negocio, atendido por los Empleados que lo Ofrecen. Por lo general el Cliente no elige con quién: al Reservar se le asigna un Empleado libre en ese horario, el que hace más tiempo que no recibe un Turno de ese Servicio. La excepción es entrar por el Enlace de reserva de un Empleado, que deja un Empleado elegido.
 _Avoid_: servicio de equipo, servicio compartido
 
 **Intervalo**:
@@ -174,11 +174,15 @@ Texto libre que el Cliente puede dejar al Reservar, para contarle algo al Negoci
 _Avoid_: notas, observaciones, comment
 
 **Enlace de reserva**:
-Dirección pública que un Negocio comparte para que un Cliente entre a Reservar. La elige el Dueño al Crear Negocio y puede cambiarla; al cambiarla, la anterior deja de funcionar. Si el Negocio tiene más de una Sucursal, cada una agrega su propio tramo a esa dirección para llegar directo a ella; con una sola Sucursal, el Enlace de reserva del Negocio ya lleva ahí. Cada Servicio agrega un último tramo que abre la página de su Sucursal con ese Servicio ya elegido. Un Usuario tiene además su propio Enlace de reserva, que elige él, para sus Servicios personales; cada uno agrega su propio último tramo.
+Dirección pública que un Negocio comparte para que un Cliente entre a Reservar, sin prefijo: su primer tramo es el del Negocio. La elige el Dueño al Crear Negocio y puede cambiarla; al cambiarla, la anterior deja de funcionar. Si el Negocio tiene más de una Sucursal, cada una agrega su propio tramo a esa dirección para llegar directo a ella; con una sola Sucursal, el Enlace de reserva del Negocio ya lleva ahí. Cada Servicio agrega un tramo que abre la página de su Sucursal con ese Servicio ya elegido, y un Servicio del Negocio puede sumar un último tramo opcional con el Enlace de reserva de un Empleado que lo Ofrece. Un Usuario tiene además su propio Enlace de reserva, que elige él, para sus Servicios personales; cada uno agrega su propio último tramo. El primer tramo es de un Negocio o de un Usuario, nunca repetido entre los dos, y no puede ser una palabra reservada (`bookings`, `services`, `business`, `availability`, `analytics`, `turnos`, `sign-in`, `sign-up`, `api`, `trpc`, `u`): son pantallas de Agendic. Los tramos de Sucursal y de Servicio sí pueden usarlas.
 _Avoid_: link del negocio, perfil público, página pública, slug (eso es el identificador en el código)
 
+**Empleado elegido**:
+Empleado con el que el Cliente Reservó un Servicio del Negocio entrando por el Enlace de reserva de esa persona. El Turno queda con él y solo se le ofrecen sus Horarios reservables; si el horario se ocupó, no se pasa a otro Empleado. Sin ese tramo del Enlace de reserva, el Turno no tiene Empleado elegido y se asigna como siempre.
+_Avoid_: Empleado asignado, Empleado preferido
+
 **Reagendar**:
-Mover un turno existente a otro horario del mismo Servicio. Conserva al Empleado si está libre en el horario nuevo; si no, pasa a otro libre. Libera el horario anterior. Lo puede hacer el Empleado o el Cliente, sobre un Turno pendiente o aceptado.
+Mover un turno existente a otro horario del mismo Servicio. Conserva al Empleado si está libre en el horario nuevo; si no, pasa a otro libre, salvo en un Turno con Empleado elegido: ese solo se Reagenda a horarios de ese Empleado, y para pasarlo a otro se Cancela. Libera el horario anterior. Lo puede hacer el Empleado o el Cliente, sobre un Turno pendiente o aceptado.
 _Avoid_: reprogramar, cambiar el turno
 
 **Cancelar**:

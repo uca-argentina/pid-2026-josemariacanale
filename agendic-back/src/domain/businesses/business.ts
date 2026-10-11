@@ -6,7 +6,7 @@ export interface Business {
   name: string;
   description: string;
   ownerId: number;
-  /** Enlace de reserva: the lowercase address a Cliente reaches this Business by, at /business/<slug>. */
+  /** Enlace de reserva: the lowercase first tramo a Cliente reaches this Business by, shared with the Usuarios (ADR 0026). */
   slug: string;
   /** Cuándo se dio de baja con su Dueño (ADR 0024); `null` mientras está activo. */
   deletedAt: Date | null;
