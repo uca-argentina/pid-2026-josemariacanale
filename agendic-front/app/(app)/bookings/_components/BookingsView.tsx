@@ -3,9 +3,10 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Tabs } from '@base-ui/react/tabs';
-import { ArrowLeft, ArrowRight, CalendarDays, MapPin } from 'lucide-react';
+import { CalendarDays, MapPin } from 'lucide-react';
+import { PaginationControls } from '@/app/_components/PaginationControls';
 import { cn } from '@/app/_components/utils';
-import { PanelBadge, PanelIconButton, PanelSelect } from '@/app/(app)/_components/panel-ui';
+import { PanelBadge } from '@/app/(app)/_components/panel-ui';
 import {
     formatShortDay,
     formatTimeRange,
@@ -48,7 +49,7 @@ const TABS: { id: BookingTab; label: string; empty: { title: string; description
     },
 ];
 
-const PAGE_SIZES = ['10', '25', '50'].map((v) => ({ value: v, label: v }));
+const PAGE_SIZES = [10, 25, 50];
 
 const RED = 'bg-[#fdecec] text-[#b91c1c]';
 const AMBER = 'bg-[#fff4e5] text-[#b45309]';
@@ -187,30 +188,18 @@ export function BookingsView({ bookings, now }: { bookings: Booking[]; now: numb
                         ))}
                     </div>
 
-                    <footer className="mt-4 flex flex-wrap items-center gap-3 text-[13px] font-medium text-[#374151]">
-                        <PanelSelect
-                            aria-label="Filas por página"
-                            className="w-[76px]"
-                            value={String(pageSize)}
-                            onValueChange={(v) => {
-                                setPageSize(Number(v));
-                                setPage(0);
-                            }}
-                            options={PAGE_SIZES}
-                        />
-                        filas por página
-                        <span className="ml-auto">
-                            {from + 1}–{from + pageItems.length} de {inTab.length}
-                        </span>
-                        <div className="flex gap-1">
-                            <PanelIconButton bordered label="Página anterior" disabled={current === 0} onClick={() => setPage(current - 1)}>
-                                <ArrowLeft />
-                            </PanelIconButton>
-                            <PanelIconButton bordered label="Página siguiente" disabled={current >= pageCount - 1} onClick={() => setPage(current + 1)}>
-                                <ArrowRight />
-                            </PanelIconButton>
-                        </div>
-                    </footer>
+                    <PaginationControls
+                        page={current}
+                        pageCount={pageCount}
+                        pageSize={pageSize}
+                        pageSizes={PAGE_SIZES}
+                        summary={`${from + 1}–${from + pageItems.length} de ${inTab.length}`}
+                        onPageChange={setPage}
+                        onPageSizeChange={(size) => {
+                            setPageSize(size);
+                            setPage(0);
+                        }}
+                    />
                 </>
             ) : (
                 <div className="mt-4 flex flex-col items-center gap-2 rounded-md border border-dashed border-[#d1d5db] px-5 py-16 text-center">

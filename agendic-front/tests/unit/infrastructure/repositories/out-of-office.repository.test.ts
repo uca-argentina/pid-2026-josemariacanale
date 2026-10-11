@@ -1,12 +1,12 @@
 import { UnauthenticatedError } from '@/src/entities/errors/auth';
 import { ApiRequestError } from '@/src/entities/errors/common';
 import { OutOfOfficeRepository } from '@/src/infrastructure/repositories/out-of-office.repository';
-import { authWith } from '@/tests/unit/stubs';
+import { authWith, instrumentation } from '@/tests/unit/stubs';
 
 const periodo = { id: 1, startDate: '2026-10-11', endDate: '2026-10-16', reason: 'VACATION', notes: null, showNotePublicly: false };
 
 const repo = (apiUrl: string | undefined = 'http://api') =>
-    new OutOfOfficeRepository(authWith({ getAccessToken: jest.fn().mockResolvedValue('tok') }), apiUrl);
+    new OutOfOfficeRepository(authWith({ getAccessToken: jest.fn().mockResolvedValue('tok') }), instrumentation, apiUrl);
 const respond = (status: number, body: unknown) =>
     jest.spyOn(global, 'fetch').mockResolvedValue(new Response(body === undefined ? null : JSON.stringify(body), { status }));
 

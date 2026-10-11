@@ -2,15 +2,11 @@
 
 import { useState } from 'react';
 import { Clock } from 'lucide-react';
+import { PaginationControls } from '@/app/_components/PaginationControls';
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/app/_components/ui/empty';
-import { Label } from '@/app/_components/ui/label';
-import { Pagination, PaginationContent, PaginationItem, PaginationLink } from '@/app/_components/ui/pagination';
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/app/_components/ui/select';
 import type { OutOfOffice } from '@/src/entities/models/out-of-office';
 import { formatOutOfOfficeDate } from './format-out-of-office-date';
 import { OUT_OF_OFFICE_REASONS } from './out-of-office-reasons';
-
-const PAGE_SIZES = [10, 20, 30, 40, 50];
 
 /** Una fila: el emoji del Motivo en un círculo, el rango y debajo "Motivo · nota". */
 function OutOfOfficeRow({ period }: { period: OutOfOffice }) {
@@ -54,62 +50,16 @@ export function OutOfOfficeView({ periods }: { periods: OutOfOffice[] }) {
                             <OutOfOfficeRow key={period.id} period={period} />
                         ))}
                     </ul>
-                    <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
-                        <div className="flex items-center gap-2">
-                            <Label htmlFor="out-of-office-page-size" className="text-sm font-medium">
-                                Filas por página
-                            </Label>
-                            <Select
-                                value={`${pageSize}`}
-                                onValueChange={(value) => {
-                                    setPageSize(Number(value));
-                                    setPage(0);
-                                }}
-                            >
-                                <SelectTrigger size="sm" className="w-20" id="out-of-office-page-size">
-                                    <SelectValue placeholder={pageSize} />
-                                </SelectTrigger>
-                                <SelectContent side="top">
-                                    <SelectGroup>
-                                        {PAGE_SIZES.map((size) => (
-                                            <SelectItem key={size} value={`${size}`}>
-                                                {size}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectGroup>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <Pagination className="mx-0 w-fit">
-                            <PaginationContent>
-                                <PaginationItem>
-                                    <PaginationLink
-                                        render={<button type="button" disabled={current === 0} onClick={() => setPage(current - 1)} />}
-                                        size="default"
-                                        aria-label="Ir a la página anterior"
-                                        className="inline-flex h-8 items-center rounded-md border px-3 text-sm disabled:opacity-50"
-                                    >
-                                        Anterior
-                                    </PaginationLink>
-                                </PaginationItem>
-                                <PaginationItem className="px-2 text-sm font-medium">
-                                    Página {current + 1} de {pageCount}
-                                </PaginationItem>
-                                <PaginationItem>
-                                    <PaginationLink
-                                        render={
-                                            <button type="button" disabled={current >= pageCount - 1} onClick={() => setPage(current + 1)} />
-                                        }
-                                        size="default"
-                                        aria-label="Ir a la página siguiente"
-                                        className="inline-flex h-8 items-center rounded-md border px-3 text-sm disabled:opacity-50"
-                                    >
-                                        Siguiente
-                                    </PaginationLink>
-                                </PaginationItem>
-                            </PaginationContent>
-                        </Pagination>
-                    </div>
+                    <PaginationControls
+                        page={current}
+                        pageCount={pageCount}
+                        pageSize={pageSize}
+                        onPageChange={setPage}
+                        onPageSizeChange={(size) => {
+                            setPageSize(size);
+                            setPage(0);
+                        }}
+                    />
                 </>
             ) : (
                 <Empty className="mt-8 rounded-md border">

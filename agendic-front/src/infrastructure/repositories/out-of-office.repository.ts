@@ -1,8 +1,9 @@
 import type { IOutOfOfficeRepository } from '@/src/application/repositories/out-of-office.repository.interface';
 import type { IAuthenticationService } from '@/src/application/services/authentication.service.interface';
-import { UnauthenticatedError } from '@/src/entities/errors/auth';
+import type { IInstrumentationService } from '@/src/application/services/instrumentation.service.interface';
 import { ApiRequestError } from '@/src/entities/errors/common';
 import { outOfOfficeSchema, type OutOfOffice } from '@/src/entities/models/out-of-office';
+import { apiRequest } from './api-request';
 
 /**
  * Períodos Fuera de la oficina del Usuario contra la API del back.
@@ -12,6 +13,7 @@ import { outOfOfficeSchema, type OutOfOffice } from '@/src/entities/models/out-o
 export class OutOfOfficeRepository implements IOutOfOfficeRepository {
     constructor(
         private readonly authenticationService: IAuthenticationService,
+        private readonly instrumentationService: IInstrumentationService,
         private readonly apiUrl = process.env.API_URL,
     ) {}
 
@@ -20,26 +22,14 @@ export class OutOfOfficeRepository implements IOutOfOfficeRepository {
      * @throws {ApiRequestError} falla de red, otro status no-OK o cuerpo inesperado
      */
     async listOutOfOffice(): Promise<OutOfOffice[]> {
-        const path = '/users/me/out-of-office';
-        const what = `GET ${path}`;
-        if (!this.apiUrl) throw new ApiRequestError(`${what} failed: API_URL is not set`);
-        const token = await this.authenticationService.getAccessToken();
-
-        let response: Response;
-        try {
-            response = await fetch(`${this.apiUrl}${path}`, { method: 'GET', headers: { Authorization: `Bearer ${token}` } });
-        } catch (cause) {
-            throw new ApiRequestError(`${what} failed`, { cause });
-        }
-
-        const json = await response.json().catch(() => undefined);
-        const message = String(json?.message ?? `${what} responded ${response.status}`);
-        if (response.status === 401) throw new UnauthenticatedError(message);
-        if (!response.ok) throw new ApiRequestError(message, { status: response.status });
-        try {
-            return outOfOfficeSchema.array().parse(json);
-        } catch (cause) {
-            throw new ApiRequestError(`${what} responded with an unexpected body`, { cause });
-        }
+        return this.instrumentationService.startSpan({ name: 'OutOfOfficeRepository > listOutOfOffice', op: 'http.client' }, async () => {
+            const path = '/users/me/out-of-office';
+            const json = await apiRequest(this.authenticationService, this.apiUrl, 'GET', path);
+            try {
+                return outOfOfficeSchema.array().parse(json);
+            } catch (cause) {
+                throw new ApiRequestError(`GET ${path} responded with an unexpected body`, { cause });
+            }
+        });
     }
 }

@@ -7,7 +7,10 @@ import { listMyOutOfOfficeController } from '@/src/interface-adapters/controller
 export function createOutOfOfficeModule() {
     const outOfOfficeModule = createModule();
 
-    outOfOfficeModule.bind(DI_SYMBOLS.IOutOfOfficeRepository).toClass(OutOfOfficeRepository, [DI_SYMBOLS.IAuthenticationService]);
+    outOfOfficeModule.bind(DI_SYMBOLS.IOutOfOfficeRepository).toClass(OutOfOfficeRepository, [
+        DI_SYMBOLS.IAuthenticationService,
+        DI_SYMBOLS.IInstrumentationService,
+    ]);
 
     outOfOfficeModule
         .bind(DI_SYMBOLS.IListOutOfOfficeUseCase)
