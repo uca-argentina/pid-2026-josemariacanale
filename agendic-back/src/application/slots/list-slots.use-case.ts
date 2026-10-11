@@ -28,6 +28,7 @@ import {
   localDate,
   localDayBounds,
 } from '../../domain/slots/slot';
+import { ListUserHolidayPeriodsUseCase } from '../holidays/list-user-holiday-periods.use-case';
 import { serviceTimeZone } from '../services/service-time-zone';
 import { assertChosenEmployee } from './assert-chosen-employee';
 
@@ -85,6 +86,7 @@ export class ListSlotsUseCase {
     @Inject(BOOKINGS_REPOSITORY) private readonly bookings: BookingsRepository,
     @Inject(OUT_OF_OFFICE_REPOSITORY)
     private readonly outOfOffice: OutOfOfficeRepository,
+    private readonly holidayPeriods: ListUserHolidayPeriodsUseCase,
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
@@ -197,6 +199,12 @@ export class ListSlotsUseCase {
           userId,
           addDays(from, -1),
         );
+        // After the períodos so that, on a shared day, the período wins over the Día festivo.
+        const holidays = await this.holidayPeriods.execute(
+          userId,
+          addDays(from, -1),
+          addDays(to, 1),
+        );
         return {
           employeeId,
           userId,
@@ -211,7 +219,7 @@ export class ListSlotsUseCase {
             slotInterval: service.slotInterval,
             minimumNoticeMinutes: service.minimumNoticeMinutes,
             fullDates,
-            outOfOffice: periods,
+            outOfOffice: [...periods, ...holidays],
             now,
           }),
         };

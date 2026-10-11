@@ -118,7 +118,7 @@ export interface ComputeSlotsInput {
   minimumNoticeMinutes: number;
   /** Local dates of the Sucursal on which the Servicio already reached its Límite diario. */
   fullDates: Set<string>;
-  /** Períodos Fuera de la oficina of the Empleado, by `startDate` ascending: their days, read in the Availability's zone, have no Franjas. */
+  /** Períodos Fuera de la oficina of the Empleado, then his Días festivos prendidos as one-day períodos: their days, read in the Availability's zone, have no Franjas, and the first to match a day names its reason. */
   outOfOffice?: Pick<
     OutOfOffice,
     'startDate' | 'endDate' | 'reason' | 'notes' | 'showNotePublicly'

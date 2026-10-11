@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { GetHolidaysForCountryUseCase } from '../../application/holidays/get-holidays-for-country.use-case';
 import { GetUserHolidaysUseCase } from '../../application/holidays/get-user-holidays.use-case';
 import { ListHolidayConflictsUseCase } from '../../application/holidays/list-holiday-conflicts.use-case';
+import { ListUserHolidayPeriodsUseCase } from '../../application/holidays/list-user-holiday-periods.use-case';
 import { ListHolidayCountriesUseCase } from '../../application/holidays/list-holiday-countries.use-case';
 import { SetUserHolidayCountryUseCase } from '../../application/holidays/set-user-holiday-country.use-case';
 import { ToggleUserHolidayUseCase } from '../../application/holidays/toggle-user-holiday.use-case';
@@ -19,6 +20,8 @@ import { UserHolidaysController } from './user-holidays.controller';
     SetUserHolidayCountryUseCase,
     ToggleUserHolidayUseCase,
     ListHolidayConflictsUseCase,
+    ListUserHolidayPeriodsUseCase,
   ],
+  exports: [ListUserHolidayPeriodsUseCase],
 })
 export class HolidaysModule {}
