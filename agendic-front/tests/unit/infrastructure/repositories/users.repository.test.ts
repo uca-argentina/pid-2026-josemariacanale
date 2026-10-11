@@ -68,11 +68,22 @@ describe('UsersRepository.updateMySlug', () => {
 describe('UsersRepository.getUserPage', () => {
     it('GETs /u/:userSlug without a token', async () => {
         const getAccessToken = jest.fn();
-        const fetchSpy = respond(200, { name: 'Ana', slug: 'ana', services: [sent] });
+        const fetchSpy = respond(200, { name: 'Ana', slug: 'ana', imageUrl: 'https://img.example/ana.png', services: [sent] });
 
-        await expect(repo(getAccessToken).getUserPage('ana')).resolves.toEqual({ name: 'Ana', slug: 'ana', services: [personal] });
+        await expect(repo(getAccessToken).getUserPage('ana')).resolves.toEqual({
+            name: 'Ana',
+            slug: 'ana',
+            imageUrl: 'https://img.example/ana.png',
+            services: [personal],
+        });
         expect(fetchSpy).toHaveBeenCalledWith('http://api/u/ana', expect.objectContaining({ method: 'GET' }));
         expect(getAccessToken).not.toHaveBeenCalled();
+    });
+
+    it('keeps a null imageUrl', async () => {
+        respond(200, { name: 'Ana', slug: 'ana', imageUrl: null, services: [] });
+
+        await expect(repo().getUserPage('ana')).resolves.toEqual({ name: 'Ana', slug: 'ana', imageUrl: null, services: [] });
     });
 
     it('turns a 404 into NotFoundError', async () => {

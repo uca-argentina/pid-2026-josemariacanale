@@ -17,6 +17,7 @@ export type Me = z.infer<typeof meSchema>;
 export const userPageSchema = z.object({
     name: z.string(),
     slug: z.string(),
+    imageUrl: z.string().nullable(),
     services: z.array(personalServiceSchema),
 });
 export type UserPage = z.infer<typeof userPageSchema>;

@@ -34,16 +34,25 @@ describe('getUserPageController', () => {
         const useCase = jest.fn().mockResolvedValue({
             name: 'Ana',
             slug: 'ana',
+            imageUrl: 'https://img.example/ana.png',
             services: [service(1, 'clase')],
             selectedService: service(2, 'oculta'),
         });
 
         await expect(getUserPageController(instrumentation, useCase)({ userSlug: 'Ana', serviceSlug: 'oculta' })).resolves.toEqual({
-            user: { name: 'Ana', slug: 'ana' },
+            user: { name: 'Ana', slug: 'ana', imageUrl: 'https://img.example/ana.png' },
             services: [shown(1)],
             selectedService: shown(2),
         });
         expect(useCase).toHaveBeenCalledWith({ userSlug: 'ana', serviceSlug: 'oculta' });
+    });
+
+    it('presents a null imageUrl when the Usuario has no foto', async () => {
+        const useCase = jest.fn().mockResolvedValue({ name: 'Ana', slug: 'ana', imageUrl: null, services: [], selectedService: null });
+
+        await expect(getUserPageController(instrumentation, useCase)({ userSlug: 'ana' })).resolves.toMatchObject({
+            user: { name: 'Ana', slug: 'ana', imageUrl: null },
+        });
     });
 
     it.each([

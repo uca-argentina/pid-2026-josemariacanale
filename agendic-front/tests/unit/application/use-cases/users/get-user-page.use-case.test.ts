@@ -3,7 +3,7 @@ import { getUserPageUseCase } from '@/src/application/use-cases/users/get-user-p
 import { NotFoundError } from '@/src/entities/errors/common';
 import { instrumentation } from '@/tests/unit/stubs';
 
-const page = { name: 'Ana', slug: 'ana', services: [{ id: 1 }] };
+const page = { name: 'Ana', slug: 'ana', imageUrl: null, services: [{ id: 1 }] };
 const usersWith = (stubs: Partial<IUsersRepository>) => stubs as IUsersRepository;
 
 describe('getUserPageUseCase', () => {
