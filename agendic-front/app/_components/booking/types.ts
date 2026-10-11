@@ -2,6 +2,7 @@
 // (ADR 0021). Identificadores en inglés, uno por término del glosario (ADR 0003, docs/agents/domain.md).
 
 import type { DI_RETURN_TYPES } from '@/di/types';
+import type { ServiceEmployee } from '@/src/entities/models/service';
 import type { ServiceCategoryValue } from '@/app/_components/business-schemas';
 
 /**
@@ -15,11 +16,7 @@ export interface Host {
 }
 
 /** El Empleado elegido (ADR 0026) de una reserva: con quién es y de quién son los horarios. */
-export interface ChosenEmployee {
-    id: number;
-    name: string;
-    imageUrl: string | null;
-}
+export type ChosenEmployee = Pick<ServiceEmployee, 'id' | 'name' | 'imageUrl'>;
 
 /** Un Servicio que se puede Reservar. `depositPercent` es la Seña; `null`, sin Seña. */
 export interface Service {

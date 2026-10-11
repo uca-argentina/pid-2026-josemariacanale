@@ -5,7 +5,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/app/_components/utils';
 import { PanelButton, PanelDialog, PanelDialogClose } from '@/app/(app)/_components/panel-ui';
-import { formatDate, shortWeekday } from '@/app/_components/booking/format';
+import { chosenEmployeeId, formatDate, shortWeekday } from '@/app/_components/booking/format';
 import { useSlotWeek } from '@/app/_components/booking/use-slot-week';
 import { rescheduleBookingAction } from '../actions';
 import { TIME_ZONE_LABEL, type Booking } from './booking-helpers';
@@ -21,11 +21,7 @@ const NO_SLOTS_REASON = {
  * solo ofrece horarios de ese Empleado.
  */
 export function RescheduleDialog({ booking, onOpenChange }: { booking: Booking; onOpenChange: (open: boolean) => void }) {
-    const { status, message, week, days, label, canGoBack, goToWeek, retry, reload } = useSlotWeek(
-        booking.serviceId,
-        null,
-        booking.employeeChosen && booking.employeeId !== null ? booking.employeeId : undefined,
-    );
+    const { status, message, week, days, label, canGoBack, goToWeek, retry, reload } = useSlotWeek(booking.serviceId, null, chosenEmployeeId(booking));
     const [date, setDate] = useState<string | null>(null);
     const [startsAt, setStartsAt] = useState<string | null>(null);
     const [notice, setNotice] = useState<string | null>(null);
