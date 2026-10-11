@@ -16,7 +16,9 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/app/_components/ui/to
 import {
     DEFAULT_INTERVAL,
     END_OF_DAY_MS,
+    invalidIntervals,
     toDateRanges,
+    toTimeRanges,
     weekdays,
     type DateRange,
 } from '@/app/(app)/_components/availability-week';
@@ -59,7 +61,7 @@ function IconButton({ label, children, ...props }: { label: string } & React.Com
  */
 export function ScheduleComponent({ weekStart, timeFormat }: { weekStart: number; timeFormat: TimeFormat }) {
     return (
-        <div className="flex flex-col gap-4 p-2 sm:p-4">
+        <div className="flex flex-col gap-4 p-2 @xl/main:p-4">
             {weekdays(weekStart).map(({ index, name }) => (
                 <ScheduleDay
                     key={index}
@@ -90,8 +92,8 @@ function ScheduleDay({
     const lastNonEmptyRef = useRef<DateRange[] | null>(null);
 
     return (
-        <div className="flex w-full flex-col gap-4 sm:flex-row sm:gap-6" data-testid={weekday}>
-            <div className="flex h-9 items-center justify-between sm:w-32">
+        <div className="flex w-full flex-col gap-4 @xl/main:flex-row @xl/main:gap-6" data-testid={weekday}>
+            <div className="flex h-9 items-center justify-between @xl/main:w-32">
                 <label className="flex items-center gap-2">
                     <Switch
                         checked={dayRanges.length > 0}
@@ -110,7 +112,7 @@ function ScheduleDay({
                 </label>
             </div>
             {dayRanges.length > 0 && (
-                <div className="flex sm:gap-2">
+                <div className="flex @xl/main:gap-2">
                     <DayRanges
                         name={name}
                         timeFormat={timeFormat}
@@ -169,7 +171,7 @@ function CopyButton({ from, weekStart }: { from: number; weekStart: number }) {
  * Las Franjas de un día, cada una con sus desplegables de inicio y fin. La primera lleva sumar Franja y `copyButton`;
  * con más de una, cada una lleva quitar. Las que terminan antes de empezar o se solapan quedan marcadas.
  */
-export function DayRanges({
+function DayRanges({
     name,
     timeFormat,
     copyButton,
@@ -180,7 +182,7 @@ export function DayRanges({
 }) {
     const { getValues, watch } = useFormContext<ScheduleFormValues>();
     const { remove, fields, prepend, append } = useFieldArray<ScheduleFormValues, DayName>({ name });
-    const values = watch(name);
+    const invalid = invalidIntervals(toTimeRanges(watch(name)));
 
     if (!fields.length) return null;
 
@@ -188,13 +190,13 @@ export function DayRanges({
         <div className="flex flex-col gap-2">
             {fields.map((field, index) => (
                 <Fragment key={field.id}>
-                    <div className="flex gap-1 sm:gap-2">
+                    <div className="flex gap-1 @xl/main:gap-2">
                         <Controller
                             name={`${name}.${index}`}
                             render={({ field }) => (
                                 <TimeRangeField
                                     timeFormat={timeFormat}
-                                    invalid={isInvalid(values, index)}
+                                    invalid={invalid.includes(index)}
                                     value={field.value}
                                     onChange={field.onChange}
                                 />
@@ -233,16 +235,6 @@ export function DayRanges({
     );
 }
 
-/** Si la Franja `index` termina antes de empezar, o se pisa con otra del día. Pegadas (9–17 y 17–18) valen. */
-function isInvalid(ranges: DateRange[], index: number) {
-    if (!ranges[index]) return false;
-    const { start, end } = ranges[index];
-    return (
-        start >= end ||
-        ranges.some((other, j) => j !== index && start.getTime() < other.end.getTime() && other.start.getTime() < end.getTime())
-    );
-}
-
 function TimeRangeField({
     value,
     onChange,
@@ -255,7 +247,7 @@ function TimeRangeField({
     invalid: boolean;
 }) {
     return (
-        <div className="flex flex-row gap-2 sm:gap-3">
+        <div className="flex flex-row gap-2 @xl/main:gap-3">
             <LazySelect
                 label="Desde"
                 timeFormat={timeFormat}
@@ -291,10 +283,11 @@ interface IOption {
 }
 
 /** Hora escrita (`HH:mm` o `h:mma`, el del `timeFormat` primero) como instante UTC del 1970-01-01, o null si no es una hora. */
-export function parseTimeString(input: string, timeFormat: TimeFormat): Date | null {
+function parseTimeString(input: string, timeFormat: TimeFormat): Date | null {
     if (!input.trim()) return null;
     const parsed = dayjs(input, timeFormat === 12 ? ['h:mma', 'HH:mm'] : ['HH:mm', 'h:mma'], true);
     if (!parsed.isValid()) return null;
+    if (parsed.hour() === 23 && parsed.minute() === 59) return new Date(END_OF_DAY_MS);
     return new Date(Date.UTC(1970, 0, 1, parsed.hour(), parsed.minute()));
 }
 
@@ -313,7 +306,6 @@ function LazySelect({
     invalid: boolean;
     onChange: (option: SingleValue<IOption>) => void;
 }) {
-    // Lazy-loaded options, otherwise adding a field has a noticeable redraw delay.
     const { options, filter } = useOptions(timeFormat);
 
     useEffect(() => {
@@ -370,7 +362,7 @@ function LazySelect({
             filterOption={() => true}
             onChange={onChange}
             noOptionsMessage={() => 'Sin resultados.'}
-            className="block w-[90px] sm:w-[100px]"
+            className="block w-[90px] @xl/main:w-[100px]"
             unstyled
             classNames={{
                 control: (state) =>
@@ -391,7 +383,10 @@ function LazySelect({
     );
 }
 
-/** Las horas del día cada 15 minutos más el fin del día (`23:59`), con su etiqueta en el `timeFormat`. */
+/**
+ * Las horas del día cada 15 minutos más el fin del día (`23:59`), con su etiqueta en el `timeFormat`. `options` empieza
+ * vacía y `filter` la llena al abrir el desplegable: renderizar las 97 opciones de cada Franja demora al sumar una.
+ */
 function useOptions(timeFormat: TimeFormat) {
     const [filteredOptions, setFilteredOptions] = useState<IOption[]>([]);
 

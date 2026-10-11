@@ -81,6 +81,7 @@ export type DateRange = { start: Date; end: Date };
 
 /** El fin del día de cal.diy: `23:59` es `23:59:59.999`, para que ninguna Franja siguiente quepa después. */
 const END_OF_DAY = '23:59';
+/** `23:59:59.999` en milisegundos desde la medianoche UTC. */
 export const END_OF_DAY_MS = 24 * 60 * 60 * 1000 - 1;
 
 /** `HH:mm` → el instante UTC de esa hora el 1970-01-01. */
@@ -107,13 +108,13 @@ export const fromFormSchedule = (days: DateRange[][]): TimeRange[][] =>
 
 /**
  * Los días de la semana empezando en `weekStart` (0 = domingo), cada uno con su índice en el `schedule` del back y su
- * nombre. El índice no depende de `weekStart`: el domingo es siempre el 0.
+ * nombre. El índice no depende de `weekStart`: el domingo es siempre el 0. Los nombres salen de fechas de enero de 2024,
+ * que empezó el 7 siendo domingo.
  */
 export function weekdays(weekStart: number): { index: number; name: string }[] {
     const format = new Intl.DateTimeFormat('es', { weekday: 'long', timeZone: 'UTC' });
     return Array.from({ length: 7 }, (_, i) => {
         const index = (weekStart + i) % 7;
-        // El 2024-01-07 fue domingo.
         return { index, name: format.format(new Date(Date.UTC(2024, 0, 7 + index))) };
     });
 }
