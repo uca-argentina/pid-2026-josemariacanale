@@ -238,6 +238,14 @@ describe('serviceChanges', () => {
     });
 
     describe('campo vacío del NumberField', () => {
+        it('Intervalo vacío es sin Intervalo', () => {
+            const withInterval = editFormOf({ ...service, slotInterval: 30 });
+            expect(serviceChanges(withInterval, { ...withInterval, slotInterval: '' })).toEqual({
+                ok: true,
+                changes: { slotInterval: null },
+            });
+        });
+
         it('Anticipación mínima vacía es 0', () => {
             const withNotice = editFormOf({ ...service, minimumNoticeMinutes: 60 });
             expect(serviceChanges(withNotice, { ...withNotice, minimumNoticeMinutes: '' })).toEqual({
