@@ -35,22 +35,22 @@ export function UserPublicPage({
         <>
             <div className="mx-auto w-full max-w-[960px] flex-1 px-4 pb-20 sm:px-8">
                 <header className="pt-6 pb-7">
-                    <h1 className="text-[40px] leading-[1.05] font-extrabold tracking-[-0.03em] sm:text-[52px]">{user.name}</h1>
-                    <p className="mt-3 text-[14.5px] font-medium text-muted-foreground">Reservá un turno.</p>
+                    <h1 className="text-[40px] leading-[1.05] font-extrabold tracking-[-0.03em] text-sidebar-foreground sm:text-[52px]">{user.name}</h1>
+                    <p className="mt-3 text-[14.5px] font-medium text-sidebar-muted-foreground">Reservá un turno.</p>
                 </header>
 
                 <section aria-labelledby="servicios-titulo">
-                    <h2 id="servicios-titulo" className="text-[32px] leading-none font-extrabold tracking-[-0.03em]">
+                    <h2 id="servicios-titulo" className="text-[32px] leading-none font-extrabold tracking-[-0.03em] text-sidebar-foreground">
                         Servicios
                     </h2>
                     {services.length > 0 ? (
                         <div className="mt-6 flex flex-col gap-3">
                             {services.map((service) => (
-                                <ServiceCard key={service.id} service={service} onBook={openFlow} />
+                                <ServiceCard key={service.id} service={service} onBook={openFlow} panel />
                             ))}
                         </div>
                     ) : (
-                        <p className="mt-5 text-[14.5px] text-muted-foreground">Todavía no hay servicios para reservar.</p>
+                        <p className="mt-5 text-[14.5px] text-sidebar-muted-foreground">Todavía no hay servicios para reservar.</p>
                     )}
                 </section>
             </div>

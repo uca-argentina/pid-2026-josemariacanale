@@ -27,6 +27,7 @@
     /* Panel shell only; the public pages keep the tokens above. */
     --color-sidebar: #fafafa;
     --color-sidebar-foreground: #0b3558;
+    --color-sidebar-muted-foreground: #476788;
     --color-sidebar-accent: #e6f0ff;
     --color-sidebar-accent-foreground: #004eba;
     --color-sidebar-primary: #2d5bff;
