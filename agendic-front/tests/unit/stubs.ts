@@ -1,4 +1,5 @@
 import type { IAvailabilitiesRepository } from '@/src/application/repositories/availabilities.repository.interface';
+import type { IOutOfOfficeRepository } from '@/src/application/repositories/out-of-office.repository.interface';
 import type { IBookingsRepository } from '@/src/application/repositories/bookings.repository.interface';
 import type { IClientBookingsRepository } from '@/src/application/repositories/client-bookings.repository.interface';
 import type { IUserBookingsRepository } from '@/src/application/repositories/user-bookings.repository.interface';
@@ -60,6 +61,11 @@ export const availabilitiesWith = (stubs: Partial<IAvailabilitiesRepository>): I
     updateAvailability: jest.fn(notStubbed('updateAvailability')),
     makeDefault: jest.fn(notStubbed('makeDefault')),
     deleteAvailability: jest.fn(notStubbed('deleteAvailability')),
+    ...stubs,
+});
+
+export const outOfOfficeWith = (stubs: Partial<IOutOfOfficeRepository>): IOutOfOfficeRepository => ({
+    listOutOfOffice: jest.fn(notStubbed('listOutOfOffice')),
     ...stubs,
 });
 

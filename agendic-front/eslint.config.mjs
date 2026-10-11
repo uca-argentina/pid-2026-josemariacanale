@@ -11,7 +11,7 @@ const ALLOWED_IMPORTS = {
   ports: ["entities"],
   "use-cases": ["entities", "ports"],
   controllers: ["entities", "ports", "use-cases"],
-  infrastructure: ["entities", "ports"],
+  infrastructure: ["entities", "ports", "infrastructure"],
   di: ["entities", "ports", "use-cases", "controllers", "infrastructure", "di"],
   app: ["entities", "di", "app"],
   tests: ["entities", "ports", "use-cases", "controllers", "infrastructure", "di", "app", "tests"],
