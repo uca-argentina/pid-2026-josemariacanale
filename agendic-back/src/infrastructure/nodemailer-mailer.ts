@@ -36,6 +36,7 @@ export class NodemailerMailer implements Mailer {
     });
   }
 
+  /** Avisa que el Turno quedó creado; con Seña, suma el monto y dice que se paga desde el Enlace del Turno. */
   async sendBookingConfirmation(
     email: string,
     link: string,

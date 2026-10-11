@@ -34,7 +34,7 @@ export interface Booking {
 }
 
 /**
- * Monto de la Seña de un Turno: price × depositPercent / 100, rounded to the cent. Null when the Servicio asks for
+ * Monto de la Seña de un Turno: price × depositPercent / 100, rounded half up to the cent. Null when the Servicio asks for
  * none or for 0%.
  */
 export const depositAmountFor = (
