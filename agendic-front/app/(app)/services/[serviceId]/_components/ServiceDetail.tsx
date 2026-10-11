@@ -184,7 +184,7 @@ function SetupTab({
                                 max={100}
                                 step={5}
                                 suffix="%"
-                                className="w-[120px]"
+                                className="w-[160px]"
                                 value={draft.depositPercent}
                                 disabled={readOnly}
                                 aria-describedby={describedBy('depositPercent', 'service-deposit-percent')}
