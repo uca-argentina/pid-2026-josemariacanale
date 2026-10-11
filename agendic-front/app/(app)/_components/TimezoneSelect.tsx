@@ -3,7 +3,7 @@
 import dayjs from 'dayjs';
 import timezonePlugin from 'dayjs/plugin/timezone';
 import utc from 'dayjs/plugin/utc';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useId, useMemo, useState } from 'react';
 import type { ITimezoneOption } from 'react-timezone-select';
 import BaseSelect from 'react-timezone-select';
 import { cn } from '@/app/_components/utils';
@@ -117,6 +117,7 @@ export function TimezoneSelect({
 }) {
     // Una zona puede tener varias etiquetas ('San Francisco' y 'Pacific Time'): se buscan todas.
     const [additionalTimezones, setAdditionalTimezones] = useState<Timezones>([]);
+    const instanceId = useId();
 
     const timezones = useMemo(
         () => ({ ...addTimezonesToDropdown(SEARCH_DATA), ...addTimezonesToDropdown(additionalTimezones) }),
@@ -130,6 +131,7 @@ export function TimezoneSelect({
 
     return (
         <BaseSelect
+            instanceId={instanceId}
             inputId={id}
             value={value}
             timezones={timezones}

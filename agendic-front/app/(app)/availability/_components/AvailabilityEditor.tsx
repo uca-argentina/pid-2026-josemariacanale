@@ -4,14 +4,9 @@ import { useState } from 'react';
 import { FormProvider, useForm, useWatch } from 'react-hook-form';
 import { ArrowLeft, Pencil, Trash2 } from 'lucide-react';
 import { cn } from '@/app/_components/utils';
-import {
-    PanelButton,
-    PanelConfirm,
-    PanelDivider,
-    PanelIconButton,
-    PanelIconGroup,
-    PanelSwitch,
-} from '@/app/(app)/_components/panel-ui';
+import { Button } from '@/app/_components/ui/button';
+import { Switch } from '@/app/_components/ui/switch';
+import { PanelButton, PanelConfirm, PanelSection } from '@/app/(app)/_components/panel-ui';
 import {
     fromFormSchedule,
     toFormSchedule,
@@ -36,14 +31,14 @@ function NameField({ name, onChange }: { name: string; onChange: (name: string) 
                 onChange={(e) => onChange(e.target.value)}
                 onBlur={() => setEditing(false)}
                 onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
-                className="m-0 min-w-0 rounded-md border border-[#d1d5db] px-2 py-0.5 text-[21px] font-extrabold tracking-[-0.035em] outline-none focus:border-[#0f1b2d] focus:ring-1 focus:ring-[#0f1b2d]"
+                className="m-0 min-w-0 rounded-md border border-[#d1d5db] px-2 py-0.5 text-xl font-extrabold tracking-[-0.035em] outline-none focus:border-[#0f1b2d] focus:ring-1 focus:ring-[#0f1b2d]"
             />
         );
     }
 
     return (
         <div className="flex min-w-0 items-center gap-2">
-            <h1 className={cn('m-0 truncate text-[21px] font-extrabold tracking-[-0.035em]', !name.trim() && 'text-[#b91c1c]')}>
+            <h1 className={cn('m-0 truncate text-xl font-extrabold tracking-[-0.035em]', !name.trim() && 'text-[#b91c1c]')}>
                 {name.trim() ? name : 'Poné un nombre para guardar'}
             </h1>
             <button
@@ -108,50 +103,54 @@ export function AvailabilityEditor({
                     type="button"
                     onClick={() => (dirty ? setConfirmLeave(true) : onBack())}
                     aria-label="Volver a Horas laborables"
-                    className="rounded-md p-1.5 text-[#6b7280] transition-colors hover:bg-[#f3f4f6] hover:text-[#0f1b2d]"
+                    className="flex size-8 items-center justify-center rounded-md text-[#6b7280] transition-colors hover:bg-[#f3f4f6] hover:text-[#0f1b2d]"
                 >
                     <ArrowLeft className="size-5" />
                 </button>
                 <NameField name={draft.name} onChange={(name) => setDraft((d) => ({ ...d, name }))} />
 
                 <div className="ml-auto flex items-center gap-3">
-                    <label htmlFor="availability-default" className="text-[13px] font-semibold">
+                    <label htmlFor="availability-default" className="text-sm font-medium">
                         Establecer como predeterminado
                     </label>
-                    <PanelSwitch
+                    <Switch
                         id="availability-default"
                         checked={draft.isDefault}
                         disabled={saved.isDefault}
                         onCheckedChange={(isDefault) => setDraft((d) => ({ ...d, isDefault }))}
                     />
-                    <PanelDivider />
-                    <PanelIconGroup>
-                        <PanelIconButton label="Eliminar" destructive disabled={busy} onClick={() => setConfirmDelete(true)}>
-                            <Trash2 />
-                        </PanelIconButton>
-                    </PanelIconGroup>
-                    <PanelDivider />
-                    <PanelButton disabled={!dirty || !valid || busy} onClick={save}>
+                    <Button
+                        variant="outline"
+                        size="icon-lg"
+                        aria-label="Eliminar"
+                        title="Eliminar"
+                        className="text-destructive hover:text-destructive"
+                        disabled={busy}
+                        onClick={() => setConfirmDelete(true)}
+                    >
+                        <Trash2 />
+                    </Button>
+                    <PanelButton className="px-4" disabled={!dirty || !valid || busy} onClick={save}>
                         Guardar
                     </PanelButton>
                 </div>
             </header>
 
-            <div className="mt-8 flex max-w-[1080px] flex-col gap-6 xl:flex-row">
+            <div className="mt-8 flex flex-col gap-6 @7xl/main:flex-row">
                 <div className="flex min-w-0 flex-1 flex-col gap-6">
-                    <div className="rounded-md border border-[#e5e7eb]">
+                    <PanelSection title="Horas semanales" description="Elegí en qué horario atendés cada día.">
                         <FormProvider {...form}>
                             <ScheduleComponent weekStart={preferences.weekStart} timeFormat={preferences.timeFormat} />
                         </FormProvider>
-                    </div>
+                    </PanelSection>
                     <OverridesSection
                         overrides={draft.overrides}
                         busy={busy}
                         onChange={(overrides) => setDraft((d) => ({ ...d, overrides }))}
                     />
                 </div>
-                <aside className="w-full xl:max-w-80">
-                    <label htmlFor="availability-timezone" className="mb-1 inline-block text-[13px] font-semibold">
+                <aside className="w-full max-w-sm shrink-0 @7xl/main:w-[350px] @7xl/main:max-w-none">
+                    <label htmlFor="availability-timezone" className="mb-2 inline-block text-sm font-medium">
                         Zona horaria
                     </label>
                     <TimezoneSelect
