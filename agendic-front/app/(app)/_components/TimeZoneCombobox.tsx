@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
-import { Popover } from 'radix-ui';
+import { Popover } from '@base-ui/react/popover';
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from '@/app/_components/ui/command';
 import { cn } from '@/app/_components/utils';
 import { FIELD_BOX } from './panel-ui';
@@ -39,10 +39,9 @@ export function TimeZoneCombobox({
                 <ChevronDown className="size-4 shrink-0 text-[#0f1b2d]" />
             </Popover.Trigger>
             <Popover.Portal>
-                <Popover.Content
-                    align="start"
-                    sideOffset={4}
-                    className="z-50 w-(--radix-popover-trigger-width) rounded-md border border-[#e5e7eb] bg-white shadow-[0_10px_30px_rgba(15,27,45,0.12)] outline-none"
+                <Popover.Positioner align="start" sideOffset={4} className="z-50">
+                <Popover.Popup
+                    className="w-(--anchor-width) rounded-md border border-[#e5e7eb] bg-white shadow-[0_10px_30px_rgba(15,27,45,0.12)] outline-none"
                 >
                     <Command>
                         <CommandInput placeholder="Buscar zona horaria" />
@@ -65,7 +64,8 @@ export function TimeZoneCombobox({
                             ))}
                         </CommandList>
                     </Command>
-                </Popover.Content>
+                </Popover.Popup>
+                </Popover.Positioner>
             </Popover.Portal>
         </Popover.Root>
     );

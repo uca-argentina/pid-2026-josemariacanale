@@ -1,7 +1,7 @@
 'use client';
 
-import { useId, useState } from 'react';
-import { Popover } from 'radix-ui';
+import { useId, useRef, useState } from 'react';
+import { Popover } from '@base-ui/react/popover';
 import { Check, ChevronDown } from 'lucide-react';
 import { cn } from '@/app/_components/utils';
 import { TIME_OPTIONS } from './availability-week';
@@ -30,6 +30,7 @@ export function TimeSelect({
     'aria-label'?: string;
 }) {
     const listId = useId();
+    const anchorRef = useRef<HTMLDivElement>(null);
     const [typed, setTyped] = useState<string | null>(null);
     const [open, setOpen] = useState(false);
     const [active, setActive] = useState(0);
@@ -61,8 +62,7 @@ export function TimeSelect({
 
     return (
         <Popover.Root open={open && options.length > 0} onOpenChange={setOpen}>
-            <Popover.Anchor asChild>
-                <div className={cn(FIELD_BOX, invalid && 'border-[#b91c1c] hover:border-[#b91c1c]', className)}>
+            <div ref={anchorRef} className={cn(FIELD_BOX, invalid && 'border-[#b91c1c] hover:border-[#b91c1c]', className)}>
                     <input
                         id={id}
                         role="combobox"
@@ -91,12 +91,11 @@ export function TimeSelect({
                     />
                     <ChevronDown className="mr-3 size-4 shrink-0 text-[#0f1b2d]" />
                 </div>
-            </Popover.Anchor>
             <Popover.Portal>
-                <Popover.Content
-                    sideOffset={4}
-                    onOpenAutoFocus={(e) => e.preventDefault()}
-                    className="z-50 max-h-[min(288px,var(--radix-popover-content-available-height))] w-(--radix-popover-trigger-width) overflow-y-auto rounded-md border border-[#e5e7eb] bg-white p-1 shadow-[0_10px_30px_rgba(15,27,45,0.12)]"
+                <Popover.Positioner anchor={anchorRef} sideOffset={4} className="z-50">
+                <Popover.Popup
+                    initialFocus={false}
+                    className="max-h-[min(288px,var(--available-height))] w-(--anchor-width) overflow-y-auto rounded-md border border-[#e5e7eb] bg-white p-1 shadow-[0_10px_30px_rgba(15,27,45,0.12)]"
                 >
                     <div role="listbox" id={listId}>
                         {options.map((time, i) => (
@@ -120,7 +119,8 @@ export function TimeSelect({
                             </div>
                         ))}
                     </div>
-                </Popover.Content>
+                </Popover.Popup>
+                </Popover.Positioner>
             </Popover.Portal>
         </Popover.Root>
     );

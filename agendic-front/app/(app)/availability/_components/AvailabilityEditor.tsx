@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Popover } from 'radix-ui';
+import { Popover } from '@base-ui/react/popover';
 import { ArrowLeft, Copy, Pencil, Trash2 } from 'lucide-react';
 import { cn } from '@/app/_components/utils';
 import {
@@ -45,16 +45,17 @@ function CopyIntervals({
 
     return (
         <Popover.Root open={open} onOpenChange={(next) => (next ? setOpen(true) : close())}>
-            <Popover.Trigger asChild>
-                <PanelIconButton bordered label="Copiar Franjas a otros días" disabled={disabled}>
-                    <Copy />
-                </PanelIconButton>
-            </Popover.Trigger>
+            <Popover.Trigger
+                render={
+                    <PanelIconButton bordered label="Copiar Franjas a otros días" disabled={disabled}>
+                        <Copy />
+                    </PanelIconButton>
+                }
+            />
             <Popover.Portal>
-                <Popover.Content
-                    align="end"
-                    sideOffset={4}
-                    className="z-50 w-[240px] rounded-md border border-[#e5e7eb] bg-white shadow-[0_10px_30px_rgba(15,27,45,0.12)]"
+                <Popover.Positioner align="end" sideOffset={4} className="z-50">
+                <Popover.Popup
+                    className="w-[240px] rounded-md border border-[#e5e7eb] bg-white shadow-[0_10px_30px_rgba(15,27,45,0.12)]"
                 >
                     <div className="flex flex-col gap-1 p-3">
                         <span className="px-1 pb-1 text-[11.5px] font-extrabold tracking-[0.04em] text-[#0f1b2d] uppercase">
@@ -97,7 +98,8 @@ function CopyIntervals({
                             Aplicar
                         </PanelButton>
                     </div>
-                </Popover.Content>
+                </Popover.Popup>
+                </Popover.Positioner>
             </Popover.Portal>
         </Popover.Root>
     );
