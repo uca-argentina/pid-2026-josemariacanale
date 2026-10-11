@@ -29,6 +29,8 @@ const BOOKING_ROW = {
   createdAt: new Date('2026-01-01T12:00:00.000Z'),
   notes: null,
   noShowAt: null,
+  depositAmount: null,
+  depositPaidAt: null,
 };
 
 const CREATE_DATA: CreateBookingData = {
@@ -42,6 +44,7 @@ const CREATE_DATA: CreateBookingData = {
   endsAt: BOOKING_ROW.endsAt,
   notes: null,
   employeeChosen: false,
+  depositAmount: null,
   status: BookingStatus.BOOKED,
 };
 
@@ -87,6 +90,8 @@ describe('PrismaBookingsRepository', () => {
       status: BOOKING_ROW.status,
       notes: null,
       noShowAt: null,
+      depositAmount: null,
+      depositPaidAt: null,
     });
     expect(prisma.booking.create).toHaveBeenCalledWith(
       expect.objectContaining({

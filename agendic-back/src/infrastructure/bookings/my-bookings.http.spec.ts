@@ -30,6 +30,8 @@ const BOOKED: Booking = {
   noShowAt: null,
   link: 'booking-link-secret',
   employeeChosen: false,
+  depositAmount: null,
+  depositPaidAt: null,
 };
 
 const AVAILABILITY: Availability = {
@@ -91,6 +93,8 @@ describe('Mis turnos del Usuario', () => {
           clientEmail: 'carla@example.com',
           noShowAt: null,
           employeeChosen: false,
+          depositAmount: null,
+          depositPaidAt: null,
           serviceId: ANAS_SERVICE.id,
           serviceName: 'Haircut',
           business: { id: 1, name: 'Negocio 1' },
@@ -103,6 +107,29 @@ describe('Mis turnos del Usuario', () => {
           branch: null,
         }),
       ]);
+    });
+
+    it('lists the Seña of a Turno and when it was paid', async () => {
+      t.bookings.listByUser.mockResolvedValue([
+        {
+          ...BOOKED,
+          depositAmount: 6,
+          depositPaidAt: new Date('2026-01-01T10:00:00.000Z'),
+          serviceName: 'Haircut',
+          business: null,
+          branch: null,
+        },
+      ]);
+
+      const res = await t.http
+        .get('/users/me/bookings')
+        .set(bearer(CLERK_TOKEN))
+        .expect(200);
+
+      expect(res.body[0]).toMatchObject({
+        depositAmount: 6,
+        depositPaidAt: '2026-01-01T10:00:00.000Z',
+      });
     });
 
     it('answers 401 without a Sesión', async () => {

@@ -36,12 +36,20 @@ export class NodemailerMailer implements Mailer {
     });
   }
 
-  async sendBookingConfirmation(email: string, link: string) {
+  async sendBookingConfirmation(
+    email: string,
+    link: string,
+    depositAmount: number | null,
+  ) {
+    const deposit =
+      depositAmount === null
+        ? ''
+        : ` Seña: ${depositAmount.toFixed(2)}. You can pay it from the same link.`;
     await this.sendBookingMail(
       email,
       link,
       'Your booking is confirmed',
-      'Your Turno is confirmed. Manage it here',
+      `Your Turno is confirmed.${deposit} Manage it here`,
     );
   }
 

@@ -28,6 +28,8 @@ const BOOKED: Booking = {
   noShowAt: null,
   link: LINK,
   employeeChosen: false,
+  depositAmount: null,
+  depositPaidAt: null,
 };
 
 const CLIENT_BOOKED: ClientBooking = {
@@ -84,6 +86,29 @@ describe('Enlace del Turno', () => {
       const res = await t.http.get(`/booking-links/${LINK}`).expect(200);
 
       expect(res.body.employeeChosen).toBe(true);
+    });
+
+    it('trae la Seña pendiente del Turno y cuándo se pagó', async () => {
+      t.bookings.findByLink.mockResolvedValue({
+        ...CLIENT_BOOKED,
+        depositAmount: 6,
+        depositPaidAt: new Date('2026-01-01T10:00:00.000Z'),
+      });
+
+      const res = await t.http.get(`/booking-links/${LINK}`).expect(200);
+
+      expect(res.body).toMatchObject({
+        depositAmount: 6,
+        depositPaidAt: '2026-01-01T10:00:00.000Z',
+      });
+    });
+
+    it('trae depositAmount y depositPaidAt en null sin Seña', async () => {
+      t.bookings.findByLink.mockResolvedValue(CLIENT_BOOKED);
+
+      const res = await t.http.get(`/booking-links/${LINK}`).expect(200);
+
+      expect(res.body).toMatchObject({ depositAmount: null, depositPaidAt: null });
     });
 
     it('abre un Turno ya CANCELLED igual', async () => {
@@ -226,6 +251,20 @@ describe('Enlace del Turno', () => {
         BOOKED.clientEmail,
         BOOKED.link,
       );
+    });
+
+    it('conserva la Seña del Turno al Reagendar', async () => {
+      const withDeposit = { ...CLIENT_BOOKED, depositAmount: 6 };
+      t.bookings.findByLink.mockResolvedValue(withDeposit);
+      t.bookings.reschedulePendingOrBooked.mockResolvedValue({
+        ...withDeposit,
+        startsAt: new Date(NEW_START),
+        endsAt: new Date('2026-01-02T15:30:00.000Z'),
+      });
+
+      const res = await patch({ startsAt: NEW_START }).expect(200);
+
+      expect(res.body).toMatchObject({ depositAmount: 6, depositPaidAt: null });
     });
 
     it('deja PENDING un Turno cuando el Servicio pide Aprobación manual', async () => {

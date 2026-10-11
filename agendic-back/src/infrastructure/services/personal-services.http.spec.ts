@@ -334,6 +334,8 @@ describe('Servicio personal', () => {
       noShowAt: null,
       link: 'booking-link-secret',
       employeeChosen: false,
+      depositAmount: null,
+      depositPaidAt: null,
     };
 
     beforeEach(() => {

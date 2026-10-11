@@ -46,6 +46,8 @@ const BOOKING_SELECT = {
   noShowAt: true,
   link: true,
   employeeChosen: true,
+  depositAmount: true,
+  depositPaidAt: true,
   client: { select: { name: true, email: true } },
 } satisfies Prisma.BookingSelect;
 
@@ -436,6 +438,8 @@ const toBooking = (row: BookingRow): Booking => ({
   noShowAt: row.noShowAt,
   link: row.link,
   employeeChosen: row.employeeChosen,
+  depositAmount: row.depositAmount === null ? null : Number(row.depositAmount),
+  depositPaidAt: row.depositPaidAt,
 });
 
 /** 256 bits, URL-safe (ADR 0022 pide al menos 128). */
