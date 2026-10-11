@@ -66,6 +66,7 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | Mis turnos del Usuario (ADR 0023) | `UserBooking` (`GET /users/me/bookings`) |
 | Cancelar | `cancel` (del Empleado); por Enlace del Turno, `cancelPendingOrBooked` (también sobre `PENDING`) |
 | Dar de baja | `retire` (`Service.deletedAt`, `Employee.deletedAt`); ADR 0024: `User.deletedAt` (`RetireMeUseCase`, `DELETE /users/me`; Clerk, `ClerkAuth.deleteUser`); `Business.deletedAt` (#122, la baja del Dueño lo marca) |
+| Preferencias del Usuario (formato de hora y primer día de la semana, solo del panel) | `User.timeFormat` (`12 \| 24`, por defecto 24), `User.weekStart` (`0..6`, 0 = domingo como `dayjs().day()`, por defecto 1) |
 | Sesión / Iniciar sesión / Cerrar sesión | `Session` / `signIn` / `signOut` |
 
 ## Flag ADR conflicts

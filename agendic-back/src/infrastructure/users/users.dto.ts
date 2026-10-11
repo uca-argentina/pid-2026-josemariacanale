@@ -2,10 +2,14 @@ import { applyDecorators } from '@nestjs/common';
 import { Transform } from 'class-transformer';
 import {
   IsEmail,
+  IsIn,
+  IsInt,
   IsNotEmpty,
   IsString,
   Length,
   Matches,
+  Max,
+  Min,
   ValidateIf,
 } from 'class-validator';
 
@@ -49,4 +53,16 @@ export class UpdateMeDto {
   @IfPresent()
   @IsSlug()
   slug?: string;
+
+  /** Formato de hora del panel: 12 o 24 h. */
+  @IfPresent()
+  @IsIn([12, 24])
+  timeFormat?: 12 | 24;
+
+  /** Primer día de la semana, 0 = domingo. */
+  @IfPresent()
+  @IsInt()
+  @Min(0)
+  @Max(6)
+  weekStart?: number;
 }

@@ -16,7 +16,9 @@ export interface UsersRepository {
   /** Leaves undefined fields unchanged. Throws ConflictError when the slug is taken. */
   update(
     id: number,
-    data: Partial<Pick<User, 'name' | 'email' | 'imageUrl'>> & {
+    data: Partial<
+      Pick<User, 'name' | 'email' | 'imageUrl' | 'timeFormat' | 'weekStart'>
+    > & {
       slug?: string;
     },
   ): Promise<User>;
