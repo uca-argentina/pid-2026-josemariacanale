@@ -36,6 +36,8 @@ describe('Usuario', () => {
         email: 'ana@example.com',
         slug: null,
         imageUrl: null,
+        timeFormat: 24,
+        weekStart: 1,
       });
       expect(t.users.findById).toHaveBeenCalledWith(ANA.id);
     });
@@ -84,6 +86,8 @@ describe('Usuario', () => {
         email: 'new-owner@example.com',
         slug: null,
         imageUrl: 'https://img.clerk.com/new-owner.png',
+        timeFormat: 24,
+        weekStart: 1,
       });
     });
 
@@ -104,6 +108,8 @@ describe('Usuario', () => {
         name: 'New Owner',
         email: 'new-owner@example.com',
         imageUrl: null,
+        timeFormat: 24,
+        weekStart: 1,
       });
       t.users.findById.mockResolvedValue({
         ...ANA,
@@ -112,6 +118,8 @@ describe('Usuario', () => {
         name: 'New Owner',
         email: 'new-owner@example.com',
         imageUrl: null,
+        timeFormat: 24,
+        weekStart: 1,
       });
 
       const res = await t.http
@@ -157,6 +165,8 @@ describe('Usuario', () => {
         email: 'ana.new@example.com',
         slug: null,
         imageUrl: null,
+        timeFormat: 24,
+        weekStart: 1,
       });
     });
 
@@ -184,6 +194,8 @@ describe('Usuario', () => {
         email: ANA.email,
         slug: null,
         imageUrl: null,
+        timeFormat: 24,
+        weekStart: 1,
       });
     });
 
@@ -310,6 +322,8 @@ describe('Usuario', () => {
         email: ANA.email,
         slug: null,
         imageUrl: null,
+        timeFormat: 24,
+        weekStart: 1,
       });
     });
 
@@ -366,6 +380,8 @@ describe('Usuario', () => {
         email: 'ana@example.com',
         slug: null,
         imageUrl: null,
+        timeFormat: 24,
+        weekStart: 1,
       });
     });
 
@@ -378,7 +394,9 @@ describe('Usuario', () => {
         .send({ slug: ' Ana-Perez ' })
         .expect(200);
 
-      expect(t.users.update).toHaveBeenCalledWith(ANA.id, { slug: 'ana-perez' });
+      expect(t.users.update).toHaveBeenCalledWith(ANA.id, {
+        slug: 'ana-perez',
+      });
       expect(res.body.slug).toBe('ana-perez');
     });
 
@@ -423,7 +441,59 @@ describe('Usuario', () => {
         email: 'ana@example.com',
         slug: null,
         imageUrl: null,
+        timeFormat: 24,
+        weekStart: 1,
       });
+    });
+
+    it('saves timeFormat and weekStart together or apart and answers with the Usuario', async () => {
+      t.users.update.mockResolvedValue({
+        ...ANA,
+        timeFormat: 12,
+        weekStart: 0,
+      });
+
+      const res = await t.http
+        .patch('/users/me')
+        .set(bearer(CLERK_TOKEN))
+        .send({ timeFormat: 12, weekStart: 0 })
+        .expect(200);
+
+      expect(t.users.update).toHaveBeenCalledWith(ANA.id, {
+        timeFormat: 12,
+        weekStart: 0,
+      });
+      expect(res.body).toMatchObject({ timeFormat: 12, weekStart: 0 });
+
+      await t.http
+        .patch('/users/me')
+        .set(bearer(CLERK_TOKEN))
+        .send({ weekStart: 6 })
+        .expect(200);
+
+      expect(t.users.update).toHaveBeenLastCalledWith(ANA.id, { weekStart: 6 });
+    });
+
+    it.each([
+      ['timeFormat 13', { timeFormat: 13 }],
+      ['timeFormat "24"', { timeFormat: '24' }],
+      ['a null timeFormat', { timeFormat: null }],
+      ['weekStart -1', { weekStart: -1 }],
+      ['weekStart 7', { weekStart: 7 }],
+      ['weekStart 1.5', { weekStart: 1.5 }],
+      ['weekStart "1"', { weekStart: '1' }],
+      [
+        'a valid timeFormat next to an invalid weekStart',
+        { timeFormat: 12, weekStart: 7 },
+      ],
+    ])('rejects %s with 400 and saves nothing', async (_, body) => {
+      await t.http
+        .patch('/users/me')
+        .set(bearer(CLERK_TOKEN))
+        .send(body)
+        .expect(400);
+
+      expect(t.users.update).not.toHaveBeenCalled();
     });
 
     it('answers 401 without a Clerk token', async () => {
@@ -456,7 +526,9 @@ describe('Usuario', () => {
       scriptSession(t);
       t.users.findById.mockResolvedValue(ANA);
       t.businesses.listByOwner.mockResolvedValue([]);
-      t.users.retire.mockResolvedValue({ cancelledBookings: cancelledBookings(2) });
+      t.users.retire.mockResolvedValue({
+        cancelledBookings: cancelledBookings(2),
+      });
 
       const res = await t.http
         .delete('/users/me')
@@ -496,7 +568,9 @@ describe('Usuario', () => {
       scriptSession(t);
       t.users.findById.mockResolvedValue(ANA);
       t.businesses.listByOwner.mockResolvedValue([]);
-      t.users.retire.mockResolvedValue({ cancelledBookings: cancelledBookings(0) });
+      t.users.retire.mockResolvedValue({
+        cancelledBookings: cancelledBookings(0),
+      });
       t.clerkAuth.deleteUser.mockRejectedValueOnce(
         new ExternalServiceError(
           'No se pudo borrar el Usuario en el Proveedor de autenticación',

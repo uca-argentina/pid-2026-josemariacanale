@@ -6,4 +6,6 @@ export const presentUser = (user: User) => ({
   email: user.email,
   slug: user.slug,
   imageUrl: user.imageUrl,
+  timeFormat: user.timeFormat,
+  weekStart: user.weekStart,
 });

@@ -80,7 +80,9 @@ export class PrismaUsersRepository implements UsersRepository {
    */
   async update(
     id: number,
-    data: Partial<Pick<User, 'name' | 'email' | 'imageUrl'>> & {
+    data: Partial<
+      Pick<User, 'name' | 'email' | 'imageUrl' | 'timeFormat' | 'weekStart'>
+    > & {
       slug?: string;
     },
   ) {
@@ -155,6 +157,8 @@ const toUser = (row: UserRow): User => ({
   imageUrl: row.imageUrl,
   createdAt: row.createdAt,
   deletedAt: row.deletedAt,
+  timeFormat: row.timeFormat as User['timeFormat'],
+  weekStart: row.weekStart,
 });
 
 const translateError = (error: unknown): never => {

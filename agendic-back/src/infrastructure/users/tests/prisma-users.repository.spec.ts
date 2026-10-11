@@ -17,6 +17,8 @@ const ANA: User = {
   imageUrl: null,
   createdAt: new Date('2026-01-01T12:00:00.000Z'),
   deletedAt: null,
+  timeFormat: 24,
+  weekStart: 1,
 };
 
 const knownError = (code: string) =>

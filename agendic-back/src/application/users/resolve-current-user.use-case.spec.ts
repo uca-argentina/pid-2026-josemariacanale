@@ -13,6 +13,8 @@ const user = (overrides: Partial<User> = {}): User => ({
   imageUrl: null,
   createdAt: new Date('2026-10-09T00:00:00Z'),
   deletedAt: null,
+  timeFormat: 24,
+  weekStart: 1,
   ...overrides,
 });
 

@@ -36,14 +36,16 @@ enum ServiceCategory {
 }
 
 model User {
-  id        Int       @id @default(autoincrement())
-  clerkId   String    @unique // Clerk is the identity's system of record; no local credentials
-  name      String
-  email     String
-  slug      String?   @unique // Enlace de reserva del Usuario: /u/<slug>, always lowercase; null until they choose it (ADR 0021)
-  imageUrl  String? // foto de perfil: Clerk's, seeded on creation and refreshed from the session token claims
-  deletedAt DateTime? @db.Timestamptz(3) // when dado de baja (ADR 0024); null while active
-  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  id         Int       @id @default(autoincrement())
+  clerkId    String    @unique // Clerk is the identity's system of record; no local credentials
+  name       String
+  email      String
+  slug       String?   @unique // Enlace de reserva del Usuario: /u/<slug>, always lowercase; null until they choose it (ADR 0021)
+  imageUrl   String? // foto de perfil: Clerk's, seeded on creation and refreshed from the session token claims
+  deletedAt  DateTime? @db.Timestamptz(3) // when dado de baja (ADR 0024); null while active
+  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+  timeFormat Int       @default(24) // preferencia de hora: 12 o 24 h
+  weekStart  Int       @default(1) // primer día de la semana, 0 = domingo como dayjs().day()
 
   businesses     Business[]
   services       Service[]

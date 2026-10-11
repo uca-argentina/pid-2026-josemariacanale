@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "User" ADD COLUMN     "timeFormat" INTEGER NOT NULL DEFAULT 24,
+ADD COLUMN     "weekStart" INTEGER NOT NULL DEFAULT 1;

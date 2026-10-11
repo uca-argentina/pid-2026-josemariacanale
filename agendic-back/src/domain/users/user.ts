@@ -10,9 +10,15 @@ export interface User {
   createdAt: Date;
   /** When the Usuario was dado de baja (ADR 0024); null while active. */
   deletedAt: Date | null;
+  /** Preferencia de hora, 12 o 24 h; solo para el panel, nunca para la página de reserva. */
+  timeFormat: 12 | 24;
+  /** Primer día de la semana en el panel, 0 = domingo como `dayjs().day()`. */
+  weekStart: number;
 }
 
 export interface UpdateMeInput {
   name?: string;
   slug?: string;
+  timeFormat?: 12 | 24;
+  weekStart?: number;
 }

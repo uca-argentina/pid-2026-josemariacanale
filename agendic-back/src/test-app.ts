@@ -260,6 +260,8 @@ export const ANA: User = {
   imageUrl: null,
   createdAt: new Date('2025-12-01T00:00:00.000Z'),
   deletedAt: null,
+  timeFormat: 24,
+  weekStart: 1,
 };
 
 export const BRUNO: User = {
@@ -271,6 +273,8 @@ export const BRUNO: User = {
   imageUrl: null,
   createdAt: new Date('2025-12-01T00:00:00.000Z'),
   deletedAt: null,
+  timeFormat: 24,
+  weekStart: 1,
 };
 
 export const ANAS_BUSINESS: Business = {

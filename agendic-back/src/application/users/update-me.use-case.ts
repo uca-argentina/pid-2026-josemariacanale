@@ -16,12 +16,12 @@ export class UpdateMeUseCase {
    * @throws {NotFoundError} el Usuario no existe
    * @throws {ConflictError} el slug ya es el Enlace de reserva de otro Usuario
    */
-  async execute(userId: number, { name, slug }: UpdateMeInput): Promise<User> {
-    if (name === undefined && slug === undefined) {
+  async execute(userId: number, input: UpdateMeInput): Promise<User> {
+    if (Object.values(input).every((value) => value === undefined)) {
       const user = await this.users.findById(userId);
       if (!user) throw new NotFoundError('User not found');
       return user;
     }
-    return this.users.update(userId, { name, slug });
+    return this.users.update(userId, input);
   }
 }
