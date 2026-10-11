@@ -126,7 +126,8 @@ export function AvailabilityList({
                                 key={a.id}
                                 availability={a}
                                 redirectUrl={`/availability?id=${a.id}`}
-                                displayOptions={{ hour12: preferences.timeFormat === 12, weekStart: preferences.weekStart }}
+                                preferences={preferences}
+                                busy={busy}
                                 isDeletable={availabilities.length !== 1}
                                 updateDefault={() => onMakeDefault(a)}
                                 deleteFunction={() => onDelete(a)}

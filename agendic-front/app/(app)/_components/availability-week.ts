@@ -43,7 +43,7 @@ export const intervalsValid = (intervals: TimeRange[]) => invalidIntervals(inter
 const formatInterval = ({ start, end }: TimeRange) => `${start} - ${end}`;
 
 /** Una Franja con todos los días de la semana que la tienen (0 = domingo). */
-export interface DaysInterval {
+export interface AvailabilityInterval {
     days: number[];
     startTime: string;
     endTime: string;
@@ -55,8 +55,8 @@ const LOCALE = 'es-AR';
  * Agrupa las Franjas del `schedule` del back (índice 0 = domingo) por inicio y fin: una por horario, con
  * todos los días que lo tienen.
  */
-export function intervalsFromSchedule(schedule: TimeRange[][]): DaysInterval[] {
-    return schedule.reduce((intervals: DaysInterval[], times: TimeRange[], day: number) => {
+export function intervalsFromSchedule(schedule: TimeRange[][]): AvailabilityInterval[] {
+    return schedule.reduce((intervals: AvailabilityInterval[], times: TimeRange[], day: number) => {
         const filteredTimes = times.filter((time) => {
             const idx = intervals.findIndex((interval) => interval.startTime === time.start && interval.endTime === time.end);
             if (idx !== -1) {
@@ -89,8 +89,8 @@ function weekdayNames(weekStart = 0, format: 'short' | 'long' = 'long'): string[
 }
 
 /** Una Franja en una línea, con sus días agrupados en tramos: `"lun - vie, 09:00 - 17:00"`. */
-export function intervalAsString(interval: DaysInterval, { hour12 }: { hour12?: boolean }): string {
-    const weekSpan = ({ days: [first, ...rest] }: DaysInterval) => {
+export function intervalAsString(interval: AvailabilityInterval, { hour12 }: { hour12?: boolean }): string {
+    const weekSpan = ({ days: [first, ...rest] }: AvailabilityInterval) => {
         const days = rest.reduce(
             (days, day) => {
                 const last = days[days.length - 1];

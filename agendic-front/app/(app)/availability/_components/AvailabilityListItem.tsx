@@ -20,26 +20,30 @@ import { Badge } from '@/app/_components/ui/badge';
 import { Button } from '@/app/_components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/app/_components/ui/dropdown-menu';
 import type { Availability } from '@/src/entities/models/availability';
+import type { Preferences } from '@/src/entities/models/user';
 
 /**
  * Una fila de la lista de Horas laborables: nombre, "Predeterminado", una línea por Franja y la zona
  * horaria; lleva a `redirectUrl`. El menú ⋯ la hace predeterminada o la elimina, con confirmación.
  *
- * @param displayOptions formato de hora y primer día de la semana (0 = domingo) del Usuario
+ * @param preferences formato de hora y primer día de la semana del Usuario, para las Franjas
+ * @param busy otra acción de Horas laborables está en curso: el menú no abre
  * @param isDeletable si no es la única: eliminar la última avisa sin preguntar
  * @param deleteFunction la confirmación queda abierta hasta que termina
  */
 export function AvailabilityListItem({
     availability,
     deleteFunction,
-    displayOptions,
+    preferences,
+    busy,
     updateDefault,
     isDeletable,
     redirectUrl,
 }: {
     availability: Availability;
     deleteFunction: () => Promise<unknown>;
-    displayOptions?: { hour12?: boolean; weekStart?: number };
+    preferences: Preferences;
+    busy: boolean;
     isDeletable: boolean;
     updateDefault: () => void;
     redirectUrl: string;
@@ -49,7 +53,7 @@ export function AvailabilityListItem({
 
     return (
         <li>
-            <div className="flex items-center justify-between px-3 py-5 transition hover:bg-muted sm:px-4">
+            <div className="flex items-center justify-between px-3 py-5 transition hover:bg-muted @xl/main:px-4">
                 <Link href={redirectUrl} className="grow truncate text-sm" title={availability.name}>
                     <div className="space-x-2">
                         <span className="truncate font-medium text-foreground">{availability.name}</span>
@@ -61,9 +65,8 @@ export function AvailabilityListItem({
                     </div>
                     <p className="mt-1 text-muted-foreground">
                         {intervalsFromSchedule(availability.schedule)
-                            .map((interval) => intervalAsString(interval, { hour12: displayOptions?.hour12 }))
-                            // Las líneas siguen el primer día de la semana del Usuario.
-                            .sort(sortIntervalStrings(displayOptions?.weekStart))
+                            .map((interval) => intervalAsString(interval, { hour12: preferences.timeFormat === 12 }))
+                            .sort(sortIntervalStrings(preferences.weekStart))
                             .map((intervalString) => (
                                 <Fragment key={intervalString}>
                                     {intervalString}
@@ -77,7 +80,7 @@ export function AvailabilityListItem({
                     </p>
                 </Link>
                 <DropdownMenu>
-                    <DropdownMenuTrigger render={<Button type="button" variant="outline" size="icon" aria-label="Más acciones" />}>
+                    <DropdownMenuTrigger render={<Button type="button" variant="outline" size="icon" aria-label="Más acciones" disabled={busy} />}>
                         <Ellipsis />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
