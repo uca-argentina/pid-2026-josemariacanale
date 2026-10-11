@@ -17,7 +17,7 @@ export function isActionable(b: ClientBooking, now: number) {
 /** La Seña existe y todavía no se pagó. */
 export const hasPendingDeposit = (b: ClientBooking) => b.depositAmount !== null && b.depositPaidAt === null;
 
-/** Puede Pagar la Seña: tiene Seña pendiente y el Turno todavía se puede cambiar. */
+/** Puede Pagar la Seña: tiene Seña pendiente y el Turno está pendiente o aceptado y no empezó. */
 export const canPayDeposit = (b: ClientBooking, now: number) => hasPendingDeposit(b) && isActionable(b, now);
 
 /** El Negocio del Turno o, en un Servicio personal, el Usuario que lo atiende. */
