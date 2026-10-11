@@ -14,7 +14,7 @@ import {
     PanelInput,
 } from '@/app/(app)/_components/panel-ui';
 import { bookingLink } from '@/app/(app)/_components/mock-services';
-import { TimeZoneCombobox } from '@/app/(app)/_components/TimeZoneCombobox';
+import { TimezoneSelect } from '@/app/(app)/_components/TimezoneSelect';
 import {
     branchSchema,
     businessSchema,
@@ -307,7 +307,7 @@ function BranchStep({
                 />
             </PanelField>
             <PanelField label="Zona horaria" htmlFor="branch-timezone" error={errors.timeZone}>
-                <TimeZoneCombobox
+                <TimezoneSelect
                     id="branch-timezone"
                     value={value.timeZone}
                     onChange={(tz) => onChange({ ...value, timeZone: tz })}
