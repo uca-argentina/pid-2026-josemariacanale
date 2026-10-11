@@ -82,7 +82,6 @@ export function AvailabilityView({
             availabilities={availabilities}
             preferences={preferences}
             busy={busy}
-            onOpen={(id) => router.push(`/availability?id=${id}`)}
             onCreate={(name, timeZone) => run(() => createAvailabilityAction(name, timeZone), `${name}: horas laborables creadas`)}
             onMakeDefault={(item) =>
                 run(() => makeAvailabilityDefaultAction(item.id), `${item.name}: ahora son las horas laborables predeterminadas`)

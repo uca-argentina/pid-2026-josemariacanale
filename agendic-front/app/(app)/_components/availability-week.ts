@@ -42,48 +42,93 @@ export const intervalsValid = (intervals: TimeRange[]) => invalidIntervals(inter
 
 const formatInterval = ({ start, end }: TimeRange) => `${start} - ${end}`;
 
-/** Nombres abreviados de los días del `schedule` del back: el índice 0 es el domingo. */
-const WEEKDAY_ABBR = ['dom.', 'lun.', 'mar.', 'mié.', 'jue.', 'vie.', 'sáb.'];
-
-/** `9:00` en 24 h, `9:00 a. m.` en 12 h. */
-function formatTime(time: string, timeFormat: 12 | 24): string {
-    const hour = Number(time.slice(0, 2));
-    const minutes = time.slice(3);
-    if (timeFormat === 24) return `${hour}:${minutes}`;
-    return `${hour % 12 || 12}:${minutes} ${hour < 12 ? 'a. m.' : 'p. m.'}`;
+/** Una Franja con todos los días de la semana que la tienen (0 = domingo). */
+export interface DaysInterval {
+    days: number[];
+    startTime: string;
+    endTime: string;
 }
 
+const LOCALE = 'es-AR';
+
 /**
- * Resume las Franjas de una semana, una línea por Franja distinta con los días que la tienen:
- * `"lun. - vie., 9:00 - 17:00"`. Los días siguen el primer día de la semana del Usuario (`weekStart`, 0 =
- * domingo) y también el orden de las líneas. Sin Franjas, no hay líneas.
+ * Agrupa las Franjas del `schedule` del back (índice 0 = domingo) por inicio y fin: una por horario, con
+ * todos los días que lo tienen.
  */
-export function summarizeSchedule(
-    schedule: TimeRange[][],
-    { timeFormat, weekStart }: { timeFormat: 12 | 24; weekStart: number },
-): string[] {
-    const daysByRange = new Map<string, number[]>();
-    for (let offset = 0; offset < 7; offset++) {
-        const day = (weekStart + offset) % 7;
-        for (const range of [...(schedule[day] ?? [])].sort(byStart)) {
-            const key = `${formatTime(range.start, timeFormat)} - ${formatTime(range.end, timeFormat)}`;
-            daysByRange.set(key, [...(daysByRange.get(key) ?? []), offset]);
-        }
-    }
-    return [...daysByRange]
-        .map(([range, offsets]) => ({ range, offsets }))
-        .sort((a, b) => a.offsets[0] - b.offsets[0])
-        .map(({ range, offsets }) => {
-            const runs: number[][] = [];
-            for (const offset of offsets) {
-                const last = runs.at(-1);
-                if (last && last.at(-1) === offset - 1) last.push(offset);
-                else runs.push([offset]);
+export function intervalsFromSchedule(schedule: TimeRange[][]): DaysInterval[] {
+    return schedule.reduce((intervals: DaysInterval[], times: TimeRange[], day: number) => {
+        const filteredTimes = times.filter((time) => {
+            const idx = intervals.findIndex((interval) => interval.startTime === time.start && interval.endTime === time.end);
+            if (idx !== -1) {
+                intervals[idx].days.push(day);
+                return false;
             }
-            const name = (offset: number) => WEEKDAY_ABBR[(weekStart + offset) % 7];
-            const days = runs.map((run) => (run.length === 1 ? name(run[0]) : `${name(run[0])} - ${name(run.at(-1)!)}`));
-            return `${days.join(', ')}, ${range}`;
+            return true;
         });
+        filteredTimes.forEach((time) => intervals.push({ days: [day], startTime: time.start, endTime: time.end }));
+        return intervals;
+    }, []);
+}
+
+/** La fecha de esta semana que cae en `day` (0 = domingo). */
+function getDateForWeekday(day: number): Date {
+    const today = new Date();
+    const target = new Date(today);
+    target.setDate(today.getDate() + day - today.getDay());
+    return target;
+}
+
+/** El nombre del día `day` (0 = domingo): `"lun"` en `short`, `"lunes"` en `long`. */
+function nameOfDay(day: number, format: 'short' | 'long' = 'long'): string {
+    return new Intl.DateTimeFormat(LOCALE, { weekday: format }).format(getDateForWeekday(day));
+}
+
+/** Los nombres de los siete días, empezando por `weekStart` (0 = domingo). */
+function weekdayNames(weekStart = 0, format: 'short' | 'long' = 'long'): string[] {
+    return Array.from({ length: 7 }, (_, i) => nameOfDay((i + weekStart) % 7, format));
+}
+
+/** Una Franja en una línea, con sus días agrupados en tramos: `"lun - vie, 09:00 - 17:00"`. */
+export function intervalAsString(interval: DaysInterval, { hour12 }: { hour12?: boolean }): string {
+    const weekSpan = ({ days: [first, ...rest] }: DaysInterval) => {
+        const days = rest.reduce(
+            (days, day) => {
+                const last = days[days.length - 1];
+                if (last.length === 1 && last[0] === day - 1) {
+                    // El tramo todavía no está cerrado y el día siguiente lo continúa.
+                    last.push(day);
+                } else if (last[last.length - 1] === day - 1) {
+                    // Tramo cerrado: si el día lo sigue, lo extiende.
+                    days[days.length - 1] = [last[0], day];
+                } else {
+                    days.push([day]);
+                }
+                return days;
+            },
+            [[first]] as number[][],
+        );
+        return days.map((dayRange) => dayRange.map((day) => nameOfDay(day, 'short')).join(' - ')).join(', ');
+    };
+
+    // `HH:mm` sin zona se lee como hora local y se formatea en la misma: sale la hora tal cual.
+    const formatTime = (time: string) =>
+        new Intl.DateTimeFormat(LOCALE, { hour: 'numeric', minute: 'numeric', hour12 }).format(new Date(`1970-01-01T${time}`));
+
+    return `${weekSpan(interval)}, ${formatTime(interval.startTime)} - ${formatTime(interval.endTime)}`;
+}
+
+/** Para `sort`: las líneas de `intervalAsString` según el primer día de la semana del Usuario (0 = domingo). */
+export function sortIntervalStrings(weekStart = 0) {
+    return (a: string, b: string) => {
+        const weekNames = weekdayNames(weekStart, 'short');
+        const weekIndex = (day: string) => {
+            for (let i = 0; i < weekNames.length; i++) {
+                if (day.includes(weekNames[i])) return i;
+            }
+            return -1;
+        };
+        return weekIndex(a) - weekIndex(b);
+    };
 }
 
 /** Las Franjas de un día en una línea: `"09:00 - 13:00, 14:00 - 18:00"`. */

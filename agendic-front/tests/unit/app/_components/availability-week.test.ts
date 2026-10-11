@@ -3,7 +3,9 @@ import {
     intervalsValid,
     invalidIntervals,
     nextInterval,
-    summarizeSchedule,
+    intervalAsString,
+    intervalsFromSchedule,
+    sortIntervalStrings,
     toSchedule,
     toWeek,
     weekValid,
@@ -15,41 +17,42 @@ const r = (start: string, end: string): TimeRange => ({ start, end });
 const week = (byDay: Partial<Record<number, TimeRange[]>>): TimeRange[][] =>
     Array.from({ length: 7 }, (_, i) => byDay[i] ?? []);
 
-describe('summarizeSchedule', () => {
-    // El `schedule` del back: el índice 0 es el domingo.
-    const sched = (byDay: Partial<Record<number, TimeRange[]>>) => week(byDay);
-    const workWeek = sched({ 1: [r('09:00', '17:00')], 2: [r('09:00', '17:00')], 3: [r('09:00', '17:00')], 4: [r('09:00', '17:00')], 5: [r('09:00', '17:00')] });
-    const lunes = { timeFormat: 24 as const, weekStart: 1 };
-
-    it('agrupa días consecutivos en un tramo', () => {
-        expect(summarizeSchedule(workWeek, lunes)).toEqual(['lun. - vie., 9:00 - 17:00']);
-    });
-
-    it('separa con coma los días sueltos y los tramos', () => {
-        const morning = [r('08:00', '13:00')];
-        expect(summarizeSchedule(sched({ 1: morning, 4: morning, 5: morning }), lunes)).toEqual(['lun., jue. - vie., 8:00 - 13:00']);
-    });
-
-    it('da una línea por Franja distinta, empezando por el primer día de la semana', () => {
-        const days = sched({ 1: [r('09:00', '17:00')], 3: [r('08:00', '13:00')], 0: [r('10:00', '12:00')] });
-        expect(summarizeSchedule(days, lunes)).toEqual(['lun., 9:00 - 17:00', 'mié., 8:00 - 13:00', 'dom., 10:00 - 12:00']);
-        expect(summarizeSchedule(days, { timeFormat: 24, weekStart: 0 })).toEqual(['dom., 10:00 - 12:00', 'lun., 9:00 - 17:00', 'mié., 8:00 - 13:00']);
-    });
-
-    it('une el sábado con el domingo si la semana empieza antes', () => {
-        const days = sched({ 6: [r('10:00', '12:00')], 0: [r('10:00', '12:00')] });
-        expect(summarizeSchedule(days, lunes)).toEqual(['sáb. - dom., 10:00 - 12:00']);
-    });
-
-    it('usa el formato de 12 horas', () => {
-        expect(summarizeSchedule(sched({ 1: [r('00:30', '12:00'), r('13:00', '17:00')] }), { timeFormat: 12, weekStart: 1 })).toEqual([
-            'lun., 12:30 a. m. - 12:00 p. m.',
-            'lun., 1:00 p. m. - 5:00 p. m.',
+describe('intervalsFromSchedule', () => {
+    it('agrupa los días que comparten inicio y fin', () => {
+        const nineToFive = [r('09:00', '17:00')];
+        expect(intervalsFromSchedule(week({ 1: nineToFive, 2: [r('09:00', '17:00'), r('18:00', '20:00')], 5: nineToFive }))).toEqual([
+            { days: [1, 2, 5], startTime: '09:00', endTime: '17:00' },
+            { days: [2], startTime: '18:00', endTime: '20:00' },
         ]);
     });
 
     it('no devuelve nada si no hay Franjas', () => {
-        expect(summarizeSchedule(sched({}), lunes)).toEqual([]);
+        expect(intervalsFromSchedule(week({}))).toEqual([]);
+    });
+});
+
+describe('intervalAsString', () => {
+    const interval = (days: number[], startTime = '09:00', endTime = '17:00') => ({ days, startTime, endTime });
+
+    it('agrupa días consecutivos en un tramo', () => {
+        expect(intervalAsString(interval([1, 2, 3, 4, 5]), { hour12: false })).toBe('lun - vie, 09:00 - 17:00');
+    });
+
+    it('separa con coma los días sueltos y los tramos', () => {
+        expect(intervalAsString(interval([1, 4, 5]), { hour12: false })).toBe('lun, jue - vie, 09:00 - 17:00');
+    });
+
+    it('usa el formato de 12 horas', () => {
+        expect(intervalAsString(interval([1], '00:30', '13:00'), { hour12: true }).replace(/\s/g, ' ')).toBe('lun, 12:30 a. m. - 1:00 p. m.');
+    });
+});
+
+describe('sortIntervalStrings', () => {
+    const lines = ['dom, 10:00 - 12:00', 'mié, 08:00 - 13:00', 'lun, 09:00 - 17:00'];
+
+    it('ordena las líneas desde el primer día de la semana', () => {
+        expect([...lines].sort(sortIntervalStrings(1))).toEqual(['lun, 09:00 - 17:00', 'mié, 08:00 - 13:00', 'dom, 10:00 - 12:00']);
+        expect([...lines].sort(sortIntervalStrings(0))).toEqual(['dom, 10:00 - 12:00', 'lun, 09:00 - 17:00', 'mié, 08:00 - 13:00']);
     });
 });
 
