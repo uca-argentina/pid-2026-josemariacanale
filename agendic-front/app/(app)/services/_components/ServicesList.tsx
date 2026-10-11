@@ -17,6 +17,7 @@ import {
     PanelIconButton,
     PanelIconGroup,
     PanelInput,
+    PanelNumberField,
     PanelMenu,
     PanelSelect,
     PanelTextarea,
@@ -295,25 +296,25 @@ function NewServiceDialog({ state, onClose }: { state: DialogState; onClose: () 
                     />
                 </PanelField>
                 <PanelField label="Duración" htmlFor="new-service-duration" error={errors.durationMinutes}>
-                    <PanelInput
+                    <PanelNumberField
                         id="new-service-duration"
-                        type="number"
                         min={1}
+                        step={5}
                         suffix="Minutos"
                         value={form.durationMinutes}
-                        onChange={(e) => set({ durationMinutes: e.target.value })}
+                        onValueChange={(durationMinutes) => set({ durationMinutes })}
                     />
                 </PanelField>
                 <PanelField label="Precio" htmlFor="new-service-price" error={errors.price}>
-                    <PanelInput
+                    <PanelNumberField
                         id="new-service-price"
-                        type="number"
                         min={0}
+                        grouping
                         prefix="$"
                         suffix="ARS"
                         placeholder="0"
                         value={form.price}
-                        onChange={(e) => set({ price: e.target.value })}
+                        onValueChange={(price) => set({ price })}
                     />
                 </PanelField>
                 {formError && (

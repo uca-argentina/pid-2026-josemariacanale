@@ -4,10 +4,11 @@ import { AlertDialog } from '@base-ui/react/alert-dialog';
 import { Checkbox } from '@base-ui/react/checkbox';
 import { Dialog } from '@base-ui/react/dialog';
 import { Menu } from '@base-ui/react/menu';
+import { NumberField } from '@base-ui/react/number-field';
 import { Select } from '@base-ui/react/select';
 import { Switch } from '@base-ui/react/switch';
 import { useEffect, useRef, useState } from 'react';
-import { Check, ChevronDown } from 'lucide-react';
+import { Check, ChevronDown, Minus, Plus } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/app/_components/ui/avatar';
 import { cn } from '@/app/_components/utils';
 
@@ -346,6 +347,86 @@ export function PanelInput({
                 </span>
             )}
         </div>
+    );
+}
+
+const STEPPER =
+    'flex h-full w-8 shrink-0 items-center justify-center text-[#6b7280] outline-none select-none hover:bg-[#f3f4f6] hover:text-[#0f1b2d] disabled:pointer-events-none disabled:opacity-40';
+
+/**
+ * Campo numérico del panel sobre el NumberField de Base UI. El formulario guarda el número como texto: `''` es vacío
+ * y el resto, su string. El paso solo mueve los botones y las flechas del teclado; se puede tipear cualquier valor
+ * válido. Sin `step` no hay botones `−` / `+`. La rueda del mouse no cambia el valor.
+ */
+export function PanelNumberField({
+    id,
+    value,
+    onValueChange,
+    min,
+    max,
+    step,
+    grouping = false,
+    prefix,
+    suffix,
+    className,
+    disabled,
+    placeholder,
+    'aria-label': ariaLabel,
+    'aria-describedby': ariaDescribedBy,
+}: {
+    id?: string;
+    value: string;
+    onValueChange: (value: string) => void;
+    min?: number;
+    max?: number;
+    step?: number;
+    /** Separador de miles `es-AR` (`12.500`). */
+    grouping?: boolean;
+    prefix?: string;
+    suffix?: string;
+    className?: string;
+    disabled?: boolean;
+    placeholder?: string;
+    'aria-label'?: string;
+    'aria-describedby'?: string;
+}) {
+    const steppers = step !== undefined;
+    return (
+        <NumberField.Root
+            id={id}
+            value={value.trim() === '' ? null : Number(value)}
+            onValueChange={(next) => onValueChange(next === null ? '' : String(next))}
+            min={min}
+            max={max}
+            step={step}
+            disabled={disabled}
+            locale="es-AR"
+            format={{ useGrouping: grouping }}
+        >
+            <NumberField.Group className={cn(FIELD_BOX, className)}>
+                {steppers && (
+                    <NumberField.Decrement aria-label="Restar" className={cn(STEPPER, 'border-r border-[#e5e7eb]')}>
+                        <Minus className="size-3.5" />
+                    </NumberField.Decrement>
+                )}
+                {prefix && <span className="shrink-0 pl-3 text-[#9ca3af] select-none">{prefix}</span>}
+                <NumberField.Input
+                    aria-label={ariaLabel}
+                    aria-describedby={ariaDescribedBy}
+                    placeholder={placeholder}
+                    className={cn(
+                        'h-full min-w-0 flex-1 bg-transparent px-3 outline-none placeholder:text-[#9ca3af]',
+                        prefix && 'pl-1',
+                    )}
+                />
+                {suffix && <span className="shrink-0 pr-3 text-[#9ca3af] select-none">{suffix}</span>}
+                {steppers && (
+                    <NumberField.Increment aria-label="Sumar" className={cn(STEPPER, 'border-l border-[#e5e7eb]')}>
+                        <Plus className="size-3.5" />
+                    </NumberField.Increment>
+                )}
+            </NumberField.Group>
+        </NumberField.Root>
     );
 }
 
