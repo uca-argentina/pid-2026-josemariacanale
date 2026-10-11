@@ -2,6 +2,9 @@ export class DomainError extends Error {}
 
 export class UnauthenticatedError extends DomainError {}
 
+/** A request that makes no sense for the resource it names, e.g. choosing an Empleado in a Servicio personal. */
+export class BadRequestError extends DomainError {}
+
 export class ForbiddenError extends DomainError {}
 
 export class NotFoundError extends DomainError {}

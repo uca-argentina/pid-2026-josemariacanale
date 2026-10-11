@@ -1,3 +1,4 @@
+import { Booking } from '../../domain/bookings/booking';
 import { BookingsRepository } from '../../domain/bookings/bookings.repository';
 import { BusinessRuleError } from '../../domain/errors';
 import { addDays } from '../../domain/slots/slot';
@@ -12,7 +13,8 @@ const attendant = ({ employeeId, userId }: EmployeeSlots) => ({
  * Elige quién atiende un Turno de `startsAt`: en un Servicio personal, su Usuario; en uno del Negocio, entre los
  * Empleados libres en ese horario, el que hace más tiempo que no recibe un Turno del Servicio (sin Turnos previos, gana ese; si empatan, el de menor id). Recalcula los Horarios
  * reservables ahora, así que también comprueba que `startsAt` lo sea. Con `keepEmployeeId`, si ese Empleado está libre
- * se queda con el Turno.
+ * se queda con el Turno. Con `chosenEmployeeId` (Empleado elegido) solo cuenta ese Empleado: si no está libre no se pasa
+ * a otro.
  *
  * @throws {BusinessRuleError} nadie está libre en `startsAt`
  */
@@ -21,7 +23,11 @@ export async function pickEmployee(
   bookings: BookingsRepository,
   serviceId: number,
   startsAt: Date,
-  { excludeBookingId, keepEmployeeId }: { excludeBookingId?: number; keepEmployeeId?: number } = {},
+  {
+    excludeBookingId,
+    keepEmployeeId,
+    chosenEmployeeId,
+  }: { excludeBookingId?: number; keepEmployeeId?: number; chosenEmployeeId?: number } = {},
 ): Promise<{ employeeId: number | null; userId: number }> {
   // A day of slack either side: the Sucursal's date for `startsAt` is within a day of its UTC date.
   const iso = startsAt.toISOString();
@@ -32,15 +38,18 @@ export async function pickEmployee(
     addDays(utcDate, 1),
     excludeBookingId,
   );
-  const free = employees.filter(({ days }) =>
-    days.some((day) => day.slots.includes(iso)),
+  const free = employees.filter(
+    ({ employeeId, days }) =>
+      (chosenEmployeeId === undefined || employeeId === chosenEmployeeId) &&
+      days.some((day) => day.slots.includes(iso)),
   );
   if (free.length === 0)
     throw new BusinessRuleError(
       `Slot ${iso} is not available for Service ${serviceId}`,
     );
-  // A Servicio personal has a single attendant: nothing to choose.
-  if (free[0].employeeId === null) return attendant(free[0]);
+  // A Servicio personal has a single attendant, and an Empleado elegido a single candidate: nothing to choose.
+  if (free[0].employeeId === null || chosenEmployeeId !== undefined)
+    return attendant(free[0]);
   const freeIds = free.map(({ employeeId }) => employeeId!);
   const kept = free.find(({ employeeId }) => employeeId === keepEmployeeId);
   if (kept) return attendant(kept);
@@ -59,3 +68,10 @@ export async function pickEmployee(
     )[0],
   );
 }
+
+/** The Empleado a Turno must stay with when rescheduled: its Empleado elegido, if it has one. */
+export const chosenEmployeeId = ({
+  employeeId,
+  employeeChosen,
+}: Pick<Booking, 'employeeId' | 'employeeChosen'>): number | undefined =>
+  employeeChosen ? (employeeId ?? undefined) : undefined;

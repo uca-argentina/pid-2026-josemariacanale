@@ -74,6 +74,7 @@ const ANAS_SERVICE = {
       availabilityId: 10,
       userId: ANAS_EMPLOYEE.userId,
       imageUrl: ANAS_EMPLOYEE.imageUrl,
+      slug: null,
     },
   ],
 };
@@ -149,6 +150,7 @@ describe('Negocio', () => {
               name: ANAS_EMPLOYEE.name,
               availabilityId: 10,
               imageUrl: ANAS_EMPLOYEE.imageUrl,
+              slug: null,
             },
           ],
         },

@@ -73,6 +73,7 @@ const IN_CHARGE = [
     availabilityId: 10,
     userId: ANAS_EMPLOYEE.userId,
     imageUrl: ANAS_EMPLOYEE.imageUrl,
+    slug: null,
   },
 ];
 
@@ -806,6 +807,7 @@ describe('Servicio', () => {
             availabilityId: 20,
             userId: OTHER_EMPLOYEE.userId,
             imageUrl: OTHER_EMPLOYEE.imageUrl,
+            slug: null,
           },
         ],
       });
@@ -826,6 +828,7 @@ describe('Servicio', () => {
         name: OTHER_EMPLOYEE.name,
         availabilityId: 20,
         imageUrl: OTHER_EMPLOYEE.imageUrl,
+        slug: null,
       });
     });
 
@@ -1138,6 +1141,7 @@ describe('Servicio', () => {
             availabilityId: 20,
             userId: OTHER_EMPLOYEE.userId,
             imageUrl: OTHER_EMPLOYEE.imageUrl,
+            slug: null,
           },
         ],
       });
@@ -1166,6 +1170,7 @@ describe('Servicio', () => {
             availabilityId: 20,
             userId: OTHER_EMPLOYEE.userId,
             imageUrl: OTHER_EMPLOYEE.imageUrl,
+            slug: null,
           },
         ],
       });
@@ -1239,6 +1244,7 @@ describe('Servicio', () => {
             availabilityId: 21,
             userId: OTHER_EMPLOYEE.userId,
             imageUrl: OTHER_EMPLOYEE.imageUrl,
+            slug: null,
           },
         ],
       });
@@ -1261,6 +1267,7 @@ describe('Servicio', () => {
         name: OTHER_EMPLOYEE.name,
         availabilityId: 21,
         imageUrl: OTHER_EMPLOYEE.imageUrl,
+        slug: null,
       });
       for (const method of Object.values(t.bookings))
         expect(method).not.toHaveBeenCalled();
@@ -1363,14 +1370,14 @@ describe('Servicio', () => {
       expect(JSON.stringify(res.body)).not.toContain(ANAS_EMPLOYEE.email);
     });
 
-    it("shows each Empleado's foto de perfil, or null without one, and nothing else of the Usuario", async () => {
+    it("shows each Empleado's foto de perfil and Enlace de reserva, or null without one, and nothing else of the Usuario", async () => {
       t.branches.findById.mockResolvedValue(BRANCH);
       t.services.listActiveByBranch.mockResolvedValue([
         {
           ...SERVICE,
           employees: [
-            { ...IN_CHARGE[0], imageUrl: 'https://img.clerk.com/ana.png' },
-            { ...IN_CHARGE[0], id: 2, imageUrl: null },
+            { ...IN_CHARGE[0], imageUrl: 'https://img.clerk.com/ana.png', slug: 'ana' },
+            { ...IN_CHARGE[0], id: 2, imageUrl: null, slug: null },
           ],
         },
       ]);
@@ -1385,12 +1392,14 @@ describe('Servicio', () => {
           name: IN_CHARGE[0].name,
           availabilityId: 10,
           imageUrl: 'https://img.clerk.com/ana.png',
+          slug: 'ana',
         },
         {
           id: 2,
           name: IN_CHARGE[0].name,
           availabilityId: 10,
           imageUrl: null,
+          slug: null,
         },
       ]);
     });
@@ -1505,6 +1514,7 @@ describe('Servicio', () => {
         availabilityId: 99,
         userId: employeeId,
         imageUrl: null,
+        slug: null,
       })),
     });
     const ids = (services: { id: number }[]) => services.map(({ id }) => id);

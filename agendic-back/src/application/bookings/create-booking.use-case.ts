@@ -29,6 +29,7 @@ import {
   USERS_REPOSITORY,
   UsersRepository,
 } from '../../domain/users/users.repository';
+import { assertChosenEmployee } from '../slots/assert-chosen-employee';
 import { ListSlotsUseCase } from '../slots/list-slots.use-case';
 import { assertBookable } from './assert-booking-rules';
 import { pickEmployee } from './pick-employee';
@@ -51,12 +52,15 @@ export class CreateBookingUseCase {
 
   /**
    * Reserva un Turno, ya BOOKED o PENDING con Aprobación manual, y le asigna el Empleado que hace más tiempo que no
-   * recibe uno del Servicio (ver `pickEmployee`), o al Usuario dueño de un Servicio personal. Ocupa la agenda de
+   * recibe uno del Servicio (ver `pickEmployee`), o al Usuario dueño de un Servicio personal. Con `employeeId`
+   * (Empleado elegido) el Turno queda con ese Empleado y no se reasigna. Ocupa la agenda de
    * quien lo atiende desde la preparación del Servicio, que queda fijada acá. Exige un Código de verificación vigente
    * para `clientEmail` (ADR 0022). Manda la Confirmación de reserva con el Enlace del Turno.
    *
    * @throws {InvalidCodeError} el código no es válido para clientEmail en su ventana
-   * @throws {BusinessRuleError} el Servicio no existe o está dado de baja, el horario ya pasó o no es un Horario reservable de ningún Empleado
+   * @throws {BusinessRuleError} el Servicio no existe o está dado de baja, el horario ya pasó o no es un Horario reservable de ningún Empleado (o del elegido)
+   * @throws {NotFoundError} el Empleado elegido no Ofrece el Servicio
+   * @throws {BadRequestError} se eligió un Empleado en un Servicio personal
    * @throws {ConflictError} el horario ya lo ocupa otro Turno del Empleado, o el Servicio ya alcanzó su Límite diario ese día
    */
   async execute(
@@ -76,6 +80,8 @@ export class CreateBookingUseCase {
       input.startsAt,
       now,
     );
+    if (input.employeeId !== undefined)
+      assertChosenEmployee(service, input.employeeId);
     const endsAt = new Date(
       input.startsAt.getTime() + service.durationMinutes * 60_000,
     );
@@ -87,6 +93,7 @@ export class CreateBookingUseCase {
       this.bookings,
       input.serviceId,
       input.startsAt,
+      { chosenEmployeeId: input.employeeId },
     );
     const status = service.requiresApproval
       ? BookingStatus.PENDING
@@ -108,6 +115,7 @@ export class CreateBookingUseCase {
         startsAt: input.startsAt,
         endsAt,
         notes: input.notes || null, // a blank Comentario del Turno is no Comentario
+        employeeChosen: input.employeeId !== undefined,
         status,
       },
       dailyLimit,

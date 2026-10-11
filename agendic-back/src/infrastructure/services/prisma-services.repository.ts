@@ -26,7 +26,7 @@ export const VISIBLE_EMPLOYEES = {
         select: {
           id: true,
           userId: true,
-          user: { select: { name: true, imageUrl: true } },
+          user: { select: { name: true, imageUrl: true, slug: true } },
         },
       },
     },
@@ -37,7 +37,7 @@ type ServiceRowWithEmployees = ServiceRow & {
   employees: {
     availabilityId: number;
     employee: Pick<EmployeeRow, 'id' | 'userId'> & {
-      user: Pick<UserRow, 'name' | 'imageUrl'>;
+      user: Pick<UserRow, 'name' | 'imageUrl' | 'slug'>;
     };
   }[];
 };
@@ -335,6 +335,7 @@ export const toService = (row: ServiceRowWithEmployees): Service => ({
     availabilityId,
     userId: employee.userId,
     imageUrl: employee.user.imageUrl,
+    slug: employee.user.slug,
   })),
 });
 

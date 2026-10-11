@@ -1,6 +1,7 @@
 import { ArgumentsHost, Catch, ExceptionFilter } from '@nestjs/common';
 import { Response } from 'express';
 import {
+  BadRequestError,
   BusinessRuleError,
   ConflictError,
   DomainError,
@@ -14,6 +15,7 @@ import {
 
 const STATUS_BY_ERROR: [typeof DomainError, number][] = [
   [InvalidCodeError, 400],
+  [BadRequestError, 400],
   [UnauthenticatedError, 401],
   [ForbiddenError, 403],
   [NotFoundError, 404],

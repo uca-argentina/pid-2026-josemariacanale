@@ -41,6 +41,7 @@ const CREATE_DATA: CreateBookingData = {
   startsAt: BOOKING_ROW.startsAt,
   endsAt: BOOKING_ROW.endsAt,
   notes: null,
+  employeeChosen: false,
   status: BookingStatus.BOOKED,
 };
 

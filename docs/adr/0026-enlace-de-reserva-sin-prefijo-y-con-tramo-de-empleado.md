@@ -44,3 +44,7 @@ Un Turno reservado por el enlace de un Empleado guarda `Booking.employeeChosen`.
 - **Mover el panel bajo un prefijo** (`/panel/...`) para liberar el primer tramo sin palabras reservadas. Rompe todas las rutas del panel y los enlaces que ya se compartieron; la lista de reservadas es más barata y se mantiene en un solo lugar.
 - **Chequear la unicidad en el caso de uso** (buscar el slug en las dos tablas antes de escribir). Tiene carrera entre dos pedidos casi juntos; es justo lo que la ADR 0004 manda dejarle a Postgres.
 - **Redirigir `/business/...` y `/u/...`.** Obliga a mantener para siempre dos formas de cada dirección, y `business` y `u` quedarían como primer tramo válido. Se prefiere que dejen de existir.
+
+## Empleado elegido
+
+Entrar por `/<negocio>/<sucursal>/<servicio>/<empleado>` deja un Empleado elegido: el front busca al Empleado por `employees[].slug`, pide los Horarios reservables con `employeeId` y Reserva con `employeeId`. El Turno guarda `Booking.employeeChosen`. Con él no hay round robin y, si el Empleado no está libre, no se pasa a otro (422). Reagendar, por el Cliente o por el Empleado, solo acepta horarios de ese Empleado; si dejó de Ofrecer el Servicio el Turno sigue en pie pero no se puede Reagendar, solo Cancelar.

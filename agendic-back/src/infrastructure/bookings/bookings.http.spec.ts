@@ -57,6 +57,7 @@ const BOOKING: Booking = {
   notes: null,
   noShowAt: null,
   link: 'booking-link-secret',
+  employeeChosen: false,
 };
 
 describe('Turno', () => {
@@ -142,6 +143,7 @@ describe('Turno', () => {
           startsAt: new Date(VALID_BOOKING.startsAt),
           endsAt: new Date('2026-01-01T12:30:00.000Z'),
           notes: null,
+          employeeChosen: false,
           status: BookingStatus.BOOKED,
         },
         undefined,
@@ -373,6 +375,7 @@ describe('Turno', () => {
         availabilityId: 11,
         userId: ANAS_EMPLOYEE.userId + 1,
         imageUrl: null,
+        slug: null,
       };
 
       beforeEach(() => {
@@ -434,6 +437,87 @@ describe('Turno', () => {
         await t.http.post('/bookings').send(VALID_BOOKING).expect(201);
 
         expect(employeeOfCreatedBooking()).toBe(JUAN.id);
+      });
+
+      describe('con Empleado elegido', () => {
+        // Juan is the one who has waited longest, so round robin alone would pick him.
+        beforeEach(() => {
+          t.bookings.lastReceivedByEmployee.mockResolvedValue(
+            new Map([[ANAS_EMPLOYEE.id, new Date('2026-01-01T10:00:00.000Z')]]),
+          );
+        });
+
+        it('deja el Turno con ese Empleado y employeeChosen, sin round robin', async () => {
+          const res = await t.http
+            .post('/bookings')
+            .send({ ...VALID_BOOKING, employeeId: ANAS_EMPLOYEE.id })
+            .expect(201);
+
+          expect(employeeOfCreatedBooking()).toBe(ANAS_EMPLOYEE.id);
+          expect(t.bookings.create.mock.calls[0][0].employeeChosen).toBe(true);
+          expect(res.body.employeeName).toBe(ANAS_EMPLOYEE.name);
+          expect(t.bookings.lastReceivedByEmployee).not.toHaveBeenCalled();
+        });
+
+        it('sin employeeId el Turno no tiene Empleado elegido', async () => {
+          await t.http.post('/bookings').send(VALID_BOOKING).expect(201);
+
+          expect(t.bookings.create.mock.calls[0][0].employeeChosen).toBe(false);
+        });
+
+        it('con ese Empleado ocupado y otro libre responde 422 y no reasigna', async () => {
+          t.bookings.listOccupiedByUser.mockImplementation(async (userId) =>
+            userId === JUAN.userId
+              ? []
+              : [{ prepStartsAt: BOOKING.startsAt, endsAt: BOOKING.endsAt }],
+          );
+
+          const res = await t.http
+            .post('/bookings')
+            .send({ ...VALID_BOOKING, employeeId: ANAS_EMPLOYEE.id })
+            .expect(422);
+
+          expect(res.body.message).toBe(
+            `Slot ${VALID_BOOKING.startsAt} is not available for Service ${SERVICE.id}`,
+          );
+          expect(t.bookings.create).not.toHaveBeenCalled();
+        });
+
+        it('responde 404 si el Empleado no Ofrece el Servicio', async () => {
+          const res = await t.http
+            .post('/bookings')
+            .send({ ...VALID_BOOKING, employeeId: 999 })
+            .expect(404);
+
+          expect(res.body.message).toBe(
+            `Employee 999 does not offer Service ${SERVICE.id}`,
+          );
+          expect(t.bookings.create).not.toHaveBeenCalled();
+        });
+
+        it('responde 400 si el Servicio es personal', async () => {
+          t.services.findById.mockResolvedValue({
+            ...SERVICE,
+            branchId: null,
+            userId: ANAS_EMPLOYEE.userId,
+            availabilityId: AVAILABILITY.id,
+            employees: [],
+          });
+
+          await t.http
+            .post('/bookings')
+            .send({ ...VALID_BOOKING, employeeId: ANAS_EMPLOYEE.id })
+            .expect(400);
+          expect(t.bookings.create).not.toHaveBeenCalled();
+        });
+
+        it('rechaza un employeeId que no es entero con 400', async () => {
+          await t.http
+            .post('/bookings')
+            .send({ ...VALID_BOOKING, employeeId: 'ana' })
+            .expect(400);
+          expect(t.bookings.create).not.toHaveBeenCalled();
+        });
       });
     });
 

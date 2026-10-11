@@ -335,6 +335,7 @@ export const ANAS_SERVICE: Service = {
       availabilityId: 10,
       userId: ANA.id,
       imageUrl: ANAS_EMPLOYEE.imageUrl,
+      slug: ANA.slug,
     },
   ],
 };
