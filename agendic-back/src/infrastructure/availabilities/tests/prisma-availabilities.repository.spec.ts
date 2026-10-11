@@ -135,7 +135,7 @@ describe('PrismaAvailabilitiesRepository', () => {
   });
 
   it("lists a Usuario's Availabilities with their Franjas, without Anulaciones", async () => {
-    const { overrides, ...summary } = AVAILABILITY;
+    const { overrides: _, ...summary } = AVAILABILITY;
     prisma.availability.findMany.mockResolvedValue([
       {
         id: 1,

@@ -41,7 +41,14 @@ export class PrismaAvailabilitiesRepository implements AvailabilitiesRepository 
     return this.prisma.availability
       .findMany({
         where: { userId },
-        include: { intervals: WITH_SCHEDULE.intervals },
+        select: {
+          id: true,
+          userId: true,
+          name: true,
+          timeZone: true,
+          isDefault: true,
+          intervals: WITH_SCHEDULE.intervals,
+        },
         orderBy: { id: 'asc' },
       })
       .then((rows) =>
