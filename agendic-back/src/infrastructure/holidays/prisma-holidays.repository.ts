@@ -8,6 +8,7 @@ import { PrismaService } from '../prisma.service';
 export class PrismaHolidaysRepository implements HolidaysRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  /** La fecha de guardado más reciente de ese país y año, o `null`. */
   async findLatestUpdatedAt(countryCode: string, year: number) {
     const row = await this.prisma.holidayCache.findFirst({
       where: { countryCode, year },
@@ -17,6 +18,7 @@ export class PrismaHolidaysRepository implements HolidaysRepository {
     return row?.updatedAt ?? null;
   }
 
+  /** Los Días festivos cacheados de ese país y año, por fecha. */
   async listByCountryCodeAndYear(countryCode: string, year: number) {
     return this.prisma.holidayCache.findMany({
       where: { countryCode, year },
@@ -32,6 +34,7 @@ export class PrismaHolidaysRepository implements HolidaysRepository {
     });
   }
 
+  /** Borra y vuelve a cargar ese país y año en una sola transacción. */
   async replaceByCountryCodeAndYear(
     countryCode: string,
     year: number,

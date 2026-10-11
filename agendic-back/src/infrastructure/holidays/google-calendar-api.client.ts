@@ -19,10 +19,15 @@ interface GoogleEventsResponse {
 /** Lee Google Calendar con `GOOGLE_CALENDAR_API_KEY`; sin ella el back arranca igual y falla al usarla (ADR 0027). */
 @Injectable()
 export class GoogleCalendarApiClient implements GoogleCalendarClient {
+  /** @throws {NotConfiguredError} falta `GOOGLE_CALENDAR_API_KEY` */
   assertConfigured() {
     this.apiKey();
   }
 
+  /**
+   * @throws {NotConfiguredError} falta `GOOGLE_CALENDAR_API_KEY`
+   * @throws {ExternalServiceError} Google no responde o respondió con error
+   */
   async fetchHolidays(countryCode: string, year: number): Promise<Holiday[]> {
     const key = this.apiKey();
     const calendarId = findCalendarId(countryCode);
