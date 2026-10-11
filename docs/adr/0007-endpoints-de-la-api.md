@@ -202,6 +202,28 @@ propias: la de otro Usuario es 404, como una que no existe.
   - dos pedidos concurrentes que dejarían dos predeterminadas → 409
 - Las Anulaciones no tienen endpoints propios (se van `GET/PUT/DELETE /employees/:id/overrides…`): viajan dentro de la Availability. La Cobertura desaparece (ADR 0021).
 
+## Out of office (Fuera de la oficina)
+
+Los períodos Fuera de la oficina son del Usuario (ADR 0027), no de una Availability. Todos los endpoints exigen
+Sesión y actúan sobre el Usuario de la Sesión: nadie gestiona los períodos de otro, y uno de otro Usuario es 404,
+como uno que no existe. Todavía no bloquean Horarios reservables.
+
+| Método | Ruta | Auth | Qué hace |
+|---|---|---|---|
+| GET | `/users/me/out-of-office` | sí | Los períodos con `endDate` ≥ hoy (hoy, en la zona de la Availability predeterminada del Usuario), por `startDate` ascendente; lista vacía (200) si no hay. Sin paginación: la hace el front |
+| POST | `/users/me/out-of-office` | sí | Crea un período; 201 con el período |
+| PUT | `/users/me/out-of-office/:id` | sí | Reemplaza los datos del período; 200 con el período |
+| DELETE | `/users/me/out-of-office/:id` | sí | Lo borra; 204 |
+
+- Período (respuesta): `{ id, startDate: "YYYY-MM-DD", endDate: "YYYY-MM-DD", reason, notes: string | null, showNotePublicly }`. Las fechas son días enteros, inclusivas, sin hora ni zona.
+- Body de `POST` y `PUT`: `{ startDate, endDate, reason, notes?, showNotePublicly? }`. `reason` es un `OutOfOfficeReason`: `UNSPECIFIED | VACATION | TRAVEL | SICK_LEAVE | PUBLIC_HOLIDAY`. `notes` por defecto `null`; `showNotePublicly` por defecto `false`.
+- Se aceptan períodos solapados y con fechas pasadas.
+- Errores (el front muestra el `message` del 422 y del 409 en el modal, tal cual):
+  - fecha que no es `YYYY-MM-DD` o no existe, `reason` desconocido, `notes` que no es texto, campo extra → 400
+  - `endDate` anterior a `startDate` → 422 `La fecha de fin no puede ser anterior a la de inicio`
+  - otro período del Usuario con el mismo `startDate` y `endDate` → 409 `Ya hay un período Fuera de la oficina con esas fechas` (en `PUT`, el propio período no cuenta)
+  - en `PUT` o `DELETE`, un período que no existe o es de otro Usuario → 404 `Out of office <id> not found`
+
 ## Slots (Horario reservable)
 
 | Método | Ruta | Auth | Qué hace |

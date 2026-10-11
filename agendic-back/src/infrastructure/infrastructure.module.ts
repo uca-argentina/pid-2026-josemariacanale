@@ -10,6 +10,7 @@ import { BRANCHES_REPOSITORY } from '../domain/branches/branches.repository';
 import { BUSINESSES_REPOSITORY } from '../domain/businesses/businesses.repository';
 import { EMPLOYEES_REPOSITORY } from '../domain/employees/employees.repository';
 import { INVITATIONS_REPOSITORY } from '../domain/invitations/invitations.repository';
+import { OUT_OF_OFFICE_REPOSITORY } from '../domain/out-of-office/out-of-office.repository';
 import { SERVICES_REPOSITORY } from '../domain/services/services.repository';
 import { CLERK_AUTH } from '../domain/users/clerk-auth';
 import { USERS_REPOSITORY } from '../domain/users/users.repository';
@@ -27,6 +28,8 @@ import { BusinessesModule } from './businesses/businesses.module';
 import { PrismaEmployeesRepository } from './employees/prisma-employees.repository';
 import { EmployeesModule } from './employees/employees.module';
 import { PrismaInvitationsRepository } from './invitations/prisma-invitations.repository';
+import { OutOfOfficeModule } from './out-of-office/out-of-office.module';
+import { PrismaOutOfOfficeRepository } from './out-of-office/prisma-out-of-office.repository';
 import { NodemailerMailer } from './nodemailer-mailer';
 import { PrismaService } from './prisma.service';
 import { readS3Config, S3FileStorage } from './s3-file-storage';
@@ -50,6 +53,7 @@ import { UsersModule } from './users/users.module';
     EmployeesModule,
     BookingsModule,
     AvailabilitiesModule,
+    OutOfOfficeModule,
     SlugsModule,
   ],
   providers: [
@@ -85,6 +89,10 @@ import { UsersModule } from './users/users.module';
       provide: AVAILABILITIES_REPOSITORY,
       useClass: PrismaAvailabilitiesRepository,
     },
+    {
+      provide: OUT_OF_OFFICE_REPOSITORY,
+      useClass: PrismaOutOfOfficeRepository,
+    },
   ],
   exports: [
     CLOCK,
@@ -101,6 +109,7 @@ import { UsersModule } from './users/users.module';
     BOOKINGS_REPOSITORY,
     BOOKING_VERIFICATION_CODES,
     AVAILABILITIES_REPOSITORY,
+    OUT_OF_OFFICE_REPOSITORY,
   ],
 })
 export class InfrastructureModule {}

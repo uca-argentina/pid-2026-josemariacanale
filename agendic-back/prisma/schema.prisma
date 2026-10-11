@@ -36,6 +36,14 @@ enum ServiceCategory {
   OTRO
 }
 
+enum OutOfOfficeReason {
+  UNSPECIFIED
+  VACATION
+  TRAVEL
+  SICK_LEAVE
+  PUBLIC_HOLIDAY
+}
+
 model User {
   id         Int       @id @default(autoincrement())
   clerkId    String    @unique // Clerk is the identity's system of record; no local credentials
@@ -54,6 +62,7 @@ model User {
   employees      Employee[]
   availabilities Availability[]
   bookingSlug    BookingSlug?
+  outOfOffices   OutOfOffice[]
 }
 
 model Business {
@@ -205,6 +214,24 @@ model AvailabilityOverride {
   availability Availability @relation(fields: [availabilityId], references: [id], onDelete: Cascade)
 
   @@index([availabilityId, date])
+}
+
+/// Fuera de la oficina: período de días enteros del Usuario, sin relación con sus Availabilities (ADR 0027).
+model OutOfOffice {
+  id               Int                 @id @default(autoincrement())
+  userId           Int
+  startDate        DateTime            @db.Date // inclusive, sin hora
+  endDate          DateTime            @db.Date // inclusive, sin hora
+  reason           OutOfOfficeReason
+  notes            String?
+  showNotePublicly Boolean             @default(false)
+  createdAt        DateTime            @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime            @updatedAt @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, startDate, endDate]) // dos períodos del Usuario no tienen las mismas fechas
+  @@index([userId])
 }
 
 model Booking {
