@@ -10,7 +10,6 @@ import {
     PanelDivider,
     PanelIconButton,
     PanelIconGroup,
-    PanelSection,
     PanelSwitch,
 } from '@/app/(app)/_components/panel-ui';
 import {
@@ -138,22 +137,29 @@ export function AvailabilityEditor({
                 </div>
             </header>
 
-            <div className="mt-8 flex max-w-[1080px] flex-col gap-6">
-                <PanelSection title="Zona horaria" description="Las Franjas y las Anulaciones se leen en esta zona.">
-                    <div className="max-w-[420px] px-6 py-4">
-                        <TimezoneSelect value={draft.timeZone} onChange={(timeZone) => setDraft((d) => ({ ...d, timeZone }))} />
+            <div className="mt-8 flex max-w-[1080px] flex-col gap-6 xl:flex-row">
+                <div className="flex min-w-0 flex-1 flex-col gap-6">
+                    <div className="rounded-md border border-[#e5e7eb]">
+                        <FormProvider {...form}>
+                            <ScheduleComponent weekStart={preferences.weekStart} timeFormat={preferences.timeFormat} />
+                        </FormProvider>
                     </div>
-                </PanelSection>
-                <PanelSection title="Horas semanales" description="Establecé los horarios en los que atiende cada día.">
-                    <FormProvider {...form}>
-                        <ScheduleComponent weekStart={preferences.weekStart} timeFormat={preferences.timeFormat} />
-                    </FormProvider>
-                </PanelSection>
-                <OverridesSection
-                    overrides={draft.overrides}
-                    busy={busy}
-                    onChange={(overrides) => setDraft((d) => ({ ...d, overrides }))}
-                />
+                    <OverridesSection
+                        overrides={draft.overrides}
+                        busy={busy}
+                        onChange={(overrides) => setDraft((d) => ({ ...d, overrides }))}
+                    />
+                </div>
+                <aside className="w-full xl:max-w-80">
+                    <label htmlFor="availability-timezone" className="mb-1 inline-block text-[13px] font-semibold">
+                        Zona horaria
+                    </label>
+                    <TimezoneSelect
+                        id="availability-timezone"
+                        value={draft.timeZone}
+                        onChange={(timeZone) => setDraft((d) => ({ ...d, timeZone }))}
+                    />
+                </aside>
             </div>
 
             <PanelConfirm
