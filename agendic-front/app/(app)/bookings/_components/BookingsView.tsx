@@ -10,6 +10,7 @@ import {
     formatShortDay,
     formatTimeRange,
     groupByDay,
+    hasPendingDeposit,
     isClosed,
     listValueOf,
     matches,
@@ -55,6 +56,7 @@ const AMBER = 'bg-[#fff4e5] text-[#b45309]';
 function badgesOf(b: Booking): { label: string; className: string }[] {
     return [
         b.status === 'PENDING' && { label: 'Pendiente', className: AMBER },
+        hasPendingDeposit(b) && { label: 'Seña pendiente', className: AMBER },
         b.status === 'BOOKED' && b.noShowAt !== null && { label: 'Ausencia', className: RED },
         b.status === 'REJECTED' && { label: 'Rechazado', className: RED },
         b.status === 'CANCELLED' && { label: 'Cancelado', className: RED },

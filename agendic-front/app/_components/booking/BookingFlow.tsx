@@ -218,7 +218,6 @@ function ConfirmStep({
                 </p>
             </div>
 
-            {/* ponytail: la Seña es real (Service.depositPercent); la política de devolución es texto de maqueta. */}
             {deposit && (
                 <section className="mt-2 flex flex-col gap-2 border-t border-border pt-5">
                     <h3 className="text-[17px] font-extrabold tracking-[-0.02em]">
@@ -230,8 +229,8 @@ function ConfirmStep({
                         El resto, {formatPrice(deposit.rest)}, lo pagás en el local.
                     </p>
                     <p className="text-[13.5px] leading-relaxed text-muted-foreground">
-                        Si cancelás con más de 24 horas de anticipación, la seña se devuelve. Si
-                        reagendás, se traslada al nuevo turno.
+                        La seña la pagás desde el enlace del turno que te llega por mail. Si
+                        cancelás, no se devuelve; si reagendás, sigue pagada.
                     </p>
                 </section>
             )}

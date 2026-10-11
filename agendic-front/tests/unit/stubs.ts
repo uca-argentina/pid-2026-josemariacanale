@@ -48,6 +48,7 @@ export const userBookingsWith = (stubs: Partial<IUserBookingsRepository>): IUser
 export const clientBookingsWith = (stubs: Partial<IClientBookingsRepository>): IClientBookingsRepository => ({
     getBookingByLink: jest.fn(notStubbed('getBookingByLink')),
     cancelBookingByLink: jest.fn(notStubbed('cancelBookingByLink')),
+    payDepositByLink: jest.fn(notStubbed('payDepositByLink')),
     rescheduleBookingByLink: jest.fn(notStubbed('rescheduleBookingByLink')),
     ...stubs,
 });
