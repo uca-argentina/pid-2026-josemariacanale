@@ -40,10 +40,9 @@ export function ChartAreaInteractive() {
                 </CardDescription>
                 <CardAction>
                     <ToggleGroup
-                        type="single"
-                        value={timeRange}
+                        value={[timeRange]}
                         // Clicking the selected item would deselect it and leave no range.
-                        onValueChange={(value) => value && chooseRange(value)}
+                        onValueChange={([value]) => value && chooseRange(value)}
                         variant="outline"
                         className="hidden *:data-[slot=toggle-group-item]:px-4! @[767px]/card:flex"
                     >
@@ -53,7 +52,7 @@ export function ChartAreaInteractive() {
                             </ToggleGroupItem>
                         ))}
                     </ToggleGroup>
-                    <Select value={timeRange} onValueChange={chooseRange}>
+                    <Select value={timeRange} onValueChange={(value) => value && chooseRange(value)}>
                         <SelectTrigger
                             className="flex w-40 **:data-[slot=select-value]:block **:data-[slot=select-value]:truncate @[767px]/card:hidden"
                             size="sm"

@@ -3,40 +3,51 @@
 import * as React from "react"
 import { cn } from "@/app/_components/utils"
 import { CheckIcon } from "lucide-react"
-import { DropdownMenu as DropdownMenuPrimitive } from "radix-ui"
+import { Menu as MenuPrimitive } from "@base-ui/react/menu"
 
-const DropdownMenu = DropdownMenuPrimitive.Root
-const DropdownMenuTrigger = DropdownMenuPrimitive.Trigger
+const DropdownMenu = MenuPrimitive.Root
+const DropdownMenuTrigger = MenuPrimitive.Trigger
 
 function DropdownMenuContent({
   className,
   sideOffset = 4,
+  side,
+  align,
+  alignOffset,
   ...props
-}: React.ComponentProps<typeof DropdownMenuPrimitive.Content>) {
+}: MenuPrimitive.Popup.Props &
+  Pick<
+    MenuPrimitive.Positioner.Props,
+    "align" | "alignOffset" | "side" | "sideOffset"
+  >) {
   return (
-    <DropdownMenuPrimitive.Portal>
-      <DropdownMenuPrimitive.Content
-        data-slot="dropdown-menu-content"
+    <MenuPrimitive.Portal>
+      <MenuPrimitive.Positioner
+        className="isolate z-50 outline-none"
+        side={side}
         sideOffset={sideOffset}
-        className={cn(
-          "z-50 min-w-[8rem] overflow-hidden rounded-lg border border-border bg-white p-1 shadow-md",
-          className
-        )}
-        {...props}
-      />
-    </DropdownMenuPrimitive.Portal>
+        align={align}
+        alignOffset={alignOffset}
+      >
+        <MenuPrimitive.Popup
+          data-slot="dropdown-menu-content"
+          className={cn(
+            "z-50 min-w-[8rem] overflow-hidden rounded-lg border border-border bg-white p-1 shadow-md outline-none",
+            className
+          )}
+          {...props}
+        />
+      </MenuPrimitive.Positioner>
+    </MenuPrimitive.Portal>
   )
 }
 
-function DropdownMenuItem({
-  className,
-  ...props
-}: React.ComponentProps<typeof DropdownMenuPrimitive.Item>) {
+function DropdownMenuItem({ className, ...props }: MenuPrimitive.Item.Props) {
   return (
-    <DropdownMenuPrimitive.Item
+    <MenuPrimitive.Item
       data-slot="dropdown-menu-item"
       className={cn(
-        "flex cursor-pointer select-none items-center gap-2 rounded-md px-2.5 py-2 text-[13px] font-semibold outline-none hover:bg-muted focus:bg-muted",
+        "flex cursor-pointer select-none items-center gap-2 rounded-md px-2.5 py-2 text-[13px] font-semibold outline-none hover:bg-muted focus:bg-muted data-highlighted:bg-muted",
         className
       )}
       {...props}
@@ -48,32 +59,32 @@ function DropdownMenuCheckboxItem({
   className,
   children,
   ...props
-}: React.ComponentProps<typeof DropdownMenuPrimitive.CheckboxItem>) {
+}: MenuPrimitive.CheckboxItem.Props) {
   return (
-    <DropdownMenuPrimitive.CheckboxItem
+    <MenuPrimitive.CheckboxItem
       data-slot="dropdown-menu-checkbox-item"
       className={cn(
-        "relative flex cursor-pointer select-none items-center gap-2 rounded-md py-2 pr-2.5 pl-8 text-[13px] font-semibold outline-none hover:bg-muted focus:bg-muted",
+        "relative flex cursor-pointer select-none items-center gap-2 rounded-md py-2 pr-2.5 pl-8 text-[13px] font-semibold outline-none hover:bg-muted focus:bg-muted data-highlighted:bg-muted",
         className
       )}
       {...props}
     >
       <span className="pointer-events-none absolute left-2.5 flex size-4 items-center justify-center">
-        <DropdownMenuPrimitive.ItemIndicator>
+        <MenuPrimitive.CheckboxItemIndicator>
           <CheckIcon className="size-4" />
-        </DropdownMenuPrimitive.ItemIndicator>
+        </MenuPrimitive.CheckboxItemIndicator>
       </span>
       {children}
-    </DropdownMenuPrimitive.CheckboxItem>
+    </MenuPrimitive.CheckboxItem>
   )
 }
 
 function DropdownMenuLabel({
   className,
   ...props
-}: React.ComponentProps<typeof DropdownMenuPrimitive.Label>) {
+}: React.ComponentProps<"div">) {
   return (
-    <DropdownMenuPrimitive.Label
+    <div
       data-slot="dropdown-menu-label"
       className={cn("px-2.5 py-1.5 text-[12px] font-semibold text-muted-foreground", className)}
       {...props}
@@ -84,9 +95,9 @@ function DropdownMenuLabel({
 function DropdownMenuSeparator({
   className,
   ...props
-}: React.ComponentProps<typeof DropdownMenuPrimitive.Separator>) {
+}: MenuPrimitive.Separator.Props) {
   return (
-    <DropdownMenuPrimitive.Separator
+    <MenuPrimitive.Separator
       data-slot="dropdown-menu-separator"
       className={cn("mx-2.5 my-1 h-px bg-border", className)}
       {...props}

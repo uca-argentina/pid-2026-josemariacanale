@@ -17,17 +17,19 @@ export function Hero() {
             </p>
             <div className="flex justify-center gap-3 mb-3.5">
                 <Button
-                    asChild
+                    render={<Link href="#" />}
+                    nativeButton={false}
                     className="text-[16px] font-bold text-white bg-primary px-[26px] py-[15px] rounded-xl hover:bg-primary/90 transition-colors h-auto border-0"
                 >
-                    <Link href="#">Empezá gratis</Link>
+                    Empezá gratis
                 </Button>
                 <Button
-                    asChild
+                    render={<Link href="#" />}
+                    nativeButton={false}
                     variant="outline"
                     className="text-[16px] font-semibold text-foreground bg-white border-[1.5px] border-[#d6dbe6] px-[26px] py-[15px] rounded-xl hover:bg-gray-50 transition-colors h-auto"
                 >
-                    <Link href="#">Ver funcionalidades</Link>
+                    Ver funcionalidades
                 </Button>
             </div>
             <div className="text-[14px] text-[#6b7587]">

@@ -1,7 +1,7 @@
 'use client';
 
 import { useId, useState } from 'react';
-import { Popover } from 'radix-ui';
+import { Popover } from '@base-ui/react/popover';
 import { AtSign, ChevronDown, Layers, MapPin, Plus, SlidersHorizontal, User, X } from 'lucide-react';
 import { cn } from '@/app/_components/utils';
 import { PanelButton, PanelCheckbox, PanelInput, PanelSelect } from '@/app/(app)/_components/panel-ui';
@@ -195,16 +195,15 @@ export function BookingFilters({
                 const field = FIELDS.find((f) => f.id === filter.field)!;
                 return (
                     <Popover.Root key={filter.field} open={open === filter.field} onOpenChange={toggle(filter.field)}>
-                        <Popover.Trigger asChild>
-                            <button type="button" className={CHIP}>
-                                <field.icon />
-                                {field.label}
-                                <ChipSummary filter={filter} />
-                                <ChevronDown className="text-[#6b7280]" />
-                            </button>
+                        <Popover.Trigger className={CHIP}>
+                            <field.icon />
+                            {field.label}
+                            <ChipSummary filter={filter} />
+                            <ChevronDown className="text-[#6b7280]" />
                         </Popover.Trigger>
                         <Popover.Portal>
-                            <Popover.Content align="start" sideOffset={4} className={POPOVER}>
+                            <Popover.Positioner align="start" sideOffset={4} className="z-50">
+                            <Popover.Popup className={POPOVER}>
                                 {'values' in filter ? (
                                     <ListEditor filter={filter} options={options[filter.field]} onChange={setFilter} />
                                 ) : (
@@ -216,7 +215,8 @@ export function BookingFilters({
                                         }}
                                     />
                                 )}
-                            </Popover.Content>
+                            </Popover.Popup>
+                            </Popover.Positioner>
                         </Popover.Portal>
                     </Popover.Root>
                 );
@@ -224,29 +224,27 @@ export function BookingFilters({
 
             {available.length > 0 && (
                 <Popover.Root open={open === 'add'} onOpenChange={toggle('add')}>
-                    <Popover.Trigger asChild>
-                        {filters.length === 0 ? (
-                            <button type="button" className={CHIP}>
-                                <SlidersHorizontal />
-                                Filtrar
-                            </button>
-                        ) : (
-                            <button type="button" aria-label="Agregar filtro" title="Agregar filtro" className={cn(CHIP, 'w-9 justify-center px-0')}>
-                                <Plus />
-                            </button>
-                        )}
-                    </Popover.Trigger>
+                    {filters.length === 0 ? (
+                        <Popover.Trigger className={CHIP}>
+                            <SlidersHorizontal />
+                            Filtrar
+                        </Popover.Trigger>
+                    ) : (
+                        <Popover.Trigger aria-label="Agregar filtro" title="Agregar filtro" className={cn(CHIP, 'w-9 justify-center px-0')}>
+                            <Plus />
+                        </Popover.Trigger>
+                    )}
                     <Popover.Portal>
-                        <Popover.Content
-                            align="start"
-                            sideOffset={4}
+                        <Popover.Positioner align="start" sideOffset={4} className="z-50">
+                        <Popover.Popup
                             className={POPOVER}
                             // Al elegir un campo se abre el popover del chip nuevo; devolverle el foco a este
                             // botón lo cerraría por foco afuera.
-                            onCloseAutoFocus={(e) => e.preventDefault()}
+                            finalFocus={false}
                         >
                             <FieldPicker available={available} onPick={add} />
-                        </Popover.Content>
+                        </Popover.Popup>
+                        </Popover.Positioner>
                     </Popover.Portal>
                 </Popover.Root>
             )}
