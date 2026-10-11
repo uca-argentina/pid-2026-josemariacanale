@@ -4,7 +4,7 @@ import { InvalidSlugError, SlugTakenError } from '@/src/entities/errors/business
 import { AuthProviderDeletionError } from '@/src/entities/errors/user';
 import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
 import { personalServiceSchema, type PersonalService } from '@/src/entities/models/service';
-import { meSchema, userPageSchema, type Me, type UserPage } from '@/src/entities/models/user';
+import { meSchema, userPageSchema, type Me, type Preferences, type UserPage } from '@/src/entities/models/user';
 
 /** Same as in BusinessesRepository: the boundaries lint keeps adapters from importing each other. */
 function parseOrFail<T>(parse: () => T, what: string): T {
@@ -46,6 +46,18 @@ export class UsersRepository implements IUsersRepository {
         const { status, json } = await this.request(what, '/users/me', { method: 'PATCH', auth: true, body: { slug } });
         if (status === 409) throw new SlugTakenError(messageOf(json, what, status));
         if (status === 400) throw new InvalidSlugError(messageOf(json, what, status));
+        if (status >= 400) throw apiError(what, status, json);
+        return parseOrFail(() => meSchema.parse(json), what);
+    }
+
+    /**
+     * `PATCH /users/me` with only the given preferences.
+     *
+     * @throws {ApiRequestError} any failure, or a body that is not a Usuario
+     */
+    async updateMyPreferences(preferences: Partial<Preferences>): Promise<Me> {
+        const what = 'PATCH /users/me';
+        const { status, json } = await this.request(what, '/users/me', { method: 'PATCH', auth: true, body: preferences });
         if (status >= 400) throw apiError(what, status, json);
         return parseOrFail(() => meSchema.parse(json), what);
     }

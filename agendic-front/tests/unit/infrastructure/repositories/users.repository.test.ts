@@ -24,6 +24,7 @@ const personal = {
 /** The back sends the fields of any Servicio: the personal one drops the ones it does not have. */
 const sent = { ...personal, branchId: null, userId: 3, employees: [] };
 
+const prefs = { timeFormat: 24, weekStart: 1 };
 const repo = (getAccessToken = jest.fn().mockResolvedValue('tok')) =>
     new UsersRepository(authWith({ getAccessToken }), 'http://api');
 const respond = (status: number, body: unknown) =>
@@ -33,9 +34,9 @@ afterEach(() => jest.restoreAllMocks());
 
 describe('UsersRepository.getMe', () => {
     it('GETs /users/me with the bearer token and keeps the name and the Enlace de reserva', async () => {
-        const fetchSpy = respond(200, { id: 3, name: 'Ana', email: 'ana@x.com', slug: null, imageUrl: null });
+        const fetchSpy = respond(200, { id: 3, name: 'Ana', email: 'ana@x.com', slug: null, imageUrl: null, ...prefs });
 
-        await expect(repo().getMe()).resolves.toEqual({ name: 'Ana', slug: null, imageUrl: null });
+        await expect(repo().getMe()).resolves.toEqual({ name: 'Ana', slug: null, imageUrl: null, ...prefs });
         expect(fetchSpy).toHaveBeenCalledWith('http://api/users/me', expect.objectContaining({
             method: 'GET',
             headers: expect.objectContaining({ Authorization: 'Bearer tok' }),
@@ -45,9 +46,9 @@ describe('UsersRepository.getMe', () => {
 
 describe('UsersRepository.updateMySlug', () => {
     it('PATCHes only the slug', async () => {
-        const fetchSpy = respond(200, { id: 3, name: 'Ana', email: 'ana@x.com', slug: 'ana', imageUrl: 'https://img.example/ana.png' });
+        const fetchSpy = respond(200, { id: 3, name: 'Ana', email: 'ana@x.com', slug: 'ana', imageUrl: 'https://img.example/ana.png', ...prefs });
 
-        await expect(repo().updateMySlug('ana')).resolves.toEqual({ name: 'Ana', slug: 'ana', imageUrl: 'https://img.example/ana.png' });
+        await expect(repo().updateMySlug('ana')).resolves.toEqual({ name: 'Ana', slug: 'ana', imageUrl: 'https://img.example/ana.png', ...prefs });
         expect(fetchSpy).toHaveBeenCalledWith('http://api/users/me', expect.objectContaining({
             method: 'PATCH',
             body: JSON.stringify({ slug: 'ana' }),
@@ -62,6 +63,24 @@ describe('UsersRepository.updateMySlug', () => {
         respond(status, { message: 'Booking link already in use' });
 
         await expect(repo().updateMySlug('ana')).rejects.toBeInstanceOf(error);
+    });
+});
+
+describe('UsersRepository.updateMyPreferences', () => {
+    it('PATCHes only the given preferences', async () => {
+        const fetchSpy = respond(200, { id: 3, name: 'Ana', email: 'ana@x.com', slug: null, imageUrl: null, timeFormat: 12, weekStart: 1 });
+
+        await expect(repo().updateMyPreferences({ timeFormat: 12 })).resolves.toMatchObject({ timeFormat: 12, weekStart: 1 });
+        expect(fetchSpy).toHaveBeenCalledWith('http://api/users/me', expect.objectContaining({
+            method: 'PATCH',
+            body: JSON.stringify({ timeFormat: 12 }),
+        }));
+    });
+
+    it.each([400, 403, 500])('turns a %i into ApiRequestError with its status', async (status) => {
+        respond(status, { message: 'nope' });
+
+        await expect(repo().updateMyPreferences({ weekStart: 9 as never })).rejects.toMatchObject({ status });
     });
 });
 

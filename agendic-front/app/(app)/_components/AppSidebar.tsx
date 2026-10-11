@@ -14,6 +14,7 @@ import {
     Link as LinkIcon,
     LogOut,
     Settings,
+    SlidersHorizontal,
     Store,
     User,
     UserX,
@@ -43,6 +44,8 @@ import {
 import { Logo } from '@/app/_components/Logo';
 import { cn } from '@/app/_components/utils';
 import { SIGNED_IN_HOME_PATH, sectionOf } from '@/app/routes';
+import type { Preferences } from '@/src/entities/models/user';
+import { PreferencesDialog } from './PreferencesDialog';
 import { RetireAccountDialog } from './RetireAccountDialog';
 import type { CurrentBusinessUser, NavItem, SectionId } from './types';
 
@@ -61,16 +64,18 @@ const HOVER = 'hover:bg-[#f2f7ff] hover:text-sidebar-foreground';
 /**
  * El sidebar del panel: las secciones, con el contador de Turnos pendientes en Turnos, y el Usuario al pie. En el
  * celular es una hoja lateral que se cierra al elegir una sección. `businessName` es el Negocio del Dueño, que el
- * diálogo de darse de baja nombra; null si no es Dueño.
+ * diálogo de darse de baja nombra; null si no es Dueño. `preferences` son las del Usuario, que el diálogo de Preferencias edita.
  */
 export function AppSidebar({
     user,
     navItems,
     businessName,
+    preferences,
 }: {
     user: CurrentBusinessUser;
     navItems: NavItem[];
     businessName: string | null;
+    preferences: Preferences;
 }) {
     const { setOpenMobile } = useSidebar();
 
@@ -90,7 +95,7 @@ export function AppSidebar({
                 <NavSecondary />
             </SidebarContent>
             <SidebarFooter>
-                <NavUser user={user} businessName={businessName} />
+                <NavUser user={user} businessName={businessName} preferences={preferences} />
             </SidebarFooter>
         </Sidebar>
     );
@@ -161,8 +166,18 @@ function NavSecondary() {
     );
 }
 
-function NavUser({ user, businessName }: { user: CurrentBusinessUser; businessName: string | null }) {
+function NavUser({
+    user,
+    businessName,
+    preferences: initialPreferences,
+}: {
+    user: CurrentBusinessUser;
+    businessName: string | null;
+    preferences: Preferences;
+}) {
     const [retiring, setRetiring] = useState(false);
+    const [editingPreferences, setEditingPreferences] = useState(false);
+    const [preferences, setPreferences] = useState(initialPreferences);
     const { isMobile, setOpenMobile } = useSidebar();
     const { openUserProfile, signOut } = useClerk();
 
@@ -195,7 +210,7 @@ function NavUser({ user, businessName }: { user: CurrentBusinessUser; businessNa
                         align="end"
                         className="w-(--anchor-width) min-w-[200px]"
                         // Al cerrarse, el menú devuelve el foco al botón y el diálogo recién abierto lo toma por un clic afuera y se cierra.
-                        finalFocus={() => !retiring}
+                        finalFocus={() => !retiring && !editingPreferences}
                     >
                         <DropdownMenuLabel>{user.name}</DropdownMenuLabel>
                         <DropdownMenuItem
@@ -211,6 +226,10 @@ function NavUser({ user, businessName }: { user: CurrentBusinessUser; businessNa
                         <DropdownMenuItem disabled className="opacity-50">
                             <Settings className="size-[15px]" />
                             Mi configuración
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setEditingPreferences(true)}>
+                            <SlidersHorizontal className="size-[15px]" />
+                            Preferencias
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
@@ -230,6 +249,13 @@ function NavUser({ user, businessName }: { user: CurrentBusinessUser; businessNa
                     </DropdownMenuContent>
                 </DropdownMenu>
             </SidebarMenuItem>
+            {editingPreferences && (
+                <PreferencesDialog
+                    preferences={preferences}
+                    onSaved={setPreferences}
+                    onClose={() => setEditingPreferences(false)}
+                />
+            )}
             {retiring && <RetireAccountDialog businessName={businessName} onClose={() => setRetiring(false)} />}
         </SidebarMenu>
     );
