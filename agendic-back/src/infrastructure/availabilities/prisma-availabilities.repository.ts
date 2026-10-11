@@ -47,9 +47,16 @@ export class PrismaAvailabilitiesRepository implements AvailabilitiesRepository 
           name: true,
           timeZone: true,
           isDefault: true,
+          intervals: WITH_SCHEDULE.intervals,
         },
         orderBy: { id: 'asc' },
       })
+      .then((rows) =>
+        rows.map(({ intervals, ...row }) => ({
+          ...row,
+          schedule: toSchedule(intervals),
+        })),
+      )
       .catch(translateError);
   }
 
@@ -180,6 +187,15 @@ const groupOverrides = (rows: AvailabilityOverrideRow[]) => {
   return [...byDate.values()];
 };
 
+const toSchedule = (intervals: AvailabilityIntervalRow[]) =>
+  intervalsToSchedule(
+    intervals.map(({ days, startTime, endTime }) => ({
+      days,
+      start: fromTime(startTime),
+      end: fromTime(endTime),
+    })),
+  );
+
 export const toAvailability = (
   row: AvailabilityRow & {
     intervals: AvailabilityIntervalRow[];
@@ -191,13 +207,7 @@ export const toAvailability = (
   name: row.name,
   timeZone: row.timeZone,
   isDefault: row.isDefault,
-  schedule: intervalsToSchedule(
-    row.intervals.map(({ days, startTime, endTime }) => ({
-      days,
-      start: fromTime(startTime),
-      end: fromTime(endTime),
-    })),
-  ),
+  schedule: toSchedule(row.intervals),
   overrides: groupOverrides(row.overrides),
 });
 

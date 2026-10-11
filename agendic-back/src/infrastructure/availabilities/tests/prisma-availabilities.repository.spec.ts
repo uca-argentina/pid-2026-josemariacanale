@@ -52,8 +52,16 @@ const INTERVAL_ROWS = [
 
 const OVERRIDE_ROWS = [
   { date: date('2026-01-05'), startTime: null, endTime: null },
-  { date: date('2026-01-06'), startTime: time('09:00'), endTime: time('12:00') },
-  { date: date('2026-01-06'), startTime: time('14:00'), endTime: time('16:00') },
+  {
+    date: date('2026-01-06'),
+    startTime: time('09:00'),
+    endTime: time('12:00'),
+  },
+  {
+    date: date('2026-01-06'),
+    startTime: time('14:00'),
+    endTime: time('16:00'),
+  },
 ];
 
 const AVAILABILITY_ROW = {
@@ -126,15 +134,29 @@ describe('PrismaAvailabilitiesRepository', () => {
     await expect(repository.findById(999)).resolves.toBeNull();
   });
 
-  it("lists a Usuario's Availabilities without their Franjas", async () => {
-    const summary = {
-      id: 1,
-      userId: 7,
-      name: AVAILABILITY.name,
-      timeZone: AVAILABILITY.timeZone,
-      isDefault: true,
-    };
-    prisma.availability.findMany.mockResolvedValue([summary]);
+  it("lists a Usuario's Availabilities with their Franjas, without Anulaciones", async () => {
+    const { overrides: _, ...summary } = AVAILABILITY;
+    prisma.availability.findMany.mockResolvedValue([
+      {
+        id: 1,
+        userId: 7,
+        name: AVAILABILITY.name,
+        timeZone: AVAILABILITY.timeZone,
+        isDefault: true,
+        intervals: [
+          {
+            days: [1, 2, 4, 5],
+            startTime: new Date('1970-01-01T09:00:00Z'),
+            endTime: new Date('1970-01-01T17:00:00Z'),
+          },
+          {
+            days: [3],
+            startTime: new Date('1970-01-01T10:00:00Z'),
+            endTime: new Date('1970-01-01T14:00:00Z'),
+          },
+        ],
+      },
+    ]);
 
     await expect(repository.listByUser(7)).resolves.toEqual([summary]);
     expect(prisma.availability.findMany).toHaveBeenCalledWith(
