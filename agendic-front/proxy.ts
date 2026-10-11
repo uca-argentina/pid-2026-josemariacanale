@@ -19,7 +19,7 @@ export default clerkMiddleware(async (auth, request) => {
     const { pathname } = request.nextUrl;
     const { userId } = await auth();
 
-    if (!userId && protectedRoutes.some((route) => pathname.startsWith(route))) {
+    if (!userId && protectedRoutes.some((route) => pathname === route || pathname.startsWith(`${route}/`))) {
         return NextResponse.redirect(new URL(SIGN_IN_PATH, request.url));
     }
 

@@ -386,7 +386,7 @@ function UserLinkDialog({ slug, onClose }: { slug: string | null; onClose: () =>
                 >
                     <PanelInput
                         id="user-link-slug"
-                        prefix="/u/"
+                        prefix="agendic.app/"
                         placeholder="tu-nombre"
                         value={value}
                         aria-describedby={error ? 'user-link-slug-error' : undefined}

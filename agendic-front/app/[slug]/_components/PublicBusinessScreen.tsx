@@ -10,8 +10,6 @@ import { bookingLinkPath } from '@/app/routes';
 import { getInjection } from '@/di/container';
 import { InputParseError, NotFoundError } from '@/src/entities/errors/common';
 
-type Params = { negocioSlug: string };
-
 // La metadata y la página piden lo mismo: una sola llamada al back por request.
 const getPublicBusiness = cache((businessSlug: string) =>
     getInjection('IGetPublicBusinessController')({ businessSlug }),
@@ -20,24 +18,24 @@ const getPublicBusiness = cache((businessSlug: string) =>
 // Un tramo mal formado no puede ser de ningún Negocio: es el mismo 404 que uno que no existe.
 const isNotFound = (error: unknown) => error instanceof NotFoundError || error instanceof InputParseError;
 
-export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
-    const { negocioSlug } = await params;
+/** La metadata de la página del Negocio; vacía si falla, porque la página decide entre 404 y el aviso de error. */
+export async function publicBusinessMetadata(businessSlug: string): Promise<Metadata> {
     try {
-        const { business } = await getPublicBusiness(negocioSlug);
+        const { business } = await getPublicBusiness(businessSlug);
         return { title: `${business.name} · Reservá tu turno`, description: business.description };
     } catch {
-        return {}; // la página decide entre 404 y el aviso de error
+        return {};
     }
 }
 
-// El Enlace de reserva sin tramo de Sucursal (ADR 0014): con una sola Sucursal lleva directo a
-// ella, así el enlace que el Dueño ya compartió no se rompe; con varias, el Cliente elige.
-export default async function PublicBusinessPage({ params }: { params: Promise<Params> }) {
-    const { negocioSlug } = await params;
-
+/**
+ * El Enlace de reserva de un Negocio sin tramo de Sucursal (ADR 0014): con una sola Sucursal lleva directo a ella, así
+ * el enlace que el Dueño ya compartió no se rompe; con varias, el Cliente elige.
+ */
+export async function PublicBusinessScreen({ businessSlug }: { businessSlug: string }) {
     let page;
     try {
-        page = await getPublicBusiness(negocioSlug);
+        page = await getPublicBusiness(businessSlug);
     } catch (error) {
         if (isNotFound(error)) notFound();
         getInjection('ICrashReporterService').report(error);
