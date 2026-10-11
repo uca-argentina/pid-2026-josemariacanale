@@ -228,12 +228,20 @@ export class ServicesController {
     );
   }
 
+  /**
+   * Horarios reservables del Servicio; con `employeeId` (Empleado elegido), solo los de ese Empleado.
+   *
+   * @throws {NotFoundError} el Servicio está dado de baja, o `employeeId` no lo Ofrece
+   * @throws {BadRequestError} `employeeId` en un Servicio personal
+   */
   @Get('services/:id/slots')
   async slots(
     @Param('id', ParseIntPipe) serviceId: number,
     @Query('from', ParseDatePipe) from: string,
     @Query('to', ParseDatePipe) to: string,
+    @Query('employeeId', new ParseIntPipe({ optional: true }))
+    employeeId?: number,
   ) {
-    return this.listSlotsUseCase.execute(serviceId, from, to);
+    return this.listSlotsUseCase.execute(serviceId, from, to, undefined, employeeId);
   }
 }

@@ -45,6 +45,7 @@ const BOOKING_SELECT = {
   notes: true,
   noShowAt: true,
   link: true,
+  employeeChosen: true,
   client: { select: { name: true, email: true } },
 } satisfies Prisma.BookingSelect;
 
@@ -434,6 +435,7 @@ const toBooking = (row: BookingRow): Booking => ({
   notes: row.notes,
   noShowAt: row.noShowAt,
   link: row.link,
+  employeeChosen: row.employeeChosen,
 });
 
 /** 256 bits, URL-safe (ADR 0022 pide al menos 128). */

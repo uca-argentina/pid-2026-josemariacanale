@@ -60,7 +60,9 @@ export class BookingsController {
    * Reserva un Turno con un Código de verificación ya vigente (ADR 0022).
    *
    * @throws {InvalidCodeError} el código no es válido para clientEmail
-   * @throws {BusinessRuleError} el Servicio no existe o está dado de baja, el horario ya pasó o no es un Horario reservable
+   * @throws {BusinessRuleError} el Servicio no existe o está dado de baja, el horario ya pasó o no es un Horario reservable (del Empleado elegido, si hay)
+   * @throws {NotFoundError} el Empleado elegido no Ofrece el Servicio
+   * @throws {BadRequestError} se eligió un Empleado en un Servicio personal
    * @throws {ConflictError} el horario ya lo ocupa otro Turno, o el Servicio alcanzó su Límite diario ese día
    */
   @Post('bookings')
@@ -68,6 +70,7 @@ export class BookingsController {
     const booking = await this.createBookingUseCase.execute({
       serviceId: dto.serviceId,
       startsAt: new Date(dto.startsAt),
+      employeeId: dto.employeeId,
       clientName: dto.clientName,
       clientEmail: dto.clientEmail,
       notes: dto.notes,

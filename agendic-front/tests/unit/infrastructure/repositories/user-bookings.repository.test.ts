@@ -15,6 +15,7 @@ const booking = {
     serviceId: 2,
     serviceName: 'Masaje',
     employeeId: 5,
+    employeeChosen: false,
     business: { id: 3, name: 'Spa' },
     branch: { id: 4, name: 'Centro' },
 };

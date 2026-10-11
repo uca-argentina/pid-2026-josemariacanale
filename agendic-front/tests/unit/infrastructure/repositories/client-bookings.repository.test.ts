@@ -19,6 +19,7 @@ const booking = {
     clientName: 'Juana Pérez',
     serviceId: 100,
     employeeId: 1,
+    employeeChosen: false,
     service: { name: 'Corte', durationMinutes: 60, price: 5000, depositPercent: null },
     employeeName: 'Ana',
     business: { name: 'Peluquería Luna', slug: 'peluqueria-luna' },

@@ -194,7 +194,7 @@ function CopyButton({ from, weekStart, disabled }: { from: number; weekStart: nu
  * Las Franjas de un día, cada una con sus desplegables de inicio y fin y su X. Quitar la última deja el día sin
  * Franjas. Las que terminan antes de empezar o se solapan quedan marcadas.
  */
-function DayRanges({
+export function DayRanges({
     name,
     fields,
     remove,

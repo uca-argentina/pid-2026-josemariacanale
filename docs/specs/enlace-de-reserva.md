@@ -1,5 +1,7 @@
 # Enlace de reserva: el Negocio se comparte por URL y el listado deja de ser público
 
+_Ampliada por la ADR 0026: el Enlace de reserva ya no lleva el prefijo `/business/`; abajo se corrigieron las menciones de la URL del front._
+
 Labels: `ready-for-agent`, `back`, `front`
 
 ## Problem Statement
@@ -15,7 +17,7 @@ Del otro lado, un Negocio no tiene nada que compartir. No existe una dirección 
 
 `GET /businesses` pasa a requerir Sesión y devuelve únicamente los Negocios de los que el Usuario del token es Dueño. Deja de existir el catálogo público (ADR 0010).
 
-En su lugar, cada Negocio tiene un **Enlace de reserva**: una dirección propia y única, del estilo `agendic.com/business/barberia-roma`. El Dueño elige esa parte final al Crear Negocio y puede cambiarla después. Quien abra el enlace —con Sesión o sin ella— ve el Negocio con sus Sucursales y sus Servicios activos, y desde ahí arranca a Reservar.
+En su lugar, cada Negocio tiene un **Enlace de reserva**: una dirección propia y única, del estilo `agendic.com/barberia-roma`. El Dueño elige esa parte final al Crear Negocio y puede cambiarla después. Quien abra el enlace —con Sesión o sin ella— ve el Negocio con sus Sucursales y sus Servicios activos, y desde ahí arranca a Reservar.
 
 ## User Stories
 
@@ -87,14 +89,14 @@ En su lugar, cada Negocio tiene un **Enlace de reserva**: una dirección propia 
 
 ### Front: página pública del Negocio
 
-- Ruta dinámica `app/business/[slug]/`, fuera del grupo del panel y fuera del que exige Sesión. El prefijo `business` evita que la ruta dinámica compita con los segmentos del panel (`bookings`, `services`, `branches`, …).
+- Ruta dinámica `app/[slug]/`, fuera del grupo del panel y fuera del que exige Sesión. Las rutas estáticas del panel le ganan, y las palabras del panel no valen como slug (ADR 0026).
 - Es un server component: obtiene el controlador por inyección, le pasa el slug crudo y pinta el Negocio con sus Sucursales y sus Servicios. No llama al back por su cuenta.
 - La pieza de core es un repositorio nuevo con dos operaciones —buscar Negocio por Enlace de reserva y traer sus Sucursales con sus Servicios—, su caso de uso y su controlador con presenter, registrados en el contenedor. Sin Sesión de por medio: el controlador no autentica, porque el endpoint es público.
 - Negocio inexistente: la página responde 404 con el mecanismo del framework. Cualquier otro fallo se reporta por el crash reporter y muestra un mensaje genérico.
 
 ### Front: formulario y panel
 
-- El formulario de Crear Negocio suma el campo del Enlace de reserva, mostrado como `agendic.com/business/` + lo que se escribe. El input normaliza mientras se tipea: a minúsculas y espacios a guiones.
+- El formulario de Crear Negocio suma el campo del Enlace de reserva, mostrado como `agendic.com/` + lo que se escribe. El input normaliza mientras se tipea: a minúsculas y espacios a guiones.
 - El 409 del back se muestra como error bajo ese campo, con el texto de dirección ya tomada; no se reporta al crash reporter, porque es un error esperable del Usuario.
 - Donde se pueda editar el Enlace de reserva, el formulario advierte que los enlaces ya compartidos dejan de funcionar.
 - El contrato del banner de Negocios (`agendic-front/docs/specs/negocios-banner.md`) ya quedó actualizado a `GET /businesses`: misma respuesta, sin rama de 404.
@@ -139,7 +141,7 @@ Tests unitarios por capa, con los puertos stubeados por caso y sin red ni base, 
 
 - Historial de slugs y redirect del Enlace de reserva anterior. Al cambiarlo, el viejo muere.
 - Chequeo de disponibilidad en vivo mientras se escribe el slug, con tilde verde. El 409 al enviar alcanza.
-- Slug propio de Sucursal o de Servicio (`/business/barberia-roma/corte`). Por ahora el Enlace de reserva llega al Negocio.
+- Slug propio de Sucursal o de Servicio (`/barberia-roma/corte`). Por ahora el Enlace de reserva llega al Negocio.
 - Visibilidad de un Servicio más allá de estar dado de baja. "Público" se entiende como "activo"; no hay flag de ocultar.
 - Elegir horario y completar la reserva desde la página del Enlace de reserva: esta spec llega hasta mostrar Sucursales y Servicios. La reserva sigue siendo el endpoint de Turnos, que ya existe.
 - Cualquier listado de todos los Negocios para el Administrador: si hace falta, es su propio endpoint.

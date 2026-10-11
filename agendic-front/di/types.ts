@@ -10,6 +10,8 @@ import type { IPublicBusinessesRepository } from '@/src/application/repositories
 import type { IGetPublicBusinessUseCase } from '@/src/application/use-cases/businesses/get-public-business.use-case';
 import type { IGetPublicBranchUseCase } from '@/src/application/use-cases/businesses/get-public-branch.use-case';
 import type { IGetPublicBusinessController } from '@/src/interface-adapters/controllers/businesses/get-public-business.controller';
+import type { IResolveBookingLinkUseCase } from '@/src/application/use-cases/businesses/resolve-booking-link.use-case';
+import type { IResolveBookingLinkController } from '@/src/interface-adapters/controllers/businesses/resolve-booking-link.controller';
 import type { IGetPublicBranchController } from '@/src/interface-adapters/controllers/businesses/get-public-branch.controller';
 import type { IAuthenticationService } from '@/src/application/services/authentication.service.interface';
 import type { ICrashReporterService } from '@/src/application/services/crash-reporter.service.interface';
@@ -149,6 +151,7 @@ export const DI_SYMBOLS = {
     IReorderBranchImagesUseCase: Symbol.for('IReorderBranchImagesUseCase'),
     IGetPublicBusinessUseCase: Symbol.for('IGetPublicBusinessUseCase'),
     IGetPublicBranchUseCase: Symbol.for('IGetPublicBranchUseCase'),
+    IResolveBookingLinkUseCase: Symbol.for('IResolveBookingLinkUseCase'),
     IListEmployeesUseCase: Symbol.for('IListEmployeesUseCase'),
     IAddEmployeeUseCase: Symbol.for('IAddEmployeeUseCase'),
     IListInvitationsUseCase: Symbol.for('IListInvitationsUseCase'),
@@ -199,6 +202,7 @@ export const DI_SYMBOLS = {
     IReorderBranchImagesController: Symbol.for('IReorderBranchImagesController'),
     IGetPublicBusinessController: Symbol.for('IGetPublicBusinessController'),
     IGetPublicBranchController: Symbol.for('IGetPublicBranchController'),
+    IResolveBookingLinkController: Symbol.for('IResolveBookingLinkController'),
     IListMyEmployeesController: Symbol.for('IListMyEmployeesController'),
     IAddEmployeeController: Symbol.for('IAddEmployeeController'),
     IRetireEmployeeController: Symbol.for('IRetireEmployeeController'),
@@ -277,6 +281,7 @@ export interface DI_RETURN_TYPES {
     IReorderBranchImagesUseCase: IReorderBranchImagesUseCase;
     IGetPublicBusinessUseCase: IGetPublicBusinessUseCase;
     IGetPublicBranchUseCase: IGetPublicBranchUseCase;
+    IResolveBookingLinkUseCase: IResolveBookingLinkUseCase;
     IListEmployeesUseCase: IListEmployeesUseCase;
     IAddEmployeeUseCase: IAddEmployeeUseCase;
     IListInvitationsUseCase: IListInvitationsUseCase;
@@ -327,6 +332,7 @@ export interface DI_RETURN_TYPES {
     IReorderBranchImagesController: IReorderBranchImagesController;
     IGetPublicBusinessController: IGetPublicBusinessController;
     IGetPublicBranchController: IGetPublicBranchController;
+    IResolveBookingLinkController: IResolveBookingLinkController;
     IListMyEmployeesController: IListMyEmployeesController;
     IAddEmployeeController: IAddEmployeeController;
     IRetireEmployeeController: IRetireEmployeeController;

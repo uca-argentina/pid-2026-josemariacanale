@@ -3,7 +3,9 @@ import type { IInstrumentationService } from '@/src/application/services/instrum
 import type { IGetPublicBranchUseCase, PublicBranch } from '@/src/application/use-cases/businesses/get-public-branch.use-case';
 import { InputParseError } from '@/src/entities/errors/common';
 import { slugSchema } from '@/src/entities/models/business';
-import type { Service } from '@/src/entities/models/service';
+import type { Service, ServiceEmployee } from '@/src/entities/models/service';
+
+const presentEmployee = (e: ServiceEmployee) => ({ id: e.id, name: e.name, imageUrl: e.imageUrl, slug: e.slug });
 
 const presentService = (s: Service) => ({
     id: s.id,
@@ -13,11 +15,11 @@ const presentService = (s: Service) => ({
     durationMinutes: s.durationMinutes,
     price: s.price,
     depositPercent: s.depositPercent,
-    employees: s.employees.map((e) => ({ id: e.id, name: e.name, imageUrl: e.imageUrl })),
+    employees: s.employees.map(presentEmployee),
 });
 
 function presenter(
-    { business, branch, branches, services, employees, images, selectedService }: PublicBranch,
+    { business, branch, branches, services, employees, images, selectedService, selectedEmployee }: PublicBranch,
     instrumentationService: IInstrumentationService,
 ) {
     return instrumentationService.startSpan({ name: 'getPublicBranch Presenter', op: 'serialize' }, () => ({
@@ -34,14 +36,20 @@ function presenter(
             .filter((b) => b.id !== branch.id)
             .map((b) => ({ id: b.id, name: b.name, address: b.address, slug: b.slug })),
         services: services.map(presentService),
-        employees: employees.map((e) => ({ id: e.id, name: e.name, imageUrl: e.imageUrl })),
+        employees: employees.map(presentEmployee),
         images: images.map((i) => ({ id: i.id, url: i.url })),
         selectedService: selectedService ? presentService(selectedService) : null,
+        selectedEmployee: selectedEmployee ? presentEmployee(selectedEmployee) : null,
     }));
 }
 
-/** The Servicio tramo is optional: without it, the page of the Sucursal with no Servicio chosen yet. */
-const inputSchema = z.object({ businessSlug: slugSchema, branchSlug: slugSchema, serviceSlug: slugSchema.optional() });
+/**
+ * The Servicio tramo is optional: without it, the page of the Sucursal with no Servicio chosen yet. The Empleado tramo
+ * (ADR 0026) is optional too, and only makes sense after a Servicio one.
+ */
+const inputSchema = z
+    .object({ businessSlug: slugSchema, branchSlug: slugSchema, serviceSlug: slugSchema.optional(), employeeSlug: slugSchema.optional() })
+    .refine((input) => !input.employeeSlug || input.serviceSlug, 'An Empleado tramo needs a Servicio tramo');
 
 export type IGetPublicBranchController = ReturnType<typeof getPublicBranchController>;
 /**

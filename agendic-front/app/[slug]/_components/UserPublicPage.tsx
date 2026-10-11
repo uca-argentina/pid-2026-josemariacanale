@@ -74,6 +74,7 @@ export function UserPublicPage({
                     categories={categories}
                     coverUrl={undefined}
                     initialService={initialService}
+                    employee={null}
                     onClose={() => setFlowOpen(false)}
                 />
             )}

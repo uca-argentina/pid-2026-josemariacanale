@@ -12,6 +12,8 @@ export const clientBookingSchema = z.object({
     clientName: z.string(),
     serviceId: z.number(),
     employeeId: z.number().nullable(),
+    // Empleado elegido (ADR 0026): Reagendar solo ofrece horarios de `employeeId`.
+    employeeChosen: z.boolean(),
     service: z.object({
         name: z.string(),
         durationMinutes: z.number(),
@@ -25,6 +27,6 @@ export const clientBookingSchema = z.object({
         .object({ name: z.string(), slug: z.string(), address: z.string(), coverUrl: z.string().nullable() })
         .nullable(),
     // Al revés que `business` y `branch`: solo viene en un Servicio personal, con el Enlace de reserva del Usuario.
-    user: z.object({ slug: z.string() }).nullable(),
+    user: z.object({ slug: z.string().nullable() }).nullable(),
 });
 export type ClientBooking = z.infer<typeof clientBookingSchema>;

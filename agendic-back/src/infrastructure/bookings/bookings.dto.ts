@@ -13,6 +13,11 @@ export class CreateBookingDto {
   @IsDateString()
   startsAt!: string;
 
+  /** Empleado elegido: the Empleado of the Enlace de reserva the Cliente came in by. */
+  @IfPresent()
+  @IsInt()
+  employeeId?: number;
+
   @IsName()
   clientName!: string;
 

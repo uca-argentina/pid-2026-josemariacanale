@@ -1,8 +1,10 @@
 # El Enlace de reserva gana un tercer tramo por Servicio
 
+_Ampliada por la ADR 0026: el Enlace de reserva ya no lleva el prefijo `/business/` en las URLs del front; abajo se corrigieron las menciones._
+
 Extiende la ADR 0014. El Dueño quiere compartir una dirección que lleve directo a un Servicio, así
 que el Servicio gana su propio tramo, `Service.slug`:
-`/business/<negocio-slug>/<sucursal-slug>/<servicio-slug>` abre la página de la Sucursal con ese
+`/<negocio-slug>/<sucursal-slug>/<servicio-slug>` abre la página de la Sucursal con ese
 Servicio ya elegido. No es una página aparte: es la misma página de reserva con un paso resuelto.
 
 El tramo es único dentro de su Sucursal entre los Servicios no dados de baja (índice parcial, ADR

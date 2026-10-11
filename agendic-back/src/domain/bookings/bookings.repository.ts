@@ -12,6 +12,7 @@ export interface CreateBookingData {
   startsAt: Date;
   endsAt: Date;
   notes: string | null;
+  employeeChosen: boolean;
   /** BOOKED, o PENDING si el Servicio tiene Aprobación manual. */
   status: BookingStatus.PENDING | BookingStatus.BOOKED;
 }

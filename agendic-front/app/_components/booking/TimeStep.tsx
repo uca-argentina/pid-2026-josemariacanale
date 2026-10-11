@@ -13,13 +13,15 @@ const pillButton = 'h-auto rounded-full px-4 py-2.5 text-[13.5px] font-bold';
 /**
  * El paso Horario. Muestra los días de a una semana, con flechas para pasar de una a otra, y pide los Horarios
  * reservables al montarse, así que BookingFlow lo monta con `key` por Servicio: cambiarlo, o volver a este paso, los pide
- * de nuevo. El Cliente no elige Empleado: el back asigna uno al Reservar.
+ * de nuevo. Con `employeeId` (Empleado elegido, ADR 0026) solo trae los horarios de ese Empleado; sin él, el Cliente
+ * no elige Empleado y el back asigna uno al Reservar.
  */
 export function TimeStep({
     service,
     date,
     slot,
     notice,
+    employeeId,
     onSelect,
 }: {
     service: Service;
@@ -27,9 +29,10 @@ export function TimeStep({
     slot: Slot | null;
     /** Un aviso que el paso muestra arriba, por ejemplo que el horario elegido se ocupó. */
     notice: string | null;
+    employeeId?: number;
     onSelect: (date: string, slot: Slot | null) => void;
 }) {
-    const { status, message, week, days, label, canGoBack, goToWeek, retry } = useSlotWeek(service.id, date);
+    const { status, message, week, days, label, canGoBack, goToWeek, retry } = useSlotWeek(service.id, date, employeeId);
 
     useEffect(() => {
         if (status !== 'ready' || days.length === 0) return;

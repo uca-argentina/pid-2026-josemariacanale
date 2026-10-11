@@ -3,7 +3,7 @@ import { PublicBusinessesRepository } from '@/src/infrastructure/repositories/pu
 
 const business = { id: 1, name: 'Vitalia', description: 'Desc', slug: 'vitalia', logoUrl: null, ownerId: 7 };
 const branch = { id: 10, businessId: 1, name: 'Centro', address: 'Av. 1', timeZone: 'America/Argentina/Buenos_Aires', slug: 'centro', description: null };
-const service = { id: 100, branchId: 10, name: 'Masaje', description: null, category: 'SPA', durationMinutes: 60, price: 20000, depositPercent: null, employees: [{ id: 1, name: 'Ana', imageUrl: null }] };
+const service = { id: 100, branchId: 10, name: 'Masaje', description: null, category: 'SPA', durationMinutes: 60, price: 20000, depositPercent: null, employees: [{ id: 1, name: 'Ana', imageUrl: null, slug: 'ana' }] };
 
 const repo = (apiUrl: string | undefined = 'http://api') => new PublicBusinessesRepository(apiUrl);
 const respond = (status: number, body: unknown) =>
@@ -142,5 +142,33 @@ describe('PublicBusinessesRepository.listBranchImages', () => {
     it('translates a 500 to ApiRequestError carrying the status', async () => {
         respond(500, { statusCode: 500, message: 'boom' });
         await expect(repo().listBranchImages(10)).rejects.toMatchObject({ status: 500 });
+    });
+});
+
+describe('PublicBusinessesRepository.resolveSlug', () => {
+    it('GETs /slugs/:slug without a Sesión and parses a Negocio', async () => {
+        const fetchSpy = respond(200, { kind: 'business', business });
+
+        await expect(repo().resolveSlug('vitalia')).resolves.toEqual({ kind: 'business', business });
+        expect(fetchSpy).toHaveBeenCalledWith('http://api/slugs/vitalia');
+    });
+
+    it('parses a Usuario', async () => {
+        const user = { name: 'Ana', slug: 'ana', imageUrl: null, services: [] };
+        respond(200, { kind: 'user', user });
+
+        await expect(repo().resolveSlug('ana')).resolves.toEqual({ kind: 'user', user });
+    });
+
+    it('translates a 404 to NotFoundError', async () => {
+        respond(404, { statusCode: 404, message: 'Booking link nadie not found' });
+        await expect(repo().resolveSlug('nadie')).rejects.toBeInstanceOf(NotFoundError);
+    });
+
+    it('translates an unknown kind to ApiRequestError with the cause', async () => {
+        respond(200, { kind: 'otro' });
+        const error = await repo().resolveSlug('x').catch((e) => e);
+        expect(error).toBeInstanceOf(ApiRequestError);
+        expect(error.cause).toBeDefined();
     });
 });

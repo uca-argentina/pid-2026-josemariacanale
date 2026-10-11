@@ -104,7 +104,8 @@ const CREATE_DATA = {
 
 describe('PrismaBusinessesRepository', () => {
   const tx = {
-    business: { create: jest.fn() },
+    business: { create: jest.fn(), update: jest.fn() },
+    bookingSlug: { create: jest.fn(), upsert: jest.fn() },
     branch: { create: jest.fn() },
     employee: { create: jest.fn() },
     availability: { findFirstOrThrow: jest.fn() },
@@ -129,6 +130,42 @@ describe('PrismaBusinessesRepository', () => {
     jest.resetAllMocks();
     prisma.$transaction.mockImplementation((run) => run(tx));
     tx.availability.findFirstOrThrow.mockResolvedValue({ id: 40 });
+  });
+
+  it('registers the Enlace de reserva of the Business in the shared namespace, in the same transaction (ADR 0026)', async () => {
+    tx.business.create.mockResolvedValue(ANAS_BUSINESS);
+    tx.branch.create.mockResolvedValue(BRANCH_ROW);
+    tx.employee.create.mockResolvedValue(EMPLOYEE_ROW);
+
+    await repository.create({ ...CREATE_DATA, service: undefined });
+
+    expect(tx.bookingSlug.create).toHaveBeenCalledWith({
+      data: { slug: ANAS_BUSINESS.slug, businessId: ANAS_BUSINESS.id },
+    });
+  });
+
+  it('moves the Enlace de reserva row when the slug changes, freeing the old one', async () => {
+    tx.business.update.mockResolvedValue({ ...ANAS_BUSINESS, slug: 'nuevo' });
+
+    await repository.update(1, { slug: 'nuevo' });
+
+    expect(tx.business.update).toHaveBeenCalledWith({
+      where: { id: 1 },
+      data: { slug: 'nuevo' },
+    });
+    expect(tx.bookingSlug.upsert).toHaveBeenCalledWith({
+      where: { businessId: 1 },
+      create: { slug: 'nuevo', businessId: 1 },
+      update: { slug: 'nuevo' },
+    });
+  });
+
+  it('leaves the Enlace de reserva row alone when the slug does not change', async () => {
+    prisma.business.update.mockResolvedValue(ANAS_BUSINESS);
+
+    await repository.update(1, { name: 'New name' });
+
+    expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
   it('creates the Business, its Branch, its Service and the owner as its Employee, in one transaction', async () => {

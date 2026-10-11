@@ -19,11 +19,12 @@ export const presentService = (service: Service) => ({
   dailyLimit: service.dailyLimit,
   slotInterval: service.slotInterval,
   minimumNoticeMinutes: service.minimumNoticeMinutes,
-  employees: service.employees.map(({ id, name, availabilityId, imageUrl }) => ({
+  employees: service.employees.map(({ id, name, availabilityId, imageUrl, slug }) => ({
     id,
     name,
     availabilityId,
     imageUrl,
+    slug,
   })),
 });
 

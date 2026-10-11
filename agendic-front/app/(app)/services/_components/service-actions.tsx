@@ -14,6 +14,23 @@ import { canStopOffering, offersIt, othersAttending, type OfferableService } fro
  * @param path la ruta del Enlace de reserva en este mismo front, como la arma `bookingLinkPath`
  */
 export function PublicLinkButtons({ path }: { path: string }) {
+    return (
+        <>
+            <PanelIconButton label="Abrir Enlace de reserva" onClick={() => window.open(path, '_blank')}>
+                <ExternalLink />
+            </PanelIconButton>
+            <CopyLinkButton path={path} label="Copiar Enlace de reserva" />
+        </>
+    );
+}
+
+/**
+ * Copia al portapapeles la dirección completa de un Enlace de reserva.
+ *
+ * @param path la ruta del Enlace de reserva en este mismo front, como la arma `bookingLinkPath`
+ * @param label lo que dice el botón para quien no lo ve
+ */
+export function CopyLinkButton({ path, label }: { path: string; label: string }) {
     const copy = async () => {
         try {
             await navigator.clipboard.writeText(`${window.location.origin}${path}`);
@@ -24,14 +41,9 @@ export function PublicLinkButtons({ path }: { path: string }) {
     };
 
     return (
-        <>
-            <PanelIconButton label="Abrir Enlace de reserva" onClick={() => window.open(path, '_blank')}>
-                <ExternalLink />
-            </PanelIconButton>
-            <PanelIconButton label="Copiar Enlace de reserva" onClick={copy}>
-                <Link2 />
-            </PanelIconButton>
-        </>
+        <PanelIconButton label={label} onClick={copy}>
+            <Link2 />
+        </PanelIconButton>
     );
 }
 

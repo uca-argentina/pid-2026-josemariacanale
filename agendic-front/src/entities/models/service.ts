@@ -1,11 +1,15 @@
 import { z } from 'zod';
 import { SERVICE_CATEGORIES, slugSchema } from './business';
 
-/** All the public view of a Servicio knows about an Empleado: the email is only for the Dueño. */
+/**
+ * All the public view of a Servicio knows about an Empleado: the email is only for the Dueño. `slug` is the Enlace de
+ * reserva of the Usuario behind the Empleado, the last tramo of the Empleado elegido's (ADR 0026); null until they pick it.
+ */
 export const serviceEmployeeSchema = z.object({
     id: z.number(),
     name: z.string(),
     imageUrl: z.string().nullable(),
+    slug: z.string().nullable(),
 });
 export type ServiceEmployee = z.infer<typeof serviceEmployeeSchema>;
 

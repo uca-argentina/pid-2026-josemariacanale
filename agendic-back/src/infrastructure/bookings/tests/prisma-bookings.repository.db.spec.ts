@@ -23,6 +23,7 @@ describe('PrismaBookingsRepository (real database)', () => {
       startsAt: new Date(Date.UTC(2031, 0, 1, hour)),
       endsAt: new Date(Date.UTC(2031, 0, 1, hour + 1)),
       notes: null,
+      employeeChosen: false,
       status: BookingStatus.BOOKED,
     });
 
@@ -114,6 +115,7 @@ describe('PrismaBookingsRepository (real database)', () => {
         startsAt: new Date(Date.UTC(2031, 0, 2, 10)),
         endsAt: new Date(Date.UTC(2031, 0, 2, 10, 30)),
         notes: null,
+        employeeChosen: false,
         status: BookingStatus.BOOKED,
       });
 
@@ -177,6 +179,7 @@ describe('PrismaBookingsRepository (real database)', () => {
         startsAt: new Date(Date.UTC(2031, 0, 3, 16)),
         endsAt: new Date(Date.UTC(2031, 0, 3, 17)),
         notes: null,
+        employeeChosen: false,
         status: BookingStatus.BOOKED,
       });
 
@@ -242,6 +245,7 @@ describe('PrismaBookingsRepository (real database)', () => {
         startsAt: new Date(Date.UTC(2031, 0, 4, hour)),
         endsAt: new Date(Date.UTC(2031, 0, 4, hour + 1)),
         notes: null,
+        employeeChosen: false,
         status: BookingStatus.BOOKED,
       });
 

@@ -2,21 +2,21 @@ import { Booking, BookingStatus, ClientBooking } from '../../domain/bookings/boo
 import { BookingsRepository } from '../../domain/bookings/bookings.repository';
 import { ServicesRepository } from '../../domain/services/services.repository';
 import { ListSlotsUseCase } from '../slots/list-slots.use-case';
-import { pickEmployee } from './pick-employee';
+import { chosenEmployeeIdOf, pickEmployee } from './pick-employee';
 
 /**
  * Reagenda un Turno ya identificado y validado como pendiente o aceptado a otro Horario reservable del mismo
  * Servicio, por su Enlace del Turno (ADR 0022). Conserva al Empleado si está libre y si no pasa a otro (ver
- * `pickEmployee`); con Aprobación manual, el Turno queda (o vuelve a quedar) PENDING.
+ * `pickEmployee`), salvo en un Turno con Empleado elegido, que solo se mueve a horarios de ese Empleado; con Aprobación manual, el Turno queda (o vuelve a quedar) PENDING.
  *
- * @throws {BusinessRuleError} `startsAt` no es un Horario reservable de ningún Empleado
+ * @throws {BusinessRuleError} `startsAt` no es un Horario reservable de ningún Empleado, o del elegido, que además puede haber dejado de Ofrecer el Servicio
  * @throws {ConflictError} el horario nuevo pisa otro Turno del Empleado
  */
 export async function rescheduleResolvedBooking(
   bookings: BookingsRepository,
   services: ServicesRepository,
   listSlots: ListSlotsUseCase,
-  booking: Pick<Booking, 'id' | 'serviceId' | 'employeeId' | 'startsAt' | 'endsAt'>,
+  booking: Pick<Booking, 'id' | 'serviceId' | 'employeeId' | 'employeeChosen' | 'startsAt' | 'endsAt'>,
   startsAt: Date,
 ): Promise<ClientBooking> {
   const endsAt = new Date(
@@ -29,6 +29,7 @@ export async function rescheduleResolvedBooking(
   const attendant = await pickEmployee(listSlots, bookings, booking.serviceId, startsAt, {
     excludeBookingId: booking.id,
     keepEmployeeId: booking.employeeId ?? undefined,
+    chosenEmployeeId: chosenEmployeeIdOf(booking),
   });
   const status = service?.requiresApproval
     ? BookingStatus.PENDING

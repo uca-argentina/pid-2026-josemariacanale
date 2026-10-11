@@ -88,3 +88,7 @@ export function initials(name: string) {
         .join('')
         .toUpperCase();
 }
+
+/** El Empleado elegido de un Turno (ADR 0026), cuyos horarios son los únicos que ofrece Reagendar; `undefined` si no tiene. */
+export const chosenEmployeeId = (booking: { employeeChosen: boolean; employeeId: number | null }) =>
+    booking.employeeChosen && booking.employeeId !== null ? booking.employeeId : undefined;

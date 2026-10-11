@@ -8,6 +8,7 @@
 // - one active Employee (deletedAt null) per (userId, businessId): a User can be re-hired after being dado de baja
 // - at most one default Availability per User (partial unique index)
 // - no overlapping AvailabilityOverride Franjas per (availabilityId, date), half-open, skipping día-libre rows (exclusion constraint)
+// - BookingSlug: exactly one of businessId / userId (check), slug lowercase (check) (ADR 0026)
 // - AvailabilityInterval Franjas of one weekday don't overlap: checked by the API only, since `days` is an array (ADR 0020)
 
 generator client {
@@ -52,6 +53,7 @@ model User {
   bookings       Booking[]
   employees      Employee[]
   availabilities Availability[]
+  bookingSlug    BookingSlug?
 }
 
 model Business {
@@ -67,6 +69,7 @@ model Business {
   branches    Branch[]
   employees   Employee[]
   invitations Invitation[]
+  bookingSlug BookingSlug?
 }
 
 /// Invitaci�n pendiente de un Negocio a un email para ser Empleado (ADR 0019); vence a los 7 d�as.
@@ -205,18 +208,19 @@ model AvailabilityOverride {
 }
 
 model Booking {
-  id           Int           @id @default(autoincrement())
-  serviceId    Int
-  employeeId   Int? // the Empleado of a Servicio del Negocio; null in a Servicio personal
-  userId       Int // the User who attends it: occupancy is per User, across Servicios personales and of any Negocio (ADR 0021)
-  prepStartsAt DateTime      @db.Timestamptz(3) // startsAt - Service.prepMinutes, fixed at booking: the attending User's agenda is held from here
-  startsAt     DateTime      @db.Timestamptz(3)
-  endsAt       DateTime      @db.Timestamptz(3) // startsAt + Service.durationMinutes, fixed at booking
-  status       BookingStatus // fijado al crear: BOOKED, o PENDING con Aprobación manual (ADR 0022)
-  notes        String? // Comentario del Turno, up to 500 characters (checked by the API)
-  noShowAt     DateTime?     @db.Timestamptz(3) // Ausencia: when the Empleado marked it; never replaces status
-  link         String        @unique // Enlace del Turno (ADR 0022): secret, random, URL-safe, generated at creation
-  createdAt    DateTime      @default(now()) @db.Timestamptz(3)
+  id             Int           @id @default(autoincrement())
+  serviceId      Int
+  employeeId     Int? // the Empleado of a Servicio del Negocio; null in a Servicio personal
+  userId         Int // the User who attends it: occupancy is per User, across Servicios personales and of any Negocio (ADR 0021)
+  prepStartsAt   DateTime      @db.Timestamptz(3) // startsAt - Service.prepMinutes, fixed at booking: the attending User's agenda is held from here
+  startsAt       DateTime      @db.Timestamptz(3)
+  endsAt         DateTime      @db.Timestamptz(3) // startsAt + Service.durationMinutes, fixed at booking
+  status         BookingStatus // fijado al crear: BOOKED, o PENDING con Aprobación manual (ADR 0022)
+  notes          String? // Comentario del Turno, up to 500 characters (checked by the API)
+  noShowAt       DateTime?     @db.Timestamptz(3) // Ausencia: when the Empleado marked it; never replaces status
+  link           String        @unique // Enlace del Turno (ADR 0022): secret, random, URL-safe, generated at creation
+  employeeChosen Boolean       @default(false) // Empleado elegido (ADR 0026): the Cliente came in by this Empleado's Enlace de reserva; Reagendar never moves it to another
+  createdAt      DateTime      @default(now()) @db.Timestamptz(3)
 
   service  Service   @relation(fields: [serviceId], references: [id])
   employee Employee? @relation(fields: [employeeId], references: [id])
@@ -234,4 +238,14 @@ model Client {
   booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 
   @@index([email])
+}
+
+/// Primer tramo del Enlace de reserva, de un Negocio o de un Usuario, nunca de los dos (ADR 0026). Un solo espacio de nombres: la clave primaria hace cumplir que ningún Negocio y Usuario compartan slug. La fila queda al dar de baja (ADR 0024).
+model BookingSlug {
+  slug       String @id // always lowercase
+  businessId Int?   @unique
+  userId     Int?   @unique
+
+  business Business? @relation(fields: [businessId], references: [id])
+  user     User?     @relation(fields: [userId], references: [id])
 }

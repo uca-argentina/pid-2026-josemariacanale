@@ -24,6 +24,7 @@ import {
   localDayBounds,
 } from '../../domain/slots/slot';
 import { serviceTimeZone } from '../services/service-time-zone';
+import { assertChosenEmployee } from './assert-chosen-employee';
 
 const MAX_RANGE_DAYS = 31;
 
@@ -77,20 +78,25 @@ export class ListSlotsUseCase {
   ) {}
 
   /**
+   * Con `employeeId` (Empleado elegido), solo los de ese Empleado.
+   *
    * @throws {BusinessRuleError} el rango no es de 1 a 31 días
-   * @throws {NotFoundError} el Servicio está dado de baja
+   * @throws {NotFoundError} el Servicio está dado de baja, o `employeeId` no lo Ofrece
+   * @throws {BadRequestError} `employeeId` en un Servicio personal
    */
   async execute(
     serviceId: number,
     from: string,
     to: string,
     excludeBookingId?: number,
+    employeeId?: number,
   ): Promise<{ timeZone: string; days: DaySlots[] }> {
     const { timeZone, employees } = await this.executeByEmployee(
       serviceId,
       from,
       to,
       excludeBookingId,
+      employeeId,
     );
     // A live Servicio always has an Empleado (the last one can't leave), so the guard is only for a corrupt row.
     return {
@@ -103,19 +109,22 @@ export class ListSlotsUseCase {
    * Lo mismo que `execute`, sin juntar: los Horarios reservables de cada Empleado, para elegir a quién asignar el Turno.
    *
    * @throws {BusinessRuleError} el rango no es de 1 a 31 días
-   * @throws {NotFoundError} el Servicio está dado de baja
+   * @throws {NotFoundError} el Servicio está dado de baja, o `employeeId` no lo Ofrece
+   * @throws {BadRequestError} `employeeId` en un Servicio personal
    */
   async executeByEmployee(
     serviceId: number,
     from: string,
     to: string,
     excludeBookingId?: number,
+    employeeId?: number,
   ): Promise<{ timeZone: string; employees: EmployeeSlots[] }> {
     assertValidRange(from, to);
 
     const service = await this.services.findById(serviceId);
     if (!service || service.deletedAt)
       throw new NotFoundError('Service not found or retired');
+    if (employeeId !== undefined) assertChosenEmployee(service, employeeId);
 
     const timeZone = await serviceTimeZone(
       this.branches,
@@ -152,11 +161,13 @@ export class ListSlotsUseCase {
               availabilityId: service.availabilityId!,
             },
           ]
-        : service.employees.map(({ id, userId, availabilityId }) => ({
-            employeeId: id,
-            userId,
-            availabilityId,
-          }));
+        : service.employees
+            .filter(({ id }) => employeeId === undefined || id === employeeId)
+            .map(({ id, userId, availabilityId }) => ({
+              employeeId: id,
+              userId,
+              availabilityId,
+            }));
     const employees = await Promise.all(
       attendants.map(async ({ employeeId, userId, availabilityId }) => {
         const availability = await this.availabilities.findById(availabilityId);

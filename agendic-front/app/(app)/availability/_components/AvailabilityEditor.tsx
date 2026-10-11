@@ -145,6 +145,7 @@ export function AvailabilityEditor({
                     </PanelSection>
                     <OverridesSection
                         overrides={draft.overrides}
+                        preferences={preferences}
                         busy={busy}
                         onChange={(overrides) => setDraft((d) => ({ ...d, overrides }))}
                     />

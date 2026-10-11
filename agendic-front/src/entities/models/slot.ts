@@ -25,9 +25,13 @@ export const slotsSchema = z.object({
 });
 export type Slots = z.infer<typeof slotsSchema>;
 
-/** What GET /services/:id/slots asks for: `from`/`to` are local dates of the Sucursal, inclusive. */
+/**
+ * What GET /services/:id/slots asks for: `from`/`to` are local dates of the Sucursal, inclusive. With `employeeId`,
+ * only the Horarios reservables of that Empleado (Empleado elegido, ADR 0026).
+ */
 export interface SlotsQuery {
     serviceId: number;
     from: string;
     to: string;
+    employeeId?: number;
 }

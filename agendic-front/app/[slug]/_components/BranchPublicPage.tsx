@@ -28,6 +28,7 @@ export function BranchPublicPage({
     employees,
     images,
     selectedService,
+    selectedEmployee,
 }: {
     business: Business;
     branch: Branch;
@@ -37,6 +38,8 @@ export function BranchPublicPage({
     images: BranchImage[];
     /** El Servicio del Enlace de reserva: la reserva abre con él ya elegido. Puede ser oculto, y no estar en `services`. */
     selectedService: Service | null;
+    /** El Empleado del Enlace de reserva (Empleado elegido, ADR 0026): la reserva es con él y solo ve sus horarios. */
+    selectedEmployee: Employee | null;
 }) {
     const categories = SERVICE_CATEGORIES.filter((c) => services.some((s) => s.category === c.value));
     const [category, setCategory] = useState<ServiceCategoryValue | undefined>(categories[0]?.value);
@@ -259,6 +262,7 @@ export function BranchPublicPage({
                     categories={bookableCategories}
                     coverUrl={cover}
                     initialService={initialService}
+                    employee={selectedEmployee}
                     onClose={() => setFlowOpen(false)}
                 />
             )}

@@ -32,6 +32,7 @@ import { PrismaService } from './prisma.service';
 import { readS3Config, S3FileStorage } from './s3-file-storage';
 import { PrismaServicesRepository } from './services/prisma-services.repository';
 import { ServicesModule } from './services/services.module';
+import { SlugsModule } from './slugs/slugs.module';
 import { SystemClock } from './system-clock';
 import { ClerkBackendAuth } from './users/clerk-backend-auth';
 import { PrismaUsersRepository } from './users/prisma-users.repository';
@@ -49,6 +50,7 @@ import { UsersModule } from './users/users.module';
     EmployeesModule,
     BookingsModule,
     AvailabilitiesModule,
+    SlugsModule,
   ],
   providers: [
     PrismaService,
