@@ -26,6 +26,7 @@ import { DAY_NAMES, toWeek } from '@/app/(app)/_components/availability-week';
 import { bookingLinkPath, userLinkPath } from '@/app/routes';
 import { changeEmployeeAvailabilityAction, updateServiceAction } from '../../actions';
 import { formatPrice } from '../../_components/format';
+import { formatPrice as formatPriceWithCents } from '@/app/_components/booking/format';
 import {
     HiddenSwitch,
     OfferButton,
@@ -85,7 +86,7 @@ function SetupTab({
 }) {
     const price = Number(draft.price) || 0;
     const percent = Number(draft.depositPercent) || 0;
-    const deposit = Math.round((price * percent) / 100);
+    const deposit = Math.round(price * percent) / 100;
     const describedBy = (field: string, id: string) => (errors[field] ? `${id}-error` : undefined);
 
     return (
@@ -168,7 +169,7 @@ function SetupTab({
                 <PanelToggleRow
                     id="service-deposit"
                     title="Pedir seña"
-                    description="El cliente declara al reservar que adelanta un porcentaje del precio."
+                    description="El turno nace debiendo la seña hasta que el cliente la paga desde el enlace del turno."
                     checked={draft.depositEnabled}
                     disabled={readOnly}
                     onCheckedChange={(depositEnabled) => set({ depositEnabled })}
@@ -183,15 +184,15 @@ function SetupTab({
                                 max={100}
                                 step={5}
                                 suffix="%"
-                                className="w-[120px]"
+                                className="w-[160px]"
                                 value={draft.depositPercent}
                                 disabled={readOnly}
                                 aria-describedby={describedBy('depositPercent', 'service-deposit-percent')}
                                 onValueChange={(depositPercent) => set({ depositPercent })}
                             />
                             <span className="text-[13px] font-medium text-[#6b7280]">
-                                Seña de <strong className="font-bold text-[#0f1b2d]">{formatPrice(deposit)}</strong> · resta{' '}
-                                {formatPrice(price - deposit)} al atender
+                                Seña de <strong className="font-bold text-[#0f1b2d]">{formatPriceWithCents(deposit)}</strong> · resta{' '}
+                                {formatPriceWithCents(Math.round((price - deposit) * 100) / 100)} al atender
                             </span>
                         </div>
                         <InlineFieldError id="service-deposit-percent" error={errors.depositPercent} />

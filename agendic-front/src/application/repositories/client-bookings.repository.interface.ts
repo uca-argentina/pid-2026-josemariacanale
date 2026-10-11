@@ -21,6 +21,14 @@ export interface IClientBookingsRepository {
     cancelBookingByLink(link: string): Promise<ClientBooking>;
 
     /**
+     * Paga la Seña del Turno de un Enlace del Turno (simulado: Agendic no cobra).
+     *
+     * @throws {NotFoundError} el Enlace no es de ningún Turno (404)
+     * @throws {BookingStateError} el Turno no está pendiente ni aceptado, ya empezó, no tiene Seña o ya la tiene pagada (422)
+     */
+    payDepositByLink(link: string): Promise<ClientBooking>;
+
+    /**
      * Reagenda el Turno de un Enlace del Turno a otro Horario reservable del mismo Servicio.
      *
      * @throws {NotFoundError} el Enlace no es de ningún Turno (404)

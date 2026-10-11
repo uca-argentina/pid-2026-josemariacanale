@@ -13,6 +13,14 @@ export async function cancelBookingByLinkAction(link: string) {
     );
 }
 
+/** Paga la Seña del Turno pendiente o aceptado del Enlace (simulado: Agendic no cobra). */
+export async function payDepositByLinkAction(link: string) {
+    return performClientBookingAction(
+        () => getInjection('IPayDepositByLinkController')({ link }),
+        'No pudimos pagar la seña. Intentá de nuevo.',
+    );
+}
+
 /** Reagenda el Turno pendiente o aceptado del Enlace al Horario reservable `startsAt` (instante ISO). */
 export async function rescheduleBookingByLinkAction(link: string, startsAt: string) {
     return performClientBookingAction(

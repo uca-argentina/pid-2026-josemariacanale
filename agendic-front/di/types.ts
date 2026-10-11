@@ -108,6 +108,8 @@ import type { IGetBookingByLinkUseCase } from '@/src/application/use-cases/booki
 import type { IGetBookingByLinkController } from '@/src/interface-adapters/controllers/bookings/get-booking-by-link.controller';
 import type { ICancelBookingByLinkUseCase } from '@/src/application/use-cases/bookings/cancel-booking-by-link.use-case';
 import type { ICancelBookingByLinkController } from '@/src/interface-adapters/controllers/bookings/cancel-booking-by-link.controller';
+import type { IPayDepositByLinkUseCase } from '@/src/application/use-cases/bookings/pay-deposit-by-link.use-case';
+import type { IPayDepositByLinkController } from '@/src/interface-adapters/controllers/bookings/pay-deposit-by-link.controller';
 import type { IRescheduleBookingByLinkUseCase } from '@/src/application/use-cases/bookings/reschedule-booking-by-link.use-case';
 import type { IRescheduleBookingByLinkController } from '@/src/interface-adapters/controllers/bookings/reschedule-booking-by-link.controller';
 import type { IAvailabilitiesRepository } from '@/src/application/repositories/availabilities.repository.interface';
@@ -180,6 +182,7 @@ export const DI_SYMBOLS = {
     IAcceptBookingUseCase: Symbol.for('IAcceptBookingUseCase'),
     IGetBookingByLinkUseCase: Symbol.for('IGetBookingByLinkUseCase'),
     ICancelBookingByLinkUseCase: Symbol.for('ICancelBookingByLinkUseCase'),
+    IPayDepositByLinkUseCase: Symbol.for('IPayDepositByLinkUseCase'),
     IRescheduleBookingByLinkUseCase: Symbol.for('IRescheduleBookingByLinkUseCase'),
     IListAvailabilitiesUseCase: Symbol.for('IListAvailabilitiesUseCase'),
     IGetAvailabilityUseCase: Symbol.for('IGetAvailabilityUseCase'),
@@ -245,6 +248,7 @@ export const DI_SYMBOLS = {
     IAcceptBookingController: Symbol.for('IAcceptBookingController'),
     IGetBookingByLinkController: Symbol.for('IGetBookingByLinkController'),
     ICancelBookingByLinkController: Symbol.for('ICancelBookingByLinkController'),
+    IPayDepositByLinkController: Symbol.for('IPayDepositByLinkController'),
     IRescheduleBookingByLinkController: Symbol.for('IRescheduleBookingByLinkController'),
     IListMyAvailabilitiesController: Symbol.for('IListMyAvailabilitiesController'),
     ICreateAvailabilityController: Symbol.for('ICreateAvailabilityController'),
@@ -310,6 +314,7 @@ export interface DI_RETURN_TYPES {
     IAcceptBookingUseCase: IAcceptBookingUseCase;
     IGetBookingByLinkUseCase: IGetBookingByLinkUseCase;
     ICancelBookingByLinkUseCase: ICancelBookingByLinkUseCase;
+    IPayDepositByLinkUseCase: IPayDepositByLinkUseCase;
     IRescheduleBookingByLinkUseCase: IRescheduleBookingByLinkUseCase;
     IListAvailabilitiesUseCase: IListAvailabilitiesUseCase;
     IGetAvailabilityUseCase: IGetAvailabilityUseCase;
@@ -375,6 +380,7 @@ export interface DI_RETURN_TYPES {
     IAcceptBookingController: IAcceptBookingController;
     IGetBookingByLinkController: IGetBookingByLinkController;
     ICancelBookingByLinkController: ICancelBookingByLinkController;
+    IPayDepositByLinkController: IPayDepositByLinkController;
     IRescheduleBookingByLinkController: IRescheduleBookingByLinkController;
     IListMyAvailabilitiesController: IListMyAvailabilitiesController;
     ICreateAvailabilityController: ICreateAvailabilityController;

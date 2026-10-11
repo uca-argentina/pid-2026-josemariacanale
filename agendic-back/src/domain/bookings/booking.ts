@@ -27,7 +27,24 @@ export interface Booking {
   link: string;
   /** Empleado elegido: the Cliente came in by this Empleado's Enlace de reserva, so the Turno stays with them. */
   employeeChosen: boolean;
+  /** Seña del Turno, fixed at booking (see `depositAmountFor`); null if the Servicio asked for none. */
+  depositAmount: number | null;
+  /** Pagar la Seña: when the Cliente paid it; null while it is pending. */
+  depositPaidAt: Date | null;
 }
+
+/**
+ * Monto de la Seña de un Turno: price × depositPercent / 100, rounded half up to the cent. Null when the Servicio asks for
+ * none or for 0%.
+ */
+export const depositAmountFor = (
+  price: number,
+  depositPercent: number | null,
+): number | null => {
+  if (!depositPercent) return null;
+  // price × percent is the amount in cents; toFixed absorbs float noise such as 10.05 × 15 = 150.74999…
+  return Math.round(Number((price * depositPercent).toFixed(6))) / 100;
+};
 
 /** Who to send an Aviso de cambio del Turno to: the Cliente's email and the Turno's Enlace del Turno. */
 export type ClientNotice = Pick<Booking, 'clientEmail' | 'link'>;

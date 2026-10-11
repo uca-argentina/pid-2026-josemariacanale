@@ -42,6 +42,10 @@ import {
   InvitationsRepository,
 } from './domain/invitations/invitations.repository';
 import { Mailer, MAILER } from './domain/mailer';
+import {
+  OUT_OF_OFFICE_REPOSITORY,
+  OutOfOfficeRepository,
+} from './domain/out-of-office/out-of-office.repository';
 import { Service, ServiceCategory } from './domain/services/service';
 import {
   SERVICES_REPOSITORY,
@@ -187,6 +191,7 @@ export async function createTestApp() {
     reschedule: jest.fn(),
     reschedulePendingOrBooked: jest.fn(),
     markNoShow: jest.fn(),
+    payDeposit: jest.fn(),
   };
   const availabilities: jest.Mocked<AvailabilitiesRepository> = {
     listByUser: jest.fn(),
@@ -195,6 +200,14 @@ export async function createTestApp() {
     replace: jest.fn(),
     makeDefault: jest.fn(),
     countServices: jest.fn(),
+    delete: jest.fn(),
+  };
+  const outOfOffice: jest.Mocked<OutOfOfficeRepository> = {
+    listByUserEndingFrom: jest.fn(),
+    findById: jest.fn(),
+    findByUserAndDates: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
     delete: jest.fn(),
   };
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
@@ -226,6 +239,8 @@ export async function createTestApp() {
     .useValue(bookingCodes)
     .overrideProvider(AVAILABILITIES_REPOSITORY)
     .useValue(availabilities)
+    .overrideProvider(OUT_OF_OFFICE_REPOSITORY)
+    .useValue(outOfOffice)
     .compile();
   const app = setupApp(moduleRef.createNestApplication());
   await app.init();
@@ -245,6 +260,7 @@ export async function createTestApp() {
     bookings,
     bookingCodes,
     availabilities,
+    outOfOffice,
     http: request(app.getHttpServer()),
   };
 }
