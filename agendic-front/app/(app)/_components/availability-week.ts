@@ -42,28 +42,48 @@ export const intervalsValid = (intervals: TimeRange[]) => invalidIntervals(inter
 
 const formatInterval = ({ start, end }: TimeRange) => `${start} - ${end}`;
 
-function dayRuns(days: number[]): string {
-    const runs: number[][] = [];
-    for (const day of days) {
-        const last = runs.at(-1);
-        if (last && last.at(-1) === day - 1) last.push(day);
-        else runs.push([day]);
-    }
-    return runs
-        .map((run) => (run.length === 1 ? DAY_SHORT[run[0]] : `${DAY_SHORT[run[0]]} - ${DAY_SHORT[run.at(-1)!]}`))
-        .join(', ');
+/** Nombres abreviados de los días del `schedule` del back: el índice 0 es el domingo. */
+const WEEKDAY_ABBR = ['dom.', 'lun.', 'mar.', 'mié.', 'jue.', 'vie.', 'sáb.'];
+
+/** `9:00` en 24 h, `9:00 a. m.` en 12 h. */
+function formatTime(time: string, timeFormat: 12 | 24): string {
+    const hour = Number(time.slice(0, 2));
+    const minutes = time.slice(3);
+    if (timeFormat === 24) return `${hour}:${minutes}`;
+    return `${hour % 12 || 12}:${minutes} ${hour < 12 ? 'a. m.' : 'p. m.'}`;
 }
 
-/** Una línea por Franja distinta con los días que la tienen: `"Lun, Jue - Vie, 08:00 - 13:00"`. */
-export function summarize(days: TimeRange[][]): string[] {
-    const daysByInterval = new Map<string, number[]>();
-    days.forEach((intervals, day) => {
-        for (const interval of [...intervals].sort(byStart)) {
-            const key = formatInterval(interval);
-            daysByInterval.set(key, [...(daysByInterval.get(key) ?? []), day]);
+/**
+ * Resume las Franjas de una semana, una línea por Franja distinta con los días que la tienen:
+ * `"lun. - vie., 9:00 - 17:00"`. Los días siguen el primer día de la semana del Usuario (`weekStart`, 0 =
+ * domingo) y también el orden de las líneas. Sin Franjas, no hay líneas.
+ */
+export function summarizeSchedule(
+    schedule: TimeRange[][],
+    { timeFormat, weekStart }: { timeFormat: 12 | 24; weekStart: number },
+): string[] {
+    const daysByRange = new Map<string, number[]>();
+    for (let offset = 0; offset < 7; offset++) {
+        const day = (weekStart + offset) % 7;
+        for (const range of [...(schedule[day] ?? [])].sort(byStart)) {
+            const key = `${formatTime(range.start, timeFormat)} - ${formatTime(range.end, timeFormat)}`;
+            daysByRange.set(key, [...(daysByRange.get(key) ?? []), offset]);
         }
-    });
-    return [...daysByInterval].map(([interval, ds]) => `${dayRuns(ds)}, ${interval}`);
+    }
+    return [...daysByRange]
+        .map(([range, offsets]) => ({ range, offsets }))
+        .sort((a, b) => a.offsets[0] - b.offsets[0])
+        .map(({ range, offsets }) => {
+            const runs: number[][] = [];
+            for (const offset of offsets) {
+                const last = runs.at(-1);
+                if (last && last.at(-1) === offset - 1) last.push(offset);
+                else runs.push([offset]);
+            }
+            const name = (offset: number) => WEEKDAY_ABBR[(weekStart + offset) % 7];
+            const days = runs.map((run) => (run.length === 1 ? name(run[0]) : `${name(run[0])} - ${name(run.at(-1)!)}`));
+            return `${days.join(', ')}, ${range}`;
+        });
 }
 
 /** Las Franjas de un día en una línea: `"09:00 - 13:00, 14:00 - 18:00"`. */

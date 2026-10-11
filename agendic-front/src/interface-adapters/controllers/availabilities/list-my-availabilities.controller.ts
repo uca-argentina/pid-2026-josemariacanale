@@ -14,7 +14,13 @@ function presenter(
     instrumentationService: IInstrumentationService,
 ) {
     return instrumentationService.startSpan({ name: 'listMyAvailabilities Presenter', op: 'serialize' }, () => ({
-        availabilities: availabilities.map(({ id, name, isDefault, timeZone }) => ({ id, name, isDefault, timeZone })),
+        availabilities: availabilities.map(({ id, name, isDefault, timeZone, schedule }) => ({
+            id,
+            name,
+            isDefault,
+            timeZone,
+            schedule: schedule.map((day) => day.map(({ start, end }) => ({ start, end }))),
+        })),
         open: openAvailability && {
             id: openAvailability.id,
             name: openAvailability.name,

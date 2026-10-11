@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useClerk } from '@clerk/nextjs';
 import {
     Calendar,
@@ -178,6 +178,7 @@ function NavUser({
     const [retiring, setRetiring] = useState(false);
     const [editingPreferences, setEditingPreferences] = useState(false);
     const [preferences, setPreferences] = useState(initialPreferences);
+    const router = useRouter();
     const { isMobile, setOpenMobile } = useSidebar();
     const { openUserProfile, signOut } = useClerk();
 
@@ -252,7 +253,11 @@ function NavUser({
             {editingPreferences && (
                 <PreferencesDialog
                     preferences={preferences}
-                    onSaved={setPreferences}
+                    onSaved={(saved) => {
+                        setPreferences(saved);
+                        // Las pantallas con horas (como el resumen de Horas laborables) las leen en el server.
+                        router.refresh();
+                    }}
                     onClose={() => setEditingPreferences(false)}
                 />
             )}

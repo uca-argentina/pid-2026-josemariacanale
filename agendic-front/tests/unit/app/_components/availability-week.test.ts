@@ -3,7 +3,7 @@ import {
     intervalsValid,
     invalidIntervals,
     nextInterval,
-    summarize,
+    summarizeSchedule,
     toSchedule,
     toWeek,
     weekValid,
@@ -15,32 +15,41 @@ const r = (start: string, end: string): TimeRange => ({ start, end });
 const week = (byDay: Partial<Record<number, TimeRange[]>>): TimeRange[][] =>
     Array.from({ length: 7 }, (_, i) => byDay[i] ?? []);
 
-describe('summarize', () => {
+describe('summarizeSchedule', () => {
+    // El `schedule` del back: el índice 0 es el domingo.
+    const sched = (byDay: Partial<Record<number, TimeRange[]>>) => week(byDay);
+    const workWeek = sched({ 1: [r('09:00', '17:00')], 2: [r('09:00', '17:00')], 3: [r('09:00', '17:00')], 4: [r('09:00', '17:00')], 5: [r('09:00', '17:00')] });
+    const lunes = { timeFormat: 24 as const, weekStart: 1 };
+
     it('agrupa días consecutivos en un tramo', () => {
-        expect(summarize(DEFAULT_DAYS)).toEqual(['Lun - Vie, 09:00 - 18:00']);
+        expect(summarizeSchedule(workWeek, lunes)).toEqual(['lun. - vie., 9:00 - 17:00']);
     });
 
     it('separa con coma los días sueltos y los tramos', () => {
-        const morning: TimeRange = r('08:00', '13:00');
-        expect(summarize(week({ 0: [morning], 3: [morning], 4: [morning] }))).toEqual(['Lun, Jue - Vie, 08:00 - 13:00']);
+        const morning = [r('08:00', '13:00')];
+        expect(summarizeSchedule(sched({ 1: morning, 4: morning, 5: morning }), lunes)).toEqual(['lun., jue. - vie., 8:00 - 13:00']);
     });
 
-    it('da una línea por Franja distinta, en orden de aparición', () => {
-        const days = week({
-            0: [r('08:00', '13:00'), r('17:00', '20:00')],
-            1: [r('09:00', '17:00')],
-            2: [r('09:00', '17:00')],
-            3: [r('08:00', '13:00'), r('17:00', '20:00')],
-        });
-        expect(summarize(days)).toEqual([
-            'Lun, Jue, 08:00 - 13:00',
-            'Lun, Jue, 17:00 - 20:00',
-            'Mar - Mié, 09:00 - 17:00',
+    it('da una línea por Franja distinta, empezando por el primer día de la semana', () => {
+        const days = sched({ 1: [r('09:00', '17:00')], 3: [r('08:00', '13:00')], 0: [r('10:00', '12:00')] });
+        expect(summarizeSchedule(days, lunes)).toEqual(['lun., 9:00 - 17:00', 'mié., 8:00 - 13:00', 'dom., 10:00 - 12:00']);
+        expect(summarizeSchedule(days, { timeFormat: 24, weekStart: 0 })).toEqual(['dom., 10:00 - 12:00', 'lun., 9:00 - 17:00', 'mié., 8:00 - 13:00']);
+    });
+
+    it('une el sábado con el domingo si la semana empieza antes', () => {
+        const days = sched({ 6: [r('10:00', '12:00')], 0: [r('10:00', '12:00')] });
+        expect(summarizeSchedule(days, lunes)).toEqual(['sáb. - dom., 10:00 - 12:00']);
+    });
+
+    it('usa el formato de 12 horas', () => {
+        expect(summarizeSchedule(sched({ 1: [r('00:30', '12:00'), r('13:00', '17:00')] }), { timeFormat: 12, weekStart: 1 })).toEqual([
+            'lun., 12:30 a. m. - 12:00 p. m.',
+            'lun., 1:00 p. m. - 5:00 p. m.',
         ]);
     });
 
     it('no devuelve nada si no hay Franjas', () => {
-        expect(summarize(week({}))).toEqual([]);
+        expect(summarizeSchedule(sched({}), lunes)).toEqual([]);
     });
 });
 

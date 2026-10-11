@@ -4,9 +4,9 @@ import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
 import { AvailabilitiesRepository } from '@/src/infrastructure/repositories/availabilities.repository';
 import { authWith } from '@/tests/unit/stubs';
 
-const summary = { id: 10, name: 'Horario', isDefault: false, timeZone: 'America/Argentina/Buenos_Aires' };
 const schedule = [[], [{ start: '09:00', end: '13:00' }], [], [], [], [], []];
-const detail = { ...summary, schedule, overrides: [{ date: '2026-12-25', ranges: [] }] };
+const summary = { id: 10, name: 'Horario', isDefault: false, timeZone: 'America/Argentina/Buenos_Aires', schedule };
+const detail = { ...summary, overrides: [{ date: '2026-12-25', ranges: [] }] };
 
 const repo = (apiUrl: string | undefined = 'http://api') =>
     new AvailabilitiesRepository(authWith({ getAccessToken: jest.fn().mockResolvedValue('tok') }), apiUrl);

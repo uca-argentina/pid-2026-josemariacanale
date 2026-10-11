@@ -1,75 +1,105 @@
 'use client';
 
 import { useState } from 'react';
-import { MoreHorizontal, Plus, Star, Trash2 } from 'lucide-react';
-import {
-    PanelBadge,
-    PanelButton,
-    PanelConfirm,
-    PanelDialog,
-    PanelDialogClose,
-    PanelField,
-    PanelIconButton,
-    PanelIconGroup,
-    PanelInput,
-    PanelMenu,
-} from '@/app/(app)/_components/panel-ui';
-import type { Availability } from '@/src/entities/models/availability';
+import { useForm } from 'react-hook-form';
+import { Clock, Ellipsis, Globe, Plus, Star, Trash2 } from 'lucide-react';
 import { TimezoneSelect } from '@/app/(app)/_components/TimezoneSelect';
+import { summarizeSchedule } from '@/app/(app)/_components/availability-week';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/app/_components/ui/alert-dialog';
+import { Badge } from '@/app/_components/ui/badge';
+import { Button } from '@/app/_components/ui/button';
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/app/_components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/app/_components/ui/dropdown-menu';
+import { Input } from '@/app/_components/ui/input';
+import { Label } from '@/app/_components/ui/label';
+import type { Availability } from '@/src/entities/models/availability';
+import type { Preferences } from '@/src/entities/models/user';
 
-function NewAvailabilityDialog({ onClose, onCreate }: { onClose: () => void; onCreate: (name: string, timeZone: string) => void }) {
-    const [name, setName] = useState('');
+/** Diálogo de "+ Nuevo": nombre y zona horaria; las Franjas se cargan después, en el editor. */
+function NewAvailabilityDialog({
+    open,
+    onOpenChange,
+    onCreate,
+}: {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    onCreate: (name: string, timeZone: string) => Promise<boolean>;
+}) {
     const [timeZone, setTimeZone] = useState(() => Intl.DateTimeFormat().resolvedOptions().timeZone);
+    const {
+        register,
+        handleSubmit,
+        reset,
+        formState: { isSubmitting },
+    } = useForm<{ name: string }>({ defaultValues: { name: '' } });
 
     return (
-        <PanelDialog
-            open
-            onOpenChange={(open) => !open && onClose()}
-            title="Agregar horas laborables"
-            description="Después cargás las Franjas de cada día."
-            footer={
-                <>
-                    <PanelDialogClose>
-                        <PanelButton variant="ghost">Cerrar</PanelButton>
-                    </PanelDialogClose>
-                    <PanelButton type="submit" form="new-availability" disabled={!name.trim()}>
-                        Agregar
-                    </PanelButton>
-                </>
-            }
+        <Dialog
+            open={open}
+            onOpenChange={(next) => {
+                if (isSubmitting) return;
+                if (!next) reset();
+                onOpenChange(next);
+            }}
         >
-            <form
-                id="new-availability"
-                onSubmit={(e) => {
-                    e.preventDefault();
-                    if (name.trim()) onCreate(name.trim(), timeZone);
-                }}
-            >
-                <PanelField label="Nombre" htmlFor="new-availability-name">
-                    <PanelInput
-                        id="new-availability-name"
-                        autoFocus
-                        placeholder="Horario de verano"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                    />
-                </PanelField>
-                <PanelField label="Zona horaria" htmlFor="new-availability-time-zone">
-                    <TimezoneSelect id="new-availability-time-zone" value={timeZone} onChange={setTimeZone} />
-                </PanelField>
-            </form>
-        </PanelDialog>
+            <DialogContent>
+                <form
+                    className="grid gap-4"
+                    onSubmit={handleSubmit(async ({ name }) => {
+                        if (await onCreate(name.trim(), timeZone)) {
+                            reset();
+                            onOpenChange(false);
+                        }
+                    })}
+                >
+                    <DialogHeader>
+                        <DialogTitle>Agregar horas laborables</DialogTitle>
+                        <DialogDescription>Después cargás las Franjas de cada día.</DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-2">
+                        <Label htmlFor="new-availability-name">Nombre</Label>
+                        <Input
+                            id="new-availability-name"
+                            autoFocus
+                            placeholder="Horario de verano"
+                            {...register('name', { validate: (name) => name.trim().length > 0 })}
+                        />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="new-availability-time-zone">Zona horaria</Label>
+                        <TimezoneSelect id="new-availability-time-zone" value={timeZone} onChange={setTimeZone} />
+                    </div>
+                    <DialogFooter>
+                        <DialogClose render={<Button type="button" variant="outline" disabled={isSubmitting} />}>Cerrar</DialogClose>
+                        <Button type="submit" disabled={isSubmitting}>
+                            Continuar
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
     );
 }
 
 function AvailabilityRow({
     availability,
+    preferences,
     busy,
     onOpen,
     onMakeDefault,
     onDelete,
 }: {
     availability: Availability;
+    preferences: Preferences;
     busy: boolean;
     onOpen: () => void;
     onMakeDefault: () => void;
@@ -78,52 +108,75 @@ function AvailabilityRow({
     const [confirmDelete, setConfirmDelete] = useState(false);
 
     return (
-        <li className="flex items-center gap-4 px-6 py-5 transition-colors hover:bg-[#f9fafb]">
-            <button
-                type="button"
-                onClick={onOpen}
-                className="flex min-w-0 flex-1 flex-col items-start gap-1 rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-[#0f1b2d] focus-visible:ring-offset-4"
-            >
+        <li className="flex items-center justify-between gap-2 px-3 py-5 transition-colors hover:bg-muted/50 sm:px-4">
+            <button type="button" onClick={onOpen} className="min-w-0 grow rounded-md text-left text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
                 <span className="flex flex-wrap items-center gap-2">
-                    <span className="text-[14.5px] font-bold tracking-[-0.02em] text-[#0f1b2d]">{availability.name}</span>
-                    {availability.isDefault && <PanelBadge className="bg-[#e6f6ec] text-[#15803d]">Predeterminado</PanelBadge>}
+                    <span className="truncate font-medium text-foreground">{availability.name}</span>
+                    {availability.isDefault && <Badge variant="secondary">Predeterminado</Badge>}
                 </span>
-                <span className="text-[13px] font-medium text-[#6b7280]">{availability.timeZone}</span>
+                <span className="mt-1 block text-muted-foreground">
+                    {summarizeSchedule(availability.schedule, preferences).map((line) => (
+                        <span key={line} className="block">
+                            {line}
+                        </span>
+                    ))}
+                    <span className="my-1 flex items-center gap-1.5 text-xs">
+                        <Globe className="size-3.5" />
+                        {availability.timeZone}
+                    </span>
+                </span>
             </button>
 
-            <PanelIconGroup>
-                <PanelMenu
-                    trigger={
-                        <PanelIconButton label="Más acciones" disabled={busy}>
-                            <MoreHorizontal />
-                        </PanelIconButton>
-                    }
-                    items={[
-                        ...(availability.isDefault ? [] : [{ label: 'Hacer predeterminado', icon: <Star />, onSelect: onMakeDefault }]),
-                        { label: 'Eliminar', icon: <Trash2 />, destructive: true, onSelect: () => setConfirmDelete(true) },
-                    ]}
-                />
-            </PanelIconGroup>
+            <DropdownMenu>
+                <DropdownMenuTrigger render={<Button type="button" variant="outline" size="icon" aria-label="Más acciones" disabled={busy} />}>
+                    <Ellipsis />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                    {!availability.isDefault && (
+                        <DropdownMenuItem onClick={onMakeDefault}>
+                            <Star />
+                            Hacer predeterminado
+                        </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem onClick={() => setConfirmDelete(true)} className="text-destructive focus:text-destructive">
+                        <Trash2 />
+                        Eliminar
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
 
-            <PanelConfirm
-                open={confirmDelete}
-                onOpenChange={setConfirmDelete}
-                title="¿Eliminar estas horas laborables?"
-                description={`"${availability.name}" se elimina para siempre.`}
-                confirmLabel="Eliminar"
-                destructive
-                onConfirm={onDelete}
-            />
+            <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>¿Eliminar estas horas laborables?</AlertDialogTitle>
+                        <AlertDialogDescription>{`"${availability.name}" se elimina para siempre.`}</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                            variant="destructive"
+                            onClick={() => {
+                                setConfirmDelete(false);
+                                onDelete();
+                            }}
+                        >
+                            Eliminar
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </li>
     );
 }
 
 /**
- * Las Horas laborables del Usuario con su zona horaria y la predeterminada marcada; abrir una lleva a su
- * editor.
+ * Las Horas laborables del Usuario, copiadas de la lista de cal.diy: nombre, "Predeterminado", resumen de
+ * Franjas en el formato de hora y desde el primer día de la semana de `preferences`, y zona horaria. Abrir
+ * una lleva a su editor.
  */
 export function AvailabilityList({
     availabilities,
+    preferences,
     busy,
     onOpen,
     onCreate,
@@ -131,6 +184,7 @@ export function AvailabilityList({
     onDelete,
 }: {
     availabilities: Availability[];
+    preferences: Preferences;
     busy: boolean;
     onOpen: (id: number) => void;
     onCreate: (name: string, timeZone: string) => Promise<boolean>;
@@ -140,29 +194,26 @@ export function AvailabilityList({
     const [creating, setCreating] = useState(false);
 
     return (
-        <div className="flex-1 bg-white px-4 py-8 text-[#0f1b2d] sm:px-8">
+        <div className="flex-1 bg-background px-4 py-8 text-foreground sm:px-8">
             <header className="flex flex-wrap items-start gap-4">
                 <div className="flex min-w-0 flex-col gap-1">
-                    <h1 className="m-0 text-[21px] font-extrabold tracking-[-0.035em]">Horas laborables</h1>
-                    <p className="m-0 text-[13px] font-medium text-[#6b7280]">
-                        Los horarios en los que atendés para recibir Turnos.
-                    </p>
+                    <h1 className="m-0 text-xl font-extrabold tracking-tight">Horas laborables</h1>
+                    <p className="m-0 text-sm text-muted-foreground">Los horarios en los que atendés para recibir Turnos.</p>
                 </div>
-                <div className="ml-auto flex items-center gap-3">
-                    <PanelButton disabled={busy} onClick={() => setCreating(true)}>
-                        <Plus className="size-4" />
-                        Nuevo
-                    </PanelButton>
-                </div>
+                <Button className="ml-auto" disabled={busy} onClick={() => setCreating(true)}>
+                    <Plus />
+                    Nuevo
+                </Button>
             </header>
 
-            <div className="mt-8 overflow-hidden rounded-xl border border-[#e5e7eb]">
+            <div className="mt-8 overflow-hidden rounded-md border">
                 {availabilities.length > 0 ? (
-                    <ul className="m-0 list-none divide-y divide-[#e5e7eb] p-0">
+                    <ul className="m-0 list-none divide-y p-0">
                         {availabilities.map((a) => (
                             <AvailabilityRow
                                 key={a.id}
                                 availability={a}
+                                preferences={preferences}
                                 busy={busy}
                                 onOpen={() => onOpen(a.id)}
                                 onMakeDefault={() => onMakeDefault(a)}
@@ -171,20 +222,15 @@ export function AvailabilityList({
                         ))}
                     </ul>
                 ) : (
-                    <p className="m-0 px-6 py-8 text-center text-[13px] font-medium text-[#6b7280]">
-                        Todavía no tenés horas laborables.
-                    </p>
+                    <div className="flex flex-col items-center gap-2 px-6 py-12 text-center">
+                        <Clock className="size-8 text-muted-foreground" />
+                        <p className="m-0 font-medium">Todavía no tenés horas laborables</p>
+                        <p className="m-0 text-sm text-muted-foreground">Agregá unas para empezar a recibir Turnos.</p>
+                    </div>
                 )}
             </div>
 
-            {creating && (
-                <NewAvailabilityDialog
-                    onClose={() => setCreating(false)}
-                    onCreate={async (name, timeZone) => {
-                        if (await onCreate(name, timeZone)) setCreating(false);
-                    }}
-                />
-            )}
+            <NewAvailabilityDialog open={creating} onOpenChange={setCreating} onCreate={onCreate} />
         </div>
     );
 }
