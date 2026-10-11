@@ -39,15 +39,21 @@ function NewAvailabilityDialog({
         register,
         handleSubmit,
         reset,
+        watch,
         formState: { isSubmitting },
     } = useForm<{ name: string }>({ defaultValues: { name: '' } });
+    const blank = !watch('name').trim();
+    const defaultTimeZone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 
     return (
         <Dialog
             open={open}
             onOpenChange={(next) => {
                 if (isSubmitting) return;
-                if (!next) reset();
+                if (!next) {
+                    reset();
+                    setTimeZone(defaultTimeZone());
+                }
                 onOpenChange(next);
             }}
         >
@@ -71,7 +77,7 @@ function NewAvailabilityDialog({
                             id="new-availability-name"
                             autoFocus
                             placeholder="Horario de verano"
-                            {...register('name', { validate: (name) => name.trim().length > 0 })}
+                            {...register('name')}
                         />
                     </div>
                     <div className="grid gap-2">
@@ -80,7 +86,7 @@ function NewAvailabilityDialog({
                     </div>
                     <DialogFooter>
                         <DialogClose render={<Button type="button" variant="outline" disabled={isSubmitting} />}>Cerrar</DialogClose>
-                        <Button type="submit" disabled={isSubmitting}>
+                        <Button type="submit" disabled={isSubmitting || blank}>
                             Continuar
                         </Button>
                     </DialogFooter>
@@ -170,7 +176,7 @@ function AvailabilityRow({
 }
 
 /**
- * Las Horas laborables del Usuario, copiadas de la lista de cal.diy: nombre, "Predeterminado", resumen de
+ * Las Horas laborables del Usuario: nombre, "Predeterminado", resumen de
  * Franjas en el formato de hora y desde el primer día de la semana de `preferences`, y zona horaria. Abrir
  * una lleva a su editor.
  */
