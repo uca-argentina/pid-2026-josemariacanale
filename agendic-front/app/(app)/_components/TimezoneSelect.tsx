@@ -95,7 +95,7 @@ const addTimezonesToDropdown = (timezones: Timezones) =>
 
 const formatOffset = (offset: string) => offset.replace(/^([-+])(0)(\d):00$/, (_, sign, _zero, hour) => `${sign}${hour}:00`);
 
-const handleOptionLabel = (option: ITimezoneOption, timezones: Timezones) => {
+const optionLabel = (option: ITimezoneOption, timezones: Timezones) => {
     const offsetUnit = option.label.split(/[-+]/)[0].substring(1);
     const cityName = option.label.split(') ')[1];
     const suffix = ` ${offsetUnit} ${formatOffset(dayjs.tz(undefined, option.value).format('Z'))}`;
@@ -103,7 +103,7 @@ const handleOptionLabel = (option: ITimezoneOption, timezones: Timezones) => {
 };
 
 /**
- * Elige una zona horaria IANA buscando por ciudad o zona. Copia del selector de cal.diy (ADR 0025);
+ * Elige una zona horaria IANA buscando por ciudad o zona. Ver ADR 0025;
  * `value` y `onChange` llevan el identificador IANA, como el combobox que reemplaza.
  */
 export function TimezoneSelect({
@@ -124,7 +124,7 @@ export function TimezoneSelect({
     );
 
     const getLabel = useCallback(
-        (option: unknown) => handleOptionLabel(option as ITimezoneOption, additionalTimezones),
+        (option: unknown) => optionLabel(option as ITimezoneOption, additionalTimezones),
         [additionalTimezones],
     );
 
@@ -152,8 +152,9 @@ export function TimezoneSelect({
                 singleValue: () => 'text-[#0f1b2d]',
                 placeholder: () => 'text-[#9ca3af]',
                 dropdownIndicator: () => 'text-[#0f1b2d]',
+                menuList: () => 'max-h-[180px] overflow-y-auto',
                 menu: () =>
-                    'mt-1 rounded-md border border-[#e5e7eb] bg-white p-1 text-sm shadow-[0_10px_30px_rgba(15,27,45,0.12)]',
+                    'z-50 mt-1 rounded-md border border-[#e5e7eb] bg-white p-1 text-sm shadow-[0_10px_30px_rgba(15,27,45,0.12)]',
                 option: (state) =>
                     cn(
                         'rounded-md px-3 py-2.5 text-[#0f1b2d]',
