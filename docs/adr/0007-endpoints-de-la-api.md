@@ -179,7 +179,7 @@ propias: la de otro Usuario es 404, como una que no existe.
 
 | Método | Ruta | Auth | Qué hace |
 |---|---|---|---|
-| GET | `/availabilities` | sí | Las Availability del Usuario: `[{ id, name, isDefault, timeZone }]` |
+| GET | `/availabilities` | sí | Las Availability del Usuario: `[{ id, name, isDefault, timeZone, schedule }]`, con `schedule` como en el detalle y sin Anulaciones |
 | POST | `/availabilities` | sí | Crea una vacía, no predeterminada; 201 con la Availability |
 | GET | `/availabilities/:id` | sí | La Availability con su matriz semanal y sus Anulaciones |
 | PUT | `/availabilities/:id` | sí | Reemplaza todo: nombre, zona, Franjas y Anulaciones, en una transacción; 200 con la Availability |
