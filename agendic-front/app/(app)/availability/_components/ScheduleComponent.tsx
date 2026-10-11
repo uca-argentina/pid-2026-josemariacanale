@@ -88,8 +88,7 @@ function ScheduleDay({
     weekStart: number;
 }) {
     const name: DayName = `schedule.${index}`;
-    const { watch, setValue, getValues } = useFormContext<ScheduleFormValues>();
-    const { fields, remove, prepend, append } = useFieldArray<ScheduleFormValues, DayName>({ name });
+    const { watch, setValue } = useFormContext<ScheduleFormValues>();
     const dayRanges = watch(name);
     const lastNonEmptyRef = useRef<DateRange[] | null>(null);
     const working = dayRanges.length > 0;
@@ -111,15 +110,7 @@ function ScheduleDay({
                 <span className="text-sm font-medium capitalize">{weekday}</span>
             </label>
             {working ? (
-                <DayRanges
-                    name={name}
-                    fields={fields}
-                    remove={(i) => {
-                        if (fields.length === 1) lastNonEmptyRef.current = null;
-                        remove(i);
-                    }}
-                    timeFormat={timeFormat}
-                />
+                <DayRanges name={name} timeFormat={timeFormat} onEmptied={() => (lastNonEmptyRef.current = null)} />
             ) : (
                 <span className="flex h-8 items-center text-sm text-muted-foreground">No disponible</span>
             )}
@@ -130,12 +121,9 @@ function ScheduleDay({
                     data-testid="add-time-availability"
                     onClick={() => {
                         if (!working) return toggle(true);
-                        const slotRange = getDateSlotRange(
-                            getValues(`${name}.${fields.length - 1}`),
-                            getValues(`${name}.0`),
-                        );
-                        if (slotRange?.append) append(slotRange.append);
-                        if (slotRange?.prepend) prepend(slotRange.prepend);
+                        const slotRange = getDateSlotRange(dayRanges[dayRanges.length - 1], dayRanges[0]);
+                        if (slotRange?.append) setValue(name, [...dayRanges, slotRange.append], { shouldDirty: true });
+                        if (slotRange?.prepend) setValue(name, [slotRange.prepend, ...dayRanges], { shouldDirty: true });
                     }}
                 >
                     <Plus />
@@ -193,19 +181,20 @@ function CopyButton({ from, weekStart, disabled }: { from: number; weekStart: nu
 /**
  * Las Franjas de un día, cada una con sus desplegables de inicio y fin y su X. Quitar la última deja el día sin
  * Franjas. Las que terminan antes de empezar o se solapan quedan marcadas.
+ *
+ * @param onEmptied se llama cuando la X quita la última Franja
  */
 export function DayRanges({
     name,
-    fields,
-    remove,
     timeFormat,
+    onEmptied,
 }: {
     name: DayName;
-    fields: { id: string }[];
-    remove: (index: number) => void;
     timeFormat: TimeFormat;
+    onEmptied?: () => void;
 }) {
     const { watch } = useFormContext<ScheduleFormValues>();
+    const { fields, remove } = useFieldArray<ScheduleFormValues, DayName>({ name });
     const invalid = invalidIntervals(toTimeRanges(watch(name)));
 
     return (
@@ -223,7 +212,13 @@ export function DayRanges({
                             />
                         )}
                     />
-                    <IconButton label="Quitar Franja" onClick={() => remove(index)}>
+                    <IconButton
+                        label="Quitar Franja"
+                        onClick={() => {
+                            if (fields.length === 1) onEmptied?.();
+                            remove(index);
+                        }}
+                    >
                         <X />
                     </IconButton>
                 </div>

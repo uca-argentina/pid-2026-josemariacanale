@@ -10,7 +10,7 @@ Motivos:
 
 ## Dependencias que suma el spec
 
-`react-hook-form`, `react-select`, `react-timezone-select`, `dayjs` y `react-day-picker`. Con este ADR llegan `react-select`, `react-timezone-select` y `dayjs`; `react-hook-form` llega con los días y Franjas del editor; el resto lo suman los tickets que copian el calendario.
+`react-hook-form`, `react-select`, `dayjs` y `react-day-picker`. Con este ADR llegan `react-select` y `dayjs`; `react-hook-form` llega con los días y Franjas del editor; el resto lo suman los tickets que copian el calendario.
 
 ## Qué no se copia
 
@@ -18,4 +18,4 @@ Lo que cal.diy tiene y el spec deja afuera: el toggle de disponibilidad del equi
 
 ## Selector de zona horaria
 
-Reemplaza al combobox anterior en crear y editar Horas laborables, el formulario de Sucursal y Crear Negocio. El valor sigue siendo el identificador IANA (`America/Argentina/Buenos_Aires`). Sin el endpoint de ciudades de cal.diy, la búsqueda usa la lista de `react-timezone-select` más las etiquetas fijas de cal.diy.
+Es un combobox de Base UI (`Combobox`) en crear y editar Horas laborables, el formulario de Sucursal y Crear Negocio: se escribe para filtrar. El valor sigue siendo el identificador IANA (`America/Argentina/Buenos_Aires`). Sin el endpoint de ciudades de cal.diy, la lista sale de `Intl.supportedValuesOf('timeZone')` y la búsqueda mira el nombre de la zona más las etiquetas fijas de cal.diy. En un principio se usó `react-timezone-select`; se cambió a combobox para que el selector se escriba y busque igual en todo el panel.
