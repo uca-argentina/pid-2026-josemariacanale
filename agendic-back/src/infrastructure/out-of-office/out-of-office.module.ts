@@ -1,0 +1,19 @@
+import { Module } from '@nestjs/common';
+import { CreateOutOfOfficeUseCase } from '../../application/out-of-office/create-out-of-office.use-case';
+import { DeleteOutOfOfficeUseCase } from '../../application/out-of-office/delete-out-of-office.use-case';
+import { ListOutOfOfficeUseCase } from '../../application/out-of-office/list-out-of-office.use-case';
+import { UpdateOutOfOfficeUseCase } from '../../application/out-of-office/update-out-of-office.use-case';
+import { UsersModule } from '../users/users.module';
+import { OutOfOfficeController } from './out-of-office.controller';
+
+@Module({
+  imports: [UsersModule],
+  controllers: [OutOfOfficeController],
+  providers: [
+    ListOutOfOfficeUseCase,
+    CreateOutOfOfficeUseCase,
+    UpdateOutOfOfficeUseCase,
+    DeleteOutOfOfficeUseCase,
+  ],
+})
+export class OutOfOfficeModule {}
