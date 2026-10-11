@@ -1,5 +1,9 @@
 import { Availability } from '../../domain/availabilities/availability';
 import {
+  OutOfOffice,
+  OutOfOfficeReason,
+} from '../../domain/out-of-office/out-of-office';
+import {
   ANAS_BRANCH,
   ANAS_EMPLOYEE,
   ANAS_SERVICE,
@@ -464,6 +468,157 @@ describe('GET /services/:id/slots', () => {
     });
 
     await query(t, {}).expect(404);
+  });
+
+  describe('Fuera de la oficina', () => {
+    const PERIOD: OutOfOffice = {
+      id: 1,
+      userId: ANAS_EMPLOYEE.userId,
+      startDate: '2026-01-02',
+      endDate: '2026-01-02',
+      reason: OutOfOfficeReason.VACATION,
+      notes: 'Playa',
+      showNotePublicly: true,
+    };
+    const PERSONAL = {
+      ...SERVICE,
+      branchId: null,
+      userId: ANAS_EMPLOYEE.userId,
+      availabilityId: AVAILABILITY_ID,
+      employees: [],
+    };
+
+    beforeEach(() => {
+      t.outOfOffice.listByUserEndingFrom.mockResolvedValue([PERIOD]);
+    });
+
+    it('un Servicio personal deja el día sin horarios, con OUT_OF_OFFICE y su Motivo y nota', async () => {
+      t.services.findById.mockResolvedValue(PERSONAL);
+
+      const res = await query(t, {}).expect(200);
+
+      expect(res.body.days).toEqual([
+        {
+          date: '2026-01-02',
+          slots: [],
+          reason: 'OUT_OF_OFFICE',
+          outOfOffice: { reason: 'VACATION', notes: 'Playa' },
+        },
+      ]);
+    });
+
+    it('la nota solo aparece si es pública', async () => {
+      t.services.findById.mockResolvedValue(PERSONAL);
+      t.outOfOffice.listByUserEndingFrom.mockResolvedValue([
+        { ...PERIOD, showNotePublicly: false },
+      ]);
+
+      const res = await query(t, {}).expect(200);
+
+      expect(res.body.days[0].outOfOffice).toEqual({ reason: 'VACATION', notes: null });
+    });
+
+    it('si varios períodos se solapan, gana el de startDate más temprano', async () => {
+      t.services.findById.mockResolvedValue(PERSONAL);
+      t.outOfOffice.listByUserEndingFrom.mockResolvedValue([
+        { ...PERIOD, id: 1, startDate: '2025-12-30', reason: OutOfOfficeReason.TRAVEL },
+        { ...PERIOD, id: 2, reason: OutOfOfficeReason.SICK_LEAVE },
+      ]);
+
+      const res = await query(t, {}).expect(200);
+
+      expect(res.body.days[0].outOfOffice.reason).toBe('TRAVEL');
+    });
+
+    it('le gana a una Anulación con horas de la misma fecha', async () => {
+      t.services.findById.mockResolvedValue(PERSONAL);
+      t.availabilities.findById.mockResolvedValue({
+        ...AVAILABILITY,
+        overrides: [{ date: '2026-01-02', ranges: [{ start: '10:00', end: '12:00' }] }],
+      });
+
+      const res = await query(t, {}).expect(200);
+
+      expect(res.body.days[0]).toMatchObject({ slots: [], reason: 'OUT_OF_OFFICE' });
+    });
+
+    it('un día no trabajado dentro del período sigue siendo NOT_WORKING', async () => {
+      t.services.findById.mockResolvedValue(PERSONAL);
+      t.outOfOffice.listByUserEndingFrom.mockResolvedValue([
+        { ...PERIOD, startDate: '2026-01-01', endDate: '2026-01-05' },
+      ]);
+
+      const res = await query(t, { from: '2026-01-03', to: '2026-01-03' }).expect(200); // Saturday
+
+      expect(res.body.days).toEqual([
+        { date: '2026-01-03', slots: [], reason: 'NOT_WORKING' },
+      ]);
+    });
+
+    it('lee el día en la zona de la Availability', async () => {
+      t.services.findById.mockResolvedValue(PERSONAL);
+      t.availabilities.findById.mockResolvedValue({
+        ...AVAILABILITY,
+        timeZone: 'Pacific/Honolulu', // UTC-10: Monday 09:00 is 19:00Z
+      });
+      t.outOfOffice.listByUserEndingFrom.mockResolvedValue([
+        { ...PERIOD, startDate: '2026-01-05', endDate: '2026-01-05' },
+      ]);
+
+      const res = await query(t, { from: '2026-01-05', to: '2026-01-06' }).expect(200);
+
+      expect(res.body.days[0]).toMatchObject({ date: '2026-01-05', reason: 'OUT_OF_OFFICE' });
+      expect(res.body.days[1].slots[0]).toBe('2026-01-06T19:00:00.000Z');
+    });
+
+    describe('en un Servicio del Negocio', () => {
+      const JUAN_ID = ANAS_EMPLOYEE.id + 1;
+      const JUAN_USER_ID = 99;
+      const WITH_JUAN = {
+        ...SERVICE,
+        employees: [
+          ...SERVICE.employees,
+          {
+            id: JUAN_ID,
+            name: 'Juan',
+            availabilityId: 11,
+            userId: JUAN_USER_ID,
+            imageUrl: null,
+            slug: null,
+          },
+        ],
+      };
+
+      beforeEach(() => {
+        t.services.findById.mockResolvedValue(WITH_JUAN);
+        t.availabilities.findById.mockImplementation(async (id) =>
+          id === 11 ? { ...AVAILABILITY, id: 11, userId: JUAN_USER_ID } : AVAILABILITY,
+        );
+      });
+
+      it('siguen los horarios del Empleado que no está fuera', async () => {
+        t.outOfOffice.listByUserEndingFrom.mockImplementation(async (userId) =>
+          userId === ANAS_EMPLOYEE.userId ? [PERIOD] : [],
+        );
+
+        const res = await query(t, {}).expect(200);
+
+        expect(res.body.days[0].slots).toHaveLength(18);
+        expect(res.body.days[0].reason).toBeUndefined();
+      });
+
+      it('si no está ninguno, el día es NOT_WORKING y no trae outOfOffice', async () => {
+        t.outOfOffice.listByUserEndingFrom.mockImplementation(async (userId) => [
+          { ...PERIOD, userId },
+        ]);
+
+        const res = await query(t, {}).expect(200);
+
+        expect(res.body.days).toEqual([
+          { date: '2026-01-02', slots: [], reason: 'NOT_WORKING' },
+        ]);
+      });
+    });
   });
 
   describe('con varios Empleados', () => {

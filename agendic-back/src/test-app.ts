@@ -211,7 +211,7 @@ export async function createTestApp() {
     delete: jest.fn(),
   };
   const outOfOffice: jest.Mocked<OutOfOfficeRepository> = {
-    listByUserEndingFrom: jest.fn(),
+    listByUserEndingFrom: jest.fn().mockResolvedValue([]),
     findById: jest.fn(),
     findByUserAndDates: jest.fn(),
     create: jest.fn(),

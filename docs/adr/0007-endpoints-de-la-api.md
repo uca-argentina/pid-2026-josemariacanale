@@ -205,7 +205,7 @@ propias: la de otro Usuario es 404, como una que no existe.
 
 Los períodos Fuera de la oficina son del Usuario (ADR 0027), no de una Availability. Todos los endpoints exigen
 Sesión y actúan sobre el Usuario de la Sesión: nadie gestiona los períodos de otro, y uno de otro Usuario es 404,
-como uno que no existe. Todavía no bloquean Horarios reservables.
+como uno que no existe.
 
 | Método | Ruta | Auth | Qué hace |
 |---|---|---|---|
@@ -249,9 +249,10 @@ como uno que no existe. Todavía no bloquean Horarios reservables.
   4. Cada rango se corta: la frecuencia es el Intervalo (`slotInterval`) o, sin él, la duración. La alineación es el mayor de 60, 30, 20, 15, 10 y 5 que divida la frecuencia (1 si ninguno). El inicio de cada rango es el máximo entre su inicio más el Tiempo de preparación del Servicio y `ahora + minimumNoticeMinutes`, redondeado hacia arriba a la alineación en la zona de la Sucursal. Se avanza de a la frecuencia mientras `inicio + duración ≤ fin del rango`, sin repetir instantes
   5. Los horarios se agrupan por fecha de la Sucursal (su zona, no la de la Availability). Si el Servicio tiene `dailyLimit` y ese día de la Sucursal ya tiene esa cantidad de Turnos `PENDING` o `BOOKED` del Servicio, el día no ofrece horarios (`reason: FULLY_BOOKED`)
   6. Un día ya pasado no viene
-- No se copian de cal.diy `showOptimizedSlots`, `offsetStart`, asientos, `travelSchedules` ni OOO
+- No se copian de cal.diy `showOptimizedSlots`, `offsetStart`, asientos ni `travelSchedules`
+- Fuera de la oficina (ADR 0027): una fecha D, leída en la zona de la Availability, en algún período `startDate ≤ D ≤ endDate` del Usuario que atiende no tiene Franjas, y eso le gana a una Anulación con horas de esa fecha. En un Servicio del Negocio los otros Empleados siguen ofreciendo horarios; si no está ninguno, el día es `NOT_WORKING`. No valida nada nuevo en `POST /bookings` ni al Reagendar: un día bloqueado no tiene horarios, y tomarlo da el 422 de siempre
 - `employeeId` (query, opcional, entero): con él la respuesta tiene la misma forma pero solo con los Horarios reservables de ese Empleado. 404 `Employee <employeeId> does not offer Service <serviceId>` si no es un Empleado activo que Ofrece el Servicio (nunca lo ofreció, dejó de ofrecerlo o fue dado de baja del Negocio); 400 si el Servicio es personal; 400 si no es un entero.
-- Respuesta: `{ timeZone, days: [{ date, slots: [ISO instants], reason? }] }`, con `timeZone` la de la Sucursal (en la que están las fechas `date`). `reason` solo aparece cuando `slots` está vacío: `NOT_WORKING` (ninguna Franja del día alcanza para la duración del Servicio, o Anulación de día libre) o `FULLY_BOOKED` (había horarios pero los Turnos, la Anticipación mínima o el Límite diario se los llevaron todos)
+- Respuesta: `{ timeZone, days: [{ date, slots: [ISO instants], reason? }] }`, con `timeZone` la de la Sucursal (en la que están las fechas `date`). `reason` solo aparece cuando `slots` está vacío: `NOT_WORKING` (ninguna Franja del día alcanza para la duración del Servicio, o Anulación de día libre) o `FULLY_BOOKED` (había horarios pero los Turnos, la Anticipación mínima o el Límite diario se los llevaron todos). Solo en un Servicio personal hay además `OUT_OF_OFFICE` (el día habría tenido Franjas pero el Usuario está Fuera de la oficina), y entonces el día trae `outOfOffice: { reason: OutOfOfficeReason, notes: string | null }`: `notes` es la nota del período si tiene `showNotePublicly`, si no `null`; si varios períodos se solapan gana el de `startDate` más temprano. Un día que de todos modos no se trabaja sigue siendo `NOT_WORKING`
 
 ## Bookings (Turno)
 
