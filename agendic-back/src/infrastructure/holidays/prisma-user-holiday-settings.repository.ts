@@ -32,7 +32,7 @@ export class PrismaUserHolidaySettingsRepository implements UserHolidaySettingsR
 }
 
 const translateError = (error: unknown): never => {
-  throw new DatabaseOperationError('User holiday settings not saved', {
+  throw new DatabaseOperationError('User holiday settings query failed', {
     cause: error,
   });
 };

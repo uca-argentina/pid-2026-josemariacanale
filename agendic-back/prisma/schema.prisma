@@ -298,15 +298,15 @@ model HolidayCache {
   @@index([countryCode, date])
 }
 
-/// Días festivos del Usuario (ADR 0027), copiado de cal.diy: el país o calendario religioso que eligió y los Días festivos que apagó.
+/// Días festivos del Usuario (ADR 0027): el país o calendario religioso que eligió y los Días festivos que apagó.
 model UserHolidaySettings {
   id          Int      @id @default(autoincrement())
   userId      Int      @unique
   countryCode String? // código de `holiday-calendars.ts`; null sin país
   disabledIds String[] // eventId de los Días festivos apagados
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
 
   user User @relation(fields: [userId], references: [id])
 }
