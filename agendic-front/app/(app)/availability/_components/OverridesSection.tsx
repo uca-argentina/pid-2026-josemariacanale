@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import dayjs from 'dayjs';
-import { es } from 'react-day-picker/locale';
+import { es } from '@daypicker/react/locale';
 import { FormProvider, useForm } from 'react-hook-form';
 import { Info, Pencil, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/app/_components/ui/button';

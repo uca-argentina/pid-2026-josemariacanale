@@ -33,7 +33,6 @@ export function Header({ user, nav = true }: { user: CurrentUser | null; nav?: b
                         </span>
                         <Button
                             render={<Link href={SIGNED_IN_HOME_PATH} />}
-                            nativeButton={false}
                             className="text-[15px] font-bold text-white bg-primary px-[18px] py-[11px] rounded-[10px] hover:bg-primary/90 transition-colors h-auto"
                         >
                             Ir a la app
@@ -44,7 +43,6 @@ export function Header({ user, nav = true }: { user: CurrentUser | null; nav?: b
                     <>
                         <Button
                             render={<Link href="/sign-in" transitionTypes={['auth-nav']} />}
-                            nativeButton={false}
                             variant="ghost"
                             className="text-[15px] font-semibold text-foreground px-4 py-2.5 hover:text-primary transition-colors h-auto"
                         >
@@ -52,7 +50,6 @@ export function Header({ user, nav = true }: { user: CurrentUser | null; nav?: b
                         </Button>
                         <Button
                             render={<Link href="/sign-up" transitionTypes={['auth-nav']} />}
-                            nativeButton={false}
                             className="text-[15px] font-bold text-white bg-primary px-[18px] py-[11px] rounded-[10px] hover:bg-primary/90 transition-colors h-auto"
                         >
                             Empezá gratis
