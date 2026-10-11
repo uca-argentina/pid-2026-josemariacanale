@@ -1,6 +1,6 @@
 "use client";
 
-import { DayPicker } from "react-day-picker";
+import { DayPicker } from "@daypicker/react";
 import {
   ChevronLeftIcon,
   ChevronRightIcon,

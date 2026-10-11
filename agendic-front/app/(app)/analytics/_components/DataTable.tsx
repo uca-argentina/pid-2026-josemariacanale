@@ -112,7 +112,7 @@ const VIEWS = [
 ];
 
 const INLINE_INPUT =
-    'h-8 w-16 border-transparent bg-transparent text-right shadow-none hover:bg-input/30 focus-visible:border focus-visible:bg-background';
+    'w-16 border-transparent bg-transparent text-right shadow-none hover:bg-input/30 has-focus-visible:border has-focus-visible:bg-background';
 
 function saveInline(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
