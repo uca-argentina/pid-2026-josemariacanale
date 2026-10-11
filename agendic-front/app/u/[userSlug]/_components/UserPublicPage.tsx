@@ -35,34 +35,37 @@ export function UserPublicPage({
 
     return (
         <>
-            <div className="mx-auto w-full max-w-[960px] flex-1 px-4 pb-20 sm:px-8">
-                <header className="flex items-center gap-4 pt-6 pb-7">
-                    <Avatar className="size-16 shrink-0">
-                        {user.imageUrl && <AvatarImage src={user.imageUrl} alt="" />}
-                        <AvatarFallback className="bg-sidebar-accent text-[20px] font-extrabold text-sidebar-accent-foreground">
-                            {initials(user.name)}
-                        </AvatarFallback>
-                    </Avatar>
-                    <div>
-                        <h1 className="text-[40px] leading-[1.05] font-extrabold tracking-[-0.03em] sm:text-[52px]">{user.name}</h1>
-                        <p className="mt-3 text-[14.5px] font-medium text-muted-foreground">Reservá un turno.</p>
-                    </div>
-                </header>
-
-                <section aria-labelledby="servicios-titulo">
-                    <h2 id="servicios-titulo" className="text-[32px] leading-none font-extrabold tracking-[-0.03em]">
-                        Servicios
-                    </h2>
-                    {services.length > 0 ? (
-                        <div className="mt-6 flex flex-col gap-3">
-                            {services.map((service) => (
-                                <ServiceCard key={service.id} service={service} onBook={openFlow} />
-                            ))}
+            <div className="mx-auto w-full max-w-[960px] flex-1 px-4 py-8 sm:px-8">
+                <div className="rounded-2xl border border-border bg-background p-6 shadow-[0_1px_2px_rgba(15,27,45,0.04)] sm:p-10">
+                    <header className="flex items-center gap-4 pb-7">
+                        <Avatar className="size-16 shrink-0">
+                            {user.imageUrl && <AvatarImage src={user.imageUrl} alt="" />}
+                            <AvatarFallback className="bg-sidebar-accent text-[20px] font-extrabold text-sidebar-accent-foreground">
+                                {initials(user.name)}
+                            </AvatarFallback>
+                        </Avatar>
+                        <div>
+                            <h1 className="text-[40px] leading-[1.05] font-extrabold tracking-[-0.03em] sm:text-[52px]">{user.name}</h1>
+                            <p className="mt-3 text-[14.5px] font-medium text-muted-foreground">Reservá un turno.</p>
                         </div>
-                    ) : (
-                        <p className="mt-5 text-[14.5px] text-muted-foreground">Todavía no hay servicios para reservar.</p>
-                    )}
-                </section>
+                    </header>
+
+                    <section aria-labelledby="servicios-titulo">
+                        <h2 id="servicios-titulo" className="text-[32px] leading-none font-extrabold tracking-[-0.03em]">
+                            Servicios
+                        </h2>
+                        {services.length > 0 ? (
+                            <div className="mt-6 flex flex-col gap-3">
+                                {services.map((service) => (
+                                    <ServiceCard key={service.id} service={service} onBook={openFlow} />
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="mt-5 text-[14.5px] text-muted-foreground">Todavía no hay servicios para reservar.</p>
+                        )}
+                    </section>
+
+                </div>
             </div>
 
             {flowOpen && (
