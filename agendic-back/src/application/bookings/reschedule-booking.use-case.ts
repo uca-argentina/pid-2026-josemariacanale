@@ -15,7 +15,7 @@ import {
 import { MAILER, Mailer } from '../../domain/mailer';
 import { ListSlotsUseCase } from '../slots/list-slots.use-case';
 import { notifyClients } from './notify-clients';
-import { chosenEmployeeId, pickEmployee } from './pick-employee';
+import { chosenEmployeeIdOf, pickEmployee } from './pick-employee';
 import { findOwnBookedBooking } from './find-own-booked-booking';
 
 /** Mueve un Turno aceptado a otro Horario reservable del mismo Servicio, con el mismo Empleado si está libre y si no con otro (ver `pickEmployee`; un Turno con Empleado elegido solo a horarios de ese Empleado), y le avisa por mail al Cliente. */
@@ -66,7 +66,7 @@ export class RescheduleBookingUseCase {
       {
         excludeBookingId: bookingId,
         keepEmployeeId: booking.employeeId ?? undefined,
-        chosenEmployeeId: chosenEmployeeId(booking),
+        chosenEmployeeId: chosenEmployeeIdOf(booking),
       },
     );
     const rescheduled = await this.bookings.reschedule(bookingId, {

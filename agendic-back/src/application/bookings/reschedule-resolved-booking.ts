@@ -2,7 +2,7 @@ import { Booking, BookingStatus, ClientBooking } from '../../domain/bookings/boo
 import { BookingsRepository } from '../../domain/bookings/bookings.repository';
 import { ServicesRepository } from '../../domain/services/services.repository';
 import { ListSlotsUseCase } from '../slots/list-slots.use-case';
-import { chosenEmployeeId, pickEmployee } from './pick-employee';
+import { chosenEmployeeIdOf, pickEmployee } from './pick-employee';
 
 /**
  * Reagenda un Turno ya identificado y validado como pendiente o aceptado a otro Horario reservable del mismo
@@ -29,7 +29,7 @@ export async function rescheduleResolvedBooking(
   const attendant = await pickEmployee(listSlots, bookings, booking.serviceId, startsAt, {
     excludeBookingId: booking.id,
     keepEmployeeId: booking.employeeId ?? undefined,
-    chosenEmployeeId: chosenEmployeeId(booking),
+    chosenEmployeeId: chosenEmployeeIdOf(booking),
   });
   const status = service?.requiresApproval
     ? BookingStatus.PENDING

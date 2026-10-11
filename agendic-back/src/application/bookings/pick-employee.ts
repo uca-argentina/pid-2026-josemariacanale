@@ -70,7 +70,7 @@ export async function pickEmployee(
 }
 
 /** The Empleado a Turno must stay with when rescheduled: its Empleado elegido, if it has one. */
-export const chosenEmployeeId = ({
+export const chosenEmployeeIdOf = ({
   employeeId,
   employeeChosen,
 }: Pick<Booking, 'employeeId' | 'employeeChosen'>): number | undefined =>
