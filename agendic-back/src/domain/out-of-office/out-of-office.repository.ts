@@ -2,6 +2,7 @@ import { OutOfOffice, OutOfOfficeFields } from './out-of-office';
 
 export const OUT_OF_OFFICE_REPOSITORY = Symbol('OutOfOfficeRepository');
 
+/** Puerto de los períodos Fuera de la oficina del Usuario. */
 export interface OutOfOfficeRepository {
   /** Los del Usuario con `endDate` ≥ `from` (YYYY-MM-DD), por `startDate` ascendente. */
   listByUserEndingFrom(userId: number, from: string): Promise<OutOfOffice[]>;

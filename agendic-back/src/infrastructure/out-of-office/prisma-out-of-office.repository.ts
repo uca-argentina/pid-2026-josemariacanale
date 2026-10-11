@@ -32,8 +32,8 @@ const toData = (data: OutOfOfficeFields) => ({
   startDate: toDbDate(data.startDate),
   endDate: toDbDate(data.endDate),
   reason: data.reason,
-  notes: data.notes ?? null,
-  showNotePublicly: data.showNotePublicly ?? false,
+  notes: data.notes,
+  showNotePublicly: data.showNotePublicly,
 });
 
 /** Acceso a los períodos Fuera de la oficina del Usuario. */
@@ -41,6 +41,7 @@ const toData = (data: OutOfOfficeFields) => ({
 export class PrismaOutOfOfficeRepository implements OutOfOfficeRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  /** @throws {DatabaseOperationError} la base falló */
   async listByUserEndingFrom(userId: number, from: string) {
     const rows = await this.prisma.outOfOffice
       .findMany({
@@ -77,6 +78,10 @@ export class PrismaOutOfOfficeRepository implements OutOfOfficeRepository {
     return row && toOutOfOffice(row);
   }
 
+  /**
+   * @throws {ConflictError} el Usuario ya tiene un período con esas fechas
+   * @throws {DatabaseOperationError} la base falló
+   */
   async create(userId: number, data: OutOfOfficeFields) {
     return toOutOfOffice(
       await this.prisma.outOfOffice
@@ -85,6 +90,11 @@ export class PrismaOutOfOfficeRepository implements OutOfOfficeRepository {
     );
   }
 
+  /**
+   * @throws {ConflictError} otro período del Usuario tiene esas fechas
+   * @throws {NotFoundError} el período no existe
+   * @throws {DatabaseOperationError} la base falló
+   */
   async update(id: number, data: OutOfOfficeFields) {
     return toOutOfOffice(
       await this.prisma.outOfOffice
@@ -93,6 +103,10 @@ export class PrismaOutOfOfficeRepository implements OutOfOfficeRepository {
     );
   }
 
+  /**
+   * @throws {NotFoundError} el período no existe
+   * @throws {DatabaseOperationError} la base falló
+   */
   async delete(id: number) {
     await this.prisma.outOfOffice
       .delete({ where: { id } })

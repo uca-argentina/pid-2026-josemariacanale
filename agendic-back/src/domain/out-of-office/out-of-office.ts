@@ -22,9 +22,12 @@ export interface OutOfOffice {
   showNotePublicly: boolean;
 }
 
+/** Lo que el Usuario carga de un período: todo menos `id` y `userId`. */
 export type OutOfOfficeFields = Omit<OutOfOffice, 'id' | 'userId'>;
 
 /**
+ * Valida las fechas de un período.
+ *
  * @throws {BusinessRuleError} la fecha de fin es anterior a la de inicio
  */
 export function assertValidOutOfOffice({
