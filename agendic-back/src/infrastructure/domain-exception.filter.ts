@@ -8,6 +8,7 @@ import {
   ExternalServiceError,
   ForbiddenError,
   InvalidCodeError,
+  NotConfiguredError,
   NotFoundError,
   TooManyRequestsError,
   UnauthenticatedError,
@@ -23,6 +24,7 @@ const STATUS_BY_ERROR: [typeof DomainError, number][] = [
   [BusinessRuleError, 422],
   [TooManyRequestsError, 429],
   [ExternalServiceError, 502],
+  [NotConfiguredError, 503],
 ];
 
 @Catch(DomainError)

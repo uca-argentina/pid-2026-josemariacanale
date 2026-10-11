@@ -41,6 +41,7 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | Anulación | `AvailabilityOverride` (`availabilityId`) |
 | Fuera de la oficina (ADR 0027) | `OutOfOffice` (`userId`; `startDate` / `endDate` como fechas sin hora, inclusivas; `notes` opcional; `showNotePublicly`, por defecto `false`; `GET/POST /users/me/out-of-office`, `PUT/DELETE /users/me/out-of-office/:id`) |
 | Motivo | `OutOfOfficeReason` (`UNSPECIFIED \| VACATION \| TRAVEL \| SICK_LEAVE \| PUBLIC_HOLIDAY`; el emoji y la etiqueta viven en el front) |
+| Día festivo (ADR 0027) | `Holiday` (`HolidayCache`: `countryCode`, `calendarId`, `eventId`, `name`, `date`, `year`); puerto `GoogleCalendarClient`, `GetHolidaysForCountryUseCase`; `GET /holidays/countries` → `ListHolidayCountriesUseCase` |
 | Horario reservable | `Slot` (`GET /services/:id/slots`) |
 | Servicio | `Service` |
 | Servicio personal (ADR 0021) | `PersonalService` (`Service.userId`, `Service.availabilityId`; sin `branchId`; Enlace de reserva `User.slug`, la URL del front es `/<slug>/<servicio>`) |

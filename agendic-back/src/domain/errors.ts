@@ -24,3 +24,6 @@ export class DatabaseOperationError extends DomainError {}
 
 /** An external service (Clerk) failed; answered as 502. */
 export class ExternalServiceError extends DomainError {}
+
+/** An optional integration (Google Calendar, for Días festivos) has no configuration; answered as 503. */
+export class NotConfiguredError extends DomainError {}

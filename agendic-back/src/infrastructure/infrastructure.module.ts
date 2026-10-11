@@ -9,6 +9,8 @@ import { BOOKING_VERIFICATION_CODES } from '../domain/bookings/booking-verificat
 import { BRANCHES_REPOSITORY } from '../domain/branches/branches.repository';
 import { BUSINESSES_REPOSITORY } from '../domain/businesses/businesses.repository';
 import { EMPLOYEES_REPOSITORY } from '../domain/employees/employees.repository';
+import { GOOGLE_CALENDAR_CLIENT } from '../domain/holidays/google-calendar-client';
+import { HOLIDAYS_REPOSITORY } from '../domain/holidays/holidays.repository';
 import { INVITATIONS_REPOSITORY } from '../domain/invitations/invitations.repository';
 import { OUT_OF_OFFICE_REPOSITORY } from '../domain/out-of-office/out-of-office.repository';
 import { SERVICES_REPOSITORY } from '../domain/services/services.repository';
@@ -27,6 +29,9 @@ import { PrismaBusinessesRepository } from './businesses/prisma-businesses.repos
 import { BusinessesModule } from './businesses/businesses.module';
 import { PrismaEmployeesRepository } from './employees/prisma-employees.repository';
 import { EmployeesModule } from './employees/employees.module';
+import { GoogleCalendarApiClient } from './holidays/google-calendar-api.client';
+import { HolidaysModule } from './holidays/holidays.module';
+import { PrismaHolidaysRepository } from './holidays/prisma-holidays.repository';
 import { PrismaInvitationsRepository } from './invitations/prisma-invitations.repository';
 import { OutOfOfficeModule } from './out-of-office/out-of-office.module';
 import { PrismaOutOfOfficeRepository } from './out-of-office/prisma-out-of-office.repository';
@@ -55,6 +60,7 @@ import { UsersModule } from './users/users.module';
     AvailabilitiesModule,
     OutOfOfficeModule,
     SlugsModule,
+    HolidaysModule,
   ],
   providers: [
     PrismaService,
@@ -93,6 +99,8 @@ import { UsersModule } from './users/users.module';
       provide: OUT_OF_OFFICE_REPOSITORY,
       useClass: PrismaOutOfOfficeRepository,
     },
+    { provide: HOLIDAYS_REPOSITORY, useClass: PrismaHolidaysRepository },
+    { provide: GOOGLE_CALENDAR_CLIENT, useClass: GoogleCalendarApiClient },
   ],
   exports: [
     CLOCK,
@@ -110,6 +118,8 @@ import { UsersModule } from './users/users.module';
     BOOKING_VERIFICATION_CODES,
     AVAILABILITIES_REPOSITORY,
     OUT_OF_OFFICE_REPOSITORY,
+    HOLIDAYS_REPOSITORY,
+    GOOGLE_CALENDAR_CLIENT,
   ],
 })
 export class InfrastructureModule {}
