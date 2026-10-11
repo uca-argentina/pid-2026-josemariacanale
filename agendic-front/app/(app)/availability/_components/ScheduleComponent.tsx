@@ -111,7 +111,15 @@ function ScheduleDay({
                 <span className="text-sm font-medium capitalize">{weekday}</span>
             </label>
             {working ? (
-                <DayRanges name={name} fields={fields} remove={remove} timeFormat={timeFormat} />
+                <DayRanges
+                    name={name}
+                    fields={fields}
+                    remove={(i) => {
+                        if (fields.length === 1) lastNonEmptyRef.current = null;
+                        remove(i);
+                    }}
+                    timeFormat={timeFormat}
+                />
             ) : (
                 <span className="flex h-8 items-center text-sm text-muted-foreground">No disponible</span>
             )}
