@@ -401,6 +401,21 @@ export class PrismaBookingsRepository implements BookingsRepository {
     return this.findById(id);
   }
 
+  /**
+   * @throws {BusinessRuleError} el Turno ya no está pendiente ni aceptado, ya empezó, no tiene Seña o ya la tiene pagada
+   * @throws {NotFoundError} el Turno no existe
+   */
+  async payDeposit(id: number, now: Date) {
+    await this.updateStatus(
+      id,
+      OCCUPYING,
+      { depositPaidAt: now },
+      'Turno is not pending or booked, has already started, has no Seña, or already has its Seña paid',
+      { startsAt: { gt: now }, depositAmount: { not: null }, depositPaidAt: null },
+    );
+    return this.findEnriched(id);
+  }
+
   /** Applies `data` only while the Turno is still one of `fromStatuses` (and matches `extraWhere`), so a race can't resurrect it. */
   private async updateStatus(
     id: number,
