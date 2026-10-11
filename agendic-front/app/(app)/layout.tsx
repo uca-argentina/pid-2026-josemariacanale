@@ -10,6 +10,7 @@ import { SignOutOnDeactivated } from './_components/SignOutOnDeactivated';
 import { getInjection } from '@/di/container';
 import { isSessionExpired, isUserDeactivated } from '@/app/api-error';
 import { loadMyBookings } from '@/app/(app)/bookings/load-my-bookings';
+import { DEFAULT_PREFERENCES } from '@/src/entities/models/user';
 import type { NavItem } from './_components/types';
 
 const navItems: NavItem[] = [
@@ -55,10 +56,24 @@ async function ownedBusinessName() {
     }
 }
 
+/** Las preferencias del Usuario, o las de fábrica si la consulta falla: no vale un error de página. */
+async function myPreferences() {
+    try {
+        return await getInjection('IGetMyPreferencesController')();
+    } catch (error) {
+        if (!isSessionExpired(error) && !isUserDeactivated(error)) getInjection('ICrashReporterService').report(error);
+        return DEFAULT_PREFERENCES;
+    }
+}
+
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
     const user = await getCurrentUser();
     if (!user) redirect(SIGN_IN_PATH);
-    const [{ count: pendingCount, deactivated }, businessName] = await Promise.all([countPendingBookings(), ownedBusinessName()]);
+    const [{ count: pendingCount, deactivated }, businessName, preferences] = await Promise.all([
+        countPendingBookings(),
+        ownedBusinessName(),
+        myPreferences(),
+    ]);
     if (deactivated) return <SignOutOnDeactivated />;
 
     return (
@@ -73,6 +88,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <AppSidebar
                 user={{ name: user.name, email: user.email, initials: initialsOf(user.name), imageUrl: user.imageUrl }}
                 businessName={businessName}
+                preferences={preferences}
                 navItems={navItems.map((item) => (item.id === 'bookings' ? { ...item, count: pendingCount } : item))}
             />
             <SidebarInset className="min-w-0">

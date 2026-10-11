@@ -4,6 +4,9 @@ import { getMeUseCase } from '@/src/application/use-cases/users/get-me.use-case'
 import { getUserPageUseCase } from '@/src/application/use-cases/users/get-user-page.use-case';
 import { retireMeUseCase } from '@/src/application/use-cases/users/retire-me.use-case';
 import { updateMySlugUseCase } from '@/src/application/use-cases/users/update-my-slug.use-case';
+import { updateMyPreferencesUseCase } from '@/src/application/use-cases/users/update-my-preferences.use-case';
+import { getMyPreferencesController } from '@/src/interface-adapters/controllers/users/get-my-preferences.controller';
+import { updateMyPreferencesController } from '@/src/interface-adapters/controllers/users/update-my-preferences.controller';
 import { UsersRepository } from '@/src/infrastructure/repositories/users.repository';
 import { getUserPageController } from '@/src/interface-adapters/controllers/users/get-user-page.controller';
 import { retireMeController } from '@/src/interface-adapters/controllers/users/retire-me.controller';
@@ -50,6 +53,26 @@ export function createUsersModule() {
     usersModule
         .bind(DI_SYMBOLS.IGetUserPageController)
         .toHigherOrderFunction(getUserPageController, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IGetUserPageUseCase]);
+
+    usersModule
+        .bind(DI_SYMBOLS.IUpdateMyPreferencesUseCase)
+        .toHigherOrderFunction(updateMyPreferencesUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IUsersRepository]);
+
+    usersModule
+        .bind(DI_SYMBOLS.IUpdateMyPreferencesController)
+        .toHigherOrderFunction(updateMyPreferencesController, [
+            DI_SYMBOLS.IInstrumentationService,
+            DI_SYMBOLS.IAuthenticationService,
+            DI_SYMBOLS.IUpdateMyPreferencesUseCase,
+        ]);
+
+    usersModule
+        .bind(DI_SYMBOLS.IGetMyPreferencesController)
+        .toHigherOrderFunction(getMyPreferencesController, [
+            DI_SYMBOLS.IInstrumentationService,
+            DI_SYMBOLS.IAuthenticationService,
+            DI_SYMBOLS.IGetMeUseCase,
+        ]);
 
     return usersModule;
 }

@@ -10,8 +10,19 @@ export const userSchema = z.object({
 export type User = z.infer<typeof userSchema>;
 
 /** The Usuario as the back knows them (GET and PATCH /users/me): `slug` is their Enlace de reserva (ADR 0021), null until they pick one. */
-export const meSchema = z.object({ name: z.string(), slug: z.string().nullable(), imageUrl: z.string().nullable() });
+export const meSchema = z.object({
+    name: z.string(),
+    slug: z.string().nullable(),
+    imageUrl: z.string().nullable(),
+    timeFormat: z.union([z.literal(12), z.literal(24)]),
+    weekStart: z.number().int().min(0).max(6),
+});
 export type Me = z.infer<typeof meSchema>;
+
+/** Las preferencias del Usuario para las horas y la semana: `weekStart` 0 = domingo. Por defecto, 24 h y lunes. */
+export const preferencesSchema = meSchema.pick({ timeFormat: true, weekStart: true });
+export type Preferences = z.infer<typeof preferencesSchema>;
+export const DEFAULT_PREFERENCES: Preferences = { timeFormat: 24, weekStart: 1 };
 
 /** The Enlace de reserva of a Usuario, GET /u/:userSlug: their Servicios personales, without the hidden ones. */
 export const userPageSchema = z.object({

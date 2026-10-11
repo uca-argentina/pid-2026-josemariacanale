@@ -78,6 +78,9 @@ import type { IGetMeUseCase } from '@/src/application/use-cases/users/get-me.use
 import type { IUpdateMySlugUseCase } from '@/src/application/use-cases/users/update-my-slug.use-case';
 import type { IGetUserPageUseCase } from '@/src/application/use-cases/users/get-user-page.use-case';
 import type { IRetireMeUseCase } from '@/src/application/use-cases/users/retire-me.use-case';
+import type { IUpdateMyPreferencesUseCase } from '@/src/application/use-cases/users/update-my-preferences.use-case';
+import type { IUpdateMyPreferencesController } from '@/src/interface-adapters/controllers/users/update-my-preferences.controller';
+import type { IGetMyPreferencesController } from '@/src/interface-adapters/controllers/users/get-my-preferences.controller';
 import type { IRetireMeController } from '@/src/interface-adapters/controllers/users/retire-me.controller';
 import type { IUpdateMySlugController } from '@/src/interface-adapters/controllers/users/update-my-slug.controller';
 import type { IGetUserPageController } from '@/src/interface-adapters/controllers/users/get-user-page.controller';
@@ -214,6 +217,9 @@ export const DI_SYMBOLS = {
     IUpdateMySlugController: Symbol.for('IUpdateMySlugController'),
     IRetireMeUseCase: Symbol.for('IRetireMeUseCase'),
     IRetireMeController: Symbol.for('IRetireMeController'),
+    IUpdateMyPreferencesUseCase: Symbol.for('IUpdateMyPreferencesUseCase'),
+    IUpdateMyPreferencesController: Symbol.for('IUpdateMyPreferencesController'),
+    IGetMyPreferencesController: Symbol.for('IGetMyPreferencesController'),
     IGetUserPageController: Symbol.for('IGetUserPageController'),
     IListPersonalServicesUseCase: Symbol.for('IListPersonalServicesUseCase'),
     ICreatePersonalServiceUseCase: Symbol.for('ICreatePersonalServiceUseCase'),
@@ -339,6 +345,9 @@ export interface DI_RETURN_TYPES {
     IUpdateMySlugController: IUpdateMySlugController;
     IRetireMeUseCase: IRetireMeUseCase;
     IRetireMeController: IRetireMeController;
+    IUpdateMyPreferencesUseCase: IUpdateMyPreferencesUseCase;
+    IUpdateMyPreferencesController: IUpdateMyPreferencesController;
+    IGetMyPreferencesController: IGetMyPreferencesController;
     IGetUserPageController: IGetUserPageController;
     IListPersonalServicesUseCase: IListPersonalServicesUseCase;
     ICreatePersonalServiceUseCase: ICreatePersonalServiceUseCase;
