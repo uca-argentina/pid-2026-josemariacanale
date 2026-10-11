@@ -17,9 +17,9 @@ const presentService = (s: PersonalService) => ({
     depositPercent: s.depositPercent,
 });
 
-function presenter({ name, slug, services, selectedService }: PublicUserPage, instrumentationService: IInstrumentationService) {
+function presenter({ name, slug, imageUrl, services, selectedService }: PublicUserPage, instrumentationService: IInstrumentationService) {
     return instrumentationService.startSpan({ name: 'getUserPage Presenter', op: 'serialize' }, () => ({
-        user: { name, slug },
+        user: { name, slug, imageUrl },
         services: services.map(presentService),
         selectedService: selectedService ? presentService(selectedService) : null,
     }));

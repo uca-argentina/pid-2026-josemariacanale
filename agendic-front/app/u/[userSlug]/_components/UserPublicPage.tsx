@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/app/_components/ui/avatar';
+import { initials } from '@/app/_components/booking/format';
 import { SERVICE_CATEGORIES } from '@/app/_components/business-schemas';
 import { BookingFlow } from '@/app/_components/booking/BookingFlow';
 import { ServiceCard } from '@/app/_components/booking/ServiceCard';
@@ -15,7 +17,7 @@ export function UserPublicPage({
     services,
     selectedService,
 }: {
-    user: { name: string };
+    user: { name: string; imageUrl: string | null };
     services: Service[];
     selectedService: Service | null;
 }) {
@@ -34,9 +36,17 @@ export function UserPublicPage({
     return (
         <>
             <div className="mx-auto w-full max-w-[960px] flex-1 px-4 pb-20 sm:px-8">
-                <header className="pt-6 pb-7">
-                    <h1 className="text-[40px] leading-[1.05] font-extrabold tracking-[-0.03em] sm:text-[52px]">{user.name}</h1>
-                    <p className="mt-3 text-[14.5px] font-medium text-muted-foreground">Reservá un turno.</p>
+                <header className="flex items-center gap-4 pt-6 pb-7">
+                    <Avatar className="size-16 shrink-0">
+                        {user.imageUrl && <AvatarImage src={user.imageUrl} alt="" />}
+                        <AvatarFallback className="bg-sidebar-accent text-[20px] font-extrabold text-sidebar-accent-foreground">
+                            {initials(user.name)}
+                        </AvatarFallback>
+                    </Avatar>
+                    <div>
+                        <h1 className="text-[40px] leading-[1.05] font-extrabold tracking-[-0.03em] sm:text-[52px]">{user.name}</h1>
+                        <p className="mt-3 text-[14.5px] font-medium text-muted-foreground">Reservá un turno.</p>
+                    </div>
                 </header>
 
                 <section aria-labelledby="servicios-titulo">
