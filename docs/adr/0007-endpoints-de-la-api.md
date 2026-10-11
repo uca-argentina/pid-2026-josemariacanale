@@ -112,7 +112,7 @@ una Sucursal); sus archivos en el storage no.
 | GET | `/branches/:id/services` | no | Lista servicios activos de una sucursal, sin los ocultos; 404 si la sucursal no existe |
 | POST | `/users/me/services` | sí | Crea un Servicio personal del Usuario (ADR 0021): sin Negocio, sin Sucursal y sin Empleados; 404 si la `availabilityId` no existe o no es del Usuario; 409 si el `slug` o el nombre ya lo usa otro Servicio personal activo suyo |
 | GET | `/users/me/services` | sí | Los Servicios personales activos del Usuario, ocultos incluidos |
-| GET | `/u/:userSlug` | no | El Enlace de reserva del Usuario: `{ name, slug, services }` con sus Servicios personales no ocultos ni dados de baja; el tramo se compara en minúsculas; 404 si ningún Usuario lo tiene |
+| GET | `/u/:userSlug` | no | El Enlace de reserva del Usuario: `{ name, slug, imageUrl, services }` con `imageUrl` la foto de perfil del Usuario (`User.imageUrl`), `null` si no tiene una real en el Proveedor de autenticación, y sus Servicios personales no ocultos ni dados de baja; el tramo se compara en minúsculas; 404 si ningún Usuario lo tiene |
 | GET | `/u/:userSlug/:serviceSlug` | no | Un Servicio personal por su tramo, aunque esté oculto; 404 si el Usuario no existe o ningún Servicio personal suyo no dado de baja tiene ese tramo |
 | GET | `/branches/:id/services/by-slug/:slug` | no | Un servicio de la sucursal por su tramo del Enlace de reserva (ADR 0018), aunque esté oculto; el tramo se compara en minúsculas; 404 si la sucursal no existe o si ningún servicio suyo no dado de baja tiene ese tramo (los de un Negocio dado de baja están todos dados de baja) |
 

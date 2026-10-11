@@ -88,6 +88,7 @@ export class ServicesController {
     return {
       name: user.name,
       slug: user.slug,
+      imageUrl: user.imageUrl,
       services: services.map(presentService),
     };
   }
