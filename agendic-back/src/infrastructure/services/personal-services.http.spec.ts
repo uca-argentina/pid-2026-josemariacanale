@@ -287,6 +287,21 @@ describe('Servicio personal', () => {
       expect(res.body.services.map((s: { id: number }) => s.id)).toEqual([5]);
     });
 
+    it('GET /u/:userSlug shows the Usuario photo, and null when they have none', async () => {
+      t.users.findBySlug.mockResolvedValue({
+        ...ANAS_USER,
+        imageUrl: 'https://img.example/ana.png',
+      });
+      const withPhoto = await t.http.get('/u/ana-perez').expect(200);
+      expect(withPhoto.body.imageUrl).toBe('https://img.example/ana.png');
+      expect(withPhoto.body).not.toHaveProperty('email');
+      expect(withPhoto.body).not.toHaveProperty('id');
+
+      t.users.findBySlug.mockResolvedValue({ ...ANAS_USER, imageUrl: null });
+      const without = await t.http.get('/u/ana-perez').expect(200);
+      expect(without.body.imageUrl).toBeNull();
+    });
+
     it('GET /u/:userSlug answers 404 for an unknown Usuario', async () => {
       await t.http.get('/u/nadie').expect(404);
     });
