@@ -171,7 +171,7 @@ function CopyButton({ from, weekStart }: { from: number; weekStart: number }) {
  * Las Franjas de un día, cada una con sus desplegables de inicio y fin. La primera lleva sumar Franja y `copyButton`;
  * con más de una, cada una lleva quitar. Las que terminan antes de empezar o se solapan quedan marcadas.
  */
-function DayRanges({
+export function DayRanges({
     name,
     timeFormat,
     copyButton,

@@ -146,6 +146,7 @@ export function AvailabilityEditor({
                     </div>
                     <OverridesSection
                         overrides={draft.overrides}
+                        preferences={preferences}
                         busy={busy}
                         onChange={(overrides) => setDraft((d) => ({ ...d, overrides }))}
                     />

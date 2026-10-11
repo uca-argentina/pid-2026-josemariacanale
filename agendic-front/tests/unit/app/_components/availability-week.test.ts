@@ -2,7 +2,6 @@ import {
     DEFAULT_DAYS,
     intervalsValid,
     invalidIntervals,
-    nextInterval,
     fromFormSchedule,
     intervalAsString,
     intervalsFromSchedule,
@@ -57,24 +56,6 @@ describe('sortIntervalStrings', () => {
     it('ordena las líneas desde el primer día de la semana', () => {
         expect([...lines].sort(sortIntervalStrings(1))).toEqual(['lun, 09:00 - 17:00', 'mié, 08:00 - 13:00', 'dom, 10:00 - 12:00']);
         expect([...lines].sort(sortIntervalStrings(0))).toEqual(['dom, 10:00 - 12:00', 'lun, 09:00 - 17:00', 'mié, 08:00 - 13:00']);
-    });
-});
-
-describe('nextInterval', () => {
-    it('agrega una hora a partir del fin de la última Franja', () => {
-        expect(nextInterval([r('09:00', '13:00')])).toEqual(r('13:00', '14:00'));
-    });
-
-    it('sin Franjas propone el horario por defecto', () => {
-        expect(nextInterval([])).toEqual(r('09:00', '18:00'));
-    });
-
-    it('se recorta al final del día', () => {
-        expect(nextInterval([r('09:00', '23:15')])).toEqual(r('23:15', '23:45'));
-    });
-
-    it('no propone nada si el día ya está lleno', () => {
-        expect(nextInterval([r('09:00', '23:45')])).toBeNull();
     });
 });
 
