@@ -17,10 +17,15 @@ const NO_SLOTS_REASON = {
 
 /**
  * Elige el nuevo Horario reservable de un Turno aceptado. Pide al back los horarios del mismo Servicio,
- * de a una semana, igual que la reserva pública, y al confirmar reagenda.
+ * de a una semana, igual que la reserva pública, y al confirmar reagenda. Un Turno con Empleado elegido (ADR 0026)
+ * solo ofrece horarios de ese Empleado.
  */
 export function RescheduleDialog({ booking, onOpenChange }: { booking: Booking; onOpenChange: (open: boolean) => void }) {
-    const { status, message, week, days, label, canGoBack, goToWeek, retry, reload } = useSlotWeek(booking.serviceId, null);
+    const { status, message, week, days, label, canGoBack, goToWeek, retry, reload } = useSlotWeek(
+        booking.serviceId,
+        null,
+        booking.employeeChosen && booking.employeeId !== null ? booking.employeeId : undefined,
+    );
     const [date, setDate] = useState<string | null>(null);
     const [startsAt, setStartsAt] = useState<string | null>(null);
     const [notice, setNotice] = useState<string | null>(null);

@@ -12,6 +12,8 @@ export const clientBookingSchema = z.object({
     clientName: z.string(),
     serviceId: z.number(),
     employeeId: z.number().nullable(),
+    // Empleado elegido (ADR 0026): Reagendar solo ofrece horarios de `employeeId`.
+    employeeChosen: z.boolean(),
     service: z.object({
         name: z.string(),
         durationMinutes: z.number(),

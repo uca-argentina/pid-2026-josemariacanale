@@ -15,6 +15,7 @@ function presenter(booking: ClientBooking, instrumentationService: IInstrumentat
         clientName: booking.clientName,
         serviceId: booking.serviceId,
         employeeId: booking.employeeId,
+        employeeChosen: booking.employeeChosen,
         service: booking.service,
         employeeName: booking.employeeName,
         business: booking.business,

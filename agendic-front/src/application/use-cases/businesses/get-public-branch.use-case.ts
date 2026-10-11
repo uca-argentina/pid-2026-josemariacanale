@@ -19,20 +19,22 @@ export interface PublicBranch {
     images: BranchImage[];
     /** The Servicio of the Enlace de reserva's tramo, already chosen; null without that tramo. It may be hidden, and so missing from `services` (ADR 0018). */
     selectedService: Service | null;
+    /** The Empleado of the Enlace de reserva's last tramo (Empleado elegido, ADR 0026); null without that tramo. */
+    selectedEmployee: ServiceEmployee | null;
 }
 
 export type IGetPublicBranchUseCase = ReturnType<typeof getPublicBranchUseCase>;
 /**
  * Gets the Sucursal a full Enlace de reserva points to, with the Servicio of its tramo when there is one.
  * There is no combined endpoint: the Sucursal tramo is looked up among the Negocio's own Sucursales,
- * so one of another Negocio is a 404 too.
+ * so one of another Negocio is a 404 too. The Empleado tramo is looked up among the Empleados who offer the Servicio.
  *
- * @throws {NotFoundError} no Negocio has that tramo, it has no such Sucursal, or the Sucursal has no active Servicio with that tramo
+ * @throws {NotFoundError} no Negocio has that tramo, it has no such Sucursal, the Sucursal has no active Servicio with that tramo, or no Empleado who offers it has the Empleado tramo
  * @throws {ApiRequestError} the back failed
  */
 export const getPublicBranchUseCase =
     (instrumentationService: IInstrumentationService, publicBusinessesRepository: IPublicBusinessesRepository) =>
-    (input: { businessSlug: string; branchSlug: string; serviceSlug?: string }): Promise<PublicBranch> =>
+    (input: { businessSlug: string; branchSlug: string; serviceSlug?: string; employeeSlug?: string }): Promise<PublicBranch> =>
         instrumentationService.startSpan({ name: 'getPublicBranch Use Case', op: 'function' }, async () => {
             const business = await publicBusinessesRepository.getBusinessBySlug(input.businessSlug);
             const branches = await publicBusinessesRepository.listBranches(business.id);
@@ -47,5 +49,10 @@ export const getPublicBranchUseCase =
             // ADR 0007: `order` is ascending but may have gaps, so it sorts, never indexes.
             const images = [...unsortedImages].sort((a, b) => a.order - b.order);
             const employees = [...new Map(services.flatMap((s) => s.employees).map((e) => [e.id, e])).values()];
-            return { business, branch, branches, services, employees, images, selectedService };
+            const selectedEmployee = input.employeeSlug
+                ? (selectedService?.employees.find((e) => e.slug === input.employeeSlug) ?? null)
+                : null;
+            if (input.employeeSlug && !selectedEmployee)
+                throw new NotFoundError(`Service '${input.serviceSlug}' has no Empleado '${input.employeeSlug}'`);
+            return { business, branch, branches, services, employees, images, selectedService, selectedEmployee };
         });

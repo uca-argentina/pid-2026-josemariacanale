@@ -30,6 +30,8 @@ const inputSchema = z
         serviceId: z.number().int().positive(),
         from: z.iso.date(),
         to: z.iso.date(),
+        // Empleado elegido (ADR 0026): only that Empleado's Horarios reservables.
+        employeeId: z.number().int().positive().optional(),
     })
     .refine(({ from, to }) => {
         const days = (Date.parse(to) - Date.parse(from)) / DAY_MS + 1;

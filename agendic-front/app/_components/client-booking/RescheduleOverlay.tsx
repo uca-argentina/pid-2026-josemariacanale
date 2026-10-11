@@ -65,7 +65,14 @@ export function RescheduleOverlay({
                     Elegí día y horario
                 </h1>
 
-                <TimeStep service={service} date={date} slot={slot} notice={notice} onSelect={(d, s) => (setDate(d), setSlot(s))} />
+                <TimeStep
+                    service={service}
+                    date={date}
+                    slot={slot}
+                    notice={notice}
+                    employeeId={booking.employeeChosen && booking.employeeId !== null ? booking.employeeId : undefined}
+                    onSelect={(d, s) => (setDate(d), setSlot(s))}
+                />
 
                 <Button
                     onClick={confirm}

@@ -20,6 +20,8 @@ function presenter(booking: Booking, instrumentationService: IInstrumentationSer
 const inputSchema = z.object({
     serviceId: z.number().int().positive(),
     startsAt: z.iso.datetime(),
+    // Empleado elegido (ADR 0026): the Enlace de reserva of an Empleado fixes who attends.
+    employeeId: z.number().int().positive().optional(),
     clientName: z.string().trim().min(1),
     clientEmail: z.string().trim().pipe(z.email()),
     // Comentario del Turno: the back's limit (ticket 03, back PR #37). Blank is sent as no Comentario.

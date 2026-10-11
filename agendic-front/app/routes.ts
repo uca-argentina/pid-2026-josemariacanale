@@ -8,10 +8,11 @@ export const SERVICES_PATH = '/services';
 
 /**
  * La ruta del Enlace de reserva, sin prefijo (ADR 0026): sin tramo de Sucursal, la página del Negocio (ADR 0014); con
- * el tramo de un Servicio (ADR 0018), la de la Sucursal con ese Servicio ya elegido.
+ * el tramo de un Servicio (ADR 0018), la de la Sucursal con ese Servicio ya elegido, y con el de un Empleado que lo
+ * Ofrece, esa reserva con el Empleado elegido. Un tramo sin el anterior se descarta.
  */
-export const bookingLinkPath = (businessSlug: string, branchSlug?: string, serviceSlug?: string) =>
-    `/${[businessSlug, branchSlug, branchSlug && serviceSlug].filter(Boolean).join('/')}`;
+export const bookingLinkPath = (businessSlug: string, branchSlug?: string, serviceSlug?: string, employeeSlug?: string) =>
+    `/${[businessSlug, branchSlug, branchSlug && serviceSlug, branchSlug && serviceSlug && employeeSlug].filter(Boolean).join('/')}`;
 
 /** La ruta del Enlace de reserva de un Usuario (ADR 0021, 0026): sus Servicios personales, o uno ya elegido. */
 export const userLinkPath = (userSlug: string, serviceSlug?: string) => `/${[userSlug, serviceSlug].filter(Boolean).join('/')}`;

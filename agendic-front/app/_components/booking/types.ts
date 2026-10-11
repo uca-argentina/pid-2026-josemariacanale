@@ -14,6 +14,13 @@ export interface Host {
     branch: { name: string; address: string } | null;
 }
 
+/** El Empleado elegido (ADR 0026) de una reserva: con quién es y de quién son los horarios. */
+export interface ChosenEmployee {
+    id: number;
+    name: string;
+    imageUrl: string | null;
+}
+
 /** Un Servicio que se puede Reservar. `depositPercent` es la Seña; `null`, sin Seña. */
 export interface Service {
     id: number;

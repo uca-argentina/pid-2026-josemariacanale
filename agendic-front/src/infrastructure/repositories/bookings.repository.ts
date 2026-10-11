@@ -34,6 +34,7 @@ export class BookingsRepository implements IBookingsRepository {
     async listSlots({ serviceId, ...query }: SlotsQuery): Promise<Slots> {
         return this.instrumentationService.startSpan({ name: 'BookingsRepository > listSlots', op: 'http.client' }, async () => {
             const params = new URLSearchParams({ from: query.from, to: query.to });
+            if (query.employeeId !== undefined) params.set('employeeId', String(query.employeeId));
             const what = 'GET /services/:id/slots';
             const body = await this.request(`/services/${serviceId}/slots?${params}`, {}, what);
             return parseOrFail(() => slotsSchema.parse(body), what);
