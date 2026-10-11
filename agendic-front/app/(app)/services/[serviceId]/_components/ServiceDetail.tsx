@@ -26,6 +26,7 @@ import { DAY_NAMES, toWeek } from '@/app/(app)/_components/availability-week';
 import { bookingLinkPath, userLinkPath } from '@/app/routes';
 import { changeEmployeeAvailabilityAction, updateServiceAction } from '../../actions';
 import { formatPrice } from '../../_components/format';
+import { formatPrice as formatPriceWithCents } from '@/app/_components/booking/format';
 import {
     HiddenSwitch,
     OfferButton,
@@ -190,8 +191,8 @@ function SetupTab({
                                 onValueChange={(depositPercent) => set({ depositPercent })}
                             />
                             <span className="text-[13px] font-medium text-[#6b7280]">
-                                Seña de <strong className="font-bold text-[#0f1b2d]">{formatPrice(deposit)}</strong> · resta{' '}
-                                {formatPrice(price - deposit)} al atender
+                                Seña de <strong className="font-bold text-[#0f1b2d]">{formatPriceWithCents(deposit)}</strong> · resta{' '}
+                                {formatPriceWithCents(Math.round((price - deposit) * 100) / 100)} al atender
                             </span>
                         </div>
                         <InlineFieldError id="service-deposit-percent" error={errors.depositPercent} />
