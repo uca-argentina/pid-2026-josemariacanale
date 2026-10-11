@@ -19,6 +19,7 @@ export const authWith = (stubs: Partial<IAuthenticationService>): IAuthenticatio
 });
 
 export const publicBusinessesWith = (stubs: Partial<IPublicBusinessesRepository>): IPublicBusinessesRepository => ({
+    resolveSlug: jest.fn(notStubbed('resolveSlug')),
     getBusinessBySlug: jest.fn(notStubbed('getBusinessBySlug')),
     listBranches: jest.fn(notStubbed('listBranches')),
     listServices: jest.fn(notStubbed('listServices')),

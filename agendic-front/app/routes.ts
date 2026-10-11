@@ -7,14 +7,14 @@ export const BRANCHES_PATH = '/business/branches';
 export const SERVICES_PATH = '/services';
 
 /**
- * La ruta del Enlace de reserva (ADR 0014): sin tramo de Sucursal, la página del Negocio; con el tramo de un
- * Servicio (ADR 0018), la de la Sucursal con ese Servicio ya elegido.
+ * La ruta del Enlace de reserva, sin prefijo (ADR 0026): sin tramo de Sucursal, la página del Negocio (ADR 0014); con
+ * el tramo de un Servicio (ADR 0018), la de la Sucursal con ese Servicio ya elegido.
  */
 export const bookingLinkPath = (businessSlug: string, branchSlug?: string, serviceSlug?: string) =>
-    ['/business', businessSlug, branchSlug, branchSlug && serviceSlug].filter(Boolean).join('/');
+    `/${[businessSlug, branchSlug, branchSlug && serviceSlug].filter(Boolean).join('/')}`;
 
-/** La ruta del Enlace de reserva de un Usuario (ADR 0021): sus Servicios personales, o uno ya elegido. */
-export const userLinkPath = (userSlug: string, serviceSlug?: string) => ['/u', userSlug, serviceSlug].filter(Boolean).join('/');
+/** La ruta del Enlace de reserva de un Usuario (ADR 0021, 0026): sus Servicios personales, o uno ya elegido. */
+export const userLinkPath = (userSlug: string, serviceSlug?: string) => `/${[userSlug, serviceSlug].filter(Boolean).join('/')}`;
 
 /**
  * La sección del panel en la que está `pathname`: la que tiene esa ruta o un prefijo de ella por tramos, así una
@@ -28,15 +28,18 @@ export const bookingPath = (link: string) => `/turnos/${link}`;
 
 /**
  * "Reservar de nuevo" desde un Turno: la Sucursal del Servicio del Negocio, o la página del Usuario en un Servicio
- * personal, sin tramo de Servicio para que el Cliente pueda elegir otro. `null` si el Turno no trae ninguno de los dos.
+ * personal, sin tramo de Servicio para que el Cliente pueda elegir otro. `null` si el Turno no trae ninguno de los dos, o
+ * si el Usuario ya no tiene Enlace de reserva.
  */
 export const bookAgainPath = (booking: {
     business: { slug: string } | null;
     branch: { slug: string } | null;
-    user: { slug: string } | null;
+    user: { slug: string | null } | null;
 }) =>
     booking.user
-        ? userLinkPath(booking.user.slug)
+        ? booking.user.slug
+            ? userLinkPath(booking.user.slug)
+            : null
         : booking.business && booking.branch
           ? bookingLinkPath(booking.business.slug, booking.branch.slug)
           : null;

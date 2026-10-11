@@ -1,4 +1,4 @@
-import { bookAgainPath, bookingPath, sectionOf } from '@/app/routes';
+import { bookAgainPath, bookingLinkPath, bookingPath, sectionOf, userLinkPath } from '@/app/routes';
 
 describe('sectionOf', () => {
     const sections = [
@@ -32,15 +32,38 @@ describe('bookingPath', () => {
     });
 });
 
+describe('bookingLinkPath', () => {
+    it('arma la dirección del Negocio, la Sucursal y el Servicio, sin prefijo', () => {
+        expect(bookingLinkPath('luna')).toBe('/luna');
+        expect(bookingLinkPath('luna', 'centro')).toBe('/luna/centro');
+        expect(bookingLinkPath('luna', 'centro', 'corte')).toBe('/luna/centro/corte');
+    });
+
+    it('ignora el tramo de Servicio sin tramo de Sucursal', () => {
+        expect(bookingLinkPath('luna', undefined, 'corte')).toBe('/luna');
+    });
+});
+
+describe('userLinkPath', () => {
+    it('arma la dirección del Usuario y de su Servicio personal, sin prefijo', () => {
+        expect(userLinkPath('juana')).toBe('/juana');
+        expect(userLinkPath('juana', 'clase')).toBe('/juana/clase');
+    });
+});
+
 describe('bookAgainPath', () => {
     it('lleva a la Sucursal, sin Servicio elegido, en un Servicio del Negocio', () => {
         expect(bookAgainPath({ business: { slug: 'peluqueria-luna' }, branch: { slug: 'centro' }, user: null })).toBe(
-            '/business/peluqueria-luna/centro',
+            '/peluqueria-luna/centro',
         );
     });
 
     it('lleva a la página del Usuario en un Servicio personal', () => {
-        expect(bookAgainPath({ business: null, branch: null, user: { slug: 'juana' } })).toBe('/u/juana');
+        expect(bookAgainPath({ business: null, branch: null, user: { slug: 'juana' } })).toBe('/juana');
+    });
+
+    it('no lleva a ningún lado si el Usuario ya no tiene Enlace de reserva', () => {
+        expect(bookAgainPath({ business: null, branch: null, user: { slug: null } })).toBeNull();
     });
 
     it('no lleva a ningún lado sin Sucursal ni Usuario', () => {

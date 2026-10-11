@@ -144,3 +144,31 @@ describe('PublicBusinessesRepository.listBranchImages', () => {
         await expect(repo().listBranchImages(10)).rejects.toMatchObject({ status: 500 });
     });
 });
+
+describe('PublicBusinessesRepository.resolveSlug', () => {
+    it('GETs /slugs/:slug without a Sesión and parses a Negocio', async () => {
+        const fetchSpy = respond(200, { kind: 'business', business });
+
+        await expect(repo().resolveSlug('vitalia')).resolves.toEqual({ kind: 'business', business });
+        expect(fetchSpy).toHaveBeenCalledWith('http://api/slugs/vitalia');
+    });
+
+    it('parses a Usuario', async () => {
+        const user = { name: 'Ana', slug: 'ana', imageUrl: null, services: [] };
+        respond(200, { kind: 'user', user });
+
+        await expect(repo().resolveSlug('ana')).resolves.toEqual({ kind: 'user', user });
+    });
+
+    it('translates a 404 to NotFoundError', async () => {
+        respond(404, { statusCode: 404, message: 'Booking link nadie not found' });
+        await expect(repo().resolveSlug('nadie')).rejects.toBeInstanceOf(NotFoundError);
+    });
+
+    it('translates an unknown kind to ApiRequestError with the cause', async () => {
+        respond(200, { kind: 'otro' });
+        const error = await repo().resolveSlug('x').catch((e) => e);
+        expect(error).toBeInstanceOf(ApiRequestError);
+        expect(error.cause).toBeDefined();
+    });
+});

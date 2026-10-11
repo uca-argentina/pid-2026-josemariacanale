@@ -2,6 +2,7 @@ import type { IPublicBusinessesRepository } from '@/src/application/repositories
 import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
 import { branchSchema, type Branch } from '@/src/entities/models/branch';
 import { branchImageSchema, type BranchImage } from '@/src/entities/models/branch-image';
+import { resolvedBookingLinkSchema, type ResolvedBookingLink } from '@/src/entities/models/booking-link';
 import { businessSchema, type Business } from '@/src/entities/models/business';
 import { serviceSchema, type Service } from '@/src/entities/models/service';
 
@@ -17,6 +18,17 @@ function parseOrFail<T>(parse: () => T, what: string): T {
 // The public endpoints behind the page of the Enlace de reserva: no Sesión, no token.
 export class PublicBusinessesRepository implements IPublicBusinessesRepository {
     constructor(private readonly apiUrl = process.env.API_URL) {}
+
+    /**
+     * `GET /slugs/:slug`: whose first tramo it is.
+     *
+     * @throws {NotFoundError} the back answered 404
+     * @throws {ApiRequestError} any other failure, or a body that is neither a Negocio nor a Usuario
+     */
+    async resolveSlug(slug: string): Promise<ResolvedBookingLink> {
+        const body = await this.get(`/slugs/${encodeURIComponent(slug)}`, 'GET /slugs/:slug');
+        return parseOrFail(() => resolvedBookingLinkSchema.parse(body), 'GET /slugs/:slug');
+    }
 
     async getBusinessBySlug(slug: string): Promise<Business> {
         const body = await this.get(`/businesses/by-slug/${encodeURIComponent(slug)}`, 'GET /businesses/by-slug/:slug');
