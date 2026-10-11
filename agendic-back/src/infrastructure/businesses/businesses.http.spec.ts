@@ -334,6 +334,56 @@ describe('Negocio', () => {
       expect(res.body.message).toBe('Booking link already in use');
     });
 
+    it('answers 409 when the Enlace de reserva belongs to a Usuario', async () => {
+      t.businesses.create.mockRejectedValue(
+        new ConflictError('Booking link already in use'),
+      );
+
+      const res = await t.http
+        .post('/businesses')
+        .set(bearer(CLERK_TOKEN))
+        .send({
+          ...VALID_BODY,
+          business: { ...BUSINESS_PART, slug: 'ana-perez' },
+        })
+        .expect(409);
+
+      expect(res.body.message).toBe('Booking link already in use');
+    });
+
+    it.each(['bookings', 'services', 'business', 'availability', 'analytics', 'turnos', 'sign-in', 'sign-up', 'api', 'trpc'])(
+      'answers 409 and creates nothing when the Enlace de reserva is the reserved word %j',
+      async (slug) => {
+        const res = await t.http
+          .post('/businesses')
+          .set(bearer(CLERK_TOKEN))
+          .send({ ...VALID_BODY, business: { ...BUSINESS_PART, slug } })
+          .expect(409);
+
+        expect(res.body.message).toBe('Booking link already in use');
+        expect(t.businesses.create).not.toHaveBeenCalled();
+      },
+    );
+
+    it('creates a Sucursal and a Servicio whose slug is a reserved word', async () => {
+      t.businesses.create.mockResolvedValue({
+        business: ANAS_BUSINESS,
+        branch: ANAS_BRANCH,
+        service: null,
+        employee: ANAS_EMPLOYEE,
+      });
+
+      await t.http
+        .post('/businesses')
+        .set(bearer(CLERK_TOKEN))
+        .send({
+          ...VALID_BODY,
+          branch: { ...BRANCH_PART, slug: 'services' },
+          service: { ...SERVICE_PART, slug: 'bookings' },
+        })
+        .expect(201);
+    });
+
     it('answers 401 without a Sesión', async () => {
       await t.http.post('/businesses').send(VALID_BODY).expect(401);
     });
@@ -470,6 +520,29 @@ describe('Negocio', () => {
         .expect(409);
 
       expect(res.body.message).toBe('Booking link already in use');
+    });
+
+    it('answers 409 when the Enlace de reserva belongs to a Usuario', async () => {
+      t.businesses.update.mockRejectedValue(
+        new ConflictError('Booking link already in use'),
+      );
+
+      await t.http
+        .patch(`/businesses/${ANAS_BUSINESS.id}`)
+        .set(bearer(CLERK_TOKEN))
+        .send({ slug: 'ana-perez' })
+        .expect(409);
+    });
+
+    it('answers 409 and changes nothing when the Enlace de reserva is a reserved word', async () => {
+      const res = await t.http
+        .patch(`/businesses/${ANAS_BUSINESS.id}`)
+        .set(bearer(CLERK_TOKEN))
+        .send({ slug: 'analytics' })
+        .expect(409);
+
+      expect(res.body.message).toBe('Booking link already in use');
+      expect(t.businesses.update).not.toHaveBeenCalled();
     });
 
     it('answers 403 for another Usuario', async () => {

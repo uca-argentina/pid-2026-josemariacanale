@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { assertNotReservedSlug } from '../../domain/slugs/assert-booking-link-free';
 import { CreateBusinessInput } from '../../domain/businesses/business';
 import {
   BUSINESSES_REPOSITORY,
@@ -23,6 +24,7 @@ export class CreateBusinessUseCase {
     ownerId: number,
     input: CreateBusinessInput,
   ): Promise<CreatedBusiness> {
+    assertNotReservedSlug(input.business.slug);
     const owner = await this.users.findById(ownerId);
     if (!owner) throw new NotFoundError('User not found');
     if ((await this.businesses.listByOwner(ownerId)).length)

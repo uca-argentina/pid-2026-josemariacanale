@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { assertNotReservedSlug } from '../../domain/slugs/assert-booking-link-free';
 import { NotFoundError } from '../../domain/errors';
 import { UpdateMeInput, User } from '../../domain/users/user';
 import {
@@ -14,9 +15,10 @@ export class UpdateMeUseCase {
 
   /**
    * @throws {NotFoundError} el Usuario no existe
-   * @throws {ConflictError} el slug ya es el Enlace de reserva de otro Usuario
+   * @throws {ConflictError} el slug es una palabra reservada, o ya es el Enlace de reserva de un Negocio o de otro Usuario
    */
   async execute(userId: number, input: UpdateMeInput): Promise<User> {
+    assertNotReservedSlug(input.slug);
     if (Object.values(input).every((value) => value === undefined)) {
       const user = await this.users.findById(userId);
       if (!user) throw new NotFoundError('User not found');

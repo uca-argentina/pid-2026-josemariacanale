@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { assertNotReservedSlug } from '../../domain/slugs/assert-booking-link-free';
 import { Business, UpdateBusinessInput } from '../../domain/businesses/business';
 import {
   BUSINESSES_REPOSITORY,
@@ -18,6 +19,7 @@ export class UpdateBusinessUseCase {
     businessId: number,
     input: UpdateBusinessInput,
   ): Promise<Business> {
+    assertNotReservedSlug(input.slug);
     assertOwner(await this.businesses.findById(businessId), userId);
     return this.businesses.update(businessId, input);
   }

@@ -35,6 +35,7 @@ describe('PrismaUsersRepository', () => {
       findFirst: jest.fn(),
       update: jest.fn(),
     },
+    $transaction: jest.fn(),
   };
   const repository = new PrismaUsersRepository(
     prisma as unknown as PrismaService,
@@ -141,6 +142,29 @@ describe('PrismaUsersRepository', () => {
     });
   });
 
+  it('moves the Enlace de reserva row with the slug, in one transaction', async () => {
+    const tx = {
+      user: { update: jest.fn().mockResolvedValue({ ...ANA, slug: 'ana' }) },
+      bookingSlug: { upsert: jest.fn() },
+    };
+    prisma.$transaction.mockImplementation((run) => run(tx));
+
+    await expect(repository.update(1, { slug: 'ana' })).resolves.toEqual({
+      ...ANA,
+      slug: 'ana',
+    });
+
+    expect(tx.user.update).toHaveBeenCalledWith({
+      where: { id: 1 },
+      data: { slug: 'ana' },
+    });
+    expect(tx.bookingSlug.upsert).toHaveBeenCalledWith({
+      where: { userId: 1 },
+      create: { slug: 'ana', userId: 1 },
+      update: { slug: 'ana' },
+    });
+  });
+
   it('updates only the email', async () => {
     prisma.user.update.mockResolvedValue(ANA);
 
@@ -221,7 +245,9 @@ describe('PrismaUsersRepository', () => {
       cause.meta = {
         driverAdapterError: { cause: { constraint: { index: 'User_slug_key' } } },
       };
-      prisma.user.update.mockRejectedValue(cause);
+      prisma.$transaction.mockImplementation(async () => {
+        throw cause;
+      });
 
       const error = await repository.update(1, { slug: 'ana' }).catch((e: unknown) => e);
 

@@ -1,6 +1,8 @@
 # Sin catálogo público de Negocios: el Cliente llega por un Enlace de reserva
 
-ADR 0007 dejó `GET /businesses` público, listando todos los Negocios de la plataforma. Lo cerramos: pasa a requerir Sesión y a devolver solo los Negocios del Dueño del token, que es lo que el panel necesita. El Cliente no descubre Negocios dentro de Agendic; entra por el Enlace de reserva que el Negocio comparte (`/business/<slug>`), y desde ahí ve sus Sucursales y sus Servicios activos.
+_Ampliada por la ADR 0026: el Enlace de reserva ya no lleva el prefijo `/business/` en las URLs del front; abajo se corrigieron las menciones._
+
+ADR 0007 dejó `GET /businesses` público, listando todos los Negocios de la plataforma. Lo cerramos: pasa a requerir Sesión y a devolver solo los Negocios del Dueño del token, que es lo que el panel necesita. El Cliente no descubre Negocios dentro de Agendic; entra por el Enlace de reserva que el Negocio comparte (`/<slug>`), y desde ahí ve sus Sucursales y sus Servicios activos.
 
 Un catálogo público es un producto distinto del que estamos construyendo: necesita búsqueda, filtros por Rubro y zona, orden, y una decisión sobre qué Negocio aparece primero. Además enumerar la plataforma entera expone a cada Negocio ante sus competidores sin que nadie lo haya pedido. Agendic es la agenda del Negocio, no su canal de captación.
 
