@@ -50,6 +50,7 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | Categoría de Servicio | `ServiceCategory` (`Service.category`) |
 | Aprobación manual | `Service.requiresApproval` |
 | Seña | `Service.depositPercent` (opcional) |
+| Seña pendiente | `Booking.depositAmount` (monto fijado al Reservar: precio × `depositPercent` / 100 redondeado al centavo; `null` sin Seña) y `Booking.depositPaidAt` (`null` mientras no se paga); Seña pendiente = `depositAmount !== null && depositPaidAt === null` |
 | Servicio oculto | `Service.hidden` |
 | Tiempo de preparación | `Service.prepMinutes` (0 = sin preparación); en el Turno, `Booking.prepStartsAt` (desde cuándo ocupa al Empleado) |
 | Límite diario | `Service.dailyLimit` (opcional) |
@@ -68,6 +69,7 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | Ausencia | `Booking.noShowAt` (marcado a mano; no reemplaza `status`) |
 | Reservar | `book` |
 | Reagendar | `reschedule` (`RescheduleBookingUseCase`); por Enlace del Turno, `reschedulePendingOrBooked` (`RescheduleBookingByLinkUseCase`) |
+| Pagar la Seña (ADR 0027) | `payDeposit`, `PayDepositByLinkUseCase`, `PATCH /booking-links/:secret/deposit`; en el front, `payDepositByLink` |
 | Mis turnos del Usuario (ADR 0023) | `UserBooking` (`GET /users/me/bookings`) |
 | Cancelar | `cancel` (del Empleado); por Enlace del Turno, `cancelPendingOrBooked` (también sobre `PENDING`) |
 | Dar de baja | `retire` (`Service.deletedAt`, `Employee.deletedAt`); ADR 0024: `User.deletedAt` (`RetireMeUseCase`, `DELETE /users/me`; Clerk, `ClerkAuth.deleteUser`); `Business.deletedAt` (#122, la baja del Dueño lo marca) |

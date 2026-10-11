@@ -58,6 +58,8 @@ const BOOKING: Booking = {
   noShowAt: null,
   link: 'booking-link-secret',
   employeeChosen: false,
+  depositAmount: null,
+  depositPaidAt: null,
 };
 
 describe('Turno', () => {
@@ -144,6 +146,7 @@ describe('Turno', () => {
           endsAt: new Date('2026-01-01T12:30:00.000Z'),
           notes: null,
           employeeChosen: false,
+          depositAmount: null,
           status: BookingStatus.BOOKED,
         },
         undefined,
@@ -151,6 +154,40 @@ describe('Turno', () => {
       expect(t.mailer.sendBookingConfirmation).toHaveBeenCalledWith(
         VALID_BOOKING.clientEmail,
         BOOKING.link,
+        null,
+      );
+    });
+
+    it('fixes the Seña at booking: price × depositPercent / 100, rounded to the cent', async () => {
+      t.services.findById.mockResolvedValue({ ...SERVICE, price: 10.05, depositPercent: 15 });
+      t.bookings.create.mockResolvedValue({ ...BOOKING, depositAmount: 1.51 });
+
+      await t.http.post('/bookings').send(VALID_BOOKING).expect(201);
+
+      expect(t.bookings.create).toHaveBeenCalledWith(
+        expect.objectContaining({ depositAmount: 1.51 }),
+        undefined,
+      );
+      expect(t.mailer.sendBookingConfirmation).toHaveBeenCalledWith(
+        VALID_BOOKING.clientEmail,
+        BOOKING.link,
+        1.51,
+      );
+    });
+
+    it.each([null, 0])('saves no Seña when depositPercent is %s', async (depositPercent) => {
+      t.services.findById.mockResolvedValue({ ...SERVICE, depositPercent });
+
+      await t.http.post('/bookings').send(VALID_BOOKING).expect(201);
+
+      expect(t.bookings.create).toHaveBeenCalledWith(
+        expect.objectContaining({ depositAmount: null }),
+        undefined,
+      );
+      expect(t.mailer.sendBookingConfirmation).toHaveBeenCalledWith(
+        VALID_BOOKING.clientEmail,
+        BOOKING.link,
+        null,
       );
     });
 

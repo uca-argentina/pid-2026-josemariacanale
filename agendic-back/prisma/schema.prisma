@@ -247,6 +247,8 @@ model Booking {
   noShowAt       DateTime?     @db.Timestamptz(3) // Ausencia: when the Empleado marked it; never replaces status
   link           String        @unique // Enlace del Turno (ADR 0022): secret, random, URL-safe, generated at creation
   employeeChosen Boolean       @default(false) // Empleado elegido (ADR 0026): the Cliente came in by this Empleado's Enlace de reserva; Reagendar never moves it to another
+  depositAmount  Decimal?      @db.Decimal(10, 2) // Seña pendiente: price × depositPercent / 100 at booking, rounded to the cent; null if the Servicio asked for none. Later changes to the Servicio don't touch it
+  depositPaidAt  DateTime?     @db.Timestamptz(3) // Pagar la Seña: when the Cliente paid it; null while pending
   createdAt      DateTime      @default(now()) @db.Timestamptz(3)
 
   service  Service   @relation(fields: [serviceId], references: [id])

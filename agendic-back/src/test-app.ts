@@ -191,6 +191,7 @@ export async function createTestApp() {
     reschedule: jest.fn(),
     reschedulePendingOrBooked: jest.fn(),
     markNoShow: jest.fn(),
+    payDeposit: jest.fn(),
   };
   const availabilities: jest.Mocked<AvailabilitiesRepository> = {
     listByUser: jest.fn(),

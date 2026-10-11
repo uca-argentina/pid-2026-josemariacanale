@@ -24,6 +24,7 @@ describe('PrismaBookingsRepository (real database)', () => {
       endsAt: new Date(Date.UTC(2031, 0, 1, hour + 1)),
       notes: null,
       employeeChosen: false,
+      depositAmount: null,
       status: BookingStatus.BOOKED,
     });
 
@@ -71,6 +72,25 @@ describe('PrismaBookingsRepository (real database)', () => {
       ['Bruno M.', email, BookingStatus.BOOKED],
     ]);
     expect(await prisma.client.count({ where: { email } })).toBe(3);
+
+    const withDeposit = await repository.create({
+      serviceId,
+      employeeId: null,
+      userId,
+      clientName: 'Bruno',
+      clientEmail: email,
+      prepStartsAt: new Date(Date.UTC(2031, 0, 1, 15)),
+      startsAt: new Date(Date.UTC(2031, 0, 1, 15)),
+      endsAt: new Date(Date.UTC(2031, 0, 1, 16)),
+      notes: null,
+      employeeChosen: false,
+      depositAmount: 1.51,
+      status: BookingStatus.BOOKED,
+    });
+    expect([first, withDeposit].map((b) => [b.depositAmount, b.depositPaidAt])).toEqual([
+      [null, null],
+      [1.51, null],
+    ]);
   }, 60_000);
 
   it('finds a Turno de un Servicio del Negocio por su Enlace, con su Sucursal y Negocio, y sin Usuario (ADR 0022)', async () => {
@@ -116,6 +136,7 @@ describe('PrismaBookingsRepository (real database)', () => {
         endsAt: new Date(Date.UTC(2031, 0, 2, 10, 30)),
         notes: null,
         employeeChosen: false,
+        depositAmount: null,
         status: BookingStatus.BOOKED,
       });
 
@@ -180,6 +201,7 @@ describe('PrismaBookingsRepository (real database)', () => {
         endsAt: new Date(Date.UTC(2031, 0, 3, 17)),
         notes: null,
         employeeChosen: false,
+        depositAmount: null,
         status: BookingStatus.BOOKED,
       });
 
@@ -246,6 +268,7 @@ describe('PrismaBookingsRepository (real database)', () => {
         endsAt: new Date(Date.UTC(2031, 0, 4, hour + 1)),
         notes: null,
         employeeChosen: false,
+        depositAmount: null,
         status: BookingStatus.BOOKED,
       });
 

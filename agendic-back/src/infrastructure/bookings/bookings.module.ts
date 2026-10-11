@@ -5,6 +5,7 @@ import { GetBookingByLinkUseCase } from '../../application/bookings/get-booking-
 import { MarkNoShowUseCase } from '../../application/bookings/mark-no-show.use-case';
 import { RescheduleBookingUseCase } from '../../application/bookings/reschedule-booking.use-case';
 import { RescheduleBookingByLinkUseCase } from '../../application/bookings/reschedule-booking-by-link.use-case';
+import { PayDepositByLinkUseCase } from '../../application/bookings/pay-deposit-by-link.use-case';
 import { ListSlotsUseCase } from '../../application/slots/list-slots.use-case';
 import { CreateBookingUseCase } from '../../application/bookings/create-booking.use-case';
 import { ListMyBookingsUseCase } from '../../application/bookings/list-my-bookings.use-case';
@@ -32,6 +33,7 @@ import { BookingsController } from './bookings.controller';
     GetBookingByLinkUseCase,
     CancelBookingByLinkUseCase,
     RescheduleBookingByLinkUseCase,
+    PayDepositByLinkUseCase,
     ListMyBookingsUseCase,
   ],
 })
