@@ -395,6 +395,8 @@ describe('PrismaBookingsRepository', () => {
       jest.spyOn(repository as never, 'findEnriched').mockResolvedValue({} as never);
       prisma.booking.updateMany.mockResolvedValue({ count: 1 });
 
+      await repository.cancel(1);
+      await repository.reschedule(1, { employeeId: 1, userId: 1, prepStartsAt: NOW, startsAt: NOW, endsAt: NOW });
       await repository.cancelPendingOrBooked(1);
       await repository.resolvePending(1, BookingStatus.REJECTED);
       await repository.reschedulePendingOrBooked(1, {

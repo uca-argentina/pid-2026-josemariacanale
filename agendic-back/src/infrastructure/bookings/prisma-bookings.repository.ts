@@ -402,6 +402,8 @@ export class PrismaBookingsRepository implements BookingsRepository {
   }
 
   /**
+   * Marca la Seña del Turno como pagada, solo si la guarda sigue valiendo en el momento de escribir.
+   *
    * @throws {BusinessRuleError} el Turno ya no está pendiente ni aceptado, ya empezó, no tiene Seña o ya la tiene pagada
    * @throws {NotFoundError} el Turno no existe
    */
