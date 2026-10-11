@@ -46,6 +46,14 @@ Proveedor sugerido: **Cloudflare R2** (plan gratis y sin costo de egress). En el
 
 Cualquier otro proveedor S3-compatible (AWS S3, Supabase Storage, MinIO) sirve cambiando solo estas variables. Los tests no las usan: corren contra un emulador S3 en proceso (`s3rver`).
 
+### Días festivos
+
+Los Días festivos se leen de Google Calendar y se cachean en Postgres (ADR 0027). Sin la variable el back arranca igual, pero los endpoints de Días festivos responden 503 `Días festivos no configurados`:
+
+| Variable | Qué es |
+| --- | --- |
+| `GOOGLE_CALENDAR_API_KEY` | API key de Google con la Calendar API habilitada. Sin valor en el repo. |
+
 ### Turnos del Cliente
 
 Reservar y el Enlace del Turno (ADR 0022) necesitan estas variables. Sin ellas el back no arranca y dice cuál falta:

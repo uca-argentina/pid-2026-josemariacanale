@@ -249,3 +249,21 @@ model BookingSlug {
   business Business? @relation(fields: [businessId], references: [id])
   user     User?     @relation(fields: [userId], references: [id])
 }
+
+/// Caché de Días festivos leídos de Google Calendar (ADR 0027), copiado de cal.diy. Se vuelve a pedir a Google cuando tiene más de 7 días.
+model HolidayCache {
+  id          String   @id @default(uuid())
+  countryCode String
+  calendarId  String
+  eventId     String
+  name        String
+  date        DateTime @db.Date
+  year        Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([countryCode, eventId])
+  @@index([countryCode, year])
+  @@index([countryCode, date])
+}

@@ -24,6 +24,14 @@ import {
   BOOKING_VERIFICATION_CODES,
   BookingVerificationCodes,
 } from './domain/bookings/booking-verification-codes';
+import {
+  GOOGLE_CALENDAR_CLIENT,
+  GoogleCalendarClient,
+} from './domain/holidays/google-calendar-client';
+import {
+  HOLIDAYS_REPOSITORY,
+  HolidaysRepository,
+} from './domain/holidays/holidays.repository';
 import { Business } from './domain/businesses/business';
 import {
   BUSINESSES_REPOSITORY,
@@ -197,6 +205,15 @@ export async function createTestApp() {
     countServices: jest.fn(),
     delete: jest.fn(),
   };
+  const holidays: jest.Mocked<HolidaysRepository> = {
+    findLatestUpdatedAt: jest.fn(),
+    listByCountryCodeAndYear: jest.fn(),
+    replaceByCountryCodeAndYear: jest.fn(),
+  };
+  const googleCalendar: jest.Mocked<GoogleCalendarClient> = {
+    assertConfigured: jest.fn(),
+    fetchHolidays: jest.fn(),
+  };
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(CLOCK)
     .useValue(clock)
@@ -226,6 +243,10 @@ export async function createTestApp() {
     .useValue(bookingCodes)
     .overrideProvider(AVAILABILITIES_REPOSITORY)
     .useValue(availabilities)
+    .overrideProvider(HOLIDAYS_REPOSITORY)
+    .useValue(holidays)
+    .overrideProvider(GOOGLE_CALENDAR_CLIENT)
+    .useValue(googleCalendar)
     .compile();
   const app = setupApp(moduleRef.createNestApplication());
   await app.init();
@@ -245,6 +266,8 @@ export async function createTestApp() {
     bookings,
     bookingCodes,
     availabilities,
+    holidays,
+    googleCalendar,
     http: request(app.getHttpServer()),
   };
 }

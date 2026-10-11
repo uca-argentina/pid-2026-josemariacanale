@@ -39,6 +39,7 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | Availability | `Availability` (predeterminada → `isDefault`; zona horaria → `Availability.timeZone`; es del Usuario, `userId`) |
 | Franja | `AvailabilityInterval` (días → `days`, 0 = domingo como `dayjs().day()`, varios por Franja; inicio/fin → `startTime`/`endTime`) |
 | Anulación | `AvailabilityOverride` (`availabilityId`) |
+| Día festivo (ADR 0027) | `Holiday` (`HolidayCache`: `countryCode`, `calendarId`, `eventId`, `name`, `date`, `year`); puerto `GoogleCalendarClient`, `GetHolidaysForCountryUseCase`; `GET /holidays/countries` → `ListHolidayCountriesUseCase` |
 | Horario reservable | `Slot` (`GET /services/:id/slots`) |
 | Servicio | `Service` |
 | Servicio personal (ADR 0021) | `PersonalService` (`Service.userId`, `Service.availabilityId`; sin `branchId`; Enlace de reserva `User.slug`, la URL del front es `/<slug>/<servicio>`) |

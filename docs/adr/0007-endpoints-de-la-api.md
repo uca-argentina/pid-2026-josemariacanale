@@ -14,7 +14,7 @@ actualizarlo a mano cuando se agregue, cambie o borre un endpoint.
   no se descarta en silencio.
 - Forma de error (`DomainExceptionFilter`): `{ statusCode, message }`. Mapeo de errores de dominio:
   `Unauthenticated` → 401, `Forbidden` → 403, `NotFound` → 404, `InvalidCode` → 400, `Conflict` →
-  409, `Expired` → 410, `BusinessRule` → 422, resto → 500.
+  409, `Expired` → 410, `BusinessRule` → 422, `NotConfigured` → 503, resto → 500.
 - CORS habilitado para todos los orígenes.
 - Un Usuario dado de baja (ADR 0024) que todavía tiene una Sesión abierta recibe **403** `User <id> is dado de baja` en cualquier endpoint con Sesión. La única excepción es `DELETE /users/me`. El front cierra la Sesión al verlo.
 
@@ -201,6 +201,15 @@ propias: la de otro Usuario es 404, como una que no existe.
   - Availability inexistente o de otro Usuario → 404
   - dos pedidos concurrentes que dejarían dos predeterminadas → 409
 - Las Anulaciones no tienen endpoints propios (se van `GET/PUT/DELETE /employees/:id/overrides…`): viajan dentro de la Availability. La Cobertura desaparece (ADR 0021).
+
+## Holidays (Día festivo)
+
+| Método | Ruta | Auth | Qué hace |
+|---|---|---|---|
+| GET | `/holidays/countries` | sí | Los calendarios y países entre los que el Usuario elige sus Días festivos (ADR 0027): `200 [{ code, name }]`. Primero los cinco calendarios religiosos con nombre fijo (`Feriados cristianos`, `Feriados hindúes`, `Feriados judíos`, `Feriados musulmanes`, `Feriados ortodoxos`), después los países ordenados por nombre en castellano |
+
+- Sin `GOOGLE_CALENDAR_API_KEY` → 503 `Días festivos no configurados`. Todos los endpoints de Días festivos que vengan después responden igual
+- Los Días festivos llegan de Google Calendar con IDs `es.*` y se cachean en Postgres (`HolidayCache`); se piden de nuevo cuando la caché tiene más de 7 días
 
 ## Slots (Horario reservable)
 
