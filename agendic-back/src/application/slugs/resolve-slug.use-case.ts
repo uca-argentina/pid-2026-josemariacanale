@@ -9,6 +9,7 @@ import { Service } from '../../domain/services/service';
 import { User } from '../../domain/users/user';
 import { GetUserPageUseCase } from '../users/get-user-page.use-case';
 
+/** De quién es un primer tramo: el Negocio, o el Usuario con sus Servicios personales no ocultos. */
 export type ResolvedSlug =
   | { kind: 'business'; business: Business }
   | { kind: 'user'; user: User; services: Service[] };

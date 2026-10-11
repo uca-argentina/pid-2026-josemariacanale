@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { assertNotReservedSlug } from '../../domain/slugs/assert-booking-link-free';
+import { assertNotReservedSlug } from '../../domain/slugs/assert-not-reserved-slug';
 import { CreateBusinessInput } from '../../domain/businesses/business';
 import {
   BUSINESSES_REPOSITORY,
@@ -20,6 +20,10 @@ export class CreateBusinessUseCase {
     @Inject(USERS_REPOSITORY) private readonly users: UsersRepository,
   ) {}
 
+  /**
+   * @throws {NotFoundError} el Usuario no existe
+   * @throws {ConflictError} el Usuario ya es Dueño, o el Enlace de reserva es una palabra reservada o ya está en uso por un Negocio o un Usuario
+   */
   async execute(
     ownerId: number,
     input: CreateBusinessInput,

@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { assertNotReservedSlug } from '../../domain/slugs/assert-booking-link-free';
+import { assertNotReservedSlug } from '../../domain/slugs/assert-not-reserved-slug';
 import { NotFoundError } from '../../domain/errors';
 import { UpdateMeInput, User } from '../../domain/users/user';
 import {

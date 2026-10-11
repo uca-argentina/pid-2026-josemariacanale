@@ -31,7 +31,13 @@ Las direcciones con `/business/` y `/u/` dejan de existir, sin redirigir. Los en
 
 ## Empleado elegido
 
-Un Turno reservado por el enlace de un Empleado guarda `Booking.employeeChosen`. El Cliente ve solo los Horarios reservables de esa persona y el Turno queda con ella, sin reasignar si el horario se ocupó. Un Turno con Empleado elegido se Reagenda solo a horarios de ese Empleado, lo Reagende el Cliente o el Empleado; para pasarlo a otro, se Cancela. Si el Empleado deja de Ofrecer el Servicio, los Turnos que ya tiene siguen en pie y el Cliente puede Cancelarlos. Cuenta para el round robin como cualquier otro. Esto lo implementan los tickets de #209 que siguen a este.
+Un Turno reservado por el enlace de un Empleado guarda `Booking.employeeChosen`. El Cliente ve solo los Horarios reservables de esa persona y el Turno queda con ella, sin reasignar si el horario se ocupó. Un Turno con Empleado elegido se Reagenda solo a horarios de ese Empleado, lo Reagende el Cliente o el Empleado; para pasarlo a otro, se Cancela. Si el Empleado deja de Ofrecer el Servicio, los Turnos que ya tiene siguen en pie y el Cliente puede Cancelarlos. Cuenta para el round robin como cualquier otro. Por el enlace de un Empleado que no Ofrece el Servicio (o ya no, o fue dado de baja del Negocio) el Cliente ve "página no encontrada": no se Reserva con otro sin saberlo. Un Empleado sin Enlace de reserva propio (`User.slug` nulo) no tiene enlace directo hasta que lo elige. Esto lo implementan los tickets de #209 que siguen a este.
+
+## Qué no cambia
+
+- Un Servicio oculto se sigue Reservando solo por su propio tramo, también con el tramo de Empleado.
+- Las pantallas del panel (`/bookings`, `/services`, `/availability`, `/analytics`, `/business`) siguen siendo del panel: las rutas estáticas les ganan a las dinámicas y sus nombres están en la lista de reservadas.
+- El Enlace del Turno (`/turnos/<link>`) no cambia.
 
 ## Alternativas descartadas
 

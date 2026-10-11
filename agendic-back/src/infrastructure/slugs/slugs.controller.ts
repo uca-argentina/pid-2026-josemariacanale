@@ -3,6 +3,7 @@ import { ResolveSlugUseCase } from '../../application/slugs/resolve-slug.use-cas
 import { presentBusiness } from '../businesses/business.presenter';
 import { presentService } from '../services/service.presenter';
 
+/** Resolutor público del primer tramo del Enlace de reserva (ADR 0026). */
 @Controller('slugs')
 export class SlugsController {
   constructor(private readonly resolveSlugUseCase: ResolveSlugUseCase) {}
