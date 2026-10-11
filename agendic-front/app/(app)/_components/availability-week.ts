@@ -42,28 +42,93 @@ export const intervalsValid = (intervals: TimeRange[]) => invalidIntervals(inter
 
 const formatInterval = ({ start, end }: TimeRange) => `${start} - ${end}`;
 
-function dayRuns(days: number[]): string {
-    const runs: number[][] = [];
-    for (const day of days) {
-        const last = runs.at(-1);
-        if (last && last.at(-1) === day - 1) last.push(day);
-        else runs.push([day]);
-    }
-    return runs
-        .map((run) => (run.length === 1 ? DAY_SHORT[run[0]] : `${DAY_SHORT[run[0]]} - ${DAY_SHORT[run.at(-1)!]}`))
-        .join(', ');
+/** Una Franja con todos los días de la semana que la tienen (0 = domingo). */
+export interface AvailabilityInterval {
+    days: number[];
+    startTime: string;
+    endTime: string;
 }
 
-/** Una línea por Franja distinta con los días que la tienen: `"Lun, Jue - Vie, 08:00 - 13:00"`. */
-export function summarize(days: TimeRange[][]): string[] {
-    const daysByInterval = new Map<string, number[]>();
-    days.forEach((intervals, day) => {
-        for (const interval of [...intervals].sort(byStart)) {
-            const key = formatInterval(interval);
-            daysByInterval.set(key, [...(daysByInterval.get(key) ?? []), day]);
-        }
-    });
-    return [...daysByInterval].map(([interval, ds]) => `${dayRuns(ds)}, ${interval}`);
+const LOCALE = 'es-AR';
+
+/**
+ * Agrupa las Franjas del `schedule` del back (índice 0 = domingo) por inicio y fin: una por horario, con
+ * todos los días que lo tienen.
+ */
+export function intervalsFromSchedule(schedule: TimeRange[][]): AvailabilityInterval[] {
+    return schedule.reduce((intervals: AvailabilityInterval[], times: TimeRange[], day: number) => {
+        const filteredTimes = times.filter((time) => {
+            const idx = intervals.findIndex((interval) => interval.startTime === time.start && interval.endTime === time.end);
+            if (idx !== -1) {
+                intervals[idx].days.push(day);
+                return false;
+            }
+            return true;
+        });
+        filteredTimes.forEach((time) => intervals.push({ days: [day], startTime: time.start, endTime: time.end }));
+        return intervals;
+    }, []);
+}
+
+/** La fecha de esta semana que cae en `day` (0 = domingo). */
+function getDateForWeekday(day: number): Date {
+    const today = new Date();
+    const target = new Date(today);
+    target.setDate(today.getDate() + day - today.getDay());
+    return target;
+}
+
+/** El nombre del día `day` (0 = domingo): `"lun"` en `short`, `"lunes"` en `long`. */
+function nameOfDay(day: number, format: 'short' | 'long' = 'long'): string {
+    return new Intl.DateTimeFormat(LOCALE, { weekday: format }).format(getDateForWeekday(day));
+}
+
+/** Los nombres de los siete días, empezando por `weekStart` (0 = domingo). */
+function weekdayNames(weekStart = 0, format: 'short' | 'long' = 'long'): string[] {
+    return Array.from({ length: 7 }, (_, i) => nameOfDay((i + weekStart) % 7, format));
+}
+
+/** Una Franja en una línea, con sus días agrupados en tramos: `"lun - vie, 09:00 - 17:00"`. */
+export function intervalAsString(interval: AvailabilityInterval, { hour12 }: { hour12?: boolean }): string {
+    const weekSpan = ({ days: [first, ...rest] }: AvailabilityInterval) => {
+        const days = rest.reduce(
+            (days, day) => {
+                const last = days[days.length - 1];
+                if (last.length === 1 && last[0] === day - 1) {
+                    // El tramo todavía no está cerrado y el día siguiente lo continúa.
+                    last.push(day);
+                } else if (last[last.length - 1] === day - 1) {
+                    // Tramo cerrado: si el día lo sigue, lo extiende.
+                    days[days.length - 1] = [last[0], day];
+                } else {
+                    days.push([day]);
+                }
+                return days;
+            },
+            [[first]] as number[][],
+        );
+        return days.map((dayRange) => dayRange.map((day) => nameOfDay(day, 'short')).join(' - ')).join(', ');
+    };
+
+    // `HH:mm` sin zona se lee como hora local y se formatea en la misma: sale la hora tal cual.
+    const formatTime = (time: string) =>
+        new Intl.DateTimeFormat(LOCALE, { hour: 'numeric', minute: 'numeric', hour12 }).format(new Date(`1970-01-01T${time}`));
+
+    return `${weekSpan(interval)}, ${formatTime(interval.startTime)} - ${formatTime(interval.endTime)}`;
+}
+
+/** Para `sort`: las líneas de `intervalAsString` según el primer día de la semana del Usuario (0 = domingo). */
+export function sortIntervalStrings(weekStart = 0) {
+    return (a: string, b: string) => {
+        const weekNames = weekdayNames(weekStart, 'short');
+        const weekIndex = (day: string) => {
+            for (let i = 0; i < weekNames.length; i++) {
+                if (day.includes(weekNames[i])) return i;
+            }
+            return -1;
+        };
+        return weekIndex(a) - weekIndex(b);
+    };
 }
 
 /** Las Franjas de un día en una línea: `"09:00 - 13:00, 14:00 - 18:00"`. */

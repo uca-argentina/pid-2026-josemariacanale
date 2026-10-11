@@ -3,7 +3,9 @@ import {
     intervalsValid,
     invalidIntervals,
     nextInterval,
-    summarize,
+    intervalAsString,
+    intervalsFromSchedule,
+    sortIntervalStrings,
     toSchedule,
     toWeek,
     weekValid,
@@ -15,32 +17,42 @@ const r = (start: string, end: string): TimeRange => ({ start, end });
 const week = (byDay: Partial<Record<number, TimeRange[]>>): TimeRange[][] =>
     Array.from({ length: 7 }, (_, i) => byDay[i] ?? []);
 
-describe('summarize', () => {
-    it('agrupa días consecutivos en un tramo', () => {
-        expect(summarize(DEFAULT_DAYS)).toEqual(['Lun - Vie, 09:00 - 18:00']);
-    });
-
-    it('separa con coma los días sueltos y los tramos', () => {
-        const morning: TimeRange = r('08:00', '13:00');
-        expect(summarize(week({ 0: [morning], 3: [morning], 4: [morning] }))).toEqual(['Lun, Jue - Vie, 08:00 - 13:00']);
-    });
-
-    it('da una línea por Franja distinta, en orden de aparición', () => {
-        const days = week({
-            0: [r('08:00', '13:00'), r('17:00', '20:00')],
-            1: [r('09:00', '17:00')],
-            2: [r('09:00', '17:00')],
-            3: [r('08:00', '13:00'), r('17:00', '20:00')],
-        });
-        expect(summarize(days)).toEqual([
-            'Lun, Jue, 08:00 - 13:00',
-            'Lun, Jue, 17:00 - 20:00',
-            'Mar - Mié, 09:00 - 17:00',
+describe('intervalsFromSchedule', () => {
+    it('agrupa los días que comparten inicio y fin', () => {
+        const nineToFive = [r('09:00', '17:00')];
+        expect(intervalsFromSchedule(week({ 1: nineToFive, 2: [r('09:00', '17:00'), r('18:00', '20:00')], 5: nineToFive }))).toEqual([
+            { days: [1, 2, 5], startTime: '09:00', endTime: '17:00' },
+            { days: [2], startTime: '18:00', endTime: '20:00' },
         ]);
     });
 
     it('no devuelve nada si no hay Franjas', () => {
-        expect(summarize(week({}))).toEqual([]);
+        expect(intervalsFromSchedule(week({}))).toEqual([]);
+    });
+});
+
+describe('intervalAsString', () => {
+    const interval = (days: number[], startTime = '09:00', endTime = '17:00') => ({ days, startTime, endTime });
+
+    it('agrupa días consecutivos en un tramo', () => {
+        expect(intervalAsString(interval([1, 2, 3, 4, 5]), { hour12: false })).toBe('lun - vie, 09:00 - 17:00');
+    });
+
+    it('separa con coma los días sueltos y los tramos', () => {
+        expect(intervalAsString(interval([1, 4, 5]), { hour12: false })).toBe('lun, jue - vie, 09:00 - 17:00');
+    });
+
+    it('usa el formato de 12 horas', () => {
+        expect(intervalAsString(interval([1], '00:30', '13:00'), { hour12: true }).replace(/\s/g, ' ')).toBe('lun, 12:30 a. m. - 1:00 p. m.');
+    });
+});
+
+describe('sortIntervalStrings', () => {
+    const lines = ['dom, 10:00 - 12:00', 'mié, 08:00 - 13:00', 'lun, 09:00 - 17:00'];
+
+    it('ordena las líneas desde el primer día de la semana', () => {
+        expect([...lines].sort(sortIntervalStrings(1))).toEqual(['lun, 09:00 - 17:00', 'mié, 08:00 - 13:00', 'dom, 10:00 - 12:00']);
+        expect([...lines].sort(sortIntervalStrings(0))).toEqual(['dom, 10:00 - 12:00', 'lun, 09:00 - 17:00', 'mié, 08:00 - 13:00']);
     });
 });
 

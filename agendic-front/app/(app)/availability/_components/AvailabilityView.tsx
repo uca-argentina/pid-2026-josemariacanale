@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { toSchedule } from '@/app/(app)/_components/availability-week';
 import type { Availability, AvailabilityDetail, AvailabilityOverride, TimeRange } from '@/src/entities/models/availability';
+import type { Preferences } from '@/src/entities/models/user';
 import {
     createAvailabilityAction,
     deleteAvailabilityAction,
@@ -26,9 +27,17 @@ export interface AvailabilityDraft {
 
 /**
  * Horas laborables del Usuario: la lista y, con `open`, el editor de una. Todo sale de las props que trae
- * el server; cada acción las refresca.
+ * el server; cada acción las refresca. `preferences` son las del Usuario: la lista las usa para el resumen de Franjas.
  */
-export function AvailabilityView({ availabilities, open }: { availabilities: Availability[]; open: AvailabilityDetail | null }) {
+export function AvailabilityView({
+    availabilities,
+    open,
+    preferences,
+}: {
+    availabilities: Availability[];
+    open: AvailabilityDetail | null;
+    preferences: Preferences;
+}) {
     const router = useRouter();
     const [busy, setBusy] = useState(false);
 
@@ -71,8 +80,8 @@ export function AvailabilityView({ availabilities, open }: { availabilities: Ava
     ) : (
         <AvailabilityList
             availabilities={availabilities}
+            preferences={preferences}
             busy={busy}
-            onOpen={(id) => router.push(`/availability?id=${id}`)}
             onCreate={(name, timeZone) => run(() => createAvailabilityAction(name, timeZone), `${name}: horas laborables creadas`)}
             onMakeDefault={(item) =>
                 run(() => makeAvailabilityDefaultAction(item.id), `${item.name}: ahora son las horas laborables predeterminadas`)

@@ -16,19 +16,19 @@ export const availabilityOverrideSchema = z.object({ date: dateSchema, ranges: z
 /** Anulación de una Availability. */
 export type AvailabilityOverride = z.infer<typeof availabilityOverrideSchema>;
 
-/** Una Availability como la devuelve `GET /availabilities`. */
+/** Una Availability como la devuelve `GET /availabilities`: con sus Franjas, sin las Anulaciones. */
 export const availabilitySchema = z.object({
     id: z.number(),
     name: z.string(),
     isDefault: z.boolean(),
     timeZone: z.string(),
+    schedule: scheduleSchema,
 });
-/** Availability ("Horas laborables") del Usuario, sin sus Franjas. */
+/** Availability ("Horas laborables") del Usuario con sus Franjas. */
 export type Availability = z.infer<typeof availabilitySchema>;
 
 /** Una Availability con sus Franjas y Anulaciones, como la devuelve `GET /availabilities/:id`. */
 export const availabilityDetailSchema = availabilitySchema.extend({
-    schedule: scheduleSchema,
     overrides: z.array(availabilityOverrideSchema),
 });
 /** Availability del Usuario con sus Franjas y Anulaciones. */
