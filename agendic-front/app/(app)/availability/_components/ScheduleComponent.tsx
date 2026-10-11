@@ -3,8 +3,8 @@
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 import utc from 'dayjs/plugin/utc';
-import { Copy, Plus, Trash2 } from 'lucide-react';
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Copy, Plus, X } from 'lucide-react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Controller, useFieldArray, useFormContext } from 'react-hook-form';
 import ReactSelect, { createFilter, type SingleValue } from 'react-select';
 import { cn } from '@/app/_components/utils';
@@ -54,14 +54,15 @@ function IconButton({ label, children, ...props }: { label: string } & React.Com
 }
 
 /**
- * Las horas semanales de la Availability: por día, un switch, las Franjas con sus desplegables de hora, sumar y quitar
- * Franjas, y copiarlas a otros días. Va dentro de un `FormProvider` de `ScheduleFormValues`.
+ * Las horas semanales de la Availability: una fila por día con un switch, las Franjas con sus desplegables de hora,
+ * quitar cada una, y a la derecha sumar Franja y copiarlas a otros días. Va dentro de un `FormProvider` de
+ * `ScheduleFormValues`.
  *
  * @param weekStart primer día de la semana, 0 = domingo
  */
 export function ScheduleComponent({ weekStart, timeFormat }: { weekStart: number; timeFormat: TimeFormat }) {
     return (
-        <div className="flex flex-col gap-4 p-2 @xl/main:p-4">
+        <div className="flex flex-col divide-y">
             {weekdays(weekStart).map(({ index, name }) => (
                 <ScheduleDay
                     key={index}
@@ -90,41 +91,50 @@ function ScheduleDay({
     const { watch, setValue } = useFormContext<ScheduleFormValues>();
     const dayRanges = watch(name);
     const lastNonEmptyRef = useRef<DateRange[] | null>(null);
+    const working = dayRanges.length > 0;
+
+    const toggle = (isChecked: boolean) => {
+        if (isChecked) {
+            const previous = lastNonEmptyRef.current;
+            setValue(name, previous?.length ? previous : [DEFAULT_DAY_RANGE], { shouldDirty: true });
+        } else {
+            if (working) lastNonEmptyRef.current = dayRanges;
+            setValue(name, [], { shouldDirty: true });
+        }
+    };
 
     return (
-        <div className="flex w-full flex-col gap-4 @xl/main:flex-row @xl/main:gap-6" data-testid={weekday}>
-            <div className="flex h-9 items-center justify-between @xl/main:w-32">
-                <label className="flex items-center gap-2">
-                    <Switch
-                        checked={dayRanges.length > 0}
-                        data-testid={`${weekday}-switch`}
-                        onCheckedChange={(isChecked) => {
-                            if (isChecked) {
-                                const previous = lastNonEmptyRef.current;
-                                setValue(name, previous?.length ? previous : [DEFAULT_DAY_RANGE], { shouldDirty: true });
-                            } else {
-                                if (dayRanges.length > 0) lastNonEmptyRef.current = dayRanges;
-                                setValue(name, [], { shouldDirty: true });
-                            }
-                        }}
-                    />
-                    <span className="inline-block min-w-[88px] text-sm capitalize">{weekday}</span>
-                </label>
-            </div>
-            {dayRanges.length > 0 && (
-                <div className="flex @xl/main:gap-2">
-                    <DayRanges
-                        name={name}
-                        timeFormat={timeFormat}
-                        copyButton={<CopyButton from={index} weekStart={weekStart} />}
-                    />
-                </div>
+        <div className="flex w-full flex-wrap items-start gap-x-6 gap-y-2 px-6 py-3" data-testid={weekday}>
+            <label className="flex h-8 w-[130px] shrink-0 items-center gap-3">
+                <Switch checked={working} data-testid={`${weekday}-switch`} onCheckedChange={toggle} />
+                <span className="text-sm font-medium capitalize">{weekday}</span>
+            </label>
+            {working ? (
+                <DayRanges name={name} timeFormat={timeFormat} onEmptied={() => (lastNonEmptyRef.current = null)} />
+            ) : (
+                <span className="flex h-8 items-center text-sm text-muted-foreground">No disponible</span>
             )}
+            <div className="ml-auto flex shrink-0 gap-2">
+                <IconButton
+                    label="Agregar Franja"
+                    variant="outline"
+                    data-testid="add-time-availability"
+                    onClick={() => {
+                        if (!working) return toggle(true);
+                        const slotRange = getDateSlotRange(dayRanges[dayRanges.length - 1], dayRanges[0]);
+                        if (slotRange?.append) setValue(name, [...dayRanges, slotRange.append], { shouldDirty: true });
+                        if (slotRange?.prepend) setValue(name, [slotRange.prepend, ...dayRanges], { shouldDirty: true });
+                    }}
+                >
+                    <Plus />
+                </IconButton>
+                <CopyButton from={index} weekStart={weekStart} disabled={!working} />
+            </div>
         </div>
     );
 }
 
-function CopyButton({ from, weekStart }: { from: number; weekStart: number }) {
+function CopyButton({ from, weekStart, disabled }: { from: number; weekStart: number; disabled: boolean }) {
     const [open, setOpen] = useState(false);
     const { setValue, getValues } = useFormContext<ScheduleFormValues>();
 
@@ -137,8 +147,9 @@ function CopyButton({ from, weekStart }: { from: number; weekStart: number }) {
                             render={
                                 <Button
                                     type="button"
-                                    variant="ghost"
+                                    variant="outline"
                                     size="icon"
+                                    disabled={disabled}
                                     aria-label="Copiar Franjas a otros días"
                                     data-testid="copy-button"
                                 >
@@ -168,68 +179,49 @@ function CopyButton({ from, weekStart }: { from: number; weekStart: number }) {
 }
 
 /**
- * Las Franjas de un día, cada una con sus desplegables de inicio y fin. La primera lleva sumar Franja y `copyButton`;
- * con más de una, cada una lleva quitar. Las que terminan antes de empezar o se solapan quedan marcadas.
+ * Las Franjas de un día, cada una con sus desplegables de inicio y fin y su X. Quitar la última deja el día sin
+ * Franjas. Las que terminan antes de empezar o se solapan quedan marcadas.
+ *
+ * @param onEmptied se llama cuando la X quita la última Franja
  */
 export function DayRanges({
     name,
     timeFormat,
-    copyButton,
+    onEmptied,
 }: {
     name: DayName;
     timeFormat: TimeFormat;
-    copyButton?: React.ReactNode;
+    onEmptied?: () => void;
 }) {
-    const { getValues, watch } = useFormContext<ScheduleFormValues>();
-    const { remove, fields, prepend, append } = useFieldArray<ScheduleFormValues, DayName>({ name });
+    const { watch } = useFormContext<ScheduleFormValues>();
+    const { fields, remove } = useFieldArray<ScheduleFormValues, DayName>({ name });
     const invalid = invalidIntervals(toTimeRanges(watch(name)));
-
-    if (!fields.length) return null;
 
     return (
         <div className="flex flex-col gap-2">
             {fields.map((field, index) => (
-                <Fragment key={field.id}>
-                    <div className="flex gap-1 @xl/main:gap-2">
-                        <Controller
-                            name={`${name}.${index}`}
-                            render={({ field }) => (
-                                <TimeRangeField
-                                    timeFormat={timeFormat}
-                                    invalid={invalid.includes(index)}
-                                    value={field.value}
-                                    onChange={field.onChange}
-                                />
-                            )}
-                        />
-                        {index === 0 && (
-                            <IconButton
-                                label="Agregar Franja"
-                                data-testid="add-time-availability"
-                                onClick={() => {
-                                    const slotRange = getDateSlotRange(
-                                        getValues(`${name}.${fields.length - 1}`),
-                                        getValues(`${name}.0`),
-                                    );
-                                    if (slotRange?.append) append(slotRange.append);
-                                    if (slotRange?.prepend) prepend(slotRange.prepend);
-                                }}
-                            >
-                                <Plus />
-                            </IconButton>
+                <div key={field.id} className="flex items-center gap-2">
+                    <Controller
+                        name={`${name}.${index}`}
+                        render={({ field }) => (
+                            <TimeRangeField
+                                timeFormat={timeFormat}
+                                invalid={invalid.includes(index)}
+                                value={field.value}
+                                onChange={field.onChange}
+                            />
                         )}
-                        {index === 0 && copyButton}
-                        {fields.length > 1 && (
-                            <IconButton
-                                label="Quitar Franja"
-                                className="text-destructive"
-                                onClick={() => remove(index)}
-                            >
-                                <Trash2 />
-                            </IconButton>
-                        )}
-                    </div>
-                </Fragment>
+                    />
+                    <IconButton
+                        label="Quitar Franja"
+                        onClick={() => {
+                            if (fields.length === 1) onEmptied?.();
+                            remove(index);
+                        }}
+                    >
+                        <X />
+                    </IconButton>
+                </div>
             ))}
         </div>
     );
@@ -247,7 +239,7 @@ function TimeRangeField({
     invalid: boolean;
 }) {
     return (
-        <div className="flex flex-row gap-2 @xl/main:gap-3">
+        <div className="flex flex-row items-center gap-2">
             <LazySelect
                 label="Desde"
                 timeFormat={timeFormat}
@@ -264,7 +256,7 @@ function TimeRangeField({
                     }
                 }}
             />
-            <span className="w-2 self-center"> - </span>
+            <span className="text-sm text-muted-foreground">-</span>
             <LazySelect
                 label="Hasta"
                 timeFormat={timeFormat}
@@ -307,6 +299,7 @@ function LazySelect({
     onChange: (option: SingleValue<IOption>) => void;
 }) {
     const { options, filter } = useOptions(timeFormat);
+    const instanceId = useId();
 
     useEffect(() => {
         filter({ current: value });
@@ -348,6 +341,7 @@ function LazySelect({
 
     return (
         <ReactSelect<IOption>
+            instanceId={instanceId}
             aria-label={label}
             options={filteredOptions}
             onMenuOpen={() => {
@@ -362,12 +356,12 @@ function LazySelect({
             filterOption={() => true}
             onChange={onChange}
             noOptionsMessage={() => 'Sin resultados.'}
-            className="block w-[90px] @xl/main:w-[100px]"
+            className="block w-[110px]"
             unstyled
             classNames={{
                 control: (state) =>
                     cn(
-                        'h-9 rounded-md border border-input bg-background px-3 text-sm transition-colors',
+                        'flex h-8 items-center rounded-md border border-input bg-background px-3 text-sm transition-colors',
                         state.isFocused ? 'border-ring ring-1 ring-ring' : 'hover:border-muted-foreground',
                         (invalid || timeInputError) && 'border-destructive hover:border-destructive',
                     ),
