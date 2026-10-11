@@ -205,7 +205,7 @@ propias: la de otro Usuario es 404, como una que no existe.
 
 Los períodos Fuera de la oficina son del Usuario (ADR 0027), no de una Availability. Todos los endpoints exigen
 Sesión y actúan sobre el Usuario de la Sesión: nadie gestiona los períodos de otro, y uno de otro Usuario es 404,
-como uno que no existe. Todavía no bloquean Horarios reservables.
+como uno que no existe.
 
 | Método | Ruta | Auth | Qué hace |
 |---|---|---|---|

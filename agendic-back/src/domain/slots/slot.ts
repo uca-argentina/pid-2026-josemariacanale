@@ -167,12 +167,12 @@ export function computeSlots({
     return starts;
   };
 
-  // A day of slack either side (wider than any UTC offset) covers every Sucursal date in [from, to].
   const periodOn = (date: string) =>
     outOfOffice.find((p) => p.startDate <= date && date <= p.endDate);
   // `working` ignores Fuera de la oficina, to tell a day nobody works from one the período emptied; `open` drops it (it beats an Anulación too).
   const working: Range[] = [];
   const open: Range[] = [];
+  // A day of slack either side (wider than any UTC offset) covers every Sucursal date in [from, to].
   for (let d = addDays(from, -1); d <= addDays(to, 1); d = addDays(d, 1)) {
     const ranges = rangesOf(availability, d);
     working.push(...ranges);
