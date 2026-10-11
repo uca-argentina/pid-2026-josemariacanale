@@ -32,6 +32,10 @@ import {
   HOLIDAYS_REPOSITORY,
   HolidaysRepository,
 } from './domain/holidays/holidays.repository';
+import {
+  USER_HOLIDAY_SETTINGS_REPOSITORY,
+  UserHolidaySettingsRepository,
+} from './domain/holidays/user-holiday-settings.repository';
 import { Business } from './domain/businesses/business';
 import {
   BUSINESSES_REPOSITORY,
@@ -194,6 +198,7 @@ export async function createTestApp() {
     listByBusiness: jest.fn(),
     listOccupiedByUser: jest.fn(),
     listByUser: jest.fn(),
+    listUpcomingByUser: jest.fn(),
     cancel: jest.fn(),
     cancelPendingOrBooked: jest.fn(),
     reschedule: jest.fn(),
@@ -222,6 +227,10 @@ export async function createTestApp() {
     findLatestUpdatedAt: jest.fn(),
     listByCountryCodeAndYear: jest.fn(),
     replaceByCountryCodeAndYear: jest.fn(),
+  };
+  const userHolidaySettings: jest.Mocked<UserHolidaySettingsRepository> = {
+    findByUserId: jest.fn(),
+    save: jest.fn(),
   };
   const googleCalendar: jest.Mocked<GoogleCalendarClient> = {
     assertConfigured: jest.fn(),
@@ -260,6 +269,8 @@ export async function createTestApp() {
     .useValue(outOfOffice)
     .overrideProvider(HOLIDAYS_REPOSITORY)
     .useValue(holidays)
+    .overrideProvider(USER_HOLIDAY_SETTINGS_REPOSITORY)
+    .useValue(userHolidaySettings)
     .overrideProvider(GOOGLE_CALENDAR_CLIENT)
     .useValue(googleCalendar)
     .compile();
@@ -283,6 +294,7 @@ export async function createTestApp() {
     availabilities,
     outOfOffice,
     holidays,
+    userHolidaySettings,
     googleCalendar,
     http: request(app.getHttpServer()),
   };

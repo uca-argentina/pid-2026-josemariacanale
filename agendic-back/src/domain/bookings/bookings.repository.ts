@@ -1,4 +1,10 @@
-import { Booking, BookingStatus, ClientBooking, UserBooking } from './booking';
+import {
+  Booking,
+  BookingStatus,
+  ClientBooking,
+  UpcomingBooking,
+  UserBooking,
+} from './booking';
 
 export const BOOKINGS_REPOSITORY = Symbol('BookingsRepository');
 
@@ -64,6 +70,11 @@ export interface BookingsRepository {
     to: Date,
     excludeBookingId?: number,
   ): Promise<Pick<Booking, 'prepStartsAt' | 'endsAt'>[]>;
+  /**
+   * PENDING and BOOKED Turnos of this Usuario starting at or after `from`, by `startsAt`, each with the zone of the
+   * Availability it is attended with: the Empleado's for the Servicio, or the Servicio personal's.
+   */
+  listUpcomingByUser(userId: number, from: Date): Promise<UpcomingBooking[]>;
   /**
    * Every Turno, in any status, the Usuario attends: of their Servicios personales and of the Negocios where
    * they are still an active Empleado.
