@@ -1,7 +1,7 @@
 'use client';
 
 import { PanelField, PanelInput, PanelTextarea } from '@/app/(app)/_components/panel-ui';
-import { TimeZoneCombobox } from '@/app/(app)/_components/TimeZoneCombobox';
+import { TimezoneSelect } from '@/app/(app)/_components/TimezoneSelect';
 import { bookingLink } from '@/app/(app)/_components/mock-services';
 import type { BranchFormFields as Fields, FieldErrors } from '@/app/_components/business-schemas';
 
@@ -48,7 +48,7 @@ export function BranchFormFields({
                 <PanelInput id={id('address')} value={value.address} onChange={(e) => onChange({ address: e.target.value })} {...invalid('address')} />
             </PanelField>
             <PanelField label="Zona horaria" htmlFor={id('timeZone')} error={errors.timeZone}>
-                <TimeZoneCombobox id={id('timeZone')} value={value.timeZone} onChange={(timeZone) => onChange({ timeZone })} />
+                <TimezoneSelect id={id('timeZone')} value={value.timeZone} onChange={(timeZone) => onChange({ timeZone })} />
             </PanelField>
         </>
     );
