@@ -471,6 +471,16 @@ describe('Usuario', () => {
         .send({ weekStart: 6 })
         .expect(200);
 
+      await t.http
+        .patch('/users/me')
+        .set(bearer(CLERK_TOKEN))
+        .send({ timeFormat: 12 })
+        .expect(200);
+
+      expect(t.users.update).toHaveBeenLastCalledWith(ANA.id, {
+        timeFormat: 12,
+      });
+
       expect(t.users.update).toHaveBeenLastCalledWith(ANA.id, { weekStart: 6 });
     });
 
