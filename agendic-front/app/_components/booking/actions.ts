@@ -16,6 +16,7 @@ export async function listSlotsAction(query: {
     serviceId: number;
     from: string;
     to: string;
+    employeeId?: number;
 }): Promise<ListSlotsResult> {
     try {
         return { ok: true, ...(await getInjection('IListSlotsController')(query)) };

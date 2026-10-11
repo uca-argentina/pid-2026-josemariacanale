@@ -39,6 +39,15 @@ describe('bookingLinkPath', () => {
         expect(bookingLinkPath('luna', 'centro', 'corte')).toBe('/luna/centro/corte');
     });
 
+    it('suma el tramo del Empleado después del Servicio', () => {
+        expect(bookingLinkPath('luna', 'centro', 'corte', 'ana')).toBe('/luna/centro/corte/ana');
+    });
+
+    it('descarta un tramo al que le falta el anterior', () => {
+        expect(bookingLinkPath('luna', 'centro', undefined, 'ana')).toBe('/luna/centro');
+        expect(bookingLinkPath('luna', undefined, 'corte', 'ana')).toBe('/luna');
+    });
+
     it('ignora el tramo de Servicio sin tramo de Sucursal', () => {
         expect(bookingLinkPath('luna', undefined, 'corte')).toBe('/luna');
     });

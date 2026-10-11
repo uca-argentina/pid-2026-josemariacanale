@@ -14,8 +14,9 @@ const LOAD_ERROR = 'No pudimos cargar los horarios. Intentá de nuevo.';
  * El Servicio no puede cambiar bajo el mismo hook: quien lo usa lo monta con `key` por Servicio.
  *
  * @param initialDate la fecha con la que ya se venía, para abrir en su semana; solo se mira al montarse
+ * @param employeeId con un Empleado elegido (ADR 0026), solo los horarios de ese Empleado; tampoco cambia bajo el hook
  */
-export function useSlotWeek(serviceId: number, initialDate: string | null) {
+export function useSlotWeek(serviceId: number, initialDate: string | null, employeeId?: number) {
     const [today, setToday] = useState<string | null>(null);
     const [weeks, setWeeks] = useState<Record<number, SlotDay[]>>({});
     const [week, setWeek] = useState(0);
@@ -33,7 +34,7 @@ export function useSlotWeek(serviceId: number, initialDate: string | null) {
             // Las fechas son de la zona de donde se atiende (la Sucursal, o la Availability de un Servicio personal), que
             // llega con la respuesta. Hoy ahí es ayer, hoy o mañana en UTC: se pide desde ayer y se descarta lo anterior.
             const from = addDays(todayIn('UTC'), -1);
-            listSlotsAction({ serviceId, from, to: addDays(from, 8) }).then((result) => {
+            listSlotsAction({ serviceId, employeeId, from, to: addDays(from, 8) }).then((result) => {
                 if (!current) return;
                 if (!result.ok) return setError(result.message);
                 const first = todayIn(result.timeZone);
@@ -44,7 +45,7 @@ export function useSlotWeek(serviceId: number, initialDate: string | null) {
             }, fail);
         } else {
             const from = weekStart(today, week);
-            listSlotsAction({ serviceId, from, to: addDays(from, 6) }).then((result) => {
+            listSlotsAction({ serviceId, employeeId, from, to: addDays(from, 6) }).then((result) => {
                 if (!current) return;
                 if (!result.ok) return setError(result.message);
                 setWeeks((all) => ({ ...all, [week]: result.days.filter((d) => d.date >= today) }));
@@ -53,7 +54,7 @@ export function useSlotWeek(serviceId: number, initialDate: string | null) {
         return () => {
             current = false;
         };
-    }, [serviceId, today, week, loaded, error, attempt]);
+    }, [serviceId, employeeId, today, week, loaded, error, attempt]);
 
     return {
         status: error ? ('error' as const) : today && loaded ? ('ready' as const) : ('loading' as const),

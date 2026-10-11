@@ -25,6 +25,8 @@ export type Booking = z.infer<typeof bookingSchema>;
 // The body of POST /bookings. The Cliente has no account (ADR 0005): their data travels in the Turno.
 // `code` is the Código de verificación already requested for clientEmail (ADR 0022).
 export const createBookingSchema = bookingSchema.pick({ serviceId: true, startsAt: true }).extend({
+    // The Empleado elegido (ADR 0026): the Turno stays with them, with no round robin.
+    employeeId: z.number().optional(),
     clientName: z.string(),
     clientEmail: z.string(),
     notes: z.string().optional(),

@@ -29,6 +29,7 @@ import { formatPrice } from '../../_components/format';
 import {
     HiddenSwitch,
     OfferButton,
+    CopyLinkButton,
     PublicLinkButtons,
     RetireServiceConfirm,
     StopOfferingConfirm,
@@ -417,10 +418,13 @@ function EmployeesTab({
     service,
     staff,
     myEmployeeId,
+    employeePath,
 }: {
     service: ServiceDetailData['service'];
     staff: NonNullable<ServiceDetailData['staff']>;
     myEmployeeId: number;
+    /** La ruta del Enlace de reserva de un Empleado elegido (ADR 0026), a partir del tramo del Usuario detrás de él. */
+    employeePath: (employeeSlug: string) => string;
 }) {
     const router = useRouter();
     const [removing, setRemoving] = useState<OfferingEmployee | null>(null);
@@ -446,9 +450,18 @@ function EmployeesTab({
                         <PanelAvatar name={employee.name} imageUrl={employee.imageUrl} />
                         <span className="text-[13.5px] font-bold tracking-[-0.01em]">{employee.name}</span>
                         {employee.id === myEmployeeId && <PanelBadge>Vos</PanelBadge>}
-                        <PanelButton variant="ghost" className="ml-auto" onClick={() => setRemoving(asOfferingEmployee(employee))}>
-                            Quitar
-                        </PanelButton>
+                        <div className="ml-auto flex items-center gap-2">
+                            {employee.slug ? (
+                                <CopyLinkButton path={employeePath(employee.slug)} label={`Copiar enlace de ${employee.name}`} />
+                            ) : (
+                                <span className="text-[12.5px] font-medium text-[#6b7280]">
+                                    Tiene que elegir su Enlace de reserva para tener enlace directo.
+                                </span>
+                            )}
+                            <PanelButton variant="ghost" onClick={() => setRemoving(asOfferingEmployee(employee))}>
+                                Quitar
+                            </PanelButton>
+                        </div>
                     </li>
                 ))}
             </ul>
@@ -680,7 +693,14 @@ export function ServiceDetail({ detail }: { detail: ServiceDetailData }) {
                         />
                     )}
                     {tab === 'employees' && detail.staff && (
-                        <EmployeesTab service={service} staff={detail.staff} myEmployeeId={detail.employeeId} />
+                        <EmployeesTab
+                            service={service}
+                            staff={detail.staff}
+                            myEmployeeId={detail.employeeId}
+                            employeePath={(employeeSlug) =>
+                                bookingLinkPath(detail.business.slug, detail.branch.slug, service.slug, employeeSlug)
+                            }
+                        />
                     )}
                     {tab === 'availability' && <AvailabilityTab detail={detail} onStopped={afterStopping} />}
                     {tab === 'limits' && (

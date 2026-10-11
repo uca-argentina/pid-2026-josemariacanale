@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition, ViewTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Check, ChevronRight, X } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/app/_components/ui/avatar';
 import { Button } from '@/app/_components/ui/button';
 import { Input } from '@/app/_components/ui/input';
 import { Label } from '@/app/_components/ui/label';
@@ -16,9 +17,9 @@ import { CodeStep } from './CodeStep';
 import { bookSlotAction, requestVerificationCodeAction } from './actions';
 import type { BookSlotResult } from './actions';
 import { TimeStep } from './TimeStep';
-import { depositFor, endTime, formatDate, formatDuration, formatPrice } from './format';
+import { depositFor, endTime, formatDate, formatDuration, formatPrice, initials } from './format';
 import { STEPS } from './types';
-import type { BookingDraft, ClientData, Host, Service, Step } from './types';
+import type { BookingDraft, ChosenEmployee, ClientData, Host, Service, Step } from './types';
 
 const TITLES: Record<Step, string> = {
     service: 'Elegí un servicio',
@@ -414,6 +415,7 @@ export function BookingFlow({
     categories,
     coverUrl,
     initialService,
+    employee,
     onClose,
 }: {
     host: Host;
@@ -421,6 +423,8 @@ export function BookingFlow({
     categories: readonly { value: ServiceCategoryValue; label: string }[];
     coverUrl: string | undefined;
     initialService: Service | null;
+    /** El Empleado elegido (ADR 0026): el Turno es con él y el paso Horario solo muestra sus horarios; null, como siempre. */
+    employee: ChosenEmployee | null;
     onClose: () => void;
 }) {
     const router = useRouter();
@@ -516,6 +520,7 @@ export function BookingFlow({
         const result = await bookSlotAction({
             serviceId: service.id,
             startsAt: slot.startsAt,
+            employeeId: employee?.id,
             clientName: client.name,
             clientEmail: client.email,
             notes: client.notes,
@@ -593,6 +598,17 @@ export function BookingFlow({
                 <div className="grid items-start gap-10 lg:grid-cols-[1fr_400px]">
                     <div>
                         <Breadcrumb step={step} locked={locked} onGo={goTo} />
+                        {employee && (
+                            <p className="mt-4 flex items-center gap-2.5 text-[14px] font-semibold">
+                                <Avatar>
+                                    {employee.imageUrl && <AvatarImage src={employee.imageUrl} alt="" />}
+                                    <AvatarFallback className="bg-muted text-[10px] font-extrabold text-foreground">
+                                        {initials(employee.name)}
+                                    </AvatarFallback>
+                                </Avatar>
+                                Reservás con {employee.name}
+                            </p>
+                        )}
                         {/* La key cruza el formulario con el paso del código: uno sale y el otro entra. */}
                         <ViewTransition key={codeOpen ? 'code' : 'steps'} enter="step-in" exit="step-out" default="none">
                             <div>
@@ -626,6 +642,7 @@ export function BookingFlow({
                                                 date={date}
                                                 slot={slot}
                                                 notice={slotNotice}
+                                                employeeId={employee?.id}
                                                 onSelect={(nextDate, nextSlot) =>
                                                     setDraft((d) => ({ ...d, date: nextDate, slot: nextSlot }))
                                                 }

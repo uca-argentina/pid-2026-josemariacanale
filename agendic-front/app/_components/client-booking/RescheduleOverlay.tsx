@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { ArrowLeft, X } from 'lucide-react';
 import { Button } from '@/app/_components/ui/button';
 import { TimeStep } from '@/app/_components/booking/TimeStep';
+import { chosenEmployeeId } from '@/app/_components/booking/format';
 import type { Service, Slot } from '@/app/_components/booking/types';
 import type { ClientBooking, ClientBookingActionResult } from './types';
 
@@ -65,7 +66,14 @@ export function RescheduleOverlay({
                     Elegí día y horario
                 </h1>
 
-                <TimeStep service={service} date={date} slot={slot} notice={notice} onSelect={(d, s) => (setDate(d), setSlot(s))} />
+                <TimeStep
+                    service={service}
+                    date={date}
+                    slot={slot}
+                    notice={notice}
+                    employeeId={chosenEmployeeId(booking)}
+                    onSelect={(d, s) => (setDate(d), setSlot(s))}
+                />
 
                 <Button
                     onClick={confirm}

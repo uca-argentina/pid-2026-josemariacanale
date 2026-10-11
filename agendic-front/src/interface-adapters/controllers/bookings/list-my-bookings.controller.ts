@@ -15,6 +15,7 @@ function presenter(bookings: UserBooking[], instrumentationService: IInstrumenta
             noShowAt: b.noShowAt,
             serviceId: b.serviceId,
             employeeId: b.employeeId,
+            employeeChosen: b.employeeChosen,
             serviceName: b.serviceName,
             business: b.business,
             branch: b.branch,

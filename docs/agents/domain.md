@@ -32,7 +32,7 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | Usuario | `User` (foto de perfil → `User.imageUrl`, la de Clerk al crearse) |
 | Preferencias del Usuario | `User.timeFormat` (`12 \| 24`, por defecto 24) y `User.weekStart` (0 = domingo … 6, por defecto 1 = lunes); en el front, `Preferences` y el diálogo `PreferencesDialog` del menú de Usuario |
 | Cliente | `Client` (`name`, `email`; una fila por Turno vía `Client.bookingId`, índice no único sobre `email`); la API sigue exponiendo `clientName` / `clientEmail` en el Turno |
-| Empleado elegido (ADR 0026) | `Booking.employeeChosen` (`boolean`, por defecto `false`); `employeeId` en `GET /services/:id/slots` y en `POST /bookings`; el Enlace de reserva de ese Empleado es `User.slug`, que `employees[].slug` expone; `ClientBooking` y `UserBooking` traen `employeeChosen` |
+| Empleado elegido (ADR 0026) | `Booking.employeeChosen` (`boolean`, por defecto `false`); `employeeId` en `GET /services/:id/slots` y en `POST /bookings`; el Enlace de reserva de ese Empleado es `User.slug`, que `employees[].slug` expone; en el front, `bookingLinkPath(negocio, sucursal, servicio, empleado)` arma la URL, `PublicBranchScreen` busca al Empleado por ese tramo (`selectedEmployee`, 404 si no Ofrece el Servicio) y `BookingFlow` recibe `employee`; `ClientBooking` y `UserBooking` traen `employeeChosen` |
 | Quien atiende un Turno | `Booking.userId` (siempre); `Booking.employeeId` solo en un Servicio del Negocio |
 | Empleado | `Employee` |
 | Invitación | `Invitation` (`email`, `expiresAt`) |

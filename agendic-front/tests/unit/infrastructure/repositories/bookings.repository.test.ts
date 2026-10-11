@@ -27,6 +27,13 @@ describe('BookingsRepository.listSlots', () => {
         expect(fetchSpy).toHaveBeenCalledWith('http://api/services/100/slots?from=2026-09-28&to=2026-10-11', {});
     });
 
+    it('asks only for the Horarios reservables of the Empleado elegido', async () => {
+        const fetchSpy = respond(200, { timeZone: 'UTC', days: [] });
+
+        await repo().listSlots({ ...query, employeeId: 3 });
+        expect(fetchSpy).toHaveBeenCalledWith('http://api/services/100/slots?from=2026-09-28&to=2026-10-11&employeeId=3', {});
+    });
+
     it('translates a 404 to NotFoundError', async () => {
         respond(404, { statusCode: 404, message: 'Service not found' });
         await expect(repo().listSlots(query)).rejects.toBeInstanceOf(NotFoundError);
