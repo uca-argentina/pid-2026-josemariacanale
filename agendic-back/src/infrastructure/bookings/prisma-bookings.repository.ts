@@ -5,6 +5,7 @@ import {
   BookingStatus,
   ClientBooking,
   DAILY_LIMIT_REACHED,
+  UpcomingBooking,
   UserBooking,
 } from '../../domain/bookings/booking';
 import {
@@ -277,6 +278,50 @@ export class PrismaBookingsRepository implements BookingsRepository {
         select: { prepStartsAt: true, endsAt: true },
       })
       .catch(translateError);
+  }
+
+  /**
+   * @throws {DatabaseOperationError} falló la base
+   */
+  async listUpcomingByUser(
+    userId: number,
+    from: Date,
+  ): Promise<UpcomingBooking[]> {
+    const rows = await this.prisma.booking
+      .findMany({
+        where: { userId, status: { in: OCCUPYING }, startsAt: { gte: from } },
+        select: {
+          id: true,
+          startsAt: true,
+          employeeId: true,
+          client: { select: { name: true } },
+          service: {
+            select: {
+              availability: { select: { timeZone: true } },
+              // Only the Usuario's own Empleado rows; this Turno's is picked by `employeeId` below.
+              employees: {
+                where: { employee: { userId } },
+                select: {
+                  employeeId: true,
+                  availability: { select: { timeZone: true } },
+                },
+              },
+            },
+          },
+        },
+        orderBy: { startsAt: 'asc' },
+      })
+      .catch(translateError);
+    return rows.map((row) => ({
+      id: row.id,
+      startsAt: row.startsAt,
+      clientName: row.client!.name,
+      timeZone: (
+        row.service.availability ??
+        row.service.employees.find((e) => e.employeeId === row.employeeId)!
+          .availability
+      ).timeZone,
+    }));
   }
 
   /**

@@ -228,8 +228,14 @@ como uno que no existe.
 | Método | Ruta | Auth | Qué hace |
 |---|---|---|---|
 | GET | `/holidays/countries` | sí | Los calendarios y países entre los que el Usuario elige sus Días festivos (ADR 0027): `200 [{ code, name }]`. Primero los cinco calendarios religiosos con nombre fijo (`Feriados cristianos`, `Feriados hindúes`, `Feriados judíos`, `Feriados musulmanes`, `Feriados ortodoxos`), después los países ordenados por nombre en castellano |
+| GET | `/users/me/holidays` | sí | `200 { countryCode: string \| null, holidays: [{ id, name, date: "YYYY-MM-DD", enabled }] }`: los Días festivos de hoy en adelante del año en curso y del siguiente, por fecha. Sin país, `holidays: []`. `id` es el `eventId` de Google |
+| PUT | `/users/me/holidays` | sí | Body `{ countryCode: string \| null }`. Guarda el país y vacía los Días festivos apagados (cambiar de país arranca con todo prendido); `null` saca el país. Responde como el `GET` |
+| PATCH | `/users/me/holidays/:holidayId` | sí | Body `{ enabled: boolean }`. Apaga o vuelve a prender el Día festivo. Responde como el `GET` |
+| GET | `/users/me/holidays/conflicts` | sí | `200 [{ holidayId, holidayName, date, bookings: [{ id, startsAt, clientName }] }]`: los Turnos pendientes o aceptados, futuros, que atiende el Usuario y que caen en Días festivos prendidos, por fecha del Día festivo. El día de cada Turno se lee en la zona de la Availability con la que se atiende. Sin país, `[]` |
 
 - Sin `GOOGLE_CALENDAR_API_KEY` → 503 `Días festivos no configurados`. Todos los endpoints de Días festivos que vengan después responden igual
+- `PUT /users/me/holidays`: `countryCode` ausente o que no es texto → 400; un código que no está en `GET /holidays/countries` → 400 `Unknown holiday country <código>`
+- `PATCH /users/me/holidays/:holidayId`: `enabled` ausente o que no es booleano → 400; sin país, o un id que no es del calendario actual del año en curso ni del siguiente → 404 `Holiday <id> not found`
 - Los Días festivos llegan de Google Calendar con IDs `es.*` y se cachean en Postgres (`HolidayCache`); se piden de nuevo cuando la caché tiene más de 7 días
 
 ## Slots (Horario reservable)
