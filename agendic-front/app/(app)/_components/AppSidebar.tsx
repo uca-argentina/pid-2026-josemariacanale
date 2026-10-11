@@ -227,10 +227,6 @@ function NavUser({
                             <Settings className="size-[15px]" />
                             Mi configuración
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setEditingPreferences(true)}>
-                            <SlidersHorizontal className="size-[15px]" />
-                            Preferencias
-                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                             onClick={() => signOut({ redirectUrl: '/' })}
@@ -238,6 +234,10 @@ function NavUser({
                         >
                             <LogOut className="size-[15px]" />
                             Cerrar sesión
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setEditingPreferences(true)}>
+                            <SlidersHorizontal className="size-[15px]" />
+                            Preferencias
                         </DropdownMenuItem>
                         <DropdownMenuItem
                             onClick={() => setRetiring(true)}
