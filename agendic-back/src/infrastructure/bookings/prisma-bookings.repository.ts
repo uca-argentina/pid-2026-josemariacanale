@@ -589,10 +589,12 @@ export class PrismaBookingsRepository implements BookingsRepository {
             price: true,
             depositAmount: true,
             depositPaidAt: true,
+            // Kept so the rotation of Empleados and Cabinas ("el que hace más tiempo que no recibe un Turno") ignores a Reagendar.
+            createdAt: true,
             client: { select: { name: true, email: true } },
           },
         });
-        if (!original) throw new NotFoundError('Booking not found');
+        if (!original) throw new NotFoundError(`Booking ${id} not found`);
         const { count } = await tx.booking.updateMany({
           where: { id, status: { in: fromStatuses } },
           data: {

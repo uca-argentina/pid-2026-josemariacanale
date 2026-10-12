@@ -14,3 +14,4 @@ Reagendar ya no mueve el Turno: cancela el original y crea uno nuevo en el horar
 
 - Reagendar responde otro `id`: el front pasa a usar el de la respuesta.
 - Un original reagendado no tiene Enlace, así que no se puede abrir ni Cancelar por ahí.
+- **Corrige un punto de la ADR 0022**: el Enlace del Turno ya no se genera solo al crear; Reagendar lo pasa al Turno nuevo.

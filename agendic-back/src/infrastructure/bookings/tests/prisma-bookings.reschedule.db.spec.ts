@@ -93,6 +93,9 @@ describe('PrismaBookingsRepository, Reagendar (real database)', () => {
       depositAmount: 10,
       depositPaidAt: NOW,
     });
+    expect((await prisma.booking.findUnique({ where: { id: moved.id } }))!.createdAt).toEqual(
+      (await prisma.booking.findUnique({ where: { id: original.id } }))!.createdAt,
+    );
     expect(moved.id).not.toBe(original.id);
     expect(await prisma.booking.findUnique({ where: { id: original.id } })).toMatchObject({
       status: BookingStatus.CANCELLED,
