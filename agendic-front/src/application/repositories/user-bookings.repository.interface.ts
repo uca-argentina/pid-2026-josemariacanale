@@ -49,6 +49,7 @@ export interface IUserBookingsRepository {
      * @throws {NotFoundError} el Turno no existe (404)
      * @throws {SlotTakenError} el horario choca con otro Turno del Empleado (409)
      * @throws {BookingStateError} no está aceptado (422)
+     * @throws {ApiRequestError} la respuesta no trae el `id` del Turno nuevo
      */
     reschedule(bookingId: number, startsAt: string): Promise<{ id: number }>;
 

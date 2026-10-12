@@ -81,7 +81,7 @@ export class UserBookingsRepository implements IUserBookingsRepository {
      */
     async reschedule(bookingId: number, startsAt: string): Promise<{ id: number }> {
         const json = await this.request('PATCH', `/bookings/${bookingId}/reschedule`, { startsAt });
-        if (typeof json?.id !== 'number') throw new ApiRequestError(`PATCH /bookings/${bookingId}/reschedule returned no Turno id`);
+        if (typeof json?.id !== 'number') throw new ApiRequestError(`PATCH /bookings/${bookingId}/reschedule responded without a numeric Turno id: ${JSON.stringify(json)}`);
         return { id: json.id };
     }
 

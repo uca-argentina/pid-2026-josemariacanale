@@ -15,6 +15,7 @@ export type IRescheduleBookingUseCase = ReturnType<typeof rescheduleBookingUseCa
  * @throws {NotFoundError} el Turno no existe
  * @throws {SlotTakenError} el horario choca con otro Turno del Empleado
  * @throws {BookingStateError} el Turno no está aceptado
+ * @throws {ApiRequestError} el back respondió sin el `id` del Turno nuevo
  */
 export const rescheduleBookingUseCase =
     (instrumentationService: IInstrumentationService, userBookingsRepository: IUserBookingsRepository) =>
