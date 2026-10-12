@@ -19,6 +19,9 @@ services:
         environment:
             DATABASE_URL: postgresql://agendic:${POSTGRES_PASSWORD}@db:5432/agendic
             PORT: 3333
+        ports:
+            # Solo localhost: se entra por nginx (HTTPS).
+            - '127.0.0.1:3201:3333'
         depends_on:
             db:
                 condition: service_healthy
