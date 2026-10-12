@@ -330,13 +330,20 @@ como uno que no existe.
   - Dos `POST /bookings` casi juntos para el mismo horario: uno da 201, el otro 409 `Overlaps a booked Turno for this Employee`. Lo garantiza la exclusion constraint `Booking_no_overlap` de Postgres (ADR 0004), no solo el chequeo del caso de uso.
   - `POST /bookings` → 409 `The Service reached its Límite diario that day` si el Servicio ya tiene `dailyLimit` Turnos `PENDING` o `BOOKED` ese día de la Sucursal. Dos creaciones casi juntas del mismo Servicio no pueden pasarlo: la creación cuenta y crea dentro de una transacción con `pg_advisory_xact_lock` por Servicio (ADR 0004).
 
-## Analíticas (#264, #270)
+## Analíticas (#264, #270, #271)
 
 | Método | Ruta | Auth | Qué hace |
 |---|---|---|---|
 | GET | `/analytics/personal?from=YYYY-MM-DD&to=YYYY-MM-DD&serviceId=<id>?` | sí | KPIs de los Servicios personales del Usuario de la Sesión (incluidos los ocultos y los dados de baja; nunca los del Negocio ni los de otro Usuario), cada uno con su valor en el período anterior |
 
-- Respuesta 200: `{ kpis: Record<'booked' \| 'attended' \| 'rescheduled' \| 'cancelled' \| 'rejected' \| 'pending' \| 'noShows' \| 'employeeNoShows' \| 'averageRating' \| 'csat' \| 'revenue', { current: number \| null, previous: number \| null }> }`. `averageRating` y `csat` son `null` sin Calificaciones en el período; `csat` va de 0 a 100 con un decimal; `revenue` es la suma de `price` de los Turnos atendidos, `0` si no hay. El front calcula la variación % contra `previous` y muestra `null` como "—".
+- Respuesta 200: `{ granularity, trend, popularServices, recentRatings, filterOptions, kpis: Record<'booked' \| 'attended' \| 'rescheduled' \| 'cancelled' \| 'rejected' \| 'pending' \| 'noShows' \| 'employeeNoShows' \| 'averageRating' \| 'csat' \| 'revenue', { current: number \| null, previous: number \| null }> }`. `averageRating` y `csat` son `null` sin Calificaciones en el período; `csat` va de 0 a 100 con un decimal; `revenue` es la suma de `price` de los Turnos atendidos, `0` si no hay. El front calcula la variación % contra `previous` y muestra `null` como "—".
+- **Tendencia y listados** (#271), con el mismo rango, el mismo `serviceId` y las mismas reglas de conteo que los KPIs; `filterOptions` no se filtra:
+  - `granularity`: `'day'` hasta 31 días, `'week'` hasta 183, `'month'` en rangos más largos.
+  - `trend`: `{ bucket: 'YYYY-MM-DD', booked, attended, rescheduled, cancelled, rejected, noShows, employeeNoShows }[]`. `bucket` es la fecha local en que arranca el período: con `week`, el `weekStart` del Usuario; con `month`, el día 1. Aparecen todos los períodos del rango, en orden y con 0 si no tienen Turnos (el primero y el último pueden arrancar fuera del rango, pero solo cuentan Turnos dentro de él). Cada serie cuenta con la regla y el instante de su KPI.
+  - `popularServices`: `{ serviceId, name, count }[]`, top 5 por cantidad de Turnos con `startsAt` en el rango, sin los Rechazados ni los originales reagendados; orden por cantidad descendente y desempate por nombre.
+  - `recentRatings`: `{ score, comment, createdAt, clientName, serviceName, employeeName: null }[]`, las 10 Calificaciones más recientes con `createdAt` en el rango (`employeeName` es siempre `null` en los Servicios personales).
+  - `filterOptions.services`: `{ id, name }[]` con todos los Servicios personales del Usuario, ocultos y dados de baja incluidos, por nombre.
+  - El front usa `trend` sin rellenar huecos y `filterOptions` para el filtro por Servicio.
 - **Período anterior**: mismo largo en días que `from`..`to` (los dos días cuentan) y termina el día antes de `from`.
 - **Reglas de conteo** (todas excluyen los originales reagendados, `rescheduled = true`, salvo `rescheduled`). Un Turno entra en el rango por la fecha local del instante, en la zona de la Availability predeterminada del Usuario (los Servicios del Negocio, con la zona de su Sucursal, llegan con los tickets siguientes):
   - `booked`: todos menos los que tienen `fromRescheduleId`, por `createdAt`
