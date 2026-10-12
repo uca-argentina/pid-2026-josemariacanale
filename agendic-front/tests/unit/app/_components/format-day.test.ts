@@ -1,4 +1,4 @@
-import { formatOutOfOfficeDate } from '@/app/(app)/availability/out-of-office/_components/format-out-of-office-date';
+import { formatOutOfOfficeDate } from '@/app/_components/format-day';
 
 describe('formatOutOfOfficeDate', () => {
     it.each([
