@@ -20,7 +20,6 @@ import {
   EMPLOYEES_REPOSITORY,
   EmployeesRepository,
 } from '../../domain/employees/employees.repository';
-import { ForbiddenError, NotFoundError } from '../../domain/errors';
 import {
   SERVICES_REPOSITORY,
   ServicesRepository,
@@ -29,11 +28,9 @@ import {
   USERS_REPOSITORY,
   UsersRepository,
 } from '../../domain/users/users.repository';
-import {
-  assertFiltersBelong,
-  BusinessAnalyticsFilters,
-} from './assert-filters-belong';
+import { BusinessAnalyticsFilters } from './assert-filters-belong';
 import { KpiPair, pairKpis, parseAnalyticsRange } from './analytics-range';
+import { resolveBusinessScope } from './resolve-business-scope';
 
 type Option = { id: number; name: string };
 
@@ -87,35 +84,17 @@ export class GetBusinessAnalyticsUseCase {
     filters: BusinessAnalyticsFilters = {},
   ): Promise<BusinessAnalytics> {
     const { range, previous, granularity } = parseAnalyticsRange(from, to);
-    const business = await this.businesses.findById(businessId);
-    if (!business || business.deletedAt)
-      throw new NotFoundError(`Business ${businessId} not found`);
-    const own = (await this.employees.listActiveByUser(userId)).find(
-      (e) => e.businessId === businessId,
-    );
-    if (!own)
-      throw new ForbiddenError(
-        `Only Employees of Business ${businessId} can see its analytics`,
-      );
-    const isOwner = business.ownerId === userId;
-    if (!isOwner && filters.employeeId !== undefined)
-      throw new ForbiddenError('Only the owner can filter by Employee');
-
-    const branches = await this.branches.listByBusiness(businessId);
-    await assertFiltersBelong(
-      this.services,
-      this.employees,
+    const { scope, isOwner, branches } = await resolveBusinessScope(
+      {
+        businesses: this.businesses,
+        employees: this.employees,
+        branches: this.branches,
+        services: this.services,
+      },
+      userId,
       businessId,
-      branches,
       filters,
     );
-
-    const scope = {
-      kind: 'business',
-      businessId,
-      branchId: filters.branchId,
-      employeeId: isOwner ? filters.employeeId : own.id,
-    } as const;
     const { serviceId } = filters;
     const now = this.clock.now();
     const user = await this.users.findById(userId);

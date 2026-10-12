@@ -1,5 +1,6 @@
 import {
   AnalyticsBreakdown,
+  BookingRow,
   EmployeeRankings,
   EmployeesPerPeriod,
   KPI_NAMES,
@@ -531,5 +532,177 @@ describe('GET /analytics/businesses/:businessId/employees-per-period', () => {
     const res = await get(`${RANGE}&granularity=day&${param}=2`).expect(404);
 
     expect(res.body.message).toBe(`${label} 2 not found`);
+  });
+});
+
+describe('GET /analytics/businesses/:businessId/bookings.csv', () => {
+  let t: TestApp;
+
+  const ROW: BookingRow = {
+    startsAt: '2026-03-02 10:00',
+    serviceName: 'Haircut',
+    branchName: ANAS_BRANCH.name,
+    employeeName: 'Ana Pérez',
+    clientName: 'Cami',
+    clientEmail: 'cami@example.com',
+    status: 'BOOKED',
+    rescheduled: false,
+    attended: false,
+    noShow: false,
+    employeeNoShow: false,
+    price: 1500,
+    rating: null,
+  };
+  const STATES: Partial<BookingRow>[] = [
+    { status: 'PENDING' },
+    { status: 'BOOKED', attended: true, rating: 4 },
+    { status: 'REJECTED' },
+    { status: 'CANCELLED' },
+    { status: 'CANCELLED', rescheduled: true },
+    { noShow: true },
+    { employeeNoShow: true },
+  ];
+
+  beforeEach(async () => {
+    t = await createTestApp();
+    scriptSession(t);
+    scriptOtherSession(t);
+    t.businesses.findById.mockImplementation(
+      async (id) =>
+        [ANAS_BUSINESS, OTHER_BUSINESS].find((b) => b.id === id) ?? null,
+    );
+    t.employees.listActiveByUser.mockImplementation(async (userId) =>
+      userId === ANA.id
+        ? [ANAS_EMPLOYEE]
+        : userId === BRUNO.id
+          ? [
+              { ...BRUNOS_EMPLOYEE, businessId: ANAS_BUSINESS.id },
+              BRUNOS_EMPLOYEE_AT_OTHER,
+            ]
+          : [],
+    );
+    t.employees.findById.mockImplementation(
+      async (id) =>
+        [ANAS_EMPLOYEE, BRUNOS_EMPLOYEE, BRUNOS_EMPLOYEE_AT_OTHER].find(
+          (e) => e.id === id,
+        ) ?? null,
+    );
+    t.branches.listByBusiness.mockImplementation(async (id) =>
+      [ANAS_BRANCH, OTHER_BRANCH].filter((b) => b.businessId === id),
+    );
+    t.services.findById.mockImplementation(
+      async (id) =>
+        [ANAS_SERVICE, OTHER_SERVICE].find((s) => s.id === id) ?? null,
+    );
+    t.analytics.bookingRows.mockResolvedValue(
+      STATES.map((state) => ({ ...ROW, ...state })),
+    );
+  });
+  afterEach(() => t.app.close());
+
+  const OWNER = CLERK_TOKEN;
+  const EMPLOYEE = OTHER_CLERK_TOKEN;
+  const MARCH = 'from=2026-03-01&to=2026-03-10';
+  const get = (query: string, token = OWNER, businessId = ANAS_BUSINESS.id) =>
+    t.http
+      .get(`/analytics/businesses/${businessId}/bookings.csv?${query}`)
+      .set(bearer(token));
+
+  it('answers a downloadable CSV with the BOM, the header and a row per Turno', async () => {
+    const res = await get(MARCH).expect(200);
+
+    expect(res.headers['content-type']).toBe('text/csv; charset=utf-8');
+    expect(res.headers['content-disposition']).toBe(
+      'attachment; filename="turnos-2026-03-01-2026-03-10.csv"',
+    );
+    const lines = res.text.split('\r\n');
+    expect(lines[0]).toBe(
+      '﻿Fecha y hora,Servicio,Sucursal,Empleado,Cliente,Email,Estado,Atendido,Ausencia,Falta del Empleado,Precio,Calificación',
+    );
+    expect(lines.slice(1, 8).map((l) => l.split(',').slice(6, 10))).toEqual([
+      ['Pendiente', 'No', 'No', 'No'],
+      ['Aceptado', 'Sí', 'No', 'No'],
+      ['Rechazado', 'No', 'No', 'No'],
+      ['Cancelado', 'No', 'No', 'No'],
+      ['Reagendado', 'No', 'No', 'No'],
+      ['Aceptado', 'No', 'Sí', 'No'],
+      ['Aceptado', 'No', 'No', 'Sí'],
+    ]);
+    expect(lines[1]).toBe(
+      `2026-03-02 10:00,Haircut,${ANAS_BRANCH.name},Ana Pérez,Cami,cami@example.com,Pendiente,No,No,No,1500,`,
+    );
+    expect(lines[2].endsWith(',1500,4')).toBe(true);
+  });
+
+  it('escapes commas and quotes in the cells', async () => {
+    t.analytics.bookingRows.mockResolvedValue([
+      { ...ROW, clientName: 'Pérez, "Cami"' },
+    ]);
+
+    const res = await get(MARCH).expect(200);
+
+    expect(res.text).toContain(',"Pérez, ""Cami""",cami@example.com,');
+  });
+
+  it('gives the Dueño the whole Negocio, narrowed by the filters', async () => {
+    await get(`${MARCH}&branchId=1&serviceId=1&employeeId=2`).expect(200);
+
+    expect(t.analytics.bookingRows).toHaveBeenCalledWith(
+      { kind: 'business', businessId: 1, branchId: 1, employeeId: 2 },
+      { from: '2026-03-01', to: '2026-03-10' },
+      t.clock.now(),
+      1,
+    );
+  });
+
+  it('gives an Empleado who is not the Dueño only the Turnos he attends', async () => {
+    await get(MARCH, EMPLOYEE).expect(200);
+
+    expect(t.analytics.bookingRows).toHaveBeenCalledWith(
+      { kind: 'business', businessId: 1, employeeId: BRUNOS_EMPLOYEE.id },
+      expect.anything(),
+      t.clock.now(),
+      undefined,
+    );
+  });
+
+  it('is 401 without a Sesión', async () => {
+    await t.http
+      .get(`/analytics/businesses/1/bookings.csv?${MARCH}`)
+      .expect(401);
+  });
+
+  it('is 400 with an invalid range', async () => {
+    const res = await get('from=2026-03-10&to=2026-03-01').expect(400);
+
+    expect(res.body.message).toBe(
+      'Invalid analytics range 2026-03-10..2026-03-01',
+    );
+  });
+
+  it('is 404 when the Negocio does not exist', async () => {
+    const res = await get(MARCH, OWNER, 99).expect(404);
+
+    expect(res.body.message).toBe('Business 99 not found');
+  });
+
+  it('is 403 when the Usuario is not an Empleado of the Negocio', async () => {
+    const res = await get(MARCH, OWNER, OTHER_BUSINESS.id).expect(403);
+
+    expect(res.body.message).toBe(
+      `Only Employees of Business ${OTHER_BUSINESS.id} can see its analytics`,
+    );
+  });
+
+  it('is 403 when an Empleado who is not the Dueño filters by Empleado', async () => {
+    const res = await get(`${MARCH}&employeeId=1`, EMPLOYEE).expect(403);
+
+    expect(res.body.message).toBe('Only the owner can filter by Employee');
+  });
+
+  it('is 404 when a filter is not of the Negocio', async () => {
+    const res = await get(`${MARCH}&branchId=2`).expect(404);
+
+    expect(res.body.message).toBe('Branch 2 not found');
   });
 });

@@ -99,6 +99,23 @@ export type EmployeesPerPeriod = {
   }[];
 };
 
+/** Un Turno del rango, como lo lista el CSV de analíticas; `branchName` y `employeeName` son `null` en los Servicios personales. */
+export type BookingRow = {
+  startsAt: string;
+  serviceName: string;
+  branchName: string | null;
+  employeeName: string | null;
+  clientName: string;
+  clientEmail: string;
+  status: 'PENDING' | 'BOOKED' | 'REJECTED' | 'CANCELLED';
+  rescheduled: boolean;
+  attended: boolean;
+  noShow: boolean;
+  employeeNoShow: boolean;
+  price: number;
+  rating: number | null;
+};
+
 /** Lo que se grafica y lista debajo de los KPIs. */
 export type AnalyticsBreakdown = {
   trend: TrendPoint[];
@@ -161,6 +178,18 @@ export interface AnalyticsRepository {
     weekStart: number,
     serviceId?: number,
   ): Promise<EmployeesPerPeriod>;
+
+  /**
+   * Cada Turno del alcance cuyo `startsAt` local cae en el rango, opcionalmente de un solo Servicio, por
+   * `startsAt` y luego id. Incluye los originales reagendados. `startsAt` es la fecha y hora local
+   * `YYYY-MM-DD HH:mm`; `attended` sigue la regla del KPI `attended` con `now`.
+   */
+  bookingRows(
+    scope: AnalyticsScope,
+    range: DateRange,
+    now: Date,
+    serviceId?: number,
+  ): Promise<BookingRow[]>;
 
   /** Todos los Servicios de las Sucursales del Negocio, ocultos y dados de baja incluidos, por nombre. */
   businessServices(businessId: number): Promise<{ id: number; name: string }[]>;

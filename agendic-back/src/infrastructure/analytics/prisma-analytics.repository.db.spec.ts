@@ -687,4 +687,62 @@ describe('PrismaAnalyticsRepository (real database)', () => {
       `${tag}-opt-b`,
     ]);
   });
+
+  describe('bookingRows', () => {
+    it('lists the Turnos of the range with their Cliente, state and Calificación, rescheduled originals included, and no Sucursal or Empleado', async () => {
+      const { user, service, scope } = await makeScope();
+      const original = await book(service.id, user.id, '2031-03-05T13:00:00Z', {
+        status: BookingStatus.CANCELLED,
+        cancelledAt: new Date('2031-03-06T13:00:00Z'),
+        rescheduled: true,
+        link: `${tag}-rows-original`,
+      });
+      const attended = await book(service.id, user.id, '2031-03-04T13:00:00Z', {
+        price: 250.5,
+      });
+      const noShow = await book(service.id, user.id, '2031-03-07T13:00:00Z', {
+        noShowAt: new Date('2031-03-07T14:00:00Z'),
+      });
+      await book(service.id, user.id, '2031-04-07T13:00:00Z');
+      for (const [booking, name] of [
+        [original, 'Pérez, "Cami"'],
+        [attended, 'Ana'],
+        [noShow, 'Beto'],
+      ] as const)
+        await prisma.client.create({
+          data: { bookingId: booking.id, name, email: `${name.length}@x.com` },
+        });
+      await prisma.bookingRating.create({
+        data: { bookingId: attended.id, score: 4 },
+      });
+
+      const rows = await repository.bookingRows(scope, MARCH, NOW);
+
+      expect(rows.map((r) => r.startsAt)).toEqual([
+        '2031-03-04 10:00',
+        '2031-03-05 10:00',
+        '2031-03-07 10:00',
+      ]);
+      expect(rows[0]).toMatchObject({
+        serviceName: service.name,
+        branchName: null,
+        employeeName: null,
+        clientName: 'Ana',
+        status: 'BOOKED',
+        rescheduled: false,
+        attended: true,
+        noShow: false,
+        price: 250.5,
+        rating: 4,
+      });
+      expect(rows[1]).toMatchObject({
+        clientName: 'Pérez, "Cami"',
+        status: 'CANCELLED',
+        rescheduled: true,
+        attended: false,
+        rating: null,
+      });
+      expect(rows[2]).toMatchObject({ attended: false, noShow: true });
+    });
+  });
 });
