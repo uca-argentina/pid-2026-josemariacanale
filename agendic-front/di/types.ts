@@ -128,6 +128,26 @@ import type { ICreateAvailabilityUseCase } from '@/src/application/use-cases/ava
 import type { IUpdateAvailabilityUseCase } from '@/src/application/use-cases/availabilities/update-availability.use-case';
 import type { IMakeAvailabilityDefaultUseCase } from '@/src/application/use-cases/availabilities/make-availability-default.use-case';
 import type { IDeleteAvailabilityUseCase } from '@/src/application/use-cases/availabilities/delete-availability.use-case';
+import type { IOutOfOfficeRepository } from '@/src/application/repositories/out-of-office.repository.interface';
+import type { IListOutOfOfficeUseCase } from '@/src/application/use-cases/out-of-office/list-out-of-office.use-case';
+import type { IListMyOutOfOfficeController } from '@/src/interface-adapters/controllers/out-of-office/list-my-out-of-office.controller';
+import type { ICreateOutOfOfficeController } from '@/src/interface-adapters/controllers/out-of-office/create-out-of-office.controller';
+import type { IUpdateOutOfOfficeController } from '@/src/interface-adapters/controllers/out-of-office/update-out-of-office.controller';
+import type { IDeleteOutOfOfficeController } from '@/src/interface-adapters/controllers/out-of-office/delete-out-of-office.controller';
+import type { ICreateOutOfOfficeUseCase } from '@/src/application/use-cases/out-of-office/create-out-of-office.use-case';
+import type { IUpdateOutOfOfficeUseCase } from '@/src/application/use-cases/out-of-office/update-out-of-office.use-case';
+import type { IDeleteOutOfOfficeUseCase } from '@/src/application/use-cases/out-of-office/delete-out-of-office.use-case';
+import type { IHolidaysRepository } from '@/src/application/repositories/holidays.repository.interface';
+import type { IListHolidayCountriesUseCase } from '@/src/application/use-cases/holidays/list-holiday-countries.use-case';
+import type { IListHolidayCountriesController } from '@/src/interface-adapters/controllers/holidays/list-holiday-countries.controller';
+import type { IGetMyHolidaysUseCase } from '@/src/application/use-cases/holidays/get-my-holidays.use-case';
+import type { IGetMyHolidaysController } from '@/src/interface-adapters/controllers/holidays/get-my-holidays.controller';
+import type { ISetHolidayCountryUseCase } from '@/src/application/use-cases/holidays/set-holiday-country.use-case';
+import type { ISetHolidayCountryController } from '@/src/interface-adapters/controllers/holidays/set-holiday-country.controller';
+import type { IToggleHolidayUseCase } from '@/src/application/use-cases/holidays/toggle-holiday.use-case';
+import type { IToggleHolidayController } from '@/src/interface-adapters/controllers/holidays/toggle-holiday.controller';
+import type { IListHolidayConflictsUseCase } from '@/src/application/use-cases/holidays/list-holiday-conflicts.use-case';
+import type { IListHolidayConflictsController } from '@/src/interface-adapters/controllers/holidays/list-holiday-conflicts.controller';
 import type { IListMyAvailabilitiesController } from '@/src/interface-adapters/controllers/availabilities/list-my-availabilities.controller';
 import type { ICreateAvailabilityController } from '@/src/interface-adapters/controllers/availabilities/create-availability.controller';
 import type { IUpdateAvailabilityController } from '@/src/interface-adapters/controllers/availabilities/update-availability.controller';
@@ -148,6 +168,8 @@ export const DI_SYMBOLS = {
     IUserBookingsRepository: Symbol.for('IUserBookingsRepository'),
     IClientBookingsRepository: Symbol.for('IClientBookingsRepository'),
     IAvailabilitiesRepository: Symbol.for('IAvailabilitiesRepository'),
+    IOutOfOfficeRepository: Symbol.for('IOutOfOfficeRepository'),
+    IHolidaysRepository: Symbol.for('IHolidaysRepository'),
     IServicesRepository: Symbol.for('IServicesRepository'),
 
     ICreateBranchUseCase: Symbol.for('ICreateBranchUseCase'),
@@ -204,6 +226,15 @@ export const DI_SYMBOLS = {
     IUpdateAvailabilityUseCase: Symbol.for('IUpdateAvailabilityUseCase'),
     IMakeAvailabilityDefaultUseCase: Symbol.for('IMakeAvailabilityDefaultUseCase'),
     IDeleteAvailabilityUseCase: Symbol.for('IDeleteAvailabilityUseCase'),
+    IListOutOfOfficeUseCase: Symbol.for('IListOutOfOfficeUseCase'),
+    ICreateOutOfOfficeUseCase: Symbol.for('ICreateOutOfOfficeUseCase'),
+    IUpdateOutOfOfficeUseCase: Symbol.for('IUpdateOutOfOfficeUseCase'),
+    IDeleteOutOfOfficeUseCase: Symbol.for('IDeleteOutOfOfficeUseCase'),
+    IListHolidayCountriesUseCase: Symbol.for('IListHolidayCountriesUseCase'),
+    IGetMyHolidaysUseCase: Symbol.for('IGetMyHolidaysUseCase'),
+    ISetHolidayCountryUseCase: Symbol.for('ISetHolidayCountryUseCase'),
+    IToggleHolidayUseCase: Symbol.for('IToggleHolidayUseCase'),
+    IListHolidayConflictsUseCase: Symbol.for('IListHolidayConflictsUseCase'),
 
     IGetCurrentUserController: Symbol.for('IGetCurrentUserController'),
     ICreateBranchController: Symbol.for('ICreateBranchController'),
@@ -273,6 +304,15 @@ export const DI_SYMBOLS = {
     IUpdateAvailabilityController: Symbol.for('IUpdateAvailabilityController'),
     IMakeAvailabilityDefaultController: Symbol.for('IMakeAvailabilityDefaultController'),
     IDeleteAvailabilityController: Symbol.for('IDeleteAvailabilityController'),
+    IListMyOutOfOfficeController: Symbol.for('IListMyOutOfOfficeController'),
+    ICreateOutOfOfficeController: Symbol.for('ICreateOutOfOfficeController'),
+    IUpdateOutOfOfficeController: Symbol.for('IUpdateOutOfOfficeController'),
+    IDeleteOutOfOfficeController: Symbol.for('IDeleteOutOfOfficeController'),
+    IListHolidayCountriesController: Symbol.for('IListHolidayCountriesController'),
+    IGetMyHolidaysController: Symbol.for('IGetMyHolidaysController'),
+    ISetHolidayCountryController: Symbol.for('ISetHolidayCountryController'),
+    IToggleHolidayController: Symbol.for('IToggleHolidayController'),
+    IListHolidayConflictsController: Symbol.for('IListHolidayConflictsController'),
 };
 
 export interface DI_RETURN_TYPES {
@@ -289,6 +329,8 @@ export interface DI_RETURN_TYPES {
     IUserBookingsRepository: IUserBookingsRepository;
     IClientBookingsRepository: IClientBookingsRepository;
     IAvailabilitiesRepository: IAvailabilitiesRepository;
+    IOutOfOfficeRepository: IOutOfOfficeRepository;
+    IHolidaysRepository: IHolidaysRepository;
     IServicesRepository: IServicesRepository;
 
     ICreateBranchUseCase: ICreateBranchUseCase;
@@ -345,6 +387,15 @@ export interface DI_RETURN_TYPES {
     IUpdateAvailabilityUseCase: IUpdateAvailabilityUseCase;
     IMakeAvailabilityDefaultUseCase: IMakeAvailabilityDefaultUseCase;
     IDeleteAvailabilityUseCase: IDeleteAvailabilityUseCase;
+    IListOutOfOfficeUseCase: IListOutOfOfficeUseCase;
+    ICreateOutOfOfficeUseCase: ICreateOutOfOfficeUseCase;
+    IUpdateOutOfOfficeUseCase: IUpdateOutOfOfficeUseCase;
+    IDeleteOutOfOfficeUseCase: IDeleteOutOfOfficeUseCase;
+    IListHolidayCountriesUseCase: IListHolidayCountriesUseCase;
+    IGetMyHolidaysUseCase: IGetMyHolidaysUseCase;
+    ISetHolidayCountryUseCase: ISetHolidayCountryUseCase;
+    IToggleHolidayUseCase: IToggleHolidayUseCase;
+    IListHolidayConflictsUseCase: IListHolidayConflictsUseCase;
 
     IGetCurrentUserController: IGetCurrentUserController;
     ICreateBranchController: ICreateBranchController;
@@ -414,4 +465,13 @@ export interface DI_RETURN_TYPES {
     IUpdateAvailabilityController: IUpdateAvailabilityController;
     IMakeAvailabilityDefaultController: IMakeAvailabilityDefaultController;
     IDeleteAvailabilityController: IDeleteAvailabilityController;
+    IListMyOutOfOfficeController: IListMyOutOfOfficeController;
+    ICreateOutOfOfficeController: ICreateOutOfOfficeController;
+    IUpdateOutOfOfficeController: IUpdateOutOfOfficeController;
+    IDeleteOutOfOfficeController: IDeleteOutOfOfficeController;
+    IListHolidayCountriesController: IListHolidayCountriesController;
+    IGetMyHolidaysController: IGetMyHolidaysController;
+    ISetHolidayCountryController: ISetHolidayCountryController;
+    IToggleHolidayController: IToggleHolidayController;
+    IListHolidayConflictsController: IListHolidayConflictsController;
 }

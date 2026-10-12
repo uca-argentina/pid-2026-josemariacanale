@@ -11,6 +11,7 @@ import { BUSINESSES_REPOSITORY } from '../domain/businesses/businesses.repositor
 import { EMPLOYEES_REPOSITORY } from '../domain/employees/employees.repository';
 import { GOOGLE_CALENDAR_CLIENT } from '../domain/holidays/google-calendar-client';
 import { HOLIDAYS_REPOSITORY } from '../domain/holidays/holidays.repository';
+import { USER_HOLIDAY_SETTINGS_REPOSITORY } from '../domain/holidays/user-holiday-settings.repository';
 import { INVITATIONS_REPOSITORY } from '../domain/invitations/invitations.repository';
 import { OUT_OF_OFFICE_REPOSITORY } from '../domain/out-of-office/out-of-office.repository';
 import { SERVICES_REPOSITORY } from '../domain/services/services.repository';
@@ -35,6 +36,7 @@ import { EmployeesModule } from './employees/employees.module';
 import { GoogleCalendarApiClient } from './holidays/google-calendar-api.client';
 import { HolidaysModule } from './holidays/holidays.module';
 import { PrismaHolidaysRepository } from './holidays/prisma-holidays.repository';
+import { PrismaUserHolidaySettingsRepository } from './holidays/prisma-user-holiday-settings.repository';
 import { PrismaInvitationsRepository } from './invitations/prisma-invitations.repository';
 import { OutOfOfficeModule } from './out-of-office/out-of-office.module';
 import { PrismaOutOfOfficeRepository } from './out-of-office/prisma-out-of-office.repository';
@@ -105,6 +107,10 @@ import { UsersModule } from './users/users.module';
       useClass: PrismaOutOfOfficeRepository,
     },
     { provide: HOLIDAYS_REPOSITORY, useClass: PrismaHolidaysRepository },
+    {
+      provide: USER_HOLIDAY_SETTINGS_REPOSITORY,
+      useClass: PrismaUserHolidaySettingsRepository,
+    },
     { provide: GOOGLE_CALENDAR_CLIENT, useClass: GoogleCalendarApiClient },
   ],
   exports: [
@@ -125,6 +131,7 @@ import { UsersModule } from './users/users.module';
     AVAILABILITIES_REPOSITORY,
     OUT_OF_OFFICE_REPOSITORY,
     HOLIDAYS_REPOSITORY,
+    USER_HOLIDAY_SETTINGS_REPOSITORY,
     GOOGLE_CALENDAR_CLIENT,
   ],
 })

@@ -13,12 +13,13 @@ import { ListBookingsByBusinessUseCase } from '../../application/bookings/list-b
 import { AcceptBookingUseCase } from '../../application/bookings/accept-booking.use-case';
 import { RejectBookingUseCase } from '../../application/bookings/reject-booking.use-case';
 import { RequestBookingCodeUseCase } from '../../application/bookings/request-booking-code.use-case';
+import { HolidaysModule } from '../holidays/holidays.module';
 import { UsersModule } from '../users/users.module';
 import { BookingLinksController } from './booking-links.controller';
 import { BookingsController } from './bookings.controller';
 
 @Module({
-  imports: [UsersModule],
+  imports: [UsersModule, HolidaysModule],
   controllers: [BookingsController, BookingLinksController],
   providers: [
     CreateBookingUseCase,

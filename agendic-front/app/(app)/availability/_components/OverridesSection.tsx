@@ -69,7 +69,7 @@ function OverrideDialog({
                     <Calendar
                         mode="multiple"
                         locale={es}
-                        weekStartsOn={weekStart as 0 | 1 | 2 | 3 | 4 | 5 | 6}
+                        weekStartsOn={weekStart}
                         defaultMonth={editing ? toLocalDate(editing.date) : undefined}
                         selected={selected.map(toLocalDate)}
                         onSelect={(dates, trigger) => setSelected(editing ? [toIsoDate(trigger)] : (dates ?? []).map(toIsoDate))}

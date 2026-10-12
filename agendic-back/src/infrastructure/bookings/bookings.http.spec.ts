@@ -6,6 +6,7 @@ import {
   NotFoundError,
   TooManyRequestsError,
 } from '../../domain/errors';
+import { OutOfOfficeReason } from '../../domain/out-of-office/out-of-office';
 import {
   ANAS_BRANCH,
   ANAS_BUSINESS,
@@ -529,6 +530,27 @@ describe('Turno', () => {
     it('answers 422 when nobody is free at that time', async () => {
       t.bookings.listOccupiedByUser.mockResolvedValue([
         { prepStartsAt: BOOKING.startsAt, endsAt: BOOKING.endsAt },
+      ]);
+
+      const res = await t.http.post('/bookings').send(VALID_BOOKING).expect(422);
+
+      expect(res.body.message).toBe(
+        `Slot ${VALID_BOOKING.startsAt} is not available for Service ${SERVICE.id}`,
+      );
+      expect(t.bookings.create).not.toHaveBeenCalled();
+    });
+
+    it('answers 422 for a day Fuera de la oficina', async () => {
+      t.outOfOffice.listByUserEndingFrom.mockResolvedValue([
+        {
+          id: 1,
+          userId: ANAS_EMPLOYEE.userId,
+          startDate: '2026-01-01',
+          endDate: '2026-01-01',
+          reason: OutOfOfficeReason.VACATION,
+          notes: null,
+          showNotePublicly: false,
+        },
       ]);
 
       const res = await t.http.post('/bookings').send(VALID_BOOKING).expect(422);

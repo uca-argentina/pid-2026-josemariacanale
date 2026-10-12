@@ -15,7 +15,7 @@ export const meSchema = z.object({
     slug: z.string().nullable(),
     imageUrl: z.string().nullable(),
     timeFormat: z.union([z.literal(12), z.literal(24)]),
-    weekStart: z.number().int().min(0).max(6),
+    weekStart: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5), z.literal(6)]),
 });
 export type Me = z.infer<typeof meSchema>;
 

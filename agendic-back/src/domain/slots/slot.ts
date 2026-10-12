@@ -2,12 +2,13 @@ import dayjs from 'dayjs';
 import timezone from 'dayjs/plugin/timezone';
 import utc from 'dayjs/plugin/utc';
 import { Availability } from '../availabilities/availability';
+import { OutOfOfficePeriod, OutOfOfficeReason } from '../out-of-office/out-of-office';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
 /** Horario reservable: why a day has none, when it doesn't. */
-export type SlotsReason = 'NOT_WORKING' | 'FULLY_BOOKED';
+export type SlotsReason = 'NOT_WORKING' | 'FULLY_BOOKED' | 'OUT_OF_OFFICE';
 
 export interface DaySlots {
   /** A local date in the Sucursal's time zone. */
@@ -15,6 +16,8 @@ export interface DaySlots {
   /** ISO instants, one per Horario reservable. Empty when reason is set. */
   slots: string[];
   reason?: SlotsReason;
+  /** Why the day is `OUT_OF_OFFICE`; `notes` only if the período shows it publicly. */
+  outOfOffice?: { reason: OutOfOfficeReason; notes: string | null };
 }
 
 const MINUTE_MS = 60_000;
@@ -116,6 +119,8 @@ export interface ComputeSlotsInput {
   minimumNoticeMinutes: number;
   /** Local dates of the Sucursal on which the Servicio already reached its Límite diario. */
   fullDates: Set<string>;
+  /** Períodos Fuera de la oficina of the Empleado, then his Días festivos prendidos as one-day períodos: their days, read in the Availability's zone, have no Franjas, and the first to match a day names its reason. */
+  outOfOffice?: OutOfOfficePeriod[];
   now: Date;
 }
 
@@ -136,6 +141,7 @@ export function computeSlots({
   slotInterval,
   minimumNoticeMinutes,
   fullDates,
+  outOfOffice = [],
   now,
 }: ComputeSlotsInput): DaySlots[] {
   const frequency = slotInterval ?? durationMinutes;
@@ -159,11 +165,19 @@ export function computeSlots({
     return starts;
   };
 
-  // A day of slack either side (wider than any UTC offset) covers every Sucursal date in [from, to].
+  const periodOn = (date: string) =>
+    outOfOffice.find((p) => p.startDate <= date && date <= p.endDate);
+  // `working` ignores Fuera de la oficina, to tell a day nobody works from one the período emptied; `open` drops it (it beats an Anulación too).
   const working: Range[] = [];
-  for (let d = addDays(from, -1); d <= addDays(to, 1); d = addDays(d, 1))
-    working.push(...rangesOf(availability, d));
+  const open: Range[] = [];
+  // A day of slack either side (wider than any UTC offset) covers every Sucursal date in [from, to].
+  for (let d = addDays(from, -1); d <= addDays(to, 1); d = addDays(d, 1)) {
+    const ranges = rangesOf(availability, d);
+    working.push(...ranges);
+    if (!periodOn(d)) open.push(...ranges);
+  }
   working.sort((a, b) => a.start - b.start);
+  open.sort((a, b) => a.start - b.start);
 
   const busy = bookedRanges
     .map((b) => ({ start: b.prepStartsAt.getTime(), end: b.endsAt.getTime() }))
@@ -178,9 +192,10 @@ export function computeSlots({
     return dates;
   };
   const fitsByDate = byDate(cut(working, -Infinity));
+  const openFitsByDate = byDate(cut(open, -Infinity));
   const freeByDate = byDate(
     cut(
-      subtract(working, busy),
+      subtract(open, busy),
       now.getTime() + minimumNoticeMinutes * MINUTE_MS,
     ),
   );
@@ -192,14 +207,26 @@ export function computeSlots({
     const slots = fullDates.has(date)
       ? []
       : (freeByDate.get(date) ?? []).sort((a, b) => a - b);
+    const period = periodOn(date);
+    const reason: SlotsReason | undefined = !fitsByDate.has(date)
+      ? 'NOT_WORKING'
+      : !openFitsByDate.has(date)
+        ? 'OUT_OF_OFFICE'
+        : slots.length === 0
+          ? 'FULLY_BOOKED'
+          : undefined;
     days.push({
       date,
       slots: slots.map((ms) => new Date(ms).toISOString()),
-      reason: !fitsByDate.has(date)
-        ? 'NOT_WORKING'
-        : slots.length === 0
-          ? 'FULLY_BOOKED'
-          : undefined,
+      reason,
+      ...(reason === 'OUT_OF_OFFICE' && period
+        ? {
+            outOfOffice: {
+              reason: period.reason,
+              notes: period.showNotePublicly ? period.notes : null,
+            },
+          }
+        : {}),
     });
   }
   return days;

@@ -14,16 +14,22 @@ import {
 import { CLOCK, Clock } from '../../domain/clock';
 import { BusinessRuleError, NotFoundError } from '../../domain/errors';
 import {
+  OUT_OF_OFFICE_REPOSITORY,
+  OutOfOfficeRepository,
+} from '../../domain/out-of-office/out-of-office.repository';
+import {
   SERVICES_REPOSITORY,
   ServicesRepository,
 } from '../../domain/services/services.repository';
 import {
+  addDays,
   computeSlots,
   DaySlots,
   localDate,
   localDayBounds,
   withoutBusyCabins,
 } from '../../domain/slots/slot';
+import { ListUserHolidayPeriodsUseCase } from '../holidays/list-user-holiday-periods.use-case';
 import { serviceTimeZone } from '../services/service-time-zone';
 import { assertChosenEmployee } from './assert-chosen-employee';
 
@@ -50,9 +56,13 @@ export interface EmployeeSlots {
   days: DaySlots[];
 }
 
-/** La unión de los Horarios reservables de varias listas de días, todas de las mismas fechas. */
-function unionDays(perEmployee: DaySlots[][]): DaySlots[] {
+/**
+ * La unión de los Horarios reservables de varias listas de días, todas de las mismas fechas. Solo un Servicio personal
+ * (`personal`) deja ver que el día está Fuera de la oficina: en uno del Negocio, un día sin nadie es `NOT_WORKING`.
+ */
+function unionDays(perEmployee: DaySlots[][], personal: boolean): DaySlots[] {
   return perEmployee[0].map((day, i) => {
+    if (personal && day.reason === 'OUT_OF_OFFICE') return day;
     const slots = [
       ...new Set(perEmployee.flatMap((days) => days[i].slots)),
     ].sort();
@@ -75,6 +85,9 @@ export class ListSlotsUseCase {
     @Inject(AVAILABILITIES_REPOSITORY)
     private readonly availabilities: AvailabilitiesRepository,
     @Inject(BOOKINGS_REPOSITORY) private readonly bookings: BookingsRepository,
+    @Inject(OUT_OF_OFFICE_REPOSITORY)
+    private readonly outOfOffice: OutOfOfficeRepository,
+    private readonly holidayPeriods: ListUserHolidayPeriodsUseCase,
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
@@ -102,8 +115,10 @@ export class ListSlotsUseCase {
     // A live Servicio always has an Empleado (the last one can't leave), so the guard is only for a corrupt row.
     return {
       timeZone,
-      days:
-        employees.length === 0 ? [] : unionDays(employees.map((e) => e.days)),
+      days: employees.length === 0 ? [] : unionDays(
+              employees.map((e) => e.days),
+              employees[0].employeeId === null,
+            ),
     };
   }
 
@@ -183,12 +198,16 @@ export class ListSlotsUseCase {
         if (!availability)
           throw new NotFoundError(`Availability ${availabilityId} not found`);
         // A day of slack either side (wider than any UTC offset) keeps every local date in [from, to] covered.
-        const bookedRanges = await this.bookings.listOccupiedByUser(
-          userId,
-          new Date(new Date(`${from}T00:00:00.000Z`).getTime() - 86_400_000),
-          new Date(new Date(`${to}T00:00:00.000Z`).getTime() + 2 * 86_400_000),
-          excludeBookingId,
-        );
+        const [bookedRanges, periods, holidays] = await Promise.all([
+          this.bookings.listOccupiedByUser(
+            userId,
+            new Date(new Date(`${from}T00:00:00.000Z`).getTime() - 86_400_000),
+            new Date(new Date(`${to}T00:00:00.000Z`).getTime() + 2 * 86_400_000),
+            excludeBookingId,
+          ),
+          this.outOfOffice.listByUserEndingFrom(userId, addDays(from, -1)),
+          this.holidayPeriods.execute(userId, addDays(from, -1), addDays(to, 1)),
+        ]);
         const days = computeSlots({
           from,
           to,
@@ -200,6 +219,7 @@ export class ListSlotsUseCase {
           slotInterval: service.slotInterval,
           minimumNoticeMinutes: service.minimumNoticeMinutes,
           fullDates,
+          outOfOffice: [...periods, ...holidays],
           now,
         });
         return {

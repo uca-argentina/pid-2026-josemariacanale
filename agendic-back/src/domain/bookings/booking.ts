@@ -57,6 +57,12 @@ export interface PanelBooking extends Booking {
   cabin: { id: number; name: string } | null;
 }
 
+/** A pending or accepted Turno still to come, with the zone of the Availability its Usuario attends it with. */
+export interface UpcomingBooking
+  extends Pick<Booking, 'id' | 'startsAt' | 'clientName'> {
+  timeZone: string;
+}
+
 /** A Turno as the Usuario who attends it sees it in Mis turnos (ADR 0023): with the names of where it happens. */
 export interface UserBooking extends PanelBooking {
   serviceName: string;

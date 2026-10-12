@@ -642,6 +642,7 @@ export function BookingFlow({
                                                 slot={slot}
                                                 notice={slotNotice}
                                                 employeeId={employee?.id}
+                                                hostName={host.name}
                                                 onSelect={(nextDate, nextSlot) =>
                                                     setDraft((d) => ({ ...d, date: nextDate, slot: nextSlot }))
                                                 }

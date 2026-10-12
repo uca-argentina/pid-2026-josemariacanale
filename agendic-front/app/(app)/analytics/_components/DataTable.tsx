@@ -35,10 +35,6 @@ import {
 } from '@tanstack/react-table';
 import {
     ChevronDown,
-    ChevronLeft,
-    ChevronRight,
-    ChevronsLeft,
-    ChevronsRight,
     CircleCheck,
     Columns3,
     EllipsisVertical,
@@ -49,6 +45,7 @@ import {
 } from 'lucide-react';
 import { Area, AreaChart, CartesianGrid, XAxis } from 'recharts';
 import { toast } from 'sonner';
+import { PaginationControls } from '@/app/_components/PaginationControls';
 import { useIsMobile } from '@/app/_components/hooks/use-mobile';
 import { Badge } from '@/app/_components/ui/badge';
 import { Button } from '@/app/_components/ui/button';
@@ -441,79 +438,15 @@ export function DataTable({ data: initialData }: { data: ServiceRow[] }) {
                         </Table>
                     </DndContext>
                 </div>
-                <div className="flex items-center justify-between px-4">
-                    <div className="hidden flex-1 text-sm text-muted-foreground @3xl/main:flex">
-                        {table.getFilteredSelectedRowModel().rows.length} de {table.getFilteredRowModel().rows.length}{' '}
-                        filas seleccionadas
-                    </div>
-                    <div className="flex w-full items-center gap-8 @3xl/main:w-fit">
-                        <div className="hidden items-center gap-2 @3xl/main:flex">
-                            <Label htmlFor="rows-per-page" className="text-sm font-medium">
-                                Filas por página
-                            </Label>
-                            <Select
-                                value={`${table.state.pagination.pageSize}`}
-                                onValueChange={(value) => table.setPageSize(Number(value))}
-                            >
-                                <SelectTrigger size="sm" className="w-20" id="rows-per-page">
-                                    <SelectValue placeholder={table.state.pagination.pageSize} />
-                                </SelectTrigger>
-                                <SelectContent side="top">
-                                    <SelectGroup>
-                                        {[10, 20, 30, 40, 50].map((pageSize) => (
-                                            <SelectItem key={pageSize} value={`${pageSize}`}>
-                                                {pageSize}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectGroup>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="flex w-fit items-center justify-center text-sm font-medium">
-                            Página {table.state.pagination.pageIndex + 1} de {table.getPageCount()}
-                        </div>
-                        <div className="ml-auto flex items-center gap-2 @3xl/main:ml-0">
-                            <Button
-                                variant="outline"
-                                className="hidden h-8 w-8 p-0 @3xl/main:flex"
-                                onClick={() => table.setPageIndex(0)}
-                                disabled={!table.getCanPreviousPage()}
-                                aria-label="Ir a la primera página"
-                            >
-                                <ChevronsLeft />
-                            </Button>
-                            <Button
-                                variant="outline"
-                                className="size-8"
-                                size="icon"
-                                onClick={() => table.previousPage()}
-                                disabled={!table.getCanPreviousPage()}
-                                aria-label="Ir a la página anterior"
-                            >
-                                <ChevronLeft />
-                            </Button>
-                            <Button
-                                variant="outline"
-                                className="size-8"
-                                size="icon"
-                                onClick={() => table.nextPage()}
-                                disabled={!table.getCanNextPage()}
-                                aria-label="Ir a la página siguiente"
-                            >
-                                <ChevronRight />
-                            </Button>
-                            <Button
-                                variant="outline"
-                                className="hidden size-8 @3xl/main:flex"
-                                size="icon"
-                                onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-                                disabled={!table.getCanNextPage()}
-                                aria-label="Ir a la última página"
-                            >
-                                <ChevronsRight />
-                            </Button>
-                        </div>
-                    </div>
+                <div className="px-4">
+                    <PaginationControls
+                        page={table.state.pagination.pageIndex}
+                        pageCount={table.getPageCount()}
+                        pageSize={table.state.pagination.pageSize}
+                        summary={`${table.getFilteredSelectedRowModel().rows.length} de ${table.getFilteredRowModel().rows.length} filas seleccionadas`}
+                        onPageChange={table.setPageIndex}
+                        onPageSizeChange={table.setPageSize}
+                    />
                 </div>
             </TabsContent>
             {VIEWS.slice(1).map((v) => (

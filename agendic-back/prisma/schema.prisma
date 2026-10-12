@@ -56,13 +56,14 @@ model User {
   timeFormat Int       @default(24) // preferencia de hora: 12 o 24 h
   weekStart  Int       @default(1) // primer día de la semana, 0 = domingo como dayjs().day()
 
-  businesses     Business[]
-  services       Service[]
-  bookings       Booking[]
-  employees      Employee[]
-  availabilities Availability[]
-  bookingSlug    BookingSlug?
-  outOfOffices   OutOfOffice[]
+  businesses      Business[]
+  services        Service[]
+  bookings        Booking[]
+  employees       Employee[]
+  availabilities  Availability[]
+  bookingSlug     BookingSlug?
+  outOfOffices    OutOfOffice[]
+  holidaySettings UserHolidaySettings?
 }
 
 model Business {
@@ -246,15 +247,15 @@ model AvailabilityOverride {
 
 /// Fuera de la oficina: período de días enteros del Usuario, sin relación con sus Availabilities (ADR 0027).
 model OutOfOffice {
-  id               Int                 @id @default(autoincrement())
+  id               Int               @id @default(autoincrement())
   userId           Int
-  startDate        DateTime            @db.Date // inclusive, sin hora
-  endDate          DateTime            @db.Date // inclusive, sin hora
+  startDate        DateTime          @db.Date // inclusive, sin hora
+  endDate          DateTime          @db.Date // inclusive, sin hora
   reason           OutOfOfficeReason
   notes            String?
-  showNotePublicly Boolean             @default(false)
-  createdAt        DateTime            @default(now()) @db.Timestamptz(3)
-  updatedAt        DateTime            @updatedAt @db.Timestamptz(3)
+  showNotePublicly Boolean           @default(false)
+  createdAt        DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime          @updatedAt @db.Timestamptz(3)
 
   user User @relation(fields: [userId], references: [id])
 
@@ -325,4 +326,17 @@ model HolidayCache {
   @@unique([countryCode, eventId])
   @@index([countryCode, year])
   @@index([countryCode, date])
+}
+
+/// Días festivos del Usuario (ADR 0027): el país o calendario religioso que eligió y los Días festivos que apagó.
+model UserHolidaySettings {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @unique
+  countryCode String? // código de `holiday-calendars.ts`; null sin país
+  disabledIds String[] // eventId de los Días festivos apagados
+
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id])
 }

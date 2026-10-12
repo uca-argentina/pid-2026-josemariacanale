@@ -8,6 +8,8 @@ import { createCabinsModule } from '@/di/modules/cabins.module';
 import { createBusinessesModule } from '@/di/modules/businesses.module';
 import { createEmployeesModule } from '@/di/modules/employees.module';
 import { createMonitoringModule } from '@/di/modules/monitoring.module';
+import { createOutOfOfficeModule } from '@/di/modules/out-of-office.module';
+import { createHolidaysModule } from '@/di/modules/holidays.module';
 import { createServicesModule } from '@/di/modules/services.module';
 import { createUsersModule } from '@/di/modules/users.module';
 
@@ -21,6 +23,8 @@ ApplicationContainer.load(Symbol('CabinsModule'), createCabinsModule());
 ApplicationContainer.load(Symbol('EmployeesModule'), createEmployeesModule());
 ApplicationContainer.load(Symbol('BookingsModule'), createBookingsModule());
 ApplicationContainer.load(Symbol('AvailabilitiesModule'), createAvailabilitiesModule());
+ApplicationContainer.load(Symbol('OutOfOfficeModule'), createOutOfOfficeModule());
+ApplicationContainer.load(Symbol('HolidaysModule'), createHolidaysModule());
 ApplicationContainer.load(Symbol('ServicesModule'), createServicesModule());
 ApplicationContainer.load(Symbol('UsersModule'), createUsersModule());
 
