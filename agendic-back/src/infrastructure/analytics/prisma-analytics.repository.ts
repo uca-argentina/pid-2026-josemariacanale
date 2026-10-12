@@ -5,6 +5,7 @@ import {
   AnalyticsScope,
   DateRange,
   EmployeeRankings,
+  EmployeesPerPeriod,
   Granularity,
   KpiValues,
   PopularService,
@@ -335,6 +336,81 @@ export class PrismaAnalyticsRepository implements AnalyticsRepository {
       leastBookedEmployees: ranked('booked', 1, true),
       mostCancelledEmployees: ranked('cancelled', -1, false),
     };
+  }
+
+  /**
+   * Un recorrido de los Turnos del Negocio los pasa a su período y los cruza con cada Empleado vigente y cada
+   * período del rango (`generate_series`), así los vacíos quedan en 0; los períodos salen de otra consulta para
+   * que existan aunque no haya Empleados.
+   *
+   * @throws {DatabaseOperationError} la consulta falló
+   */
+  async employeesPerPeriod(
+    scope: Extract<AnalyticsScope, { kind: 'business' }>,
+    range: DateRange,
+    granularity: Granularity,
+    weekStart: number,
+    serviceId?: number,
+  ): Promise<EmployeesPerPeriod> {
+    const zone = Prisma.raw('br."timeZone"');
+    const from = Prisma.sql`${range.from}::date`;
+    const bucket = (date: Prisma.Sql) => bucketOf(date, granularity, weekStart);
+    const series = Prisma.sql`generate_series((${bucket(from)})::timestamp, ${range.to}::timestamp, ${Prisma.raw(`INTERVAL '${STEPS[granularity]}'`)})`;
+    const branchFilter =
+      scope.branchId === undefined
+        ? Prisma.empty
+        : Prisma.sql`AND br."id" = ${scope.branchId}`;
+    const serviceFilter =
+      serviceId === undefined
+        ? Prisma.empty
+        : Prisma.sql`AND s."id" = ${serviceId}`;
+    const startDay = localDate('b."startsAt"', zone);
+    const [buckets, cells] = await Promise.all([
+      this.prisma.$queryRaw<{ bucket: string }[]>`
+        SELECT g.bucket::date::text AS "bucket" FROM ${series} AS g(bucket) ORDER BY g.bucket`,
+      this.prisma.$queryRaw<
+        {
+          employeeId: number;
+          name: string;
+          imageUrl: string | null;
+          count: number;
+        }[]
+      >`
+        WITH bk AS (
+          SELECT b."employeeId", ${bucket(startDay)} AS bucket
+          FROM "Booking" b
+          JOIN "Service" s ON s."id" = b."serviceId"
+          JOIN "Branch" br ON br."id" = s."branchId"
+          WHERE br."businessId" = ${scope.businessId} ${branchFilter} ${serviceFilter}
+            AND b."status" <> 'REJECTED' AND b."rescheduled" IS NOT TRUE
+            AND ${inRange('b."startsAt"', zone, range)}
+        )
+        SELECT e."id" AS "employeeId", u."name", u."imageUrl", COUNT(bk."employeeId")::int AS "count"
+        FROM "Employee" e
+        JOIN "User" u ON u."id" = e."userId"
+        CROSS JOIN ${series} AS g(bucket)
+        LEFT JOIN bk ON bk."employeeId" = e."id" AND bk.bucket = g.bucket::date
+        WHERE e."businessId" = ${scope.businessId} AND e."deletedAt" IS NULL
+        GROUP BY e."id", u."name", u."imageUrl", g.bucket
+        ORDER BY u."name", e."id", g.bucket`,
+    ]).catch((error: unknown) => {
+      throw new DatabaseOperationError(
+        `Employees per period of Business ${scope.businessId} not read`,
+        { cause: error },
+      );
+    });
+    const rows = new Map<number, EmployeesPerPeriod['rows'][number]>();
+    for (const { employeeId, name, imageUrl, count } of cells) {
+      const row = rows.get(employeeId) ?? {
+        employeeId,
+        name,
+        imageUrl,
+        counts: [],
+      };
+      row.counts.push(count);
+      rows.set(employeeId, row);
+    }
+    return { buckets: buckets.map((b) => b.bucket), rows: [...rows.values()] };
   }
 
   /**

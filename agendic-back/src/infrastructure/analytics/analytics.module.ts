@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { GetBusinessAnalyticsUseCase } from '../../application/analytics/get-business-analytics.use-case';
+import { GetEmployeesPerPeriodUseCase } from '../../application/analytics/get-employees-per-period.use-case';
 import { GetPersonalAnalyticsUseCase } from '../../application/analytics/get-personal-analytics.use-case';
 import { ListAnalyticsBusinessesUseCase } from '../../application/analytics/list-analytics-businesses.use-case';
 import { UsersModule } from '../users/users.module';
@@ -12,6 +13,7 @@ import { AnalyticsController } from './analytics.controller';
     GetPersonalAnalyticsUseCase,
     GetBusinessAnalyticsUseCase,
     ListAnalyticsBusinessesUseCase,
+    GetEmployeesPerPeriodUseCase,
   ],
 })
 export class AnalyticsModule {}

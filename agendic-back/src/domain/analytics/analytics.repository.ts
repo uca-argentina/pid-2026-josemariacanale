@@ -88,6 +88,17 @@ export type EmployeeRankings = {
   mostCancelledEmployees: RankedEmployee[];
 };
 
+/** Los Turnos por Empleado y período: `counts[i]` es el de `buckets[i]`. */
+export type EmployeesPerPeriod = {
+  buckets: string[];
+  rows: {
+    employeeId: number;
+    name: string;
+    imageUrl: string | null;
+    counts: number[];
+  }[];
+};
+
 /** Lo que se grafica y lista debajo de los KPIs. */
 export type AnalyticsBreakdown = {
   trend: TrendPoint[];
@@ -135,6 +146,21 @@ export interface AnalyticsRepository {
     range: DateRange,
     serviceId?: number,
   ): Promise<EmployeeRankings>;
+
+  /**
+   * Los Turnos de cada Empleado vigente del Negocio por período de `granularity`: `buckets` trae el inicio de
+   * todos los períodos del rango y cada fila, una por Empleado por nombre (con todo en 0 si no tiene Turnos),
+   * su cantidad en cada uno. Cuenta Turnos con `startsAt` en el período, sin Rechazados ni originales
+   * reagendados. Respeta `scope.branchId` y `serviceId` e ignora `scope.employeeId`. `weekStart` es el día en
+   * que arranca la semana (0 = domingo).
+   */
+  employeesPerPeriod(
+    scope: Extract<AnalyticsScope, { kind: 'business' }>,
+    range: DateRange,
+    granularity: Granularity,
+    weekStart: number,
+    serviceId?: number,
+  ): Promise<EmployeesPerPeriod>;
 
   /** Todos los Servicios de las Sucursales del Negocio, ocultos y dados de baja incluidos, por nombre. */
   businessServices(businessId: number): Promise<{ id: number; name: string }[]>;

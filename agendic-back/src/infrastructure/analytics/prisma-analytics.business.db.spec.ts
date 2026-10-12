@@ -386,4 +386,187 @@ describe('PrismaAnalyticsRepository, Negocio scope (real database)', () => {
       (await repository.businessServices(other.business.id)).map((s) => s.id),
     ).toEqual([other.service.id]);
   });
+  describe('employeesPerPeriod', () => {
+    const perPeriod = (
+      scope: BusinessScope,
+      granularity: 'day' | 'week' | 'month',
+      range = MARCH,
+      weekStart = 1,
+      serviceId?: number,
+    ) =>
+      repository.employeesPerPeriod(
+        scope,
+        range,
+        granularity,
+        weekStart,
+        serviceId,
+      );
+
+    it('answers every bucket of the range and a row per Empleado vigente by name, with 0s', async () => {
+      const { business, service, owner, ownerEmployee, scope } =
+        await makeBusiness();
+      const zed = await makeUser(`${tag}-zed`);
+      const zedEmployee = await makeEmployee(business.id, zed);
+      const retired = await makeEmployee(
+        business.id,
+        await makeUser(),
+        new Date('2031-01-01T00:00:00Z'),
+      );
+      await book(service.id, ownerEmployee, '2031-03-05T13:00:00Z');
+      await book(service.id, ownerEmployee, '2031-03-05T15:00:00Z');
+      await book(service.id, zedEmployee, '2031-03-31T13:00:00Z');
+      await book(service.id, retired, '2031-03-05T13:00:00Z');
+
+      const { buckets, rows } = await perPeriod(scope, 'day');
+
+      expect(buckets).toHaveLength(31);
+      expect(buckets[0]).toBe('2031-03-01');
+      expect(buckets[30]).toBe('2031-03-31');
+      expect(rows.map((r) => r.employeeId)).toEqual(
+        [ownerEmployee, zedEmployee]
+          .sort((a, b) =>
+            (a === ownerEmployee ? owner.name : zed.name).localeCompare(
+              b === ownerEmployee ? owner.name : zed.name,
+            ),
+          )
+          .map((e) => e.id),
+      );
+      const ownerRow = rows.find((r) => r.employeeId === ownerEmployee.id)!;
+      expect(ownerRow).toEqual({
+        employeeId: ownerEmployee.id,
+        name: owner.name,
+        imageUrl: owner.imageUrl,
+        counts: expect.any(Array),
+      });
+      expect(ownerRow.counts[4]).toBe(2);
+      expect(ownerRow.counts.reduce((a, b) => a + b, 0)).toBe(2);
+      const zedRow = rows.find((r) => r.employeeId === zedEmployee.id)!;
+      expect(zedRow.counts[30]).toBe(1);
+    });
+
+    it('is a row of 0s for an Empleado with no Turnos, and no rows without Empleados', async () => {
+      const { business, scope } = await makeBusiness();
+      const idle = await makeEmployee(business.id, await makeUser());
+
+      const { rows } = await perPeriod(scope, 'month');
+
+      expect(rows.find((r) => r.employeeId === idle.id)?.counts).toEqual([0]);
+    });
+
+    it('groups by week starting on weekStart, the first bucket being the week of from', async () => {
+      const { service, ownerEmployee, scope } = await makeBusiness();
+      // 2031-03-01 is a Saturday: Monday weeks start 2031-02-24, Sunday weeks 2031-02-23.
+      await book(service.id, ownerEmployee, '2031-03-01T13:00:00Z');
+      await book(service.id, ownerEmployee, '2031-03-03T13:00:00Z');
+
+      const monday = await perPeriod(scope, 'week', MARCH, 1);
+      const sunday = await perPeriod(scope, 'week', MARCH, 0);
+
+      expect(monday.buckets.slice(0, 3)).toEqual([
+        '2031-02-24',
+        '2031-03-03',
+        '2031-03-10',
+      ]);
+      expect(
+        monday.rows
+          .find((r) => r.employeeId === ownerEmployee.id)
+          ?.counts.slice(0, 2),
+      ).toEqual([1, 1]);
+      expect(sunday.buckets.slice(0, 2)).toEqual(['2031-02-23', '2031-03-02']);
+      expect(
+        sunday.rows
+          .find((r) => r.employeeId === ownerEmployee.id)
+          ?.counts.slice(0, 2),
+      ).toEqual([1, 1]);
+    });
+
+    it('groups by month', async () => {
+      const { service, ownerEmployee, scope } = await makeBusiness();
+      await book(service.id, ownerEmployee, '2031-03-20T13:00:00Z');
+      await book(service.id, ownerEmployee, '2031-04-02T13:00:00Z');
+      await book(service.id, ownerEmployee, '2031-04-03T13:00:00Z');
+
+      const { buckets, rows } = await perPeriod(scope, 'month', {
+        from: '2031-03-15',
+        to: '2031-05-10',
+      });
+
+      expect(buckets).toEqual(['2031-03-01', '2031-04-01', '2031-05-01']);
+      expect(
+        rows.find((r) => r.employeeId === ownerEmployee.id)?.counts,
+      ).toEqual([1, 2, 0]);
+    });
+
+    it('cuts the day in the time zone of the Sucursal', async () => {
+      const { business, ownerEmployee } = await makeBusiness();
+      const tokyo = await makeBranch(business.id, TOKYO);
+      const tokyoService = await makeService(tokyo.id);
+      // 20:00Z on the 5th is already the 6th in Tokyo.
+      await book(tokyoService.id, ownerEmployee, '2031-03-05T20:00:00Z');
+
+      const { rows } = await perPeriod(
+        { kind: 'business', businessId: business.id },
+        'day',
+        { from: '2031-03-05', to: '2031-03-06' },
+      );
+
+      expect(
+        rows.find((r) => r.employeeId === ownerEmployee.id)?.counts,
+      ).toEqual([0, 1]);
+    });
+
+    it('leaves out Rechazados, rescheduled originals and Turnos outside the range', async () => {
+      const { service, ownerEmployee, scope } = await makeBusiness();
+      await book(service.id, ownerEmployee, '2031-03-05T13:00:00Z');
+      await book(service.id, ownerEmployee, '2031-03-06T13:00:00Z', {
+        status: BookingStatus.REJECTED,
+        rejectedAt: new Date('2031-03-06T14:00:00Z'),
+      });
+      await book(service.id, ownerEmployee, '2031-03-07T13:00:00Z', {
+        status: BookingStatus.CANCELLED,
+        cancelledAt: new Date('2031-03-07T14:00:00Z'),
+        rescheduled: true,
+      });
+      await book(service.id, ownerEmployee, '2031-04-07T13:00:00Z');
+
+      const { rows } = await perPeriod(scope, 'month');
+
+      expect(
+        rows.find((r) => r.employeeId === ownerEmployee.id)?.counts,
+      ).toEqual([1]);
+    });
+
+    it('narrows by Sucursal and by Servicio but not by Empleado', async () => {
+      const { business, branch, service, ownerEmployee, scope } =
+        await makeBusiness();
+      const other = await makeBranch(business.id, BUENOS_AIRES);
+      const otherService = await makeService(other.id);
+      const bruno = await makeEmployee(business.id, await makeUser());
+      await book(service.id, ownerEmployee, '2031-03-05T13:00:00Z');
+      await book(otherService.id, ownerEmployee, '2031-03-06T13:00:00Z');
+      await book(service.id, bruno, '2031-03-07T13:00:00Z');
+      const total = (r: Awaited<ReturnType<typeof perPeriod>>, id: number) =>
+        r.rows
+          .find((x) => x.employeeId === id)!
+          .counts.reduce((a, b) => a + b, 0);
+
+      const byBranch = await perPeriod(
+        { ...scope, branchId: branch.id, employeeId: bruno.id },
+        'month',
+      );
+      const byService = await perPeriod(
+        scope,
+        'month',
+        MARCH,
+        1,
+        otherService.id,
+      );
+
+      expect(byBranch.rows).toHaveLength(2);
+      expect(total(byBranch, ownerEmployee.id)).toBe(1);
+      expect(total(byBranch, bruno.id)).toBe(1);
+      expect(total(byService, ownerEmployee.id)).toBe(1);
+      expect(total(byService, bruno.id)).toBe(0);
+    });
+  });
 });

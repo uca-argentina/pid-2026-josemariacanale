@@ -1,6 +1,7 @@
 import {
   AnalyticsBreakdown,
   EmployeeRankings,
+  EmployeesPerPeriod,
   KPI_NAMES,
   KpiValues,
 } from '../../domain/analytics/analytics.repository';
@@ -396,5 +397,139 @@ describe('GET /analytics/businesses/:businessId', () => {
     it('is 400 with a filter that is not a number', async () => {
       await get(`${MARCH}&branchId=abc`).expect(400);
     });
+  });
+});
+
+describe('GET /analytics/businesses/:businessId/employees-per-period', () => {
+  let t: TestApp;
+
+  const PER_PERIOD: EmployeesPerPeriod = {
+    buckets: ['2026-03-01', '2026-03-02'],
+    rows: [
+      { employeeId: 1, name: 'Ana Pérez', imageUrl: null, counts: [2, 0] },
+      {
+        employeeId: 2,
+        name: 'Bruno Díaz',
+        imageUrl: 'https://img/1',
+        counts: [0, 0],
+      },
+    ],
+  };
+
+  beforeEach(async () => {
+    t = await createTestApp();
+    scriptSession(t);
+    scriptOtherSession(t);
+    t.businesses.findById.mockImplementation(
+      async (id) =>
+        [ANAS_BUSINESS, OTHER_BUSINESS].find((b) => b.id === id) ?? null,
+    );
+    t.branches.listByBusiness.mockImplementation(async (id) =>
+      [ANAS_BRANCH, OTHER_BRANCH].filter((b) => b.businessId === id),
+    );
+    t.services.findById.mockImplementation(
+      async (id) =>
+        [ANAS_SERVICE, OTHER_SERVICE].find((s) => s.id === id) ?? null,
+    );
+    t.analytics.employeesPerPeriod.mockResolvedValue(PER_PERIOD);
+  });
+  afterEach(() => t.app.close());
+
+  const RANGE = 'from=2026-03-01&to=2026-03-02';
+  const get = (
+    query: string,
+    token = CLERK_TOKEN,
+    businessId = ANAS_BUSINESS.id,
+  ) =>
+    t.http
+      .get(`/analytics/businesses/${businessId}/employees-per-period?${query}`)
+      .set(bearer(token));
+
+  it('answers the buckets and a row per Empleado', async () => {
+    const res = await get(`${RANGE}&granularity=day`).expect(200);
+
+    expect(res.body).toEqual(PER_PERIOD);
+  });
+
+  it('asks the whole Negocio at the granularity chosen, whatever the length of the range', async () => {
+    await get('from=2026-01-01&to=2026-12-31&granularity=week').expect(200);
+
+    expect(t.analytics.employeesPerPeriod).toHaveBeenCalledWith(
+      { kind: 'business', businessId: ANAS_BUSINESS.id, branchId: undefined },
+      { from: '2026-01-01', to: '2026-12-31' },
+      'week',
+      expect.any(Number),
+      undefined,
+    );
+  });
+
+  it('narrows by Sucursal and Servicio', async () => {
+    await get(`${RANGE}&granularity=month&branchId=1&serviceId=1`).expect(200);
+
+    expect(t.analytics.employeesPerPeriod).toHaveBeenCalledWith(
+      { kind: 'business', businessId: 1, branchId: 1 },
+      expect.anything(),
+      'month',
+      expect.any(Number),
+      1,
+    );
+  });
+
+  it('is 403 to an Empleado who is not the Dueño', async () => {
+    const res = await get(`${RANGE}&granularity=day`, OTHER_CLERK_TOKEN).expect(
+      403,
+    );
+
+    expect(res.body.message).toBe(
+      'Only the owner can see analytics per Employee',
+    );
+    expect(t.analytics.employeesPerPeriod).not.toHaveBeenCalled();
+  });
+
+  it('is 401 without a Sesión', async () => {
+    await t.http
+      .get(
+        `/analytics/businesses/1/employees-per-period?${RANGE}&granularity=day`,
+      )
+      .expect(401);
+  });
+
+  it.each([['hour'], ['']])('is 400 with the granularity "%s"', async (g) => {
+    const res = await get(`${RANGE}&granularity=${g}`).expect(400);
+
+    expect(res.body.message).toBe(`Invalid granularity ${g}`);
+  });
+
+  it('is 400 without a granularity', async () => {
+    const res = await get(RANGE).expect(400);
+
+    expect(res.body.message).toBe('Invalid granularity undefined');
+  });
+
+  it('is 400 with an invalid range', async () => {
+    const res = await get(
+      'from=2026-03-10&to=2026-03-01&granularity=day',
+    ).expect(400);
+
+    expect(res.body.message).toBe(
+      'Invalid analytics range 2026-03-10..2026-03-01',
+    );
+  });
+
+  it('is 404 when the Negocio does not exist', async () => {
+    const res = await get(`${RANGE}&granularity=day`, CLERK_TOKEN, 99).expect(
+      404,
+    );
+
+    expect(res.body.message).toBe('Business 99 not found');
+  });
+
+  it.each([
+    ['branchId', 'Branch'],
+    ['serviceId', 'Service'],
+  ])('is 404 when %s does not belong to the Negocio', async (param, label) => {
+    const res = await get(`${RANGE}&granularity=day&${param}=2`).expect(404);
+
+    expect(res.body.message).toBe(`${label} 2 not found`);
   });
 });
