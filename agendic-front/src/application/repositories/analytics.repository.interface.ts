@@ -1,6 +1,7 @@
 import type {
     AnalyticsBusiness,
     AnalyticsQuery,
+    BookingsCsvQuery,
     BusinessAnalytics,
     BusinessAnalyticsQuery,
     EmployeesPerPeriod,
@@ -45,4 +46,14 @@ export interface IAnalyticsRepository {
      * @throws {NotFoundError} el Negocio, la Sucursal o el Servicio no existen (404)
      */
     getEmployeesPerPeriod(query: EmployeesPerPeriodQuery): Promise<EmployeesPerPeriod>;
+
+    /**
+     * El CSV de Turnos del período y los filtros: el de los Servicios personales, o el de un Negocio si la consulta lleva `businessId`.
+     *
+     * @throws {UnauthenticatedError} no hay Sesión válida (401)
+     * @throws {InputParseError} el rango no es válido (400)
+     * @throws {UnauthorizedError} no es Empleado del Negocio, o filtra por Empleado sin ser el Dueño (403)
+     * @throws {NotFoundError} el Negocio, la Sucursal, el Servicio o el Empleado no existen (404)
+     */
+    downloadBookingsCsv(query: BookingsCsvQuery): Promise<string>;
 }

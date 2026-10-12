@@ -105,6 +105,13 @@ export const businessAnalyticsQuerySchema = analyticsQuerySchema.extend({
 });
 export type BusinessAnalyticsQuery = z.infer<typeof businessAnalyticsQuerySchema>;
 
+/** El período y los filtros del CSV de Turnos: sin `businessId` son los de los Servicios personales. */
+export const bookingsCsvQuerySchema = businessAnalyticsQuerySchema.partial({ businessId: true });
+export type BookingsCsvQuery = z.infer<typeof bookingsCsvQuerySchema>;
+
+/** Un archivo CSV listo para bajar. */
+export type CsvFile = { filename: string; content: string };
+
 /** El período, la agrupación y los filtros de la tabla "Turnos por Empleado y período" (sin `employeeId`: la tabla es de todos). */
 export const employeesPerPeriodQuerySchema = businessAnalyticsQuerySchema.omit({ employeeId: true }).extend({ granularity: granularitySchema });
 export type EmployeesPerPeriodQuery = z.infer<typeof employeesPerPeriodQuerySchema>;

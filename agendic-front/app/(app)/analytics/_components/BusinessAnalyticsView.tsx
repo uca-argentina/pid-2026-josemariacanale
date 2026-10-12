@@ -10,6 +10,7 @@ import { loadBusinessAnalyticsAction, type BusinessAnalyticsData, type BusinessA
 import { AnalyticsHeader } from './AnalyticsHeader';
 import { BlocksSkeleton, EmployeeRanking, PopularServices, RecentRatings } from './AnalyticsBlocks';
 import {
+    businessCsvQuery,
     FILTER_NAMES,
     filterSearch,
     isValidCustomRange,
@@ -19,6 +20,7 @@ import {
     type FilterName,
     type RangeChange,
 } from './analytics-range';
+import { DownloadBookingsCsvButton } from './DownloadBookingsCsvButton';
 import { EmployeesPerPeriodTable } from './EmployeesPerPeriodTable';
 import { IdFilter } from './IdFilter';
 import { KpiCards, KpiCardsSkeleton } from './KpiCards';
@@ -55,6 +57,7 @@ export function BusinessAnalyticsView({
     const mounted = useSyncExternalStore(subscribeNever, () => true, () => false);
     const range = mounted ? parseRange(searchParams, toIsoDay(new Date())) : null;
     const { business, branchId, serviceId, employeeId } = parseBusinessFilters(searchParams, businesses);
+    const csvQuery = range && businessCsvQuery(searchParams, toIsoDay(new Date()), businesses);
     const [attempt, setAttempt] = useState(0);
     // Las opciones de los filtros sobreviven a una recarga o a un error: el chip no vuelve a "#id" mientras carga.
     const [options, setOptions] = useState<{ businessId: number | undefined; value: Options }>({ businessId: undefined, value: NO_OPTIONS });
@@ -110,7 +113,14 @@ export function BusinessAnalyticsView({
                         </>
                     )
                 }
-                range={range && <RangeSelect range={range} weekStart={weekStart} onChange={changeRange} />}
+                range={
+                    range && (
+                        <div className="flex flex-wrap items-center gap-2">
+                            <RangeSelect range={range} weekStart={weekStart} onChange={changeRange} />
+                            {csvQuery && <DownloadBookingsCsvButton query={csvQuery} />}
+                        </div>
+                    )
+                }
             />
             {result === null ? (
                 <>

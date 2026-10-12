@@ -142,3 +142,31 @@ describe('AnalyticsRepository.getEmployeesPerPeriod', () => {
         await expect(repo().getEmployeesPerPeriod(perPeriodQuery)).rejects.toBeInstanceOf(ApiRequestError);
     });
 });
+
+describe('AnalyticsRepository.downloadBookingsCsv', () => {
+    const respondCsv = (status: number, text: string) =>
+        jest.spyOn(global, 'fetch').mockResolvedValue(new Response(text, { status }));
+
+    it('GETs the personal CSV and returns the text as is', async () => {
+        const fetchSpy = respondCsv(200, 'id\n1\n');
+        await expect(repo().downloadBookingsCsv({ ...query, serviceId: 7 })).resolves.toBe('id\n1\n');
+        expect(fetchSpy.mock.calls[0][0]).toBe('http://api/analytics/personal/bookings.csv?from=2026-09-13&to=2026-10-12&serviceId=7');
+    });
+
+    it('GETs the Negocio CSV with its filters', async () => {
+        const fetchSpy = respondCsv(200, 'id\n');
+        await repo().downloadBookingsCsv({ ...query, businessId: 4, branchId: 2, employeeId: 5 });
+        expect(fetchSpy.mock.calls[0][0]).toBe('http://api/analytics/businesses/4/bookings.csv?from=2026-09-13&to=2026-10-12&branchId=2&employeeId=5');
+    });
+
+    it.each([
+        [401, UnauthenticatedError],
+        [400, InputParseError],
+        [403, UnauthorizedError],
+        [404, NotFoundError],
+        [500, ApiRequestError],
+    ])('translates a %i to its domain error', async (status, ErrorClass) => {
+        respond(status, { message: 'no' });
+        await expect(repo().downloadBookingsCsv({ ...query, businessId: 4 })).rejects.toBeInstanceOf(ErrorClass);
+    });
+});

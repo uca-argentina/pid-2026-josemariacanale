@@ -8,7 +8,8 @@ import type { Preferences } from '@/src/entities/models/user';
 import { loadPersonalAnalyticsAction, type PersonalAnalyticsData, type PersonalAnalyticsResult } from '../actions';
 import { AnalyticsHeader } from './AnalyticsHeader';
 import { BlocksSkeleton, PopularServices, RecentRatings } from './AnalyticsBlocks';
-import { isValidCustomRange, parseRange, parseServiceId, rangeSearch, serviceSearch, type RangeChange } from './analytics-range';
+import { isValidCustomRange, parseRange, parseServiceId, personalCsvQuery, rangeSearch, serviceSearch, type RangeChange } from './analytics-range';
+import { DownloadBookingsCsvButton } from './DownloadBookingsCsvButton';
 import { KpiCards, KpiCardsSkeleton } from './KpiCards';
 import { RangeSelect } from './RangeSelect';
 import { IdFilter } from './IdFilter';
@@ -66,7 +67,14 @@ export function PersonalAnalyticsView({ weekStart, selector }: { weekStart: Pref
             <AnalyticsHeader
                 selector={selector}
                 filters={range && <IdFilter label="Servicio" options={services} selected={serviceId} onChange={changeService} />}
-                range={range && <RangeSelect range={range} weekStart={weekStart} onChange={change} />}
+                range={
+                    range && (
+                        <div className="flex flex-wrap items-center gap-2">
+                            <RangeSelect range={range} weekStart={weekStart} onChange={change} />
+                            <DownloadBookingsCsvButton query={personalCsvQuery(searchParams, toIsoDay(new Date()))} />
+                        </div>
+                    )
+                }
             />
             {result === null ? (
                 <>
