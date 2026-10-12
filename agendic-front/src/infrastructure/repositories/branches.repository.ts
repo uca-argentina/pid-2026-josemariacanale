@@ -1,12 +1,8 @@
 import type { IBranchesRepository } from '@/src/application/repositories/branches.repository.interface';
 import type { IAuthenticationService } from '@/src/application/services/authentication.service.interface';
-import {
-    BranchImagesRejectedError,
-    InvalidSlugError,
-    SlugTakenError,
-    type BranchImagesRejection,
-} from '@/src/entities/errors/business';
+import { InvalidSlugError, SlugTakenError } from '@/src/entities/errors/business';
 import { ApiRequestError } from '@/src/entities/errors/common';
+import { throwIfBranchImagesRejected } from './branch-images-rejection';
 import { branchSchema, type Branch, type CreateBranch, type UpdateBranch } from '@/src/entities/models/branch';
 
 // Same as in BusinessesRepository: the boundaries lint keeps adapters from importing each other.
@@ -16,15 +12,6 @@ function parseOrFail<T>(parse: () => T, what: string): T {
     } catch (cause) {
         throw new ApiRequestError(`${what} responded with an unexpected body`, { cause });
     }
-}
-
-/** Qué imágenes rechazó el back, por el status y el mensaje que ADR 0007 documenta; `null` si no son las imágenes. */
-function imagesRejection(status: number, message: string): BranchImagesRejection | null {
-    if (status === 413) return 'size';
-    if (status !== 400) return null;
-    if (message === 'La imagen tiene que ser JPEG, PNG, WebP o GIF') return 'type';
-    if (message === 'At least one image is required' || message === 'Unexpected field - images') return 'count';
-    return null;
 }
 
 /** Escritura de Sucursales contra la API del back. */
@@ -86,8 +73,7 @@ export class BranchesRepository implements IBranchesRepository {
         const message = String(json?.message ?? `${what} responded ${response.status}`);
         if (response.status === 409) throw new SlugTakenError(message);
         if (response.status === 400 && /slug/i.test(message)) throw new InvalidSlugError(message);
-        const rejection = imagesRejection(response.status, message);
-        if (rejection) throw new BranchImagesRejectedError(message, { reason: rejection });
+        throwIfBranchImagesRejected(response.status, message);
         if (!response.ok) throw new ApiRequestError(message, { status: response.status });
 
         return parseOrFail(() => branchSchema.parse(json), what);

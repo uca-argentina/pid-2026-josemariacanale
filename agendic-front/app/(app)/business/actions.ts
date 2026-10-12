@@ -5,13 +5,14 @@ import { redirect, unstable_rethrow } from 'next/navigation';
 import { isSessionExpired } from '@/app/api-error';
 import { SIGN_IN_PATH } from '@/app/routes';
 import { getInjection } from '@/di/container';
-import { AlreadyOwnerError, InvalidSlugError, SlugTakenError } from '@/src/entities/errors/business';
+import { BRANCH_IMAGES_REJECTED } from './branch-images-messages';
+import { AlreadyOwnerError, BranchImagesRejectedError, InvalidSlugError, SlugTakenError } from '@/src/entities/errors/business';
 import { InputParseError } from '@/src/entities/errors/common';
 import { InvitationNotAcceptableError } from '@/src/entities/errors/employee';
 
-/** `failedUploads` nombra lo que no se pudo subir (el Logo, imágenes): el Negocio ya existe y se carga después. */
+/** `logoFailed`: el Logo no se pudo subir; el Negocio ya existe y el Dueño lo carga después. */
 export type CreateBusinessResult =
-    | { ok: true; failedEmployees: string[]; failedUploads: string[] }
+    | { ok: true; failedEmployees: string[]; logoFailed: boolean }
     | { ok: false; message: string };
 
 /** @throws {InputParseError} el campo del formulario no es JSON */
@@ -36,10 +37,11 @@ async function attempt(step: () => Promise<unknown>): Promise<boolean> {
 }
 
 /**
- * Crea el Negocio con su Sucursal y después, de a una, manda las Invitaciones, sube el Logo y las imágenes.
+ * Crea el Negocio con su Sucursal y las imágenes de esa Sucursal en un solo pedido; después, de a una, manda las
+ * Invitaciones y sube el Logo. Sin imágenes no llama al back: la Sucursal nunca nace sin una.
  *
- * El back no las recibe juntas: si algo falla, el Negocio ya existe y el Dueño lo carga después desde Empleados o
- * Sucursales. Las imágenes van en el orden elegido; el back agrega cada una al final, así que no hace falta reordenar.
+ * Las Invitaciones y el Logo el back no los recibe con el alta: si fallan, el Negocio ya existe y el Dueño los carga
+ * después desde Empleados o Sucursales.
  *
  * Un `payload` o `emails` que no sea JSON vuelve como `ok: false`, sin crear nada.
  *
@@ -48,12 +50,13 @@ async function attempt(step: () => Promise<unknown>): Promise<boolean> {
 export async function createBusinessAction(form: FormData): Promise<CreateBusinessResult> {
     const logo = form.get('logo');
     const images = form.getAll('images').filter((image): image is File => image instanceof File);
+    if (images.length === 0) return { ok: false, message: 'Elegí al menos una imagen de la Sucursal.' };
 
     let emails: string[];
     let business;
     try {
         emails = parseJson<string[]>(form.get('emails') ?? '[]');
-        business = await getInjection('ICreateBusinessController')(parseJson(form.get('payload')));
+        business = await getInjection('ICreateBusinessController')({ ...parseJson<object>(form.get('payload')), images });
     } catch (error) {
         unstable_rethrow(error); // redirect/notFound/dynamic usage are Next's control flow, not failures
         if (error instanceof AlreadyOwnerError) {
@@ -62,6 +65,7 @@ export async function createBusinessAction(form: FormData): Promise<CreateBusine
         }
         if (error instanceof SlugTakenError) return { ok: false, message: 'Esa dirección ya está en uso.' };
         if (error instanceof InvalidSlugError) return { ok: false, message: 'El Enlace de reserva no es válido.' };
+        if (error instanceof BranchImagesRejectedError) return { ok: false, message: BRANCH_IMAGES_REJECTED[error.reason] };
         // La Sesión vencida la resuelve el Usuario solo: se lo manda a Iniciar sesión.
         if (isSessionExpired(error)) redirect(SIGN_IN_PATH);
         if (error instanceof InputParseError) return { ok: false, message: 'Revisá los datos e intentá de nuevo.' };
@@ -76,18 +80,11 @@ export async function createBusinessAction(form: FormData): Promise<CreateBusine
         }
     }
 
-    const failedUploads: string[] = [];
-    if (logo instanceof File && !(await attempt(() => getInjection('IUploadBusinessLogoController')({ businessId: business.id, file: logo })))) {
-        failedUploads.push('el Logo');
-    }
-    for (const file of images) {
-        if (!(await attempt(() => getInjection('IUploadBranchImageController')({ branchId: business.branchId, file })))) {
-            failedUploads.push(`la imagen ${file.name}`);
-        }
-    }
+    const logoFailed =
+        logo instanceof File && !(await attempt(() => getInjection('IUploadBusinessLogoController')({ businessId: business.id, file: logo })));
 
     refresh();
-    return { ok: true, failedEmployees, failedUploads };
+    return { ok: true, failedEmployees, logoFailed };
 }
 
 export type UpdateBusinessResult =
