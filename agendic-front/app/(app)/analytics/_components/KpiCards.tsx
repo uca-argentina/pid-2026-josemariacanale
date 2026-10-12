@@ -14,9 +14,9 @@ const ICONS = { up: ArrowUpRight, flat: ArrowRight, down: ArrowDownRight } as co
 
 /** El color dice si el cambio es bueno: verde si mejora, rojo si empeora (Cancelados que suben), naranja si no cambia. */
 const TONES = {
-    good: { pill: 'bg-[#e6f6ec] text-[#15803d] dark:bg-green-950 dark:text-green-400', text: 'text-[#15803d] dark:text-green-400' },
-    neutral: { pill: 'bg-orange-100 text-orange-500 dark:bg-orange-950 dark:text-orange-400', text: 'text-orange-500 dark:text-orange-400' },
-    bad: { pill: 'bg-[#fdecec] text-[#b91c1c] dark:bg-red-950 dark:text-red-400', text: 'text-[#b91c1c] dark:text-red-400' },
+    good: { pill: 'bg-[#e6f6ec] text-[#15803d]', text: 'text-[#15803d]' },
+    neutral: { pill: 'bg-orange-100 text-orange-500', text: 'text-orange-500' },
+    bad: { pill: 'bg-[#fdecec] text-[#b91c1c]', text: 'text-[#b91c1c]' },
 } as const;
 
 /** Las tarjetas de KPI: valor y, abajo, la variación contra el período anterior con su flecha y su color. */
