@@ -31,6 +31,9 @@ const BOOKED: Booking = {
   employeeChosen: false,
   depositAmount: null,
   depositPaidAt: null,
+  price: 50,
+  cancelledAt: null,
+  rejectedAt: null,
 };
 
 const CLIENT_BOOKED: ClientBooking = {
@@ -176,7 +179,7 @@ describe('Enlace del Turno', () => {
     it('cancela un Turno BOOKED por su Enlace', async () => {
       const res = await patch().expect(200);
 
-      expect(t.bookings.cancelPendingOrBooked).toHaveBeenCalledWith(BOOKED.id);
+      expect(t.bookings.cancelPendingOrBooked).toHaveBeenCalledWith(BOOKED.id, t.clock.now());
       expect(res.body).toMatchObject({ id: BOOKED.id, status: 'CANCELLED' });
       expect(t.mailer.sendBookingCancellation).toHaveBeenCalledWith(
         BOOKED.clientEmail,
@@ -198,7 +201,7 @@ describe('Enlace del Turno', () => {
 
       await patch().expect(200);
 
-      expect(t.bookings.cancelPendingOrBooked).toHaveBeenCalledWith(BOOKED.id);
+      expect(t.bookings.cancelPendingOrBooked).toHaveBeenCalledWith(BOOKED.id, t.clock.now());
     });
 
     it.each([BookingStatus.REJECTED, BookingStatus.CANCELLED])(

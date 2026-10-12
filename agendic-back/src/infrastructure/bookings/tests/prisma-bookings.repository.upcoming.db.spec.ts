@@ -83,6 +83,7 @@ describe('PrismaBookingsRepository.listUpcomingByUser (real database)', () => {
         serviceId,
         employeeId: employee,
         userId,
+        cabinId: null,
         clientName: `Cliente ${day}`,
         clientEmail: `${tag}@example.com`,
         prepStartsAt: new Date(Date.UTC(2031, 0, day, 10)),
@@ -91,13 +92,14 @@ describe('PrismaBookingsRepository.listUpcomingByUser (real database)', () => {
         notes: null,
         employeeChosen: false,
         depositAmount: null,
+        price: 50,
         status,
       });
     const past = await book(personal.id, null, 1, BookingStatus.BOOKED);
     const first = await book(personal.id, null, 5, BookingStatus.BOOKED);
     const second = await book(shared.id, employeeId, 6, BookingStatus.PENDING);
     const cancelled = await book(personal.id, null, 7, BookingStatus.BOOKED);
-    await repository.cancel(cancelled.id);
+    await repository.cancel(cancelled.id, new Date());
 
     const upcoming = await repository.listUpcomingByUser(
       userId,

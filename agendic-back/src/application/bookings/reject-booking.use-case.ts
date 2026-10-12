@@ -10,6 +10,7 @@ import {
 } from '../../domain/employees/employees.repository';
 import { MAILER, Mailer } from '../../domain/mailer';
 import { notifyClients } from './notify-clients';
+import { CLOCK, Clock } from '../../domain/clock';
 import { resolvePendingBooking } from './resolve-pending-booking';
 
 /** Rechaza un Turno pendiente, liberando su horario, y le avisa por mail al Cliente. */
@@ -20,6 +21,7 @@ export class RejectBookingUseCase {
     @Inject(EMPLOYEES_REPOSITORY)
     private readonly employees: EmployeesRepository,
     @Inject(MAILER) private readonly mailer: Mailer,
+    @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
   /**
@@ -34,6 +36,7 @@ export class RejectBookingUseCase {
       userId,
       bookingId,
       BookingStatus.REJECTED,
+      this.clock.now(),
     );
     await notifyClients([rejected], (email, link) =>
       this.mailer.sendBookingRejection(email, link),

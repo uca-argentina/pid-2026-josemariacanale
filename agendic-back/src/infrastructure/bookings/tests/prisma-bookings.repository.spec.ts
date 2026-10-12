@@ -30,6 +30,7 @@ const BOOKING_ROW = {
   notes: null,
   noShowAt: null,
   depositAmount: null,
+  price: 50,
   depositPaidAt: null,
 };
 
@@ -46,8 +47,11 @@ const CREATE_DATA: CreateBookingData = {
   notes: null,
   employeeChosen: false,
   depositAmount: null,
+  price: 50,
   status: BookingStatus.BOOKED,
 };
+
+const CANCEL_NOW = new Date('2026-01-02T12:00:00.000Z');
 
 describe('PrismaBookingsRepository', () => {
   const tx = {
@@ -93,6 +97,7 @@ describe('PrismaBookingsRepository', () => {
       notes: null,
       noShowAt: null,
       depositAmount: null,
+      price: 50,
       depositPaidAt: null,
     });
     expect(prisma.booking.create).toHaveBeenCalledWith(
@@ -315,11 +320,11 @@ describe('PrismaBookingsRepository', () => {
         status: BookingStatus.REJECTED,
       });
 
-      const booking = await repository.resolvePending(1, BookingStatus.REJECTED);
+      const booking = await repository.resolvePending(1, BookingStatus.REJECTED, CANCEL_NOW);
 
       expect(prisma.booking.updateMany).toHaveBeenCalledWith({
         where: { id: 1, status: BookingStatus.PENDING },
-        data: { status: BookingStatus.REJECTED },
+        data: { status: BookingStatus.REJECTED, rejectedAt: CANCEL_NOW },
       });
       expect(booking.status).toBe(BookingStatus.REJECTED);
     });
@@ -328,7 +333,7 @@ describe('PrismaBookingsRepository', () => {
       prisma.booking.updateMany.mockResolvedValue({ count: 0 });
 
       await expect(
-        repository.resolvePending(1, BookingStatus.BOOKED),
+        repository.resolvePending(1, BookingStatus.BOOKED, CANCEL_NOW),
       ).rejects.toBeInstanceOf(BusinessRuleError);
     });
   });
@@ -376,18 +381,18 @@ describe('PrismaBookingsRepository', () => {
     it('cancel only touches a BOOKED Turno', async () => {
       prisma.booking.updateMany.mockResolvedValue({ count: 1 });
 
-      await repository.cancel(1);
+      await repository.cancel(1, CANCEL_NOW);
 
       expect(prisma.booking.updateMany).toHaveBeenCalledWith({
         where: { id: 1, status: { in: [BookingStatus.BOOKED] } },
-        data: { status: BookingStatus.CANCELLED },
+        data: { status: BookingStatus.CANCELLED, cancelledAt: CANCEL_NOW },
       });
     });
 
     it('answers BusinessRuleError when the Turno stopped being BOOKED', async () => {
       prisma.booking.updateMany.mockResolvedValue({ count: 0 });
 
-      await expect(repository.cancel(1)).rejects.toBeInstanceOf(BusinessRuleError);
+      await expect(repository.cancel(1, CANCEL_NOW)).rejects.toBeInstanceOf(BusinessRuleError);
       await expect(
         repository.reschedule(1, { employeeId: 1, userId: 1, cabinId: null, prepStartsAt: NOW, startsAt: NOW, endsAt: NOW }),
       ).rejects.toBeInstanceOf(BusinessRuleError);
@@ -441,10 +446,10 @@ describe('PrismaBookingsRepository', () => {
       jest.spyOn(repository as never, 'findEnriched').mockResolvedValue({} as never);
       prisma.booking.updateMany.mockResolvedValue({ count: 1 });
 
-      await repository.cancel(1);
+      await repository.cancel(1, CANCEL_NOW);
       await repository.reschedule(1, { employeeId: 1, userId: 1, cabinId: null, prepStartsAt: NOW, startsAt: NOW, endsAt: NOW });
-      await repository.cancelPendingOrBooked(1);
-      await repository.resolvePending(1, BookingStatus.REJECTED);
+      await repository.cancelPendingOrBooked(1, CANCEL_NOW);
+      await repository.resolvePending(1, BookingStatus.REJECTED, CANCEL_NOW);
       await repository.reschedulePendingOrBooked(1, {
         employeeId: 1,
         userId: 1,

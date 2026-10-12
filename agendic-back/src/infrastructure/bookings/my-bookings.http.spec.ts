@@ -33,6 +33,9 @@ const BOOKED: Booking = {
   employeeChosen: false,
   depositAmount: null,
   depositPaidAt: null,
+  price: 50,
+  cancelledAt: null,
+  rejectedAt: null,
 };
 
 const AVAILABILITY: Availability = {
@@ -164,7 +167,7 @@ describe('Mis turnos del Usuario', () => {
 
       const res = await patch(CLERK_TOKEN).expect(200);
 
-      expect(t.bookings.cancel).toHaveBeenCalledWith(BOOKED.id);
+      expect(t.bookings.cancel).toHaveBeenCalledWith(BOOKED.id, t.clock.now());
       expect(res.body).toMatchObject({ id: BOOKED.id, status: 'CANCELLED' });
       expect(t.mailer.sendBookingCancellation).toHaveBeenCalledWith(
         BOOKED.clientEmail,

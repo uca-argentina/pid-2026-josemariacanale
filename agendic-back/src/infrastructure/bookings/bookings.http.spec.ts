@@ -62,6 +62,9 @@ const BOOKING: Booking = {
   employeeChosen: false,
   depositAmount: null,
   depositPaidAt: null,
+  price: 50,
+  cancelledAt: null,
+  rejectedAt: null,
 };
 
 describe('Turno', () => {
@@ -150,6 +153,7 @@ describe('Turno', () => {
           notes: null,
           employeeChosen: false,
           depositAmount: null,
+          price: SERVICE.price,
           status: BookingStatus.BOOKED,
         },
         undefined,
@@ -757,7 +761,7 @@ describe('Turno', () => {
     it(`moves a PENDING Turno to ${status} for the assigned Empleado`, async () => {
       const res = await patch(CLERK_TOKEN).expect(200);
 
-      expect(t.bookings.resolvePending).toHaveBeenCalledWith(BOOKING.id, status);
+      expect(t.bookings.resolvePending).toHaveBeenCalledWith(BOOKING.id, status, t.clock.now());
       expect(res.body).toMatchObject({ id: BOOKING.id, status });
     });
 

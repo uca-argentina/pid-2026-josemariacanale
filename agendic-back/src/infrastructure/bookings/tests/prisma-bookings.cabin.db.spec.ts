@@ -37,6 +37,7 @@ describe('PrismaBookingsRepository, Cabinas (real database)', () => {
       notes: null,
       employeeChosen: false,
       depositAmount: null,
+      price: 50,
       status: BookingStatus.BOOKED,
     });
   };
@@ -111,7 +112,7 @@ describe('PrismaBookingsRepository, Cabinas (real database)', () => {
 
   it('accepts a Turno on top of a cancelled one', async () => {
     const cancelled = await book(0, laser, 14, 14.25, 15);
-    await repository.cancel(cancelled.id);
+    await repository.cancel(cancelled.id, new Date());
 
     await expect(book(1, laser, 14, 14.25, 15)).resolves.toMatchObject({ cabinId: laser });
   }, 60_000);

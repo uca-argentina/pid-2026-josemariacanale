@@ -50,6 +50,7 @@ describe('PrismaUsersRepository.retire (real database)', () => {
         startsAt,
         endsAt: new Date(startsAt.getTime() + 3_600_000),
         status,
+        price: 50,
         link: `${tag}-${label}`,
         client: { create: { name: 'Cliente', email: `${tag}-${label}@example.com` } },
       },

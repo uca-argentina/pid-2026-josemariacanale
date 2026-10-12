@@ -15,5 +15,5 @@ export async function cancelResolvedBooking(
 ): Promise<ClientBooking> {
   if (booking.startsAt <= clock.now())
     throw new BusinessRuleError(`Turno ${booking.id} already started`);
-  return bookings.cancelPendingOrBooked(booking.id);
+  return bookings.cancelPendingOrBooked(booking.id, clock.now());
 }

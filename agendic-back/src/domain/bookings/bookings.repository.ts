@@ -23,6 +23,8 @@ export interface CreateBookingData {
   notes: string | null;
   employeeChosen: boolean;
   depositAmount: number | null;
+  /** The Servicio's price at booking. */
+  price: number;
   /** BOOKED, o PENDING si el Servicio tiene Aprobación manual. */
   status: BookingStatus.PENDING | BookingStatus.BOOKED;
 }
@@ -79,10 +81,11 @@ export interface BookingsRepository {
   ): Promise<Date[]>;
   /** Throws NotFoundError for an unknown id. */
   findById(id: number): Promise<Booking>;
-  /** Moves a PENDING Booking to BOOKED or REJECTED. Throws BusinessRuleError if it is no longer PENDING. */
+  /** Moves a PENDING Booking to BOOKED or REJECTED (setting `rejectedAt` to `now`). Throws BusinessRuleError if it is no longer PENDING. */
   resolvePending(
     id: number,
     status: BookingStatus.BOOKED | BookingStatus.REJECTED,
+    now: Date,
   ): Promise<Booking>;
   /** The Turno for its Enlace del Turno, in any status, with the data to show it (ADR 0022). Throws NotFoundError for an unknown link. */
   findByLink(link: string): Promise<ClientBooking>;
@@ -104,10 +107,10 @@ export interface BookingsRepository {
    * they are still an active Empleado.
    */
   listByUser(userId: number): Promise<UserBooking[]>;
-  /** Moves a BOOKED Booking to CANCELLED. Throws BusinessRuleError if it is no longer BOOKED. */
-  cancel(id: number): Promise<Booking>;
+  /** Moves a BOOKED Booking to CANCELLED, with `cancelledAt` = `now`. Throws BusinessRuleError if it is no longer BOOKED. */
+  cancel(id: number, now: Date): Promise<Booking>;
   /** As `cancel`, by Enlace del Turno (ADR 0022): also from PENDING. Throws BusinessRuleError if it is no longer pending or booked. */
-  cancelPendingOrBooked(id: number): Promise<ClientBooking>;
+  cancelPendingOrBooked(id: number, now: Date): Promise<ClientBooking>;
   /** Moves a BOOKED Booking to the new times, with the given Empleado, Usuario and Cabina (the same or another). Throws BusinessRuleError if it is no longer BOOKED, ConflictError if it now overlaps another. */
   reschedule(
     id: number,

@@ -8,6 +8,7 @@ import {
   EMPLOYEES_REPOSITORY,
   EmployeesRepository,
 } from '../../domain/employees/employees.repository';
+import { CLOCK, Clock } from '../../domain/clock';
 import { MAILER, Mailer } from '../../domain/mailer';
 import { notifyClients } from './notify-clients';
 import { findOwnBookedBooking } from './find-own-booked-booking';
@@ -20,6 +21,7 @@ export class CancelBookingUseCase {
     @Inject(EMPLOYEES_REPOSITORY)
     private readonly employees: EmployeesRepository,
     @Inject(MAILER) private readonly mailer: Mailer,
+    @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
   /**
@@ -34,7 +36,7 @@ export class CancelBookingUseCase {
       userId,
       bookingId,
     );
-    const cancelled = await this.bookings.cancel(bookingId);
+    const cancelled = await this.bookings.cancel(bookingId, this.clock.now());
     await notifyClients([cancelled], (email, link) =>
       this.mailer.sendBookingCancellation(email, link),
     );

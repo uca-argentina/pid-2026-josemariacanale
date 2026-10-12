@@ -279,6 +279,9 @@ model Booking {
   employeeChosen Boolean       @default(false) // Empleado elegido (ADR 0026): the Cliente came in by this Empleado's Enlace de reserva; Reagendar never moves it to another
   depositAmount  Decimal?      @db.Decimal(10, 2) // Seña pendiente: price × depositPercent / 100 at booking, rounded to the cent; null if the Servicio asked for none. Later changes to the Servicio don't touch it
   depositPaidAt  DateTime?     @db.Timestamptz(3) // Pagar la Seña: when the Cliente paid it; null while pending
+  price          Decimal       @db.Decimal(10, 2) // the Servicio's price fixed at booking, like depositAmount; later changes to the Servicio don't touch it
+  cancelledAt    DateTime?     @db.Timestamptz(3) // Cancelar: when it was cancelled; only with status CANCELLED (CHECK, ADR 0004)
+  rejectedAt     DateTime?     @db.Timestamptz(3) // Rechazar turno: when it was rejected; only with status REJECTED (CHECK, ADR 0004)
   createdAt      DateTime      @default(now()) @db.Timestamptz(3)
 
   service  Service   @relation(fields: [serviceId], references: [id])

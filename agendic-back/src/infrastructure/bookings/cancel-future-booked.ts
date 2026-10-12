@@ -31,7 +31,7 @@ export async function cancelFutureBooked(
   });
   await tx.booking.updateMany({
     where: { id: { in: rows.map(({ id }) => id) } },
-    data: { status: 'CANCELLED' },
+    data: { status: 'CANCELLED', cancelledAt: now },
   });
   // Every Turno has its Cliente (ADR 0005), so the filter only narrows the type.
   return rows.flatMap(({ link, client }) => (client ? [{ clientEmail: client.email, link }] : []));

@@ -374,6 +374,9 @@ describe('Servicio personal', () => {
       employeeChosen: false,
       depositAmount: null,
       depositPaidAt: null,
+      price: 50,
+      cancelledAt: null,
+      rejectedAt: null,
     };
 
     beforeEach(() => {

@@ -26,6 +26,7 @@ describe('PrismaBookingsRepository (real database)', () => {
       notes: null,
       employeeChosen: false,
       depositAmount: null,
+      price: 50,
       status: BookingStatus.BOOKED,
     });
 
@@ -87,6 +88,7 @@ describe('PrismaBookingsRepository (real database)', () => {
       notes: null,
       employeeChosen: false,
       depositAmount: 1.51,
+      price: 50,
       status: BookingStatus.BOOKED,
     });
     expect([first, withDeposit].map((b) => [b.depositAmount, b.depositPaidAt])).toEqual([
@@ -140,6 +142,7 @@ describe('PrismaBookingsRepository (real database)', () => {
         notes: null,
         employeeChosen: false,
         depositAmount: null,
+        price: 50,
         status: BookingStatus.BOOKED,
       });
 
@@ -206,6 +209,7 @@ describe('PrismaBookingsRepository (real database)', () => {
         notes: null,
         employeeChosen: false,
         depositAmount: null,
+        price: 50,
         status: BookingStatus.BOOKED,
       });
 
@@ -274,6 +278,7 @@ describe('PrismaBookingsRepository (real database)', () => {
         notes: null,
         employeeChosen: false,
         depositAmount: null,
+        price: 50,
         status: BookingStatus.BOOKED,
       });
 

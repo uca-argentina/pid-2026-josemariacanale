@@ -56,6 +56,9 @@ const BOOKING_SELECT = {
   employeeChosen: true,
   depositAmount: true,
   depositPaidAt: true,
+  price: true,
+  cancelledAt: true,
+  rejectedAt: true,
   client: { select: { name: true, email: true } },
 } satisfies Prisma.BookingSelect;
 
@@ -340,11 +343,15 @@ export class PrismaBookingsRepository implements BookingsRepository {
   async resolvePending(
     id: number,
     status: BookingStatus.BOOKED | BookingStatus.REJECTED,
+    now: Date,
   ) {
     const { count } = await this.prisma.booking
       .updateMany({
         where: { id, status: BookingStatus.PENDING },
-        data: { status },
+        data: {
+          status,
+          ...(status === BookingStatus.REJECTED && { rejectedAt: now }),
+        },
       })
       .catch(translateError);
     if (count === 0) throw new BusinessRuleError('Turno is not pending');
@@ -459,11 +466,11 @@ export class PrismaBookingsRepository implements BookingsRepository {
    * @throws {BusinessRuleError} el Turno ya no está aceptado
    * @throws {NotFoundError} el Turno no existe
    */
-  async cancel(id: number) {
+  async cancel(id: number, now: Date) {
     await this.updateStatus(
       id,
       [BookingStatus.BOOKED],
-      { status: BookingStatus.CANCELLED },
+      { status: BookingStatus.CANCELLED, cancelledAt: now },
       'Turno is not booked',
     );
     return this.findById(id);
@@ -473,11 +480,11 @@ export class PrismaBookingsRepository implements BookingsRepository {
    * @throws {BusinessRuleError} el Turno ya no está pendiente ni aceptado
    * @throws {NotFoundError} el Turno no existe
    */
-  async cancelPendingOrBooked(id: number) {
+  async cancelPendingOrBooked(id: number, now: Date) {
     await this.updateStatus(
       id,
       OCCUPYING,
-      { status: BookingStatus.CANCELLED },
+      { status: BookingStatus.CANCELLED, cancelledAt: now },
       'Turno is not pending or booked',
     );
     return this.findEnriched(id);
@@ -607,6 +614,9 @@ const toBooking = (row: BookingRow): Booking => ({
   employeeChosen: row.employeeChosen,
   depositAmount: row.depositAmount === null ? null : Number(row.depositAmount),
   depositPaidAt: row.depositPaidAt,
+  price: Number(row.price),
+  cancelledAt: row.cancelledAt,
+  rejectedAt: row.rejectedAt,
 });
 
 /** The Turno with its Cabina, for the panel. */
