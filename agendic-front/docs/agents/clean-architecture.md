@@ -26,7 +26,8 @@ Dependencies point inward. Anything not listed is forbidden and lint-enforced.
 | `src/entities` | `entities` |
 | `src/application/repositories`, `src/application/services` (ports) | `entities` |
 | `src/application/use-cases` | `entities`, ports |
-| `src/interface-adapters/controllers` | `entities`, ports, use cases |
+| `src/interface-adapters/controllers` | `entities`, ports, use cases, `presenters` |
+| `src/interface-adapters/presenters` | `entities` (shaping shared by several controllers; a presenter used by one stays in its controller file) |
 | `src/infrastructure` | `entities`, ports, other `infrastructure` files for shared helpers such as `api-request.ts` (never use cases or controllers) |
 | `app/` | `entities`, `di/` |
 | `di/` | everything except `app/` |

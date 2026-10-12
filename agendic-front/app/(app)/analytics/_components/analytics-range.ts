@@ -62,17 +62,46 @@ export type RangeChange = { preset: RangePreset } | { preset: 'custom'; from: st
 export const rangeSearch = (change: RangeChange) =>
     change.preset === 'custom' ? `?from=${change.from}&to=${change.to}` : change.preset === DEFAULT_PRESET ? '' : `?range=${change.preset}`;
 
+const positiveId = (value: string | null) => (value !== null && /^[1-9]\d*$/.test(value) ? Number(value) : undefined);
+
 /** El Servicio del filtro (`?serviceId=`); un valor que no es un entero positivo se ignora. */
-export function parseServiceId(params: URLSearchParams): number | undefined {
-    const value = params.get('serviceId');
-    return value !== null && /^[1-9]\d*$/.test(value) ? Number(value) : undefined;
+export const parseServiceId = (params: URLSearchParams): number | undefined => positiveId(params.get('serviceId'));
+
+/** Un filtro de la URL (`?serviceId=`, `?branchId=`, `?employeeId=`). */
+export type FilterName = 'branchId' | 'serviceId' | 'employeeId';
+
+/** La URL con el filtro `name` puesto, o sacado con `undefined`, y el resto de la búsqueda intacto. */
+export function filterSearch(search: string, name: FilterName, id: number | undefined): string {
+    const params = new URLSearchParams(search);
+    if (id === undefined) params.delete(name);
+    else params.set(name, String(id));
+    const next = params.toString();
+    return next ? `?${next}` : '';
 }
 
 /** La URL con `serviceId` puesto, o sacado con `undefined`, y el resto de la búsqueda intacto. */
-export function serviceSearch(search: string, serviceId: number | undefined): string {
+export const serviceSearch = (search: string, serviceId: number | undefined) => filterSearch(search, 'serviceId', serviceId);
+
+/**
+ * El Negocio y los filtros de la URL de las analíticas del Negocio. Viene elegido el primero de `businesses`; un
+ * `businessId` que no está en la lista se ignora. `employeeId` solo vale para el Dueño: el back rechaza el filtro a
+ * quien no lo es.
+ */
+export function parseBusinessFilters<B extends { id: number; isOwner: boolean }>(params: URLSearchParams, businesses: B[]) {
+    const wanted = positiveId(params.get('businessId'));
+    const business = businesses.find(({ id }) => id === wanted) ?? businesses[0];
+    return {
+        business,
+        branchId: positiveId(params.get('branchId')),
+        serviceId: parseServiceId(params),
+        employeeId: business?.isOwner ? positiveId(params.get('employeeId')) : undefined,
+    };
+}
+
+/** La URL con otro Negocio elegido: sus filtros no valen en el nuevo, así que se sacan, y el rango queda. */
+export function businessSearch(search: string, businessId: number): string {
     const params = new URLSearchParams(search);
-    if (serviceId === undefined) params.delete('serviceId');
-    else params.set('serviceId', String(serviceId));
-    const next = params.toString();
-    return next ? `?${next}` : '';
+    for (const name of ['branchId', 'serviceId', 'employeeId']) params.delete(name);
+    params.set('businessId', String(businessId));
+    return `?${params}`;
 }

@@ -1,4 +1,4 @@
-import { UnauthenticatedError } from '@/src/entities/errors/auth';
+import { UnauthenticatedError, UnauthorizedError } from '@/src/entities/errors/auth';
 import { ApiRequestError, InputParseError, NotFoundError } from '@/src/entities/errors/common';
 import { AnalyticsRepository } from '@/src/infrastructure/repositories/analytics.repository';
 import { authWith, instrumentation } from '@/tests/unit/stubs';
@@ -56,5 +56,57 @@ describe('AnalyticsRepository.getPersonalAnalytics', () => {
         const error = await repo().getPersonalAnalytics(query).catch((e) => e);
         expect(error).toBeInstanceOf(ApiRequestError);
         expect(error.cause).toBeDefined();
+    });
+});
+
+describe('AnalyticsRepository.listAnalyticsBusinesses', () => {
+    it('GETs the Negocios the Usuario is Empleado of', async () => {
+        const list = [{ id: 1, name: 'Spa', isOwner: true }];
+        const fetchSpy = respond(200, list);
+
+        await expect(repo().listAnalyticsBusinesses()).resolves.toEqual(list);
+        expect(fetchSpy.mock.calls[0][0]).toBe('http://api/analytics/businesses');
+    });
+
+    it('translates a 401 and an unexpected body', async () => {
+        respond(401, { message: 'no' });
+        await expect(repo().listAnalyticsBusinesses()).rejects.toBeInstanceOf(UnauthenticatedError);
+        respond(200, [{ id: 'x' }]);
+        await expect(repo().listAnalyticsBusinesses()).rejects.toBeInstanceOf(ApiRequestError);
+    });
+});
+
+describe('AnalyticsRepository.getBusinessAnalytics', () => {
+    const businessBody = { ...body, filterOptions: { branches: [], services: [] } };
+
+    it('GETs the Negocio range with the filters it has', async () => {
+        const fetchSpy = respond(200, businessBody);
+
+        await expect(repo().getBusinessAnalytics({ ...query, businessId: 4, branchId: 2, serviceId: 7, employeeId: 9 })).resolves.toEqual(businessBody);
+        expect(fetchSpy.mock.calls[0][0]).toBe(
+            'http://api/analytics/businesses/4?from=2026-09-13&to=2026-10-12&branchId=2&serviceId=7&employeeId=9',
+        );
+    });
+
+    it('omits the filters it does not have', async () => {
+        const fetchSpy = respond(200, businessBody);
+        await repo().getBusinessAnalytics({ ...query, businessId: 4 });
+        expect(fetchSpy.mock.calls[0][0]).toBe('http://api/analytics/businesses/4?from=2026-09-13&to=2026-10-12');
+    });
+
+    it('parses the rankings the owner gets', async () => {
+        const ranked = [{ employeeId: 1, name: 'Ana', imageUrl: null, count: 5 }];
+        respond(200, { ...businessBody, mostBookedEmployees: ranked, leastBookedEmployees: ranked, mostCancelledEmployees: ranked });
+        await expect(repo().getBusinessAnalytics({ ...query, businessId: 4 })).resolves.toMatchObject({ mostBookedEmployees: ranked });
+    });
+
+    it.each([
+        [401, UnauthenticatedError],
+        [400, InputParseError],
+        [403, UnauthorizedError],
+        [404, NotFoundError],
+    ])('translates a %i to its domain error', async (status, ErrorClass) => {
+        respond(status, { message: 'no' });
+        await expect(repo().getBusinessAnalytics({ ...query, businessId: 4 })).rejects.toBeInstanceOf(ErrorClass);
     });
 });
