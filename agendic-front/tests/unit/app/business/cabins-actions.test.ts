@@ -77,7 +77,7 @@ describe('retireCabinAction', () => {
     });
 
     it('tells the Dueño how many upcoming Turnos the Cabina has, without reporting it', async () => {
-        mockControllers.IRetireCabinController.mockRejectedValue(new CabinHasUpcomingBookingsError('Cabin 3 has 2 upcoming Turnos', 2));
+        mockControllers.IRetireCabinController.mockRejectedValue(new CabinHasUpcomingBookingsError('Cabin 3 has 2 upcoming Turnos', { upcomingBookings: 2 }));
 
         await expect(retireCabinAction(3)).resolves.toEqual({
             ok: false,
@@ -87,7 +87,7 @@ describe('retireCabinAction', () => {
     });
 
     it('uses the singular for one upcoming Turno', async () => {
-        mockControllers.IRetireCabinController.mockRejectedValue(new CabinHasUpcomingBookingsError('Cabin 3 has 1 upcoming Turnos', 1));
+        mockControllers.IRetireCabinController.mockRejectedValue(new CabinHasUpcomingBookingsError('Cabin 3 has 1 upcoming Turnos', { upcomingBookings: 1 }));
 
         await expect(retireCabinAction(3)).resolves.toEqual({
             ok: false,

@@ -61,8 +61,9 @@ export class CabinsRepository implements ICabinsRepository {
     async retireCabin(id: number): Promise<void> {
         const { response, message } = await this.request('DELETE /cabins/:id', `/cabins/${id}`, 'DELETE');
         if (response.status === 409) {
+            // The message is ADR 0007's contract for this 409; the count is only in it.
             const upcoming = /^Cabin \d+ has (\d+) upcoming Turnos$/.exec(message);
-            if (upcoming) throw new CabinHasUpcomingBookingsError(message, Number(upcoming[1]));
+            if (upcoming) throw new CabinHasUpcomingBookingsError(message, { upcomingBookings: Number(upcoming[1]) });
         }
         this.throwIfFailed(response, message, false);
     }

@@ -48,6 +48,7 @@ export function BookingDetail({ booking, now, startCancelling }: { booking: Book
     const cancellable = booking.status === 'BOOKED' && booking.noShowAt === null && !past;
     const [cancelling, setCancelling] = useState(startCancelling && cancellable);
     const closed = isClosed(booking);
+    const cabin = cabinOf(booking);
     const header = headerOf(booking, past);
 
     const [pending, startTransition] = useTransition();
@@ -95,7 +96,7 @@ export function BookingDetail({ booking, now, startCancelling }: { booking: Book
                     <Row label="Dónde">
                         {booking.business && booking.branch ? `${booking.business.name} · Sucursal ${booking.branch.name}` : placeOf(booking)}
                     </Row>
-                    {cabinOf(booking) && <Row label="Cabina">{cabinOf(booking)}</Row>}
+                    {cabin && <Row label="Cabina">{cabin}</Row>}
                     {booking.depositAmount !== null && (
                         <Row label="Seña">
                             {booking.depositPaidAt === null

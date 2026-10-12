@@ -66,6 +66,7 @@ function badgesOf(b: Booking): { label: string; className: string }[] {
 
 function BookingRow({ booking, tab }: { booking: Booking; tab: BookingTab }) {
     const badges = badgesOf(booking);
+    const cabin = cabinOf(booking);
     return (
         <li className="flex flex-wrap items-start gap-4 px-6 py-5 transition-colors hover:bg-[#f9fafb]">
             <Link
@@ -79,10 +80,10 @@ function BookingRow({ booking, tab }: { booking: Booking; tab: BookingTab }) {
                         <MapPin className="size-3.5" />
                         {placeOf(booking)}
                     </span>
-                    {cabinOf(booking) && (
+                    {cabin && (
                         <span className="flex items-center gap-1 text-[12.5px] font-semibold text-[#6b7280]">
                             <DoorOpen className="size-3.5" />
-                            {cabinOf(booking)}
+                            {cabin}
                         </span>
                     )}
                 </div>

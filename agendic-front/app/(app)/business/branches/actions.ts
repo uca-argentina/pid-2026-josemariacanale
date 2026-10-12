@@ -40,7 +40,7 @@ async function run<T>(fallback: string, work: () => Promise<T>): Promise<BranchA
         if (error instanceof CabinHasUpcomingBookingsError) return { ok: false, message: upcomingBookingsMessage(error.upcomingBookings) };
         if (error instanceof BranchImageLimitError) return { ok: false, message: error.message };
         if (isSessionExpired(error)) redirect(SIGN_IN_PATH);
-        // A 409 is a rule of the back (e.g. a Cabina with upcoming Turnos), not a crash: nothing to report.
+        // A 409 is a rule of the back, not a crash: nothing to report.
         if (error instanceof ApiRequestError && error.status === 409) return { ok: false, message: fallback };
         if (error instanceof InputParseError) return { ok: false, message: 'Revisá los datos e intentá de nuevo.' };
         getInjection('ICrashReporterService').report(error);

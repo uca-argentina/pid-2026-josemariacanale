@@ -47,6 +47,18 @@ describe('UserBookingsRepository.listMyBookings', () => {
         await expect(repo().listMyBookings()).resolves.toEqual([personal]);
     });
 
+    it('parses a Turno without Cabina, with cabin null', async () => {
+        const withoutCabin = { ...booking, cabin: null };
+        respond(200, [withoutCabin]);
+        await expect(repo().listMyBookings()).resolves.toEqual([withoutCabin]);
+    });
+
+    it('rejects a Turno that comes without the cabin field', async () => {
+        const { cabin: _cabin, ...withoutField } = booking;
+        respond(200, [withoutField]);
+        await expect(repo().listMyBookings()).rejects.toBeInstanceOf(ApiRequestError);
+    });
+
     it('returns an empty list as is', async () => {
         respond(200, []);
         await expect(repo().listMyBookings()).resolves.toEqual([]);

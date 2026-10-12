@@ -21,11 +21,10 @@ export class CabinNotOfBranchError extends Error {
 
 /** 409: la Cabina tiene Turnos pendientes o aceptados que todavía no terminaron; `upcomingBookings` es cuántos. */
 export class CabinHasUpcomingBookingsError extends Error {
-    constructor(
-        message: string,
-        readonly upcomingBookings: number,
-        options?: ErrorOptions,
-    ) {
+    readonly upcomingBookings: number;
+
+    constructor(message: string, options: ErrorOptions & { upcomingBookings: number }) {
         super(message, options);
+        this.upcomingBookings = options.upcomingBookings;
     }
 }
