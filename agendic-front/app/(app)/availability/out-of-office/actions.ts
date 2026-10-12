@@ -6,7 +6,9 @@ import { isSessionExpired } from '@/app/api-error';
 import { SIGN_IN_PATH } from '@/app/routes';
 import { getInjection } from '@/di/container';
 import { InputParseError, NotFoundError } from '@/src/entities/errors/common';
+import { HolidaysNotConfiguredError } from '@/src/entities/errors/holidays';
 import { OutOfOfficeConflictError, OutOfOfficeRuleError } from '@/src/entities/errors/out-of-office';
+import type { SetHolidayCountry, ToggleHoliday } from '@/src/entities/models/holiday';
 import type { SaveOutOfOffice } from '@/src/entities/models/out-of-office';
 
 /** Lo que la UI recibe de una acción; el `message` se muestra tal cual. */
@@ -15,9 +17,13 @@ export type OutOfOfficeActionResult = { ok: true } | { ok: false; message: strin
 /**
  * Corre la acción y la traduce a `OutOfOfficeActionResult`. Refresca la página en un éxito y también cuando el
  * período ya no existe, así la lista muestra lo que hay en el back. El `message` del 422 y del 409 es el del
- * back (fin anterior al inicio, fechas repetidas) y sale tal cual.
+ * back (fin anterior al inicio, fechas repetidas, Días festivos no configurados) y sale tal cual.
  */
-async function perform(run: () => Promise<void>, unexpected: string): Promise<OutOfOfficeActionResult> {
+async function perform(
+    run: () => Promise<unknown>,
+    unexpected: string,
+    notFound = 'Este período ya no existe. Actualizamos la lista.',
+): Promise<OutOfOfficeActionResult> {
     try {
         await run();
         refresh();
@@ -25,12 +31,16 @@ async function perform(run: () => Promise<void>, unexpected: string): Promise<Ou
     } catch (error) {
         unstable_rethrow(error);
         if (isSessionExpired(error)) redirect(SIGN_IN_PATH);
-        if (error instanceof OutOfOfficeRuleError || error instanceof OutOfOfficeConflictError) {
+        if (
+            error instanceof OutOfOfficeRuleError ||
+            error instanceof OutOfOfficeConflictError ||
+            error instanceof HolidaysNotConfiguredError
+        ) {
             return { ok: false, message: error.message };
         }
         if (error instanceof NotFoundError) {
             refresh();
-            return { ok: false, message: 'Este período ya no existe. Actualizamos la lista.' };
+            return { ok: false, message: notFound };
         }
         if (error instanceof InputParseError) return { ok: false, message: 'Revisá los datos e intentá de nuevo.' };
         getInjection('ICrashReporterService').report(error);
@@ -56,5 +66,22 @@ export async function deleteOutOfOfficeAction(outOfOfficeId: number) {
     return perform(
         () => getInjection('IDeleteOutOfOfficeController')({ outOfOfficeId }),
         'No pudimos borrar el período. Intentá de nuevo.',
+    );
+}
+
+/** Cambia el país de los Días festivos del Usuario (`null` lo saca). */
+export async function setHolidayCountryAction(input: SetHolidayCountry) {
+    return perform(
+        () => getInjection('ISetHolidayCountryController')(input),
+        'No pudimos cambiar el país. Intentá de nuevo.',
+    );
+}
+
+/** Prende o apaga un Día festivo del Usuario. */
+export async function toggleHolidayAction(input: ToggleHoliday) {
+    return perform(
+        () => getInjection('IToggleHolidayController')(input),
+        'No pudimos guardar el cambio. Intentá de nuevo.',
+        'Este Día festivo ya no existe. Actualizamos la lista.',
     );
 }
