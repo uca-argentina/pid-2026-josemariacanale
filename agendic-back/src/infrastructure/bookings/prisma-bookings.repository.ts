@@ -179,6 +179,8 @@ export class PrismaBookingsRepository implements BookingsRepository {
   }
 
   /**
+   * Cuándo recibió cada Cabina su último Turno pendiente o aceptado, de cualquier Servicio.
+   *
    * @throws {DatabaseOperationError} falló la base
    */
   async lastReceivedByCabin(cabinIds: number[], excludeBookingId?: number) {
@@ -203,6 +205,8 @@ export class PrismaBookingsRepository implements BookingsRepository {
   }
 
   /**
+   * Los tramos que los Turnos pendientes o aceptados ocupan de estas Cabinas, por inicio.
+   *
    * @throws {DatabaseOperationError} falló la base
    */
   async listOccupiedByCabins(
@@ -233,6 +237,8 @@ export class PrismaBookingsRepository implements BookingsRepository {
   }
 
   /**
+   * Cuenta los Turnos pendientes o aceptados de la Cabina que terminan después de `now`.
+   *
    * @throws {DatabaseOperationError} falló la base
    */
   async countUpcomingByCabin(cabinId: number, now: Date) {

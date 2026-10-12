@@ -28,7 +28,7 @@ export interface DailyLimitGuard {
   to: Date;
 }
 
-/** The tramo a Turno holds a Cabina. */
+/** El tramo `[prepStartsAt, endsAt)` durante el que un Turno ocupa una Cabina. */
 export interface CabinOccupancy {
   cabinId: number;
   prepStartsAt: Date;
