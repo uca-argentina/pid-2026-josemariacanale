@@ -4,10 +4,11 @@ import type { Branch, CreateBranch } from '@/src/entities/models/branch';
 
 export type ICreateBranchUseCase = ReturnType<typeof createBranchUseCase>;
 /**
- * Crea una Sucursal en el Negocio. "Solo el Dueño" lo valida el back (403); acá no se revalida.
+ * Crea una Sucursal en el Negocio con sus imágenes. "Solo el Dueño" lo valida el back (403); acá no se revalida.
  *
  * @throws {SlugTakenError} otra Sucursal del Negocio ya usa el tramo
  * @throws {InvalidSlugError} el tramo no tiene un formato válido
+ * @throws {BranchImagesRejectedError} el back rechazó alguna imagen
  */
 export const createBranchUseCase =
     (instrumentationService: IInstrumentationService, branchesRepository: IBranchesRepository) =>

@@ -25,3 +25,16 @@ export class BranchImageLimitError extends Error {
         super(message, options);
     }
 }
+
+/** Por qué el back rechazó las imágenes de una Sucursal nueva: su tipo, su peso o cuántas son. */
+export type BranchImagesRejection = 'type' | 'size' | 'count';
+
+/** 400 o 413: el back rechazó las imágenes de una Sucursal nueva; `reason` dice por qué. */
+export class BranchImagesRejectedError extends Error {
+    readonly reason: BranchImagesRejection;
+
+    constructor(message: string, options: ErrorOptions & { reason: BranchImagesRejection }) {
+        super(message, options);
+        this.reason = options.reason;
+    }
+}
