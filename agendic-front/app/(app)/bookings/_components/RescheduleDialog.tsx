@@ -13,6 +13,7 @@ import { TIME_ZONE_LABEL, type Booking } from './booking-helpers';
 const NO_SLOTS_REASON = {
     NOT_WORKING: 'No atendés ese día.',
     FULLY_BOOKED: 'Tenés la agenda completa ese día.',
+    OUT_OF_OFFICE: 'Estás fuera de la oficina ese día.',
 } as const;
 
 /**

@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { CalendarX2, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { Button } from '@/app/_components/ui/button';
 import { cn } from '@/app/_components/utils';
+import { OUT_OF_OFFICE_REASONS } from '@/app/(app)/availability/out-of-office/_components/out-of-office-reasons';
 import { endTime, formatDate, shortWeekday } from './format';
 import type { Service, Slot } from './types';
 import { useSlotWeek } from './use-slot-week';
@@ -22,6 +23,7 @@ export function TimeStep({
     slot,
     notice,
     employeeId,
+    hostName,
     onSelect,
 }: {
     service: Service;
@@ -30,6 +32,8 @@ export function TimeStep({
     /** Un aviso que el paso muestra arriba, por ejemplo que el horario elegido se ocupó. */
     notice: string | null;
     employeeId?: number;
+    /** Quién atiende, para el aviso de Fuera de la oficina de un Servicio personal. */
+    hostName: string;
     onSelect: (date: string, slot: Slot | null) => void;
 }) {
     const { status, message, week, days, label, canGoBack, goToWeek, retry } = useSlotWeek(service.id, date, employeeId);
@@ -200,6 +204,21 @@ export function TimeStep({
                         </p>
                     )}
                     {goToNext && <div className="mt-4">{goToNext}</div>}
+                </div>
+            )}
+
+            {chosenDay?.reason === 'OUT_OF_OFFICE' && chosenDay.outOfOffice && (
+                <div className="mt-8 flex flex-col items-center gap-2 rounded-2xl border border-dashed border-input px-5 py-14 text-center">
+                    <div className="flex size-14 items-center justify-center rounded-full bg-muted text-lg">
+                        {OUT_OF_OFFICE_REASONS[chosenDay.outOfOffice.reason].emoji}
+                    </div>
+                    <p className="mt-2 text-[15px] font-bold tracking-[-0.02em]">{hostName} está fuera de la oficina</p>
+                    {chosenDay.outOfOffice.notes && (
+                        <p className="max-h-[120px] overflow-y-auto break-words px-2 text-[13.5px] text-muted-foreground italic">
+                            {chosenDay.outOfOffice.notes}
+                        </p>
+                    )}
+                    {goToNext && <div className="mt-3">{goToNext}</div>}
                 </div>
             )}
 

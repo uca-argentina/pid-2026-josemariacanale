@@ -72,6 +72,7 @@ export function RescheduleOverlay({
                     slot={slot}
                     notice={notice}
                     employeeId={chosenEmployeeId(booking)}
+                    hostName={booking.employeeName}
                     onSelect={(d, s) => (setDate(d), setSlot(s))}
                 />
 
