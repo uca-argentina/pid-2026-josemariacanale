@@ -69,21 +69,19 @@ describe('getPersonalAnalyticsController', () => {
         expect(result).toMatchObject({ chart: { points: [] }, popularServices: [], recentRatings: [], services: [] });
     });
 
-    it('shapes the 11 cards in order with formatted values and variations', async () => {
+    it('shapes the 8 cards in order with formatted values and variations', async () => {
         const get = jest.fn().mockResolvedValue({ kpis, ...extras });
 
         const { cards } = await getPersonalAnalyticsController(instrumentation, signedIn, get)(range);
 
         expect(get).toHaveBeenCalledWith(range);
         expect(cards.map((card) => card.id)).toEqual([
-            'booked', 'attended', 'rescheduled', 'cancelled', 'rejected', 'pending',
-            'noShows', 'employeeNoShows', 'averageRating', 'csat', 'revenue',
+            'booked', 'attended', 'rescheduled', 'cancelled', 'averageRating', 'employeeNoShows', 'noShows', 'csat',
         ]);
-        expect(cards[0]).toMatchObject({ label: 'Reservados', value: '12', change: { text: '+20 %', direction: 'up', tone: 'good' } });
+        expect(cards[0]).toMatchObject({ label: 'Reservados', value: '12', change: { text: '+20 %', direction: 'up' } });
         expect(cards[3]).toMatchObject({ label: 'Cancelados', change: { direction: 'up', tone: 'bad' } });
-        expect(cards[8]).toMatchObject({ value: '4,3', change: { text: '—' } });
-        expect(cards[9]).toMatchObject({ value: '85,5 %' });
-        expect(cards[10].value).toMatch(/1\.500\.000/);
+        expect(cards[4]).toMatchObject({ value: '4,3', change: { text: '0 %', direction: 'flat' } });
+        expect(cards[7]).toMatchObject({ value: '85,5 %' });
     });
 
     it('shows “—” as the value of a KPI without data', async () => {
@@ -91,7 +89,7 @@ describe('getPersonalAnalyticsController', () => {
 
         const { cards } = await getPersonalAnalyticsController(instrumentation, signedIn, get)(range);
 
-        expect(cards[8].value).toBe('—');
+        expect(cards[4].value).toBe('—');
     });
 
     it('rejects a malformed range without calling the use case', async () => {

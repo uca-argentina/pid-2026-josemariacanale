@@ -7,9 +7,9 @@ import { Button } from '@/app/_components/ui/button';
 import type { AnalyticsBusiness } from '@/src/entities/models/analytics';
 import type { Preferences } from '@/src/entities/models/user';
 import { loadBusinessAnalyticsAction, type BusinessAnalyticsData, type BusinessAnalyticsResult } from '../actions';
+import { AnalyticsHeader } from './AnalyticsHeader';
 import { BlocksSkeleton, EmployeeRanking, PopularServices, RecentRatings } from './AnalyticsBlocks';
 import {
-    businessSearch,
     FILTER_NAMES,
     filterSearch,
     isValidCustomRange,
@@ -19,7 +19,6 @@ import {
     type FilterName,
     type RangeChange,
 } from './analytics-range';
-import { BusinessSelect } from './BusinessSelect';
 import { EmployeesPerPeriodTable } from './EmployeesPerPeriodTable';
 import { IdFilter } from './IdFilter';
 import { KpiCards, KpiCardsSkeleton } from './KpiCards';
@@ -38,16 +37,18 @@ type Options = Pick<BusinessAnalyticsData, 'branches' | 'services' | 'employees'
 const NO_OPTIONS: Options = { branches: [], services: [], employees: null };
 
 /**
- * Analíticas de un Negocio: el selector de Negocio, los filtros por Sucursal, Servicio y (solo el Dueño) Empleado, el
+ * Analíticas de un Negocio: el selector de alcance (`selector`), los filtros por Sucursal, Servicio y (solo el Dueño) Empleado, el
  * rango, los bloques que comparte con las personales y, para el Dueño, los rankings de Empleados. Todo vive en la URL y
- * se resuelve en el browser (ahí está "hoy"); los datos se piden al server con ello. Un 403 o un 404 dejan el selector.
+ * se resuelve en el browser (ahí está "hoy"); los datos se piden al server con ello. Un 403 o un 404 dejan el selector para elegir otro alcance.
  */
 export function BusinessAnalyticsView({
     businesses,
     weekStart,
+    selector,
 }: {
     businesses: AnalyticsBusiness[];
     weekStart: Preferences['weekStart'];
+    selector: React.ReactNode;
 }) {
     const searchParams = useSearchParams();
     // El server no sabe en qué zona está el browser: hasta hidratar no hay rango.
@@ -98,20 +99,19 @@ export function BusinessAnalyticsView({
 
     return (
         <div className="flex flex-1 flex-col gap-4 py-4 text-foreground @3xl/main:gap-6 @3xl/main:py-6">
-            <div className="flex flex-wrap items-center justify-between gap-3 px-4 lg:px-6">
-                <div className="flex flex-wrap items-center gap-3">
-                    <h1 className="m-0 text-[21px] font-extrabold tracking-[-0.035em]">Analíticas · Servicios del Negocio</h1>
-                    <BusinessSelect businesses={businesses} selected={business} onChange={(id) => setSearch((search) => businessSearch(search, id))} />
-                </div>
-                {range && (
-                    <div className="flex flex-wrap items-center gap-2">
-                        <IdFilter label="Sucursal" options={filters.branches} selected={branchId} onChange={changeFilter('branchId')} />
-                        <IdFilter label="Servicio" options={filters.services} selected={serviceId} onChange={changeFilter('serviceId')} />
-                        {business?.isOwner && <IdFilter label="Empleado" options={filters.employees ?? []} selected={employeeId} onChange={changeFilter('employeeId')} />}
-                        <RangeSelect range={range} weekStart={weekStart} onChange={changeRange} />
-                    </div>
-                )}
-            </div>
+            <AnalyticsHeader
+                selector={selector}
+                filters={
+                    range && (
+                        <>
+                            <IdFilter label="Sucursal" options={filters.branches} selected={branchId} onChange={changeFilter('branchId')} />
+                            <IdFilter label="Servicio" options={filters.services} selected={serviceId} onChange={changeFilter('serviceId')} />
+                            {business?.isOwner && <IdFilter label="Empleado" options={filters.employees ?? []} selected={employeeId} onChange={changeFilter('employeeId')} />}
+                        </>
+                    )
+                }
+                range={range && <RangeSelect range={range} weekStart={weekStart} onChange={changeRange} />}
+            />
             {result === null ? (
                 <>
                     <KpiCardsSkeleton />

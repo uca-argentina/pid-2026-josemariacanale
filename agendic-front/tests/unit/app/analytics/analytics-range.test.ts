@@ -63,8 +63,8 @@ describe('parseBusinessFilters', () => {
     const other = { id: 9, name: 'Gym', isOwner: false };
     const parse = (search: string, businesses = [owned, other]) => parseBusinessFilters(new URLSearchParams(search), businesses);
 
-    it('picks the first Negocio without businessId', () => {
-        expect(parse('').business).toEqual(owned);
+    it('has no Negocio without businessId: the analíticas are the personal ones', () => {
+        expect(parse('').business).toBeUndefined();
     });
 
     it('picks the Negocio in the URL', () => {
@@ -72,7 +72,7 @@ describe('parseBusinessFilters', () => {
     });
 
     it.each(['businessId=77', 'businessId=abc', 'businessId=0', 'businessId=-1', 'businessId=4x'])('ignores the invalid or unlisted %s', (search) => {
-        expect(parse(search).business).toEqual(owned);
+        expect(parse(search).business).toBeUndefined();
     });
 
     it('has no Negocio when the list is empty', () => {
@@ -80,7 +80,7 @@ describe('parseBusinessFilters', () => {
     });
 
     it('reads valid branchId, serviceId and employeeId', () => {
-        expect(parse('branchId=2&serviceId=3&employeeId=5')).toMatchObject({ branchId: 2, serviceId: 3, employeeId: 5 });
+        expect(parse('businessId=4&branchId=2&serviceId=3&employeeId=5')).toMatchObject({ branchId: 2, serviceId: 3, employeeId: 5 });
     });
 
     it.each(['branchId=0', 'branchId=x', 'serviceId=-2', 'serviceId=1.5', 'employeeId=', 'employeeId=3a'])('ignores the invalid filter %s', (search) => {
@@ -103,5 +103,10 @@ describe('filterSearch', () => {
 describe('businessSearch', () => {
     it('switches the Negocio and drops the filters of the previous one', () => {
         expect(businessSearch('?range=7d&businessId=4&branchId=2&serviceId=3&employeeId=5', 9)).toBe('?range=7d&businessId=9');
+    });
+
+    it('goes back to the Usuario without businessId, keeping the range', () => {
+        expect(businessSearch('?range=7d&businessId=4&branchId=2', undefined)).toBe('?range=7d');
+        expect(businessSearch('?businessId=4', undefined)).toBe('');
     });
 });

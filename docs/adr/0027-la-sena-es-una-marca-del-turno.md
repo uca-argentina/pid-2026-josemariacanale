@@ -4,9 +4,9 @@ La Seña de un Turno se guarda en dos campos del propio Turno: `depositAmount`, 
 
 ## Decisiones
 
-- **Es un campo aparte, no un `BookingStatus`.** Pagar la Seña es independiente de que el Turno esté pendiente o aceptado: un Turno pendiente puede tenerla pagada, y uno aceptado puede no tenerla. Un estado nuevo multiplicaría los estados (pendiente con Seña, aceptado con Seña…) y cada transición (Aceptar, Rechazar, Reagendar) tendría que acordarse de él. Es la misma razón por la que la Ausencia es `noShowAt` y no un estado.
+- **Es un campo aparte, no un `BookingStatus`.** Pagar la Seña es independiente de que el Turno esté pendiente o aceptado: un Turno pendiente puede tenerla pagada, y uno aceptado puede no tenerla. Un estado nuevo multiplicaría los estados (pendiente con Seña, aceptado con Seña…) y cada transición (Aceptar, Rechazar, Reagendar) tendría que acordarse de él. Es la misma razón por la que la Ausencia del Invitado es `noShowAt` y no un estado.
 - **El monto se fija al Reservar.** `price × depositPercent / 100`, redondeado al centavo. Cambiar después el precio o la Seña del Servicio no toca los Turnos ya reservados: el Cliente paga lo que le dijeron al Reservar.
-- **La paga solo el Cliente, por el Enlace del Turno.** `PATCH /booking-links/:secret/deposit`, sin Sesión, hasta que el Turno empieza. Es simulado: Agendic no cobra. La escritura va con guarda (pendiente o aceptado, sin empezar, con Seña y sin pagar), como la Ausencia, para que una carrera no la pise.
+- **La paga solo el Cliente, por el Enlace del Turno.** `PATCH /booking-links/:secret/deposit`, sin Sesión, hasta que el Turno empieza. Es simulado: Agendic no cobra. La escritura va con guarda (pendiente o aceptado, sin empezar, con Seña y sin pagar), como la Ausencia del Invitado, para que una carrera no la pise.
 
 ## Qué arrastra
 
