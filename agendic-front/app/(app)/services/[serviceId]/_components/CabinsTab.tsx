@@ -6,14 +6,13 @@ import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PanelButton, PanelCard, PanelCheckbox } from '@/app/(app)/_components/panel-ui';
 import { BRANCHES_PATH } from '@/app/routes';
+import type { ServiceCabin } from '@/src/entities/models/service';
 import { updateServiceAction } from '../../actions';
-
-type CabinItem = { id: number; name: string };
 
 const EXPLANATION =
     'Cada Turno ocupa una de las Cabinas marcadas. Sin Cabinas, el Servicio depende solo de sus Empleados.';
 
-const idsKey = (cabins: CabinItem[]) => cabins.map((c) => c.id).join();
+const idsKey = (cabins: ServiceCabin[]) => cabins.map((c) => c.id).join();
 
 /**
  * Las Cabinas que admite un Servicio del Negocio. El Dueño marca cuáles de las de la Sucursal (`branchCabins`) y
@@ -27,9 +26,9 @@ export function CabinsTab({
     branchCabins,
 }: {
     serviceId: number;
-    admitted: CabinItem[];
+    admitted: ServiceCabin[];
     /** Las Cabinas activas de la Sucursal; `null` para quien no es Dueño. */
-    branchCabins: CabinItem[] | null;
+    branchCabins: ServiceCabin[] | null;
 }) {
     const [selected, setSelected] = useState(() => new Set(admitted.map((c) => c.id)));
     const [savedKey, setSavedKey] = useState(() => idsKey(admitted));
@@ -76,7 +75,9 @@ export function CabinsTab({
         );
     }
 
-    const dirty = selected.size !== admitted.length || admitted.some((c) => !selected.has(c.id));
+    // Una Cabina dada de baja en otra pestaña ya no está en la lista: no cuenta como marcada.
+    const checked = branchCabins.filter((c) => selected.has(c.id));
+    const dirty = checked.length !== admitted.length || admitted.some((c) => !selected.has(c.id));
 
     const toggle = (id: number, checked: boolean) => {
         setSelected((prev) => {
@@ -92,7 +93,7 @@ export function CabinsTab({
         startSaving(async () => {
             const result = await updateServiceAction({
                 id: serviceId,
-                cabinIds: branchCabins.filter((c) => selected.has(c.id)).map((c) => c.id),
+                cabinIds: checked.map((c) => c.id),
             });
             if (result.ok) toast.success('Cabinas actualizadas');
             else setError(result.message);
