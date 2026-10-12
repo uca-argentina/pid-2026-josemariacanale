@@ -330,7 +330,7 @@ como uno que no existe.
   - Dos `POST /bookings` casi juntos para el mismo horario: uno da 201, el otro 409 `Overlaps a booked Turno for this Employee`. Lo garantiza la exclusion constraint `Booking_no_overlap` de Postgres (ADR 0004), no solo el chequeo del caso de uso.
   - `POST /bookings` → 409 `The Service reached its Límite diario that day` si el Servicio ya tiene `dailyLimit` Turnos `PENDING` o `BOOKED` ese día de la Sucursal. Dos creaciones casi juntas del mismo Servicio no pueden pasarlo: la creación cuenta y crea dentro de una transacción con `pg_advisory_xact_lock` por Servicio (ADR 0004).
 
-## Analíticas (#264, #270, #271, #272)
+## Analíticas (#264, #270, #271, #272, #273, #274)
 
 | Método | Ruta | Auth | Qué hace |
 |---|---|---|---|
@@ -393,3 +393,16 @@ como uno que no existe.
 - Cuenta Turnos con `startsAt` en el período, sin Rechazados ni originales reagendados, cortados en la zona de su Sucursal. Una fila por Empleado vigente, incluso con todo en 0, por nombre y luego id. Respeta `branchId` y `serviceId`.
 - Errores: 401 sin Sesión; 403 `Only the owner can see analytics per Employee` si el Usuario no es el Dueño; 400 `Invalid granularity <x>` si no es `day`, `week` ni `month` (`undefined` si falta); los mismos 400 (rango, filtro que no es un número) y 404 (Negocio, Sucursal, Servicio) de `GET /analytics/businesses/:businessId`.
 - El front vuelve a pedir el endpoint al cambiar Por día / Por semana / Por mes; la búsqueda por nombre la hace el front.
+
+#### CSV de Turnos (#274)
+
+| Método | Ruta | Auth | Qué hace |
+|---|---|---|---|
+| GET | `/analytics/personal/bookings.csv?from&to&serviceId=<id>?` | sí | Un CSV con una fila por Turno de los Servicios personales del Usuario |
+| GET | `/analytics/businesses/:businessId/bookings.csv?from&to&branchId=<id>?&serviceId=<id>?&employeeId=<id>?` | sí | Un CSV con una fila por Turno del Negocio |
+
+- Usan los mismos permisos, el mismo alcance y los mismos filtros que su par JSON (`/analytics/personal`, `/analytics/businesses/:businessId`): un Empleado que no es Dueño recibe solo sus Turnos. Los errores son los de su par JSON, con sus mismos mensajes (401, 400 `Invalid analytics range <from>..<to>`, 404, 403, 422).
+- Respuesta 200 `text/csv; charset=utf-8`, con BOM UTF-8 (para que Excel lea los acentos), `Content-Disposition: attachment; filename="turnos-<from>-<to>.csv"` y líneas CRLF. El escape sigue RFC 4180: una celda con coma, comilla o salto de línea va entre comillas, y las comillas se duplican.
+- **Filas**: cada Turno cuyo `startsAt` local cae en el rango (en la zona de la Availability predeterminada en lo personal, en la de la Sucursal de cada Turno en el Negocio), incluidos los originales reagendados y los Rechazados, ordenados por `startsAt` y luego por id.
+- **Columnas** (encabezado en castellano): `Fecha y hora` (local, `YYYY-MM-DD HH:mm`), `Servicio`, `Sucursal` (vacía en personal), `Empleado` (vacío en personal), `Cliente`, `Email`, `Estado` (`Pendiente`, `Aceptado`, `Rechazado`, `Cancelado` o `Reagendado`: un original reagendado es `Reagendado`, no `Cancelado`), `Atendido` (`Sí`/`No`, la regla del KPI `attended`), `Ausencia` (`Sí`/`No`), `Falta del Empleado` (`Sí`/`No`), `Precio` (el del Turno, con punto decimal) y `Calificación` (el `score`, vacío si no tiene).
+- El front arma la URL con los mismos parámetros que la página y descarga el archivo.

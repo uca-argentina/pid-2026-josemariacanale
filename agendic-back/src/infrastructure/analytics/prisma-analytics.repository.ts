@@ -3,6 +3,7 @@ import {
   AnalyticsBreakdown,
   AnalyticsRepository,
   AnalyticsScope,
+  BookingRow,
   DateRange,
   EmployeeRankings,
   EmployeesPerPeriod,
@@ -28,7 +29,7 @@ const localDate = (column: string, zone: Prisma.Sql) =>
 /**
  * Cómo recorre Turnos cada alcance: la zona horaria con que se corta el día (la de la Availability en lo
  * personal, la de la Sucursal de cada Turno en el Negocio), el `FROM` que deja `b` (Turno) y `s` (Servicio)
- * a mano, y el `WHERE` que lo acota.
+ * a mano, el `WHERE` que lo acota y el nombre de la Sucursal (`NULL` en lo personal).
  */
 const scoped = (scope: AnalyticsScope) =>
   scope.kind === 'personal'
@@ -36,6 +37,7 @@ const scoped = (scope: AnalyticsScope) =>
         zone: Prisma.sql`${scope.timeZone}`,
         from: Prisma.sql`"Booking" b JOIN "Service" s ON s."id" = b."serviceId"`,
         where: Prisma.sql`s."userId" = ${scope.userId}`,
+        branchName: Prisma.sql`NULL::text`,
         label: `User ${scope.userId}`,
       }
     : {
@@ -44,6 +46,7 @@ const scoped = (scope: AnalyticsScope) =>
         where: Prisma.sql`br."businessId" = ${scope.businessId}
           ${scope.branchId === undefined ? Prisma.empty : Prisma.sql`AND br."id" = ${scope.branchId}`}
           ${scope.employeeId === undefined ? Prisma.empty : Prisma.sql`AND b."employeeId" = ${scope.employeeId}`}`,
+        branchName: Prisma.sql`br."name"`,
         label: `Business ${scope.businessId}`,
       };
 
@@ -411,6 +414,44 @@ export class PrismaAnalyticsRepository implements AnalyticsRepository {
       rows.set(employeeId, row);
     }
     return { buckets: buckets.map((b) => b.bucket), rows: [...rows.values()] };
+  }
+
+  /**
+   * Un solo recorrido de los Turnos del alcance con `startsAt` local en el rango, con su Cliente, el Empleado
+   * que lo atiende y su Calificación. `attended` repite la regla del KPI del mismo nombre.
+   *
+   * @throws {DatabaseOperationError} la consulta falló
+   */
+  async bookingRows(
+    scope: AnalyticsScope,
+    range: DateRange,
+    now: Date,
+    serviceId?: number,
+  ): Promise<BookingRow[]> {
+    const { zone, from, where, branchName, label } = scoped(scope);
+    const serviceFilter =
+      serviceId === undefined
+        ? Prisma.empty
+        : Prisma.sql`AND b."serviceId" = ${serviceId}`;
+    return this.prisma.$queryRaw<BookingRow[]>`
+      SELECT to_char(b."startsAt" AT TIME ZONE ${zone}, 'YYYY-MM-DD HH24:MI') AS "startsAt",
+        s."name" AS "serviceName", ${branchName} AS "branchName", eu."name" AS "employeeName",
+        c."name" AS "clientName", c."email" AS "clientEmail", b."status"::text AS "status",
+        (b."rescheduled" IS TRUE) AS "rescheduled",
+        (b."rescheduled" IS NOT TRUE AND b."status" = 'BOOKED' AND b."endsAt" < ${now} AND b."noShowAt" IS NULL AND b."employeeNoShowAt" IS NULL) AS "attended",
+        (b."noShowAt" IS NOT NULL) AS "noShow", (b."employeeNoShowAt" IS NOT NULL) AS "employeeNoShow",
+        b."price"::float8 AS "price", r."score" AS "rating"
+      FROM ${from}
+      JOIN "Client" c ON c."bookingId" = b."id"
+      LEFT JOIN "Employee" em ON em."id" = b."employeeId"
+      LEFT JOIN "User" eu ON eu."id" = em."userId"
+      LEFT JOIN "BookingRating" r ON r."bookingId" = b."id"
+      WHERE ${where} ${serviceFilter} AND ${inRange('b."startsAt"', zone, range)}
+      ORDER BY b."startsAt", b."id"`.catch((error: unknown) => {
+      throw new DatabaseOperationError(`Bookings of ${label} not read`, {
+        cause: error,
+      });
+    });
   }
 
   /**

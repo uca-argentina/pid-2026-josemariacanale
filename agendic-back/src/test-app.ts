@@ -266,6 +266,7 @@ export async function createTestApp() {
     employeeRankings: jest.fn(),
     employeesPerPeriod: jest.fn(),
     businessServices: jest.fn(),
+    bookingRows: jest.fn(),
   };
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(CLOCK)

@@ -1,5 +1,6 @@
 import {
   AnalyticsBreakdown,
+  BookingRow,
   KPI_NAMES,
   KpiValues,
 } from '../../domain/analytics/analytics.repository';
@@ -264,5 +265,133 @@ describe('GET /analytics/personal', () => {
     t.availabilities.listByUser.mockResolvedValue([]);
 
     await get('from=2026-03-01&to=2026-03-10').expect(422);
+  });
+});
+
+describe('GET /analytics/personal/bookings.csv', () => {
+  let t: TestApp;
+
+  const ROW: BookingRow = {
+    startsAt: '2026-03-02 10:00',
+    serviceName: 'Corte',
+    branchName: null,
+    employeeName: null,
+    clientName: 'Cami',
+    clientEmail: 'cami@example.com',
+    status: 'BOOKED',
+    rescheduled: false,
+    attended: false,
+    noShow: false,
+    employeeNoShow: false,
+    price: 1500,
+    rating: null,
+  };
+  const STATES: Partial<BookingRow>[] = [
+    { status: 'PENDING' },
+    { status: 'BOOKED', attended: true, rating: 5 },
+    { status: 'REJECTED' },
+    { status: 'CANCELLED' },
+    { status: 'CANCELLED', rescheduled: true },
+    { noShow: true },
+    { employeeNoShow: true },
+  ];
+
+  beforeEach(async () => {
+    t = await createTestApp();
+    scriptSession(t);
+    t.availabilities.listByUser.mockResolvedValue([DEFAULT_AVAILABILITY]);
+    t.services.findById.mockImplementation(
+      async (id) =>
+        [PERSONAL, BRUNOS, ANAS_SERVICE].find((s) => s.id === id) ?? null,
+    );
+    t.analytics.bookingRows.mockResolvedValue(
+      STATES.map((state) => ({ ...ROW, ...state })),
+    );
+  });
+  afterEach(() => t.app.close());
+
+  const get = (query: string) =>
+    t.http
+      .get(`/analytics/personal/bookings.csv?${query}`)
+      .set(bearer(CLERK_TOKEN));
+  const MARCH = 'from=2026-03-01&to=2026-03-10';
+
+  it('answers a downloadable CSV with the BOM, the header and a row per Turno', async () => {
+    const res = await get(MARCH).expect(200);
+
+    expect(res.headers['content-type']).toBe('text/csv; charset=utf-8');
+    expect(res.headers['content-disposition']).toBe(
+      'attachment; filename="turnos-2026-03-01-2026-03-10.csv"',
+    );
+    const lines = res.text.split('\r\n');
+    expect(lines[0]).toBe(
+      '﻿Fecha y hora,Servicio,Sucursal,Empleado,Cliente,Email,Estado,Atendido,Ausencia,Falta del Empleado,Precio,Calificación',
+    );
+    expect(lines.slice(1, 8).map((l) => l.split(',').slice(6, 10))).toEqual([
+      ['Pendiente', 'No', 'No', 'No'],
+      ['Aceptado', 'Sí', 'No', 'No'],
+      ['Rechazado', 'No', 'No', 'No'],
+      ['Cancelado', 'No', 'No', 'No'],
+      ['Reagendado', 'No', 'No', 'No'],
+      ['Aceptado', 'No', 'Sí', 'No'],
+      ['Aceptado', 'No', 'No', 'Sí'],
+    ]);
+    expect(lines[1]).toBe(
+      '2026-03-02 10:00,Corte,,,Cami,cami@example.com,Pendiente,No,No,No,1500,',
+    );
+    expect(lines[2].endsWith(',1500,5')).toBe(true);
+  });
+
+  it('escapes commas and quotes in the cells', async () => {
+    t.analytics.bookingRows.mockResolvedValue([
+      { ...ROW, clientName: 'Pérez, "Cami"' },
+    ]);
+
+    const res = await get(MARCH).expect(200);
+
+    expect(res.text).toContain(',"Pérez, ""Cami""",cami@example.com,');
+  });
+
+  it('asks only for the personal Servicios of the Usuario, in the zone of their default Availability', async () => {
+    await get(`${MARCH}&serviceId=7`).expect(200);
+
+    expect(t.analytics.bookingRows).toHaveBeenCalledWith(
+      {
+        kind: 'personal',
+        userId: ANA.id,
+        timeZone: DEFAULT_AVAILABILITY.timeZone,
+      },
+      { from: '2026-03-01', to: '2026-03-10' },
+      t.clock.now(),
+      7,
+    );
+  });
+
+  it('is 401 without a Sesión', async () => {
+    await t.http.get(`/analytics/personal/bookings.csv?${MARCH}`).expect(401);
+  });
+
+  it('is 400 with an invalid range', async () => {
+    const res = await get('from=2026-03-10&to=2026-03-01').expect(400);
+
+    expect(res.body.message).toBe(
+      'Invalid analytics range 2026-03-10..2026-03-01',
+    );
+  });
+
+  it.each([
+    ['one that does not exist', 99],
+    ['one of another Usuario', 8],
+    ['a Servicio del Negocio', 1],
+  ])('is 404 for %s', async (_name, serviceId) => {
+    const res = await get(`${MARCH}&serviceId=${serviceId}`).expect(404);
+
+    expect(res.body.message).toBe(`Service ${serviceId} not found`);
+  });
+
+  it('is 422 when the Usuario has no default Availability', async () => {
+    t.availabilities.listByUser.mockResolvedValue([]);
+
+    await get(MARCH).expect(422);
   });
 });
