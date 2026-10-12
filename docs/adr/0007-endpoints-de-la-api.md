@@ -330,7 +330,7 @@ como uno que no existe.
   - Dos `POST /bookings` casi juntos para el mismo horario: uno da 201, el otro 409 `Overlaps a booked Turno for this Employee`. Lo garantiza la exclusion constraint `Booking_no_overlap` de Postgres (ADR 0004), no solo el chequeo del caso de uso.
   - `POST /bookings` → 409 `The Service reached its Límite diario that day` si el Servicio ya tiene `dailyLimit` Turnos `PENDING` o `BOOKED` ese día de la Sucursal. Dos creaciones casi juntas del mismo Servicio no pueden pasarlo: la creación cuenta y crea dentro de una transacción con `pg_advisory_xact_lock` por Servicio (ADR 0004).
 
-## Analíticas (#264, #270, #271)
+## Analíticas (#264, #270, #271, #272)
 
 | Método | Ruta | Auth | Qué hace |
 |---|---|---|---|
@@ -345,7 +345,7 @@ como uno que no existe.
   - `filterOptions.services`: `{ id, name }[]` con todos los Servicios personales del Usuario, ocultos y dados de baja incluidos, por nombre.
   - El front usa `trend` sin rellenar huecos y `filterOptions` para el filtro por Servicio.
 - **Período anterior**: mismo largo en días que `from`..`to` (los dos días cuentan) y termina el día antes de `from`.
-- **Reglas de conteo** (todas excluyen los originales reagendados, `rescheduled = true`, salvo `rescheduled`). Un Turno entra en el rango por la fecha local del instante, en la zona de la Availability predeterminada del Usuario (los Servicios del Negocio, con la zona de su Sucursal, llegan con los tickets siguientes):
+- **Reglas de conteo** (todas excluyen los originales reagendados, `rescheduled = true`, salvo `rescheduled`). Un Turno entra en el rango por la fecha local del instante, en la zona de la Availability predeterminada del Usuario (en los Servicios del Negocio, la de la Sucursal de cada Turno; ver Analíticas del Negocio):
   - `booked`: todos menos los que tienen `fromRescheduleId`, por `createdAt`
   - `attended`: `BOOKED`, `endsAt` < ahora, sin `noShowAt` ni `employeeNoShowAt`, por `startsAt`
   - `rescheduled`: `rescheduled = true`, por `cancelledAt`
@@ -361,3 +361,26 @@ como uno que no existe.
   - 404 `Service <id> not found`: `serviceId` no es un Servicio personal del Usuario (no existe, es de otro Usuario o es del Negocio)
   - 422 si el Usuario no tiene Availability predeterminada
 - El conteo vive en el puerto `AnalyticsRepository` (SQL agregado en Postgres), que recibe un alcance ya resuelto.
+
+### Analíticas del Negocio (#272)
+
+| Método | Ruta | Auth | Qué hace |
+|---|---|---|---|
+| GET | `/analytics/businesses` | sí | Los Negocios no dados de baja donde el Usuario es Empleado vigente: `200 [{ id, name, isOwner }]`, el suyo primero y los demás por nombre; `[]` si no es Empleado de ninguno |
+| GET | `/analytics/businesses/:businessId?from&to&branchId=<id>?&serviceId=<id>?&employeeId=<id>?` | sí | Las mismas analíticas que `/analytics/personal`, de los Servicios del Negocio (ocultos y dados de baja incluidos) |
+
+- Respuesta 200: la misma forma que la personal (`kpis`, `granularity`, `trend`, `popularServices`, `recentRatings`, `filterOptions`) con estas diferencias:
+  - `recentRatings[].employeeName` trae el nombre del Empleado que atendió el Turno.
+  - `filterOptions`: `{ branches: {id,name}[], services: {id,name}[], employees?: {id,name}[] }`. Los Servicios incluyen los ocultos y los dados de baja; `employees` (los vigentes) viene solo para el Dueño.
+  - Solo para el Dueño: `mostBookedEmployees`, `leastBookedEmployees` y `mostCancelledEmployees`, cada uno `{ employeeId, name, imageUrl, count }[]` con un top 5 de Empleados vigentes (los dados de baja no aparecen). Más y menos reservados cuentan Turnos con `startsAt` en el rango, sin Rechazados ni originales reagendados; los menos reservados incluyen a los que tienen 0, los más reservados no. Más Cancelaciones cuenta los Cancelados (sin los reagendados) por `cancelledAt`, sin los que tienen 0. Desempate por nombre y luego id. Respetan `branchId` y `serviceId` e ignoran `employeeId`. Un Empleado que no es Dueño no recibe estos tres campos.
+- **Quién ve qué**: el Dueño ve todo el Negocio; un Empleado que no es Dueño ve solo los Turnos que atiende en ese Negocio (aunque sea Empleado de otros, que no se mezclan). `branchId`, `serviceId` y `employeeId` acotan además; los Servicios dados de baja y los Empleados dados de baja siguen valiendo como filtro (son historial).
+- **Zona horaria**: cada Turno se corta en la zona de su Sucursal, no en la de una Availability. Las reglas de conteo son las de `/analytics/personal`.
+- Errores:
+  - 401 sin Sesión
+  - 400 `Invalid analytics range <from>..<to>`: el rango no es válido (igual que la personal); 400 también si un filtro no es un número
+  - 404 `Business <id> not found`: el Negocio no existe o está dado de baja
+  - 403 `Only Employees of Business <id> can see its analytics`: el Usuario no es Empleado vigente del Negocio
+  - 403 `Only the owner can filter by Employee`: un Empleado que no es Dueño manda `employeeId`
+  - 404 `Branch <id> not found` / `Service <id> not found` / `Employee <id> not found`: el filtro no es del Negocio
+- El alcance de Negocio (`kind: 'business'`, con `branchId` y `employeeId` opcionales; el caso de uso fuerza `employeeId` al del Usuario si no es Dueño) lo resuelve el caso de uso y lo cuenta el mismo `AnalyticsRepository`.
+- El front muestra los rankings solo si vienen en la respuesta, y el filtro por Empleado solo si viene `filterOptions.employees`; usa `GET /analytics/businesses` para el selector de Negocio y para decidir si muestra el hero "Crear Negocio".

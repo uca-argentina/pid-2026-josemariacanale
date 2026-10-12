@@ -4,9 +4,11 @@ import {
   AnalyticsRepository,
   AnalyticsScope,
   DateRange,
+  EmployeeRankings,
   Granularity,
   KpiValues,
   PopularService,
+  RankedEmployee,
   TREND_NAMES,
   TrendPoint,
 } from '../../domain/analytics/analytics.repository';
@@ -15,12 +17,34 @@ import { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../prisma.service';
 
 /** Fecha local, en la zona del alcance, de una columna `timestamptz`, dentro del rango. */
-const inRange = (column: string, timeZone: string, range: DateRange) =>
-  Prisma.sql`((${Prisma.raw(column)} AT TIME ZONE ${timeZone})::date BETWEEN ${range.from}::date AND ${range.to}::date)`;
+const inRange = (column: string, zone: Prisma.Sql, range: DateRange) =>
+  Prisma.sql`((${Prisma.raw(column)} AT TIME ZONE ${zone})::date BETWEEN ${range.from}::date AND ${range.to}::date)`;
 
-/** Fecha local, en `timeZone`, de una columna `timestamptz`. */
-const localDate = (column: string, timeZone: string) =>
-  Prisma.sql`((${Prisma.raw(column)} AT TIME ZONE ${timeZone})::date)`;
+/** Fecha local, en `zone`, de una columna `timestamptz`. */
+const localDate = (column: string, zone: Prisma.Sql) =>
+  Prisma.sql`((${Prisma.raw(column)} AT TIME ZONE ${zone})::date)`;
+
+/**
+ * Cómo recorre Turnos cada alcance: la zona horaria con que se corta el día (la de la Availability en lo
+ * personal, la de la Sucursal de cada Turno en el Negocio), el `FROM` que deja `b` (Turno) y `s` (Servicio)
+ * a mano, y el `WHERE` que lo acota.
+ */
+const scoped = (scope: AnalyticsScope) =>
+  scope.kind === 'personal'
+    ? {
+        zone: Prisma.sql`${scope.timeZone}`,
+        from: Prisma.sql`"Booking" b JOIN "Service" s ON s."id" = b."serviceId"`,
+        where: Prisma.sql`s."userId" = ${scope.userId}`,
+        label: `User ${scope.userId}`,
+      }
+    : {
+        zone: Prisma.raw('br."timeZone"'),
+        from: Prisma.sql`"Booking" b JOIN "Service" s ON s."id" = b."serviceId" JOIN "Branch" br ON br."id" = s."branchId"`,
+        where: Prisma.sql`br."businessId" = ${scope.businessId}
+          ${scope.branchId === undefined ? Prisma.empty : Prisma.sql`AND br."id" = ${scope.branchId}`}
+          ${scope.employeeId === undefined ? Prisma.empty : Prisma.sql`AND b."employeeId" = ${scope.employeeId}`}`,
+        label: `Business ${scope.businessId}`,
+      };
 
 const STEPS: Record<Granularity, string> = {
   day: '1 day',
@@ -58,7 +82,8 @@ export class PrismaAnalyticsRepository implements AnalyticsRepository {
     now: Date,
     serviceId?: number,
   ): Promise<KpiValues> {
-    const day = (column: string) => inRange(column, scope.timeZone, range);
+    const { zone, from, where, label } = scoped(scope);
+    const day = (column: string) => inRange(column, zone, range);
     const serviceFilter =
       serviceId === undefined
         ? Prisma.empty
@@ -84,24 +109,21 @@ export class PrismaAnalyticsRepository implements AnalyticsRepository {
           1
         )::float8 AS "csat",
         COALESCE(SUM(b."price") FILTER (WHERE ${attended}), 0)::float8 AS "revenue"
-      FROM "Booking" b
-      JOIN "Service" s ON s."id" = b."serviceId"
+      FROM ${from}
       LEFT JOIN "BookingRating" r ON r."bookingId" = b."id"
-      WHERE s."userId" = ${scope.userId} ${serviceFilter}`.catch(
-      (error: unknown) => {
-        throw new DatabaseOperationError(
-          `Analytics for User ${scope.userId} not read`,
-          { cause: error },
-        );
-      },
-    );
+      WHERE ${where} ${serviceFilter}`.catch((error: unknown) => {
+      throw new DatabaseOperationError(`Analytics for ${label} not read`, {
+        cause: error,
+      });
+    });
     return rows[0];
   }
 
   /**
    * La tendencia sale de una consulta que desarma cada Turno en un evento por KPI (con la regla y la fecha de
    * ese KPI) y lo junta con todos los períodos del rango, así los vacíos quedan en 0. El ranking no cuenta los
-   * Rechazados ni los originales reagendados; las Calificaciones, las 10 más nuevas por `createdAt`.
+   * Rechazados ni los originales reagendados; las Calificaciones, las 10 más nuevas por `createdAt`, con el
+   * nombre del Empleado que atendió el Turno (`null` en los Servicios personales).
    *
    * @throws {DatabaseOperationError} la consulta falló
    */
@@ -113,9 +135,9 @@ export class PrismaAnalyticsRepository implements AnalyticsRepository {
     weekStart: number,
     serviceId?: number,
   ): Promise<AnalyticsBreakdown> {
-    const { userId, timeZone } = scope;
-    const local = (column: string) => localDate(column, timeZone);
-    const day = (column: string) => inRange(column, timeZone, range);
+    const { zone, from: bookings, where, label } = scoped(scope);
+    const local = (column: string) => localDate(column, zone);
+    const day = (column: string) => inRange(column, zone, range);
     const serviceFilter =
       serviceId === undefined
         ? Prisma.empty
@@ -169,10 +191,9 @@ export class PrismaAnalyticsRepository implements AnalyticsRepository {
       this.prisma.$queryRaw<TrendPoint[]>`
         WITH ev AS (
           SELECT m.metric, m.d
-          FROM "Booking" b
-          JOIN "Service" s ON s."id" = b."serviceId"
+          FROM ${bookings}
           CROSS JOIN LATERAL (VALUES ${events}) AS m(metric, d)
-          WHERE s."userId" = ${userId} ${serviceFilter}
+          WHERE ${where} ${serviceFilter}
             AND m.d BETWEEN ${from} AND ${range.to}::date
         )
         SELECT g.bucket::date::text AS "bucket",
@@ -183,9 +204,8 @@ export class PrismaAnalyticsRepository implements AnalyticsRepository {
         ORDER BY g.bucket`,
       this.prisma.$queryRaw<PopularService[]>`
         SELECT s."id" AS "serviceId", s."name", COUNT(*)::int AS "count"
-        FROM "Booking" b
-        JOIN "Service" s ON s."id" = b."serviceId"
-        WHERE s."userId" = ${userId} ${serviceFilter}
+        FROM ${bookings}
+        WHERE ${where} ${serviceFilter}
           AND ${original} AND b."status" <> 'REJECTED' AND ${day('b."startsAt"')}
         GROUP BY s."id", s."name"
         ORDER BY "count" DESC, s."name" ASC, s."id" ASC
@@ -197,20 +217,22 @@ export class PrismaAnalyticsRepository implements AnalyticsRepository {
           createdAt: Date;
           clientName: string;
           serviceName: string;
+          employeeName: string | null;
         }[]
       >`
-        SELECT r."score", r."comment", r."createdAt", c."name" AS "clientName", s."name" AS "serviceName"
-        FROM "BookingRating" r
-        JOIN "Booking" b ON b."id" = r."bookingId"
-        JOIN "Service" s ON s."id" = b."serviceId"
+        SELECT r."score", r."comment", r."createdAt", c."name" AS "clientName", s."name" AS "serviceName", eu."name" AS "employeeName"
+        FROM ${bookings}
+        JOIN "BookingRating" r ON r."bookingId" = b."id"
         JOIN "Client" c ON c."bookingId" = b."id"
-        WHERE s."userId" = ${userId} ${serviceFilter}
+        LEFT JOIN "Employee" em ON em."id" = b."employeeId"
+        LEFT JOIN "User" eu ON eu."id" = em."userId"
+        WHERE ${where} ${serviceFilter}
           AND ${original} AND ${day('r."createdAt"')}
         ORDER BY r."createdAt" DESC, r."id" DESC
         LIMIT 10`,
     ]).catch((error: unknown) => {
       throw new DatabaseOperationError(
-        `Analytics breakdown for User ${userId} not read`,
+        `Analytics breakdown for ${label} not read`,
         { cause: error },
       );
     });
@@ -220,7 +242,6 @@ export class PrismaAnalyticsRepository implements AnalyticsRepository {
       recentRatings: ratings.map((r) => ({
         ...r,
         createdAt: r.createdAt.toISOString(),
-        employeeName: null,
       })),
     };
   }
@@ -240,6 +261,97 @@ export class PrismaAnalyticsRepository implements AnalyticsRepository {
       .catch((error: unknown) => {
         throw new DatabaseOperationError(
           `Personal Services of User ${userId} not read`,
+          { cause: error },
+        );
+      });
+  }
+
+  /**
+   * Un solo recorrido de los Empleados vigentes del Negocio con sus Turnos (sin los originales reagendados)
+   * cuenta reservados y cancelados; los tops se arman acá, con desempate por nombre e id. Los rankings de
+   * más reservados y más cancelados dejan afuera a los que tienen 0.
+   *
+   * @throws {DatabaseOperationError} la consulta falló
+   */
+  async employeeRankings(
+    scope: Extract<AnalyticsScope, { kind: 'business' }>,
+    range: DateRange,
+    serviceId?: number,
+  ): Promise<EmployeeRankings> {
+    const zone = Prisma.raw('br."timeZone"');
+    const branchFilter =
+      scope.branchId === undefined
+        ? Prisma.empty
+        : Prisma.sql`AND br."id" = ${scope.branchId}`;
+    const serviceFilter =
+      serviceId === undefined
+        ? Prisma.empty
+        : Prisma.sql`AND s."id" = ${serviceId}`;
+    const rows = await this.prisma.$queryRaw<
+      {
+        employeeId: number;
+        name: string;
+        imageUrl: string | null;
+        booked: number;
+        cancelled: number;
+      }[]
+    >`
+      SELECT e."id" AS "employeeId", u."name", u."imageUrl",
+        (COUNT(b."id") FILTER (WHERE b."status" <> 'REJECTED' AND ${inRange('b."startsAt"', zone, range)}))::int AS "booked",
+        (COUNT(b."id") FILTER (WHERE b."status" = 'CANCELLED' AND ${inRange('b."cancelledAt"', zone, range)}))::int AS "cancelled"
+      FROM "Employee" e
+      JOIN "User" u ON u."id" = e."userId"
+      LEFT JOIN ("Booking" b JOIN "Service" s ON s."id" = b."serviceId" JOIN "Branch" br ON br."id" = s."branchId")
+        ON b."employeeId" = e."id" AND b."rescheduled" IS NOT TRUE ${branchFilter} ${serviceFilter}
+      WHERE e."businessId" = ${scope.businessId} AND e."deletedAt" IS NULL
+      GROUP BY e."id", u."name", u."imageUrl"`.catch((error: unknown) => {
+      throw new DatabaseOperationError(
+        `Employee rankings of Business ${scope.businessId} not read`,
+        { cause: error },
+      );
+    });
+    const ranked = (
+      count: 'booked' | 'cancelled',
+      direction: 1 | -1,
+      withZeros: boolean,
+    ): RankedEmployee[] =>
+      rows
+        .filter((e) => withZeros || e[count] > 0)
+        .sort(
+          (a, b) =>
+            direction * (a[count] - b[count]) ||
+            a.name.localeCompare(b.name) ||
+            a.employeeId - b.employeeId,
+        )
+        .slice(0, 5)
+        .map(({ employeeId, name, imageUrl, ...counts }) => ({
+          employeeId,
+          name,
+          imageUrl,
+          count: counts[count],
+        }));
+    return {
+      mostBookedEmployees: ranked('booked', -1, false),
+      leastBookedEmployees: ranked('booked', 1, true),
+      mostCancelledEmployees: ranked('cancelled', -1, false),
+    };
+  }
+
+  /**
+   * Lista los Servicios de las Sucursales del Negocio por nombre, con los ocultos y los dados de baja.
+   *
+   * @throws {DatabaseOperationError} la consulta falló
+   */
+  async businessServices(businessId: number) {
+    return this.prisma.service
+      .findMany({
+        where: { branch: { businessId } },
+        select: { id: true, name: true },
+        orderBy: { name: 'asc' },
+      })
+      .catch((error: unknown) => {
+        throw new DatabaseOperationError(
+          `Services of Business ${businessId} not read`,
           { cause: error },
         );
       });
