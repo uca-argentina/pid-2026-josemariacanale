@@ -1,0 +1,43 @@
+services:
+    db:
+        image: postgres:17
+        environment:
+            POSTGRES_USER: agendic
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+            POSTGRES_DB: agendic
+        volumes:
+            - postgres-data:/var/lib/postgresql/data
+        healthcheck:
+            test: ['CMD-SHELL', 'pg_isready -U agendic -d agendic']
+            interval: 5s
+            retries: 10
+        restart: unless-stopped
+
+    backend:
+        build: ./agendic-back
+        env_file: .env
+        environment:
+            DATABASE_URL: postgresql://agendic:${POSTGRES_PASSWORD}@db:5432/agendic
+            PORT: 3333
+        depends_on:
+            db:
+                condition: service_healthy
+        restart: unless-stopped
+
+    frontend:
+        build:
+            context: ./agendic-front
+            args:
+                NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+        env_file: .env
+        environment:
+            API_URL: http://backend:3333
+        ports:
+            # Solo localhost: se entra por nginx (HTTPS), no por IP:3200.
+            - '127.0.0.1:3200:3000'
+        depends_on:
+            - backend
+        restart: unless-stopped
+
+volumes:
+    postgres-data:
