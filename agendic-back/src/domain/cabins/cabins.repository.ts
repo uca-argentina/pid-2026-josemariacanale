@@ -1,7 +1,9 @@
 import { Cabin } from './cabin';
 
+/** Injection token for the {@link CabinsRepository} port. */
 export const CABINS_REPOSITORY = Symbol('CabinsRepository');
 
+/** Cabinas of a Sucursal; authorization is the use cases' job. */
 export interface CabinsRepository {
   /** Ascending by name, ties by id; the ones dadas de baja are left out. */
   listActiveByBranch(branchId: number): Promise<Cabin[]>;

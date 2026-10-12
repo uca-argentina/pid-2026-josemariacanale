@@ -17,6 +17,7 @@ const NAME_UNIQUE = 'Cabin_branchId_name_ci_key';
 export class PrismaCabinsRepository implements CabinsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  /** @throws {DatabaseOperationError} the query failed */
   async listActiveByBranch(branchId: number) {
     return (
       await this.prisma.cabin
@@ -28,6 +29,7 @@ export class PrismaCabinsRepository implements CabinsRepository {
     ).map(toCabin);
   }
 
+  /** @throws {DatabaseOperationError} the query failed */
   async findById(id: number) {
     const row = await this.prisma.cabin
       .findUnique({ where: { id } })
@@ -35,26 +37,41 @@ export class PrismaCabinsRepository implements CabinsRepository {
     return row && toCabin(row);
   }
 
+  /**
+   * @throws {ConflictError} the name is in use in the Sucursal
+   * @throws {DatabaseOperationError} the insert failed
+   */
   async create(branchId: number, name: string) {
     return toCabin(
       await this.prisma.cabin
         .create({ data: { branchId, name } })
-        .catch((error) => translateError(error, branchId, name)),
+        .catch((error) => translateError(error, undefined, branchId, name)),
     );
   }
 
+  /**
+   * @throws {ConflictError} the name is in use in the Sucursal
+   * @throws {NotFoundError} the Cabina no longer exists
+   * @throws {DatabaseOperationError} the update failed
+   */
   async rename(cabin: Cabin, name: string) {
     return toCabin(
       await this.prisma.cabin
         .update({ where: { id: cabin.id }, data: { name } })
-        .catch((error) => translateError(error, cabin.branchId, name)),
+        .catch((error) =>
+          translateError(error, cabin.id, cabin.branchId, name),
+        ),
     );
   }
 
+  /**
+   * @throws {NotFoundError} the Cabina no longer exists
+   * @throws {DatabaseOperationError} the update failed
+   */
   async retire(id: number) {
     await this.prisma.cabin
       .update({ where: { id }, data: { deletedAt: new Date() } })
-      .catch((error) => translateError(error));
+      .catch((error) => translateError(error, id));
   }
 }
 
@@ -67,6 +84,7 @@ const toCabin = (row: CabinRow): Cabin => ({
 
 const translateError = (
   error: unknown,
+  id?: number,
   branchId?: number,
   name?: string,
 ): never => {
@@ -77,7 +95,7 @@ const translateError = (
         { cause: error },
       );
     if (error.code === 'P2025')
-      throw new NotFoundError('Cabin not found', { cause: error });
+      throw new NotFoundError(`Cabin ${id} not found`, { cause: error });
   }
   throw new DatabaseOperationError('Database operation failed', {
     cause: error,

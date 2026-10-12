@@ -18,6 +18,7 @@ import { ClerkGuard, CurrentUser } from '../users/clerk.guard';
 import { presentCabin } from './cabin.presenter';
 import { CabinNameDto } from './cabins.dto';
 
+/** Gestión de Cabinas del Dueño (ADR 0030); everything needs a Sesión. */
 @Controller()
 @UseGuards(ClerkGuard)
 export class CabinsController {
@@ -28,6 +29,7 @@ export class CabinsController {
     private readonly retireCabinUseCase: RetireCabinUseCase,
   ) {}
 
+  /** @throws {ForbiddenError} the Usuario isn't the Dueño */
   @Get('branches/:id/cabins')
   async list(
     @CurrentUser() userId: number,
@@ -38,6 +40,7 @@ export class CabinsController {
     );
   }
 
+  /** @throws {ConflictError} the name is in use in the Sucursal */
   @Post('branches/:id/cabins')
   async create(
     @CurrentUser() userId: number,
@@ -49,6 +52,7 @@ export class CabinsController {
     );
   }
 
+  /** @throws {ConflictError} the name is in use in the Sucursal */
   @Patch('cabins/:id')
   async rename(
     @CurrentUser() userId: number,
@@ -60,6 +64,7 @@ export class CabinsController {
     );
   }
 
+  /** @throws {NotFoundError} the Cabina doesn't exist or was already dada de baja */
   @Delete('cabins/:id')
   @HttpCode(204)
   async retire(

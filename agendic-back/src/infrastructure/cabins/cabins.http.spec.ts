@@ -55,6 +55,27 @@ describe('Cabinas', () => {
   });
   afterEach(() => t.app.close());
 
+  it('answers 404 on every write when the Negocio was dado de baja', async () => {
+    t.businesses.findById.mockResolvedValue(null);
+    const as = bearer(CLERK_TOKEN);
+
+    await t.http
+      .post(`/branches/${ANAS_BRANCH.id}/cabins`)
+      .set(as)
+      .send({ name: 'Box 2' })
+      .expect(404);
+    await t.http
+      .patch(`/cabins/${BOX.id}`)
+      .set(as)
+      .send({ name: 'x' })
+      .expect(404);
+    await t.http.delete(`/cabins/${BOX.id}`).set(as).expect(404);
+
+    expect(t.cabins.create).not.toHaveBeenCalled();
+    expect(t.cabins.rename).not.toHaveBeenCalled();
+    expect(t.cabins.retire).not.toHaveBeenCalled();
+  });
+
   describe('GET /branches/:id/cabins', () => {
     it('lists the active ones without exposing deletedAt', async () => {
       const res = await t.http
