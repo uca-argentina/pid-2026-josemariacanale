@@ -52,9 +52,19 @@ export class PrismaBranchImagesRepository implements BranchImagesRepository {
     return row && toBranchImage(row);
   }
 
-  async delete(id: number) {
-    await this.prisma.branchImage
-      .delete({ where: { id } })
+  async delete(branchId: number, id: number, keep: number) {
+    return this.prisma
+      .$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT 1 FROM "Branch" WHERE "id" = ${branchId} FOR UPDATE`;
+        await tx.branchImage.findFirstOrThrow({
+          where: { id, branchId },
+          select: { id: true },
+        });
+        const count = await tx.branchImage.count({ where: { branchId } });
+        if (count <= keep) return false;
+        await tx.branchImage.delete({ where: { id, branchId } });
+        return true;
+      })
       .catch(translateError);
   }
 

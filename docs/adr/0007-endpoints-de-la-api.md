@@ -92,7 +92,7 @@ una Sucursal); sus archivos en el storage no.
 |---|---|---|---|
 | GET | `/branches/:id/images` | no | Las imágenes de la Sucursal, ordenadas por `order`; 404 si la Sucursal no existe |
 | POST | `/branches/:id/images` | sí | Sube una imagen y la agrega al final; 201 con la imagen; 422 `La Sucursal ya tiene 5 imágenes` si ya tiene cinco (el conteo y el alta van en la misma transacción, y el archivo subido se borra) |
-| DELETE | `/branches/:id/images/:imageId` | sí | Borra la imagen y su archivo; 204 |
+| DELETE | `/branches/:id/images/:imageId` | sí | Borra la imagen y su archivo; 204; 409 `Branch <id> must keep at least one image` si es la única imagen de la Sucursal (el conteo y el borrado van en la misma transacción, y no se borra ni la fila ni el archivo) |
 | PUT | `/branches/:id/images/order` | sí | Reemplaza el orden de todas las imágenes; 200 con la lista ya ordenada |
 
 - POST: `multipart/form-data` con la imagen en el campo `file`. Sin archivo → 400 `file is required`; tipo que no es `image/jpeg`, `image/png`, `image/webp` o `image/gif` → 400 `La imagen tiene que ser JPEG, PNG, WebP o GIF`; más de 5 MB → 413

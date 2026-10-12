@@ -21,7 +21,10 @@ describe('PrismaBranchImagesRepository', () => {
     $queryRaw: jest.fn(),
     branchImage: {
       aggregate: jest.fn(),
+      count: jest.fn(),
+      findFirstOrThrow: jest.fn(),
       create: jest.fn(),
+      delete: jest.fn(),
       update: jest.fn(),
       findMany: jest.fn(),
     },
@@ -30,7 +33,6 @@ describe('PrismaBranchImagesRepository', () => {
     branchImage: {
       findMany: jest.fn(),
       findUnique: jest.fn(),
-      delete: jest.fn(),
     },
     $transaction: jest.fn((run: (client: typeof tx) => unknown) => run(tx)),
   };
@@ -150,10 +152,65 @@ describe('PrismaBranchImagesRepository', () => {
     });
   });
 
-  it('translates a missing image into NotFoundError', async () => {
-    prisma.branchImage.delete.mockRejectedValue(knownError('P2025'));
+  it('deletes an image of its Sucursal while more than the minimum remain, locking it against concurrent deletes', async () => {
+    tx.branchImage.count.mockResolvedValue(2);
 
-    await expect(repository.delete(10)).rejects.toThrow(NotFoundError);
+    await expect(repository.delete(1, 10, 1)).resolves.toBe(true);
+    expect(tx.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(tx.$queryRaw.mock.calls[0][0].join('?')).toContain('FOR UPDATE');
+    expect(tx.$queryRaw.mock.calls[0][1]).toBe(1);
+    expect(tx.branchImage.count).toHaveBeenCalledWith({
+      where: { branchId: 1 },
+    });
+    expect(tx.branchImage.delete).toHaveBeenCalledWith({
+      where: { id: 10, branchId: 1 },
+    });
+  });
+
+  it('deletes nothing when the Sucursal is down to the minimum of images', async () => {
+    tx.branchImage.count.mockResolvedValue(1);
+
+    await expect(repository.delete(1, 10, 1)).resolves.toBe(false);
+    expect(tx.branchImage.delete).not.toHaveBeenCalled();
+  });
+
+  it('lets only one of two concurrent deletes take the Sucursal down to the minimum, by locking it', async () => {
+    let rows = 2;
+    let queue = Promise.resolve();
+    prisma.$transaction.mockImplementation((run) => {
+      const result = queue.then(() => run(tx));
+      queue = result.then(
+        () => undefined,
+        () => undefined,
+      );
+      return result;
+    });
+    tx.branchImage.count.mockImplementation(async () => rows);
+    tx.branchImage.delete.mockImplementation(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      rows -= 1;
+      return ROW;
+    });
+
+    const results = await Promise.all([
+      repository.delete(1, 10, 1),
+      repository.delete(1, 11, 1),
+    ]);
+
+    expect(results.filter(Boolean)).toHaveLength(1);
+    expect(rows).toBe(1);
+  });
+
+  it('translates an image already gone from its Sucursal into NotFoundError, before counting', async () => {
+    tx.branchImage.findFirstOrThrow.mockRejectedValue(knownError('P2025'));
+    tx.branchImage.count.mockResolvedValue(1);
+
+    await expect(repository.delete(1, 10, 1)).rejects.toThrow(NotFoundError);
+    expect(tx.branchImage.findFirstOrThrow).toHaveBeenCalledWith({
+      where: { id: 10, branchId: 1 },
+      select: { id: true },
+    });
+    expect(tx.branchImage.delete).not.toHaveBeenCalled();
   });
 
   it('translates any other failure into DatabaseOperationError', async () => {
