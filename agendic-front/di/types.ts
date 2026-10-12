@@ -136,6 +136,8 @@ import type { IAnalyticsRepository } from '@/src/application/repositories/analyt
 import type { IGetPersonalAnalyticsUseCase } from '@/src/application/use-cases/analytics/get-personal-analytics.use-case';
 import type { IGetBusinessAnalyticsUseCase } from '@/src/application/use-cases/analytics/get-business-analytics.use-case';
 import type { IListAnalyticsBusinessesUseCase } from '@/src/application/use-cases/analytics/list-analytics-businesses.use-case';
+import type { IDownloadBookingsCsvUseCase } from '@/src/application/use-cases/analytics/download-bookings-csv.use-case';
+import type { IDownloadBookingsCsvController } from '@/src/interface-adapters/controllers/analytics/download-bookings-csv.controller';
 import type { IGetEmployeesPerPeriodUseCase } from '@/src/application/use-cases/analytics/get-employees-per-period.use-case';
 import type { IGetEmployeesPerPeriodController } from '@/src/interface-adapters/controllers/analytics/get-employees-per-period.controller';
 import type { IGetBusinessAnalyticsController } from '@/src/interface-adapters/controllers/analytics/get-business-analytics.controller';
@@ -246,6 +248,7 @@ export const DI_SYMBOLS = {
     IListAnalyticsBusinessesUseCase: Symbol.for('IListAnalyticsBusinessesUseCase'),
     IGetBusinessAnalyticsUseCase: Symbol.for('IGetBusinessAnalyticsUseCase'),
     IGetEmployeesPerPeriodUseCase: Symbol.for('IGetEmployeesPerPeriodUseCase'),
+    IDownloadBookingsCsvUseCase: Symbol.for('IDownloadBookingsCsvUseCase'),
     IListOutOfOfficeUseCase: Symbol.for('IListOutOfOfficeUseCase'),
     ICreateOutOfOfficeUseCase: Symbol.for('ICreateOutOfOfficeUseCase'),
     IUpdateOutOfOfficeUseCase: Symbol.for('IUpdateOutOfOfficeUseCase'),
@@ -330,6 +333,7 @@ export const DI_SYMBOLS = {
     IListAnalyticsBusinessesController: Symbol.for('IListAnalyticsBusinessesController'),
     IGetBusinessAnalyticsController: Symbol.for('IGetBusinessAnalyticsController'),
     IGetEmployeesPerPeriodController: Symbol.for('IGetEmployeesPerPeriodController'),
+    IDownloadBookingsCsvController: Symbol.for('IDownloadBookingsCsvController'),
     IListMyOutOfOfficeController: Symbol.for('IListMyOutOfOfficeController'),
     ICreateOutOfOfficeController: Symbol.for('ICreateOutOfOfficeController'),
     IUpdateOutOfOfficeController: Symbol.for('IUpdateOutOfOfficeController'),
@@ -420,6 +424,7 @@ export interface DI_RETURN_TYPES {
     IListAnalyticsBusinessesUseCase: IListAnalyticsBusinessesUseCase;
     IGetBusinessAnalyticsUseCase: IGetBusinessAnalyticsUseCase;
     IGetEmployeesPerPeriodUseCase: IGetEmployeesPerPeriodUseCase;
+    IDownloadBookingsCsvUseCase: IDownloadBookingsCsvUseCase;
     IListOutOfOfficeUseCase: IListOutOfOfficeUseCase;
     ICreateOutOfOfficeUseCase: ICreateOutOfOfficeUseCase;
     IUpdateOutOfOfficeUseCase: IUpdateOutOfOfficeUseCase;
@@ -504,6 +509,7 @@ export interface DI_RETURN_TYPES {
     IListAnalyticsBusinessesController: IListAnalyticsBusinessesController;
     IGetBusinessAnalyticsController: IGetBusinessAnalyticsController;
     IGetEmployeesPerPeriodController: IGetEmployeesPerPeriodController;
+    IDownloadBookingsCsvController: IDownloadBookingsCsvController;
     IListMyOutOfOfficeController: IListMyOutOfOfficeController;
     ICreateOutOfOfficeController: ICreateOutOfOfficeController;
     IUpdateOutOfOfficeController: IUpdateOutOfOfficeController;

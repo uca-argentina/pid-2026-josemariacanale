@@ -5,6 +5,8 @@ import { listAnalyticsBusinessesUseCase } from '@/src/application/use-cases/anal
 import { getPersonalAnalyticsUseCase } from '@/src/application/use-cases/analytics/get-personal-analytics.use-case';
 import { getEmployeesPerPeriodUseCase } from '@/src/application/use-cases/analytics/get-employees-per-period.use-case';
 import { getEmployeesPerPeriodController } from '@/src/interface-adapters/controllers/analytics/get-employees-per-period.controller';
+import { downloadBookingsCsvUseCase } from '@/src/application/use-cases/analytics/download-bookings-csv.use-case';
+import { downloadBookingsCsvController } from '@/src/interface-adapters/controllers/analytics/download-bookings-csv.controller';
 import { AnalyticsRepository } from '@/src/infrastructure/repositories/analytics.repository';
 import { getBusinessAnalyticsController } from '@/src/interface-adapters/controllers/analytics/get-business-analytics.controller';
 import { listAnalyticsBusinessesController } from '@/src/interface-adapters/controllers/analytics/list-analytics-businesses.controller';
@@ -64,6 +66,18 @@ export function createAnalyticsModule() {
             DI_SYMBOLS.IInstrumentationService,
             DI_SYMBOLS.IAuthenticationService,
             DI_SYMBOLS.IGetEmployeesPerPeriodUseCase,
+        ]);
+
+    analyticsModule
+        .bind(DI_SYMBOLS.IDownloadBookingsCsvUseCase)
+        .toHigherOrderFunction(downloadBookingsCsvUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IAnalyticsRepository]);
+
+    analyticsModule
+        .bind(DI_SYMBOLS.IDownloadBookingsCsvController)
+        .toHigherOrderFunction(downloadBookingsCsvController, [
+            DI_SYMBOLS.IInstrumentationService,
+            DI_SYMBOLS.IAuthenticationService,
+            DI_SYMBOLS.IDownloadBookingsCsvUseCase,
         ]);
 
     return analyticsModule;

@@ -9,6 +9,7 @@ import type { Preferences } from '@/src/entities/models/user';
 import { loadBusinessAnalyticsAction, type BusinessAnalyticsData, type BusinessAnalyticsResult } from '../actions';
 import { BlocksSkeleton, EmployeeRanking, PopularServices, RecentRatings } from './AnalyticsBlocks';
 import {
+    businessCsvQuery,
     businessSearch,
     FILTER_NAMES,
     filterSearch,
@@ -20,6 +21,7 @@ import {
     type RangeChange,
 } from './analytics-range';
 import { BusinessSelect } from './BusinessSelect';
+import { DownloadBookingsCsvButton } from './DownloadBookingsCsvButton';
 import { EmployeesPerPeriodTable } from './EmployeesPerPeriodTable';
 import { IdFilter } from './IdFilter';
 import { KpiCards, KpiCardsSkeleton } from './KpiCards';
@@ -54,6 +56,7 @@ export function BusinessAnalyticsView({
     const mounted = useSyncExternalStore(subscribeNever, () => true, () => false);
     const range = mounted ? parseRange(searchParams, toIsoDay(new Date())) : null;
     const { business, branchId, serviceId, employeeId } = parseBusinessFilters(searchParams, businesses);
+    const csvQuery = range && businessCsvQuery(searchParams, toIsoDay(new Date()), businesses);
     const [attempt, setAttempt] = useState(0);
     // Las opciones de los filtros sobreviven a una recarga o a un error: el chip no vuelve a "#id" mientras carga.
     const [options, setOptions] = useState<{ businessId: number | undefined; value: Options }>({ businessId: undefined, value: NO_OPTIONS });
@@ -109,6 +112,7 @@ export function BusinessAnalyticsView({
                         <IdFilter label="Servicio" options={filters.services} selected={serviceId} onChange={changeFilter('serviceId')} />
                         {business?.isOwner && <IdFilter label="Empleado" options={filters.employees ?? []} selected={employeeId} onChange={changeFilter('employeeId')} />}
                         <RangeSelect range={range} weekStart={weekStart} onChange={changeRange} />
+                        {csvQuery && <DownloadBookingsCsvButton query={csvQuery} />}
                     </div>
                 )}
             </div>

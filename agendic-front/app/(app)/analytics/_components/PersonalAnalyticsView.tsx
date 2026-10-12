@@ -7,7 +7,8 @@ import { Button } from '@/app/_components/ui/button';
 import type { Preferences } from '@/src/entities/models/user';
 import { loadPersonalAnalyticsAction, type PersonalAnalyticsData, type PersonalAnalyticsResult } from '../actions';
 import { BlocksSkeleton, PopularServices, RecentRatings } from './AnalyticsBlocks';
-import { isValidCustomRange, parseRange, parseServiceId, rangeSearch, serviceSearch, type RangeChange } from './analytics-range';
+import { isValidCustomRange, parseRange, parseServiceId, personalCsvQuery, rangeSearch, serviceSearch, type RangeChange } from './analytics-range';
+import { DownloadBookingsCsvButton } from './DownloadBookingsCsvButton';
 import { KpiCards, KpiCardsSkeleton } from './KpiCards';
 import { RangeSelect } from './RangeSelect';
 import { IdFilter } from './IdFilter';
@@ -68,6 +69,7 @@ export function PersonalAnalyticsView({ weekStart }: { weekStart: Preferences['w
                     <div className="flex flex-wrap items-center gap-2">
                         <IdFilter label="Servicio" options={services} selected={serviceId} onChange={changeService} />
                         <RangeSelect range={range} weekStart={weekStart} onChange={change} />
+                        <DownloadBookingsCsvButton query={personalCsvQuery(searchParams, toIsoDay(new Date()))} />
                     </div>
                 )}
             </div>
