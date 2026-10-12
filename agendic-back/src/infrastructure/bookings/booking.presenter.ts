@@ -56,8 +56,11 @@ export const presentUserBooking = (booking: UserBooking) => ({
   branch: booking.branch,
 });
 
-/** Enlace del Turno: el Turno con los datos de dónde pasa, para quien abre su Enlace. */
-/** `now` decides `canMarkEmployeeNoShow`, which the back computes because the Cliente never sees the Ausencia. */
+/**
+ * Enlace del Turno: el Turno con los datos de dónde pasa, para quien abre su Enlace.
+ *
+ * @param now decide `canMarkEmployeeNoShow`, que calcula el back porque el Cliente no ve la Ausencia
+ */
 export const presentClientBooking = (booking: ClientBooking, now: Date) => ({
   id: booking.id,
   status: booking.status,
