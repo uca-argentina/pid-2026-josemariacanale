@@ -10,6 +10,7 @@ import { loadBusinessAnalyticsAction, type BusinessAnalyticsData, type BusinessA
 import { BlocksSkeleton, EmployeeRanking, PopularServices, RecentRatings } from './AnalyticsBlocks';
 import {
     businessSearch,
+    FILTER_NAMES,
     filterSearch,
     isValidCustomRange,
     parseBusinessFilters,
@@ -83,10 +84,9 @@ export function BusinessAnalyticsView({
     const changeRange = (next: RangeChange) => {
         // Un rango de más de 366 días lo rechaza el back: se ignora la elección en vez de volver al valor por defecto.
         if (next.preset === 'custom' && !isValidCustomRange(next.from, next.to)) return;
-        // El rango nuevo reemplaza al viejo; el Negocio y los filtros quedan.
         const params = new URLSearchParams(rangeSearch(next));
         const current = new URLSearchParams(window.location.search);
-        for (const name of ['businessId', 'branchId', 'serviceId', 'employeeId']) {
+        for (const name of ['businessId', ...FILTER_NAMES]) {
             const value = current.get(name);
             if (value !== null) params.set(name, value);
         }

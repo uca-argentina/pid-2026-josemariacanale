@@ -7,12 +7,13 @@ import {
     type TrendSeries,
 } from '@/src/entities/models/analytics';
 
-export const DASH = '—';
+const DASH = '—';
 
-export function decimal(value: number, digits: number) {
+function decimal(value: number, digits: number) {
     return new Intl.NumberFormat('es-AR', { maximumFractionDigits: digits }).format(value);
 }
 
+/** Un conteo con separador de miles, como se muestra en las listas y tarjetas. */
 export const count = (value: number) => decimal(value, 0);
 
 /** Cómo se muestra cada KPI; `badWhenUp` es el que empeora si sube (Cancelados, Rechazados, Ausencias, Faltas). */

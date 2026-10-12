@@ -68,7 +68,9 @@ const positiveId = (value: string | null) => (value !== null && /^[1-9]\d*$/.tes
 export const parseServiceId = (params: URLSearchParams): number | undefined => positiveId(params.get('serviceId'));
 
 /** Un filtro de la URL (`?serviceId=`, `?branchId=`, `?employeeId=`). */
-export type FilterName = 'branchId' | 'serviceId' | 'employeeId';
+export type FilterName = (typeof FILTER_NAMES)[number];
+/** Los filtros de la URL de las analíticas del Negocio. */
+export const FILTER_NAMES = ['branchId', 'serviceId', 'employeeId'] as const;
 
 /** La URL con el filtro `name` puesto, o sacado con `undefined`, y el resto de la búsqueda intacto. */
 export function filterSearch(search: string, name: FilterName, id: number | undefined): string {
@@ -101,7 +103,7 @@ export function parseBusinessFilters<B extends { id: number; isOwner: boolean }>
 /** La URL con otro Negocio elegido: sus filtros no valen en el nuevo, así que se sacan, y el rango queda. */
 export function businessSearch(search: string, businessId: number): string {
     const params = new URLSearchParams(search);
-    for (const name of ['branchId', 'serviceId', 'employeeId']) params.delete(name);
+    for (const name of FILTER_NAMES) params.delete(name);
     params.set('businessId', String(businessId));
     return `?${params}`;
 }
