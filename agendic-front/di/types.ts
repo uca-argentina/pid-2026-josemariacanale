@@ -136,6 +136,8 @@ import type { IAnalyticsRepository } from '@/src/application/repositories/analyt
 import type { IGetPersonalAnalyticsUseCase } from '@/src/application/use-cases/analytics/get-personal-analytics.use-case';
 import type { IGetBusinessAnalyticsUseCase } from '@/src/application/use-cases/analytics/get-business-analytics.use-case';
 import type { IListAnalyticsBusinessesUseCase } from '@/src/application/use-cases/analytics/list-analytics-businesses.use-case';
+import type { IGetEmployeesPerPeriodUseCase } from '@/src/application/use-cases/analytics/get-employees-per-period.use-case';
+import type { IGetEmployeesPerPeriodController } from '@/src/interface-adapters/controllers/analytics/get-employees-per-period.controller';
 import type { IGetBusinessAnalyticsController } from '@/src/interface-adapters/controllers/analytics/get-business-analytics.controller';
 import type { IListAnalyticsBusinessesController } from '@/src/interface-adapters/controllers/analytics/list-analytics-businesses.controller';
 import type { IGetPersonalAnalyticsController } from '@/src/interface-adapters/controllers/analytics/get-personal-analytics.controller';
@@ -243,6 +245,7 @@ export const DI_SYMBOLS = {
     IGetPersonalAnalyticsUseCase: Symbol.for('IGetPersonalAnalyticsUseCase'),
     IListAnalyticsBusinessesUseCase: Symbol.for('IListAnalyticsBusinessesUseCase'),
     IGetBusinessAnalyticsUseCase: Symbol.for('IGetBusinessAnalyticsUseCase'),
+    IGetEmployeesPerPeriodUseCase: Symbol.for('IGetEmployeesPerPeriodUseCase'),
     IListOutOfOfficeUseCase: Symbol.for('IListOutOfOfficeUseCase'),
     ICreateOutOfOfficeUseCase: Symbol.for('ICreateOutOfOfficeUseCase'),
     IUpdateOutOfOfficeUseCase: Symbol.for('IUpdateOutOfOfficeUseCase'),
@@ -326,6 +329,7 @@ export const DI_SYMBOLS = {
     IGetPersonalAnalyticsController: Symbol.for('IGetPersonalAnalyticsController'),
     IListAnalyticsBusinessesController: Symbol.for('IListAnalyticsBusinessesController'),
     IGetBusinessAnalyticsController: Symbol.for('IGetBusinessAnalyticsController'),
+    IGetEmployeesPerPeriodController: Symbol.for('IGetEmployeesPerPeriodController'),
     IListMyOutOfOfficeController: Symbol.for('IListMyOutOfOfficeController'),
     ICreateOutOfOfficeController: Symbol.for('ICreateOutOfOfficeController'),
     IUpdateOutOfOfficeController: Symbol.for('IUpdateOutOfOfficeController'),
@@ -415,6 +419,7 @@ export interface DI_RETURN_TYPES {
     IGetPersonalAnalyticsUseCase: IGetPersonalAnalyticsUseCase;
     IListAnalyticsBusinessesUseCase: IListAnalyticsBusinessesUseCase;
     IGetBusinessAnalyticsUseCase: IGetBusinessAnalyticsUseCase;
+    IGetEmployeesPerPeriodUseCase: IGetEmployeesPerPeriodUseCase;
     IListOutOfOfficeUseCase: IListOutOfOfficeUseCase;
     ICreateOutOfOfficeUseCase: ICreateOutOfOfficeUseCase;
     IUpdateOutOfOfficeUseCase: IUpdateOutOfOfficeUseCase;
@@ -498,6 +503,7 @@ export interface DI_RETURN_TYPES {
     IGetPersonalAnalyticsController: IGetPersonalAnalyticsController;
     IListAnalyticsBusinessesController: IListAnalyticsBusinessesController;
     IGetBusinessAnalyticsController: IGetBusinessAnalyticsController;
+    IGetEmployeesPerPeriodController: IGetEmployeesPerPeriodController;
     IListMyOutOfOfficeController: IListMyOutOfOfficeController;
     ICreateOutOfOfficeController: ICreateOutOfOfficeController;
     IUpdateOutOfOfficeController: IUpdateOutOfOfficeController;

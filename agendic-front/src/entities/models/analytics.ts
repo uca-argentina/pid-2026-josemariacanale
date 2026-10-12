@@ -96,3 +96,14 @@ export const businessAnalyticsQuerySchema = analyticsQuerySchema.extend({
     employeeId: z.number().int().positive().optional(),
 });
 export type BusinessAnalyticsQuery = z.infer<typeof businessAnalyticsQuerySchema>;
+
+/** El período, la agrupación y los filtros de la tabla "Turnos por Empleado y período" (sin `employeeId`: la tabla es de todos). */
+export const employeesPerPeriodQuerySchema = businessAnalyticsQuerySchema.omit({ employeeId: true }).extend({ granularity: granularitySchema });
+export type EmployeesPerPeriodQuery = z.infer<typeof employeesPerPeriodQuerySchema>;
+
+/** Lo que el front lee de `GET /analytics/businesses/:businessId/employees-per-period`: un conteo por bucket y por Empleado. */
+export const employeesPerPeriodSchema = z.object({
+    buckets: z.array(dateSchema),
+    rows: z.array(z.object({ employeeId: z.number(), name: z.string(), imageUrl: z.string().nullable(), counts: z.array(z.number()) })),
+});
+export type EmployeesPerPeriod = z.infer<typeof employeesPerPeriodSchema>;

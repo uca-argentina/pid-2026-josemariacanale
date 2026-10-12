@@ -6,11 +6,14 @@ import { ApiRequestError, InputParseError, NotFoundError } from '@/src/entities/
 import {
     analyticsBusinessSchema,
     businessAnalyticsSchema,
+    employeesPerPeriodSchema,
     personalAnalyticsSchema,
     type AnalyticsBusiness,
     type AnalyticsQuery,
     type BusinessAnalytics,
     type BusinessAnalyticsQuery,
+    type EmployeesPerPeriod,
+    type EmployeesPerPeriodQuery,
     type PersonalAnalytics,
 } from '@/src/entities/models/analytics';
 import { apiRequest } from './api-request';
@@ -82,6 +85,29 @@ export class AnalyticsRepository implements IAnalyticsRepository {
             });
             try {
                 return businessAnalyticsSchema.parse(json);
+            } catch (cause) {
+                throw new ApiRequestError(`GET ${path} responded with an unexpected body`, { cause });
+            }
+        });
+    }
+
+    /**
+     * @throws {UnauthenticatedError} la API respondió 401
+     * @throws {InputParseError} la API respondió 400
+     * @throws {UnauthorizedError} la API respondió 403
+     * @throws {NotFoundError} la API respondió 404
+     * @throws {ApiRequestError} falla de red, otro status no-OK o cuerpo inesperado
+     */
+    async getEmployeesPerPeriod({ businessId, from, to, granularity, branchId, serviceId }: EmployeesPerPeriodQuery): Promise<EmployeesPerPeriod> {
+        return this.instrumentationService.startSpan({ name: 'AnalyticsRepository > getEmployeesPerPeriod', op: 'http.client' }, async () => {
+            const params = new URLSearchParams({ from, to, granularity });
+            for (const [name, id] of Object.entries({ branchId, serviceId })) if (id !== undefined) params.set(name, String(id));
+            const path = `/analytics/businesses/${businessId}/employees-per-period?${params}`;
+            const json = await apiRequest(this.authenticationService, this.apiUrl, 'GET', path, {
+                errors: { 400: InputParseError, 403: UnauthorizedError, 404: NotFoundError },
+            });
+            try {
+                return employeesPerPeriodSchema.parse(json);
             } catch (cause) {
                 throw new ApiRequestError(`GET ${path} responded with an unexpected body`, { cause });
             }

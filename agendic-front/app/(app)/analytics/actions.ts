@@ -7,7 +7,7 @@ import { getInjection } from '@/di/container';
 import type { DI_RETURN_TYPES } from '@/di/types';
 import { UnauthorizedError } from '@/src/entities/errors/auth';
 import { NotFoundError } from '@/src/entities/errors/common';
-import type { AnalyticsQuery, BusinessAnalyticsQuery } from '@/src/entities/models/analytics';
+import type { AnalyticsQuery, BusinessAnalyticsQuery, EmployeesPerPeriodQuery } from '@/src/entities/models/analytics';
 
 /** Lo que presenta el controller: tarjetas, gráfico, ranking, Calificaciones y Servicios del filtro. */
 export type PersonalAnalyticsData = Awaited<ReturnType<DI_RETURN_TYPES['IGetPersonalAnalyticsController']>>;
@@ -47,5 +47,23 @@ export async function loadBusinessAnalyticsAction(query: BusinessAnalyticsQuery)
         if (error instanceof NotFoundError) return { ok: false, reason: 'notFound' };
         getInjection('ICrashReporterService').report(error);
         return { ok: false, reason: 'error' };
+    }
+}
+
+/** Lo que presenta el controller de la tabla "Turnos por Empleado y período": los buckets ya rotulados y una fila por Empleado. */
+export type EmployeesPerPeriodData = Awaited<ReturnType<DI_RETURN_TYPES['IGetEmployeesPerPeriodController']>>;
+
+/** Los datos de la tabla, o un error sin detalle (el real va al reporte de fallas). */
+export type EmployeesPerPeriodResult = { ok: true; data: EmployeesPerPeriodData } | { ok: false };
+
+/** La tabla "Turnos por Empleado y período" del Dueño; por qué es una acción, ver `loadPersonalAnalyticsAction`. */
+export async function loadEmployeesPerPeriodAction(query: EmployeesPerPeriodQuery): Promise<EmployeesPerPeriodResult> {
+    try {
+        return { ok: true, data: await getInjection('IGetEmployeesPerPeriodController')(query) };
+    } catch (error) {
+        unstable_rethrow(error);
+        if (isSessionExpired(error)) redirect(SIGN_IN_PATH);
+        getInjection('ICrashReporterService').report(error);
+        return { ok: false };
     }
 }
