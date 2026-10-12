@@ -13,7 +13,7 @@ import { ClerkGuard, CurrentUser } from '../users/clerk.guard';
 
 const optionalInt = new ParseIntPipe({ optional: true });
 
-/** Analíticas del Usuario de la Sesión. */
+/** Analíticas personales y de los Negocios del Usuario de la Sesión. */
 @Controller('analytics')
 @UseGuards(ClerkGuard)
 export class AnalyticsController {

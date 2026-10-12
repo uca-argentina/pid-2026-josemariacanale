@@ -26,7 +26,11 @@ export class ListAnalyticsBusinessesUseCase {
     private readonly businesses: BusinessesRepository,
   ) {}
 
-  /** Los Negocios no dados de baja donde el Usuario es Empleado vigente, el suyo primero y los demás por nombre. */
+  /**
+   * Los Negocios no dados de baja donde el Usuario es Empleado vigente, el suyo primero y los demás por nombre.
+   *
+   * @throws {DatabaseOperationError} la consulta falló
+   */
   async execute(userId: number): Promise<AnalyticsBusiness[]> {
     const employees = await this.employees.listActiveByUser(userId);
     const found = await Promise.all(
