@@ -20,7 +20,6 @@ function decimal(value: number, digits: number) {
 
 const count = (value: number) => decimal(value, 0);
 
-
 /** Cómo se muestra cada KPI; `badWhenUp` es el que empeora si sube (Cancelados, Rechazados, Ausencias, Faltas). */
 const KPI_CARDS: Record<KpiName, { label: string; format: (value: number) => string; badWhenUp: boolean }> = {
     booked: { label: 'Reservados', format: count, badWhenUp: false },
@@ -81,7 +80,13 @@ function presenter({ kpis, granularity, trend, popularServices, recentRatings, f
             points: trend.map((point) => ({ ...point, label: formatBucket(point.bucket, granularity) })),
         },
         popularServices: popularServices.map(({ serviceId, name, count: n }) => ({ id: serviceId, name, count: count(n) })),
-        recentRatings,
+        recentRatings: recentRatings.map(({ score, comment, createdAt, clientName, serviceName }) => ({
+            score,
+            comment,
+            createdAt,
+            clientName,
+            serviceName,
+        })),
         services: filterOptions.services,
         cards: KPI_NAMES.map((id) => {
             const { label, format, badWhenUp } = KPI_CARDS[id];

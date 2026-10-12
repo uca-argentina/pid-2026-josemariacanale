@@ -90,7 +90,7 @@ describe('getPersonalAnalyticsController', () => {
             { id: 4, name: 'Tintura', count: '2' },
         ]);
         expect(result.services).toEqual(extras.filterOptions.services);
-        expect(result.recentRatings).toEqual(extras.recentRatings);
+        expect(result.recentRatings).toEqual([{ score: 5, comment: 'Excelente', createdAt: '2026-10-12T15:00:00.000Z', clientName: 'Ana', serviceName: 'Corte' }]);
     });
 
     it('returns empty lists for a response without ratings or Servicios', async () => {

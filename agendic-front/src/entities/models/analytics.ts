@@ -24,10 +24,13 @@ export type Kpi = z.infer<typeof kpiSchema>;
 
 /** Los conteos que dibuja el gráfico de tendencias, en el orden de la leyenda. */
 export const TREND_SERIES = ['booked', 'attended', 'rescheduled', 'cancelled', 'rejected', 'noShows', 'employeeNoShows'] as const;
+/** Una serie del gráfico de tendencias. */
 export type TrendSeries = (typeof TREND_SERIES)[number];
 
 /** Cada cuánto agrupa el back los puntos del gráfico, según el largo del rango. */
+/** La agrupación del gráfico: por día, semana o mes. */
 export const granularitySchema = z.enum(['day', 'week', 'month']);
+/** Una agrupación del gráfico de tendencias. */
 export type Granularity = z.infer<typeof granularitySchema>;
 
 const trendPointSchema = z.object({

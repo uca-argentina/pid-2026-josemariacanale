@@ -6,7 +6,7 @@ import { toIsoDay } from '@/app/_components/day-range';
 import { Button } from '@/app/_components/ui/button';
 import { Skeleton } from '@/app/_components/ui/skeleton';
 import type { Preferences } from '@/src/entities/models/user';
-import { loadPersonalAnalyticsAction, type PersonalAnalyticsResult } from '../actions';
+import { loadPersonalAnalyticsAction, type PersonalAnalyticsData, type PersonalAnalyticsResult } from '../actions';
 import { PopularServices, RecentRatings } from './AnalyticsBlocks';
 import { isValidCustomRange, parseRange, parseServiceId, rangeSearch, serviceSearch, type RangeChange } from './analytics-range';
 import { KpiCards, KpiCardsSkeleton } from './KpiCards';
@@ -27,6 +27,8 @@ export function PersonalAnalyticsView({ weekStart }: { weekStart: Preferences['w
     const mounted = useSyncExternalStore(subscribeNever, () => true, () => false);
     const range = mounted ? parseRange(searchParams, toIsoDay(new Date())) : null;
     const [attempt, setAttempt] = useState(0);
+    // Los Servicios del filtro sobreviven a una recarga o a un error: el chip no vuelve a "#id" mientras carga.
+    const [services, setServices] = useState<PersonalAnalyticsData['services']>([]);
     const [loaded, setLoaded] = useState<{ key: string; result: PersonalAnalyticsResult } | null>(null);
 
     const serviceId = mounted ? parseServiceId(searchParams) : undefined;
@@ -39,7 +41,9 @@ export function PersonalAnalyticsView({ weekStart }: { weekStart: Preferences['w
         if (!from || !to || !key) return;
         let stale = false;
         loadPersonalAnalyticsAction({ from, to, serviceId }).then((next) => {
-            if (!stale) setLoaded({ key, result: next });
+            if (stale) return;
+            setLoaded({ key, result: next });
+            if (next.ok) setServices(next.data.services);
         });
         return () => {
             stale = true;
@@ -63,7 +67,7 @@ export function PersonalAnalyticsView({ weekStart }: { weekStart: Preferences['w
                 <h1 className="m-0 text-[21px] font-extrabold tracking-[-0.035em]">Analíticas · Servicios personales</h1>
                 {range && (
                     <div className="flex flex-wrap items-center gap-2">
-                        <ServiceFilter services={result?.ok ? result.data.services : []} selected={serviceId} onChange={changeService} />
+                        <ServiceFilter services={services} selected={serviceId} onChange={changeService} />
                         <RangeSelect range={range} weekStart={weekStart} onChange={change} />
                     </div>
                 )}
