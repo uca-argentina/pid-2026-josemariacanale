@@ -107,6 +107,7 @@ model Branch {
   business Business      @relation(fields: [businessId], references: [id])
   services Service[]
   images   BranchImage[]
+  cabins   Cabin[]
 
   @@unique([businessId, slug]) // unique within its Negocio only, unlike Business.slug
 }
@@ -121,6 +122,32 @@ model BranchImage {
   branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
 
   @@index([branchId, order])
+}
+
+/// Cabina (ADR 0030): espacio o equipo de una Sucursal. The unique (branchId, lower(name)) among the active ones is written by hand in the migration.
+model Cabin {
+  id        Int       @id @default(autoincrement())
+  branchId  Int
+  name      String
+  deletedAt DateTime? @db.Timestamptz // set = dada de baja; the row stays as history
+
+  branch   Branch         @relation(fields: [branchId], references: [id])
+  services ServiceCabin[]
+  bookings Booking[]
+
+  @@index([branchId])
+}
+
+/// The Cabinas a Servicio del Negocio admits (ADR 0030). Retiring a Cabina deletes its rows.
+model ServiceCabin {
+  serviceId Int
+  cabinId   Int
+
+  service Service @relation(fields: [serviceId], references: [id])
+  cabin   Cabin   @relation(fields: [cabinId], references: [id])
+
+  @@id([serviceId, cabinId])
+  @@index([cabinId])
 }
 
 model Service {
@@ -147,6 +174,7 @@ model Service {
   user         User?             @relation(fields: [userId], references: [id], onDelete: Restrict)
   availability Availability?     @relation(fields: [availabilityId], references: [id], onDelete: Restrict)
   employees    EmployeeService[]
+  cabins       ServiceCabin[]
   bookings     Booking[]
 }
 
@@ -240,6 +268,7 @@ model Booking {
   serviceId      Int
   employeeId     Int? // the Empleado of a Servicio del Negocio; null in a Servicio personal
   userId         Int // the User who attends it: occupancy is per User, across Servicios personales and of any Negocio (ADR 0021)
+  cabinId        Int? // the Cabina it occupies from prepStartsAt (ADR 0030); null in a Servicio without Cabinas, and in Turnos taken before it admitted them
   prepStartsAt   DateTime      @db.Timestamptz(3) // startsAt - Service.prepMinutes, fixed at booking: the attending User's agenda is held from here
   startsAt       DateTime      @db.Timestamptz(3)
   endsAt         DateTime      @db.Timestamptz(3) // startsAt + Service.durationMinutes, fixed at booking
@@ -255,6 +284,7 @@ model Booking {
   service  Service   @relation(fields: [serviceId], references: [id])
   employee Employee? @relation(fields: [employeeId], references: [id])
   user     User      @relation(fields: [userId], references: [id])
+  cabin    Cabin?    @relation(fields: [cabinId], references: [id])
   client   Client?
 }
 

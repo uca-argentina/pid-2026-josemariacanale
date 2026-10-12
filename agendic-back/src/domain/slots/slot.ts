@@ -91,7 +91,8 @@ const subtract = (ranges: Range[], busy: Range[]): Range[] => {
     while (first < busy.length && busy[first].end <= range.start) first++;
     let cursor = range.start;
     for (let i = first; i < busy.length && busy[i].start < range.end; i++) {
-      if (busy[i].start > cursor) free.push({ start: cursor, end: busy[i].start });
+      if (busy[i].start > cursor)
+        free.push({ start: cursor, end: busy[i].start });
       cursor = Math.max(cursor, busy[i].end);
     }
     if (cursor < range.end) free.push({ start: cursor, end: range.end });
@@ -229,4 +230,42 @@ export function computeSlots({
     });
   }
   return days;
+}
+
+/**
+ * Leaves out the Horarios reservables en que no queda ninguna Cabina libre (ADR 0030): un horario `s` vale si alguna
+ * Cabina no tiene un Turno que se solape con `[s - prepMinutes, s + durationMinutes)`. Un día que se queda sin horarios
+ * pasa a `FULLY_BOOKED`. `days` en orden de fecha y con los horarios ordenados, y cada lista de `occupied`, la de una
+ * Cabina, ordenada por inicio (la constraint impide que se solapen entre sí): una sola pasada por cada una.
+ */
+export function withoutBusyCabins(
+  days: DaySlots[],
+  occupied: { prepStartsAt: Date; endsAt: Date }[][],
+  durationMinutes: number,
+  prepMinutes: number,
+): DaySlots[] {
+  const cabins = occupied.map((list) =>
+    list.map((o) => ({
+      start: o.prepStartsAt.getTime(),
+      end: o.endsAt.getTime(),
+    })),
+  );
+  const next = cabins.map(() => 0);
+  return days.map((day) => {
+    if (day.slots.length === 0) return day;
+    const slots = day.slots.filter((iso) => {
+      const from = Date.parse(iso) - prepMinutes * MINUTE_MS;
+      const to = Date.parse(iso) + durationMinutes * MINUTE_MS;
+      let free = false;
+      // Every pointer advances even once a free Cabina is found: the next horario starts later.
+      cabins.forEach((busy, c) => {
+        while (next[c] < busy.length && busy[next[c]].end <= from) next[c]++;
+        if (next[c] >= busy.length || busy[next[c]].start >= to) free = true;
+      });
+      return free;
+    });
+    return slots.length === 0
+      ? { date: day.date, slots, reason: 'FULLY_BOOKED' }
+      : { date: day.date, slots };
+  });
 }

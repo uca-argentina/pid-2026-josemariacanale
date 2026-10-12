@@ -22,6 +22,9 @@ import { PrismaAvailabilitiesRepository } from './availabilities/prisma-availabi
 import { PrismaBookingsRepository } from './bookings/prisma-bookings.repository';
 import { readBookingCodeSecret, TotpBookingVerificationCodes } from './bookings/totp-booking-verification-codes';
 import { BookingsModule } from './bookings/bookings.module';
+import { CABINS_REPOSITORY } from '../domain/cabins/cabins.repository';
+import { CabinsModule } from './cabins/cabins.module';
+import { PrismaCabinsRepository } from './cabins/prisma-cabins.repository';
 import { BranchImagesModule } from './branch-images/branch-images.module';
 import { PrismaBranchImagesRepository } from './branch-images/prisma-branch-images.repository';
 import { PrismaBranchesRepository } from './branches/prisma-branches.repository';
@@ -56,6 +59,7 @@ import { UsersModule } from './users/users.module';
     BusinessesModule,
     BranchesModule,
     BranchImagesModule,
+    CabinsModule,
     ServicesModule,
     EmployeesModule,
     BookingsModule,
@@ -80,6 +84,7 @@ import { UsersModule } from './users/users.module';
       provide: BRANCH_IMAGES_REPOSITORY,
       useClass: PrismaBranchImagesRepository,
     },
+    { provide: CABINS_REPOSITORY, useClass: PrismaCabinsRepository },
     { provide: SERVICES_REPOSITORY, useClass: PrismaServicesRepository },
     { provide: EMPLOYEES_REPOSITORY, useClass: PrismaEmployeesRepository },
     {
@@ -117,6 +122,7 @@ import { UsersModule } from './users/users.module';
     BUSINESSES_REPOSITORY,
     BRANCHES_REPOSITORY,
     BRANCH_IMAGES_REPOSITORY,
+    CABINS_REPOSITORY,
     SERVICES_REPOSITORY,
     EMPLOYEES_REPOSITORY,
     INVITATIONS_REPOSITORY,

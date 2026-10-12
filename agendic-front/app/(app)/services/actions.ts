@@ -6,6 +6,7 @@ import { isSessionExpired } from '@/app/api-error';
 import { SIGN_IN_PATH } from '@/app/routes';
 import { getInjection } from '@/di/container';
 import { InvalidSlugError, SlugTakenError } from '@/src/entities/errors/business';
+import { CabinNotOfBranchError } from '@/src/entities/errors/cabin';
 import { ApiRequestError, InputParseError, NotFoundError } from '@/src/entities/errors/common';
 import { LastEmployeeError } from '@/src/entities/errors/employee';
 import {
@@ -105,6 +106,11 @@ export async function updateServiceAction(payload: unknown): Promise<UpdateServi
         if (error instanceof ServiceSlugTakenError) return { ok: false, field: 'slug', message: error.message };
         if (error instanceof ServiceNameTakenError) return { ok: false, field: 'name', message: error.message };
         if (error instanceof NotFoundError) return { ok: false, message: 'Este Servicio ya no existe.' };
+        if (error instanceof CabinNotOfBranchError) {
+            // The Cabina was dada de baja elsewhere: reload the page so the list of Cabinas is asked for again.
+            refresh();
+            return { ok: false, message: 'Una de las Cabinas ya no existe en la Sucursal. Revisá la lista y guardá de nuevo.' };
+        }
         if (isSessionExpired(error)) redirect(SIGN_IN_PATH);
         if (error instanceof InputParseError || (error instanceof ApiRequestError && error.status === 400))
             return { ok: false, message: 'Revisá los datos e intentá de nuevo.' };

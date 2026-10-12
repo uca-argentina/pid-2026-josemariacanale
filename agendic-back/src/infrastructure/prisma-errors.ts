@@ -3,6 +3,9 @@ import { Prisma } from '../generated/prisma/client';
 /** Shared by every adapter that reassigns or creates a Booking, so they agree on the constraint's name. */
 export const BOOKING_NO_OVERLAP = 'Booking_no_overlap';
 
+/** The Cabina's twin of {@link BOOKING_NO_OVERLAP} (ADR 0030). */
+export const BOOKING_CABIN_NO_OVERLAP = 'Booking_cabin_no_overlap';
+
 /** Where ADR 0004 says the violated index's name arrives through @prisma/adapter-pg. */
 export const violatedIndex = (error: Prisma.PrismaClientKnownRequestError) =>
   (

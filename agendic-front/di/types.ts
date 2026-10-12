@@ -1,4 +1,13 @@
 import type { IBusinessesRepository } from '@/src/application/repositories/businesses.repository.interface';
+import type { ICabinsRepository } from '@/src/application/repositories/cabins.repository.interface';
+import type { IListCabinsUseCase } from '@/src/application/use-cases/cabins/list-cabins.use-case';
+import type { IListCabinsController } from '@/src/interface-adapters/controllers/cabins/list-cabins.controller';
+import type { ICreateCabinUseCase } from '@/src/application/use-cases/cabins/create-cabin.use-case';
+import type { ICreateCabinController } from '@/src/interface-adapters/controllers/cabins/create-cabin.controller';
+import type { IRenameCabinUseCase } from '@/src/application/use-cases/cabins/rename-cabin.use-case';
+import type { IRenameCabinController } from '@/src/interface-adapters/controllers/cabins/rename-cabin.controller';
+import type { IRetireCabinUseCase } from '@/src/application/use-cases/cabins/retire-cabin.use-case';
+import type { IRetireCabinController } from '@/src/interface-adapters/controllers/cabins/retire-cabin.controller';
 import type { IBranchesRepository } from '@/src/application/repositories/branches.repository.interface';
 import type { ICreateBranchUseCase } from '@/src/application/use-cases/branches/create-branch.use-case';
 import type { IUpdateBranchUseCase } from '@/src/application/use-cases/branches/update-branch.use-case';
@@ -153,6 +162,7 @@ export const DI_SYMBOLS = {
     IBusinessesRepository: Symbol.for('IBusinessesRepository'),
     IPublicBusinessesRepository: Symbol.for('IPublicBusinessesRepository'),
     IBranchesRepository: Symbol.for('IBranchesRepository'),
+    ICabinsRepository: Symbol.for('ICabinsRepository'),
     IEmployeesRepository: Symbol.for('IEmployeesRepository'),
     IBookingsRepository: Symbol.for('IBookingsRepository'),
     IUserBookingsRepository: Symbol.for('IUserBookingsRepository'),
@@ -165,6 +175,10 @@ export const DI_SYMBOLS = {
     ICreateBranchUseCase: Symbol.for('ICreateBranchUseCase'),
     IUpdateBranchUseCase: Symbol.for('IUpdateBranchUseCase'),
     IListBranchesWithImagesUseCase: Symbol.for('IListBranchesWithImagesUseCase'),
+    IListCabinsUseCase: Symbol.for('IListCabinsUseCase'),
+    ICreateCabinUseCase: Symbol.for('ICreateCabinUseCase'),
+    IRenameCabinUseCase: Symbol.for('IRenameCabinUseCase'),
+    IRetireCabinUseCase: Symbol.for('IRetireCabinUseCase'),
     ICreateBusinessUseCase: Symbol.for('ICreateBusinessUseCase'),
     IListBusinessesUseCase: Symbol.for('IListBusinessesUseCase'),
     IUpdateBusinessUseCase: Symbol.for('IUpdateBusinessUseCase'),
@@ -226,6 +240,10 @@ export const DI_SYMBOLS = {
     ICreateBranchController: Symbol.for('ICreateBranchController'),
     IUpdateBranchController: Symbol.for('IUpdateBranchController'),
     IListBranchesWithImagesController: Symbol.for('IListBranchesWithImagesController'),
+    IListCabinsController: Symbol.for('IListCabinsController'),
+    ICreateCabinController: Symbol.for('ICreateCabinController'),
+    IRenameCabinController: Symbol.for('IRenameCabinController'),
+    IRetireCabinController: Symbol.for('IRetireCabinController'),
     ICreateBusinessController: Symbol.for('ICreateBusinessController'),
     IGetMyBusinessController: Symbol.for('IGetMyBusinessController'),
     IUpdateBusinessController: Symbol.for('IUpdateBusinessController'),
@@ -305,6 +323,7 @@ export interface DI_RETURN_TYPES {
     IBusinessesRepository: IBusinessesRepository;
     IPublicBusinessesRepository: IPublicBusinessesRepository;
     IBranchesRepository: IBranchesRepository;
+    ICabinsRepository: ICabinsRepository;
     IEmployeesRepository: IEmployeesRepository;
     IBookingsRepository: IBookingsRepository;
     IUserBookingsRepository: IUserBookingsRepository;
@@ -317,6 +336,10 @@ export interface DI_RETURN_TYPES {
     ICreateBranchUseCase: ICreateBranchUseCase;
     IUpdateBranchUseCase: IUpdateBranchUseCase;
     IListBranchesWithImagesUseCase: IListBranchesWithImagesUseCase;
+    IListCabinsUseCase: IListCabinsUseCase;
+    ICreateCabinUseCase: ICreateCabinUseCase;
+    IRenameCabinUseCase: IRenameCabinUseCase;
+    IRetireCabinUseCase: IRetireCabinUseCase;
     ICreateBusinessUseCase: ICreateBusinessUseCase;
     IListBusinessesUseCase: IListBusinessesUseCase;
     IUpdateBusinessUseCase: IUpdateBusinessUseCase;
@@ -378,6 +401,10 @@ export interface DI_RETURN_TYPES {
     ICreateBranchController: ICreateBranchController;
     IUpdateBranchController: IUpdateBranchController;
     IListBranchesWithImagesController: IListBranchesWithImagesController;
+    IListCabinsController: IListCabinsController;
+    ICreateCabinController: ICreateCabinController;
+    IRenameCabinController: IRenameCabinController;
+    IRetireCabinController: IRetireCabinController;
     ICreateBusinessController: ICreateBusinessController;
     IGetMyBusinessController: IGetMyBusinessController;
     IUpdateBusinessController: IUpdateBusinessController;

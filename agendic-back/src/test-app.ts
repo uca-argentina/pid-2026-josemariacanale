@@ -13,6 +13,10 @@ import {
 } from './domain/branch-images/branch-images.repository';
 import { Branch } from './domain/branches/branch';
 import {
+  CABINS_REPOSITORY,
+  CabinsRepository,
+} from './domain/cabins/cabins.repository';
+import {
   BRANCHES_REPOSITORY,
   BranchesRepository,
 } from './domain/branches/branches.repository';
@@ -155,6 +159,13 @@ export async function createTestApp() {
     delete: jest.fn(),
     reorder: jest.fn(),
   };
+  const cabins: jest.Mocked<CabinsRepository> = {
+    listActiveByBranch: jest.fn(),
+    findById: jest.fn(),
+    create: jest.fn(),
+    rename: jest.fn(),
+    retire: jest.fn(),
+  };
   const employees: jest.Mocked<EmployeesRepository> = {
     listByIds: jest.fn(),
     create: jest.fn(),
@@ -191,6 +202,9 @@ export async function createTestApp() {
   const bookings: jest.Mocked<BookingsRepository> = {
     create: jest.fn(),
     lastReceivedByEmployee: jest.fn(),
+    lastReceivedByCabin: jest.fn(),
+    listOccupiedByCabins: jest.fn(),
+    countUpcomingByCabin: jest.fn(),
     listOccupiedStartsByService: jest.fn(),
     findById: jest.fn(),
     resolvePending: jest.fn(),
@@ -253,6 +267,8 @@ export async function createTestApp() {
     .useValue(branches)
     .overrideProvider(BRANCH_IMAGES_REPOSITORY)
     .useValue(branchImages)
+    .overrideProvider(CABINS_REPOSITORY)
+    .useValue(cabins)
     .overrideProvider(SERVICES_REPOSITORY)
     .useValue(services)
     .overrideProvider(EMPLOYEES_REPOSITORY)
@@ -286,6 +302,7 @@ export async function createTestApp() {
     businesses,
     branches,
     branchImages,
+    cabins,
     services,
     employees,
     invitations,
@@ -389,6 +406,7 @@ export const ANAS_SERVICE: Service = {
       slug: ANA.slug,
     },
   ],
+  cabins: [],
 };
 
 export const CLERK_TOKEN = 'clerk-jwt-1';

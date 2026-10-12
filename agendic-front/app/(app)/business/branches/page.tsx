@@ -13,7 +13,9 @@ export default async function BranchesPage() {
     let branches;
     try {
         business = await getInjection('IGetMyBusinessController')();
-        branches = business ? await getInjection('IListBranchesWithImagesController')({ businessId: business.id }) : [];
+        const listed = business ? await getInjection('IListBranchesWithImagesController')({ businessId: business.id }) : [];
+        const listCabins = getInjection('IListCabinsController');
+        branches = await Promise.all(listed.map(async (branch) => ({ ...branch, cabins: await listCabins({ branchId: branch.id }) })));
     } catch (error) {
         unstable_rethrow(error);
         if (isSessionExpired(error)) redirect(SIGN_IN_PATH);

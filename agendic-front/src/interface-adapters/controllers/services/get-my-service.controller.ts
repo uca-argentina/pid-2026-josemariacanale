@@ -3,11 +3,13 @@ import type { IAuthenticationService } from '@/src/application/services/authenti
 import type { IInstrumentationService } from '@/src/application/services/instrumentation.service.interface';
 import type { IGetAvailabilityUseCase } from '@/src/application/use-cases/availabilities/get-availability.use-case';
 import type { IListAvailabilitiesUseCase } from '@/src/application/use-cases/availabilities/list-availabilities.use-case';
+import type { IListCabinsUseCase } from '@/src/application/use-cases/cabins/list-cabins.use-case';
 import type { IListEmployeesUseCase } from '@/src/application/use-cases/employees/list-employees.use-case';
 import type { IGetMyServiceUseCase } from '@/src/application/use-cases/services/get-my-service.use-case';
 import type { IGetMeUseCase } from '@/src/application/use-cases/users/get-me.use-case';
 import { InputParseError } from '@/src/entities/errors/common';
 import type { AvailabilityDetail } from '@/src/entities/models/availability';
+import type { Cabin } from '@/src/entities/models/cabin';
 import type { Employee } from '@/src/entities/models/employee';
 import type { CatalogService, PersonalService, ServiceInCatalog } from '@/src/entities/models/service';
 
@@ -28,6 +30,7 @@ const presentService = (service: CatalogService | PersonalService, offeredByMe: 
     slotInterval: service.slotInterval,
     minimumNoticeMinutes: service.minimumNoticeMinutes,
     offeredByMe,
+    cabins: 'cabins' in service ? service.cabins.map((c) => ({ id: c.id, name: c.name })) : [],
     employees: 'employees' in service ? service.employees.map((e) => ({ id: e.id, name: e.name, imageUrl: e.imageUrl, slug: e.slug })) : [],
 });
 
@@ -44,11 +47,13 @@ const presentAvailabilities = (availabilities: AvailabilityDetail[] | null) =>
  * A Servicio del Negocio (`kind: 'business'`) with its Negocio and Sucursal; `offeredByMe` as in the list. `staff` is
  * the Negocio's Staff for the Dueño, who picks from it who attends the Servicio; null for an Empleado. `availabilities`
  * are the Usuario's own, and `myAvailabilityId` the one they attend the Servicio with; both null when they do not
- * attend it.
+ * attend it. `branchCabins` are the active Cabinas of the Sucursal to pick from, for the Dueño; null for an Empleado,
+ * who only sees the ones the Servicio admits.
  */
 function presenter(
     { group, branch, service }: ServiceInCatalog,
     staff: Employee[] | null,
+    branchCabins: Cabin[] | null,
     myAvailabilityId: number | null,
     availabilities: AvailabilityDetail[] | null,
     instrumentationService: IInstrumentationService,
@@ -61,6 +66,7 @@ function presenter(
         branch: { id: branch.id, name: branch.name, slug: branch.slug },
         service: presentService(service, service.employees.some((e) => e.id === group.employeeId)),
         staff: staff && staff.map((e) => ({ id: e.id, name: e.name, imageUrl: e.imageUrl })),
+        branchCabins: branchCabins && branchCabins.map((c) => ({ id: c.id, name: c.name })),
         myAvailabilityId,
         availabilities: presentAvailabilities(availabilities),
     }));
@@ -82,6 +88,7 @@ function personalPresenter(
         role: 'owner' as const,
         service: presentService(service, true),
         staff: null,
+        branchCabins: null,
         myAvailabilityId: service.availabilityId,
         availabilities: presentAvailabilities(availabilities)!,
     }));
@@ -93,7 +100,7 @@ const inputSchema = z.object({ serviceId: z.coerce.number().int().positive() });
 export type IGetMyServiceController = ReturnType<typeof getMyServiceController>;
 /**
  * The detail of a Servicio of the panel, looked up in the Usuario's catalog, with the Staff when the Usuario is its Dueño
- * and their own Availability when they attend it; or among their Servicios personales, with their Availability and
+ * and the Cabinas of the Sucursal, and their own Availability when they attend it; or among their Servicios personales, with their Availability and
  * their Enlace de reserva.
  *
  * @throws {UnauthenticatedError} there is no Sesión
@@ -110,6 +117,7 @@ export const getMyServiceController =
         listAvailabilitiesUseCase: IListAvailabilitiesUseCase,
         getAvailabilityUseCase: IGetAvailabilityUseCase,
         getMeUseCase: IGetMeUseCase,
+        listCabinsUseCase: IListCabinsUseCase,
     ) =>
     async (input: { serviceId?: unknown }): Promise<ReturnType<typeof presenter> | ReturnType<typeof personalPresenter>> =>
         instrumentationService.startSpan({ name: 'getMyService Controller' }, async () => {
@@ -125,9 +133,10 @@ export const getMyServiceController =
             }
             const { group, service } = found;
             const mine = service.employees.find((e) => e.id === group.employeeId);
-            const [staff, availabilities] = await Promise.all([
+            const [staff, branchCabins, availabilities] = await Promise.all([
                 group.role === 'owner' ? listEmployeesUseCase(group.business.id) : null,
+                group.role === 'owner' ? listCabinsUseCase(found.branch.id) : null,
                 mine ? myAvailabilities() : null,
             ]);
-            return presenter(found, staff, mine?.availabilityId ?? null, availabilities, instrumentationService);
+            return presenter(found, staff, branchCabins, mine?.availabilityId ?? null, availabilities, instrumentationService);
         });

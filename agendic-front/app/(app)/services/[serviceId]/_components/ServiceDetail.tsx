@@ -3,7 +3,7 @@
 import { useOptimistic, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Calendar, ChevronRight, Clock, ExternalLink, Globe, Info, Link2, Loader2, Trash2, Users } from 'lucide-react';
+import { ArrowLeft, Calendar, ChevronRight, Clock, DoorOpen, ExternalLink, Globe, Info, Link2, Loader2, Trash2, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import type { FieldErrors } from '@/app/_components/business-schemas';
 import { cn } from '@/app/_components/utils';
@@ -25,6 +25,7 @@ import {
 import { DAY_NAMES, toWeek } from '@/app/(app)/_components/availability-week';
 import { bookingLinkPath, userLinkPath } from '@/app/routes';
 import { changeEmployeeAvailabilityAction, updateServiceAction } from '../../actions';
+import { CabinsTab } from './CabinsTab';
 import { formatPrice } from '../../_components/format';
 import { formatPrice as formatPriceWithCents } from '@/app/_components/booking/format';
 import {
@@ -47,7 +48,7 @@ import {
 import type { ServiceDetailData } from '../../_components/types';
 import { PREP_MINUTES } from '@/src/entities/models/service';
 
-type TabId = 'setup' | 'employees' | 'availability' | 'limits';
+type TabId = 'setup' | 'employees' | 'availability' | 'limits' | 'cabins';
 
 // Los campos de la pestaña Límites: si solo fallan estos, guardar abre esa pestaña.
 const LIMITS_FIELDS = ['dailyLimit', 'slotInterval', 'minimumNoticeMinutes'];
@@ -595,6 +596,16 @@ export function ServiceDetail({ detail }: { detail: ServiceDetailData }) {
             subtitle: myAvailability?.name ?? 'No lo ofrecés',
         },
         { id: 'limits', icon: Clock, title: 'Límites', subtitle: limitsSummary },
+        ...(detail.kind === 'business'
+            ? [
+                  {
+                      id: 'cabins' as const,
+                      icon: DoorOpen,
+                      title: 'Cabinas',
+                      subtitle: service.cabins.length ? service.cabins.map((c) => c.name).join(', ') : 'Sin Cabinas',
+                  },
+              ]
+            : []),
     ];
 
     return (
@@ -674,7 +685,7 @@ export function ServiceDetail({ detail }: { detail: ServiceDetailData }) {
                 </nav>
 
                 <div role="tabpanel" className="flex flex-col gap-6">
-                    {detail.kind === 'business' && !isOwner && tab !== 'availability' && (
+                    {detail.kind === 'business' && !isOwner && tab !== 'availability' && tab !== 'cabins' && (
                         <div className="flex items-start gap-2.5 rounded-md bg-[#f3f4f6] px-4 py-3 text-[13px] font-medium text-[#374151]">
                             <Info className="mt-0.5 size-4 shrink-0" />
                             <span>
@@ -706,6 +717,9 @@ export function ServiceDetail({ detail }: { detail: ServiceDetailData }) {
                     {tab === 'availability' && <AvailabilityTab detail={detail} onStopped={afterStopping} />}
                     {tab === 'limits' && (
                         <LimitsTab draft={draft} set={set} errors={errors} readOnly={!isOwner || saving} />
+                    )}
+                    {tab === 'cabins' && detail.kind === 'business' && (
+                        <CabinsTab serviceId={service.id} admitted={service.cabins} branchCabins={detail.branchCabins} />
                     )}
                 </div>
             </div>

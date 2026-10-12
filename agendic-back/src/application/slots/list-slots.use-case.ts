@@ -27,6 +27,7 @@ import {
   DaySlots,
   localDate,
   localDayBounds,
+  withoutBusyCabins,
 } from '../../domain/slots/slot';
 import { ListUserHolidayPeriodsUseCase } from '../holidays/list-user-holiday-periods.use-case';
 import { serviceTimeZone } from '../services/service-time-zone';
@@ -184,10 +185,18 @@ export class ListSlotsUseCase {
               userId,
               availabilityId,
             }));
+    // Fetched once for every Empleado: the Cabinas aren't theirs. Same day of slack as their own Turnos.
+    const cabinRanges = await this.cabinRanges(
+      service.cabins.map(({ id }) => id),
+      new Date(new Date(`${from}T00:00:00.000Z`).getTime() - 86_400_000),
+      new Date(new Date(`${to}T00:00:00.000Z`).getTime() + 2 * 86_400_000),
+      excludeBookingId,
+    );
     const employees = await Promise.all(
       attendants.map(async ({ employeeId, userId, availabilityId }) => {
         const availability = await this.availabilities.findById(availabilityId);
-        if (!availability) throw new NotFoundError(`Availability ${availabilityId} not found`);
+        if (!availability)
+          throw new NotFoundError(`Availability ${availabilityId} not found`);
         // A day of slack either side (wider than any UTC offset) keeps every local date in [from, to] covered.
         const [bookedRanges, periods, holidays] = await Promise.all([
           this.bookings.listOccupiedByUser(
@@ -199,26 +208,57 @@ export class ListSlotsUseCase {
           this.outOfOffice.listByUserEndingFrom(userId, addDays(from, -1)),
           this.holidayPeriods.execute(userId, addDays(from, -1), addDays(to, 1)),
         ]);
+        const days = computeSlots({
+          from,
+          to,
+          timeZone,
+          availability,
+          bookedRanges,
+          durationMinutes: service.durationMinutes,
+          prepMinutes: service.prepMinutes,
+          slotInterval: service.slotInterval,
+          minimumNoticeMinutes: service.minimumNoticeMinutes,
+          fullDates,
+          outOfOffice: [...periods, ...holidays],
+          now,
+        });
         return {
           employeeId,
           userId,
-          days: computeSlots({
-            from,
-            to,
-            timeZone,
-            availability,
-            bookedRanges,
-            durationMinutes: service.durationMinutes,
-            prepMinutes: service.prepMinutes,
-            slotInterval: service.slotInterval,
-            minimumNoticeMinutes: service.minimumNoticeMinutes,
-            fullDates,
-            outOfOffice: [...periods, ...holidays],
-            now,
-          }),
+          days: cabinRanges
+            ? withoutBusyCabins(
+                days,
+                cabinRanges,
+                service.durationMinutes,
+                service.prepMinutes,
+              )
+            : days,
         };
       }),
     );
     return { timeZone, employees };
+  }
+
+  /** The occupied tramos of each Cabina, by start; null in a Servicio without Cabinas, which they don't limit. */
+  private async cabinRanges(
+    cabinIds: number[],
+    from: Date,
+    to: Date,
+    excludeBookingId?: number,
+  ) {
+    if (cabinIds.length === 0) return null;
+    const occupied = await this.bookings.listOccupiedByCabins(
+      cabinIds,
+      from,
+      to,
+      excludeBookingId,
+    );
+    const byCabin = new Map(cabinIds.map((id) => [id, [] as typeof occupied]));
+    for (const range of occupied) byCabin.get(range.cabinId)?.push(range);
+    return [...byCabin.values()].map((list) =>
+      [...list].sort(
+        (a, b) => a.prepStartsAt.getTime() - b.prepStartsAt.getTime(),
+      ),
+    );
   }
 }

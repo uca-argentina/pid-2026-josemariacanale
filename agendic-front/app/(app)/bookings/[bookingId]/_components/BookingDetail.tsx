@@ -8,7 +8,7 @@ import { cn } from '@/app/_components/utils';
 import { PanelButton } from '@/app/(app)/_components/panel-ui';
 import { cancelBookingAction } from '@/app/(app)/bookings/actions';
 import { formatPrice } from '@/app/_components/booking/format';
-import { formatLongDate, formatShortDay, formatTimeRange, isClosed, placeOf, TIME_ZONE_LABEL, type Booking } from '@/app/(app)/bookings/_components/booking-helpers';
+import { cabinOf, formatLongDate, formatShortDay, formatTimeRange, isClosed, placeOf, TIME_ZONE_LABEL, type Booking } from '@/app/(app)/bookings/_components/booking-helpers';
 
 const GREEN = 'bg-[#e6f6ec] text-[#15803d]';
 const RED = 'bg-[#fdecec] text-[#b91c1c]';
@@ -48,6 +48,7 @@ export function BookingDetail({ booking, now, startCancelling }: { booking: Book
     const cancellable = booking.status === 'BOOKED' && booking.noShowAt === null && !past;
     const [cancelling, setCancelling] = useState(startCancelling && cancellable);
     const closed = isClosed(booking);
+    const cabin = cabinOf(booking);
     const header = headerOf(booking, past);
 
     const [pending, startTransition] = useTransition();
@@ -95,6 +96,7 @@ export function BookingDetail({ booking, now, startCancelling }: { booking: Book
                     <Row label="Dónde">
                         {booking.business && booking.branch ? `${booking.business.name} · Sucursal ${booking.branch.name}` : placeOf(booking)}
                     </Row>
+                    {cabin && <Row label="Cabina">{cabin}</Row>}
                     {booking.depositAmount !== null && (
                         <Row label="Seña">
                             {booking.depositPaidAt === null

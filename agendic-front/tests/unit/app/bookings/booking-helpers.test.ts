@@ -1,4 +1,4 @@
-import { groupByDay, hasPendingDeposit, matches, placeOf, sortForTab, tabOf, type Booking } from '@/app/(app)/bookings/_components/booking-helpers';
+import { cabinOf, groupByDay, hasPendingDeposit, matches, placeOf, sortForTab, tabOf, type Booking } from '@/app/(app)/bookings/_components/booking-helpers';
 
 const NOW = Date.parse('2026-09-15T15:00:00-03:00');
 
@@ -18,6 +18,7 @@ const booking = (patch: Partial<Booking>): Booking => ({
     serviceName: 'Masaje',
     business: { id: 3, name: 'Spa' },
     branch: { id: 4, name: 'Centro' },
+    cabin: null,
     ...patch,
 });
 
@@ -25,6 +26,13 @@ describe('placeOf', () => {
     it('muestra Negocio y Sucursal, o Servicio personal si el Turno no tiene Negocio', () => {
         expect(placeOf(booking({}))).toBe('Spa · Centro');
         expect(placeOf(booking({ employeeId: null, business: null, branch: null }))).toBe('Servicio personal');
+    });
+});
+
+describe('cabinOf', () => {
+    it('da el nombre de la Cabina, o null si el Turno no ocupa ninguna', () => {
+        expect(cabinOf(booking({ cabin: { id: 6, name: 'Box 1' } }))).toBe('Box 1');
+        expect(cabinOf(booking({}))).toBeNull();
     });
 });
 

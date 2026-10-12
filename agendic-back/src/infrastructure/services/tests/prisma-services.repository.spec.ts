@@ -8,7 +8,7 @@ import { Prisma } from '../../../generated/prisma/client';
 import { PrismaService } from '../../prisma.service';
 import {
   PrismaServicesRepository,
-  VISIBLE_EMPLOYEES,
+  SERVICE_RELATIONS,
 } from '../prisma-services.repository';
 
 const SERVICE_ROW = {
@@ -36,6 +36,7 @@ const SERVICE_ROW = {
       employee: { id: 7, userId: 1, user: { name: 'Ana Pérez', imageUrl: null, slug: null } },
     },
   ],
+  cabins: [{ cabin: { id: 3, name: 'Box 1' } }],
 };
 
 const SERVICE: Service = {
@@ -60,6 +61,7 @@ const SERVICE: Service = {
   employees: [
     { id: 7, name: 'Ana Pérez', availabilityId: 10, userId: 1, imageUrl: null, slug: null },
   ],
+  cabins: [{ id: 3, name: 'Box 1' }],
 };
 
 const knownError = (code: string) =>
@@ -169,6 +171,7 @@ describe('PrismaServicesRepository', () => {
           { employeeId: 7, availabilityId: 70 },
           { employeeId: 8, availabilityId: 80 },
         ],
+        cabinIds: [3],
       }),
     ).resolves.toEqual(SERVICE);
     expect(prisma.service.create).toHaveBeenCalledWith({
@@ -193,8 +196,9 @@ describe('PrismaServicesRepository', () => {
             { employeeId: 8, availabilityId: 80 },
           ],
         },
+        cabins: { create: [{ cabinId: 3 }] },
       },
-      include: VISIBLE_EMPLOYEES,
+      include: SERVICE_RELATIONS,
     });
   });
 
@@ -204,7 +208,7 @@ describe('PrismaServicesRepository', () => {
     await expect(repository.listActiveByBranch(1)).resolves.toEqual([SERVICE]);
     expect(prisma.service.findMany).toHaveBeenCalledWith({
       where: { branchId: 1, deletedAt: null },
-      include: VISIBLE_EMPLOYEES,
+      include: SERVICE_RELATIONS,
     });
   });
 
@@ -217,7 +221,7 @@ describe('PrismaServicesRepository', () => {
       );
       expect(prisma.service.findFirst).toHaveBeenCalledWith({
         where: { branchId: 1, slug: 'haircut', deletedAt: null },
-        include: VISIBLE_EMPLOYEES,
+        include: SERVICE_RELATIONS,
       });
     });
 
@@ -251,7 +255,7 @@ describe('PrismaServicesRepository', () => {
       expect(prisma.service.update).toHaveBeenCalledWith({
         where: { id: 1 },
         data: { employees: { create: { employeeId: 8, availabilityId: 80 } } },
-        include: VISIBLE_EMPLOYEES,
+        include: SERVICE_RELATIONS,
       });
     });
 
@@ -321,7 +325,7 @@ describe('PrismaServicesRepository', () => {
             },
           },
         },
-        include: VISIBLE_EMPLOYEES,
+        include: SERVICE_RELATIONS,
       });
       expect(prisma.$transaction).not.toHaveBeenCalled();
     });
@@ -361,7 +365,7 @@ describe('PrismaServicesRepository', () => {
       expect(tx.service.update).toHaveBeenCalledWith({
         where: { id: 1 },
         data: { employees: { deleteMany: { employeeId: 7 } } },
-        include: VISIBLE_EMPLOYEES,
+        include: SERVICE_RELATIONS,
       });
       expect(tx.booking.findMany).toHaveBeenCalledWith({
         where: {
@@ -387,7 +391,7 @@ describe('PrismaServicesRepository', () => {
     ]);
     expect(prisma.service.findMany).toHaveBeenCalledWith({
       where: { deletedAt: null, employees: { some: { employeeId: 7 } } },
-      include: VISIBLE_EMPLOYEES,
+      include: SERVICE_RELATIONS,
     });
   });
 
@@ -409,7 +413,7 @@ describe('PrismaServicesRepository', () => {
       expect(tx.service.update).toHaveBeenCalledWith({
         where: { id: 1 },
         data: { deletedAt, availabilityId: null, employees: { deleteMany: {} } },
-        include: VISIBLE_EMPLOYEES,
+        include: SERVICE_RELATIONS,
       });
       expect(tx.booking.findMany).toHaveBeenCalledWith({
         where: {
@@ -460,6 +464,7 @@ describe('PrismaServicesRepository', () => {
                 slotInterval: null,
                 minimumNoticeMinutes: 0,
                 employees: [],
+                cabinIds: [],
               })
             : repository.update(1, { slug: 'haircut' })
         ).catch((e: unknown) => e);
@@ -492,11 +497,54 @@ describe('PrismaServicesRepository', () => {
           slotInterval: null,
           minimumNoticeMinutes: 0,
           employees: [],
+          cabinIds: [],
         }),
       ).resolves.toEqual(SERVICE);
       // Reuse is guarded only by the DB's partial unique index, which excludes dados de baja (ADR 0004).
       expect(prisma.service.findFirst).not.toHaveBeenCalled();
       expect(prisma.service.findMany).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('update and the Cabinas it admits', () => {
+    it('replaces the whole set in the same write when cabinIds comes', async () => {
+      prisma.service.update.mockResolvedValue(SERVICE_ROW);
+
+      await repository.update(1, { name: 'Cut', cabinIds: [3, 4] });
+
+      expect(prisma.service.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: {
+          name: 'Cut',
+          cabins: {
+            deleteMany: {},
+            create: [{ cabinId: 3 }, { cabinId: 4 }],
+          },
+        },
+        include: SERVICE_RELATIONS,
+      });
+    });
+
+    it('empties the set with an empty cabinIds', async () => {
+      prisma.service.update.mockResolvedValue(SERVICE_ROW);
+
+      await repository.update(1, { cabinIds: [] });
+
+      expect(prisma.service.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: { cabins: { deleteMany: {}, create: [] } },
+        }),
+      );
+    });
+
+    it("doesn't touch the set without cabinIds", async () => {
+      prisma.service.update.mockResolvedValue(SERVICE_ROW);
+
+      await repository.update(1, { name: 'Cut' });
+
+      expect(prisma.service.update).toHaveBeenCalledWith(
+        expect.objectContaining({ data: { name: 'Cut' } }),
+      );
     });
   });
 
@@ -519,6 +567,7 @@ describe('PrismaServicesRepository', () => {
           slotInterval: null,
           minimumNoticeMinutes: 0,
           employees: [{ employeeId: 7, availabilityId: 70 }],
+          cabinIds: [],
         }),
       findById: () => repository.findById(1),
       update: () => repository.update(1, { name: 'New name' }),

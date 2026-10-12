@@ -1,6 +1,8 @@
 import { applyDecorators } from '@nestjs/common';
 import {
   ArrayNotEmpty,
+  ArrayUnique,
+  IsArray,
   IsBoolean,
   IsEnum,
   IsIn,
@@ -27,6 +29,10 @@ const IsSlotInterval = () => applyDecorators(IsInt(), Min(1));
 
 /** Anticipación mínima: whole minutes, zero or more. */
 const IsMinimumNotice = () => applyDecorators(IsInt(), Min(0));
+
+/** Cabinas a Servicio admits: whole ids, none repeated. */
+const IsCabinIds = () =>
+  applyDecorators(IsArray(), IsInt({ each: true }), ArrayUnique());
 
 /** The Servicio's own fields, shared with the Servicio part of POST /businesses. */
 export class ServiceFieldsDto {
@@ -84,6 +90,11 @@ export class CreateServiceDto extends ServiceFieldsDto {
   @ArrayNotEmpty()
   @IsInt({ each: true })
   employeeIds!: number[];
+
+  /** Cabinas of the Sucursal it admits; without it, none. */
+  @IfPresent()
+  @IsCabinIds()
+  cabinIds?: number[];
 }
 
 /** A Servicio personal: the Servicio del Negocio's body without Sucursal or Empleados, with its Availability. */
@@ -91,6 +102,11 @@ export class CreatePersonalServiceDto extends ServiceFieldsDto {
   /** One of the Usuario's own. */
   @IsInt()
   availabilityId!: number;
+
+  /** Rejected with 422: a Servicio personal has no Cabinas. Accepted here only so the rule answers instead of the whitelist. */
+  @IfPresent()
+  @IsCabinIds()
+  cabinIds?: number[];
 }
 
 export class AssignEmployeeDto {
@@ -171,4 +187,9 @@ export class UpdateServiceDto {
   @IfPresent()
   @IsInt()
   availabilityId?: number;
+
+  /** Servicio del Negocio only: replaces the whole set; `[]` empties it. */
+  @IfPresent()
+  @IsCabinIds()
+  cabinIds?: number[];
 }

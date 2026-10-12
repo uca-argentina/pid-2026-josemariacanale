@@ -21,6 +21,7 @@ function presenter(bookings: UserBooking[], instrumentationService: IInstrumenta
             serviceName: b.serviceName,
             business: b.business,
             branch: b.branch,
+            cabin: b.cabin,
         })),
     );
 }

@@ -55,9 +55,19 @@ describe('updateServiceController', () => {
         expect(useCase).toHaveBeenCalledWith({ id: 100, prepMinutes: 0, dailyLimit: null });
     });
 
+    it('sends cabinIds as given, and an empty one empties the set', async () => {
+        const useCase = jest.fn().mockResolvedValue(updated);
+
+        await updateServiceController(instrumentation, signedIn(), useCase)({ id: 100, cabinIds: [3, 4] });
+        await updateServiceController(instrumentation, signedIn(), useCase)({ id: 100, cabinIds: [] });
+        expect(useCase).toHaveBeenNthCalledWith(1, { id: 100, cabinIds: [3, 4] });
+        expect(useCase).toHaveBeenNthCalledWith(2, { id: 100, cabinIds: [] });
+    });
+
     it.each([
         ['a missing id', { ...input, id: undefined }],
         ['a blank name', { ...input, name: ' ' }],
+        ['cabinIds that are not ids', { ...input, cabinIds: ['box'] }],
         ['a tramo too short', { ...input, slug: 'ma' }],
         ['a malformed tramo', { ...input, slug: 'masaje relajante' }],
         ['a blank description', { ...input, description: ' ' }],

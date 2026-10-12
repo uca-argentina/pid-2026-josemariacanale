@@ -37,6 +37,7 @@ import {
 import { assertChosenEmployee } from '../slots/assert-chosen-employee';
 import { ListSlotsUseCase } from '../slots/list-slots.use-case';
 import { assertBookable } from './assert-booking-rules';
+import { pickCabin } from './pick-cabin';
 import { pickEmployee } from './pick-employee';
 
 @Injectable()
@@ -63,10 +64,10 @@ export class CreateBookingUseCase {
    * para `clientEmail` (ADR 0022). Fija el monto de la Seña (si el Servicio la pide) y la manda con el Enlace del Turno en la Confirmación de reserva.
    *
    * @throws {InvalidCodeError} el código no es válido para clientEmail en su ventana
-   * @throws {BusinessRuleError} el Servicio no existe o está dado de baja, el horario ya pasó o no es un Horario reservable de ningún Empleado (o del elegido)
+   * @throws {BusinessRuleError} el Servicio no existe o está dado de baja, el horario ya pasó o no es un Horario reservable de ningún Empleado (o del elegido) con una Cabina libre si el Servicio las admite
    * @throws {NotFoundError} el Empleado elegido no Ofrece el Servicio
    * @throws {BadRequestError} se eligió un Empleado en un Servicio personal
-   * @throws {ConflictError} el horario ya lo ocupa otro Turno del Empleado, o el Servicio ya alcanzó su Límite diario ese día
+   * @throws {ConflictError} el horario ya lo ocupa otro Turno del Empleado o de la Cabina, o el Servicio ya alcanzó su Límite diario ese día
    */
   async execute(
     input: CreateBookingInput,
@@ -100,6 +101,13 @@ export class CreateBookingUseCase {
       input.startsAt,
       { chosenEmployeeId: input.employeeId },
     );
+    const cabinId = await pickCabin(
+      this.bookings,
+      service,
+      input.startsAt,
+      prepStartsAt,
+      endsAt,
+    );
     const status = service.requiresApproval
       ? BookingStatus.PENDING
       : BookingStatus.BOOKED;
@@ -116,6 +124,7 @@ export class CreateBookingUseCase {
         serviceId: input.serviceId,
         employeeId: attendant.employeeId,
         userId: attendant.userId,
+        cabinId,
         clientName: input.clientName,
         clientEmail: input.clientEmail,
         prepStartsAt,

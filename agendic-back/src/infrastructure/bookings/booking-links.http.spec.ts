@@ -18,6 +18,7 @@ const BOOKED: Booking = {
   serviceId: ANAS_SERVICE.id,
   employeeId: ANAS_EMPLOYEE.id,
   userId: ANAS_EMPLOYEE.userId,
+  cabinId: null,
   clientName: 'Carla Gómez',
   clientEmail: 'carla@example.com',
   prepStartsAt: new Date('2026-01-02T13:50:00.000Z'),
@@ -78,6 +79,15 @@ describe('Enlace del Turno', () => {
 
       expect(t.bookings.findByLink).toHaveBeenCalledWith(LINK);
       expect(res.body).toMatchObject({ id: BOOKED.id, status: 'BOOKED' });
+    });
+
+    it('no expone la Cabina del Turno', async () => {
+      t.bookings.findByLink.mockResolvedValue({ ...CLIENT_BOOKED, cabinId: 10 });
+
+      const res = await t.http.get(`/booking-links/${LINK}`).expect(200);
+
+      expect(res.body).not.toHaveProperty('cabinId');
+      expect(res.body).not.toHaveProperty('cabin');
     });
 
     it('trae employeeChosen', async () => {
@@ -344,6 +354,7 @@ describe('Enlace del Turno', () => {
       expect(t.bookings.reschedulePendingOrBooked).toHaveBeenCalledWith(BOOKED.id, {
         employeeId: ANAS_EMPLOYEE.id,
         userId: ANAS_EMPLOYEE.userId,
+        cabinId: null,
         prepStartsAt: new Date(NEW_START),
         startsAt: new Date(NEW_START),
         endsAt: new Date('2026-01-02T15:30:00.000Z'),
@@ -354,6 +365,113 @@ describe('Enlace del Turno', () => {
         BOOKED.clientEmail,
         BOOKED.link,
       );
+    });
+
+    describe('con Cabinas (ADR 0030)', () => {
+      const BOX = { id: 10, name: 'Box 1' };
+      const LASER = { id: 11, name: 'Láser' };
+      const OWN = {
+        cabinId: BOX.id,
+        prepStartsAt: BOOKED.prepStartsAt,
+        endsAt: BOOKED.endsAt,
+      };
+      const occupy = (
+        ...occupied: { cabinId: number; prepStartsAt: Date; endsAt: Date }[]
+      ) =>
+        t.bookings.listOccupiedByCabins.mockImplementation(
+          async (cabinIds, from, to, excludeBookingId) =>
+            occupied.filter(
+              (o) =>
+                cabinIds.includes(o.cabinId) &&
+                o.prepStartsAt < to &&
+                o.endsAt > from &&
+                !(excludeBookingId === BOOKED.id && o === OWN),
+            ),
+        );
+      const cabinOfReschedule = () =>
+        t.bookings.reschedulePendingOrBooked.mock.calls[0][1].cabinId;
+
+      beforeEach(() => {
+        t.services.findById.mockResolvedValue({
+          ...ANAS_SERVICE,
+          cabins: [BOX, LASER],
+        });
+        t.bookings.findByLink.mockResolvedValue({
+          ...CLIENT_BOOKED,
+          cabinId: BOX.id,
+        });
+        t.bookings.lastReceivedByCabin.mockResolvedValue(new Map());
+        occupy(OWN);
+      });
+
+      it('conserva la Cabina si está libre en el horario nuevo', async () => {
+        t.bookings.lastReceivedByCabin.mockResolvedValue(
+          new Map([[BOX.id, new Date('2026-01-01T10:00:00.000Z')]]),
+        );
+
+        await patch({ startsAt: NEW_START }).expect(200);
+
+        expect(cabinOfReschedule()).toBe(BOX.id);
+      });
+
+      it('pasa a otra libre si la suya está ocupada en el horario nuevo', async () => {
+        occupy(OWN, {
+          cabinId: BOX.id,
+          prepStartsAt: new Date(NEW_START),
+          endsAt: new Date('2026-01-02T15:30:00.000Z'),
+        });
+
+        await patch({ startsAt: NEW_START }).expect(200);
+
+        expect(cabinOfReschedule()).toBe(LASER.id);
+      });
+
+      it('asigna una a un Turno sin Cabina de un Servicio que ahora las admite', async () => {
+        t.bookings.findByLink.mockResolvedValue(CLIENT_BOOKED);
+
+        await patch({ startsAt: NEW_START }).expect(200);
+
+        expect(cabinOfReschedule()).toBe(BOX.id);
+      });
+
+      it('deja null la Cabina si el Servicio ya no admite ninguna', async () => {
+        t.services.findById.mockResolvedValue(ANAS_SERVICE);
+
+        await patch({ startsAt: NEW_START }).expect(200);
+
+        expect(cabinOfReschedule()).toBeNull();
+      });
+
+      it('answers 422 y no lo mueve si no queda ninguna Cabina libre', async () => {
+        const atNewStart = {
+          prepStartsAt: new Date(NEW_START),
+          endsAt: new Date('2026-01-02T15:30:00.000Z'),
+        };
+        occupy(
+          OWN,
+          { cabinId: BOX.id, ...atNewStart },
+          { cabinId: LASER.id, ...atNewStart },
+        );
+
+        const res = await patch({ startsAt: NEW_START }).expect(422);
+
+        expect(res.body.message).toBe(
+          `Slot ${NEW_START} is not available for Service ${ANAS_SERVICE.id}`,
+        );
+        expect(t.bookings.reschedulePendingOrBooked).not.toHaveBeenCalled();
+      });
+
+      it('el Cliente no ve la Cabina en la respuesta', async () => {
+        t.bookings.reschedulePendingOrBooked.mockResolvedValue({
+          ...CLIENT_BOOKED,
+          cabinId: BOX.id,
+        });
+
+        const res = await patch({ startsAt: NEW_START }).expect(200);
+
+        expect(res.body).not.toHaveProperty('cabinId');
+        expect(res.body).not.toHaveProperty('cabin');
+      });
     });
 
     it('deja pagada la Seña al Reagendar, también si el Turno vuelve a quedar PENDING', async () => {

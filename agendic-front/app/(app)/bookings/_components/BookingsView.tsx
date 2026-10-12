@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Tabs } from '@base-ui/react/tabs';
-import { CalendarDays, MapPin } from 'lucide-react';
+import { CalendarDays, DoorOpen, MapPin } from 'lucide-react';
 import { PaginationControls } from '@/app/_components/PaginationControls';
 import { cn } from '@/app/_components/utils';
 import { PanelBadge } from '@/app/(app)/_components/panel-ui';
@@ -18,6 +18,7 @@ import {
     sortForTab,
     tabOf,
     placeOf,
+    cabinOf,
     type Booking,
     type BookingFilter,
     type BookingTab,
@@ -66,6 +67,7 @@ function badgesOf(b: Booking): { label: string; className: string }[] {
 
 function BookingRow({ booking, tab }: { booking: Booking; tab: BookingTab }) {
     const badges = badgesOf(booking);
+    const cabin = cabinOf(booking);
     return (
         <li className="flex flex-wrap items-start gap-4 px-6 py-5 transition-colors hover:bg-[#f9fafb]">
             <Link
@@ -79,6 +81,12 @@ function BookingRow({ booking, tab }: { booking: Booking; tab: BookingTab }) {
                         <MapPin className="size-3.5" />
                         {placeOf(booking)}
                     </span>
+                    {cabin && (
+                        <span className="flex items-center gap-1 text-[12.5px] font-semibold text-[#6b7280]">
+                            <DoorOpen className="size-3.5" />
+                            {cabin}
+                        </span>
+                    )}
                 </div>
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
                     <span className="text-[14.5px] font-bold tracking-[-0.02em] text-[#0f1b2d]">

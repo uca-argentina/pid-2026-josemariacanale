@@ -49,6 +49,7 @@ const BOOKING: Booking = {
   serviceId: SERVICE.id,
   employeeId: ANAS_EMPLOYEE.id,
   userId: ANAS_EMPLOYEE.userId,
+  cabinId: null,
   clientName: VALID_BOOKING.clientName,
   clientEmail: VALID_BOOKING.clientEmail,
   prepStartsAt: new Date(VALID_BOOKING.startsAt),
@@ -140,6 +141,7 @@ describe('Turno', () => {
           serviceId: SERVICE.id,
           employeeId: ANAS_EMPLOYEE.id,
           userId: ANAS_EMPLOYEE.userId,
+          cabinId: null,
           clientName: VALID_BOOKING.clientName,
           clientEmail: VALID_BOOKING.clientEmail,
           prepStartsAt: new Date(VALID_BOOKING.startsAt),
@@ -374,6 +376,138 @@ describe('Turno', () => {
       );
 
       expect(t.bookings.create).not.toHaveBeenCalled();
+    });
+
+    describe('con Cabinas (ADR 0030)', () => {
+      const BOX = { id: 10, name: 'Box 1' };
+      const LASER = { id: 11, name: 'Láser' };
+      const WITH_CABINS = { ...SERVICE, cabins: [BOX, LASER] };
+      const AT_START = {
+        prepStartsAt: new Date(VALID_BOOKING.startsAt),
+        endsAt: new Date('2026-01-01T12:30:00.000Z'),
+      };
+      /** The Turnos of every Servicio holding a Cabina, as the repository filters them by overlap. */
+      const occupy = (
+        ...occupied: { cabinId: number; prepStartsAt: Date; endsAt: Date }[]
+      ) =>
+        t.bookings.listOccupiedByCabins.mockImplementation(
+          async (cabinIds, from, to) =>
+            occupied.filter(
+              (o) =>
+                cabinIds.includes(o.cabinId) &&
+                o.prepStartsAt < to &&
+                o.endsAt > from,
+            ),
+        );
+
+      beforeEach(() => {
+        t.services.findById.mockResolvedValue(WITH_CABINS);
+        t.bookings.lastReceivedByCabin.mockResolvedValue(new Map());
+        occupy();
+        t.bookings.create.mockImplementation(async (data) => ({
+          ...BOOKING,
+          cabinId: data.cabinId,
+        }));
+      });
+
+      const cabinOfCreatedBooking = () =>
+        t.bookings.create.mock.calls[0][0].cabinId;
+
+      it('saves the Cabina and does not expose it', async () => {
+        const res = await t.http.post('/bookings').send(VALID_BOOKING).expect(201);
+
+        expect(cabinOfCreatedBooking()).toBe(BOX.id);
+        expect(res.body).not.toHaveProperty('cabinId');
+      });
+
+      it('asigna la que hace más tiempo que no recibe un Turno de cualquier Servicio', async () => {
+        t.bookings.lastReceivedByCabin.mockResolvedValue(
+          new Map([
+            [BOX.id, new Date('2026-01-01T10:00:00.000Z')],
+            [LASER.id, new Date('2026-01-01T09:00:00.000Z')],
+          ]),
+        );
+
+        await t.http.post('/bookings').send(VALID_BOOKING).expect(201);
+
+        expect(cabinOfCreatedBooking()).toBe(LASER.id);
+      });
+
+      it('sin Turnos previos gana la que nunca recibió uno', async () => {
+        t.bookings.lastReceivedByCabin.mockResolvedValue(
+          new Map([[BOX.id, new Date('2026-01-01T10:00:00.000Z')]]),
+        );
+
+        await t.http.post('/bookings').send(VALID_BOOKING).expect(201);
+
+        expect(cabinOfCreatedBooking()).toBe(LASER.id);
+      });
+
+      it('si empatan, la de menor id', async () => {
+        await t.http.post('/bookings').send(VALID_BOOKING).expect(201);
+
+        expect(cabinOfCreatedBooking()).toBe(BOX.id);
+      });
+
+      it('solo cuenta las libres en ese tramo', async () => {
+        occupy({ cabinId: BOX.id, ...AT_START });
+        t.bookings.lastReceivedByCabin.mockResolvedValue(
+          new Map([[LASER.id, new Date('2026-01-01T10:00:00.000Z')]]),
+        );
+
+        await t.http.post('/bookings').send(VALID_BOOKING).expect(201);
+
+        expect(cabinOfCreatedBooking()).toBe(LASER.id);
+        expect(t.bookings.lastReceivedByCabin).toHaveBeenCalledWith([LASER.id], undefined);
+      });
+
+      it('answers 422 when no Cabina is free, even with an Empleado free', async () => {
+        occupy(
+          { cabinId: BOX.id, ...AT_START },
+          { cabinId: LASER.id, ...AT_START },
+        );
+
+        const res = await t.http.post('/bookings').send(VALID_BOOKING).expect(422);
+
+        expect(res.body.message).toBe(
+          `Slot ${VALID_BOOKING.startsAt} is not available for Service ${SERVICE.id}`,
+        );
+        expect(t.bookings.create).not.toHaveBeenCalled();
+      });
+
+      it('answers 422 when the Tiempo de preparación of the Servicio reaches a busy Cabina', async () => {
+        t.services.findById.mockResolvedValue({ ...WITH_CABINS, prepMinutes: 15 });
+        // Both Cabinas are held until 09:40 ARG: the Turno at 09:45 ARG would need them from 09:30.
+        occupy(
+          ...[BOX, LASER].map(({ id }) => ({
+            cabinId: id,
+            prepStartsAt: new Date('2026-01-01T11:00:00.000Z'),
+            endsAt: new Date('2026-01-01T12:40:00.000Z'),
+          })),
+        );
+
+        await t.http
+          .post('/bookings')
+          .send({ ...VALID_BOOKING, startsAt: '2026-01-01T12:45:00.000Z' })
+          .expect(422);
+      });
+
+      it('a Servicio without Cabinas saves null and never asks for them', async () => {
+        t.services.findById.mockResolvedValue(SERVICE);
+
+        await t.http.post('/bookings').send(VALID_BOOKING).expect(201);
+
+        expect(cabinOfCreatedBooking()).toBeNull();
+        expect(t.bookings.listOccupiedByCabins).not.toHaveBeenCalled();
+      });
+
+      it('answers 409 when a race takes the last Cabina first', async () => {
+        t.bookings.create.mockRejectedValue(
+          new ConflictError('Overlaps a booked Turno for this Employee'),
+        );
+
+        await t.http.post('/bookings').send(VALID_BOOKING).expect(409);
+      });
     });
 
     it('answers 422 for an unknown Servicio', async () => {
@@ -682,7 +816,7 @@ describe('Turno', () => {
       scriptSession(t);
       scriptOtherSession(t);
       t.businesses.findById.mockResolvedValue(ANAS_BUSINESS);
-      t.bookings.listByBusiness.mockResolvedValue([BOOKING]);
+      t.bookings.listByBusiness.mockResolvedValue([{ ...BOOKING, cabin: null }]);
     });
 
     it("lists every Turno of the Negocio, with the Cliente's name, email and status, for the Dueño", async () => {
@@ -700,15 +834,30 @@ describe('Turno', () => {
           endsAt: BOOKING.endsAt.toISOString(),
           status: BOOKING.status,
           notes: BOOKING.notes,
+          cabin: null,
           clientName: BOOKING.clientName,
           clientEmail: BOOKING.clientEmail,
         },
       ]);
     });
 
+    it('shows the Cabina each Turno occupies, by name even once dada de baja', async () => {
+      t.bookings.listByBusiness.mockResolvedValue([
+        { ...BOOKING, cabinId: 10, cabin: { id: 10, name: 'Box 1' } },
+      ]);
+
+      const res = await t.http
+        .get(`/businesses/${ANAS_BUSINESS.id}/bookings`)
+        .set(bearer(CLERK_TOKEN))
+        .expect(200);
+
+      expect(res.body[0].cabin).toEqual({ id: 10, name: 'Box 1' });
+      expect(res.body[0]).not.toHaveProperty('cabinId');
+    });
+
     it('shows a cascaded Turno as CANCELLED', async () => {
       t.bookings.listByBusiness.mockResolvedValue([
-        { ...BOOKING, status: BookingStatus.CANCELLED },
+        { ...BOOKING, status: BookingStatus.CANCELLED, cabin: null },
       ]);
 
       const res = await t.http

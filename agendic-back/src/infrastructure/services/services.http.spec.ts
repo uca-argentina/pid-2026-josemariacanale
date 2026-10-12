@@ -107,6 +107,7 @@ const SERVICE = {
   slotInterval: null,
   minimumNoticeMinutes: 0,
   employees: IN_CHARGE,
+  cabins: [],
 };
 
 const PRESENTED_SERVICE = {
@@ -131,6 +132,9 @@ const PRESENTED_SERVICE = {
   employees: IN_CHARGE.map(({ userId: _, ...employee }) => employee),
 };
 
+/** The panel's view of a Servicio: the public one plus the Cabinas it admits (ADR 0030). */
+const PRESENTED_PANEL_SERVICE = { ...PRESENTED_SERVICE, cabins: [] };
+
 describe('Servicio', () => {
   let t: TestApp;
 
@@ -144,6 +148,7 @@ describe('Servicio', () => {
       t.branches.findById.mockResolvedValue(BRANCH);
       t.businesses.findById.mockResolvedValue(ANAS_BUSINESS);
       t.employees.listByIds.mockResolvedValue([ANAS_EMPLOYEE]);
+      t.cabins.listActiveByBranch.mockResolvedValue([]);
       scriptAvailabilities(t);
     });
 
@@ -168,8 +173,86 @@ describe('Servicio', () => {
         slotInterval: null,
         minimumNoticeMinutes: 0,
         employees: [{ employeeId: ANAS_EMPLOYEE.id, availabilityId: 10 }],
+        cabinIds: [],
       });
-      expect(res.body).toEqual(PRESENTED_SERVICE);
+      expect(res.body).toEqual(PRESENTED_PANEL_SERVICE);
+    });
+
+    describe('Cabinas', () => {
+      const BOX = { id: 10, branchId: BRANCH.id, name: 'Box 1', deletedAt: null };
+      const LASER = { ...BOX, id: 11, name: 'Láser' };
+
+      beforeEach(() => {
+        t.cabins.listActiveByBranch.mockResolvedValue([BOX, LASER]);
+      });
+
+      it('saves the Cabinas it admits and answers them, ordered as the repository gives them', async () => {
+        t.services.create.mockResolvedValue({
+          ...SERVICE,
+          cabins: [
+            { id: BOX.id, name: BOX.name },
+            { id: LASER.id, name: LASER.name },
+          ],
+        });
+
+        const res = await t.http
+          .post(`/branches/${BRANCH.id}/services`)
+          .set(bearer(CLERK_TOKEN))
+          .send({ ...VALID_SERVICE, cabinIds: [LASER.id, BOX.id] })
+          .expect(201);
+
+        expect(t.services.create).toHaveBeenCalledWith(
+          expect.objectContaining({ cabinIds: [LASER.id, BOX.id] }),
+        );
+        expect(res.body.cabins).toEqual([
+          { id: BOX.id, name: BOX.name },
+          { id: LASER.id, name: LASER.name },
+        ]);
+      });
+
+      it('creates it with none when cabinIds is empty', async () => {
+        t.services.create.mockResolvedValue(SERVICE);
+
+        await t.http
+          .post(`/branches/${BRANCH.id}/services`)
+          .set(bearer(CLERK_TOKEN))
+          .send({ ...VALID_SERVICE, cabinIds: [] })
+          .expect(201);
+
+        expect(t.services.create).toHaveBeenCalledWith(
+          expect.objectContaining({ cabinIds: [] }),
+        );
+      });
+
+      it.each([
+        ['a Cabina of another Sucursal', 99],
+        ['a Cabina that does not exist', 12345],
+      ])('answers 422 for %s and creates nothing', async (_, cabinId) => {
+        const res = await t.http
+          .post(`/branches/${BRANCH.id}/services`)
+          .set(bearer(CLERK_TOKEN))
+          .send({ ...VALID_SERVICE, cabinIds: [BOX.id, cabinId] })
+          .expect(422);
+
+        expect(res.body.message).toBe(
+          `Cabin ${cabinId} is not an active Cabin of Branch ${BRANCH.id}`,
+        );
+        expect(t.services.create).not.toHaveBeenCalled();
+      });
+
+      it.each([
+        ['repeated', [BOX.id, BOX.id]],
+        ['not whole numbers', [1.5]],
+        ['not a list', 10],
+      ])('answers 400 when cabinIds is %s', async (_, cabinIds) => {
+        await t.http
+          .post(`/branches/${BRANCH.id}/services`)
+          .set(bearer(CLERK_TOKEN))
+          .send({ ...VALID_SERVICE, cabinIds })
+          .expect(400);
+
+        expect(t.services.create).not.toHaveBeenCalled();
+      });
     });
 
     it('creates a Servicio with Tiempo de preparación and Límite diario, and returns them', async () => {
@@ -272,6 +355,7 @@ describe('Servicio', () => {
         slotInterval: null,
         minimumNoticeMinutes: 0,
         employees: [{ employeeId: ANAS_EMPLOYEE.id, availabilityId: 10 }],
+        cabinIds: [],
       });
     });
 
@@ -709,6 +793,90 @@ describe('Servicio', () => {
     );
   });
 
+  describe('PATCH /services/:id and the Cabinas it admits', () => {
+    const BOX = { id: 10, branchId: BRANCH.id, name: 'Box 1', deletedAt: null };
+    const LASER = { ...BOX, id: 11, name: 'Láser' };
+
+    beforeEach(() => {
+      scriptSession(t);
+      t.services.findById.mockResolvedValue(SERVICE);
+      t.branches.findById.mockResolvedValue(BRANCH);
+      t.businesses.findById.mockResolvedValue(ANAS_BUSINESS);
+      t.cabins.listActiveByBranch.mockResolvedValue([BOX, LASER]);
+    });
+
+    it('replaces the whole set and answers it', async () => {
+      t.services.update.mockResolvedValue({
+        ...SERVICE,
+        cabins: [{ id: LASER.id, name: LASER.name }],
+      });
+
+      const res = await t.http
+        .patch(`/services/${SERVICE.id}`)
+        .set(bearer(CLERK_TOKEN))
+        .send({ cabinIds: [LASER.id] })
+        .expect(200);
+
+      expect(t.services.update).toHaveBeenCalledWith(SERVICE.id, {
+        cabinIds: [LASER.id],
+      });
+      expect(res.body.cabins).toEqual([{ id: LASER.id, name: LASER.name }]);
+    });
+
+    it('empties the set with an empty cabinIds', async () => {
+      t.services.update.mockResolvedValue(SERVICE);
+
+      await t.http
+        .patch(`/services/${SERVICE.id}`)
+        .set(bearer(CLERK_TOKEN))
+        .send({ cabinIds: [] })
+        .expect(200);
+
+      expect(t.services.update).toHaveBeenCalledWith(SERVICE.id, {
+        cabinIds: [],
+      });
+    });
+
+    it("doesn't check or touch the Cabinas without cabinIds", async () => {
+      t.services.update.mockResolvedValue(SERVICE);
+
+      await t.http
+        .patch(`/services/${SERVICE.id}`)
+        .set(bearer(CLERK_TOKEN))
+        .send({ price: 25 })
+        .expect(200);
+
+      expect(t.cabins.listActiveByBranch).not.toHaveBeenCalled();
+      expect(t.services.update).toHaveBeenCalledWith(SERVICE.id, {
+        price: 25,
+      });
+    });
+
+    it.each([
+      ['one of another Sucursal or dada de baja', 99],
+      ['one that does not exist', 12345],
+    ])('answers 422 for %s and changes nothing', async (_, cabinId) => {
+      const res = await t.http
+        .patch(`/services/${SERVICE.id}`)
+        .set(bearer(CLERK_TOKEN))
+        .send({ cabinIds: [BOX.id, cabinId] })
+        .expect(422);
+
+      expect(res.body.message).toBe(
+        `Cabin ${cabinId} is not an active Cabin of Branch ${BRANCH.id}`,
+      );
+      expect(t.services.update).not.toHaveBeenCalled();
+    });
+
+    it('answers 400 when cabinIds repeats an id', async () => {
+      await t.http
+        .patch(`/services/${SERVICE.id}`)
+        .set(bearer(CLERK_TOKEN))
+        .send({ cabinIds: [BOX.id, BOX.id] })
+        .expect(400);
+    });
+  });
+
   describe('DELETE /services/:id', () => {
     beforeEach(() => {
       scriptSession(t);
@@ -794,6 +962,18 @@ describe('Servicio', () => {
       t.businesses.findById.mockResolvedValue(ANAS_BUSINESS);
       t.employees.findById.mockResolvedValue(OTHER_EMPLOYEE);
       scriptAvailabilities(t);
+    });
+
+    it('answers the Cabinas the Servicio admits', async () => {
+      t.services.addEmployee.mockResolvedValue({ ...SERVICE, cabins: [{ id: 10, name: 'Box 1' }] });
+
+      const res = await t.http
+        .post(`/services/${SERVICE.id}/employees`)
+        .set(bearer(CLERK_TOKEN))
+        .send({ employeeId: OTHER_EMPLOYEE.id })
+        .expect(200);
+
+      expect(res.body.cabins).toEqual([{ id: 10, name: 'Box 1' }]);
     });
 
     it('puts the Empleado in charge of the Servicio with their default Availability, for the Dueño', async () => {
@@ -1250,6 +1430,21 @@ describe('Servicio', () => {
       });
     });
 
+    it('answers the Cabinas the Servicio admits', async () => {
+      t.services.setEmployeeAvailability.mockResolvedValue({
+        ...SERVICE,
+        cabins: [{ id: 10, name: 'Box 1' }],
+      });
+
+      const res = await t.http
+        .patch(path(OTHER_EMPLOYEE.id))
+        .set(bearer(CLERK_TOKEN))
+        .send({ availabilityId: 21 })
+        .expect(200);
+
+      expect(res.body.cabins).toEqual([{ id: 10, name: 'Box 1' }]);
+    });
+
     it('changes the Availability an Empleado attends it with, for the Dueño, without touching Turnos', async () => {
       const res = await t.http
         .patch(path(OTHER_EMPLOYEE.id))
@@ -1370,6 +1565,19 @@ describe('Servicio', () => {
       expect(JSON.stringify(res.body)).not.toContain(ANAS_EMPLOYEE.email);
     });
 
+    it("doesn't expose the Cabinas the Servicios admit", async () => {
+      t.branches.findById.mockResolvedValue(BRANCH);
+      t.services.listActiveByBranch.mockResolvedValue([
+        { ...SERVICE, cabins: [{ id: 10, name: 'Box 1' }] },
+      ]);
+
+      const res = await t.http
+        .get(`/branches/${BRANCH.id}/services`)
+        .expect(200);
+
+      expect(res.body).toEqual([PRESENTED_SERVICE]);
+    });
+
     it("shows each Empleado's foto de perfil and Enlace de reserva, or null without one, and nothing else of the Usuario", async () => {
       t.branches.findById.mockResolvedValue(BRANCH);
       t.services.listActiveByBranch.mockResolvedValue([
@@ -1440,6 +1648,19 @@ describe('Servicio', () => {
         BRANCH.id,
         SERVICE.slug,
       );
+    });
+
+    it("doesn't expose the Cabinas it admits", async () => {
+      t.services.findActiveBySlug.mockResolvedValue({
+        ...SERVICE,
+        cabins: [{ id: 10, name: 'Box 1' }],
+      });
+
+      const res = await t.http
+        .get(`/branches/${BRANCH.id}/services/by-slug/${SERVICE.slug}`)
+        .expect(200);
+
+      expect(res.body).toEqual(PRESENTED_SERVICE);
     });
 
     it('answers a Servicio oculto too: its tramo is the way in', async () => {
@@ -1528,6 +1749,20 @@ describe('Servicio', () => {
       t.branches.listByBusiness.mockImplementation(async (id) =>
         id === ANAS_BUSINESS.id ? [ANAS_BRANCH] : [BRANCH_B, BRANCH_A],
       );
+    });
+
+    it('shows the Cabinas each Servicio admits', async () => {
+      t.employees.listActiveByUser.mockResolvedValue([ANAS_EMPLOYEE]);
+      t.services.listActiveByBranch.mockResolvedValue([
+        { ...SERVICE, cabins: [{ id: 10, name: 'Box 1' }] },
+      ]);
+
+      const res = await t.http
+        .get('/employees/me/services')
+        .set(bearer(CLERK_TOKEN))
+        .expect(200);
+
+      expect(res.body[0].branches[0].services[0].cabins).toEqual([{ id: 10, name: 'Box 1' }]);
     });
 
     it("shows the Logo of each Negocio in its group's business", async () => {

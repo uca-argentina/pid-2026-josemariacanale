@@ -22,7 +22,10 @@ export interface ServicesRepository {
       | 'dailyLimit'
       | 'slotInterval'
       | 'minimumNoticeMinutes'
-    > & { employees: Omit<EmployeeService, 'serviceId'>[] },
+    > & {
+      employees: Omit<EmployeeService, 'serviceId'>[];
+      cabinIds: number[];
+    },
   ): Promise<Service>;
   /** Throws ConflictError when the name (in any casing) or the slug is taken by another active Service of the same Usuario. */
   createPersonal(
@@ -53,7 +56,7 @@ export interface ServicesRepository {
   listActiveByBranch(branchId: number): Promise<Service[]>;
   /** The Service of that Branch with that slug among the ones not dados de baja, hidden or not. Null if there is none. */
   findActiveBySlug(branchId: number, slug: string): Promise<Service | null>;
-  /** Leaves undefined fields unchanged. Throws ConflictError on a rename to a taken name or slug. */
+  /** Leaves undefined fields unchanged; `cabinIds` replaces the whole set of Cabinas. Throws ConflictError on a rename to a taken name or slug. */
   update(
     id: number,
     data: Partial<
@@ -74,7 +77,7 @@ export interface ServicesRepository {
         | 'minimumNoticeMinutes'
         | 'availabilityId'
       >
-    >,
+    > & { cabinIds?: number[] },
   ): Promise<Service>;
   /** Also unlinks its Employees, freeing their Availabilities, and cancels its future BOOKED Bookings, atomically. */
   retire(

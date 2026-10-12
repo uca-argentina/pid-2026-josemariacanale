@@ -14,6 +14,8 @@ export interface Booking {
   userId: number;
   clientName: string;
   clientEmail: string;
+  /** The Cabina it occupies over the same tramo (ADR 0030); null in a Servicio without Cabinas and in Turnos taken before it admitted them. */
+  cabinId: number | null;
   /** startsAt minus the Servicio's Tiempo de preparación, fixed at booking: the Empleado is held from here. */
   prepStartsAt: Date;
   startsAt: Date;
@@ -49,6 +51,12 @@ export const depositAmountFor = (
 /** Who to send an Aviso de cambio del Turno to: the Cliente's email and the Turno's Enlace del Turno. */
 export type ClientNotice = Pick<Booking, 'clientEmail' | 'link'>;
 
+/** A Turno as the panel shows it (ADR 0030): with the Cabina it occupies, which the Cliente never sees. */
+export interface PanelBooking extends Booking {
+  /** Still named once dada de baja; null in a Turno without Cabina. */
+  cabin: { id: number; name: string } | null;
+}
+
 /** A pending or accepted Turno still to come, with the zone of the Availability its Usuario attends it with. */
 export interface UpcomingBooking
   extends Pick<Booking, 'id' | 'startsAt' | 'clientName'> {
@@ -56,7 +64,7 @@ export interface UpcomingBooking
 }
 
 /** A Turno as the Usuario who attends it sees it in Mis turnos (ADR 0023): with the names of where it happens. */
-export interface UserBooking extends Booking {
+export interface UserBooking extends PanelBooking {
   serviceName: string;
   /** Null in a Servicio personal, together with `branch`. */
   business: { id: number; name: string } | null;

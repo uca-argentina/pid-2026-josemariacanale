@@ -2,6 +2,7 @@ import { Booking, BookingStatus, ClientBooking } from '../../domain/bookings/boo
 import { BookingsRepository } from '../../domain/bookings/bookings.repository';
 import { ServicesRepository } from '../../domain/services/services.repository';
 import { ListSlotsUseCase } from '../slots/list-slots.use-case';
+import { pickCabin } from './pick-cabin';
 import { chosenEmployeeIdOf, pickEmployee } from './pick-employee';
 
 /**
@@ -9,14 +10,14 @@ import { chosenEmployeeIdOf, pickEmployee } from './pick-employee';
  * Servicio, por su Enlace del Turno (ADR 0022). Conserva al Empleado si está libre y si no pasa a otro (ver
  * `pickEmployee`), salvo en un Turno con Empleado elegido, que solo se mueve a horarios de ese Empleado; con Aprobación manual, el Turno queda (o vuelve a quedar) PENDING.
  *
- * @throws {BusinessRuleError} `startsAt` no es un Horario reservable de ningún Empleado, o del elegido, que además puede haber dejado de Ofrecer el Servicio
+ * @throws {BusinessRuleError} `startsAt` no es un Horario reservable de ningún Empleado, o del elegido, que además puede haber dejado de Ofrecer el Servicio, o no queda una Cabina libre si el Servicio las admite
  * @throws {ConflictError} el horario nuevo pisa otro Turno del Empleado
  */
 export async function rescheduleResolvedBooking(
   bookings: BookingsRepository,
   services: ServicesRepository,
   listSlots: ListSlotsUseCase,
-  booking: Pick<Booking, 'id' | 'serviceId' | 'employeeId' | 'employeeChosen' | 'startsAt' | 'endsAt'>,
+  booking: Pick<Booking, 'id' | 'serviceId' | 'employeeId' | 'cabinId' | 'employeeChosen' | 'startsAt' | 'endsAt'>,
   startsAt: Date,
 ): Promise<ClientBooking> {
   const endsAt = new Date(
@@ -31,11 +32,18 @@ export async function rescheduleResolvedBooking(
     keepEmployeeId: booking.employeeId ?? undefined,
     chosenEmployeeId: chosenEmployeeIdOf(booking),
   });
+  const cabinId = service
+    ? await pickCabin(bookings, service, startsAt, prepStartsAt, endsAt, {
+        excludeBookingId: booking.id,
+        keepCabinId: booking.cabinId ?? undefined,
+      })
+    : null;
   const status = service?.requiresApproval
     ? BookingStatus.PENDING
     : BookingStatus.BOOKED;
   return bookings.reschedulePendingOrBooked(booking.id, {
     ...attendant,
+    cabinId,
     prepStartsAt,
     startsAt,
     endsAt,

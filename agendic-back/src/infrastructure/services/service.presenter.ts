@@ -1,6 +1,7 @@
 import { ServiceCatalogGroup } from '../../application/services/list-my-services.use-case';
 import { Service } from '../../domain/services/service';
 
+/** The Servicio as the public pages and the Servicio part of POST /businesses see it: no Cabinas (ADR 0030). */
 export const presentService = (service: Service) => ({
   id: service.id,
   branchId: service.branchId,
@@ -28,6 +29,12 @@ export const presentService = (service: Service) => ({
   })),
 });
 
+/** The Servicio as the panel sees it: with the Cabinas it admits. */
+export const presentPanelService = (service: Service) => ({
+  ...presentService(service),
+  cabins: service.cabins.map(({ id, name }) => ({ id, name })),
+});
+
 export const presentCatalogGroup = ({
   business,
   role,
@@ -46,6 +53,6 @@ export const presentCatalogGroup = ({
     id,
     name,
     slug,
-    services: services.map(presentService),
+    services: services.map(presentPanelService),
   })),
 });

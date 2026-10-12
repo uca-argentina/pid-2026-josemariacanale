@@ -2,6 +2,7 @@ import {
   Booking,
   BookingStatus,
   ClientBooking,
+  PanelBooking,
   UpcomingBooking,
   UserBooking,
 } from './booking';
@@ -12,6 +13,8 @@ export interface CreateBookingData {
   serviceId: number;
   employeeId: number | null;
   userId: number;
+  /** The Cabina it occupies; null in a Servicio without Cabinas. */
+  cabinId: number | null;
   clientName: string;
   clientEmail: string;
   prepStartsAt: Date;
@@ -32,12 +35,19 @@ export interface DailyLimitGuard {
   to: Date;
 }
 
+/** El tramo `[prepStartsAt, endsAt)` durante el que un Turno ocupa una Cabina. */
+export interface CabinOccupancy {
+  cabinId: number;
+  prepStartsAt: Date;
+  endsAt: Date;
+}
+
 export interface BookingsRepository {
   /**
    * Crea el Turno ya BOOKED o PENDING. Con `dailyLimit`, cuenta y crea serializado por Servicio (advisory lock), así
    * dos creaciones casi juntas no pueden pasar el Límite diario entre las dos.
    *
-   * @throws {ConflictError} el horario ya lo ocupa otro Turno pendiente o aceptado del Empleado, o el Servicio ya alcanzó su Límite diario ese día
+   * @throws {ConflictError} el horario ya lo ocupa otro Turno pendiente o aceptado del Empleado o de la Cabina, o el Servicio ya alcanzó su Límite diario ese día
    */
   create(data: CreateBookingData, dailyLimit?: DailyLimitGuard): Promise<Booking>;
   /** When each of these Empleados last received a PENDING or BOOKED Turno of the Servicio (its `createdAt`); an Empleado with none is absent. Leaves out `excludeBookingId`. */
@@ -46,6 +56,20 @@ export interface BookingsRepository {
     employeeIds: number[],
     excludeBookingId?: number,
   ): Promise<Map<number, Date>>;
+  /** When each of these Cabinas last received a PENDING or BOOKED Turno of any Servicio (its `createdAt`); a Cabina with none is absent. Leaves out `excludeBookingId`. */
+  lastReceivedByCabin(
+    cabinIds: number[],
+    excludeBookingId?: number,
+  ): Promise<Map<number, Date>>;
+  /** PENDING and BOOKED Turnos, of any Servicio, that occupy one of these Cabinas and whose [prepStartsAt, endsAt) overlaps [from, to), leaving out `excludeBookingId`. */
+  listOccupiedByCabins(
+    cabinIds: number[],
+    from: Date,
+    to: Date,
+    excludeBookingId?: number,
+  ): Promise<CabinOccupancy[]>;
+  /** How many PENDING or BOOKED Turnos occupy the Cabina and end after `now`. */
+  countUpcomingByCabin(cabinId: number, now: Date): Promise<number>;
   /** startsAt of the Servicio's PENDING and BOOKED Turnos, of every Empleado, starting in [from, to), leaving out `excludeBookingId`. */
   listOccupiedStartsByService(
     serviceId: number,
@@ -62,7 +86,7 @@ export interface BookingsRepository {
   ): Promise<Booking>;
   /** The Turno for its Enlace del Turno, in any status, with the data to show it (ADR 0022). Throws NotFoundError for an unknown link. */
   findByLink(link: string): Promise<ClientBooking>;
-  listByBusiness(businessId: number): Promise<Booking[]>;
+  listByBusiness(businessId: number): Promise<PanelBooking[]>;
   /** PENDING and BOOKED Turnos of this Usuario, personal or of any Negocio, whose [prepStartsAt, endsAt) overlaps [from, to), leaving out `excludeBookingId`. */
   listOccupiedByUser(
     userId: number,
@@ -84,17 +108,26 @@ export interface BookingsRepository {
   cancel(id: number): Promise<Booking>;
   /** As `cancel`, by Enlace del Turno (ADR 0022): also from PENDING. Throws BusinessRuleError if it is no longer pending or booked. */
   cancelPendingOrBooked(id: number): Promise<ClientBooking>;
-  /** Moves a BOOKED Booking to the new times, with the given Empleado and Usuario (the same or another). Throws BusinessRuleError if it is no longer BOOKED, ConflictError if it now overlaps another. */
+  /** Moves a BOOKED Booking to the new times, with the given Empleado, Usuario and Cabina (the same or another). Throws BusinessRuleError if it is no longer BOOKED, ConflictError if it now overlaps another. */
   reschedule(
     id: number,
-    times: Pick<Booking, 'employeeId' | 'userId' | 'prepStartsAt' | 'startsAt' | 'endsAt'>,
-  ): Promise<Booking>;
+    times: Pick<
+      Booking,
+      'employeeId' | 'userId' | 'cabinId' | 'prepStartsAt' | 'startsAt' | 'endsAt'
+    >,
+  ): Promise<PanelBooking>;
   /** As `reschedule`, by Enlace del Turno (ADR 0022): also from PENDING, and sets the new status (PENDING again with Aprobación manual). Throws BusinessRuleError if it is no longer pending or booked, ConflictError if it now overlaps another. */
   reschedulePendingOrBooked(
     id: number,
     times: Pick<
       Booking,
-      'employeeId' | 'userId' | 'prepStartsAt' | 'startsAt' | 'endsAt' | 'status'
+      | 'employeeId'
+      | 'userId'
+      | 'cabinId'
+      | 'prepStartsAt'
+      | 'startsAt'
+      | 'endsAt'
+      | 'status'
     >,
   ): Promise<ClientBooking>;
   /** Sets noShowAt on a BOOKED Booking whose endsAt has passed and has none yet. Throws BusinessRuleError otherwise. */

@@ -20,6 +20,7 @@ const BOOKED: Booking = {
   serviceId: ANAS_SERVICE.id,
   employeeId: ANAS_EMPLOYEE.id,
   userId: ANAS_EMPLOYEE.userId,
+  cabinId: null,
   clientName: 'Carla Gómez',
   clientEmail: 'carla@example.com',
   prepStartsAt: new Date('2026-01-02T13:50:00.000Z'),
@@ -61,6 +62,7 @@ describe('Mis turnos del Usuario', () => {
       t.bookings.listByUser.mockResolvedValue([
         {
           ...BOOKED,
+          cabin: { id: 10, name: 'Box 1' },
           id: 1,
           serviceName: 'Haircut',
           business: { id: 1, name: 'Negocio 1' },
@@ -68,6 +70,7 @@ describe('Mis turnos del Usuario', () => {
         },
         {
           ...BOOKED,
+          cabin: null,
           id: 2,
           employeeId: null,
           serviceName: 'Clase de guitarra',
@@ -95,6 +98,7 @@ describe('Mis turnos del Usuario', () => {
           employeeChosen: false,
           depositAmount: null,
           depositPaidAt: null,
+          cabin: { id: 10, name: 'Box 1' },
           serviceId: ANAS_SERVICE.id,
           serviceName: 'Haircut',
           business: { id: 1, name: 'Negocio 1' },
@@ -102,6 +106,7 @@ describe('Mis turnos del Usuario', () => {
         },
         expect.objectContaining({
           id: 2,
+          cabin: null,
           employeeId: null,
           business: null,
           branch: null,
@@ -113,6 +118,7 @@ describe('Mis turnos del Usuario', () => {
       t.bookings.listByUser.mockResolvedValue([
         {
           ...BOOKED,
+          cabin: null,
           depositAmount: 6,
           depositPaidAt: new Date('2026-01-01T10:00:00.000Z'),
           serviceName: 'Haircut',
@@ -217,6 +223,7 @@ describe('Mis turnos del Usuario', () => {
       t.bookings.listOccupiedByUser.mockResolvedValue([]);
       t.bookings.reschedule.mockResolvedValue({
         ...BOOKED,
+        cabin: null,
         startsAt: new Date(NEW_START),
         endsAt: new Date('2026-01-02T15:30:00.000Z'),
       });
@@ -230,6 +237,7 @@ describe('Mis turnos del Usuario', () => {
       expect(t.bookings.reschedule).toHaveBeenCalledWith(BOOKED.id, {
         employeeId: ANAS_EMPLOYEE.id,
         userId: ANAS_EMPLOYEE.userId,
+        cabinId: null,
         prepStartsAt: new Date('2026-01-02T14:45:00.000Z'),
         startsAt: new Date(NEW_START),
         endsAt: new Date('2026-01-02T15:30:00.000Z'),
@@ -249,6 +257,159 @@ describe('Mis turnos del Usuario', () => {
         BOOKED.clientEmail,
         BOOKED.link,
       );
+    });
+
+    describe('con Cabinas (ADR 0030)', () => {
+      const BOX = { id: 10, name: 'Box 1' };
+      const LASER = { id: 11, name: 'Láser' };
+      const NEW_END = new Date('2026-01-02T15:30:00.000Z');
+      const occupy = (
+        ...occupied: { cabinId: number; prepStartsAt: Date; endsAt: Date }[]
+      ) =>
+        t.bookings.listOccupiedByCabins.mockImplementation(
+          async (cabinIds, from, to, excludeBookingId) =>
+            occupied.filter(
+              (o) =>
+                cabinIds.includes(o.cabinId) &&
+                o.prepStartsAt < to &&
+                o.endsAt > from &&
+                !(excludeBookingId === BOOKED.id && o === OWN),
+            ),
+        );
+      /** The Turno being moved holds the Cabina over its current tramo. */
+      const OWN = {
+        cabinId: BOX.id,
+        prepStartsAt: BOOKED.prepStartsAt,
+        endsAt: BOOKED.endsAt,
+      };
+      const cabinOfReschedule = () =>
+        t.bookings.reschedule.mock.calls[0][1].cabinId;
+
+      beforeEach(() => {
+        t.services.findById.mockResolvedValue({
+          ...ANAS_SERVICE,
+          cabins: [BOX, LASER],
+        });
+        t.bookings.findById.mockResolvedValue({ ...BOOKED, cabinId: BOX.id });
+        t.bookings.lastReceivedByCabin.mockResolvedValue(new Map());
+        occupy(OWN);
+      });
+
+      it('conserva la Cabina si está libre en el horario nuevo, aunque otra lleve más tiempo sin recibir un Turno', async () => {
+        t.bookings.lastReceivedByCabin.mockResolvedValue(
+          new Map([[BOX.id, new Date('2026-01-01T10:00:00.000Z')]]),
+        );
+
+        await patch({ startsAt: NEW_START }).expect(200);
+
+        expect(cabinOfReschedule()).toBe(BOX.id);
+      });
+
+      it('pasa a otra libre si la suya está ocupada en el horario nuevo', async () => {
+        occupy(OWN, {
+          cabinId: BOX.id,
+          prepStartsAt: new Date(NEW_START),
+          endsAt: NEW_END,
+        });
+
+        await patch({ startsAt: NEW_START }).expect(200);
+
+        expect(cabinOfReschedule()).toBe(LASER.id);
+      });
+
+      it('pasa a otra si la suya ya no está entre las que admite el Servicio', async () => {
+        t.services.findById.mockResolvedValue({
+          ...ANAS_SERVICE,
+          cabins: [LASER],
+        });
+
+        await patch({ startsAt: NEW_START }).expect(200);
+
+        expect(cabinOfReschedule()).toBe(LASER.id);
+      });
+
+      it('asigna una a un Turno sin Cabina de un Servicio que ahora las admite', async () => {
+        t.bookings.findById.mockResolvedValue({ ...BOOKED, cabinId: null });
+
+        await patch({ startsAt: NEW_START }).expect(200);
+
+        expect(cabinOfReschedule()).toBe(BOX.id);
+      });
+
+      it('deja null la Cabina si el Servicio ya no admite ninguna', async () => {
+        t.services.findById.mockResolvedValue(ANAS_SERVICE);
+
+        await patch({ startsAt: NEW_START }).expect(200);
+
+        expect(cabinOfReschedule()).toBeNull();
+        expect(t.bookings.listOccupiedByCabins).not.toHaveBeenCalled();
+      });
+
+      it('no se bloquea por su propia Cabina al moverse a un horario que se solapa con el actual', async () => {
+        t.services.findById.mockResolvedValue({
+          ...ANAS_SERVICE,
+          slotInterval: 15,
+          cabins: [BOX],
+        });
+        const overlapping = '2026-01-02T14:15:00.000Z';
+
+        await patch({ startsAt: overlapping }).expect(200);
+
+        expect(cabinOfReschedule()).toBe(BOX.id);
+        expect(t.bookings.listOccupiedByCabins).toHaveBeenCalledWith(
+          [BOX.id],
+          expect.any(Date),
+          expect.any(Date),
+          BOOKED.id,
+        );
+      });
+
+      it('answers 422 y no lo mueve si no queda ninguna Cabina libre en el horario nuevo', async () => {
+        const atNewStart = { prepStartsAt: new Date(NEW_START), endsAt: NEW_END };
+        occupy(
+          OWN,
+          { cabinId: BOX.id, ...atNewStart },
+          { cabinId: LASER.id, ...atNewStart },
+        );
+
+        const res = await patch({ startsAt: NEW_START }).expect(422);
+
+        expect(res.body.message).toBe(
+          `Slot ${NEW_START} is not available for Service ${ANAS_SERVICE.id}`,
+        );
+        expect(t.bookings.reschedule).not.toHaveBeenCalled();
+      });
+
+      it('con Empleado elegido conserva su regla y además necesita una Cabina libre', async () => {
+        t.bookings.findById.mockResolvedValue({
+          ...BOOKED,
+          cabinId: BOX.id,
+          employeeChosen: true,
+        });
+
+        await patch({ startsAt: NEW_START }).expect(200);
+
+        expect(t.bookings.reschedule).toHaveBeenCalledWith(
+          BOOKED.id,
+          expect.objectContaining({
+            employeeId: ANAS_EMPLOYEE.id,
+            cabinId: BOX.id,
+          }),
+        );
+      });
+
+      it('muestra la Cabina en la respuesta', async () => {
+        t.bookings.reschedule.mockResolvedValue({
+          ...BOOKED,
+          cabinId: BOX.id,
+          cabin: BOX,
+        });
+
+        const res = await patch({ startsAt: NEW_START }).expect(200);
+
+        expect(res.body.cabin).toEqual(BOX);
+        expect(res.body).not.toHaveProperty('cabinId');
+      });
     });
 
     it('answers 422 when the new horario overlaps another Turno of the only Empleado', async () => {

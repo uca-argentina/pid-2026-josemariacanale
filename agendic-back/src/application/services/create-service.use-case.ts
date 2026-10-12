@@ -12,6 +12,10 @@ import {
   BusinessesRepository,
 } from '../../domain/businesses/businesses.repository';
 import {
+  CABINS_REPOSITORY,
+  CabinsRepository,
+} from '../../domain/cabins/cabins.repository';
+import {
   EMPLOYEES_REPOSITORY,
   EmployeesRepository,
 } from '../../domain/employees/employees.repository';
@@ -23,6 +27,7 @@ import {
 } from '../../domain/services/services.repository';
 import { defaultAvailability } from '../availabilities/default-availability';
 import { assertBranchOwner } from '../branches/assert-branch-owner';
+import { assertActiveCabins } from '../cabins/assert-active-cabins';
 
 @Injectable()
 export class CreateServiceUseCase {
@@ -37,8 +42,14 @@ export class CreateServiceUseCase {
     private readonly employees: EmployeesRepository,
     @Inject(AVAILABILITIES_REPOSITORY)
     private readonly availabilities: AvailabilitiesRepository,
+    @Inject(CABINS_REPOSITORY) private readonly cabins: CabinsRepository,
   ) {}
 
+  /**
+   * @throws {NotFoundError} la Sucursal no existe
+   * @throws {ForbiddenError} el Usuario no es el Dueño de su Negocio
+   * @throws {BusinessRuleError} un Empleado no es del Negocio o está dado de baja, o una Cabina no es una activa de la Sucursal
+   */
   async execute(
     userId: number,
     branchId: number,
@@ -50,6 +61,8 @@ export class CreateServiceUseCase {
       branchId,
       userId,
     );
+    const cabinIds = input.cabinIds ?? [];
+    await assertActiveCabins(this.cabins, branchId, cabinIds);
     const attending = await this.assertCanAttend(
       branch.businessId,
       input.employeeIds,
@@ -78,6 +91,7 @@ export class CreateServiceUseCase {
       slotInterval: input.slotInterval ?? null,
       minimumNoticeMinutes: input.minimumNoticeMinutes ?? 0,
       employees,
+      cabinIds,
     });
   }
 

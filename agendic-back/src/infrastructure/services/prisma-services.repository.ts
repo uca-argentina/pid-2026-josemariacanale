@@ -7,6 +7,7 @@ import {
 import { EmployeeService, Service } from '../../domain/services/service';
 import { ServicesRepository } from '../../domain/services/services.repository';
 import {
+  Cabin as CabinRow,
   Employee as EmployeeRow,
   Prisma,
   Service as ServiceRow,
@@ -16,8 +17,11 @@ import { cancelFutureBooked } from '../bookings/cancel-future-booked';
 import { violatedIndex } from '../prisma-errors';
 import { PrismaService } from '../prisma.service';
 
-/** Only the Empleados anyone browsing may see attending a Servicio: not dados de baja. The name comes from the Usuario. */
-export const VISIBLE_EMPLOYEES = {
+/**
+ * What a Servicio loads with it. The Empleados are only the ones anyone browsing may see attending it: not dados de
+ * baja, with the name from the Usuario. The Cabinas are the active ones, by name (ADR 0030).
+ */
+export const SERVICE_RELATIONS = {
   employees: {
     where: { employee: { deletedAt: null } },
     select: {
@@ -31,6 +35,11 @@ export const VISIBLE_EMPLOYEES = {
       },
     },
   },
+  cabins: {
+    where: { cabin: { deletedAt: null } },
+    orderBy: { cabin: { name: 'asc' } },
+    select: { cabin: { select: { id: true, name: true } } },
+  },
 } satisfies Prisma.ServiceInclude;
 
 type ServiceRowWithEmployees = ServiceRow & {
@@ -40,6 +49,7 @@ type ServiceRowWithEmployees = ServiceRow & {
       user: Pick<UserRow, 'name' | 'imageUrl' | 'slug'>;
     };
   }[];
+  cabins: { cabin: Pick<CabinRow, 'id' | 'name'> }[];
 };
 
 @Injectable()
@@ -63,14 +73,21 @@ export class PrismaServicesRepository implements ServicesRepository {
       | 'dailyLimit'
       | 'slotInterval'
       | 'minimumNoticeMinutes'
-    > & { employees: Omit<EmployeeService, 'serviceId'>[] },
+    > & {
+      employees: Omit<EmployeeService, 'serviceId'>[];
+      cabinIds: number[];
+    },
   ) {
-    const { employees, ...service } = data;
+    const { employees, cabinIds, ...service } = data;
     return toService(
       await this.prisma.service
         .create({
-          data: { ...service, employees: { create: employees } },
-          include: VISIBLE_EMPLOYEES,
+          data: {
+            ...service,
+            employees: { create: employees },
+            cabins: { create: cabinIds.map((cabinId) => ({ cabinId })) },
+          },
+          include: SERVICE_RELATIONS,
         })
         .catch(translateError),
     );
@@ -98,14 +115,14 @@ export class PrismaServicesRepository implements ServicesRepository {
   ) {
     return toService(
       await this.prisma.service
-        .create({ data, include: VISIBLE_EMPLOYEES })
+        .create({ data, include: SERVICE_RELATIONS })
         .catch(translateError),
     );
   }
 
   async findById(id: number) {
     const row = await this.prisma.service
-      .findUnique({ where: { id }, include: VISIBLE_EMPLOYEES })
+      .findUnique({ where: { id }, include: SERVICE_RELATIONS })
       .catch(translateError);
     return row && toService(row);
   }
@@ -115,7 +132,7 @@ export class PrismaServicesRepository implements ServicesRepository {
       await this.prisma.service
         .findMany({
           where: { branchId, deletedAt: null },
-          include: VISIBLE_EMPLOYEES,
+          include: SERVICE_RELATIONS,
         })
         .catch(translateError)
     ).map(toService);
@@ -126,7 +143,7 @@ export class PrismaServicesRepository implements ServicesRepository {
       await this.prisma.service
         .findMany({
           where: { userId, deletedAt: null },
-          include: VISIBLE_EMPLOYEES,
+          include: SERVICE_RELATIONS,
         })
         .catch(translateError)
     ).map(toService);
@@ -141,7 +158,7 @@ export class PrismaServicesRepository implements ServicesRepository {
     const row = await this.prisma.service
       .findFirst({
         where: { userId, slug, deletedAt: null },
-        include: VISIBLE_EMPLOYEES,
+        include: SERVICE_RELATIONS,
       })
       .catch(translateError);
     return row && toService(row);
@@ -156,7 +173,7 @@ export class PrismaServicesRepository implements ServicesRepository {
     const row = await this.prisma.service
       .findFirst({
         where: { branchId, slug, deletedAt: null },
-        include: VISIBLE_EMPLOYEES,
+        include: SERVICE_RELATIONS,
       })
       .catch(translateError);
     return row && toService(row);
@@ -182,11 +199,24 @@ export class PrismaServicesRepository implements ServicesRepository {
         | 'minimumNoticeMinutes'
         | 'availabilityId'
       >
-    >,
+    > & { cabinIds?: number[] },
   ) {
+    const { cabinIds, ...fields } = data;
     return toService(
       await this.prisma.service
-        .update({ where: { id }, data, include: VISIBLE_EMPLOYEES })
+        .update({
+          where: { id },
+          data: {
+            ...fields,
+            ...(cabinIds && {
+              cabins: {
+                deleteMany: {},
+                create: cabinIds.map((cabinId) => ({ cabinId })),
+              },
+            }),
+          },
+          include: SERVICE_RELATIONS,
+        })
         .catch(translateError),
     );
   }
@@ -198,7 +228,7 @@ export class PrismaServicesRepository implements ServicesRepository {
           where: { id },
           // A Servicio personal drops its Availability too, so the Usuario can delete it.
           data: { deletedAt, availabilityId: null, employees: { deleteMany: {} } },
-          include: VISIBLE_EMPLOYEES,
+          include: SERVICE_RELATIONS,
         });
         const cancelledBookings = await cancelFutureBooked(
           tx,
@@ -231,7 +261,7 @@ export class PrismaServicesRepository implements ServicesRepository {
         .update({
           where: { id: serviceId },
           data: { employees: { create: { employeeId, availabilityId } } },
-          include: VISIBLE_EMPLOYEES,
+          include: SERVICE_RELATIONS,
         })
         .catch((error: unknown) => {
           // The (employeeId, serviceId) key catching two links racing, not a Service name.
@@ -265,7 +295,7 @@ export class PrismaServicesRepository implements ServicesRepository {
               },
             },
           },
-          include: VISIBLE_EMPLOYEES,
+          include: SERVICE_RELATIONS,
         })
         .catch(translateError),
     );
@@ -277,7 +307,7 @@ export class PrismaServicesRepository implements ServicesRepository {
         const row = await tx.service.update({
           where: { id: serviceId },
           data: { employees: { deleteMany: { employeeId } } },
-          include: VISIBLE_EMPLOYEES,
+          include: SERVICE_RELATIONS,
         });
         const cancelledBookings = await cancelFutureBooked(
           tx,
@@ -294,7 +324,7 @@ export class PrismaServicesRepository implements ServicesRepository {
       await this.prisma.service
         .findMany({
           where: { deletedAt: null, employees: { some: { employeeId } } },
-          include: VISIBLE_EMPLOYEES,
+          include: SERVICE_RELATIONS,
         })
         .catch(translateError)
     ).map(toService);
@@ -337,6 +367,7 @@ export const toService = (row: ServiceRowWithEmployees): Service => ({
     imageUrl: employee.user.imageUrl,
     slug: employee.user.slug,
   })),
+  cabins: row.cabins.map(({ cabin }) => ({ id: cabin.id, name: cabin.name })),
 });
 
 /** The partial unique indexes on a Servicio's slug: per Sucursal, and per Usuario in a Servicio personal. */

@@ -1,6 +1,7 @@
 import type { IServicesRepository } from '@/src/application/repositories/services.repository.interface';
 import type { IAuthenticationService } from '@/src/application/services/authentication.service.interface';
 import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
+import { CabinNotOfBranchError } from '@/src/entities/errors/cabin';
 import { LastEmployeeError } from '@/src/entities/errors/employee';
 import {
     AvailabilityNotOfEmployeeError,
@@ -107,6 +108,7 @@ export class ServicesRepository implements IServicesRepository {
      * @throws {ServiceSlugTakenError} the tramo is taken in that Sucursal, or among the Usuario's (409)
      * @throws {ServiceNameTakenError} the name is taken in that Sucursal, or among the Usuario's (409)
      * @throws {NotFoundError} the Servicio, or the Availability sent, does not exist (404)
+     * @throws {CabinNotOfBranchError} a Cabina sent is not an active one of the Sucursal (422)
      * @throws {ApiRequestError} any other failure, or a body that is not a Servicio
      */
     async updateService({ id, ...changes }: UpdateService): Promise<CatalogService | PersonalService> {
@@ -114,6 +116,7 @@ export class ServicesRepository implements IServicesRepository {
         const { status, json } = await this.request('PATCH', `/services/${id}`, changes);
         if (status === 409) throw takenError(json, what, status);
         if (status === 404) throw new NotFoundError(messageOf(json, what, status));
+        if (status === 422) throw new CabinNotOfBranchError(messageOf(json, what, status));
         if (status >= 400) throw apiError(what, status, json);
         return parseOrFail(() => catalogServiceSchema.or(personalServiceSchema).parse(json), what);
     }

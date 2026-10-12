@@ -28,6 +28,7 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | Sucursal | `Branch` (sin horario de apertura ni de cierre; descripción propia opcional → `Branch.description`) |
 | Logo del Negocio | `Business.logoUrl` (`string \| null`; `PUT` / `DELETE /businesses/:id/logo`) |
 | Imágenes de Sucursal | `BranchImage` (`url`, `order`) |
+| Cabina (ADR 0030) | `Cabin` (`branchId`, `name` único sin mayúsculas por Sucursal entre las no dadas de baja, `deletedAt`); las que admite un Servicio → `ServiceCabin` (`cabinIds` en el body, `cabins` en la vista del panel); la que ocupa un Turno → `Booking.cabinId` (`cabin` en las vistas del panel, nunca en `ClientBooking`) |
 | Zona horaria | `Branch.timeZone` |
 | Usuario | `User` (foto de perfil → `User.imageUrl`, la de Clerk al crearse) |
 | Preferencias del Usuario | `User.timeFormat` (`12 \| 24`, por defecto 24) y `User.weekStart` (0 = domingo … 6, por defecto 1 = lunes); en el front, `Preferences` y el diálogo `PreferencesDialog` del menú de Usuario |

@@ -5,11 +5,13 @@ import {
   BookingStatus,
   ClientBooking,
   DAILY_LIMIT_REACHED,
+  PanelBooking,
   UpcomingBooking,
   UserBooking,
 } from '../../domain/bookings/booking';
 import {
   BookingsRepository,
+  CabinOccupancy,
   CreateBookingData,
   DailyLimitGuard,
 } from '../../domain/bookings/bookings.repository';
@@ -21,7 +23,11 @@ import {
 } from '../../domain/errors';
 import { DEFAULT_AVAILABILITY } from '../../domain/availabilities/availability';
 import { Prisma } from '../../generated/prisma/client';
-import { BOOKING_NO_OVERLAP, isExclusionViolation } from '../prisma-errors';
+import {
+  BOOKING_CABIN_NO_OVERLAP,
+  BOOKING_NO_OVERLAP,
+  isExclusionViolation,
+} from '../prisma-errors';
 import { PrismaService } from '../prisma.service';
 
 /** Statuses that hold a Usuario's horario, as the Booking_no_overlap constraint does. */
@@ -39,6 +45,7 @@ const BOOKING_SELECT = {
   serviceId: true,
   employeeId: true,
   userId: true,
+  cabinId: true,
   prepStartsAt: true,
   startsAt: true,
   endsAt: true,
@@ -53,6 +60,16 @@ const BOOKING_SELECT = {
 } satisfies Prisma.BookingSelect;
 
 type BookingRow = Prisma.BookingGetPayload<{ select: typeof BOOKING_SELECT }>;
+
+/** `BOOKING_SELECT` plus the Cabina the panel shows, even once dada de baja. */
+const PANEL_BOOKING_SELECT = {
+  ...BOOKING_SELECT,
+  cabin: { select: { id: true, name: true } },
+} satisfies Prisma.BookingSelect;
+
+type PanelBookingRow = Prisma.BookingGetPayload<{
+  select: typeof PANEL_BOOKING_SELECT;
+}>;
 
 /** `BOOKING_SELECT` plus the Servicio, Negocio and Sucursal data the Enlace del Turno shows (ADR 0022). */
 const CLIENT_BOOKING_SELECT = {
@@ -174,6 +191,77 @@ export class PrismaBookingsRepository implements BookingsRepository {
   }
 
   /**
+   * Cuándo recibió cada Cabina su último Turno pendiente o aceptado, de cualquier Servicio.
+   *
+   * @throws {DatabaseOperationError} falló la base
+   */
+  async lastReceivedByCabin(cabinIds: number[], excludeBookingId?: number) {
+    const rows = await this.prisma.booking
+      .groupBy({
+        by: ['cabinId'],
+        where: {
+          ...notExcluded(excludeBookingId),
+          cabinId: { in: cabinIds },
+          status: { in: OCCUPYING },
+        },
+        _max: { createdAt: true },
+      })
+      .catch(translateError);
+    return new Map(
+      rows.flatMap(({ cabinId, _max }) =>
+        cabinId !== null && _max.createdAt
+          ? [[cabinId, _max.createdAt] as const]
+          : [],
+      ),
+    );
+  }
+
+  /**
+   * Los tramos que los Turnos pendientes o aceptados ocupan de estas Cabinas, por inicio.
+   *
+   * @throws {DatabaseOperationError} falló la base
+   */
+  async listOccupiedByCabins(
+    cabinIds: number[],
+    from: Date,
+    to: Date,
+    excludeBookingId?: number,
+  ): Promise<CabinOccupancy[]> {
+    const rows = await this.prisma.booking
+      .findMany({
+        where: {
+          ...notExcluded(excludeBookingId),
+          cabinId: { in: cabinIds },
+          status: { in: OCCUPYING },
+          prepStartsAt: { lt: to },
+          endsAt: { gt: from },
+        },
+        select: { cabinId: true, prepStartsAt: true, endsAt: true },
+        orderBy: { prepStartsAt: 'asc' },
+      })
+      .catch(translateError);
+    // The where clause leaves out the Turnos without Cabina.
+    return rows.map(({ cabinId, prepStartsAt, endsAt }) => ({
+      cabinId: cabinId!,
+      prepStartsAt,
+      endsAt,
+    }));
+  }
+
+  /**
+   * Cuenta los Turnos pendientes o aceptados de la Cabina que terminan después de `now`.
+   *
+   * @throws {DatabaseOperationError} falló la base
+   */
+  async countUpcomingByCabin(cabinId: number, now: Date) {
+    return this.prisma.booking
+      .count({
+        where: { cabinId, status: { in: OCCUPYING }, endsAt: { gt: now } },
+      })
+      .catch(translateError);
+  }
+
+  /**
    * Lists when the Servicio's PENDING and BOOKED Turnos start, to count them against its Límite diario.
    *
    * @throws {DatabaseOperationError} falló la base
@@ -198,15 +286,18 @@ export class PrismaBookingsRepository implements BookingsRepository {
     return rows.map(({ startsAt }) => startsAt);
   }
 
+  /**
+   * @throws {DatabaseOperationError} falló la base
+   */
   async listByBusiness(businessId: number) {
     return (
       await this.prisma.booking
         .findMany({
           where: { employee: { businessId } },
-          select: BOOKING_SELECT,
+          select: PANEL_BOOKING_SELECT,
         })
         .catch(translateError)
-    ).map(toBooking);
+    ).map(toPanelBooking);
   }
 
   /**
@@ -336,7 +427,7 @@ export class PrismaBookingsRepository implements BookingsRepository {
           OR: [{ employeeId: null }, { employee: { deletedAt: null } }],
         },
         select: {
-          ...BOOKING_SELECT,
+          ...PANEL_BOOKING_SELECT,
           service: {
             select: {
               name: true,
@@ -356,7 +447,7 @@ export class PrismaBookingsRepository implements BookingsRepository {
     return rows.map((row) => {
       const branch = row.service.branch;
       return {
-        ...toBooking(row),
+        ...toPanelBooking(row),
         serviceName: row.service.name,
         business: branch && branch.business,
         branch: branch && { id: branch.id, name: branch.name },
@@ -399,15 +490,22 @@ export class PrismaBookingsRepository implements BookingsRepository {
    */
   async reschedule(
     id: number,
-    { employeeId, userId, prepStartsAt, startsAt, endsAt }: Pick<Booking, 'employeeId' | 'userId' | 'prepStartsAt' | 'startsAt' | 'endsAt'>,
-  ) {
+    { employeeId, userId, cabinId, prepStartsAt, startsAt, endsAt }: Pick<
+      Booking,
+      'employeeId' | 'userId' | 'cabinId' | 'prepStartsAt' | 'startsAt' | 'endsAt'
+    >,
+  ): Promise<PanelBooking> {
     await this.updateStatus(
       id,
       [BookingStatus.BOOKED],
-      { employeeId, userId, prepStartsAt, startsAt, endsAt },
+      { employeeId, userId, cabinId, prepStartsAt, startsAt, endsAt },
       'Turno is not booked',
     );
-    return this.findById(id);
+    const row = await this.prisma.booking
+      .findUnique({ where: { id }, select: PANEL_BOOKING_SELECT })
+      .catch(translateError);
+    if (!row) throw new NotFoundError('Booking not found');
+    return toPanelBooking(row);
   }
 
   /**
@@ -417,15 +515,21 @@ export class PrismaBookingsRepository implements BookingsRepository {
    */
   async reschedulePendingOrBooked(
     id: number,
-    { employeeId, userId, prepStartsAt, startsAt, endsAt, status }: Pick<
+    { employeeId, userId, cabinId, prepStartsAt, startsAt, endsAt, status }: Pick<
       Booking,
-      'employeeId' | 'userId' | 'prepStartsAt' | 'startsAt' | 'endsAt' | 'status'
+      | 'employeeId'
+      | 'userId'
+      | 'cabinId'
+      | 'prepStartsAt'
+      | 'startsAt'
+      | 'endsAt'
+      | 'status'
     >,
   ) {
     await this.updateStatus(
       id,
       OCCUPYING,
-      { employeeId, userId, prepStartsAt, startsAt, endsAt, status },
+      { employeeId, userId, cabinId, prepStartsAt, startsAt, endsAt, status },
       'Turno is not pending or booked',
     );
     return this.findEnriched(id);
@@ -490,6 +594,7 @@ const toBooking = (row: BookingRow): Booking => ({
   serviceId: row.serviceId,
   employeeId: row.employeeId,
   userId: row.userId,
+  cabinId: row.cabinId,
   clientName: row.client!.name,
   clientEmail: row.client!.email,
   prepStartsAt: row.prepStartsAt,
@@ -502,6 +607,12 @@ const toBooking = (row: BookingRow): Booking => ({
   employeeChosen: row.employeeChosen,
   depositAmount: row.depositAmount === null ? null : Number(row.depositAmount),
   depositPaidAt: row.depositPaidAt,
+});
+
+/** The Turno with its Cabina, for the panel. */
+const toPanelBooking = (row: PanelBookingRow): PanelBooking => ({
+  ...toBooking(row),
+  cabin: row.cabin,
 });
 
 /** 256 bits, URL-safe (ADR 0022 pide al menos 128). */
@@ -543,7 +654,10 @@ const translateError = (error: unknown): never => {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     if (error.code === 'P2025')
       throw new NotFoundError('Booking not found', { cause: error });
-    if (isExclusionViolation(error, BOOKING_NO_OVERLAP))
+    if (
+      isExclusionViolation(error, BOOKING_NO_OVERLAP) ||
+      isExclusionViolation(error, BOOKING_CABIN_NO_OVERLAP)
+    )
       throw new ConflictError('Overlaps a booked Turno for this Employee', {
         cause: error,
       });

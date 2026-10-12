@@ -23,6 +23,7 @@ export type IUpdateServiceController = ReturnType<typeof updateServiceController
  * @throws {ServiceSlugTakenError} the tramo is taken in that Sucursal
  * @throws {ServiceNameTakenError} the name is taken in that Sucursal
  * @throws {NotFoundError} the Servicio does not exist
+ * @throws {CabinNotOfBranchError} a Cabina sent is not an active one of the Sucursal
  * @throws {ApiRequestError} not the Dueño, or the back failed
  */
 export const updateServiceController =

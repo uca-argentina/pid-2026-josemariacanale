@@ -69,6 +69,7 @@ export function createServicesModule() {
             DI_SYMBOLS.IListAvailabilitiesUseCase,
             DI_SYMBOLS.IGetAvailabilityUseCase,
             DI_SYMBOLS.IGetMeUseCase,
+            DI_SYMBOLS.IListCabinsUseCase,
         ]);
 
     servicesModule

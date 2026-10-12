@@ -20,6 +20,7 @@ const booking = {
     depositPaidAt: null,
     business: { id: 3, name: 'Spa' },
     branch: { id: 4, name: 'Centro' },
+    cabin: { id: 6, name: 'Box 1' },
 };
 
 const repo = (apiUrl: string | undefined = 'http://api') =>
@@ -41,9 +42,21 @@ describe('UserBookingsRepository.listMyBookings', () => {
     });
 
     it('parses a Turno of a Servicio personal, without Empleado, Negocio or Sucursal', async () => {
-        const personal = { ...booking, employeeId: null, business: null, branch: null };
+        const personal = { ...booking, employeeId: null, business: null, branch: null, cabin: null };
         respond(200, [personal]);
         await expect(repo().listMyBookings()).resolves.toEqual([personal]);
+    });
+
+    it('parses a Turno without Cabina, with cabin null', async () => {
+        const withoutCabin = { ...booking, cabin: null };
+        respond(200, [withoutCabin]);
+        await expect(repo().listMyBookings()).resolves.toEqual([withoutCabin]);
+    });
+
+    it('rejects a Turno that comes without the cabin field', async () => {
+        const { cabin: _cabin, ...withoutField } = booking;
+        respond(200, [withoutField]);
+        await expect(repo().listMyBookings()).rejects.toBeInstanceOf(ApiRequestError);
     });
 
     it('returns an empty list as is', async () => {

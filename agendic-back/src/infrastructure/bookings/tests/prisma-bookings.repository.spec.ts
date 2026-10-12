@@ -37,6 +37,7 @@ const CREATE_DATA: CreateBookingData = {
   serviceId: 1,
   employeeId: 1,
   userId: 1,
+  cabinId: null,
   clientName: 'Bruno Díaz',
   clientEmail: 'bruno@example.com',
   prepStartsAt: BOOKING_ROW.prepStartsAt,
@@ -60,6 +61,7 @@ describe('PrismaBookingsRepository', () => {
       findUnique: jest.fn(),
       updateMany: jest.fn(),
       groupBy: jest.fn(),
+      count: jest.fn(),
     },
     $transaction: jest.fn((run: (client: typeof tx) => unknown) => run(tx)),
   };
@@ -141,6 +143,50 @@ describe('PrismaBookingsRepository', () => {
         },
       }),
     );
+  });
+
+  it('translates the Cabina exclusion violation into the same ConflictError', async () => {
+    const cause = knownError('P2039');
+    cause.message = 'exclusion constraint "Booking_cabin_no_overlap" violated';
+    prisma.booking.create.mockRejectedValue(cause);
+
+    const error = await repository.create(CREATE_DATA).catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(ConflictError);
+    expect(error).toHaveProperty('cause', cause);
+  });
+
+  it('maps each Cabina to when it last received a PENDING or BOOKED Turno of any Servicio', async () => {
+    prisma.booking.groupBy.mockResolvedValue([
+      { cabinId: 3, _max: { createdAt: new Date('2026-01-01T10:00:00.000Z') } },
+    ]);
+
+    const last = await repository.lastReceivedByCabin([3, 4]);
+
+    expect(last).toEqual(new Map([[3, new Date('2026-01-01T10:00:00.000Z')]]));
+    expect(prisma.booking.groupBy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          cabinId: { in: [3, 4] },
+          status: { in: [BookingStatus.PENDING, BookingStatus.BOOKED] },
+        },
+      }),
+    );
+  });
+
+  it('counts the PENDING and BOOKED Turnos of a Cabina that end after now', async () => {
+    prisma.booking.count.mockResolvedValue(2);
+    const now = new Date('2026-01-01T10:00:00.000Z');
+
+    await expect(repository.countUpcomingByCabin(3, now)).resolves.toBe(2);
+
+    expect(prisma.booking.count).toHaveBeenCalledWith({
+      where: {
+        cabinId: 3,
+        status: { in: [BookingStatus.PENDING, BookingStatus.BOOKED] },
+        endsAt: { gt: now },
+      },
+    });
   });
 
   it('lists the occupied range of each Turno of the Empleado, from its preparation', async () => {
@@ -343,7 +389,7 @@ describe('PrismaBookingsRepository', () => {
 
       await expect(repository.cancel(1)).rejects.toBeInstanceOf(BusinessRuleError);
       await expect(
-        repository.reschedule(1, { employeeId: 1, userId: 1, prepStartsAt: NOW, startsAt: NOW, endsAt: NOW }),
+        repository.reschedule(1, { employeeId: 1, userId: 1, cabinId: null, prepStartsAt: NOW, startsAt: NOW, endsAt: NOW }),
       ).rejects.toBeInstanceOf(BusinessRuleError);
     });
 
@@ -353,7 +399,7 @@ describe('PrismaBookingsRepository', () => {
       prisma.booking.updateMany.mockRejectedValue(cause);
 
       await expect(
-        repository.reschedule(1, { employeeId: 1, userId: 1, prepStartsAt: NOW, startsAt: NOW, endsAt: NOW }),
+        repository.reschedule(1, { employeeId: 1, userId: 1, cabinId: null, prepStartsAt: NOW, startsAt: NOW, endsAt: NOW }),
       ).rejects.toBeInstanceOf(ConflictError);
     });
 
@@ -396,12 +442,13 @@ describe('PrismaBookingsRepository', () => {
       prisma.booking.updateMany.mockResolvedValue({ count: 1 });
 
       await repository.cancel(1);
-      await repository.reschedule(1, { employeeId: 1, userId: 1, prepStartsAt: NOW, startsAt: NOW, endsAt: NOW });
+      await repository.reschedule(1, { employeeId: 1, userId: 1, cabinId: null, prepStartsAt: NOW, startsAt: NOW, endsAt: NOW });
       await repository.cancelPendingOrBooked(1);
       await repository.resolvePending(1, BookingStatus.REJECTED);
       await repository.reschedulePendingOrBooked(1, {
         employeeId: 1,
         userId: 1,
+        cabinId: null,
         prepStartsAt: NOW,
         startsAt: NOW,
         endsAt: NOW,

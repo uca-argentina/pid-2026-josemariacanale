@@ -1,3 +1,4 @@
+import { CabinNotOfBranchError } from '@/src/entities/errors/cabin';
 import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
 import { LastEmployeeError } from '@/src/entities/errors/employee';
 import {
@@ -26,6 +27,7 @@ const parsedService = {
     slotInterval: null,
     minimumNoticeMinutes: 0,
     employees: [{ id: 1, name: 'Ana', availabilityId: 7, imageUrl: 'https://img.example/ana.png', slug: 'ana' }],
+    cabins: [{ id: 3, name: 'Box 1' }],
 };
 /** The back may send fields the panel does not read: they are dropped. */
 const service = { ...parsedService, createdAt: '2026-09-01T00:00:00.000Z' };
@@ -145,6 +147,33 @@ describe('ServicesRepository.createService', () => {
 });
 
 describe('ServicesRepository.updateService', () => {
+    it('PATCHes cabinIds, which replaces the whole set, and returns the Cabinas the Servicio admits', async () => {
+        const fetchSpy = respond(200, service);
+
+        await expect(repo().updateService({ id: 100, cabinIds: [3] })).resolves.toMatchObject({
+            cabins: [{ id: 3, name: 'Box 1' }],
+        });
+        expect(fetchSpy).toHaveBeenCalledWith(
+            'http://api/services/100',
+            expect.objectContaining({ method: 'PATCH', body: JSON.stringify({ cabinIds: [3] }) }),
+        );
+    });
+
+    it('PATCHes an empty cabinIds to leave the Servicio without Cabinas', async () => {
+        const fetchSpy = respond(200, { ...service, cabins: [] });
+
+        await expect(repo().updateService({ id: 100, cabinIds: [] })).resolves.toMatchObject({ cabins: [] });
+        expect(fetchSpy).toHaveBeenCalledWith('http://api/services/100', expect.objectContaining({ body: '{"cabinIds":[]}' }));
+    });
+
+    it('translates a 422 to CabinNotOfBranchError with the message of the back', async () => {
+        respond(422, { message: 'Cabin 3 is not an active Cabin of Branch 10' });
+
+        const error = await repo().updateService({ id: 100, cabinIds: [3] }).catch((e) => e);
+        expect(error).toBeInstanceOf(CabinNotOfBranchError);
+        expect(error.message).toBe('Cabin 3 is not an active Cabin of Branch 10');
+    });
+
     it('PATCHes only the fields sent, without the id in the body, and returns the Servicio', async () => {
         const fetchSpy = respond(200, service);
 

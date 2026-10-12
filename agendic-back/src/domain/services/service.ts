@@ -1,3 +1,4 @@
+import { Cabin } from '../cabins/cabin';
 import { EmployeeSummary } from '../employees/employee';
 
 export enum ServiceCategory {
@@ -43,7 +44,12 @@ export interface Service {
   minimumNoticeMinutes: number;
   /** In charge of it: verified and not dados de baja. Always empty in a Servicio personal. */
   employees: ServiceEmployee[];
+  /** Cabinas it admits (ADR 0030): the active ones, ascending by name. Always empty in a Servicio personal. */
+  cabins: ServiceCabin[];
 }
+
+/** A Cabina a Servicio admits. */
+export type ServiceCabin = Pick<Cabin, 'id' | 'name'>;
 
 /** An Empleado in charge of a Servicio, with the Availability they attend it with. */
 export type ServiceEmployee = EmployeeSummary & {
@@ -80,10 +86,15 @@ export interface CreateServiceInput {
   slotInterval?: number;
   minimumNoticeMinutes?: number;
   employeeIds: number[];
+  /** Cabinas of the Sucursal it admits. */
+  cabinIds?: number[];
 }
 
 /** A Servicio personal's own fields: the Servicio del Negocio's, without Sucursal or Empleados, with its Availability. */
-export type CreatePersonalServiceInput = Omit<CreateServiceInput, 'employeeIds'> & {
+export type CreatePersonalServiceInput = Omit<
+  CreateServiceInput,
+  'employeeIds'
+> & {
   availabilityId: number;
 };
 
@@ -106,4 +117,6 @@ export interface UpdateServiceInput {
   minimumNoticeMinutes?: number;
   /** Servicio personal only: another of the Usuario's own Availabilities. */
   availabilityId?: number;
+  /** Servicio del Negocio only: replaces the whole set of Cabinas it admits; empty leaves it with none. */
+  cabinIds?: number[];
 }
