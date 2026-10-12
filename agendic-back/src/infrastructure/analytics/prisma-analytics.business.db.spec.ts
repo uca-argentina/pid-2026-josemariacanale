@@ -569,4 +569,74 @@ describe('PrismaAnalyticsRepository, Negocio scope (real database)', () => {
       expect(total(byService, bruno.id)).toBe(0);
     });
   });
+
+  describe('bookingRows', () => {
+    const withClient = (bookingId: number, name: string) =>
+      prisma.client.create({
+        data: { bookingId, name, email: `${tag}-${name}@x.com` },
+      });
+
+    it('lists each Turno with its Sucursal and Empleado, in the time zone of its Sucursal, ordered by startsAt', async () => {
+      const { business, branch, service, owner, ownerEmployee, scope } =
+        await makeBusiness();
+      const tokyo = await makeBranch(business.id, TOKYO);
+      const tokyoService = await makeService(tokyo.id);
+      const late = await book(
+        service.id,
+        ownerEmployee,
+        '2031-03-09T13:00:00Z',
+      );
+      const early = await book(
+        tokyoService.id,
+        ownerEmployee,
+        '2031-03-05T01:30:00Z',
+      );
+      await withClient(late.id, 'Late');
+      await withClient(early.id, 'Early');
+
+      const rows = await repository.bookingRows(scope, MARCH, NOW);
+
+      expect(rows.map((r) => [r.startsAt, r.branchName, r.clientName])).toEqual(
+        [
+          ['2031-03-05 10:30', tokyo.name, 'Early'],
+          ['2031-03-09 10:00', branch.name, 'Late'],
+        ],
+      );
+      expect(rows[0].employeeName).toBe(owner.name);
+    });
+
+    it('narrows by Sucursal, Servicio and Empleado, and leaves out other Negocios', async () => {
+      const { business, branch, service, ownerEmployee, scope } =
+        await makeBusiness();
+      const other = await makeBranch(business.id, BUENOS_AIRES);
+      const otherService = await makeService(other.id);
+      const bruno = await makeEmployee(business.id, await makeUser());
+      const stranger = await makeBusiness();
+      for (const [serviceId, employee, day] of [
+        [service.id, ownerEmployee, '05'],
+        [otherService.id, ownerEmployee, '06'],
+        [service.id, bruno, '07'],
+      ] as const) {
+        const booking = await book(
+          serviceId,
+          employee,
+          `2031-03-${day}T13:00:00Z`,
+        );
+        await withClient(booking.id, day);
+      }
+      const foreign = await book(
+        stranger.service.id,
+        stranger.ownerEmployee,
+        '2031-03-08T13:00:00Z',
+      );
+      await withClient(foreign.id, 'foreign');
+      const count = async (narrow: AnalyticsScope, serviceId?: number) =>
+        (await repository.bookingRows(narrow, MARCH, NOW, serviceId)).length;
+
+      expect(await count(scope)).toBe(3);
+      expect(await count({ ...scope, branchId: branch.id })).toBe(2);
+      expect(await count({ ...scope, employeeId: bruno.id })).toBe(1);
+      expect(await count(scope, otherService.id)).toBe(1);
+    });
+  });
 });
