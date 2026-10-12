@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Clock, Ellipsis, Pencil, Plus, Trash2 } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Clock, Ellipsis, Pencil, Plus, SearchX, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { OUT_OF_OFFICE_HOLIDAYS_PATH, OUT_OF_OFFICE_PATH } from '@/app/routes';
 import { PaginationControls } from '@/app/_components/PaginationControls';
@@ -16,6 +16,9 @@ import { deleteOutOfOfficeAction } from '../actions';
 import { HolidaysTab, type HolidaysTabData } from './HolidaysTab';
 import { formatOutOfOfficeDate } from './format-out-of-office-date';
 import { OutOfOfficeDialog } from './OutOfOfficeDialog';
+import { OutOfOfficeFilters } from './OutOfOfficeFilters';
+import { matchesFilters, parseFilters, writeFilters, type OutOfOfficeFilters as Filters } from './out-of-office-filters';
+import { toIsoDay } from './out-of-office-range';
 import { OUT_OF_OFFICE_REASONS } from './out-of-office-reasons';
 
 /** Una fila: el emoji del Motivo en un círculo, el rango y debajo "Motivo · nota"; su menú ⋯ edita o borra el período. */
@@ -69,7 +72,10 @@ function OutOfOfficeRow({
  * La pantalla Fuera de la oficina: los períodos del Usuario que llegan del server, paginados acá sobre la
  * lista completa (10 por página al principio). "Añadir" abre el modal de período nuevo, y con `openNew`
  * (`?nuevo`) arranca abierto. `weekStart` es el primer día de la semana del Usuario, para el Calendar del modal.
- * Con `holidays` (`?tab=holidays`) muestra la pestaña Días festivos en lugar de los períodos.
+ * Con `holidays` (`?type=holidays`) muestra la pestaña Días festivos en lugar de los períodos.
+ *
+ * Los filtros (buscador y Rango de Fechas) se filtran acá sobre la lista completa y se copian a la URL con
+ * `history.replaceState`, que no le vuelve a pedir la página al server en cada tecla.
  */
 export function OutOfOfficeView({
     periods,
@@ -83,17 +89,31 @@ export function OutOfOfficeView({
     holidays?: HolidaysTabData;
 }) {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const [filters, setFilters] = useState(() => parseFilters(searchParams));
     const [dialog, setDialog] = useState<{ period: OutOfOffice | null } | null>(openNew ? { period: null } : null);
     const [busy, setBusy] = useState(false);
     const [pageSize, setPageSize] = useState(10);
     const [page, setPage] = useState(0);
-    const pageCount = Math.max(1, Math.ceil(periods.length / pageSize));
+    const today = toIsoDay(new Date());
+    const matching = periods.filter((period) => matchesFilters(period, filters, today));
+    const pageCount = Math.max(1, Math.ceil(matching.length / pageSize));
     const current = Math.min(page, pageCount - 1);
-    const visible = periods.slice(current * pageSize, (current + 1) * pageSize);
+    const visible = matching.slice(current * pageSize, (current + 1) * pageSize);
+
+    const changeFilters = (next: Filters) => {
+        setFilters(next);
+        setPage(0);
+        const params = writeFilters(next, new URLSearchParams(window.location.search));
+        window.history.replaceState(null, '', params.size ? `?${params}` : OUT_OF_OFFICE_PATH);
+    };
 
     const closeDialog = () => {
         setDialog(null);
-        if (openNew) router.replace(OUT_OF_OFFICE_PATH);
+        if (!openNew) return;
+        const params = new URLSearchParams(window.location.search);
+        params.delete('nuevo');
+        router.replace(params.size ? `${OUT_OF_OFFICE_PATH}?${params}` : OUT_OF_OFFICE_PATH);
     };
 
     const remove = async (period: OutOfOffice) => {
@@ -124,27 +144,29 @@ export function OutOfOfficeView({
                             : 'Informá a tus Clientes cuando estés fuera de la oficina.'}
                     </p>
                 </div>
-                <div className="flex items-center gap-2">
-                    <ToggleGroup
-                        variant="outline"
-                        spacing={0}
-                        value={[tab]}
-                        onValueChange={([next]) => {
-                            if (next && next !== tab) router.push(next === 'holidays' ? OUT_OF_OFFICE_HOLIDAYS_PATH : OUT_OF_OFFICE_PATH);
-                        }}
-                    >
-                        <ToggleGroupItem value="mine">Mis períodos</ToggleGroupItem>
-                        <ToggleGroupItem value="holidays">Días festivos</ToggleGroupItem>
-                    </ToggleGroup>
-                    {!holidays && addButton}
-                </div>
+                {!holidays && addButton}
             </header>
+
+            <ToggleGroup
+                className="mt-6"
+                variant="outline"
+                spacing={0}
+                value={[tab]}
+                onValueChange={([next]) => {
+                    if (next && next !== tab) router.push(next === 'holidays' ? OUT_OF_OFFICE_HOLIDAYS_PATH : OUT_OF_OFFICE_PATH);
+                }}
+            >
+                <ToggleGroupItem value="mine">Mis períodos</ToggleGroupItem>
+                <ToggleGroupItem value="holidays">Días festivos</ToggleGroupItem>
+            </ToggleGroup>
+
+            {!holidays && periods.length > 0 && <OutOfOfficeFilters filters={filters} weekStart={weekStart} onChange={changeFilters} />}
 
             {holidays ? (
                 <HolidaysTab data={holidays} />
-            ) : periods.length > 0 ? (
+            ) : matching.length > 0 ? (
                 <>
-                    <ul className="m-0 mt-8 list-none divide-y overflow-hidden rounded-md border p-0">
+                    <ul className="m-0 mt-4 list-none divide-y overflow-hidden rounded-md border p-0">
                         {visible.map((period) => (
                             <OutOfOfficeRow
                                 key={period.id}
@@ -166,6 +188,18 @@ export function OutOfOfficeView({
                         }}
                     />
                 </>
+            ) : periods.length > 0 ? (
+                <Empty className="mt-4 rounded-md border">
+                    <EmptyHeader>
+                        <EmptyMedia variant="icon">
+                            <SearchX />
+                        </EmptyMedia>
+                        <EmptyTitle>Ningún período coincide con los filtros</EmptyTitle>
+                    </EmptyHeader>
+                    <Button type="button" variant="outline" onClick={() => changeFilters({ q: '', range: null })}>
+                        Borrar filtros
+                    </Button>
+                </Empty>
             ) : (
                 <Empty className="mt-8 rounded-md border">
                     <EmptyHeader>

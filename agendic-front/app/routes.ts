@@ -48,7 +48,7 @@ export const bookAgainPath = (booking: {
 /** La pantalla Fuera de la oficina; con `nuevo`, abre el modal de período nuevo. */
 export const OUT_OF_OFFICE_PATH = '/availability/out-of-office';
 /** La pestaña Días festivos de Fuera de la oficina. */
-export const OUT_OF_OFFICE_HOLIDAYS_PATH = `${OUT_OF_OFFICE_PATH}?tab=holidays`;
+export const OUT_OF_OFFICE_HOLIDAYS_PATH = `${OUT_OF_OFFICE_PATH}?type=holidays`;
 export const newOutOfOfficePath = `${OUT_OF_OFFICE_PATH}?nuevo`;
 
 /** Servicios con el modal de alta abierto, apuntado al Negocio `businessId` (la tarjeta "Crear servicio" de Mi Negocio). */

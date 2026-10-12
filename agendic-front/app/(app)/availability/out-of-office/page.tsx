@@ -26,12 +26,12 @@ async function loadHolidays(): Promise<HolidaysTabData> {
 }
 
 /**
- * Fuera de la oficina del Usuario con Sesión: sus períodos, o con `?tab=holidays` sus Días festivos. `?nuevo`
+ * Fuera de la oficina del Usuario con Sesión: sus períodos, o con `?type=holidays` sus Días festivos. `?nuevo`
  * abre el modal de período nuevo.
  */
-export default async function OutOfOfficePage({ searchParams }: { searchParams: Promise<{ nuevo?: string; tab?: string }> }) {
-    const { nuevo, tab } = await searchParams;
-    const showHolidays = tab === 'holidays';
+export default async function OutOfOfficePage({ searchParams }: { searchParams: Promise<{ nuevo?: string; type?: string }> }) {
+    const { nuevo, type } = await searchParams;
+    const showHolidays = type === 'holidays';
     let periods;
     let holidays;
     try {
