@@ -110,3 +110,35 @@ describe('AnalyticsRepository.getBusinessAnalytics', () => {
         await expect(repo().getBusinessAnalytics({ ...query, businessId: 4 })).rejects.toBeInstanceOf(ErrorClass);
     });
 });
+
+describe('AnalyticsRepository.getEmployeesPerPeriod', () => {
+    const perPeriod = {
+        buckets: ['2026-10-05'],
+        rows: [{ employeeId: 5, name: 'Bruno', imageUrl: null, counts: [2] }],
+    };
+    const perPeriodQuery = { businessId: 4, from: '2026-09-13', to: '2026-10-12', granularity: 'week' as const };
+
+    it('GETs the range, granularity and filters and parses the rows', async () => {
+        const fetchSpy = respond(200, perPeriod);
+
+        await expect(repo().getEmployeesPerPeriod({ ...perPeriodQuery, branchId: 1, serviceId: 3 })).resolves.toEqual(perPeriod);
+        expect(fetchSpy.mock.calls[0][0]).toBe(
+            'http://api/analytics/businesses/4/employees-per-period?from=2026-09-13&to=2026-10-12&granularity=week&branchId=1&serviceId=3',
+        );
+    });
+
+    it.each([
+        [401, UnauthenticatedError],
+        [400, InputParseError],
+        [403, UnauthorizedError],
+        [404, NotFoundError],
+    ])('translates a %i to its domain error', async (status, ErrorClass) => {
+        respond(status, { message: 'no' });
+        await expect(repo().getEmployeesPerPeriod(perPeriodQuery)).rejects.toBeInstanceOf(ErrorClass);
+    });
+
+    it('rejects an unexpected body with ApiRequestError', async () => {
+        respond(200, { buckets: 'x' });
+        await expect(repo().getEmployeesPerPeriod(perPeriodQuery)).rejects.toBeInstanceOf(ApiRequestError);
+    });
+});

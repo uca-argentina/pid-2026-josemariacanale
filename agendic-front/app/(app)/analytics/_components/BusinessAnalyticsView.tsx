@@ -20,6 +20,7 @@ import {
     type RangeChange,
 } from './analytics-range';
 import { BusinessSelect } from './BusinessSelect';
+import { EmployeesPerPeriodTable } from './EmployeesPerPeriodTable';
 import { IdFilter } from './IdFilter';
 import { KpiCards, KpiCardsSkeleton } from './KpiCards';
 import { RangeSelect } from './RangeSelect';
@@ -131,6 +132,9 @@ export function BusinessAnalyticsView({
                             </>
                         )}
                     </div>
+                    {result.data.rankings && businessId && from && to && (
+                        <EmployeesPerPeriodTable businessId={businessId} from={from} to={to} branchId={branchId} serviceId={serviceId} />
+                    )}
                 </>
             ) : (
                 <div role="alert" className="mx-4 flex items-center justify-between gap-3 rounded-lg border p-4 text-sm lg:mx-6">

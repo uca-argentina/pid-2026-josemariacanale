@@ -1,4 +1,12 @@
-import type { AnalyticsBusiness, AnalyticsQuery, BusinessAnalytics, BusinessAnalyticsQuery, PersonalAnalytics } from '@/src/entities/models/analytics';
+import type {
+    AnalyticsBusiness,
+    AnalyticsQuery,
+    BusinessAnalytics,
+    BusinessAnalyticsQuery,
+    EmployeesPerPeriod,
+    EmployeesPerPeriodQuery,
+    PersonalAnalytics,
+} from '@/src/entities/models/analytics';
 
 /** Analíticas del Usuario con Sesión contra la API del back. */
 export interface IAnalyticsRepository {
@@ -27,4 +35,14 @@ export interface IAnalyticsRepository {
      * @throws {NotFoundError} el Negocio, la Sucursal, el Servicio o el Empleado no existen (404)
      */
     getBusinessAnalytics(query: BusinessAnalyticsQuery): Promise<BusinessAnalytics>;
+
+    /**
+     * Los Turnos de cada Empleado del Negocio por bucket del período (solo el Dueño).
+     *
+     * @throws {UnauthenticatedError} no hay Sesión válida (401)
+     * @throws {InputParseError} el rango o la agrupación no son válidos (400)
+     * @throws {UnauthorizedError} no es el Dueño del Negocio (403)
+     * @throws {NotFoundError} el Negocio, la Sucursal o el Servicio no existen (404)
+     */
+    getEmployeesPerPeriod(query: EmployeesPerPeriodQuery): Promise<EmployeesPerPeriod>;
 }
