@@ -13,11 +13,13 @@ import { cn } from '@/app/_components/utils';
 import type { Preferences } from '@/src/entities/models/user';
 import { formatOutOfOfficeDate } from './format-out-of-office-date';
 import {
+    EMPTY_FILTERS,
     parseFilters,
     RANGE_PRESETS,
     resolveRange,
     writeFilters,
-    type OutOfOfficeFilters as Filters,
+    type DateRangeFilter,
+    type OutOfOfficeFilterState as Filters,
     type RangePreset,
 } from './out-of-office-filters';
 import { fromCalendarRange, toCalendarRange, toIsoDay, toLocalDay } from './out-of-office-range';
@@ -30,7 +32,8 @@ type SavedFilter = { name: string; search: string };
 const readSaved = (): SavedFilter[] => {
     try {
         const parsed: unknown = JSON.parse(localStorage.getItem(SAVED_KEY) ?? '[]');
-        return Array.isArray(parsed) ? parsed : [];
+        if (!Array.isArray(parsed)) return [];
+        return parsed.filter((entry): entry is SavedFilter => typeof entry?.name === 'string' && typeof entry?.search === 'string');
     } catch {
         return [];
     }
@@ -45,20 +48,24 @@ const writeSaved = (saved: SavedFilter[]) => {
     }
 };
 
-const rangeLabel = (range: NonNullable<Filters['range']>) =>
+const rangeLabel = (range: DateRangeFilter) =>
     range.preset === 'custom'
         ? `${formatOutOfOfficeDate(range.from)} – ${formatOutOfOfficeDate(range.to)}`
         : RANGE_PRESETS[range.preset];
 
-/** El popover del Rango de Fechas: los presets a la izquierda y el Calendar; elegir días pasa a Rango personalizado. */
+/**
+ * El popover del Rango de Fechas: los presets a la izquierda y el Calendar; elegir días pasa a Rango personalizado.
+ * Desde un preset, el primer clic arranca un rango nuevo en vez de mover un extremo del preset; el Calendar se
+ * vuelve a montar con cada preset para mostrar su mes.
+ */
 function RangePicker({
     range,
     weekStart,
     onChange,
 }: {
-    range: NonNullable<Filters['range']>;
+    range: DateRangeFilter;
     weekStart: Preferences['weekStart'];
-    onChange: (range: NonNullable<Filters['range']>) => void;
+    onChange: (range: DateRangeFilter) => void;
 }) {
     const days = resolveRange(range, toIsoDay(new Date()));
 
@@ -81,13 +88,14 @@ function RangePicker({
                 ))}
             </ul>
             <Calendar
+                key={range.preset}
                 mode="range"
                 locale={es}
                 weekStartsOn={weekStart}
                 defaultMonth={toLocalDay(days.to)}
                 selected={toCalendarRange({ startDate: days.from, endDate: days.to })}
-                onSelect={(selected) => {
-                    const picked = fromCalendarRange(selected);
+                onSelect={(selected, clicked) => {
+                    const picked = fromCalendarRange(range.preset === 'custom' ? selected : { from: clicked });
                     if (picked) onChange({ preset: 'custom', from: picked.startDate, to: picked.endDate });
                 }}
             />
@@ -136,8 +144,8 @@ function SaveFilterButton({ filters }: { filters: Filters }) {
 
 /**
  * La barra de filtros de los períodos: buscador, "Filtrar" (Rango de Fechas) y los Filtros guardados en este
- * navegador. Con un Rango de Fechas activo aparece la fila del chip con "Borrar" y "Guardar". Los filtros los
- * tiene quien la usa; acá solo se cambian por `onChange`.
+ * navegador. Con algún filtro activo aparece la fila de abajo: el chip del Rango de Fechas, "Borrar" y "Guardar".
+ * Los filtros los tiene quien la usa; acá solo se cambian por `onChange`.
  *
  * El menú "Filtrar" no le devuelve el foco a su botón al cerrarse: el popover del chip nuevo se abre en ese
  * momento y el foco afuera lo cerraría.
@@ -154,6 +162,7 @@ export function OutOfOfficeFilters({
     const [rangeOpen, setRangeOpen] = useState(false);
     const [saved, setSaved] = useState<SavedFilter[]>([]);
     const { range } = filters;
+    const active = range !== null || filters.q.trim() !== '';
 
     return (
         <div className="mt-6 flex flex-col gap-3">
@@ -208,30 +217,32 @@ export function OutOfOfficeFilters({
                 </DropdownMenu>
             </div>
 
-            {range && (
+            {active && (
                 <div className="flex flex-wrap items-center gap-2 rounded-lg bg-muted p-2">
-                    <div className="flex items-stretch overflow-hidden rounded-md border bg-background text-sm">
-                        <span className="px-2.5 py-1.5">Rango de Fechas</span>
-                        <Popover open={rangeOpen} onOpenChange={setRangeOpen}>
-                            <PopoverTrigger className="flex items-center gap-1 border-s px-2.5 py-1.5 outline-none hover:bg-accent focus-visible:bg-accent">
-                                {rangeLabel(range)}
-                                <ChevronsUpDown className="size-4 text-muted-foreground" />
-                            </PopoverTrigger>
-                            <PopoverContent align="start" className="w-auto max-w-(--available-width)">
-                                <RangePicker range={range} weekStart={weekStart} onChange={(next) => onChange({ ...filters, range: next })} />
-                            </PopoverContent>
-                        </Popover>
-                        <button
-                            type="button"
-                            aria-label="Quitar Rango de Fechas"
-                            className="flex items-center border-s px-2 outline-none hover:bg-accent focus-visible:bg-accent"
-                            onClick={() => onChange({ ...filters, range: null })}
-                        >
-                            <X className="size-4" />
-                        </button>
-                    </div>
+                    {range && (
+                        <div className="flex items-stretch overflow-hidden rounded-md border bg-background text-sm">
+                            <span className="px-2.5 py-1.5">Rango de Fechas</span>
+                            <Popover open={rangeOpen} onOpenChange={setRangeOpen}>
+                                <PopoverTrigger className="flex items-center gap-1 border-s px-2.5 py-1.5 outline-none hover:bg-accent focus-visible:bg-accent">
+                                    {rangeLabel(range)}
+                                    <ChevronsUpDown className="size-4 text-muted-foreground" />
+                                </PopoverTrigger>
+                                <PopoverContent align="start" className="w-auto max-w-(--available-width)">
+                                    <RangePicker range={range} weekStart={weekStart} onChange={(next) => onChange({ ...filters, range: next })} />
+                                </PopoverContent>
+                            </Popover>
+                            <button
+                                type="button"
+                                aria-label="Quitar Rango de Fechas"
+                                className="flex items-center border-s px-2 outline-none hover:bg-accent focus-visible:bg-accent"
+                                onClick={() => onChange({ ...filters, range: null })}
+                            >
+                                <X className="size-4" />
+                            </button>
+                        </div>
+                    )}
                     <div className="ml-auto flex items-center gap-2">
-                        <Button type="button" variant="ghost" size="sm" onClick={() => onChange({ q: '', range: null })}>
+                        <Button type="button" variant="ghost" size="sm" onClick={() => onChange(EMPTY_FILTERS)}>
                             Borrar
                         </Button>
                         <SaveFilterButton filters={filters} />

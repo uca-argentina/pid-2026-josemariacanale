@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Clock, Ellipsis, Pencil, Plus, SearchX, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { OUT_OF_OFFICE_HOLIDAYS_PATH, OUT_OF_OFFICE_PATH } from '@/app/routes';
+import { OUT_OF_OFFICE_HOLIDAYS_PATH, OUT_OF_OFFICE_MINE_PATH, OUT_OF_OFFICE_PATH } from '@/app/routes';
 import { PaginationControls } from '@/app/_components/PaginationControls';
 import { Button } from '@/app/_components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/app/_components/ui/dropdown-menu';
@@ -17,9 +17,11 @@ import { HolidaysTab, type HolidaysTabData } from './HolidaysTab';
 import { formatOutOfOfficeDate } from './format-out-of-office-date';
 import { OutOfOfficeDialog } from './OutOfOfficeDialog';
 import { OutOfOfficeFilters } from './OutOfOfficeFilters';
-import { matchesFilters, parseFilters, writeFilters, type OutOfOfficeFilters as Filters } from './out-of-office-filters';
+import { EMPTY_FILTERS, matchesFilters, parseFilters, writeFilters, type OutOfOfficeFilterState } from './out-of-office-filters';
 import { toIsoDay } from './out-of-office-range';
 import { OUT_OF_OFFICE_REASONS } from './out-of-office-reasons';
+
+const outOfOfficeUrl = (params: URLSearchParams) => (params.size ? `${OUT_OF_OFFICE_PATH}?${params}` : OUT_OF_OFFICE_PATH);
 
 /** Una fila: el emoji del Motivo en un círculo, el rango y debajo "Motivo · nota"; su menú ⋯ edita o borra el período. */
 function OutOfOfficeRow({
@@ -75,7 +77,8 @@ function OutOfOfficeRow({
  * Con `holidays` (`?type=holidays`) muestra la pestaña Días festivos en lugar de los períodos.
  *
  * Los filtros (buscador y Rango de Fechas) se filtran acá sobre la lista completa y se copian a la URL con
- * `history.replaceState`, que no le vuelve a pedir la página al server en cada tecla.
+ * `history.replaceState`, que no le vuelve a pedir la página al server en cada tecla. La página la monta con un
+ * `key` por pestaña, así al cambiar de pestaña los filtros se vuelven a leer de la URL.
  */
 export function OutOfOfficeView({
     periods,
@@ -101,11 +104,11 @@ export function OutOfOfficeView({
     const current = Math.min(page, pageCount - 1);
     const visible = matching.slice(current * pageSize, (current + 1) * pageSize);
 
-    const changeFilters = (next: Filters) => {
+    const changeFilters = (next: OutOfOfficeFilterState) => {
         setFilters(next);
         setPage(0);
         const params = writeFilters(next, new URLSearchParams(window.location.search));
-        window.history.replaceState(null, '', params.size ? `?${params}` : OUT_OF_OFFICE_PATH);
+        window.history.replaceState(null, '', outOfOfficeUrl(params));
     };
 
     const closeDialog = () => {
@@ -113,7 +116,7 @@ export function OutOfOfficeView({
         if (!openNew) return;
         const params = new URLSearchParams(window.location.search);
         params.delete('nuevo');
-        router.replace(params.size ? `${OUT_OF_OFFICE_PATH}?${params}` : OUT_OF_OFFICE_PATH);
+        router.replace(outOfOfficeUrl(params));
     };
 
     const remove = async (period: OutOfOffice) => {
@@ -153,7 +156,7 @@ export function OutOfOfficeView({
                 spacing={0}
                 value={[tab]}
                 onValueChange={([next]) => {
-                    if (next && next !== tab) router.push(next === 'holidays' ? OUT_OF_OFFICE_HOLIDAYS_PATH : OUT_OF_OFFICE_PATH);
+                    if (next && next !== tab) router.push(next === 'holidays' ? OUT_OF_OFFICE_HOLIDAYS_PATH : OUT_OF_OFFICE_MINE_PATH);
                 }}
             >
                 <ToggleGroupItem value="mine">Mis períodos</ToggleGroupItem>
@@ -196,7 +199,7 @@ export function OutOfOfficeView({
                         </EmptyMedia>
                         <EmptyTitle>Ningún período coincide con los filtros</EmptyTitle>
                     </EmptyHeader>
-                    <Button type="button" variant="outline" onClick={() => changeFilters({ q: '', range: null })}>
+                    <Button type="button" variant="outline" onClick={() => changeFilters(EMPTY_FILTERS)}>
                         Borrar filtros
                     </Button>
                 </Empty>

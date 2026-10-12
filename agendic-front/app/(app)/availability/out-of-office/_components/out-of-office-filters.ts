@@ -1,10 +1,11 @@
+import { addDays } from '@/app/_components/booking/format';
 import type { OutOfOffice } from '@/src/entities/models/out-of-office';
 import { OUT_OF_OFFICE_REASONS } from './out-of-office-reasons';
 import { toIsoDay, toLocalDay } from './out-of-office-range';
 
 /** Los presets del Rango de Fechas, en el orden del popover, con su etiqueta. */
 export const RANGE_PRESETS = {
-    today: 'hoy',
+    today: 'Hoy',
     '7d': 'Últimos 7 días',
     '30d': 'Últimos 30 días',
     '90d': 'Últimos 90 días',
@@ -13,24 +14,30 @@ export const RANGE_PRESETS = {
     next7d: 'Próximos 7 días',
     custom: 'Rango personalizado',
 } as const;
+/** Un preset del Rango de Fechas; `custom` es el Rango personalizado, con sus días en la URL. */
 export type RangePreset = keyof typeof RANGE_PRESETS;
 
 /** Días `YYYY-MM-DD`, inclusivos. */
 export type DayRange = { from: string; to: string };
 
-/** Los filtros de la lista de períodos. Un preset se guarda sin fechas, así sigue siendo relativo a hoy. */
-export type OutOfOfficeFilters = {
-    q: string;
-    range: { preset: Exclude<RangePreset, 'custom'> } | ({ preset: 'custom' } & DayRange) | null;
-};
+/** El Rango de Fechas activo. Un preset se guarda sin fechas, así sigue siendo relativo a hoy. */
+export type DateRangeFilter = { preset: Exclude<RangePreset, 'custom'> } | ({ preset: 'custom' } & DayRange);
+
+/** Los filtros de la lista de períodos: el texto del buscador y el Rango de Fechas, si hay. */
+export type OutOfOfficeFilterState = { q: string; range: DateRangeFilter | null };
+
+/** Sin filtros: lo que dejan "Borrar" y "Borrar filtros". */
+export const EMPTY_FILTERS: OutOfOfficeFilterState = { q: '', range: null };
 
 /** Los parámetros de la URL que son de los filtros; el resto (`type`, `nuevo`) no se toca. */
 const FILTER_PARAMS = ['q', 'rango', 'desde', 'hasta'];
 
-const isDay = (value: string | null): value is string => value !== null && /^\d{4}-\d{2}-\d{2}$/.test(value);
+/** `YYYY-MM-DD` de un día que existe: `2026-13-45` no pasa, aunque `Date` lo correría a otra fecha. */
+const isDay = (value: string | null): value is string =>
+    value !== null && /^\d{4}-\d{2}-\d{2}$/.test(value) && toIsoDay(toLocalDay(value)) === value;
 
 /** Lee los filtros de la URL; lo que no se entiende se ignora. */
-export function parseFilters(params: URLSearchParams): OutOfOfficeFilters {
+export function parseFilters(params: URLSearchParams): OutOfOfficeFilterState {
     const q = params.get('q') ?? '';
     const preset = params.get('rango');
     if (preset === 'custom') {
@@ -38,12 +45,12 @@ export function parseFilters(params: URLSearchParams): OutOfOfficeFilters {
         const to = params.get('hasta');
         return { q, range: isDay(from) && isDay(to) && from <= to ? { preset, from, to } : null };
     }
-    if (preset && preset in RANGE_PRESETS) return { q, range: { preset: preset as Exclude<RangePreset, 'custom'> } };
+    if (preset && Object.hasOwn(RANGE_PRESETS, preset)) return { q, range: { preset } as DateRangeFilter };
     return { q, range: null };
 }
 
 /** Escribe los filtros sobre `params`, conservando los parámetros que no son de filtros. */
-export function writeFilters(filters: OutOfOfficeFilters, params = new URLSearchParams()): URLSearchParams {
+export function writeFilters(filters: OutOfOfficeFilterState, params = new URLSearchParams()): URLSearchParams {
     const next = new URLSearchParams(params);
     FILTER_PARAMS.forEach((name) => next.delete(name));
     if (filters.q) next.set('q', filters.q);
@@ -57,13 +64,8 @@ export function writeFilters(filters: OutOfOfficeFilters, params = new URLSearch
     return next;
 }
 
-const addDays = (day: string, days: number) => {
-    const date = toLocalDay(day);
-    return toIsoDay(new Date(date.getFullYear(), date.getMonth(), date.getDate() + days));
-};
-
 /** Los días que cubre el rango, con `today` como hoy (`YYYY-MM-DD`). */
-export function resolveRange(range: NonNullable<OutOfOfficeFilters['range']>, today: string): DayRange {
+export function resolveRange(range: DateRangeFilter, today: string): DayRange {
     switch (range.preset) {
         case 'custom':
             return { from: range.from, to: range.to };
@@ -90,7 +92,7 @@ const normalize = (text: string) => text.normalize('NFD').replace(/\p{M}/gu, '')
  * Si el período pasa los filtros: `q` busca, sin mayúsculas ni tildes, en el Motivo y en las notas; el rango deja
  * los períodos que tienen al menos un día adentro.
  */
-export function matchesFilters(period: OutOfOffice, { q, range }: OutOfOfficeFilters, today: string): boolean {
+export function matchesFilters(period: OutOfOffice, { q, range }: OutOfOfficeFilterState, today: string): boolean {
     const query = normalize(q.trim());
     if (query && !normalize(`${OUT_OF_OFFICE_REASONS[period.reason].label} ${period.notes ?? ''}`).includes(query)) return false;
     if (!range) return true;

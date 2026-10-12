@@ -46,6 +46,7 @@ export default async function OutOfOfficePage({ searchParams }: { searchParams: 
 
     return (
         <OutOfOfficeView
+            key={showHolidays ? 'holidays' : 'mine'}
             periods={periods ?? []}
             openNew={nuevo !== undefined && !showHolidays}
             weekStart={(await myPreferences()).weekStart}

@@ -3,7 +3,7 @@ import {
     parseFilters,
     resolveRange,
     writeFilters,
-    type OutOfOfficeFilters,
+    type OutOfOfficeFilterState,
 } from '@/app/(app)/availability/out-of-office/_components/out-of-office-filters';
 import type { OutOfOffice } from '@/src/entities/models/out-of-office';
 
@@ -20,7 +20,7 @@ const period = (overrides: Partial<OutOfOffice> = {}): OutOfOffice => ({
 });
 
 describe('parseFilters / writeFilters', () => {
-    it.each<OutOfOfficeFilters>([
+    it.each<OutOfOfficeFilterState>([
         { q: '', range: null },
         { q: 'viaje', range: { preset: '7d' } },
         { q: '', range: { preset: 'custom', from: '2026-10-01', to: '2026-10-10' } },
@@ -35,6 +35,8 @@ describe('parseFilters / writeFilters', () => {
 
     it('ignores an unknown preset and a custom range without valid days', () => {
         expect(parseFilters(new URLSearchParams('rango=w')).range).toBeNull();
+        expect(parseFilters(new URLSearchParams('rango=toString')).range).toBeNull();
+        expect(parseFilters(new URLSearchParams('rango=custom&desde=2026-02-30&hasta=2026-03-01')).range).toBeNull();
         expect(parseFilters(new URLSearchParams('rango=custom&desde=2026-10-10&hasta=2026-10-01')).range).toBeNull();
         expect(parseFilters(new URLSearchParams('rango=custom&desde=ayer&hasta=2026-10-01')).range).toBeNull();
     });
