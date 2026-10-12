@@ -46,6 +46,8 @@ export class CreateServiceUseCase {
   ) {}
 
   /**
+   * @throws {NotFoundError} la Sucursal no existe
+   * @throws {ForbiddenError} el Usuario no es el Dueño de su Negocio
    * @throws {BusinessRuleError} un Empleado no es del Negocio o está dado de baja, o una Cabina no es una activa de la Sucursal
    */
   async execute(

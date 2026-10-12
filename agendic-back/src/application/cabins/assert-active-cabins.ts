@@ -1,7 +1,11 @@
 import { CabinsRepository } from '../../domain/cabins/cabins.repository';
 import { BusinessRuleError } from '../../domain/errors';
 
-/** Throws BusinessRuleError naming the first id that isn't an active Cabina of the Sucursal. */
+/**
+ * Comprueba que todas las Cabinas sean activas de la Sucursal.
+ *
+ * @throws {BusinessRuleError} alguna no existe, es de otra Sucursal o está dada de baja; nombra la primera
+ */
 export async function assertActiveCabins(
   cabins: CabinsRepository,
   branchId: number,
