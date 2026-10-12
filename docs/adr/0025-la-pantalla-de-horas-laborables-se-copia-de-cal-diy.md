@@ -12,6 +12,18 @@ Motivos:
 
 `react-hook-form`, `react-select`, `dayjs` y `react-day-picker`. Con este ADR llegan `react-select` y `dayjs`; `react-hook-form` llega con los días y Franjas del editor; el resto lo suman los tickets que copian el calendario.
 
+## La grilla semanal de Mis turnos
+
+La vista calendario de Mis turnos se copia con el mismo criterio de `weeklyview` de cal.diy: la lógica de `packages/features/calendars/weeklyview` (el solapamiento de `overlap.ts` con su test, los utils y los tipos) y los componentes de `apps/web/modules/calendars/weeklyview`. Al copiarla:
+
+- el store de zustand se reemplaza por props;
+- `@calcom/dayjs` pasa a ser `dayjs` con `utc` y `timezone`;
+- `classNames` pasa a ser `cn`;
+- los tokens de color de cal se cambian por los del panel;
+- `useTimePreferences` se cambia por las Preferencias del Usuario.
+
+No se copian `BlockedList` (en cal.diy está comentado) ni `OutOfOfficeInSlots`.
+
 ## Qué no se copia
 
 Lo que cal.diy tiene y el spec deja afuera: el toggle de disponibilidad del equipo, "Solucionador de problemas", "Actualización masiva de predeterminados" y "Duplicar".

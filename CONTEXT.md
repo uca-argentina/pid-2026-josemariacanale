@@ -141,6 +141,14 @@ _Avoid_: límite de cambios, cupo de reprogramaciones
 Cantidad de sesiones de un Servicio que el Dueño define con un precio, y que el Empleado o el Dueño cargan en una Ficha del Cliente cuando lo venden. Cada Turno de ese Servicio que se Reserva con ese email usa una sesión y no pide Seña. Si el Turno se Cancela o se Rechaza, la sesión vuelve. Si queda con Ausencia, se pierde. No vence.
 _Avoid_: bono, abono, pack, membresía
 
+**Repetición**:
+Atributo opcional de un Servicio que deja Reservar una Serie: cada cuántas semanas se repite el Turno y cuántos Turnos puede tener como máximo, nunca más de 10. Sin Repetición, el Servicio no admite Series.
+_Avoid_: recurrencia, frecuencia (a secas)
+
+**Serie**:
+Turnos del mismo Servicio, el mismo Cliente y el mismo Empleado, el mismo día de la semana a la misma hora, cada tantas semanas como diga la Repetición del Servicio. El Cliente la Reserva de una vez, con un solo Código de verificación, eligiendo cuántos Turnos hasta el máximo; las fechas sin Horario reservable se le muestran y decide si sigue sin ellas. Con "cualquiera", se le asigna un mismo Empleado para toda la Serie. Cada Turno de la Serie es un Turno con su propio Enlace del Turno, su Seña, su Ausencia y su Calificación; se Acepta o se Rechaza la Serie entera.
+_Avoid_: turno recurrente, turno fijo, abono
+
 **Límite diario**:
 Máximo de Turnos de un Servicio en un mismo día, sumando a todos sus Empleados. Opcional. Alcanzado, ese día no tiene Horarios reservables para el Servicio.
 _Avoid_: cupo, tope
@@ -198,7 +206,7 @@ Acción del Cliente de tomar un turno disponible. Exige Verificar email: el Turn
 _Avoid_: agendar, sacar turno, pedir turno
 
 **Mis turnos**:
-Pantalla del panel donde un Empleado ve los Turnos que atiende, en todos los Negocios donde lo es, y desde donde los Acepta, Rechaza, Cancela, Reagenda, o los marca como atendidos o con Ausencia. Es del Empleado: el Cliente no tiene una, vuelve a su Turno por el Enlace del Turno.
+Pantalla del panel donde un Empleado ve los Turnos que atiende, en todos los Negocios donde lo es, y desde donde los Acepta, Rechaza, Cancela, Reagenda o les marca y desmarca la Ausencia. Se ve como lista o como calendario semanal: son dos formas de ver los mismos Turnos, no dos pantallas. Es del Empleado: el Cliente no tiene una, vuelve a su Turno por el Enlace del Turno.
 _Avoid_: mis reservas, agenda, turnos del cliente (no existe)
 
 **Enlace del Turno**:
@@ -230,11 +238,11 @@ Empleado que el Cliente eligió al Reservar un Servicio del Negocio, o en la pá
 _Avoid_: Empleado asignado, Empleado preferido
 
 **Reagendar**:
-Mover un turno existente a otro horario del mismo Servicio. Conserva al Empleado si está libre en el horario nuevo; si no, pasa a otro libre, salvo en un Turno con Empleado elegido: ese solo se Reagenda a horarios de ese Empleado, y para pasarlo a otro se Cancela. Libera el horario anterior. Lo puede hacer el Empleado o el Cliente, sobre un Turno pendiente o aceptado. Al Cliente lo limitan el Plazo de cambios y el Máximo de reagendamientos del Servicio.
+Reemplazar un Turno por uno nuevo del mismo Servicio en otro horario: el original queda Cancelado como reagendado y el nuevo se queda con su Enlace del Turno, su Cliente, su Comentario, su Empleado elegido, su precio, su Seña y su Serie. Conserva al Empleado si está libre en el horario nuevo; si no, pasa a otro libre, salvo en un Turno con Empleado elegido: ese solo se Reagenda a horarios de ese Empleado, y para pasarlo a otro se Cancela. Libera el horario anterior. Lo puede hacer el Empleado o el Cliente, sobre un Turno pendiente o aceptado. Al Cliente lo limitan el Plazo de cambios y el Máximo de reagendamientos del Servicio.
 _Avoid_: reprogramar, cambiar el turno
 
 **Cancelar**:
-Anular un Turno. Su horario queda libre. El Cliente puede Cancelar un Turno pendiente o aceptado hasta el Plazo de cambios del Servicio, o hasta que empieza si el Servicio no tiene uno.
+Anular un Turno. Su horario queda libre. El Cliente puede Cancelar un Turno pendiente o aceptado hasta el Plazo de cambios del Servicio, o hasta que empieza si el Servicio no tiene uno. En una Serie, se Cancela ese Turno o ese y los siguientes. Un Turno Cancelado por Reagendar no cuenta como Cancelado: cuenta como reagendado.
 _Avoid_: eliminar, borrar (un turno)
 
 **Dar de baja**:
@@ -242,12 +250,28 @@ Retirar un Servicio de la agenda de un Negocio, retirar a un Empleado de un Nego
 _Avoid_: eliminar, borrar, desactivar, bajar (un usuario)
 
 **Ausencia**:
-Turno al que el Cliente no se presentó sin cancelarlo. El Empleado la marca a mano, solo en Turnos ya aceptados cuyo horario ya pasó. Excluye a Turno atendido.
+Turno al que el Cliente no se presentó sin cancelarlo. El Empleado la marca a mano, solo en Turnos ya aceptados cuyo horario ya pasó, y quien atiende el Turno la puede desmarcar en cualquier momento.
 _Avoid_: inasistencia, no-show, ausencia del Usuario (eso es Fuera de la oficina)
 
+**Falta del Empleado**:
+Turno al que el Empleado, o el Usuario en un Servicio personal, no se presentó. La marca el Cliente desde el Enlace del Turno, solo en un Turno aceptado sin Ausencia, desde que empieza hasta 24 horas después de que termina. Nadie la deshace.
+_Avoid_: ausencia del Empleado, no-show del anfitrión, plantón
+
 **Turno atendido**:
-Turno aceptado cuyo horario ya pasó y que el Empleado marcó a mano como atendido. Excluye a Ausencia. Un Turno que pasó sin ninguna de las dos marcas no cuenta como atendido.
-_Avoid_: completado, realizado, finalizado
+Turno aceptado cuyo horario ya terminó, sin Ausencia ni Falta del Empleado. Se deduce: nadie lo marca.
+_Avoid_: turno completado, turno realizado, finalizado
+
+**Calificación**:
+Puntaje de 1 a 5, con un comentario opcional, que el Cliente le da a un Turno atendido desde el Enlace del Turno. Una por Turno; no se edita. Al terminar el Turno, el Cliente recibe un mail que lo invita a calificar.
+_Avoid_: rating, reseña, review, opinión
+
+**Motivo de cancelación**:
+Texto opcional con el que quien Cancela o Rechaza un Turno, sea el Empleado o el Cliente, cuenta por qué. Le llega al Cliente en el Aviso de cambio del Turno. Un Turno Cancelado por Reagendar no lleva.
+_Avoid_: Motivo (a secas, es el de Fuera de la oficina), razón, causa
+
+**Historial del Turno**:
+Lo que le pasó a un Turno, en orden: cuándo se Reservó, se Aceptó, se Rechazó, se Canceló, se Reagendó (desde y hacia qué horario), se marcó o desmarcó la Ausencia, se pagó la Seña, y quién lo hizo: el Empleado, el Cliente o una baja. Incluye a los Turnos que reemplazó al Reagendarse.
+_Avoid_: auditoría, log, historia
 
 **Turno pendiente**:
 Turno de un Servicio con Aprobación manual que todavía espera que el Empleado lo Acepte o lo Rechace. Mientras tanto ocupa su Horario reservable igual que uno aceptado. Si el Cliente lo Reagenda, o Reagenda uno aceptado de un Servicio con Aprobación manual, vuelve a quedar pendiente.
