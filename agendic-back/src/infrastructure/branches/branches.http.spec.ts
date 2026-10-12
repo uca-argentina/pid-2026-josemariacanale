@@ -29,6 +29,9 @@ const BRUNOS_BUSINESS = {
   logoUrl: null,
 };
 
+const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
+const IMAGE = { content: PNG, contentType: 'image/png' };
+
 const BRANCH = {
   id: 1,
   businessId: ANAS_BUSINESS.id,
@@ -43,100 +46,144 @@ describe('Sucursal', () => {
   afterEach(() => t.app.close());
 
   describe('POST /businesses/:id/branches', () => {
+    const URLS = ['https://files.example.com/a', 'https://files.example.com/b'];
+
+    /** A multipart create: the Sucursal's fields as JSON in `data`, each image in `images`. */
+    const post = (
+      data: unknown,
+      images: { content: Buffer; contentType: string }[] = [IMAGE],
+      businessId = ANAS_BUSINESS.id,
+      token = CLERK_TOKEN,
+    ) => {
+      let req = t.http
+        .post(`/businesses/${businessId}/branches`)
+        .set(bearer(token))
+        .field('data', typeof data === 'string' ? data : JSON.stringify(data));
+      for (const [i, image] of images.entries())
+        req = req.attach('images', image.content, {
+          filename: `image-${i}.png`,
+          contentType: image.contentType,
+        });
+      return req;
+    };
+
     beforeEach(() => {
       scriptSession(t);
       scriptOtherSession(t);
       t.businesses.findById.mockResolvedValue(ANAS_BUSINESS);
+      let uploaded = 0;
+      t.fileStorage.upload.mockImplementation(async () => URLS[uploaded++]);
+      t.fileStorage.delete.mockResolvedValue();
+      t.branches.createWithImages.mockImplementation(async (data, urls) => ({
+        branch: { id: 1, description: null, ...data },
+        images: urls.map((url, order) => ({
+          id: 10 + order,
+          branchId: 1,
+          url,
+          order,
+        })),
+      }));
     });
 
-    it('creates a Sucursal, for the Dueño', async () => {
-      t.branches.create.mockResolvedValue(BRANCH);
+    it('creates a Sucursal with its images in the order sent, for the Dueño', async () => {
+      const res = await post(VALID_BRANCH, [IMAGE, IMAGE]).expect(201);
 
-      const res = await t.http
-        .post(`/businesses/${ANAS_BUSINESS.id}/branches`)
-        .set(bearer(CLERK_TOKEN))
-        .send(VALID_BRANCH)
-        .expect(201);
-
-      expect(t.branches.create).toHaveBeenCalledWith({
-        businessId: ANAS_BUSINESS.id,
-        ...VALID_BRANCH,
+      expect(t.fileStorage.upload).toHaveBeenCalledTimes(2);
+      expect(t.fileStorage.upload).toHaveBeenCalledWith({
+        content: expect.any(Uint8Array),
+        contentType: 'image/png',
       });
-      expect(res.body).toEqual(BRANCH);
+      expect(t.branches.createWithImages).toHaveBeenCalledWith(
+        { businessId: ANAS_BUSINESS.id, ...VALID_BRANCH },
+        URLS,
+      );
+      expect(res.body).toEqual({
+        ...BRANCH,
+        images: [
+          { id: 10, branchId: 1, url: URLS[0], order: 0 },
+          { id: 11, branchId: 1, url: URLS[1], order: 1 },
+        ],
+      });
+      expect(t.fileStorage.delete).not.toHaveBeenCalled();
+    });
+
+    it('creates a Sucursal with five images', async () => {
+      t.fileStorage.upload.mockResolvedValue(URLS[0]);
+
+      const res = await post(VALID_BRANCH, Array(5).fill(IMAGE)).expect(201);
+
+      expect(res.body.images).toHaveLength(5);
     });
 
     it('creates a Sucursal with a description, blank stored as null', async () => {
-      t.branches.create.mockResolvedValue(BRANCH);
+      await post({ ...VALID_BRANCH, description: 'Sede central' }).expect(201);
+      await post({ ...VALID_BRANCH, description: '  ' }).expect(201);
 
-      await t.http
-        .post(`/businesses/${ANAS_BUSINESS.id}/branches`)
-        .set(bearer(CLERK_TOKEN))
-        .send({ ...VALID_BRANCH, description: 'Sede central' })
-        .expect(201);
-      await t.http
-        .post(`/businesses/${ANAS_BUSINESS.id}/branches`)
-        .set(bearer(CLERK_TOKEN))
-        .send({ ...VALID_BRANCH, description: '  ' })
-        .expect(201);
-
-      expect(t.branches.create).toHaveBeenNthCalledWith(
+      expect(t.branches.createWithImages).toHaveBeenNthCalledWith(
         1,
         expect.objectContaining({ description: 'Sede central' }),
+        expect.any(Array),
       );
-      expect(t.branches.create).toHaveBeenNthCalledWith(
+      expect(t.branches.createWithImages).toHaveBeenNthCalledWith(
         2,
         expect.objectContaining({ description: null }),
+        expect.any(Array),
       );
     });
 
     it('stores the slug in lowercase', async () => {
-      t.branches.create.mockResolvedValue(BRANCH);
+      await post({ ...VALID_BRANCH, slug: 'DownTown' }).expect(201);
 
-      await t.http
-        .post(`/businesses/${ANAS_BUSINESS.id}/branches`)
-        .set(bearer(CLERK_TOKEN))
-        .send({ ...VALID_BRANCH, slug: 'DownTown' })
-        .expect(201);
-
-      expect(t.branches.create).toHaveBeenCalledWith(
+      expect(t.branches.createWithImages).toHaveBeenCalledWith(
         expect.objectContaining({ slug: 'downtown' }),
+        expect.any(Array),
       );
     });
 
-    it('answers 409 when the slug is already in use in the same Negocio', async () => {
-      t.branches.create.mockRejectedValue(
+    it('answers 409 when the slug is already in use in the same Negocio, deleting the uploaded files', async () => {
+      t.branches.createWithImages.mockRejectedValue(
         new ConflictError('Booking link already in use'),
       );
 
-      const res = await t.http
-        .post(`/businesses/${ANAS_BUSINESS.id}/branches`)
-        .set(bearer(CLERK_TOKEN))
-        .send(VALID_BRANCH)
-        .expect(409);
+      const res = await post(VALID_BRANCH, [IMAGE, IMAGE]).expect(409);
 
       expect(res.body.message).toBe('Booking link already in use');
+      expect(t.fileStorage.delete).toHaveBeenCalledWith(URLS[0]);
+      expect(t.fileStorage.delete).toHaveBeenCalledWith(URLS[1]);
+    });
+
+    it('deletes the files already uploaded when another upload fails', async () => {
+      t.fileStorage.upload
+        .mockResolvedValueOnce(URLS[0])
+        .mockRejectedValueOnce(new Error('storage down'));
+
+      await post(VALID_BRANCH, [IMAGE, IMAGE]).expect(500);
+
+      expect(t.branches.createWithImages).not.toHaveBeenCalled();
+      expect(t.fileStorage.delete).toHaveBeenCalledWith(URLS[0]);
+    });
+
+    it('still answers the 409 when an uploaded file cannot be deleted', async () => {
+      t.branches.createWithImages.mockRejectedValue(
+        new ConflictError('Booking link already in use'),
+      );
+      t.fileStorage.delete.mockRejectedValue(new Error('storage down'));
+
+      await post(VALID_BRANCH).expect(409);
     });
 
     it('creates Sucursales with the same slug in different Negocios', async () => {
       t.businesses.findById.mockImplementation(async (id) =>
         id === BRUNOS_BUSINESS.id ? BRUNOS_BUSINESS : ANAS_BUSINESS,
       );
-      t.branches.create.mockImplementation(async (data) => ({
-        id: 1,
-        description: null,
-        ...data,
-      }));
 
-      await t.http
-        .post(`/businesses/${ANAS_BUSINESS.id}/branches`)
-        .set(bearer(CLERK_TOKEN))
-        .send(VALID_BRANCH)
-        .expect(201);
-      const res = await t.http
-        .post(`/businesses/${BRUNOS_BUSINESS.id}/branches`)
-        .set(bearer(OTHER_CLERK_TOKEN))
-        .send(VALID_BRANCH)
-        .expect(201);
+      await post(VALID_BRANCH).expect(201);
+      const res = await post(
+        VALID_BRANCH,
+        [IMAGE],
+        BRUNOS_BUSINESS.id,
+        OTHER_CLERK_TOKEN,
+      ).expect(201);
 
       expect(res.body).toMatchObject({
         businessId: BRUNOS_BUSINESS.id,
@@ -147,28 +194,94 @@ describe('Sucursal', () => {
     it('answers 401 without a Sesión', async () => {
       await t.http
         .post(`/businesses/${ANAS_BUSINESS.id}/branches`)
-        .send(VALID_BRANCH)
+        .field('data', JSON.stringify(VALID_BRANCH))
+        .attach('images', PNG, { filename: 'a.png', contentType: 'image/png' })
         .expect(401);
     });
 
-    it('answers 403 for another Usuario', async () => {
-      await t.http
-        .post(`/businesses/${ANAS_BUSINESS.id}/branches`)
-        .set(bearer(OTHER_CLERK_TOKEN))
-        .send(VALID_BRANCH)
-        .expect(403);
+    it('answers 403 for another Usuario, uploading nothing', async () => {
+      await post(
+        VALID_BRANCH,
+        [IMAGE],
+        ANAS_BUSINESS.id,
+        OTHER_CLERK_TOKEN,
+      ).expect(403);
 
-      expect(t.branches.create).not.toHaveBeenCalled();
+      expect(t.fileStorage.upload).not.toHaveBeenCalled();
+      expect(t.branches.createWithImages).not.toHaveBeenCalled();
     });
 
-    it('answers 404 for an unknown Negocio', async () => {
+    it('answers 404 for an unknown Negocio, uploading nothing', async () => {
       t.businesses.findById.mockResolvedValue(null);
 
-      await t.http
-        .post('/businesses/999/branches')
-        .set(bearer(CLERK_TOKEN))
-        .send(VALID_BRANCH)
-        .expect(404);
+      await post(VALID_BRANCH, [IMAGE], 999).expect(404);
+
+      expect(t.fileStorage.upload).not.toHaveBeenCalled();
+    });
+
+    it('answers 400 without images, creating nothing', async () => {
+      const res = await post(VALID_BRANCH, []).expect(400);
+
+      expect(res.body.message).toBe('At least one image is required');
+      expect(t.fileStorage.upload).not.toHaveBeenCalled();
+      expect(t.branches.createWithImages).not.toHaveBeenCalled();
+    });
+
+    it('answers 400 for more than five images, creating nothing', async () => {
+      const res = await post(VALID_BRANCH, Array(6).fill(IMAGE)).expect(400);
+
+      expect(res.body.message).toBe('Unexpected field - images');
+
+      expect(t.fileStorage.upload).not.toHaveBeenCalled();
+      expect(t.branches.createWithImages).not.toHaveBeenCalled();
+    });
+
+    it('answers 400 for a file that is not an image, creating nothing', async () => {
+      const res = await post(VALID_BRANCH, [
+        IMAGE,
+        { content: Buffer.from('%PDF'), contentType: 'application/pdf' },
+      ]).expect(400);
+
+      expect(res.body.message).toBe(
+        'La imagen tiene que ser JPEG, PNG, WebP o GIF',
+      );
+      expect(t.fileStorage.upload).not.toHaveBeenCalled();
+      expect(t.branches.createWithImages).not.toHaveBeenCalled();
+    });
+
+    it('answers 413 for an image over 5 MB, creating nothing', async () => {
+      await post(VALID_BRANCH, [
+        {
+          content: Buffer.alloc(5 * 1024 * 1024 + 1),
+          contentType: 'image/png',
+        },
+      ]).expect(413);
+
+      expect(t.fileStorage.upload).not.toHaveBeenCalled();
+      expect(t.branches.createWithImages).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['data that is not JSON', '{name: Downtown'],
+      ['data that is not an object', '"Downtown"'],
+      ['no data', undefined],
+    ])('answers 400 for %s, creating nothing', async (_, data) => {
+      let req = t.http
+        .post(`/businesses/${ANAS_BUSINESS.id}/branches`)
+        .set(bearer(CLERK_TOKEN));
+      if (data !== undefined) req = req.field('data', data);
+      await req
+        .attach('images', PNG, { filename: 'a.png', contentType: 'image/png' })
+        .expect(400);
+
+      expect(t.fileStorage.upload).not.toHaveBeenCalled();
+      expect(t.branches.createWithImages).not.toHaveBeenCalled();
+    });
+
+    it('answers 400 for a field data does not allow', async () => {
+      await post({ ...VALID_BRANCH, ownerId: 7 }).expect(400);
+
+      expect(t.branches.createWithImages).not.toHaveBeenCalled();
     });
 
     it.each([
@@ -186,15 +299,12 @@ describe('Sucursal', () => {
       ['a too short slug', { slug: 'ab' }],
       ['a too long slug', { slug: 'a'.repeat(41) }],
     ])(
-      'rejects %s with 400, without reaching the repository',
+      'rejects %s with 400, without uploading or reaching the repository',
       async (_, override) => {
-        await t.http
-          .post(`/businesses/${ANAS_BUSINESS.id}/branches`)
-          .set(bearer(CLERK_TOKEN))
-          .send({ ...VALID_BRANCH, ...override })
-          .expect(400);
+        await post({ ...VALID_BRANCH, ...override }).expect(400);
 
-        expect(t.branches.create).not.toHaveBeenCalled();
+        expect(t.fileStorage.upload).not.toHaveBeenCalled();
+        expect(t.branches.createWithImages).not.toHaveBeenCalled();
       },
     );
   });

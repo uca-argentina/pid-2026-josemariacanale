@@ -70,16 +70,17 @@ actualizarlo a mano cuando se agregue, cambie o borre un endpoint.
 
 | Método | Ruta | Auth | Qué hace |
 |---|---|---|---|
-| POST | `/businesses/:businessId/branches` | sí | Crea una sucursal bajo un negocio (solo el dueño); 409 si su `slug` ya está en uso en ese negocio |
+| POST | `/businesses/:businessId/branches` | sí | Crea una sucursal bajo un negocio (solo el dueño) junto con sus imágenes, en `multipart/form-data`; 201 con la Sucursal e `images`; 409 si su `slug` ya está en uso en ese negocio |
 | PATCH | `/branches/:id` | sí | Actualiza una sucursal (solo el dueño); 409 si su `slug` ya está en uso en ese negocio; cambiar el `slug` deja de servir el Enlace de reserva anterior de esa sucursal |
 | GET | `/businesses/:businessId/branches` | no | Lista sucursales de un negocio |
 
+- POST: `multipart/form-data`, para que la Sucursal nunca nazca sin imagen. El campo `data` lleva el `CreateBranchDto` como JSON string, con la misma validación que un body JSON: falta `data`, JSON inválido, que no es un objeto o que no pasa el DTO → 400. El campo `images` lleva de 1 a 5 archivos, con las mismas validaciones que `POST /branches/:id/images`: tipo que no es JPEG, PNG, WebP o GIF → 400 `La imagen tiene que ser JPEG, PNG, WebP o GIF`; más de 5 MB → 413. Sin archivos → 400 `At least one image is required`; más de 5 → 400 `Unexpected field - images`. Ningún 400/413 crea nada ni sube archivos. La Sucursal y sus imágenes (con `order` según el orden recibido) se crean en la misma transacción; si una subida o el alta fallan (por ejemplo el 409 de `slug`), los archivos ya subidos se borran
 - `CreateBranchDto`: `{ name, address, timeZone, slug, description? }`. La Sucursal no tiene horario de apertura ni de cierre (ADR 0020): los Horarios reservables salen solo de las Availability
 - `slug` (tramo de Sucursal del Enlace de reserva, ADR 0014: `/<slug del negocio>/<slug de la sucursal>`): mismo formato que el `slug` del Negocio (se pasa a minúsculas, 3-40 caracteres, `^[a-z0-9]+(-[a-z0-9]+)*$`); requerido en creación, opcional en `UpdateBranchDto`; formato inválido → 400; ya usado por otra sucursal del mismo negocio → 409 `Booking link already in use` (dos negocios distintos sí pueden repetirlo)
 - `timeZone`: nombre IANA (por ejemplo `America/Argentina/Buenos_Aires`), nunca un offset; requerido en creación, opcional en `UpdateBranchDto`; inválido → 400
 - `description`: texto libre opcional de la Sucursal, que en su página pública reemplaza al del Negocio; un string vacío (o en blanco) se guarda como `null`. También vale en el `branch` de `POST /businesses`. En `UpdateBranchDto`, `description: null` la quita
 - `UpdateBranchDto`: los mismos campos, todos opcionales
-- Respuesta (`presentBranch`): `{ id, businessId, name, address, timeZone, slug, description }` (`description: string | null`)
+- Respuesta (`presentBranch`): `{ id, businessId, name, address, timeZone, slug, description }` (`description: string | null`). El POST suma `images`: la lista de imágenes de la Sucursal con `presentBranchImage` (`{ id, branchId, url, order }`), en orden
 
 ## Imágenes de Sucursal (BranchImage)
 

@@ -87,7 +87,10 @@ export class PrismaBranchImagesRepository implements BranchImagesRepository {
   }
 }
 
-const toBranchImage = (row: BranchImageRow): BranchImage => ({
+/** Maps a BranchImage row to the domain; also used by the Sucursal repository, which creates them with it. */
+export const toBranchImage = (
+  row: Pick<BranchImageRow, 'id' | 'branchId' | 'url' | 'order'>,
+): BranchImage => ({
   id: row.id,
   branchId: row.branchId,
   url: row.url,
