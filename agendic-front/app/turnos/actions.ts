@@ -21,6 +21,14 @@ export async function payDepositByLinkAction(link: string) {
     );
 }
 
+/** Marca la Falta del Empleado del Turno del Enlace: el Cliente avisa que el Empleado no vino. */
+export async function markEmployeeNoShowByLinkAction(link: string) {
+    return performClientBookingAction(
+        () => getInjection('IMarkEmployeeNoShowByLinkController')({ link }),
+        'No pudimos marcar la falta. Intentá de nuevo.',
+    );
+}
+
 /** Reagenda el Turno pendiente o aceptado del Enlace al Horario reservable `startsAt` (instante ISO). */
 export async function rescheduleBookingByLinkAction(link: string, startsAt: string) {
     return performClientBookingAction(
