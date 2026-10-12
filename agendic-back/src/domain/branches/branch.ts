@@ -1,3 +1,5 @@
+import { BranchImage } from '../branch-images/branch-image';
+
 export interface Branch {
   id: number;
   businessId: number;
@@ -26,4 +28,10 @@ export interface UpdateBranchInput {
   slug?: string;
   /** `null` removes it. */
   description?: string | null;
+}
+
+/** A Sucursal together with its images, ascending by order. */
+export interface BranchWithImages {
+  branch: Branch;
+  images: BranchImage[];
 }
