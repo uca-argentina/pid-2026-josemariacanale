@@ -29,6 +29,10 @@ import {
   USERS_REPOSITORY,
   UsersRepository,
 } from '../../domain/users/users.repository';
+import {
+  assertFiltersBelong,
+  BusinessAnalyticsFilters,
+} from './assert-filters-belong';
 import { KpiPair, pairKpis, parseAnalyticsRange } from './analytics-range';
 
 type Option = { id: number; name: string };
@@ -47,13 +51,6 @@ export type BusinessAnalytics = AnalyticsBreakdown &
       employees?: Option[];
     };
   };
-
-/** Filtros opcionales, todos del Negocio pedido; `employeeId` es solo del Dueño. */
-export type BusinessAnalyticsFilters = {
-  branchId?: number;
-  serviceId?: number;
-  employeeId?: number;
-};
 
 /** Analíticas de los Servicios del Negocio, según el rol de quien mira. */
 @Injectable()
@@ -105,7 +102,13 @@ export class GetBusinessAnalyticsUseCase {
       throw new ForbiddenError('Only the owner can filter by Employee');
 
     const branches = await this.branches.listByBusiness(businessId);
-    await this.assertFiltersBelong(businessId, branches, filters);
+    await assertFiltersBelong(
+      this.services,
+      this.employees,
+      businessId,
+      branches,
+      filters,
+    );
 
     const scope = {
       kind: 'business',
@@ -151,26 +154,5 @@ export class GetBusinessAnalyticsUseCase {
         }),
       },
     };
-  }
-
-  /** Cada filtro pedido tiene que ser del Negocio; un Empleado dado de baja sigue valiendo como filtro (historial). */
-  private async assertFiltersBelong(
-    businessId: number,
-    branches: { id: number }[],
-    { branchId, serviceId, employeeId }: BusinessAnalyticsFilters,
-  ) {
-    const branchIds = new Set(branches.map((b) => b.id));
-    if (branchId !== undefined && !branchIds.has(branchId))
-      throw new NotFoundError(`Branch ${branchId} not found`);
-    if (serviceId !== undefined) {
-      const service = await this.services.findById(serviceId);
-      if (service?.branchId == null || !branchIds.has(service.branchId))
-        throw new NotFoundError(`Service ${serviceId} not found`);
-    }
-    if (employeeId !== undefined) {
-      const employee = await this.employees.findById(employeeId);
-      if (employee?.businessId !== businessId)
-        throw new NotFoundError(`Employee ${employeeId} not found`);
-    }
   }
 }

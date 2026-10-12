@@ -368,6 +368,7 @@ como uno que no existe.
 |---|---|---|---|
 | GET | `/analytics/businesses` | sí | Los Negocios no dados de baja donde el Usuario es Empleado vigente: `200 [{ id, name, isOwner }]`, el suyo primero y los demás por nombre; `[]` si no es Empleado de ninguno |
 | GET | `/analytics/businesses/:businessId?from&to&branchId=<id>?&serviceId=<id>?&employeeId=<id>?` | sí | Las mismas analíticas que `/analytics/personal`, de los Servicios del Negocio (ocultos y dados de baja incluidos) |
+| GET | `/analytics/businesses/:businessId/employees-per-period?from&to&granularity=day\|week\|month&branchId=<id>?&serviceId=<id>?` | sí | Solo para el Dueño: los Turnos de cada Empleado por período |
 
 - Respuesta 200: la misma forma que la personal (`kpis`, `granularity`, `trend`, `popularServices`, `recentRatings`, `filterOptions`) con estas diferencias:
   - `recentRatings[].employeeName` trae el nombre del Empleado que atendió el Turno.
@@ -384,3 +385,11 @@ como uno que no existe.
   - 404 `Branch <id> not found` / `Service <id> not found` / `Employee <id> not found`: el filtro no es del Negocio
 - El alcance de Negocio (`kind: 'business'`, con `branchId` y `employeeId` opcionales; el caso de uso fuerza `employeeId` al del Usuario si no es Dueño) lo resuelve el caso de uso y lo cuenta el mismo `AnalyticsRepository`.
 - El front muestra los rankings solo si vienen en la respuesta, y el filtro por Empleado solo si viene `filterOptions.employees`; usa `GET /analytics/businesses` para el selector de Negocio y para decidir si muestra el hero "Crear Negocio".
+
+#### Turnos por Empleado y período (#273)
+
+- Respuesta 200: `{ buckets: string[], rows: { employeeId, name, imageUrl, counts: number[] }[] }`. `buckets` son los inicios (`YYYY-MM-DD`) de todos los períodos del rango, el primero el que contiene a `from`; `counts[i]` es de `buckets[i]`.
+- La granularidad la elige quien pide (`day`, `week` o `month`), no el largo del rango. La semana arranca en el `weekStart` del Usuario.
+- Cuenta Turnos con `startsAt` en el período, sin Rechazados ni originales reagendados, cortados en la zona de su Sucursal. Una fila por Empleado vigente, incluso con todo en 0, por nombre y luego id. Respeta `branchId` y `serviceId`.
+- Errores: 401 sin Sesión; 403 `Only the owner can see analytics per Employee` si el Usuario no es el Dueño; 400 `Invalid granularity <x>` si no es `day`, `week` ni `month` (`undefined` si falta); los mismos 400 (rango, filtro que no es un número) y 404 (Negocio, Sucursal, Servicio) de `GET /analytics/businesses/:businessId`.
+- El front vuelve a pedir el endpoint al cambiar Por día / Por semana / Por mes; la búsqueda por nombre la hace el front.
