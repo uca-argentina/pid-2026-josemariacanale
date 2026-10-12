@@ -13,11 +13,12 @@ import { RetireServiceUseCase } from '../../application/services/retire-service.
 import { UpdateServiceUseCase } from '../../application/services/update-service.use-case';
 import { GetUserPageUseCase } from '../../application/users/get-user-page.use-case';
 import { ListSlotsUseCase } from '../../application/slots/list-slots.use-case';
+import { HolidaysModule } from '../holidays/holidays.module';
 import { UsersModule } from '../users/users.module';
 import { ServicesController } from './services.controller';
 
 @Module({
-  imports: [UsersModule],
+  imports: [UsersModule, HolidaysModule],
   controllers: [ServicesController],
   providers: [
     CreateServiceUseCase,
