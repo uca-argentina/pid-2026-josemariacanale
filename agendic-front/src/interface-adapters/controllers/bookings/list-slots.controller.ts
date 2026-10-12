@@ -20,6 +20,7 @@ function presenter({ timeZone, days }: Slots, instrumentationService: IInstrumen
                 date: day.date,
                 slots: day.slots.map((startsAt) => ({ startsAt, time: localTime.format(new Date(startsAt)) })),
                 ...(day.reason && { reason: day.reason }),
+                ...(day.outOfOffice && { outOfOffice: day.outOfOffice }),
             })),
         };
     });

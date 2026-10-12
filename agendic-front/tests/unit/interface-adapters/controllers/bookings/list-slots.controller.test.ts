@@ -32,6 +32,19 @@ describe('listSlotsController', () => {
         expect(useCase).toHaveBeenCalledWith(query);
     });
 
+    it('presents the Motivo of a day Fuera de la oficina', async () => {
+        const outOfOffice = { reason: 'PUBLIC_HOLIDAY', notes: 'Día de la Independencia' };
+        const useCase = jest.fn().mockResolvedValue({
+            timeZone: 'UTC',
+            days: [{ date: '2026-07-09', slots: [], reason: 'OUT_OF_OFFICE', outOfOffice }],
+        });
+
+        await expect(listSlotsController(instrumentation, useCase)(query)).resolves.toEqual({
+            timeZone: 'UTC',
+            days: [{ date: '2026-07-09', slots: [], reason: 'OUT_OF_OFFICE', outOfOffice }],
+        });
+    });
+
     it('passes the Empleado elegido to the use case', async () => {
         const useCase = jest.fn().mockResolvedValue({ timeZone: 'UTC', days: [] });
         await listSlotsController(instrumentation, useCase)({ ...query, employeeId: 3 });
