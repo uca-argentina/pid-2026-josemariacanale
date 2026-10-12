@@ -88,7 +88,10 @@ export class NodemailerMailer implements Mailer {
     );
   }
 
-  /** Invita al Cliente a Calificar el Turno, con el Servicio y el día y la hora en la zona del Turno. */
+  /** Invita al Cliente a Calificar el Turno, con el Servicio y el día y la hora en la zona del Turno.
+   *
+   * @throws el transporte SMTP rechazó el mail
+   */
   async sendRatingRequest(
     email: string,
     link: string,

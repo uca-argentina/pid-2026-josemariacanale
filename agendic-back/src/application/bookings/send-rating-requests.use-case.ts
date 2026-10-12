@@ -28,6 +28,11 @@ export class SendRatingRequestsUseCase {
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
+  /**
+   * Una pasada: manda las invitaciones pendientes.
+   *
+   * @throws {DatabaseOperationError} falló la base al buscar los Turnos
+   */
   async execute(): Promise<void> {
     const now = this.clock.now();
     const candidates = await this.bookings.listUnrequestedByEndsAtBetween(

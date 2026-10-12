@@ -7,6 +7,7 @@ import { SendRatingRequestsUseCase } from '../../application/bookings/send-ratin
 export class RatingRequestsJob {
   constructor(private readonly sendRatingRequests: SendRatingRequestsUseCase) {}
 
+  /** Corre una pasada del caso de uso. */
   @Cron('*/15 * * * *')
   run() {
     return this.sendRatingRequests.execute();
