@@ -3,17 +3,40 @@ import { isSessionExpired } from '@/app/api-error';
 import { BackendErrorNotice } from '@/app/_components/BackendErrorNotice';
 import { SIGN_IN_PATH } from '@/app/routes';
 import { getInjection } from '@/di/container';
+import { HolidaysNotConfiguredError } from '@/src/entities/errors/holidays';
 import { myPreferences } from '../../my-preferences';
+import type { HolidaysTabData } from './_components/HolidaysTab';
 import { OutOfOfficeView } from './_components/OutOfOfficeView';
 
 export const metadata = { title: 'Fuera de la oficina' };
 
-/** Los períodos Fuera de la oficina del Usuario con Sesión; `?nuevo` abre el modal de período nuevo. */
-export default async function OutOfOfficePage({ searchParams }: { searchParams: Promise<{ nuevo?: string }> }) {
-    const { nuevo } = await searchParams;
-    let periods;
+/** Lo que la pestaña Días festivos muestra: sus datos, o el mensaje del back si el deploy no tiene Días festivos. */
+async function loadHolidays(): Promise<HolidaysTabData> {
     try {
-        periods = await getInjection('IListMyOutOfOfficeController')();
+        const [countries, settings, conflicts] = await Promise.all([
+            getInjection('IListHolidayCountriesController')(),
+            getInjection('IGetMyHolidaysController')(),
+            getInjection('IListHolidayConflictsController')(),
+        ]);
+        return { countries, settings, conflicts };
+    } catch (error) {
+        if (error instanceof HolidaysNotConfiguredError) return { unavailable: error.message };
+        throw error;
+    }
+}
+
+/**
+ * Fuera de la oficina del Usuario con Sesión: sus períodos, o con `?tab=holidays` sus Días festivos. `?nuevo`
+ * abre el modal de período nuevo.
+ */
+export default async function OutOfOfficePage({ searchParams }: { searchParams: Promise<{ nuevo?: string; tab?: string }> }) {
+    const { nuevo, tab } = await searchParams;
+    const showHolidays = tab === 'holidays';
+    let periods;
+    let holidays;
+    try {
+        if (showHolidays) holidays = await loadHolidays();
+        else periods = await getInjection('IListMyOutOfOfficeController')();
     } catch (error) {
         unstable_rethrow(error);
         if (isSessionExpired(error)) redirect(SIGN_IN_PATH);
@@ -21,5 +44,12 @@ export default async function OutOfOfficePage({ searchParams }: { searchParams: 
         return <BackendErrorNotice />;
     }
 
-    return <OutOfOfficeView periods={periods} openNew={nuevo !== undefined} weekStart={(await myPreferences()).weekStart} />;
+    return (
+        <OutOfOfficeView
+            periods={periods ?? []}
+            openNew={nuevo !== undefined && !showHolidays}
+            weekStart={(await myPreferences()).weekStart}
+            holidays={holidays}
+        />
+    );
 }

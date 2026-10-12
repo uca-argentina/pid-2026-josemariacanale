@@ -4,14 +4,16 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Clock, Ellipsis, Pencil, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { OUT_OF_OFFICE_PATH } from '@/app/routes';
+import { OUT_OF_OFFICE_HOLIDAYS_PATH, OUT_OF_OFFICE_PATH } from '@/app/routes';
 import { PaginationControls } from '@/app/_components/PaginationControls';
 import { Button } from '@/app/_components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/app/_components/ui/dropdown-menu';
+import { ToggleGroup, ToggleGroupItem } from '@/app/_components/ui/toggle-group';
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/app/_components/ui/empty';
 import type { OutOfOffice } from '@/src/entities/models/out-of-office';
 import type { Preferences } from '@/src/entities/models/user';
 import { deleteOutOfOfficeAction } from '../actions';
+import { HolidaysTab, type HolidaysTabData } from './HolidaysTab';
 import { formatOutOfOfficeDate } from './format-out-of-office-date';
 import { OutOfOfficeDialog } from './OutOfOfficeDialog';
 import { OUT_OF_OFFICE_REASONS } from './out-of-office-reasons';
@@ -67,8 +69,19 @@ function OutOfOfficeRow({
  * La pantalla Fuera de la oficina: los períodos del Usuario que llegan del server, paginados acá sobre la
  * lista completa (10 por página al principio). "Añadir" abre el modal de período nuevo, y con `openNew`
  * (`?nuevo`) arranca abierto. `weekStart` es el primer día de la semana del Usuario, para el Calendar del modal.
+ * Con `holidays` (`?tab=holidays`) muestra la pestaña Días festivos en lugar de los períodos.
  */
-export function OutOfOfficeView({ periods, openNew, weekStart }: { periods: OutOfOffice[]; openNew: boolean; weekStart: Preferences['weekStart'] }) {
+export function OutOfOfficeView({
+    periods,
+    openNew,
+    weekStart,
+    holidays,
+}: {
+    periods: OutOfOffice[];
+    openNew: boolean;
+    weekStart: Preferences['weekStart'];
+    holidays?: HolidaysTabData;
+}) {
     const router = useRouter();
     const [dialog, setDialog] = useState<{ period: OutOfOffice | null } | null>(openNew ? { period: null } : null);
     const [busy, setBusy] = useState(false);
@@ -91,6 +104,8 @@ export function OutOfOfficeView({ periods, openNew, weekStart }: { periods: OutO
         else toast.error(result.message);
     };
 
+    const tab = holidays ? 'holidays' : 'mine';
+
     const addButton = (
         <Button type="button" onClick={() => setDialog({ period: null })}>
             <Plus />
@@ -103,12 +118,31 @@ export function OutOfOfficeView({ periods, openNew, weekStart }: { periods: OutO
             <header className="flex items-start justify-between gap-4">
                 <div className="flex min-w-0 flex-col gap-1">
                     <h1 className="m-0 text-xl font-extrabold tracking-tight">Fuera de la oficina</h1>
-                    <p className="m-0 text-sm text-muted-foreground">Informá a tus Clientes cuando estés fuera de la oficina.</p>
+                    <p className="m-0 text-sm text-muted-foreground">
+                        {holidays
+                            ? 'Te marcamos como no disponible en los Días festivos que elijas.'
+                            : 'Informá a tus Clientes cuando estés fuera de la oficina.'}
+                    </p>
                 </div>
-                {addButton}
+                <div className="flex items-center gap-2">
+                    <ToggleGroup
+                        variant="outline"
+                        spacing={0}
+                        value={[tab]}
+                        onValueChange={([next]) => {
+                            if (next && next !== tab) router.push(next === 'holidays' ? OUT_OF_OFFICE_HOLIDAYS_PATH : OUT_OF_OFFICE_PATH);
+                        }}
+                    >
+                        <ToggleGroupItem value="mine">Mis períodos</ToggleGroupItem>
+                        <ToggleGroupItem value="holidays">Días festivos</ToggleGroupItem>
+                    </ToggleGroup>
+                    {!holidays && addButton}
+                </div>
             </header>
 
-            {periods.length > 0 ? (
+            {holidays ? (
+                <HolidaysTab data={holidays} />
+            ) : periods.length > 0 ? (
                 <>
                     <ul className="m-0 mt-8 list-none divide-y overflow-hidden rounded-md border p-0">
                         {visible.map((period) => (

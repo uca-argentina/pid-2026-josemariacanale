@@ -1,4 +1,5 @@
 import type { IAvailabilitiesRepository } from '@/src/application/repositories/availabilities.repository.interface';
+import type { IHolidaysRepository } from '@/src/application/repositories/holidays.repository.interface';
 import type { IOutOfOfficeRepository } from '@/src/application/repositories/out-of-office.repository.interface';
 import type { IBookingsRepository } from '@/src/application/repositories/bookings.repository.interface';
 import type { IClientBookingsRepository } from '@/src/application/repositories/client-bookings.repository.interface';
@@ -69,6 +70,15 @@ export const outOfOfficeWith = (stubs: Partial<IOutOfOfficeRepository>): IOutOfO
     createOutOfOffice: jest.fn(notStubbed('createOutOfOffice')),
     updateOutOfOffice: jest.fn(notStubbed('updateOutOfOffice')),
     deleteOutOfOffice: jest.fn(notStubbed('deleteOutOfOffice')),
+    ...stubs,
+});
+
+export const holidaysWith = (stubs: Partial<IHolidaysRepository>): IHolidaysRepository => ({
+    listCountries: jest.fn(notStubbed('listCountries')),
+    getSettings: jest.fn(notStubbed('getSettings')),
+    setCountry: jest.fn(notStubbed('setCountry')),
+    setEnabled: jest.fn(notStubbed('setEnabled')),
+    listConflicts: jest.fn(notStubbed('listConflicts')),
     ...stubs,
 });
 
