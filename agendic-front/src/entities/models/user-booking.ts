@@ -10,6 +10,8 @@ export const userBookingSchema = z.object({
     clientName: z.string(),
     clientEmail: z.string(),
     noShowAt: z.iso.datetime().nullable(),
+    /** Falta del Empleado: cuándo el Cliente avisó que no vino; null si no. */
+    employeeNoShowAt: z.iso.datetime().nullable(),
     serviceId: z.number(),
     serviceName: z.string(),
     /** El Empleado del Turno; null en un Servicio personal. */
@@ -20,6 +22,8 @@ export const userBookingSchema = z.object({
     depositAmount: z.number().nullable(),
     /** Cuándo se pagó la Seña; null mientras no se paga. */
     depositPaidAt: z.iso.datetime().nullable(),
+    /** El Turno que este Reagendó (ADR 0031); null si no viene de un Reagendamiento. */
+    fromRescheduleId: z.number().nullable(),
     /** Null en un Servicio personal, junto con `branch`. */
     business: z.object({ id: z.number(), name: z.string() }).nullable(),
     /** Null en un Servicio personal, junto con `business`. */

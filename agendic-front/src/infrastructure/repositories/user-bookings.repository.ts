@@ -79,8 +79,10 @@ export class UserBookingsRepository implements IUserBookingsRepository {
      * @throws {BookingStateError} la API respondió cualquier otro 422
      * @throws {ApiRequestError} falla de red u otro status no-OK
      */
-    async reschedule(bookingId: number, startsAt: string): Promise<void> {
-        await this.request('PATCH', `/bookings/${bookingId}/reschedule`, { startsAt });
+    async reschedule(bookingId: number, startsAt: string): Promise<{ id: number }> {
+        const json = await this.request('PATCH', `/bookings/${bookingId}/reschedule`, { startsAt });
+        if (typeof json?.id !== 'number') throw new ApiRequestError(`PATCH /bookings/${bookingId}/reschedule responded without a numeric Turno id: ${JSON.stringify(json)}`);
+        return { id: json.id };
     }
 
     /**

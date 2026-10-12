@@ -1,4 +1,4 @@
-import { cabinOf, groupByDay, hasPendingDeposit, matches, placeOf, sortForTab, tabOf, type Booking } from '@/app/(app)/bookings/_components/booking-helpers';
+import { badgesOf, cabinOf, canMarkNoShow, groupByDay, hasPendingDeposit, matches, placeOf, sortForTab, tabOf, type Booking } from '@/app/(app)/bookings/_components/booking-helpers';
 
 const NOW = Date.parse('2026-09-15T15:00:00-03:00');
 
@@ -10,6 +10,7 @@ const booking = (patch: Partial<Booking>): Booking => ({
     clientName: 'Lucía Bermúdez',
     clientEmail: 'lucia@gmail.com',
     noShowAt: null,
+    employeeNoShowAt: null,
     serviceId: 2,
     employeeId: 5,
     employeeChosen: false,
@@ -19,6 +20,7 @@ const booking = (patch: Partial<Booking>): Booking => ({
     business: { id: 3, name: 'Spa' },
     branch: { id: 4, name: 'Centro' },
     cabin: null,
+    fromRescheduleId: null,
     ...patch,
 });
 
@@ -93,5 +95,26 @@ describe('matches', () => {
         expect(matches(b, [{ field: 'clientName', op: 'is', value: 'lucía bermúdez' }])).toBe(true);
         expect(matches(b, [{ field: 'clientName', op: 'is', value: 'lucía' }])).toBe(false);
         expect(matches(b, [{ field: 'clientEmail', op: 'contains', value: 'GMAIL' }])).toBe(true);
+    });
+});
+
+describe('badgesOf', () => {
+    it('marca Reagendado cuando el Turno viene de un Reagendamiento', () => {
+        expect(badgesOf(booking({ fromRescheduleId: 4 })).map((b) => b.label)).toEqual(['Reagendado']);
+        expect(badgesOf(booking({})).map((b) => b.label)).toEqual([]);
+    });
+});
+
+describe('Falta del Empleado', () => {
+    it('lleva el badge rojo "Falta del Empleado"', () => {
+        expect(badgesOf(booking({ employeeNoShowAt: '2026-09-15T20:00:00.000Z' }))).toEqual([
+            { label: 'Falta del Empleado', className: expect.stringContaining('#b91c1c') },
+        ]);
+    });
+
+    it('no ofrece Marcar ausencia con Falta del Empleado ni con Ausencia', () => {
+        expect(canMarkNoShow(booking({}))).toBe(true);
+        expect(canMarkNoShow(booking({ employeeNoShowAt: '2026-09-15T20:00:00.000Z' }))).toBe(false);
+        expect(canMarkNoShow(booking({ noShowAt: '2026-09-15T20:00:00.000Z' }))).toBe(false);
     });
 });
