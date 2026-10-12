@@ -33,6 +33,10 @@ export type Service = z.infer<typeof serviceSchema>;
 /** The Tiempo de preparación a Servicio may ask for, in minutes; 0 is none. */
 export const PREP_MINUTES = [0, 5, 10, 15, 30, 60] as const;
 
+/** A Cabina a Servicio admits, as the catalog lists it: only its name, which is all the panel shows of it (ADR 0030). */
+export const serviceCabinSchema = z.object({ id: z.number(), name: z.string() });
+export type ServiceCabin = z.infer<typeof serviceCabinSchema>;
+
 /** An Empleado in charge of a Servicio in the panel's catalog, with the Availability they attend it with. */
 export const catalogServiceEmployeeSchema = serviceEmployeeSchema.extend({ availabilityId: z.number() });
 export type CatalogServiceEmployee = z.infer<typeof catalogServiceEmployeeSchema>;
@@ -40,7 +44,8 @@ export type CatalogServiceEmployee = z.infer<typeof catalogServiceEmployeeSchema
 /**
  * A Servicio as the panel's catalog and POST /branches/:id/services return it. `hidden` is the Servicio oculto,
  * `prepMinutes` the Tiempo de preparación, `dailyLimit` the Límite diario (null: no limit), `slotInterval` the
- * Intervalo (null: the duration) and `minimumNoticeMinutes` the Anticipación mínima (0: none).
+ * Intervalo (null: the duration) and `minimumNoticeMinutes` the Anticipación mínima (0: none). `cabins` are the active
+ * Cabinas it admits, by name; empty when it uses none, and always empty in a Servicio personal.
  */
 export const catalogServiceSchema = serviceSchema.extend({
     slug: z.string(),
@@ -51,6 +56,7 @@ export const catalogServiceSchema = serviceSchema.extend({
     slotInterval: z.number().nullable(),
     minimumNoticeMinutes: z.number(),
     employees: z.array(catalogServiceEmployeeSchema),
+    cabins: z.array(serviceCabinSchema),
 });
 export type CatalogService = z.infer<typeof catalogServiceSchema>;
 
@@ -83,10 +89,11 @@ export type CreateService = z.infer<typeof createServiceSchema>;
 
 /**
  * A Servicio personal (ADR 0021): of a Usuario, attended with one of their Availability, without Sucursal or
- * Empleados. As GET and POST /users/me/services and the public GET /u/:userSlug return it.
+ * Empleados. As GET and POST /users/me/services and the public GET /u/:userSlug return it. It has no `cabins`: the public
+ * view never carries them and a Servicio personal uses none.
  */
 export const personalServiceSchema = catalogServiceSchema
-    .omit({ branchId: true, employees: true })
+    .omit({ branchId: true, employees: true, cabins: true })
     .extend({ availabilityId: z.number() });
 export type PersonalService = z.infer<typeof personalServiceSchema>;
 
@@ -110,6 +117,7 @@ export type MyService = ServiceInCatalog | { group: null; branch: null; service:
  * What PATCH /services/:id accepts, plus the Servicio that goes in the path. Every field is optional: only the ones
  * sent change, on a Servicio del Negocio or a personal one. `depositPercent: null` drops the Seña, `dailyLimit: null` the Límite diario and `slotInterval: null`
  * the Intervalo.
+ * `cabinIds` replaces the whole set of Cabinas the Servicio admits; `[]` leaves it with none.
  */
 export const updateServiceSchema = z.object({
     id: z.number().int(),
@@ -131,6 +139,7 @@ export const updateServiceSchema = z.object({
     minimumNoticeMinutes: z.number().int().min(0).optional(),
     /** Only a Servicio personal: one of the Usuario's own Availability. */
     availabilityId: z.number().int().positive().optional(),
+    cabinIds: z.array(z.number().int().positive()).optional(),
 });
 export type UpdateService = z.infer<typeof updateServiceSchema>;
 

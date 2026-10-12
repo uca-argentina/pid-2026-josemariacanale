@@ -10,6 +10,7 @@ export type IUpdateServiceUseCase = ReturnType<typeof updateServiceUseCase>;
  * @throws {ServiceSlugTakenError} the tramo is taken in that Sucursal, or among the Usuario's Servicios personales
  * @throws {ServiceNameTakenError} the name is taken in that Sucursal, or among the Usuario's Servicios personales
  * @throws {NotFoundError} the Servicio, or the Availability sent, does not exist
+ * @throws {CabinNotOfBranchError} a Cabina sent is not an active one of the Sucursal
  * @throws {ApiRequestError} not its Dueño or its Usuario, or the back failed
  */
 export const updateServiceUseCase =

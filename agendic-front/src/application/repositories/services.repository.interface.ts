@@ -46,11 +46,12 @@ export interface IServicesRepository {
      */
     createPersonalService(input: CreatePersonalService): Promise<PersonalService>;
     /**
-     * Changes the fields sent of a Servicio, del Negocio or personal; `depositPercent: null` drops the Seña.
+     * Changes the fields sent of a Servicio, del Negocio or personal; `depositPercent: null` drops the Seña and `cabinIds` replaces the Cabinas it admits.
      *
      * @throws {ServiceSlugTakenError} another Servicio of the Sucursal, or of the Usuario, uses that tramo (409)
      * @throws {ServiceNameTakenError} another Servicio of the Sucursal, or of the Usuario, has that name (409)
      * @throws {NotFoundError} the Servicio, or the Availability sent, does not exist (404)
+     * @throws {CabinNotOfBranchError} a Cabina sent is not an active one of the Sucursal (422)
      * @throws {ApiRequestError} not the Dueño (403), invalid data (400) or any other failure
      */
     updateService(input: UpdateService): Promise<CatalogService | PersonalService>;
