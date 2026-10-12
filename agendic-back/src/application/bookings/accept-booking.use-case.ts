@@ -8,6 +8,7 @@ import {
   EMPLOYEES_REPOSITORY,
   EmployeesRepository,
 } from '../../domain/employees/employees.repository';
+import { CLOCK, Clock } from '../../domain/clock';
 import { resolvePendingBooking } from './resolve-pending-booking';
 
 /** Acepta un Turno pendiente. */
@@ -17,6 +18,7 @@ export class AcceptBookingUseCase {
     @Inject(BOOKINGS_REPOSITORY) private readonly bookings: BookingsRepository,
     @Inject(EMPLOYEES_REPOSITORY)
     private readonly employees: EmployeesRepository,
+    @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
   /**
@@ -31,6 +33,7 @@ export class AcceptBookingUseCase {
       userId,
       bookingId,
       BookingStatus.BOOKED,
+      this.clock.now(),
     );
   }
 }

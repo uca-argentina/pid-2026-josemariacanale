@@ -7,6 +7,7 @@ Estas reglas las garantizan constraints escritas a mano en el SQL de las migraci
 - un Usuario es Empleado activo de a lo sumo un Negocio a la vez: único por `(userId, businessId)` entre los Empleados que no están dados de baja (`deletedAt` en null). Recontratar a alguien dado de baja crea una fila nueva (ADR 0013);
 - un Usuario tiene a lo sumo una Availability predeterminada: único parcial `Availability_userId_default_key` sobre `userId` donde `isDefault`;
 - dos Franjas de la misma Anulación (misma Availability y fecha) no se solapan, usando intervalos semiabiertos, así que dos que se tocan (09:00–17:00 y 17:00–18:00) sí entran. Es la exclusion constraint `AvailabilityOverride_no_overlap`, por `(availabilityId, date)`, con un `WHERE` que deja afuera las filas de día libre (las dos horas en null, sin rango que armar); como Postgres no tiene rango de `time`, cada hora se fija a una fecha arbitraria para compararla como `tsrange`.
+- `Booking.cancelledAt` solo puede tener valor con `status = CANCELLED` (`Booking_cancelledAt_only_cancelled`), y `Booking.rejectedAt` solo con `status = REJECTED` (`Booking_rejectedAt_only_rejected`): son CHECKs. Los dos los escribe la aplicación con la hora del reloj, al Cancelar o al Rechazar turno.
 
 Las Franjas de una Availability ya no tienen constraint: desde que `AvailabilityInterval.days` es un arreglo (ADR 0020), un exclude no puede comparar los días uno a uno, y el no solapamiento por día lo valida solo la API, que reemplaza todas las Franjas en una transacción.
 

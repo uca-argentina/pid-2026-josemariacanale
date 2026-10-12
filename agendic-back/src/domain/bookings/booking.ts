@@ -33,6 +33,12 @@ export interface Booking {
   depositAmount: number | null;
   /** Pagar la Seña: when the Cliente paid it; null while it is pending. */
   depositPaidAt: Date | null;
+  /** The Servicio's price fixed at booking: later changes to the Servicio don't touch it. */
+  price: number;
+  /** Cancelar: when it was cancelled, from the clock; null unless CANCELLED. */
+  cancelledAt: Date | null;
+  /** Rechazar turno: when it was rejected, from the clock; null unless REJECTED. */
+  rejectedAt: Date | null;
 }
 
 /**

@@ -52,6 +52,8 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | Categoría de Servicio | `ServiceCategory` (`Service.category`) |
 | Aprobación manual | `Service.requiresApproval` |
 | Seña | `Service.depositPercent` (opcional) |
+| Precio del Turno | `Booking.price` (el precio del Servicio fijado al Reservar, como `depositAmount`; los cambios posteriores al Servicio no lo tocan) |
+| Cuándo se Canceló o Rechazó un Turno | `Booking.cancelledAt` (al Cancelar, de cualquier forma, incluida Dar de baja) y `Booking.rejectedAt` (al Rechazar turno); `null` fuera de su estado, lo garantiza un CHECK (ADR 0004); la API todavía no los expone |
 | Seña pendiente | `Booking.depositAmount` (monto fijado al Reservar: precio × `depositPercent` / 100 redondeado al centavo; `null` sin Seña) y `Booking.depositPaidAt` (`null` mientras no se paga); Seña pendiente = `depositAmount !== null && depositPaidAt === null` |
 | Servicio oculto | `Service.hidden` |
 | Tiempo de preparación | `Service.prepMinutes` (0 = sin preparación); en el Turno, `Booking.prepStartsAt` (desde cuándo ocupa al Empleado) |

@@ -133,6 +133,7 @@ export class CreateBookingUseCase {
         notes: input.notes || null, // a blank Comentario del Turno is no Comentario
         employeeChosen: input.employeeId !== undefined,
         depositAmount,
+        price: service.price,
         status,
       },
       dailyLimit,
