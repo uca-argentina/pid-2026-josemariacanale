@@ -2,7 +2,15 @@ import type { IAuthenticationService } from '@/src/application/services/authenti
 import type { IInstrumentationService } from '@/src/application/services/instrumentation.service.interface';
 import type { IGetPersonalAnalyticsUseCase } from '@/src/application/use-cases/analytics/get-personal-analytics.use-case';
 import { InputParseError } from '@/src/entities/errors/common';
-import { analyticsQuerySchema, KPI_NAMES, type KpiName, type PersonalAnalytics } from '@/src/entities/models/analytics';
+import {
+    analyticsQuerySchema,
+    KPI_NAMES,
+    TREND_SERIES,
+    type Granularity,
+    type KpiName,
+    type PersonalAnalytics,
+    type TrendSeries,
+} from '@/src/entities/models/analytics';
 
 const DASH = '—';
 
@@ -47,8 +55,39 @@ export function variation(current: number | null, previous: number | null, badWh
     } as const;
 }
 
-function presenter({ kpis }: PersonalAnalytics, instrumentationService: IInstrumentationService) {
+const SERIES_LABELS: Record<TrendSeries, string> = {
+    booked: 'Reservados',
+    attended: 'Atendidos',
+    rescheduled: 'Reagendados',
+    cancelled: 'Cancelados',
+    rejected: 'Rechazados',
+    noShows: 'Ausencias',
+    employeeNoShows: 'Faltas del Empleado',
+};
+
+const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+
+/** El eje X: "12 oct" por día y por semana (el lunes que la abre), "oct 2026" por mes. A mano: sale igual en el server y en el browser. */
+export function formatBucket(bucket: string, granularity: Granularity) {
+    const [year, month, day] = bucket.split('-').map(Number);
+    return granularity === 'month' ? `${MONTHS[month - 1]} ${year}` : `${day} ${MONTHS[month - 1]}`;
+}
+
+function presenter({ kpis, granularity, trend, popularServices, recentRatings, filterOptions }: PersonalAnalytics, instrumentationService: IInstrumentationService) {
     return instrumentationService.startSpan({ name: 'getPersonalAnalytics Presenter', op: 'serialize' }, () => ({
+        chart: {
+            series: TREND_SERIES.map((key) => ({ key, label: SERIES_LABELS[key] })),
+            points: trend.map((point) => ({ ...point, label: formatBucket(point.bucket, granularity) })),
+        },
+        popularServices: popularServices.map(({ serviceId, name, count: n }) => ({ id: serviceId, name, count: count(n) })),
+        recentRatings: recentRatings.map(({ score, comment, createdAt, clientName, serviceName }) => ({
+            score,
+            comment,
+            createdAt,
+            clientName,
+            serviceName,
+        })),
+        services: filterOptions.services,
         cards: KPI_NAMES.map((id) => {
             const { label, format, badWhenUp } = KPI_CARDS[id];
             const { current, previous } = kpis[id];

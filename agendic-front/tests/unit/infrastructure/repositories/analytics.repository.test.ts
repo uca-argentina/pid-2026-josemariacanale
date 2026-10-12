@@ -4,7 +4,13 @@ import { AnalyticsRepository } from '@/src/infrastructure/repositories/analytics
 import { authWith, instrumentation } from '@/tests/unit/stubs';
 
 const kpi = { current: 1, previous: null };
-const body = { kpis: Object.fromEntries(['booked', 'attended', 'rescheduled', 'cancelled', 'rejected', 'pending', 'noShows', 'employeeNoShows', 'averageRating', 'csat', 'revenue'].map((n) => [n, kpi])) };
+const body = { kpis: Object.fromEntries(['booked', 'attended', 'rescheduled', 'cancelled', 'rejected', 'pending', 'noShows', 'employeeNoShows', 'averageRating', 'csat', 'revenue'].map((n) => [n, kpi])),
+    granularity: 'day',
+    trend: [],
+    popularServices: [],
+    recentRatings: [],
+    filterOptions: { services: [] },
+};
 const query = { from: '2026-09-13', to: '2026-10-12' };
 
 const repo = (apiUrl: string | undefined = 'http://api') =>
@@ -16,7 +22,7 @@ afterEach(() => jest.restoreAllMocks());
 
 describe('AnalyticsRepository.getPersonalAnalytics', () => {
     it('GETs the range with the bearer token and parses the KPIs', async () => {
-        const fetchSpy = respond(200, { ...body, trend: [] });
+        const fetchSpy = respond(200, body);
 
         await expect(repo().getPersonalAnalytics(query)).resolves.toEqual(body);
         expect(fetchSpy).toHaveBeenCalledWith(

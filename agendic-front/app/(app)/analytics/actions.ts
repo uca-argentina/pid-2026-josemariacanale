@@ -7,17 +7,19 @@ import { getInjection } from '@/di/container';
 import type { DI_RETURN_TYPES } from '@/di/types';
 import type { AnalyticsQuery } from '@/src/entities/models/analytics';
 
-/** Lo que la UI recibe de la carga: las tarjetas, o un error sin detalle (el real va al reporte de fallas). */
-export type PersonalAnalyticsResult = { ok: true; cards: Awaited<ReturnType<DI_RETURN_TYPES['IGetPersonalAnalyticsController']>>['cards'] } | { ok: false };
+/** Lo que presenta el controller: tarjetas, gráfico, ranking, Calificaciones y Servicios del filtro. */
+export type PersonalAnalyticsData = Awaited<ReturnType<DI_RETURN_TYPES['IGetPersonalAnalyticsController']>>;
+
+/** Lo que la UI recibe de la carga: los datos, o un error sin detalle (el real va al reporte de fallas). */
+export type PersonalAnalyticsResult = { ok: true; data: PersonalAnalyticsData } | { ok: false };
 
 /**
- * Las tarjetas de KPI de los Servicios personales del Usuario en un rango de días. El rango sale del browser,
+ * Las analíticas de los Servicios personales del Usuario en un rango de días. El rango sale del browser,
  * que es quien sabe en qué zona está "hoy": por eso la carga es una acción y no parte de la página.
  */
 export async function loadPersonalAnalyticsAction(query: AnalyticsQuery): Promise<PersonalAnalyticsResult> {
     try {
-        const { cards } = await getInjection('IGetPersonalAnalyticsController')(query);
-        return { ok: true, cards };
+        return { ok: true, data: await getInjection('IGetPersonalAnalyticsController')(query) };
     } catch (error) {
         unstable_rethrow(error);
         if (isSessionExpired(error)) redirect(SIGN_IN_PATH);

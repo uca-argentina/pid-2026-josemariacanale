@@ -1,4 +1,4 @@
-import { parseRange, presetRange } from '@/app/(app)/analytics/_components/analytics-range';
+import { parseRange, parseServiceId, presetRange, serviceSearch } from '@/app/(app)/analytics/_components/analytics-range';
 
 const today = '2026-10-12';
 
@@ -35,4 +35,25 @@ describe('parseRange', () => {
             expect(parse(search)).toEqual({ preset: '30d', from: '2026-09-13', to: today });
         },
     );
+});
+
+describe('parseServiceId', () => {
+    const parse = (search: string) => parseServiceId(new URLSearchParams(search));
+
+    it('reads a valid serviceId', () => {
+        expect(parse('serviceId=7')).toBe(7);
+    });
+
+    it.each(['', 'serviceId=', 'serviceId=abc', 'serviceId=0', 'serviceId=-3', 'serviceId=1.5', 'serviceId=7x'])('ignores the invalid URL %s', (search) => {
+        expect(parse(search)).toBeUndefined();
+    });
+});
+
+describe('serviceSearch', () => {
+    it('sets and clears serviceId keeping the rest of the URL', () => {
+        expect(serviceSearch('?range=7d', 7)).toBe('?range=7d&serviceId=7');
+        expect(serviceSearch('?range=7d&serviceId=7', 9)).toBe('?range=7d&serviceId=9');
+        expect(serviceSearch('?range=7d&serviceId=7', undefined)).toBe('?range=7d');
+        expect(serviceSearch('?serviceId=7', undefined)).toBe('');
+    });
 });

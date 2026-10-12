@@ -61,3 +61,18 @@ export type RangeChange = { preset: RangePreset } | { preset: 'custom'; from: st
 /** La URL de un rango, la inversa de `parseRange`; el rango por defecto no lleva nada. */
 export const rangeSearch = (change: RangeChange) =>
     change.preset === 'custom' ? `?from=${change.from}&to=${change.to}` : change.preset === DEFAULT_PRESET ? '' : `?range=${change.preset}`;
+
+/** El Servicio del filtro (`?serviceId=`); un valor que no es un entero positivo se ignora. */
+export function parseServiceId(params: URLSearchParams): number | undefined {
+    const value = params.get('serviceId');
+    return value !== null && /^[1-9]\d*$/.test(value) ? Number(value) : undefined;
+}
+
+/** La URL con `serviceId` puesto, o sacado con `undefined`, y el resto de la búsqueda intacto. */
+export function serviceSearch(search: string, serviceId: number | undefined): string {
+    const params = new URLSearchParams(search);
+    if (serviceId === undefined) params.delete('serviceId');
+    else params.set('serviceId', String(serviceId));
+    const next = params.toString();
+    return next ? `?${next}` : '';
+}

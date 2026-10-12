@@ -4,9 +4,9 @@ import { Card, CardAction, CardDescription, CardHeader, CardTitle } from '@/app/
 import { Skeleton } from '@/app/_components/ui/skeleton';
 import { cn } from '@/app/_components/utils';
 import { KPI_NAMES } from '@/src/entities/models/analytics';
-import type { PersonalAnalyticsResult } from '../actions';
+import type { PersonalAnalyticsData } from '../actions';
 
-type Cards = Extract<PersonalAnalyticsResult, { ok: true }>['cards'];
+type Cards = PersonalAnalyticsData['cards'];
 
 const GRID = 'grid grid-cols-1 gap-4 px-4 lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4';
 
