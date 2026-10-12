@@ -5,6 +5,14 @@ export enum BookingStatus {
   CANCELLED = 'CANCELLED',
 }
 
+/** Calificación: the score the Cliente left on an attended Turno from its Enlace del Turno. */
+export interface BookingRating {
+  /** From 1 to 5. */
+  score: number;
+  comment: string | null;
+  createdAt: Date;
+}
+
 export interface Booking {
   id: number;
   serviceId: number;
@@ -88,6 +96,8 @@ export interface ClientBooking extends Booking {
   timeZone: string;
   /** The Empleado's name, or the attending Usuario's own in a Servicio personal. */
   employeeName: string;
+  /** Calificación: what the Cliente rated it; null while unrated. */
+  rating: BookingRating | null;
   service: {
     name: string;
     durationMinutes: number;

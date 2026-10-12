@@ -93,6 +93,7 @@ const CLIENT_BOOKING_SELECT = {
     },
   },
   employee: { select: { user: { select: { name: true } } } },
+  rating: { select: { score: true, comment: true, createdAt: true } },
   service: {
     select: {
       name: true,
@@ -648,6 +649,23 @@ export class PrismaBookingsRepository implements BookingsRepository {
     return this.findEnriched(id);
   }
 
+  /**
+   * Guarda la Calificación del Turno; el índice único de `bookingId` resuelve la carrera entre dos pedidos.
+   *
+   * @throws {ConflictError} el Turno ya tiene Calificación
+   * @throws {NotFoundError} el Turno no existe
+   */
+  async rate(id: number, score: number, comment: string | null) {
+    await this.prisma.bookingRating
+      .create({ data: { bookingId: id, score, comment } })
+      .catch((error: unknown) => {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002')
+          throw new ConflictError('Turno already rated', { cause: error });
+        return translateError(error);
+      });
+    return this.findEnriched(id);
+  }
+
   /** Applies `data` only while the Turno is still one of `fromStatuses` (and matches `extraWhere`), so a race can't resurrect it. */
   private async updateStatus(
     id: number,
@@ -715,6 +733,7 @@ const toClientBooking = (row: ClientBookingRow): ClientBooking => {
       : (row.service.availability ?? row.user.availabilities[0])?.timeZone ??
         DEFAULT_AVAILABILITY.timeZone,
     employeeName: row.employee ? row.employee.user.name : row.user.name,
+    rating: row.rating,
     service: {
       name: row.service.name,
       durationMinutes: row.service.durationMinutes,

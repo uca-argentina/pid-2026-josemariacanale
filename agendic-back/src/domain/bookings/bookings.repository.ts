@@ -133,4 +133,6 @@ export interface BookingsRepository {
   payDeposit(id: number, now: Date): Promise<ClientBooking>;
   /** Sets employeeNoShowAt on a BOOKED Booking inside its window with no Ausencia or Falta del Empleado yet. Throws BusinessRuleError otherwise. */
   markEmployeeNoShow(id: number, now: Date): Promise<ClientBooking>;
+  /** Saves the Calificación of the Turno. Throws ConflictError if it already has one, even if another request wins the race. */
+  rate(id: number, score: number, comment: string | null): Promise<ClientBooking>;
 }

@@ -220,6 +220,7 @@ export async function createTestApp() {
     markNoShow: jest.fn(),
     payDeposit: jest.fn(),
     markEmployeeNoShow: jest.fn(),
+    rate: jest.fn(),
   };
   const availabilities: jest.Mocked<AvailabilitiesRepository> = {
     listByUser: jest.fn(),

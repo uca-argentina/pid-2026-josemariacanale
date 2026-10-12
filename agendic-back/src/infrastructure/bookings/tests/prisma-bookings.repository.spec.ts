@@ -487,4 +487,35 @@ describe('PrismaBookingsRepository', () => {
       );
     });
   });
+
+  describe('rate', () => {
+    const rating = { create: jest.fn() };
+
+    beforeEach(() => {
+      (prisma as Record<string, unknown>).bookingRating = rating;
+      jest.spyOn(repository as never, 'findEnriched').mockResolvedValue({} as never);
+    });
+
+    it('saves the Calificación of the Turno', async () => {
+      rating.create.mockResolvedValue({});
+
+      await repository.rate(1, 4, 'Muy bien');
+
+      expect(rating.create).toHaveBeenCalledWith({
+        data: { bookingId: 1, score: 4, comment: 'Muy bien' },
+      });
+    });
+
+    it('answers ConflictError when the unique index says it is already rated', async () => {
+      rating.create.mockRejectedValue(knownError('P2002'));
+
+      await expect(repository.rate(1, 4, null)).rejects.toMatchObject({ message: 'Turno already rated', constructor: ConflictError });
+    });
+
+    it('wraps any other database error', async () => {
+      rating.create.mockRejectedValue(new Error('boom'));
+
+      await expect(repository.rate(1, 4, null)).rejects.toBeInstanceOf(DatabaseOperationError);
+    });
+  });
 });

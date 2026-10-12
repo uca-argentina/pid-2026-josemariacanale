@@ -295,6 +295,18 @@ model Booking {
   client         Client?
   fromReschedule Booking?  @relation("Reschedule", fields: [fromRescheduleId], references: [id])
   rescheduledTo  Booking?  @relation("Reschedule")
+  rating         BookingRating?
+}
+
+/// Calificación: el puntaje de 1 a 5 (CHECK, ADR 0004) que el Cliente deja sobre un Turno atendido desde el Enlace del Turno. Una por Turno (índice único) y no se edita.
+model BookingRating {
+  id        Int      @id @default(autoincrement())
+  bookingId Int      @unique
+  score     Int
+  comment   String? // up to 500 characters (checked by the API); null if left empty
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 }
 
 /// Cliente (ADR 0022): una fila por Turno, con el nombre con el que se reservó; el mismo email en tres Turnos son tres filas.

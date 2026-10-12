@@ -1,4 +1,4 @@
-import { IsDateString, IsInt, IsString, MaxLength } from 'class-validator';
+import { IsDateString, IsInt, IsString, Max, MaxLength, Min } from 'class-validator';
 import {
   IfPresent,
   IsName,
@@ -40,6 +40,19 @@ export class CreateBookingDto {
 export class RequestBookingCodeDto {
   @IsNormalizedEmail()
   email!: string;
+}
+
+/** Body de Calificar: el puntaje de 1 a 5 y un comentario opcional. */
+export class RateBookingDto {
+  @IsInt()
+  @Min(1)
+  @Max(5)
+  score!: number;
+
+  @IfPresent()
+  @IsString()
+  @MaxLength(500)
+  comment?: string;
 }
 
 /** Body de Reagendar: el nuevo horario de inicio del Turno. */
