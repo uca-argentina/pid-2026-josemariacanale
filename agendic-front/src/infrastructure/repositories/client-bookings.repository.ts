@@ -66,6 +66,22 @@ export class ClientBookingsRepository implements IClientBookingsRepository {
 
     /**
      * @throws {NotFoundError} el back respondió 404
+     * @throws {BookingStateError} el back respondió 422
+     * @throws {ApiRequestError} cualquier otra respuesta con error, un cuerpo inesperado o una falla de red
+     */
+    async markEmployeeNoShowByLink(link: string): Promise<ClientBooking> {
+        return this.instrumentationService.startSpan(
+            { name: 'ClientBookingsRepository > markEmployeeNoShowByLink', op: 'http.client' },
+            async () => {
+                const what = 'PATCH /booking-links/:link/employee-no-show';
+                const body = await this.request(what, `/booking-links/${encodeURIComponent(link)}/employee-no-show`, { method: 'PATCH' });
+                return parseOrFail(() => clientBookingSchema.parse(body), what);
+            },
+        );
+    }
+
+    /**
+     * @throws {NotFoundError} el back respondió 404
      * @throws {SlotTakenError} el back respondió 409
      * @throws {SlotUnavailableError} el back respondió 422 `Slot … is not available`: el horario ya no es reservable
      * @throws {BookingStateError} el back respondió cualquier otro 422

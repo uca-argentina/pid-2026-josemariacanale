@@ -6,7 +6,7 @@ import { CalendarClock, UserX, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { PanelButton, PanelConfirm } from '@/app/(app)/_components/panel-ui';
 import { acceptBookingAction, markBookingNoShowAction, rejectBookingAction, type BookingActionResult } from '../actions';
-import type { Booking, BookingTab } from './booking-helpers';
+import { canMarkNoShow, type Booking, type BookingTab } from './booking-helpers';
 import { RescheduleDialog } from './RescheduleDialog';
 
 type Dialog = 'reschedule' | 'reject' | 'no-show' | null;
@@ -50,7 +50,7 @@ export function BookingActions({ booking, tab }: { booking: Booking; tab: Bookin
         );
     }
 
-    if (tab === 'past' && booking.noShowAt === null) {
+    if (tab === 'past' && canMarkNoShow(booking)) {
         return (
             <>
                 <PanelButton variant="secondary" disabled={pending} onClick={() => setDialog('no-show')}>

@@ -18,6 +18,7 @@ function presenter(bookings: UserBooking[], instrumentationService: IInstrumenta
             employeeChosen: b.employeeChosen,
             depositAmount: b.depositAmount,
             depositPaidAt: b.depositPaidAt,
+            employeeNoShowAt: b.employeeNoShowAt,
             serviceName: b.serviceName,
             business: b.business,
             branch: b.branch,

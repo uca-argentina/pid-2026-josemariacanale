@@ -12,6 +12,7 @@ const booking = {
     clientName: 'Lucía',
     clientEmail: 'lucia@gmail.com',
     noShowAt: null,
+    employeeNoShowAt: null,
     serviceId: 2,
     serviceName: 'Masaje',
     employeeId: 5,
