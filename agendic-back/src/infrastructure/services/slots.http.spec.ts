@@ -1,5 +1,5 @@
 import { Availability } from '../../domain/availabilities/availability';
-import { NotConfiguredError } from '../../domain/errors';
+import { ExternalServiceError, NotConfiguredError } from '../../domain/errors';
 import {
   OutOfOffice,
   OutOfOfficeReason,
@@ -710,6 +710,17 @@ describe('GET /services/:id/slots', () => {
       t.googleCalendar.assertConfigured.mockImplementation(() => {
         throw new NotConfiguredError('Días festivos no configurados');
       });
+
+      const res = await query(t, {}).expect(200);
+
+      expect(res.body.days[0].slots).toHaveLength(18);
+    });
+
+    it('si Google responde con error los ignora y responde 200', async () => {
+      t.holidays.findLatestUpdatedAt.mockResolvedValue(null);
+      t.googleCalendar.fetchHolidays.mockRejectedValue(
+        new ExternalServiceError('Google Calendar API error'),
+      );
 
       const res = await query(t, {}).expect(200);
 

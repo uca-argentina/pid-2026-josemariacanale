@@ -2,7 +2,7 @@ import { Clock } from '../../domain/clock';
 import { UserHolidays } from '../../domain/holidays/user-holiday-settings';
 import { GetHolidaysForCountryUseCase } from './get-holidays-for-country.use-case';
 
-const isoDate = (date: Date) => date.toISOString().slice(0, 10);
+export const isoDate = (date: Date) => date.toISOString().slice(0, 10);
 
 /**
  * Todos los Días festivos del calendario en el año en curso y el siguiente, con su fecha YYYY-MM-DD. Los años se leen

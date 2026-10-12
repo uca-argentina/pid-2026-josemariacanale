@@ -22,6 +22,12 @@ export interface OutOfOffice {
   showNotePublicly: boolean;
 }
 
+/** Lo que el cálculo de Horarios reservables lee de un período: sus fechas, Motivo y nota. */
+export type OutOfOfficePeriod = Pick<
+  OutOfOffice,
+  'startDate' | 'endDate' | 'reason' | 'notes' | 'showNotePublicly'
+>;
+
 /** Lo que el Usuario carga de un período: todo menos `id` y `userId`. */
 export type OutOfOfficeFields = Omit<OutOfOffice, 'id' | 'userId'>;
 

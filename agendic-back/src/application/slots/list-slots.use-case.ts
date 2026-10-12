@@ -189,22 +189,16 @@ export class ListSlotsUseCase {
         const availability = await this.availabilities.findById(availabilityId);
         if (!availability) throw new NotFoundError(`Availability ${availabilityId} not found`);
         // A day of slack either side (wider than any UTC offset) keeps every local date in [from, to] covered.
-        const bookedRanges = await this.bookings.listOccupiedByUser(
-          userId,
-          new Date(new Date(`${from}T00:00:00.000Z`).getTime() - 86_400_000),
-          new Date(new Date(`${to}T00:00:00.000Z`).getTime() + 2 * 86_400_000),
-          excludeBookingId,
-        );
-        const periods = await this.outOfOffice.listByUserEndingFrom(
-          userId,
-          addDays(from, -1),
-        );
-        // After the períodos so that, on a shared day, the período wins over the Día festivo.
-        const holidays = await this.holidayPeriods.execute(
-          userId,
-          addDays(from, -1),
-          addDays(to, 1),
-        );
+        const [bookedRanges, periods, holidays] = await Promise.all([
+          this.bookings.listOccupiedByUser(
+            userId,
+            new Date(new Date(`${from}T00:00:00.000Z`).getTime() - 86_400_000),
+            new Date(new Date(`${to}T00:00:00.000Z`).getTime() + 2 * 86_400_000),
+            excludeBookingId,
+          ),
+          this.outOfOffice.listByUserEndingFrom(userId, addDays(from, -1)),
+          this.holidayPeriods.execute(userId, addDays(from, -1), addDays(to, 1)),
+        ]);
         return {
           employeeId,
           userId,

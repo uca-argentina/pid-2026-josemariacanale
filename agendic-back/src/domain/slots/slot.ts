@@ -2,7 +2,7 @@ import dayjs from 'dayjs';
 import timezone from 'dayjs/plugin/timezone';
 import utc from 'dayjs/plugin/utc';
 import { Availability } from '../availabilities/availability';
-import { OutOfOffice, OutOfOfficeReason } from '../out-of-office/out-of-office';
+import { OutOfOfficePeriod, OutOfOfficeReason } from '../out-of-office/out-of-office';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -119,10 +119,7 @@ export interface ComputeSlotsInput {
   /** Local dates of the Sucursal on which the Servicio already reached its Límite diario. */
   fullDates: Set<string>;
   /** Períodos Fuera de la oficina of the Empleado, then his Días festivos prendidos as one-day períodos: their days, read in the Availability's zone, have no Franjas, and the first to match a day names its reason. */
-  outOfOffice?: Pick<
-    OutOfOffice,
-    'startDate' | 'endDate' | 'reason' | 'notes' | 'showNotePublicly'
-  >[];
+  outOfOffice?: OutOfOfficePeriod[];
   now: Date;
 }
 
