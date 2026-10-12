@@ -9,6 +9,7 @@
 // - at most one default Availability per User (partial unique index)
 // - no overlapping AvailabilityOverride Franjas per (availabilityId, date), half-open, skipping día-libre rows (exclusion constraint)
 // - BookingSlug: exactly one of businessId / userId (check), slug lowercase (check) (ADR 0026)
+// - Booking.cancelledAt only with status CANCELLED, Booking.rejectedAt only with REJECTED (check)
 // - AvailabilityInterval Franjas of one weekday don't overlap: checked by the API only, since `days` is an array (ADR 0020)
 
 generator client {
