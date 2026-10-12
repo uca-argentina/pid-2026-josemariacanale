@@ -1,4 +1,4 @@
-import { galleryLayout, splitIntoRows } from '@/app/[slug]/_components/gallery-layout';
+import { galleryLayout, slideCounter, splitIntoRows } from '@/app/[slug]/_components/gallery-layout';
 
 describe('galleryLayout', () => {
     describe('mosaic', () => {
@@ -53,5 +53,15 @@ describe('splitIntoRows', () => {
 
     it('puts a single image alone in its row', () => {
         expect(splitIntoRows(['a'], galleryLayout(1).modalRows)).toEqual([['a']]);
+    });
+});
+
+describe('slideCounter', () => {
+    it('counts from one', () => {
+        expect(slideCounter(0, 5)).toBe('1/5');
+    });
+
+    it('shows the last image as N/N', () => {
+        expect(slideCounter(4, 5)).toBe('5/5');
     });
 });

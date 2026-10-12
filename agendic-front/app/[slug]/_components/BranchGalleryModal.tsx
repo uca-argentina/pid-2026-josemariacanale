@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Dialog } from '@base-ui/react/dialog';
 import { X } from 'lucide-react';
 import { BranchPhoto } from '@/app/_components/booking/BranchPhoto';
+import { BranchGalleryViewer } from './BranchGalleryViewer';
 import { galleryLayout, splitIntoRows, type GalleryRow } from './gallery-layout';
 import type { BranchImage } from './types';
 
@@ -30,7 +31,8 @@ function CloseButton() {
 /**
  * Modal blanco a pantalla completa con todas las Imágenes de la Sucursal, en las filas de `galleryLayout`: una a todo
  * el ancho y dos a mitad cada una, alternadas. Entra con fade y un deslizamiento corto desde abajo; se cierra con la X
- * o Esc. Cuando el título sale de vista al scrollear, aparece arriba un encabezado fijo con el título y la X.
+ * o Esc. Cuando el título sale de vista al scrollear, aparece arriba un encabezado fijo con el título y la X. Tocar una
+ * Imagen abre en ella la galería oscura, que al cerrarse vuelve a este modal.
  */
 export function BranchGalleryModal({
     open,
@@ -48,6 +50,7 @@ export function BranchGalleryModal({
     const [scrollerEl, setScrollerEl] = useState<HTMLElement | null>(null);
     const [titleEl, setTitleEl] = useState<HTMLElement | null>(null);
     const [titleVisible, setTitleVisible] = useState(true);
+    const [viewerIndex, setViewerIndex] = useState<number | null>(null);
 
     useEffect(() => {
         if (!scrollerEl || !titleEl) return;
@@ -99,16 +102,31 @@ export function BranchGalleryModal({
                                 const style = ROW_STYLE[row.length as GalleryRow];
                                 return (
                                     <li key={index} className={`grid gap-2 sm:gap-3 ${style.columns}`}>
-                                        {row.map((image) => (
-                                            <div key={image.id} className={`relative overflow-hidden rounded-xl ${style.aspect}`}>
+                                        {row.map((image) => {
+                                            const index = images.indexOf(image);
+                                            return (
+                                            <button
+                                                key={image.id}
+                                                type="button"
+                                                onClick={() => setViewerIndex(index)}
+                                                aria-label={`Ver la foto ${index + 1} en grande`}
+                                                className={`relative cursor-zoom-in overflow-hidden rounded-xl ${style.aspect}`}
+                                            >
                                                 <BranchPhoto src={image.url} sizes={style.sizes} />
-                                            </div>
-                                        ))}
+                                            </button>
+                                            );
+                                        })}
                                     </li>
                                 );
                             })}
                         </ul>
                     </div>
+                    <BranchGalleryViewer
+                        startIndex={viewerIndex}
+                        onClose={() => setViewerIndex(null)}
+                        branchName={branchName}
+                        images={images}
+                    />
                 </Dialog.Popup>
             </Dialog.Portal>
         </Dialog.Root>
