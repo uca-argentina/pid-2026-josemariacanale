@@ -17,10 +17,10 @@ function presenter(branch: Branch, instrumentationService: IInstrumentationServi
 
 export type ICreateBranchController = ReturnType<typeof createBranchController>;
 /**
- * Crea una Sucursal del Negocio del Dueño.
+ * Crea una Sucursal del Negocio del Dueño con sus imágenes, de 1 a 5.
  *
  * @throws {UnauthenticatedError} no hay Sesión
- * @throws {InputParseError} el input no tiene la forma esperada
+ * @throws {InputParseError} el input no tiene la forma esperada, o no trae de 1 a 5 imágenes
  */
 export const createBranchController =
     (

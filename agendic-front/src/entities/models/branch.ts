@@ -17,10 +17,20 @@ export const branchSchema = z.object({
 });
 export type Branch = z.infer<typeof branchSchema>;
 
-/** The exact shape POST /businesses/:businessId/branches expects, plus the businessId that goes in the path. */
+/** How many images a Sucursal has at least and at most: it never exists without one. */
+export const BRANCH_IMAGES = { min: 1, max: 5 } as const;
+
+/**
+ * What POST /businesses/:businessId/branches takes in one multipart request: the fields, the businessId that goes in
+ * the path, and its first images, in order.
+ */
 export const createBranchSchema = branchSchema
     .pick({ name: true, address: true, timeZone: true, slug: true })
-    .extend({ businessId: z.number(), description: z.string().optional() });
+    .extend({
+        businessId: z.number(),
+        description: z.string().optional(),
+        images: z.array(z.instanceof(File)).min(BRANCH_IMAGES.min).max(BRANCH_IMAGES.max),
+    });
 export type CreateBranch = z.infer<typeof createBranchSchema>;
 
 /** The exact shape PATCH /branches/:id expects, plus the id that goes in the path. Every field is optional; `description: null` removes it. */

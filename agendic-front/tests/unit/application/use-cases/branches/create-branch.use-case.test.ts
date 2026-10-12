@@ -3,8 +3,9 @@ import { createBranchUseCase } from '@/src/application/use-cases/branches/create
 import { SlugTakenError } from '@/src/entities/errors/business';
 import { instrumentation } from '@/tests/unit/stubs';
 
-const input = { businessId: 1, name: 'Centro', address: 'Av. 1', timeZone: 'America/Argentina/Buenos_Aires', slug: 'centro' };
-const branch = { ...input, id: 10, description: null };
+const fields = { businessId: 1, name: 'Centro', address: 'Av. 1', timeZone: 'America/Argentina/Buenos_Aires', slug: 'centro' };
+const input = { ...fields, images: [new File(['a'], 'a.png', { type: 'image/png' })] };
+const branch = { ...fields, id: 10, description: null };
 const repoWith = (createBranch: jest.Mock): IBranchesRepository => ({ createBranch, updateBranch: jest.fn() });
 
 describe('createBranchUseCase', () => {

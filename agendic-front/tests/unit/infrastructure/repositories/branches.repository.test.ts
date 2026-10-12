@@ -1,4 +1,4 @@
-import { InvalidSlugError, SlugTakenError } from '@/src/entities/errors/business';
+import { BranchImagesRejectedError, InvalidSlugError, SlugTakenError } from '@/src/entities/errors/business';
 import { ApiRequestError } from '@/src/entities/errors/common';
 import { BranchesRepository } from '@/src/infrastructure/repositories/branches.repository';
 import { authWith } from '@/tests/unit/stubs';
@@ -26,21 +26,30 @@ describe('BranchesRepository.createBranch', () => {
         timeZone: 'America/Argentina/Buenos_Aires',
         slug: 'centro',
         description: 'Con estacionamiento',
+        images: [new File(['a'], 'a.png', { type: 'image/png' }), new File(['b'], 'b.png', { type: 'image/png' })],
     };
 
-    it('POSTs to the Negocio with the bearer token, without the businessId in the body', async () => {
-        const fetchSpy = respond(201, { ...branch, description: 'Con estacionamiento' });
-        const { businessId, ...body } = input;
+    it('POSTs the fields as JSON in `data` and the images in `images`, in one multipart request', async () => {
+        const fetchSpy = respond(201, { ...branch, description: 'Con estacionamiento', images: [] });
+        const { businessId, images, ...fields } = input;
 
         await expect(repo().createBranch(input)).resolves.toMatchObject({ id: 10, description: 'Con estacionamiento' });
-        expect(fetchSpy).toHaveBeenCalledWith(
-            `http://api/businesses/${businessId}/branches`,
-            expect.objectContaining({
-                method: 'POST',
-                headers: expect.objectContaining({ Authorization: 'Bearer tok' }),
-                body: JSON.stringify(body),
-            }),
-        );
+        const [url, init] = fetchSpy.mock.calls[0];
+        expect(url).toBe(`http://api/businesses/${businessId}/branches`);
+        expect(init).toMatchObject({ method: 'POST', headers: { Authorization: 'Bearer tok' } });
+        const form = init!.body as FormData;
+        expect(JSON.parse(form.get('data') as string)).toEqual(fields);
+        expect(form.getAll('images').map((file) => (file as File).name)).toEqual(images.map((file) => file.name));
+    });
+
+    it.each([
+        [400, 'La imagen tiene que ser JPEG, PNG, WebP o GIF', 'type'],
+        [413, 'File too large', 'size'],
+        [400, 'At least one image is required', 'count'],
+        [400, 'Unexpected field - images', 'count'],
+    ])('translates a %i %j to BranchImagesRejectedError with its reason', async (status, message, reason) => {
+        respond(status, { statusCode: status, message });
+        await expect(repo().createBranch(input)).rejects.toMatchObject({ constructor: BranchImagesRejectedError, reason });
     });
 
     it('translates 409 to SlugTakenError', async () => {

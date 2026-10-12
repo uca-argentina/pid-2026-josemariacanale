@@ -5,11 +5,12 @@ import { authWith, instrumentation } from '@/tests/unit/stubs';
 
 const user = { id: 'user_1', name: 'Ana', email: 'a@a.com' };
 const signedIn = () => authWith({ getCurrentUser: jest.fn().mockResolvedValue(user) });
-const input = { businessId: 1, name: 'Centro', address: 'Av. 1', timeZone: 'America/Argentina/Buenos_Aires', slug: 'centro' };
+const images = [new File(['a'], 'a.png', { type: 'image/png' })];
+const input = { businessId: 1, name: 'Centro', address: 'Av. 1', timeZone: 'America/Argentina/Buenos_Aires', slug: 'centro', images };
 
 describe('createBranchController', () => {
     it('returns the presented Sucursal, without businessId', async () => {
-        const fields = { ...input, businessId: undefined };
+        const fields = { ...input, businessId: undefined, images: undefined };
         const useCase = jest.fn().mockResolvedValue({ ...input, id: 10, description: null });
 
         await expect(createBranchController(instrumentation, signedIn(), useCase)(input)).resolves.toEqual({
@@ -24,6 +25,9 @@ describe('createBranchController', () => {
         ['a missing businessId', { ...input, businessId: undefined }],
         ['a non-string slug', { ...input, slug: 3 }],
         ['no input', undefined],
+        ['no images', { ...input, images: [] }],
+        ['more than five images', { ...input, images: Array(6).fill(images[0]) }],
+        ['an image that is not a File', { ...input, images: ['a.png'] }],
     ])('throws InputParseError for %s', async (_case, bad) => {
         const useCase = jest.fn();
 
