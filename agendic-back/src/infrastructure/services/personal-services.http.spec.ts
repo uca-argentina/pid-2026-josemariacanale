@@ -370,6 +370,7 @@ describe('Servicio personal', () => {
       status: BookingStatus.BOOKED,
       notes: null,
       noShowAt: null,
+      employeeNoShowAt: null,
       link: 'booking-link-secret',
       fromRescheduleId: null,
       employeeChosen: false,

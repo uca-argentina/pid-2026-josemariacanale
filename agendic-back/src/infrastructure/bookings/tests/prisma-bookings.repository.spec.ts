@@ -395,7 +395,7 @@ describe('PrismaBookingsRepository', () => {
       await expect(repository.cancel(1, CANCEL_NOW)).rejects.toBeInstanceOf(BusinessRuleError);
     });
 
-    it('markNoShow requires an ended Turno without an Ausencia', async () => {
+    it('markNoShow requires an ended Turno without an Ausencia or a Falta del Empleado', async () => {
       prisma.booking.updateMany.mockResolvedValue({ count: 1 });
 
       await repository.markNoShow(1, NOW);
@@ -406,9 +406,37 @@ describe('PrismaBookingsRepository', () => {
           status: { in: [BookingStatus.BOOKED] },
           endsAt: { lte: NOW },
           noShowAt: null,
+          employeeNoShowAt: null,
         },
         data: { noShowAt: NOW },
       });
+    });
+
+    it('markEmployeeNoShow requires an accepted Turno inside its window, with neither mark', async () => {
+      jest.spyOn(repository as never, 'findEnriched').mockResolvedValue({} as never);
+      prisma.booking.updateMany.mockResolvedValue({ count: 1 });
+
+      await repository.markEmployeeNoShow(1, NOW);
+
+      expect(prisma.booking.updateMany).toHaveBeenCalledWith({
+        where: {
+          id: 1,
+          status: { in: [BookingStatus.BOOKED] },
+          startsAt: { lte: NOW },
+          endsAt: { gte: new Date(NOW.getTime() - 24 * 60 * 60 * 1000) },
+          noShowAt: null,
+          employeeNoShowAt: null,
+        },
+        data: { employeeNoShowAt: NOW },
+      });
+    });
+
+    it('markEmployeeNoShow answers the 422 of a lost race when nothing matched', async () => {
+      prisma.booking.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(repository.markEmployeeNoShow(1, NOW)).rejects.toThrow(
+        'Employee no-show not allowed for this Turno',
+      );
     });
 
     it('payDeposit requires a pending or booked Turno with a Seña unpaid that has not started', async () => {
@@ -457,6 +485,37 @@ describe('PrismaBookingsRepository', () => {
           where: expect.objectContaining({ id: { not: 9 } }),
         }),
       );
+    });
+  });
+
+  describe('rate', () => {
+    const rating = { create: jest.fn() };
+
+    beforeEach(() => {
+      (prisma as Record<string, unknown>).bookingRating = rating;
+      jest.spyOn(repository as never, 'findEnriched').mockResolvedValue({} as never);
+    });
+
+    it('saves the Calificación of the Turno', async () => {
+      rating.create.mockResolvedValue({});
+
+      await repository.rate(1, 4, 'Muy bien');
+
+      expect(rating.create).toHaveBeenCalledWith({
+        data: { bookingId: 1, score: 4, comment: 'Muy bien' },
+      });
+    });
+
+    it('answers ConflictError when the unique index says it is already rated', async () => {
+      rating.create.mockRejectedValue(knownError('P2002'));
+
+      await expect(repository.rate(1, 4, null)).rejects.toMatchObject({ message: 'Turno already rated', constructor: ConflictError });
+    });
+
+    it('wraps any other database error', async () => {
+      rating.create.mockRejectedValue(new Error('boom'));
+
+      await expect(repository.rate(1, 4, null)).rejects.toBeInstanceOf(DatabaseOperationError);
     });
   });
 });

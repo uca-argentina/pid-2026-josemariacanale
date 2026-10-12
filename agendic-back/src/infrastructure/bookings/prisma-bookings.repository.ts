@@ -22,6 +22,7 @@ import {
   DatabaseOperationError,
   NotFoundError,
 } from '../../domain/errors';
+import { EMPLOYEE_NO_SHOW_WINDOW_HOURS } from '../../domain/bookings/employee-no-show';
 import { DEFAULT_AVAILABILITY } from '../../domain/availabilities/availability';
 import { Prisma } from '../../generated/prisma/client';
 import {
@@ -53,6 +54,7 @@ const BOOKING_SELECT = {
   status: true,
   notes: true,
   noShowAt: true,
+  employeeNoShowAt: true,
   link: true,
   fromRescheduleId: true,
   employeeChosen: true,
@@ -91,6 +93,7 @@ const CLIENT_BOOKING_SELECT = {
     },
   },
   employee: { select: { user: { select: { name: true } } } },
+  rating: { select: { score: true, comment: true, createdAt: true } },
   service: {
     select: {
       name: true,
@@ -534,7 +537,7 @@ export class PrismaBookingsRepository implements BookingsRepository {
   }
 
   /**
-   * @throws {BusinessRuleError} el Turno no está aceptado, su horario no terminó o ya tiene Ausencia
+   * @throws {BusinessRuleError} el Turno no está aceptado, su horario no terminó, ya tiene Ausencia o tiene Falta del Empleado
    * @throws {NotFoundError} el Turno no existe
    */
   async markNoShow(id: number, now: Date) {
@@ -542,8 +545,8 @@ export class PrismaBookingsRepository implements BookingsRepository {
       id,
       [BookingStatus.BOOKED],
       { noShowAt: now },
-      'Turno is not booked, has not ended yet, or already has an Ausencia',
-      { endsAt: { lte: now }, noShowAt: null },
+      'Turno is not booked, has not ended yet, or already has an Ausencia or an Employee no-show',
+      { endsAt: { lte: now }, noShowAt: null, employeeNoShowAt: null },
     );
     return this.findById(id);
   }
@@ -624,6 +627,45 @@ export class PrismaBookingsRepository implements BookingsRepository {
       );
   }
 
+  /**
+   * Marca la Falta del Empleado, solo si la guarda sigue valiendo en el momento de escribir.
+   *
+   * @throws {BusinessRuleError} el Turno ya no está aceptado, no empezó, pasó la ventana, o ya tiene Ausencia o Falta del Empleado
+   * @throws {NotFoundError} el Turno no existe
+   */
+  async markEmployeeNoShow(id: number, now: Date) {
+    await this.updateStatus(
+      id,
+      [BookingStatus.BOOKED],
+      { employeeNoShowAt: now },
+      'Employee no-show not allowed for this Turno',
+      {
+        startsAt: { lte: now },
+        endsAt: { gte: new Date(now.getTime() - EMPLOYEE_NO_SHOW_WINDOW_HOURS * 3_600_000) },
+        noShowAt: null,
+        employeeNoShowAt: null,
+      },
+    );
+    return this.findEnriched(id);
+  }
+
+  /**
+   * Guarda la Calificación del Turno; el índice único de `bookingId` resuelve la carrera entre dos pedidos.
+   *
+   * @throws {ConflictError} el Turno ya tiene Calificación
+   * @throws {NotFoundError} el Turno no existe
+   */
+  async rate(id: number, score: number, comment: string | null) {
+    await this.prisma.bookingRating
+      .create({ data: { bookingId: id, score, comment } })
+      .catch((error: unknown) => {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002')
+          throw new ConflictError('Turno already rated', { cause: error });
+        return translateError(error);
+      });
+    return this.findEnriched(id);
+  }
+
   /** Applies `data` only while the Turno is still one of `fromStatuses` (and matches `extraWhere`), so a race can't resurrect it. */
   private async updateStatus(
     id: number,
@@ -660,6 +702,7 @@ const toBooking = (row: BookingRow): Booking => ({
   status: row.status as BookingStatus,
   notes: row.notes,
   noShowAt: row.noShowAt,
+  employeeNoShowAt: row.employeeNoShowAt,
   link: row.link,
   fromRescheduleId: row.fromRescheduleId,
   employeeChosen: row.employeeChosen,
@@ -690,6 +733,7 @@ const toClientBooking = (row: ClientBookingRow): ClientBooking => {
       : (row.service.availability ?? row.user.availabilities[0])?.timeZone ??
         DEFAULT_AVAILABILITY.timeZone,
     employeeName: row.employee ? row.employee.user.name : row.user.name,
+    rating: row.rating,
     service: {
       name: row.service.name,
       durationMinutes: row.service.durationMinutes,

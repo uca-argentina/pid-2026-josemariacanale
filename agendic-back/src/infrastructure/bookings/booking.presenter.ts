@@ -1,3 +1,5 @@
+import { employeeNoShowBlocker } from '../../domain/bookings/employee-no-show';
+import { ratingBlocker } from '../../domain/bookings/rating';
 import {
   Booking,
   ClientBooking,
@@ -44,6 +46,7 @@ export const presentUserBooking = (booking: UserBooking) => ({
   clientName: booking.clientName,
   clientEmail: booking.clientEmail,
   noShowAt: booking.noShowAt,
+  employeeNoShowAt: booking.employeeNoShowAt,
   employeeChosen: booking.employeeChosen,
   fromRescheduleId: booking.fromRescheduleId,
   depositAmount: booking.depositAmount,
@@ -55,8 +58,12 @@ export const presentUserBooking = (booking: UserBooking) => ({
   branch: booking.branch,
 });
 
-/** Enlace del Turno: el Turno con los datos de dónde pasa, para quien abre su Enlace. */
-export const presentClientBooking = (booking: ClientBooking) => ({
+/**
+ * Enlace del Turno: el Turno con los datos de dónde pasa, para quien abre su Enlace.
+ *
+ * @param now decide `canMarkEmployeeNoShow` y `canRate`, que calcula el back porque el Cliente no ve la Ausencia
+ */
+export const presentClientBooking = (booking: ClientBooking, now: Date) => ({
   id: booking.id,
   status: booking.status,
   startsAt: booking.startsAt,
@@ -69,6 +76,10 @@ export const presentClientBooking = (booking: ClientBooking) => ({
   employeeChosen: booking.employeeChosen,
   depositAmount: booking.depositAmount,
   depositPaidAt: booking.depositPaidAt,
+  employeeNoShowAt: booking.employeeNoShowAt,
+  canMarkEmployeeNoShow: employeeNoShowBlocker(booking, now) === null,
+  rating: booking.rating,
+  canRate: !booking.rating && ratingBlocker(booking, now) === null,
   service: booking.service,
   employeeName: booking.employeeName,
   business: booking.business,

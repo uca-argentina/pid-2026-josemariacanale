@@ -276,6 +276,7 @@ model Booking {
   status           BookingStatus // fijado al crear: BOOKED, o PENDING con Aprobación manual (ADR 0022)
   notes            String? // Comentario del Turno, up to 500 characters (checked by the API)
   noShowAt         DateTime?     @db.Timestamptz(3) // Ausencia: when the Empleado marked it; never replaces status
+  employeeNoShowAt DateTime?     @db.Timestamptz(3) // Falta del Empleado: when the Cliente marked it from the Enlace del Turno; never replaces status, and excludes noShowAt (CHECK, ADR 0004)
   link             String?       @unique // Enlace del Turno (ADR 0022): secret, random, URL-safe, generated at creation; Reagendar moves it to the new Turno (ADR 0031), leaving null in the original
   employeeChosen   Boolean       @default(false) // Empleado elegido (ADR 0026): the Cliente came in by this Empleado's Enlace de reserva; Reagendar never moves it to another
   depositAmount    Decimal?      @db.Decimal(10, 2) // Seña pendiente: price × depositPercent / 100 at booking, rounded to the cent; null if the Servicio asked for none. Later changes to the Servicio don't touch it
@@ -294,6 +295,18 @@ model Booking {
   client         Client?
   fromReschedule Booking?  @relation("Reschedule", fields: [fromRescheduleId], references: [id])
   rescheduledTo  Booking?  @relation("Reschedule")
+  rating         BookingRating?
+}
+
+/// Calificación: el puntaje de 1 a 5 (CHECK, ADR 0004) que el Cliente deja sobre un Turno atendido desde el Enlace del Turno. Una por Turno (índice único) y no se edita.
+model BookingRating {
+  id        Int      @id @default(autoincrement())
+  bookingId Int      @unique
+  score     Int
+  comment   String? // up to 500 characters (checked by the API); null if left empty
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 }
 
 /// Cliente (ADR 0022): una fila por Turno, con el nombre con el que se reservó; el mismo email en tres Turnos son tres filas.

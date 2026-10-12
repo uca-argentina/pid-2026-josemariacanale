@@ -72,6 +72,8 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | Rechazar turno | `reject` (`PENDING` → `REJECTED`) |
 | Turno reagendado (ADR 0031) | Reagendar cancela el Turno original (`Booking.rescheduled = true`, `status` `CANCELLED`, sin `Booking.link`) y crea uno nuevo con `Booking.fromRescheduleId` = id del original, que hereda el Enlace del Turno; `GET /users/me/bookings` trae `fromRescheduleId` y ni esa lista ni `GET /businesses/:id/bookings` devuelven los originales |
 | Ausencia | `Booking.noShowAt` (marcado a mano; no reemplaza `status`) |
+| Falta del Empleado | `Booking.employeeNoShowAt` (la marca el Cliente; no reemplaza `status`; excluye a `noShowAt` con el CHECK `Booking_no_show_exclusive`, ADR 0004); `MarkEmployeeNoShowByLinkUseCase`, `PATCH /booking-links/:secret/employee-no-show`; `ClientBooking.canMarkEmployeeNoShow` lo calcula el back |
+| Calificación | `BookingRating` (`bookingId` único, `score` de 1 a 5 con el CHECK `BookingRating_score_range`, `comment` opcional, `createdAt`; ADR 0004); `RateBookingByLinkUseCase`, `POST /booking-links/:secret/rating`; `ClientBooking.rating` y `ClientBooking.canRate`, que calcula el back (`ratingBlocker`) |
 | Reservar | `book` |
 | Reagendar | `reschedule` (`RescheduleBookingUseCase`); por Enlace del Turno, `reschedulePendingOrBooked` (`RescheduleBookingByLinkUseCase`) |
 | Pagar la Seña (ADR 0027) | `payDeposit`, `PayDepositByLinkUseCase`, `PATCH /booking-links/:secret/deposit`; en el front, `payDepositByLink` |
