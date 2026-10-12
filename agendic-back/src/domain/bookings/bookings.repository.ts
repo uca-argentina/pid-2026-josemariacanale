@@ -135,4 +135,8 @@ export interface BookingsRepository {
   markEmployeeNoShow(id: number, now: Date): Promise<ClientBooking>;
   /** Saves the Calificación of the Turno. Throws ConflictError if it already has one, even if another request wins the race. */
   rate(id: number, score: number, comment: string | null): Promise<ClientBooking>;
+  /** Turnos in any status with an Enlace del Turno, no Invitación a calificar sent yet, and `endsAt` in [from, to]. */
+  listUnrequestedByEndsAtBetween(from: Date, to: Date): Promise<ClientBooking[]>;
+  /** Sets ratingRequestSentAt to `now`. Throws NotFoundError for an unknown id. */
+  markRatingRequestSent(id: number, now: Date): Promise<void>;
 }

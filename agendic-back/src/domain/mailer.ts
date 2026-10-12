@@ -15,4 +15,12 @@ export interface Mailer {
   sendBookingReschedule(email: string, link: string): Promise<void>;
   /** Aviso de cambio del Turno: the Negocio rejected the pending Turno, with its Enlace del Turno. */
   sendBookingRejection(email: string, link: string): Promise<void>;
+  /** Invitación a Calificar: asks the Cliente to rate the Turno of `serviceName` that started at `startsAt`, shown in `timeZone`, with its Enlace del Turno. */
+  sendRatingRequest(
+    email: string,
+    link: string,
+    serviceName: string,
+    startsAt: Date,
+    timeZone: string,
+  ): Promise<void>;
 }

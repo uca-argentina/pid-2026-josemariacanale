@@ -4,6 +4,10 @@ import { AppModule } from './app.module';
 import { setupApp } from './setup-app';
 import { emptySchedule, Schedule } from './domain/availabilities/availability';
 import {
+  ANALYTICS_REPOSITORY,
+  AnalyticsRepository,
+} from './domain/analytics/analytics.repository';
+import {
   AVAILABILITIES_REPOSITORY,
   AvailabilitiesRepository,
 } from './domain/availabilities/availabilities.repository';
@@ -119,6 +123,7 @@ export async function createTestApp() {
     sendBookingCancellation: jest.fn(),
     sendBookingReschedule: jest.fn(),
     sendBookingRejection: jest.fn(),
+    sendRatingRequest: jest.fn(),
   };
   const bookingCodes: jest.Mocked<BookingVerificationCodes> = {
     request: jest.fn(),
@@ -221,6 +226,8 @@ export async function createTestApp() {
     payDeposit: jest.fn(),
     markEmployeeNoShow: jest.fn(),
     rate: jest.fn(),
+    listUnrequestedByEndsAtBetween: jest.fn(),
+    markRatingRequestSent: jest.fn(),
   };
   const availabilities: jest.Mocked<AvailabilitiesRepository> = {
     listByUser: jest.fn(),
@@ -252,6 +259,7 @@ export async function createTestApp() {
     assertConfigured: jest.fn(),
     fetchHolidays: jest.fn(),
   };
+  const analytics: jest.Mocked<AnalyticsRepository> = { kpis: jest.fn() };
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(CLOCK)
     .useValue(clock)
@@ -291,6 +299,8 @@ export async function createTestApp() {
     .useValue(userHolidaySettings)
     .overrideProvider(GOOGLE_CALENDAR_CLIENT)
     .useValue(googleCalendar)
+    .overrideProvider(ANALYTICS_REPOSITORY)
+    .useValue(analytics)
     .compile();
   const app = setupApp(moduleRef.createNestApplication());
   await app.init();
@@ -315,6 +325,7 @@ export async function createTestApp() {
     holidays,
     userHolidaySettings,
     googleCalendar,
+    analytics,
     http: request(app.getHttpServer()),
   };
 }

@@ -329,3 +329,28 @@ como uno que no existe.
   - `POST /bookings` → 422 `Slot <ISO> is not available for Service <id>` si `startsAt` no está entre los Horarios reservables que `GET /services/:id/slots` calcula en ese momento para algún Empleado (nadie libre, fuera de las Franjas, fuera de la grilla del Intervalo, antes de la Anticipación mínima). El front lo muestra como «ese horario ya no está disponible» y vuelve a pedir la lista.
   - Dos `POST /bookings` casi juntos para el mismo horario: uno da 201, el otro 409 `Overlaps a booked Turno for this Employee`. Lo garantiza la exclusion constraint `Booking_no_overlap` de Postgres (ADR 0004), no solo el chequeo del caso de uso.
   - `POST /bookings` → 409 `The Service reached its Límite diario that day` si el Servicio ya tiene `dailyLimit` Turnos `PENDING` o `BOOKED` ese día de la Sucursal. Dos creaciones casi juntas del mismo Servicio no pueden pasarlo: la creación cuenta y crea dentro de una transacción con `pg_advisory_xact_lock` por Servicio (ADR 0004).
+
+## Analíticas (#264, #270)
+
+| Método | Ruta | Auth | Qué hace |
+|---|---|---|---|
+| GET | `/analytics/personal?from=YYYY-MM-DD&to=YYYY-MM-DD&serviceId=<id>?` | sí | KPIs de los Servicios personales del Usuario de la Sesión (incluidos los ocultos y los dados de baja; nunca los del Negocio ni los de otro Usuario), cada uno con su valor en el período anterior |
+
+- Respuesta 200: `{ kpis: Record<'booked' \| 'attended' \| 'rescheduled' \| 'cancelled' \| 'rejected' \| 'pending' \| 'noShows' \| 'employeeNoShows' \| 'averageRating' \| 'csat' \| 'revenue', { current: number \| null, previous: number \| null }> }`. `averageRating` y `csat` son `null` sin Calificaciones en el período; `csat` va de 0 a 100 con un decimal; `revenue` es la suma de `price` de los Turnos atendidos, `0` si no hay. El front calcula la variación % contra `previous` y muestra `null` como "—".
+- **Período anterior**: mismo largo en días que `from`..`to` (los dos días cuentan) y termina el día antes de `from`.
+- **Reglas de conteo** (todas excluyen los originales reagendados, `rescheduled = true`, salvo `rescheduled`). Un Turno entra en el rango por la fecha local del instante, en la zona de la Availability predeterminada del Usuario (los Servicios del Negocio, con la zona de su Sucursal, llegan con los tickets siguientes):
+  - `booked`: todos menos los que tienen `fromRescheduleId`, por `createdAt`
+  - `attended`: `BOOKED`, `endsAt` < ahora, sin `noShowAt` ni `employeeNoShowAt`, por `startsAt`
+  - `rescheduled`: `rescheduled = true`, por `cancelledAt`
+  - `cancelled`: `CANCELLED` y `rescheduled IS NOT TRUE`, por `cancelledAt`
+  - `rejected`: `REJECTED`, por `rejectedAt`
+  - `pending`: `PENDING` al momento de la consulta, por `startsAt`
+  - `noShows` / `employeeNoShows`: con `noShowAt` / `employeeNoShowAt`, por `startsAt`
+  - `averageRating` / `csat`: promedio de `score` / % de Calificaciones con `score` ≥ 4, por `BookingRating.createdAt`
+  - `revenue`: suma de `price` de los Turnos `attended`, por `startsAt`
+- Errores:
+  - 401 sin Sesión
+  - 400 `Invalid analytics range <from>..<to>`: una fecha mal formada o inexistente, falta una, `from` > `to`, o más de 366 días entre las dos
+  - 404 `Service <id> not found`: `serviceId` no es un Servicio personal del Usuario (no existe, es de otro Usuario o es del Negocio)
+  - 422 si el Usuario no tiene Availability predeterminada
+- El conteo vive en el puerto `AnalyticsRepository` (SQL agregado en Postgres), que recibe un alcance ya resuelto.

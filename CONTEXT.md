@@ -279,6 +279,10 @@ _Avoid_: waitlist, cola
 Mail que reciben a la vez todos los anotados en la Lista de espera cuando aparece un Horario reservable de ese Servicio en esa fecha, porque un Turno se Canceló, se Rechazó, se Reagendó o quedó cancelado por una baja, o porque se sumó una Franja. Lleva al Enlace de reserva del Servicio, y el horario queda para el primero que Reserva.
 _Avoid_: Aviso de cambio del Turno (es otro), notificación (a secas)
 
+**Invitación a calificar**:
+Mail que recibe el Cliente una hora después de que termina un Turno que se puede Calificar, con el Enlace del Turno. Se manda una sola vez por Turno, hasta 7 días después de que terminó.
+_Avoid_: recordatorio, encuesta
+
 **Confirmación de asistencia**:
 Acción del Cliente, previa al turno, indicando que va a asistir.
 _Avoid_: confirmación (a secas), confirmar turno

@@ -14,6 +14,10 @@ export function readFrontendUrl(
   return env.FRONTEND_URL.replace(/\/+$/, '');
 }
 
+/** The Servicio name is typed by the Dueño; it goes into HTML. */
+const escapeHtml = (text: string) =>
+  text.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+
 @Injectable()
 export class NodemailerMailer implements Mailer {
   private readonly transporter: Transporter;
@@ -82,6 +86,32 @@ export class NodemailerMailer implements Mailer {
       'Your booking was rejected',
       'Your Turno was rejected. See it here',
     );
+  }
+
+  /** Invita al Cliente a Calificar el Turno, con el Servicio y el día y la hora en la zona del Turno.
+   *
+   * @throws el transporte SMTP rechazó el mail
+   */
+  async sendRatingRequest(
+    email: string,
+    link: string,
+    serviceName: string,
+    startsAt: Date,
+    timeZone: string,
+  ) {
+    const when = new Intl.DateTimeFormat('es-AR', {
+      dateStyle: 'full',
+      timeStyle: 'short',
+      hourCycle: 'h23',
+      timeZone,
+    }).format(startsAt);
+    const url = `${this.frontendUrl}/turnos/${link}`;
+    await this.transporter.sendMail({
+      from: process.env.SMTP_FROM,
+      to: email,
+      subject: '¿Cómo te fue en tu turno?',
+      html: `<p>Tu turno de ${escapeHtml(serviceName)} del ${when} ya terminó. Contanos cómo te fue: <a href="${url}">${url}</a></p>`,
+    });
   }
 
   private async sendBookingMail(
