@@ -3,6 +3,7 @@ import { Badge } from '@/app/_components/ui/badge';
 import { Card, CardAction, CardDescription, CardHeader, CardTitle } from '@/app/_components/ui/card';
 import { Skeleton } from '@/app/_components/ui/skeleton';
 import { cn } from '@/app/_components/utils';
+import { KPI_NAMES } from '@/src/entities/models/analytics';
 import type { PersonalAnalyticsResult } from '../actions';
 
 type Cards = Extract<PersonalAnalyticsResult, { ok: true }>['cards'];
@@ -42,7 +43,7 @@ export function KpiCards({ cards }: { cards: Cards }) {
 export function KpiCardsSkeleton() {
     return (
         <div className={GRID} aria-busy aria-label="Cargando analíticas">
-            {Array.from({ length: 11 }, (_, index) => (
+            {Array.from({ length: KPI_NAMES.length }, (_, index) => (
                 <Skeleton key={index} className="h-[104px] rounded-xl" />
             ))}
         </div>

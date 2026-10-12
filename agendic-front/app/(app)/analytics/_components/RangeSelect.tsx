@@ -7,10 +7,10 @@ import { Button } from '@/app/_components/ui/button';
 import { Calendar } from '@/app/_components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/app/_components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/_components/ui/select';
-import { fromCalendarRange, toCalendarRange } from '@/app/(app)/availability/out-of-office/_components/out-of-office-range';
-import { formatOutOfOfficeDate } from '@/app/(app)/availability/out-of-office/_components/format-out-of-office-date';
+import { fromCalendarRange, toCalendarRange } from '@/app/_components/day-range';
+import { formatOutOfOfficeDate } from '@/app/_components/format-day';
 import type { Preferences } from '@/src/entities/models/user';
-import { RANGE_PRESETS, type ActiveRange, type RangePreset } from './analytics-range';
+import { RANGE_PRESETS, type ActiveRange, type RangeChange, type RangePreset } from './analytics-range';
 
 const CUSTOM = 'custom';
 
@@ -25,7 +25,7 @@ export function RangeSelect({
 }: {
     range: ActiveRange;
     weekStart: Preferences['weekStart'];
-    onChange: (range: { preset: RangePreset } | { preset: 'custom'; from: string; to: string }) => void;
+    onChange: (change: RangeChange) => void;
 }) {
     const [open, setOpen] = useState(false);
 

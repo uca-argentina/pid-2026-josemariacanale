@@ -6,7 +6,8 @@ import type { AnalyticsQuery, PersonalAnalytics } from '@/src/entities/models/an
 export type IGetPersonalAnalyticsUseCase = ReturnType<typeof getPersonalAnalyticsUseCase>;
 
 /**
- * Las analíticas de los Servicios personales del Usuario con Sesión.
+ * Las analíticas de los Servicios personales del Usuario con Sesión. No autoriza: el back solo devuelve las del
+ * Usuario de la Sesión, y sus errores salen tal cual.
  *
  * @throws {UnauthenticatedError} no hay Sesión válida
  * @throws {InputParseError} el rango no es válido

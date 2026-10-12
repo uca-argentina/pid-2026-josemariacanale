@@ -1,5 +1,5 @@
 import { addDays } from '@/app/_components/booking/format';
-import { toIsoDay, toLocalDay } from '@/app/(app)/availability/out-of-office/_components/out-of-office-range';
+import { toIsoDay, toLocalDay } from '@/app/_components/day-range';
 
 /** Los presets del selector de rango, con su etiqueta, en el orden del menú. */
 export const RANGE_PRESETS = {
@@ -14,6 +14,7 @@ export type RangePreset = keyof typeof RANGE_PRESETS;
 /** El rango activo: un preset, o `custom` con días `YYYY-MM-DD` inclusivos. */
 export type ActiveRange = { preset: RangePreset | 'custom'; from: string; to: string };
 
+/** El rango que se usa sin URL, o con una que no se entiende. */
 export const DEFAULT_PRESET: RangePreset = '30d';
 
 /** El tope de días que acepta el back. */
@@ -38,6 +39,10 @@ export function presetRange(preset: RangePreset, today: string): Pick<ActiveRang
     }
 }
 
+/** Si `from`..`to` es un rango personalizado que el back acepta: días que existen, en orden y de hasta 366 días. */
+export const isValidCustomRange = (from: string | null, to: string | null): boolean =>
+    isDay(from) && isDay(to) && from <= to && addDays(from, MAX_DAYS - 1) >= to;
+
 /** Lee el rango de la URL (`?range=` o `?from&to`); lo que no se entiende cae en los últimos 30 días. */
 export function parseRange(params: URLSearchParams, today: string): ActiveRange {
     const preset = params.get('range');
@@ -46,6 +51,13 @@ export function parseRange(params: URLSearchParams, today: string): ActiveRange 
     }
     const from = params.get('from');
     const to = params.get('to');
-    if (isDay(from) && isDay(to) && from <= to && addDays(from, MAX_DAYS - 1) >= to) return { preset: 'custom', from, to };
+    if (isValidCustomRange(from, to) && from && to) return { preset: 'custom', from, to };
     return { preset: DEFAULT_PRESET, ...presetRange(DEFAULT_PRESET, today) };
 }
+
+/** Un cambio de rango del selector: un preset, o días elegidos en el Calendar. */
+export type RangeChange = { preset: RangePreset } | { preset: 'custom'; from: string; to: string };
+
+/** La URL de un rango, la inversa de `parseRange`; el rango por defecto no lleva nada. */
+export const rangeSearch = (change: RangeChange) =>
+    change.preset === 'custom' ? `?from=${change.from}&to=${change.to}` : change.preset === DEFAULT_PRESET ? '' : `?range=${change.preset}`;

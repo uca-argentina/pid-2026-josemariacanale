@@ -2,19 +2,15 @@
 
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { toIsoDay } from '@/app/(app)/availability/out-of-office/_components/out-of-office-range';
+import { toIsoDay } from '@/app/_components/day-range';
 import { Button } from '@/app/_components/ui/button';
 import type { Preferences } from '@/src/entities/models/user';
 import { loadPersonalAnalyticsAction, type PersonalAnalyticsResult } from '../actions';
-import { parseRange, type RangePreset } from './analytics-range';
+import { isValidCustomRange, parseRange, rangeSearch, type RangeChange } from './analytics-range';
 import { KpiCards, KpiCardsSkeleton } from './KpiCards';
 import { RangeSelect } from './RangeSelect';
 
 const subscribeNever = () => () => {};
-
-/** La URL del rango: el preset como `?range=`, o `?from&to` si es personalizado; el por defecto no lleva nada. */
-const rangeSearch = (change: { preset: RangePreset } | { preset: 'custom'; from: string; to: string }) =>
-    change.preset === 'custom' ? `?from=${change.from}&to=${change.to}` : change.preset === '30d' ? '' : `?range=${change.preset}`;
 
 /**
  * Analíticas de los Servicios personales: el selector de rango y las tarjetas de KPI. El rango vive en la URL y se
@@ -45,8 +41,11 @@ export function PersonalAnalyticsView({ weekStart }: { weekStart: Preferences['w
     }, [from, to, key]);
 
     // Next sincroniza `useSearchParams` con `history.replaceState`: cambiar el rango es cambiar la URL.
-    const change = (next: Parameters<typeof rangeSearch>[0]) =>
+    const change = (next: RangeChange) => {
+        // Un rango de más de 366 días lo rechaza el back: se ignora la elección en vez de volver al valor por defecto.
+        if (next.preset === 'custom' && !isValidCustomRange(next.from, next.to)) return;
         window.history.replaceState(null, '', `${window.location.pathname}${rangeSearch(next)}`);
+    };
 
     return (
         <div className="flex flex-1 flex-col gap-4 py-4 text-foreground @3xl/main:gap-6 @3xl/main:py-6">
