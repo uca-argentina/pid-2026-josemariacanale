@@ -6,9 +6,12 @@ export interface IBusinessesRepository {
     /** The Negocios of the Dueño of the Sesión: 0 or 1 (ADR 0012). */
     listBusinesses(): Promise<Business[]>;
     /**
+     * Creates the Negocio with its first Sucursal and that Sucursal's images, in one request.
+     *
      * @throws {AlreadyOwnerError} 409, the Usuario is already Dueño of a Negocio
      * @throws {SlugTakenError} 409, the Enlace de reserva is in use
      * @throws {InvalidSlugError} 400 on the Enlace de reserva
+     * @throws {BranchImagesRejectedError} 400 or 413, an image of the wrong type, over 5 MB, or not 1 to 5 of them
      */
     createBusiness(input: CreateBusiness): Promise<CreatedBusiness>;
     /**

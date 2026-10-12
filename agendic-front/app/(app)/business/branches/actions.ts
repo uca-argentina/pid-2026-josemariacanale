@@ -5,7 +5,8 @@ import { redirect, unstable_rethrow } from 'next/navigation';
 import { isSessionExpired } from '@/app/api-error';
 import { SIGN_IN_PATH } from '@/app/routes';
 import { getInjection } from '@/di/container';
-import { BranchImageLimitError, BranchImagesRejectedError, InvalidSlugError, SlugTakenError, type BranchImagesRejection } from '@/src/entities/errors/business';
+import { BRANCH_IMAGES_REJECTED } from '../branch-images-messages';
+import { BranchImageLimitError, BranchImagesRejectedError, InvalidSlugError, SlugTakenError } from '@/src/entities/errors/business';
 import { CabinHasUpcomingBookingsError, CabinNameTakenError, InvalidCabinNameError } from '@/src/entities/errors/cabin';
 import { ApiRequestError, InputParseError } from '@/src/entities/errors/common';
 
@@ -13,13 +14,6 @@ import { ApiRequestError, InputParseError } from '@/src/entities/errors/common';
 export type BranchActionResult<T = undefined> =
     | { ok: true; data: T }
     | { ok: false; message: string; field?: 'slug' | 'name' };
-
-/** Qué decirle al Dueño cuando el back rechaza las imágenes de una Sucursal nueva. */
-const IMAGES_REJECTED: Record<BranchImagesRejection, string> = {
-    type: 'Las imágenes tienen que ser JPEG, PNG, WebP o GIF.',
-    size: 'Cada imagen puede pesar hasta 5 MB.',
-    count: 'Elegí entre una y cinco imágenes.',
-};
 
 /** Por qué no se puede dar de baja una Cabina con Turnos futuros, con cuántos son. */
 const upcomingBookingsMessage = (count: number) =>
@@ -46,7 +40,7 @@ async function run<T>(fallback: string, work: () => Promise<T>): Promise<BranchA
         if (error instanceof InvalidCabinNameError) return { ok: false, field: 'name', message: 'El nombre tiene que tener entre 1 y 60 caracteres.' };
         if (error instanceof CabinHasUpcomingBookingsError) return { ok: false, message: upcomingBookingsMessage(error.upcomingBookings) };
         if (error instanceof BranchImageLimitError) return { ok: false, message: error.message };
-        if (error instanceof BranchImagesRejectedError) return { ok: false, message: IMAGES_REJECTED[error.reason] };
+        if (error instanceof BranchImagesRejectedError) return { ok: false, message: BRANCH_IMAGES_REJECTED[error.reason] };
         if (isSessionExpired(error)) redirect(SIGN_IN_PATH);
         // A 409 is a rule of the back, not a crash: nothing to report.
         if (error instanceof ApiRequestError && error.status === 409) return { ok: false, message: fallback };

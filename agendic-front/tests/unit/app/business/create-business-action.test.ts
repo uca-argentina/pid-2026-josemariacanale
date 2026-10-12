@@ -1,11 +1,11 @@
 import { createBusinessAction } from '@/app/(app)/business/actions';
+import { BranchImagesRejectedError } from '@/src/entities/errors/business';
 import { ApiRequestError } from '@/src/entities/errors/common';
 
 const mockControllers: Record<string, jest.Mock> = {
     ICreateBusinessController: jest.fn(),
     IAddEmployeeController: jest.fn(),
     IUploadBusinessLogoController: jest.fn(),
-    IUploadBranchImageController: jest.fn(),
 };
 const mockReport = jest.fn();
 const mockRefresh = jest.fn();
@@ -45,72 +45,79 @@ beforeEach(() => {
 });
 
 describe('createBusinessAction', () => {
-    it('creates the Negocio without a Servicio, then uploads the Logo and the images in order to its Sucursal', async () => {
+    it('sends the images of the Sucursal in the same request as the Negocio, then uploads the Logo apart', async () => {
         await expect(
             createBusinessAction(form({ logo: file('logo.png'), images: [file('a.png'), file('b.png')] })),
-        ).resolves.toEqual({ ok: true, failedEmployees: [], failedUploads: [] });
+        ).resolves.toEqual({ ok: true, failedEmployees: [], logoFailed: false });
 
-        expect(mockControllers.ICreateBusinessController).toHaveBeenCalledWith(payload);
+        expect(mockControllers.ICreateBusinessController).toHaveBeenCalledTimes(1);
+        const [input] = mockControllers.ICreateBusinessController.mock.calls[0];
+        expect(input).toMatchObject(payload);
+        expect(input.images.map((image: File) => image.name)).toEqual(['a.png', 'b.png']);
         expect(mockControllers.IUploadBusinessLogoController).toHaveBeenCalledWith({
             businessId: 5,
             file: expect.objectContaining({ name: 'logo.png' }),
         });
-        expect(mockControllers.IUploadBranchImageController.mock.calls.map(([input]) => input)).toEqual([
-            { branchId: 9, file: expect.objectContaining({ name: 'a.png' }) },
-            { branchId: 9, file: expect.objectContaining({ name: 'b.png' }) },
-        ]);
         expect(mockRefresh).toHaveBeenCalled();
     });
 
-    it('uploads nothing when no Logo or images were chosen', async () => {
-        await createBusinessAction(form());
-
+    it('does not call the back without images of the Sucursal', async () => {
+        await expect(createBusinessAction(form({ logo: file('logo.png') }))).resolves.toEqual({
+            ok: false,
+            message: 'Elegí al menos una imagen de la Sucursal.',
+        });
+        expect(mockControllers.ICreateBusinessController).not.toHaveBeenCalled();
         expect(mockControllers.IUploadBusinessLogoController).not.toHaveBeenCalled();
-        expect(mockControllers.IUploadBranchImageController).not.toHaveBeenCalled();
     });
 
-    it('keeps the Negocio and names the Logo when it fails to upload', async () => {
+    it('uploads no Logo when none was chosen', async () => {
+        await createBusinessAction(form({ images: [file('a.png')] }));
+
+        expect(mockControllers.IUploadBusinessLogoController).not.toHaveBeenCalled();
+    });
+
+    it('keeps the Negocio and says so when the Logo fails to upload', async () => {
         mockControllers.IUploadBusinessLogoController.mockRejectedValue(new ApiRequestError('boom', { status: 500 }));
 
         await expect(createBusinessAction(form({ logo: file('logo.png'), images: [file('a.png')] }))).resolves.toEqual({
             ok: true,
             failedEmployees: [],
-            failedUploads: ['el Logo'],
+            logoFailed: true,
         });
-        expect(mockControllers.IUploadBranchImageController).toHaveBeenCalledTimes(1);
         expect(mockReport).toHaveBeenCalled();
         expect(mockRefresh).toHaveBeenCalled();
-    });
-
-    it('names each image that fails and keeps uploading the rest', async () => {
-        mockControllers.IUploadBranchImageController.mockRejectedValueOnce(new ApiRequestError('boom', { status: 500 }));
-
-        const result = await createBusinessAction(form({ images: [file('a.png'), file('b.png'), file('c.png')] }));
-
-        expect(result).toEqual({ ok: true, failedEmployees: [], failedUploads: ['la imagen a.png'] });
-        expect(mockControllers.IUploadBranchImageController).toHaveBeenCalledTimes(3);
     });
 
     it('reports the Invitaciones that fail', async () => {
         mockControllers.IAddEmployeeController.mockRejectedValueOnce(new ApiRequestError('boom', { status: 500 }));
 
-        const result = await createBusinessAction(form({ emails: ['a@a.com', 'b@b.com'] }));
+        const result = await createBusinessAction(form({ images: [file('a.png')], emails: ['a@a.com', 'b@b.com'] }));
 
-        expect(result).toEqual({ ok: true, failedEmployees: ['a@a.com'], failedUploads: [] });
+        expect(result).toEqual({ ok: true, failedEmployees: ['a@a.com'], logoFailed: false });
     });
 
-    it('uploads nothing when the Negocio is not created', async () => {
+    it.each([
+        ['type', 'Las imágenes tienen que ser JPEG, PNG, WebP o GIF.'],
+        ['size', 'Cada imagen puede pesar hasta 5 MB.'],
+        ['count', 'Elegí entre una y cinco imágenes.'],
+    ] as const)('explains images rejected for their %s, without reporting it', async (reason, message) => {
+        mockControllers.ICreateBusinessController.mockRejectedValue(new BranchImagesRejectedError('x', { reason }));
+
+        await expect(createBusinessAction(form({ images: [file('a.png')] }))).resolves.toEqual({ ok: false, message });
+        expect(mockReport).not.toHaveBeenCalled();
+    });
+
+    it('uploads no Logo when the Negocio is not created', async () => {
         mockControllers.ICreateBusinessController.mockRejectedValue(new ApiRequestError('boom', { status: 500 }));
 
         const result = await createBusinessAction(form({ logo: file('logo.png'), images: [file('a.png')] }));
 
         expect(result.ok).toBe(false);
         expect(mockControllers.IUploadBusinessLogoController).not.toHaveBeenCalled();
-        expect(mockControllers.IUploadBranchImageController).not.toHaveBeenCalled();
     });
 
     it('answers ok: false, without creating anything, when the form is not JSON', async () => {
-        const data = form();
+        const data = form({ images: [file('a.png')] });
         data.set('payload', '{nope');
 
         await expect(createBusinessAction(data)).resolves.toEqual({ ok: false, message: 'Revisá los datos e intentá de nuevo.' });

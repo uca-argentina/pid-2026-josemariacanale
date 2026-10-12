@@ -1,11 +1,15 @@
-import { AlreadyOwnerError, InvalidSlugError, SlugTakenError } from '@/src/entities/errors/business';
+import { AlreadyOwnerError, BranchImagesRejectedError, InvalidSlugError, SlugTakenError } from '@/src/entities/errors/business';
 import { ApiRequestError } from '@/src/entities/errors/common';
 import { BusinessesRepository } from '@/src/infrastructure/repositories/businesses.repository';
 import { authWith } from '@/tests/unit/stubs';
 
-const input = {
+const fields = {
     business: { name: 'Estudio', description: 'Desc', slug: 'estudio' },
     branch: { name: 'Centro', address: 'Av. 1', timeZone: 'America/Argentina/Buenos_Aires', slug: 'centro' },
+};
+const input = {
+    ...fields,
+    images: [new File(['a'], 'a.png', { type: 'image/png' }), new File(['b'], 'b.png', { type: 'image/png' })],
 };
 const business = { id: 1, name: 'Estudio', description: 'Desc', slug: 'estudio', logoUrl: null, ownerId: 7 };
 
@@ -17,18 +21,26 @@ const respond = (status: number, body: unknown) =>
 afterEach(() => jest.restoreAllMocks());
 
 describe('BusinessesRepository.createBusiness', () => {
-    it('POSTs with the bearer token and returns the Negocio with the id of its Sucursal', async () => {
-        const fetchSpy = respond(201, { business, branch: { id: 3 }, service: null, employee: {} });
+    it('POSTs the fields as JSON in `data` and the images of the Sucursal in `images`, in one multipart request', async () => {
+        const fetchSpy = respond(201, { business, branch: { id: 3 }, service: null, employee: {}, images: [] });
 
         await expect(repo().createBusiness(input)).resolves.toEqual({ business, branch: { id: 3 } });
-        expect(fetchSpy).toHaveBeenCalledWith(
-            'http://api/businesses',
-            expect.objectContaining({
-                method: 'POST',
-                headers: expect.objectContaining({ Authorization: 'Bearer tok' }),
-                body: JSON.stringify(input),
-            }),
-        );
+        const [url, init] = fetchSpy.mock.calls[0];
+        expect(url).toBe('http://api/businesses');
+        expect(init).toMatchObject({ method: 'POST', headers: { Authorization: 'Bearer tok' } });
+        const form = init!.body as FormData;
+        expect(JSON.parse(form.get('data') as string)).toEqual(fields);
+        expect(form.getAll('images').map((file) => (file as File).name)).toEqual(['a.png', 'b.png']);
+    });
+
+    it.each([
+        [400, 'La imagen tiene que ser JPEG, PNG, WebP o GIF', 'type'],
+        [413, 'File too large', 'size'],
+        [400, 'At least one image is required', 'count'],
+        [400, 'Unexpected field - images', 'count'],
+    ])('translates a %i %j to BranchImagesRejectedError with its reason', async (status, message, reason) => {
+        respond(status, { statusCode: status, message });
+        await expect(repo().createBusiness(input)).rejects.toMatchObject({ constructor: BranchImagesRejectedError, reason });
     });
 
     it('translates 409 to SlugTakenError', async () => {

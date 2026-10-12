@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { BRANCH_IMAGES } from './branch';
 
 export const SERVICE_CATEGORIES = ['CLINICA', 'SPA', 'GIMNASIO', 'ACADEMIA', 'OTRO'] as const;
 
@@ -35,6 +36,8 @@ export const createBusinessSchema = z.object({
         slug: z.string(),
         description: z.string().optional(),
     }),
+    /** Las imágenes de la primera Sucursal, en orden: nunca nace sin una. */
+    images: z.array(z.instanceof(File)).min(BRANCH_IMAGES.min).max(BRANCH_IMAGES.max),
 });
 export type CreateBusiness = z.infer<typeof createBusinessSchema>;
 
