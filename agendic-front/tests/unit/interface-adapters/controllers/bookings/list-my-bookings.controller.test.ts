@@ -18,6 +18,7 @@ const booking = {
     depositPaidAt: null,
     business: { id: 3, name: 'Spa' },
     branch: { id: 4, name: 'Centro' },
+    fromRescheduleId: 4,
 };
 
 describe('listMyBookingsController', () => {
@@ -40,6 +41,7 @@ describe('listMyBookingsController', () => {
             serviceName: 'Masaje',
             business: { id: 3, name: 'Spa' },
             branch: { id: 4, name: 'Centro' },
+            fromRescheduleId: 4,
         });
     });
 

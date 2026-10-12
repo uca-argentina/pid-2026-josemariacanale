@@ -20,6 +20,8 @@ export const userBookingSchema = z.object({
     depositAmount: z.number().nullable(),
     /** Cuándo se pagó la Seña; null mientras no se paga. */
     depositPaidAt: z.iso.datetime().nullable(),
+    /** El Turno que este Reagendó (ADR 0031); null si no viene de un Reagendamiento. */
+    fromRescheduleId: z.number().nullable(),
     /** Null en un Servicio personal, junto con `branch`. */
     business: z.object({ id: z.number(), name: z.string() }).nullable(),
     /** Null en un Servicio personal, junto con `business`. */
