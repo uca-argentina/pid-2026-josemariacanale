@@ -81,6 +81,15 @@ describe('Enlace del Turno', () => {
       expect(res.body).toMatchObject({ id: BOOKED.id, status: 'BOOKED' });
     });
 
+    it('no expone la Cabina del Turno', async () => {
+      t.bookings.findByLink.mockResolvedValue({ ...CLIENT_BOOKED, cabinId: 10 });
+
+      const res = await t.http.get(`/booking-links/${LINK}`).expect(200);
+
+      expect(res.body).not.toHaveProperty('cabinId');
+      expect(res.body).not.toHaveProperty('cabin');
+    });
+
     it('trae employeeChosen', async () => {
       t.bookings.findByLink.mockResolvedValue({ ...CLIENT_BOOKED, employeeChosen: true });
 
