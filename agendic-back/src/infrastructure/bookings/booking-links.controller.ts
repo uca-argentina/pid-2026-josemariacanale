@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Inject, Param, Patch } from '@nestjs/common';
+import { Body, Controller, Get, Inject, Param, Patch, Post } from '@nestjs/common';
 import { CancelBookingByLinkUseCase } from '../../application/bookings/cancel-booking-by-link.use-case';
 import { GetBookingByLinkUseCase } from '../../application/bookings/get-booking-by-link.use-case';
 import { RescheduleBookingByLinkUseCase } from '../../application/bookings/reschedule-booking-by-link.use-case';
@@ -6,7 +6,8 @@ import { MarkEmployeeNoShowByLinkUseCase } from '../../application/bookings/mark
 import { CLOCK, Clock } from '../../domain/clock';
 import { PayDepositByLinkUseCase } from '../../application/bookings/pay-deposit-by-link.use-case';
 import { presentClientBooking } from './booking.presenter';
-import { RescheduleBookingDto } from './bookings.dto';
+import { RateBookingByLinkUseCase } from '../../application/bookings/rate-booking-by-link.use-case';
+import { RateBookingDto, RescheduleBookingDto } from './bookings.dto';
 
 /** Enlace del Turno (ADR 0022): abre, Cancela o Reagenda un Turno solo, sin Código de verificación. */
 @Controller('booking-links')
@@ -17,6 +18,7 @@ export class BookingLinksController {
     private readonly rescheduleBookingByLinkUseCase: RescheduleBookingByLinkUseCase,
     private readonly payDepositByLinkUseCase: PayDepositByLinkUseCase,
     private readonly markEmployeeNoShowByLinkUseCase: MarkEmployeeNoShowByLinkUseCase,
+    private readonly rateBookingByLinkUseCase: RateBookingByLinkUseCase,
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
@@ -69,6 +71,21 @@ export class BookingLinksController {
   async markEmployeeNoShow(@Param('secret') secret: string) {
     return presentClientBooking(
       await this.markEmployeeNoShowByLinkUseCase.execute(secret),
+      this.clock.now(),
+    );
+  }
+
+  /**
+   * Califica el Turno.
+   *
+   * @throws {NotFoundError} el Enlace no corresponde a ningún Turno
+   * @throws {ConflictError} el Turno ya tiene Calificación
+   * @throws {BusinessRuleError} el Turno no está aceptado, no terminó, o tiene Ausencia o Falta del Empleado
+   */
+  @Post(':secret/rating')
+  async rate(@Param('secret') secret: string, @Body() dto: RateBookingDto) {
+    return presentClientBooking(
+      await this.rateBookingByLinkUseCase.execute(secret, dto.score, dto.comment),
       this.clock.now(),
     );
   }

@@ -29,15 +29,20 @@ const BOOKED: Booking = {
   noShowAt: null,
   employeeNoShowAt: null,
   link: LINK,
+  fromRescheduleId: null,
   employeeChosen: false,
   depositAmount: null,
   depositPaidAt: null,
+  price: 50,
+  cancelledAt: null,
+  rejectedAt: null,
 };
 
 const CLIENT_BOOKED: ClientBooking = {
   ...BOOKED,
   timeZone: ANAS_BRANCH.timeZone,
   employeeName: ANAS_EMPLOYEE.name,
+  rating: null,
   service: {
     name: ANAS_SERVICE.name,
     durationMinutes: ANAS_SERVICE.durationMinutes,
@@ -177,7 +182,7 @@ describe('Enlace del Turno', () => {
     it('cancela un Turno BOOKED por su Enlace', async () => {
       const res = await patch().expect(200);
 
-      expect(t.bookings.cancelPendingOrBooked).toHaveBeenCalledWith(BOOKED.id);
+      expect(t.bookings.cancelPendingOrBooked).toHaveBeenCalledWith(BOOKED.id, t.clock.now());
       expect(res.body).toMatchObject({ id: BOOKED.id, status: 'CANCELLED' });
       expect(t.mailer.sendBookingCancellation).toHaveBeenCalledWith(
         BOOKED.clientEmail,
@@ -199,7 +204,7 @@ describe('Enlace del Turno', () => {
 
       await patch().expect(200);
 
-      expect(t.bookings.cancelPendingOrBooked).toHaveBeenCalledWith(BOOKED.id);
+      expect(t.bookings.cancelPendingOrBooked).toHaveBeenCalledWith(BOOKED.id, t.clock.now());
     });
 
     it.each([BookingStatus.REJECTED, BookingStatus.CANCELLED])(
@@ -360,7 +365,7 @@ describe('Enlace del Turno', () => {
         startsAt: new Date(NEW_START),
         endsAt: new Date('2026-01-02T15:30:00.000Z'),
         status: BookingStatus.BOOKED,
-      });
+      }, expect.any(Date));
       expect(res.body).toMatchObject({ id: BOOKED.id, startsAt: NEW_START });
       expect(t.mailer.sendBookingReschedule).toHaveBeenCalledWith(
         BOOKED.clientEmail,
@@ -493,6 +498,7 @@ describe('Enlace del Turno', () => {
       expect(t.bookings.reschedulePendingOrBooked).toHaveBeenCalledWith(
         BOOKED.id,
         expect.not.objectContaining({ depositPaidAt: expect.anything() }),
+        expect.any(Date),
       );
       expect(res.body).toMatchObject({
         status: 'PENDING',
@@ -522,6 +528,7 @@ describe('Enlace del Turno', () => {
       expect(t.bookings.reschedulePendingOrBooked).toHaveBeenCalledWith(
         BOOKED.id,
         expect.objectContaining({ status: BookingStatus.PENDING }),
+        expect.any(Date),
       );
     });
 
@@ -556,6 +563,7 @@ describe('Enlace del Turno', () => {
         expect(t.bookings.reschedulePendingOrBooked).toHaveBeenCalledWith(
           BOOKED.id,
           expect.objectContaining({ employeeId: ANAS_EMPLOYEE.id }),
+          expect.any(Date),
         );
       });
 
@@ -590,6 +598,7 @@ describe('Enlace del Turno', () => {
         expect(t.bookings.reschedulePendingOrBooked).toHaveBeenCalledWith(
           BOOKED.id,
           expect.objectContaining({ employeeId: JUAN.id }),
+          expect.any(Date),
         );
       });
     });
@@ -791,6 +800,151 @@ describe('Enlace del Turno', () => {
 
       expect(res.body.canMarkEmployeeNoShow).toBe(false);
       expect(res.body).not.toHaveProperty('noShowAt');
+    });
+  });
+
+  describe('POST /booking-links/:secret/rating', () => {
+    const post = (body: object) => t.http.post(`/booking-links/${LINK}/rating`).send(body);
+    const afterEnd = () => t.clock.advance(BOOKED.endsAt.getTime() - t.clock.now().getTime() + 1);
+
+    beforeEach(() => {
+      t.bookings.findByLink.mockResolvedValue(CLIENT_BOOKED);
+      t.bookings.rate.mockImplementation(async (_id, score, comment) => ({
+        ...CLIENT_BOOKED,
+        rating: { score, comment, createdAt: t.clock.now() },
+      }));
+    });
+
+    it('rates an attended Turno and answers 201 with the Calificación', async () => {
+      afterEnd();
+
+      const res = await post({ score: 5, comment: 'Excelente' }).expect(201);
+
+      expect(t.bookings.rate).toHaveBeenCalledWith(BOOKED.id, 5, 'Excelente');
+      expect(res.body).toMatchObject({
+        canRate: false,
+        rating: { score: 5, comment: 'Excelente', createdAt: t.clock.now().toISOString() },
+      });
+    });
+
+    it.each([undefined, '', '   '])('saves null for the comment %j', async (comment) => {
+      afterEnd();
+
+      await post({ score: 3, comment }).expect(201);
+
+      expect(t.bookings.rate).toHaveBeenCalledWith(BOOKED.id, 3, null);
+    });
+
+    it.each([0, 6, 3.5, '4', null])('answers 400 for score %j', async (score) => {
+      afterEnd();
+
+      await post({ score }).expect(400);
+
+      expect(t.bookings.rate).not.toHaveBeenCalled();
+    });
+
+    it('answers 400 for a comment over 500 characters, and accepts exactly 500', async () => {
+      afterEnd();
+
+      await post({ score: 4, comment: 'a'.repeat(501) }).expect(400);
+      await post({ score: 4, comment: 'a'.repeat(500) }).expect(201);
+    });
+
+    it('answers 404 for an unknown link', async () => {
+      t.bookings.findByLink.mockRejectedValue(new NotFoundError('Turno not found'));
+
+      const res = await post({ score: 5 }).expect(404);
+
+      expect(res.body.message).toBe('Turno not found');
+    });
+
+    it('answers 422 at the very moment the Turno ends, and 201 one millisecond later', async () => {
+      t.clock.advance(BOOKED.endsAt.getTime() - t.clock.now().getTime());
+      const res = await post({ score: 5 }).expect(422);
+      expect(res.body.message).toBe('Turno cannot be rated');
+
+      t.clock.advance(1);
+      await post({ score: 5 }).expect(201);
+    });
+
+    it.each([BookingStatus.PENDING, BookingStatus.REJECTED, BookingStatus.CANCELLED])(
+      'answers 422 when the Turno is %s',
+      async (status) => {
+        afterEnd();
+        t.bookings.findByLink.mockResolvedValue({ ...CLIENT_BOOKED, status });
+
+        const res = await post({ score: 5 }).expect(422);
+
+        expect(res.body.message).toBe('Turno cannot be rated');
+        expect(t.bookings.rate).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each(['noShowAt', 'employeeNoShowAt'])('answers 422 when the Turno has %s', async (mark) => {
+      afterEnd();
+      t.bookings.findByLink.mockResolvedValue({ ...CLIENT_BOOKED, [mark]: t.clock.now() });
+
+      const res = await post({ score: 5 }).expect(422);
+
+      expect(res.body.message).toBe('Turno cannot be rated');
+    });
+
+    it('answers 409 when the Turno is already rated, and never overwrites it', async () => {
+      afterEnd();
+      t.bookings.findByLink.mockResolvedValue({
+        ...CLIENT_BOOKED,
+        rating: { score: 2, comment: null, createdAt: t.clock.now() },
+      });
+
+      const res = await post({ score: 5 }).expect(409);
+
+      expect(res.body.message).toBe('Turno already rated');
+      expect(t.bookings.rate).not.toHaveBeenCalled();
+    });
+
+    it('answers 409 when another request wins the race', async () => {
+      afterEnd();
+      t.bookings.rate.mockRejectedValue(new ConflictError('Turno already rated'));
+
+      const res = await post({ score: 5 }).expect(409);
+
+      expect(res.body.message).toBe('Turno already rated');
+    });
+  });
+
+  describe('canRate and rating', () => {
+    const get = () => t.http.get(`/booking-links/${LINK}`);
+
+    it('is false before the Turno ends, true after, and false once rated', async () => {
+      t.bookings.findByLink.mockResolvedValue(CLIENT_BOOKED);
+      expect((await get().expect(200)).body).toMatchObject({ canRate: false, rating: null });
+
+      t.clock.advance(BOOKED.endsAt.getTime() - t.clock.now().getTime() + 1);
+      expect((await get().expect(200)).body.canRate).toBe(true);
+
+      const rating = { score: 4, comment: null, createdAt: t.clock.now() };
+      t.bookings.findByLink.mockResolvedValue({ ...CLIENT_BOOKED, rating });
+      expect((await get().expect(200)).body).toMatchObject({
+        canRate: false,
+        rating: { score: 4, comment: null, createdAt: rating.createdAt.toISOString() },
+      });
+    });
+
+    it.each([BookingStatus.PENDING, BookingStatus.REJECTED, BookingStatus.CANCELLED])(
+      'is false when the Turno is %s',
+      async (status) => {
+        t.clock.advance(BOOKED.endsAt.getTime() - t.clock.now().getTime() + 1);
+        t.bookings.findByLink.mockResolvedValue({ ...CLIENT_BOOKED, status });
+
+        expect((await get().expect(200)).body.canRate).toBe(false);
+      },
+    );
+
+    it.each(['noShowAt', 'employeeNoShowAt'])('is false when the Turno has %s', async (mark) => {
+      t.clock.advance(BOOKED.endsAt.getTime() - t.clock.now().getTime() + 1);
+      t.bookings.findByLink.mockResolvedValue({ ...CLIENT_BOOKED, [mark]: t.clock.now() });
+
+      expect((await get().expect(200)).body.canRate).toBe(false);
     });
   });
 });

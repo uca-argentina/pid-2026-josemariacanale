@@ -52,6 +52,8 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | Categoría de Servicio | `ServiceCategory` (`Service.category`) |
 | Aprobación manual | `Service.requiresApproval` |
 | Seña | `Service.depositPercent` (opcional) |
+| Precio del Turno | `Booking.price` (el precio del Servicio fijado al Reservar, como `depositAmount`; los cambios posteriores al Servicio no lo tocan) |
+| Cuándo se Canceló o Rechazó un Turno | `Booking.cancelledAt` (al Cancelar, de cualquier forma, incluida Dar de baja) y `Booking.rejectedAt` (al Rechazar turno); `null` fuera de su estado, lo garantiza un CHECK (ADR 0004); la API todavía no los expone |
 | Seña pendiente | `Booking.depositAmount` (monto fijado al Reservar: precio × `depositPercent` / 100 redondeado al centavo; `null` sin Seña) y `Booking.depositPaidAt` (`null` mientras no se paga); Seña pendiente = `depositAmount !== null && depositPaidAt === null` |
 | Servicio oculto | `Service.hidden` |
 | Tiempo de preparación | `Service.prepMinutes` (0 = sin preparación); en el Turno, `Booking.prepStartsAt` (desde cuándo ocupa al Empleado) |
@@ -68,8 +70,11 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | Turno pendiente | `BookingStatus.PENDING` |
 | Aceptar turno | `accept` (`PENDING` → `BOOKED`) |
 | Rechazar turno | `reject` (`PENDING` → `REJECTED`) |
+| Turno reagendado (ADR 0031) | Reagendar cancela el Turno original (`Booking.rescheduled = true`, `status` `CANCELLED`, sin `Booking.link`) y crea uno nuevo con `Booking.fromRescheduleId` = id del original, que hereda el Enlace del Turno; `GET /users/me/bookings` trae `fromRescheduleId` y ni esa lista ni `GET /businesses/:id/bookings` devuelven los originales |
 | Ausencia | `Booking.noShowAt` (marcado a mano; no reemplaza `status`) |
 | Falta del Empleado | `Booking.employeeNoShowAt` (la marca el Cliente; no reemplaza `status`; excluye a `noShowAt` con el CHECK `Booking_no_show_exclusive`, ADR 0004); `MarkEmployeeNoShowByLinkUseCase`, `PATCH /booking-links/:secret/employee-no-show`; `ClientBooking.canMarkEmployeeNoShow` lo calcula el back |
+| Calificación | `BookingRating` (`bookingId` único, `score` de 1 a 5 con el CHECK `BookingRating_score_range`, `comment` opcional, `createdAt`; ADR 0004); `RateBookingByLinkUseCase`, `POST /booking-links/:secret/rating`; `ClientBooking.rating` y `ClientBooking.canRate`, que calcula el back (`ratingBlocker`) |
+| Invitación a calificar | `Booking.ratingRequestSentAt` (`null` mientras no se mandó; se guarda solo si el mail salió bien); `SendRatingRequestsUseCase` (reloj y `Mailer` por puerto), `RatingRequestsJob` (`@nestjs/schedule`, cada 15 minutos), `Mailer.sendRatingRequest`; Turnos con `endsAt` entre hace 7 días y hace 1 hora que pasan `ratingBlocker` |
 | Reservar | `book` |
 | Reagendar | `reschedule` (`RescheduleBookingUseCase`); por Enlace del Turno, `reschedulePendingOrBooked` (`RescheduleBookingByLinkUseCase`) |
 | Pagar la Seña (ADR 0027) | `payDeposit`, `PayDepositByLinkUseCase`, `PATCH /booking-links/:secret/deposit`; en el front, `payDepositByLink` |

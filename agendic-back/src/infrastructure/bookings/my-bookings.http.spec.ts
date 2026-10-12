@@ -31,9 +31,13 @@ const BOOKED: Booking = {
   noShowAt: null,
   employeeNoShowAt: null,
   link: 'booking-link-secret',
+  fromRescheduleId: null,
   employeeChosen: false,
   depositAmount: null,
   depositPaidAt: null,
+  price: 50,
+  cancelledAt: null,
+  rejectedAt: null,
 };
 
 const AVAILABILITY: Availability = {
@@ -98,6 +102,7 @@ describe('Mis turnos del Usuario', () => {
           noShowAt: null,
           employeeNoShowAt: null,
           employeeChosen: false,
+          fromRescheduleId: null,
           depositAmount: null,
           depositPaidAt: null,
           cabin: { id: 10, name: 'Box 1' },
@@ -166,7 +171,7 @@ describe('Mis turnos del Usuario', () => {
 
       const res = await patch(CLERK_TOKEN).expect(200);
 
-      expect(t.bookings.cancel).toHaveBeenCalledWith(BOOKED.id);
+      expect(t.bookings.cancel).toHaveBeenCalledWith(BOOKED.id, t.clock.now());
       expect(res.body).toMatchObject({ id: BOOKED.id, status: 'CANCELLED' });
       expect(t.mailer.sendBookingCancellation).toHaveBeenCalledWith(
         BOOKED.clientEmail,
@@ -243,7 +248,7 @@ describe('Mis turnos del Usuario', () => {
         prepStartsAt: new Date('2026-01-02T14:45:00.000Z'),
         startsAt: new Date(NEW_START),
         endsAt: new Date('2026-01-02T15:30:00.000Z'),
-      });
+      }, expect.any(Date));
       expect(t.bookings.listOccupiedByUser).toHaveBeenCalledWith(
         ANAS_EMPLOYEE.id,
         expect.any(Date),
@@ -397,6 +402,7 @@ describe('Mis turnos del Usuario', () => {
             employeeId: ANAS_EMPLOYEE.id,
             cabinId: BOX.id,
           }),
+          expect.any(Date),
         );
       });
 
@@ -453,6 +459,7 @@ describe('Mis turnos del Usuario', () => {
         expect(t.bookings.reschedule).toHaveBeenCalledWith(
           BOOKED.id,
           expect.objectContaining({ employeeId: JUAN.id }),
+          expect.any(Date),
         );
       });
 
@@ -466,6 +473,7 @@ describe('Mis turnos del Usuario', () => {
         expect(t.bookings.reschedule).toHaveBeenCalledWith(
           BOOKED.id,
           expect.objectContaining({ employeeId: ANAS_EMPLOYEE.id }),
+          expect.any(Date),
         );
       });
 
@@ -484,6 +492,7 @@ describe('Mis turnos del Usuario', () => {
           expect(t.bookings.reschedule).toHaveBeenCalledWith(
             BOOKED.id,
             expect.objectContaining({ employeeId: ANAS_EMPLOYEE.id }),
+            expect.any(Date),
           );
         });
 

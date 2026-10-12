@@ -372,9 +372,13 @@ describe('Servicio personal', () => {
       noShowAt: null,
       employeeNoShowAt: null,
       link: 'booking-link-secret',
+      fromRescheduleId: null,
       employeeChosen: false,
       depositAmount: null,
       depositPaidAt: null,
+      price: 50,
+      cancelledAt: null,
+      rejectedAt: null,
     };
 
     beforeEach(() => {

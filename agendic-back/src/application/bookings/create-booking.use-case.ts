@@ -133,6 +133,7 @@ export class CreateBookingUseCase {
         notes: input.notes || null, // a blank Comentario del Turno is no Comentario
         employeeChosen: input.employeeId !== undefined,
         depositAmount,
+        price: service.price,
         status,
       },
       dailyLimit,
@@ -144,7 +145,7 @@ export class CreateBookingUseCase {
       throw new NotFoundError(`User ${attendant.userId} not found`);
     await this.mailer.sendBookingConfirmation(
       input.clientEmail,
-      booking.link,
+      booking.link!,
       booking.depositAmount,
     );
     return {

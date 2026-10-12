@@ -11,6 +11,7 @@ export async function resolvePendingBooking(
   userId: number,
   bookingId: number,
   status: BookingStatus.BOOKED | BookingStatus.REJECTED,
+  now: Date,
 ): Promise<Booking> {
   const booking = await bookings.findById(bookingId);
   await assertAssignedAttendant(
@@ -21,5 +22,5 @@ export async function resolvePendingBooking(
   );
   if (booking.status !== BookingStatus.PENDING)
     throw new BusinessRuleError('Turno is not pending');
-  return bookings.resolvePending(bookingId, status);
+  return bookings.resolvePending(bookingId, status, now);
 }

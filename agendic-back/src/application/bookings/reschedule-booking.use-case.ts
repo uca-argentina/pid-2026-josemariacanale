@@ -12,6 +12,7 @@ import {
   SERVICES_REPOSITORY,
   ServicesRepository,
 } from '../../domain/services/services.repository';
+import { CLOCK, Clock } from '../../domain/clock';
 import { MAILER, Mailer } from '../../domain/mailer';
 import { ListSlotsUseCase } from '../slots/list-slots.use-case';
 import { notifyClients } from './notify-clients';
@@ -29,6 +30,7 @@ export class RescheduleBookingUseCase {
     @Inject(SERVICES_REPOSITORY) private readonly services: ServicesRepository,
     private readonly listSlots: ListSlotsUseCase,
     @Inject(MAILER) private readonly mailer: Mailer,
+    @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
   /**
@@ -37,6 +39,7 @@ export class RescheduleBookingUseCase {
    * queda fuera de la Franja. El Límite diario del día de destino también lo descuenta ese cálculo, sin contar a
    * este mismo Turno.
    *
+   * @returns el Turno nuevo, con otro `id` (ADR 0031)
    * @throws {NotFoundError} el Turno no existe
    * @throws {ForbiddenError} el Usuario no es el Empleado asignado al Turno
    * @throws {BusinessRuleError} el Turno no está aceptado, o `startsAt` no es un Horario reservable de ningún Empleado, o del elegido, que además puede haber dejado de Ofrecer el Servicio, o no queda una Cabina libre si el Servicio las admite (incluido un día que ya alcanzó el Límite diario)
@@ -77,13 +80,11 @@ export class RescheduleBookingUseCase {
           keepCabinId: booking.cabinId ?? undefined,
         })
       : null;
-    const rescheduled = await this.bookings.reschedule(bookingId, {
-      ...attendant,
-      cabinId,
-      prepStartsAt,
-      startsAt,
-      endsAt,
-    });
+    const rescheduled = await this.bookings.reschedule(
+      bookingId,
+      { ...attendant, cabinId, prepStartsAt, startsAt, endsAt },
+      this.clock.now(),
+    );
     await notifyClients([rescheduled], (email, link) =>
       this.mailer.sendBookingReschedule(email, link),
     );

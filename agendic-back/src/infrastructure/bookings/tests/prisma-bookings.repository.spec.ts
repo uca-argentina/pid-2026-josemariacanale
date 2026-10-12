@@ -30,6 +30,7 @@ const BOOKING_ROW = {
   notes: null,
   noShowAt: null,
   depositAmount: null,
+  price: 50,
   depositPaidAt: null,
 };
 
@@ -46,8 +47,11 @@ const CREATE_DATA: CreateBookingData = {
   notes: null,
   employeeChosen: false,
   depositAmount: null,
+  price: 50,
   status: BookingStatus.BOOKED,
 };
+
+const CANCEL_NOW = new Date('2026-01-02T12:00:00.000Z');
 
 describe('PrismaBookingsRepository', () => {
   const tx = {
@@ -93,6 +97,7 @@ describe('PrismaBookingsRepository', () => {
       notes: null,
       noShowAt: null,
       depositAmount: null,
+      price: 50,
       depositPaidAt: null,
     });
     expect(prisma.booking.create).toHaveBeenCalledWith(
@@ -315,11 +320,11 @@ describe('PrismaBookingsRepository', () => {
         status: BookingStatus.REJECTED,
       });
 
-      const booking = await repository.resolvePending(1, BookingStatus.REJECTED);
+      const booking = await repository.resolvePending(1, BookingStatus.REJECTED, CANCEL_NOW);
 
       expect(prisma.booking.updateMany).toHaveBeenCalledWith({
         where: { id: 1, status: BookingStatus.PENDING },
-        data: { status: BookingStatus.REJECTED },
+        data: { status: BookingStatus.REJECTED, rejectedAt: CANCEL_NOW },
       });
       expect(booking.status).toBe(BookingStatus.REJECTED);
     });
@@ -328,7 +333,7 @@ describe('PrismaBookingsRepository', () => {
       prisma.booking.updateMany.mockResolvedValue({ count: 0 });
 
       await expect(
-        repository.resolvePending(1, BookingStatus.BOOKED),
+        repository.resolvePending(1, BookingStatus.BOOKED, CANCEL_NOW),
       ).rejects.toBeInstanceOf(BusinessRuleError);
     });
   });
@@ -376,31 +381,18 @@ describe('PrismaBookingsRepository', () => {
     it('cancel only touches a BOOKED Turno', async () => {
       prisma.booking.updateMany.mockResolvedValue({ count: 1 });
 
-      await repository.cancel(1);
+      await repository.cancel(1, CANCEL_NOW);
 
       expect(prisma.booking.updateMany).toHaveBeenCalledWith({
         where: { id: 1, status: { in: [BookingStatus.BOOKED] } },
-        data: { status: BookingStatus.CANCELLED },
+        data: { status: BookingStatus.CANCELLED, cancelledAt: CANCEL_NOW },
       });
     });
 
     it('answers BusinessRuleError when the Turno stopped being BOOKED', async () => {
       prisma.booking.updateMany.mockResolvedValue({ count: 0 });
 
-      await expect(repository.cancel(1)).rejects.toBeInstanceOf(BusinessRuleError);
-      await expect(
-        repository.reschedule(1, { employeeId: 1, userId: 1, cabinId: null, prepStartsAt: NOW, startsAt: NOW, endsAt: NOW }),
-      ).rejects.toBeInstanceOf(BusinessRuleError);
-    });
-
-    it('translates the overlap exclusion violation into ConflictError on reschedule', async () => {
-      const cause = knownError('P2039');
-      cause.meta = { driverAdapterError: { cause: { originalCode: '23P01' } } };
-      prisma.booking.updateMany.mockRejectedValue(cause);
-
-      await expect(
-        repository.reschedule(1, { employeeId: 1, userId: 1, cabinId: null, prepStartsAt: NOW, startsAt: NOW, endsAt: NOW }),
-      ).rejects.toBeInstanceOf(ConflictError);
+      await expect(repository.cancel(1, CANCEL_NOW)).rejects.toBeInstanceOf(BusinessRuleError);
     });
 
     it('markNoShow requires an ended Turno without an Ausencia or a Falta del Empleado', async () => {
@@ -465,23 +457,13 @@ describe('PrismaBookingsRepository', () => {
       });
     });
 
-    it('cancel, reject and reschedule leave depositPaidAt as it was', async () => {
+    it('cancel and reject leave depositPaidAt as it was', async () => {
       jest.spyOn(repository as never, 'findEnriched').mockResolvedValue({} as never);
       prisma.booking.updateMany.mockResolvedValue({ count: 1 });
 
-      await repository.cancel(1);
-      await repository.reschedule(1, { employeeId: 1, userId: 1, cabinId: null, prepStartsAt: NOW, startsAt: NOW, endsAt: NOW });
-      await repository.cancelPendingOrBooked(1);
-      await repository.resolvePending(1, BookingStatus.REJECTED);
-      await repository.reschedulePendingOrBooked(1, {
-        employeeId: 1,
-        userId: 1,
-        cabinId: null,
-        prepStartsAt: NOW,
-        startsAt: NOW,
-        endsAt: NOW,
-        status: BookingStatus.PENDING,
-      });
+      await repository.cancel(1, CANCEL_NOW);
+      await repository.cancelPendingOrBooked(1, CANCEL_NOW);
+      await repository.resolvePending(1, BookingStatus.REJECTED, CANCEL_NOW);
 
       for (const [{ data }] of prisma.booking.updateMany.mock.calls)
         expect(data).not.toHaveProperty('depositPaidAt');
@@ -503,6 +485,37 @@ describe('PrismaBookingsRepository', () => {
           where: expect.objectContaining({ id: { not: 9 } }),
         }),
       );
+    });
+  });
+
+  describe('rate', () => {
+    const rating = { create: jest.fn() };
+
+    beforeEach(() => {
+      (prisma as Record<string, unknown>).bookingRating = rating;
+      jest.spyOn(repository as never, 'findEnriched').mockResolvedValue({} as never);
+    });
+
+    it('saves the Calificación of the Turno', async () => {
+      rating.create.mockResolvedValue({});
+
+      await repository.rate(1, 4, 'Muy bien');
+
+      expect(rating.create).toHaveBeenCalledWith({
+        data: { bookingId: 1, score: 4, comment: 'Muy bien' },
+      });
+    });
+
+    it('answers ConflictError when the unique index says it is already rated', async () => {
+      rating.create.mockRejectedValue(knownError('P2002'));
+
+      await expect(repository.rate(1, 4, null)).rejects.toMatchObject({ message: 'Turno already rated', constructor: ConflictError });
+    });
+
+    it('wraps any other database error', async () => {
+      rating.create.mockRejectedValue(new Error('boom'));
+
+      await expect(repository.rate(1, 4, null)).rejects.toBeInstanceOf(DatabaseOperationError);
     });
   });
 });

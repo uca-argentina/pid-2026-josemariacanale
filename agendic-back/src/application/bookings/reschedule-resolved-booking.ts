@@ -19,6 +19,7 @@ export async function rescheduleResolvedBooking(
   listSlots: ListSlotsUseCase,
   booking: Pick<Booking, 'id' | 'serviceId' | 'employeeId' | 'cabinId' | 'employeeChosen' | 'startsAt' | 'endsAt'>,
   startsAt: Date,
+  now: Date,
 ): Promise<ClientBooking> {
   const endsAt = new Date(
     startsAt.getTime() + (booking.endsAt.getTime() - booking.startsAt.getTime()),
@@ -48,5 +49,5 @@ export async function rescheduleResolvedBooking(
     startsAt,
     endsAt,
     status,
-  });
+  }, now);
 }

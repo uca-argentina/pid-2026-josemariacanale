@@ -47,3 +47,30 @@ describe('NodemailerMailer.sendBookingConfirmation', () => {
     );
   });
 });
+
+describe('NodemailerMailer.sendRatingRequest', () => {
+  const sendMail = jest.fn().mockResolvedValue(undefined);
+
+  beforeEach(() => {
+    process.env.FRONTEND_URL = 'http://localhost:3000';
+    (createTransport as jest.Mock).mockReturnValue({ sendMail });
+    sendMail.mockClear();
+  });
+
+  it('says the Servicio, the day and hour in the Turno zone, and links the Enlace del Turno', async () => {
+    await new NodemailerMailer().sendRatingRequest(
+      'a@b.com',
+      'secret',
+      'Corte <b>',
+      new Date('2026-10-20T01:30:00Z'),
+      'America/Argentina/Buenos_Aires',
+    );
+
+    const { to, html } = sendMail.mock.calls[0][0];
+    expect(to).toBe('a@b.com');
+    expect(html).toContain('Corte &#60;b&#62;');
+    expect(html).toContain('lunes, 19 de octubre de 2026');
+    expect(html).toContain('22:30');
+    expect(html).toContain('http://localhost:3000/turnos/secret');
+  });
+});

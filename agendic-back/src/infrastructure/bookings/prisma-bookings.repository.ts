@@ -14,6 +14,7 @@ import {
   CabinOccupancy,
   CreateBookingData,
   DailyLimitGuard,
+  RescheduleTimes,
 } from '../../domain/bookings/bookings.repository';
 import {
   BusinessRuleError,
@@ -55,9 +56,13 @@ const BOOKING_SELECT = {
   noShowAt: true,
   employeeNoShowAt: true,
   link: true,
+  fromRescheduleId: true,
   employeeChosen: true,
   depositAmount: true,
   depositPaidAt: true,
+  price: true,
+  cancelledAt: true,
+  rejectedAt: true,
   client: { select: { name: true, email: true } },
 } satisfies Prisma.BookingSelect;
 
@@ -88,6 +93,7 @@ const CLIENT_BOOKING_SELECT = {
     },
   },
   employee: { select: { user: { select: { name: true } } } },
+  rating: { select: { score: true, comment: true, createdAt: true } },
   service: {
     select: {
       name: true,
@@ -295,7 +301,7 @@ export class PrismaBookingsRepository implements BookingsRepository {
     return (
       await this.prisma.booking
         .findMany({
-          where: { employee: { businessId } },
+          where: { employee: { businessId }, rescheduled: null },
           select: PANEL_BOOKING_SELECT,
         })
         .catch(translateError)
@@ -342,11 +348,15 @@ export class PrismaBookingsRepository implements BookingsRepository {
   async resolvePending(
     id: number,
     status: BookingStatus.BOOKED | BookingStatus.REJECTED,
+    now: Date,
   ) {
     const { count } = await this.prisma.booking
       .updateMany({
         where: { id, status: BookingStatus.PENDING },
-        data: { status },
+        data: {
+          status,
+          ...(status === BookingStatus.REJECTED && { rejectedAt: now }),
+        },
       })
       .catch(translateError);
     if (count === 0) throw new BusinessRuleError('Turno is not pending');
@@ -425,6 +435,7 @@ export class PrismaBookingsRepository implements BookingsRepository {
       .findMany({
         where: {
           userId,
+          rescheduled: null,
           // A Negocio that dio de baja the Usuario no longer shows its Turnos to them.
           OR: [{ employeeId: null }, { employee: { deletedAt: null } }],
         },
@@ -461,11 +472,11 @@ export class PrismaBookingsRepository implements BookingsRepository {
    * @throws {BusinessRuleError} el Turno ya no está aceptado
    * @throws {NotFoundError} el Turno no existe
    */
-  async cancel(id: number) {
+  async cancel(id: number, now: Date) {
     await this.updateStatus(
       id,
       [BookingStatus.BOOKED],
-      { status: BookingStatus.CANCELLED },
+      { status: BookingStatus.CANCELLED, cancelledAt: now },
       'Turno is not booked',
     );
     return this.findById(id);
@@ -475,39 +486,39 @@ export class PrismaBookingsRepository implements BookingsRepository {
    * @throws {BusinessRuleError} el Turno ya no está pendiente ni aceptado
    * @throws {NotFoundError} el Turno no existe
    */
-  async cancelPendingOrBooked(id: number) {
+  async cancelPendingOrBooked(id: number, now: Date) {
     await this.updateStatus(
       id,
       OCCUPYING,
-      { status: BookingStatus.CANCELLED },
+      { status: BookingStatus.CANCELLED, cancelledAt: now },
       'Turno is not pending or booked',
     );
     return this.findEnriched(id);
   }
 
   /**
+   * Reagenda reemplazando el Turno (ADR 0031): el original queda cancelado y el nuevo, en el horario nuevo, lleva su Enlace.
+   *
    * @throws {BusinessRuleError} el Turno ya no está aceptado
    * @throws {ConflictError} el nuevo horario pisa otro Turno pendiente o aceptado del Empleado
    * @throws {NotFoundError} el Turno no existe
    */
   async reschedule(
     id: number,
-    { employeeId, userId, cabinId, prepStartsAt, startsAt, endsAt }: Pick<
-      Booking,
-      'employeeId' | 'userId' | 'cabinId' | 'prepStartsAt' | 'startsAt' | 'endsAt'
-    >,
+    times: RescheduleTimes,
+    now: Date,
   ): Promise<PanelBooking> {
-    await this.updateStatus(
+    const newId = await this.replace(
       id,
       [BookingStatus.BOOKED],
-      { employeeId, userId, cabinId, prepStartsAt, startsAt, endsAt },
+      { ...times, status: BookingStatus.BOOKED },
+      now,
       'Turno is not booked',
     );
     const row = await this.prisma.booking
-      .findUnique({ where: { id }, select: PANEL_BOOKING_SELECT })
+      .findUnique({ where: { id: newId }, select: PANEL_BOOKING_SELECT })
       .catch(translateError);
-    if (!row) throw new NotFoundError('Booking not found');
-    return toPanelBooking(row);
+    return toPanelBooking(row!);
   }
 
   /**
@@ -517,24 +528,12 @@ export class PrismaBookingsRepository implements BookingsRepository {
    */
   async reschedulePendingOrBooked(
     id: number,
-    { employeeId, userId, cabinId, prepStartsAt, startsAt, endsAt, status }: Pick<
-      Booking,
-      | 'employeeId'
-      | 'userId'
-      | 'cabinId'
-      | 'prepStartsAt'
-      | 'startsAt'
-      | 'endsAt'
-      | 'status'
-    >,
+    times: RescheduleTimes & Pick<Booking, 'status'>,
+    now: Date,
   ) {
-    await this.updateStatus(
-      id,
-      OCCUPYING,
-      { employeeId, userId, cabinId, prepStartsAt, startsAt, endsAt, status },
-      'Turno is not pending or booked',
+    return this.findEnriched(
+      await this.replace(id, OCCUPYING, times, now, 'Turno is not pending or booked'),
     );
-    return this.findEnriched(id);
   }
 
   /**
@@ -570,6 +569,65 @@ export class PrismaBookingsRepository implements BookingsRepository {
   }
 
   /**
+   * Cancels the Turno as rescheduled and creates its replacement in one transaction, so a failed creation leaves the
+   * original untouched. The new Turno takes over the Enlace del Turno (unique, so the original lets go of it first)
+   * and copies what the Cliente gave and paid. Returns the new id.
+   */
+  private async replace(
+    id: number,
+    fromStatuses: BookingStatus[],
+    times: RescheduleTimes & Pick<Booking, 'status'>,
+    now: Date,
+    message: string,
+  ): Promise<number> {
+    return this.prisma
+      .$transaction(async (tx) => {
+        const original = await tx.booking.findUnique({
+          where: { id },
+          select: {
+            serviceId: true,
+            link: true,
+            notes: true,
+            employeeChosen: true,
+            price: true,
+            depositAmount: true,
+            depositPaidAt: true,
+            // Kept so the rotation of Empleados and Cabinas ("el que hace más tiempo que no recibe un Turno") ignores a Reagendar.
+            createdAt: true,
+            client: { select: { name: true, email: true } },
+          },
+        });
+        if (!original) throw new NotFoundError(`Booking ${id} not found`);
+        const { count } = await tx.booking.updateMany({
+          where: { id, status: { in: fromStatuses } },
+          data: {
+            status: BookingStatus.CANCELLED,
+            cancelledAt: now,
+            rescheduled: true,
+            link: null,
+          },
+        });
+        if (count === 0) throw new BusinessRuleError(message);
+        const { client, ...copied } = original;
+        const created = await tx.booking.create({
+          select: { id: true },
+          data: {
+            ...copied,
+            ...times,
+            fromRescheduleId: id,
+            client: { create: { name: client!.name, email: client!.email } },
+          },
+        });
+        return created.id;
+      })
+      .catch((error: unknown) =>
+        error instanceof BusinessRuleError || error instanceof NotFoundError
+          ? Promise.reject(error)
+          : translateError(error),
+      );
+  }
+
+  /**
    * Marca la Falta del Empleado, solo si la guarda sigue valiendo en el momento de escribir.
    *
    * @throws {BusinessRuleError} el Turno ya no está aceptado, no empezó, pasó la ventana, o ya tiene Ausencia o Falta del Empleado
@@ -589,6 +647,50 @@ export class PrismaBookingsRepository implements BookingsRepository {
       },
     );
     return this.findEnriched(id);
+  }
+
+  /**
+   * Guarda la Calificación del Turno; el índice único de `bookingId` resuelve la carrera entre dos pedidos.
+   *
+   * @throws {ConflictError} el Turno ya tiene Calificación
+   * @throws {NotFoundError} el Turno no existe
+   */
+  async rate(id: number, score: number, comment: string | null) {
+    await this.prisma.bookingRating
+      .create({ data: { bookingId: id, score, comment } })
+      .catch((error: unknown) => {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002')
+          throw new ConflictError('Turno already rated', { cause: error });
+        return translateError(error);
+      });
+    return this.findEnriched(id);
+  }
+
+  /**
+   * @throws {DatabaseOperationError} falló la base
+   */
+  async listUnrequestedByEndsAtBetween(from: Date, to: Date) {
+    const rows = await this.prisma.booking
+      .findMany({
+        where: {
+          endsAt: { gte: from, lte: to },
+          ratingRequestSentAt: null,
+          link: { not: null },
+        },
+        select: CLIENT_BOOKING_SELECT,
+        orderBy: { endsAt: 'asc' },
+      })
+      .catch(translateError);
+    return rows.map(toClientBooking);
+  }
+
+  /**
+   * @throws {NotFoundError} el Turno no existe
+   */
+  async markRatingRequestSent(id: number, now: Date) {
+    await this.prisma.booking
+      .update({ where: { id }, data: { ratingRequestSentAt: now } })
+      .catch(translateError);
   }
 
   /** Applies `data` only while the Turno is still one of `fromStatuses` (and matches `extraWhere`), so a race can't resurrect it. */
@@ -629,9 +731,13 @@ const toBooking = (row: BookingRow): Booking => ({
   noShowAt: row.noShowAt,
   employeeNoShowAt: row.employeeNoShowAt,
   link: row.link,
+  fromRescheduleId: row.fromRescheduleId,
   employeeChosen: row.employeeChosen,
   depositAmount: row.depositAmount === null ? null : Number(row.depositAmount),
   depositPaidAt: row.depositPaidAt,
+  price: Number(row.price),
+  cancelledAt: row.cancelledAt,
+  rejectedAt: row.rejectedAt,
 });
 
 /** The Turno with its Cabina, for the panel. */
@@ -654,6 +760,7 @@ const toClientBooking = (row: ClientBookingRow): ClientBooking => {
       : (row.service.availability ?? row.user.availabilities[0])?.timeZone ??
         DEFAULT_AVAILABILITY.timeZone,
     employeeName: row.employee ? row.employee.user.name : row.user.name,
+    rating: row.rating,
     service: {
       name: row.service.name,
       durationMinutes: row.service.durationMinutes,

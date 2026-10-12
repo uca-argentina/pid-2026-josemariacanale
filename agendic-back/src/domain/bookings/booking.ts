@@ -5,6 +5,14 @@ export enum BookingStatus {
   CANCELLED = 'CANCELLED',
 }
 
+/** Calificación: the score the Cliente left on an attended Turno from its Enlace del Turno. */
+export interface BookingRating {
+  /** From 1 to 5. */
+  score: number;
+  comment: string | null;
+  createdAt: Date;
+}
+
 export interface Booking {
   id: number;
   serviceId: number;
@@ -27,14 +35,22 @@ export interface Booking {
   noShowAt: Date | null;
   /** Falta del Empleado: when the Cliente marked it from the Enlace del Turno; null while not marked. */
   employeeNoShowAt: Date | null;
-  /** Enlace del Turno (ADR 0022): identificador secreto, único y no adivinable que abre este Turno sin Código de verificación. */
-  link: string;
+  /** Enlace del Turno (ADR 0022): identificador secreto, único y no adivinable que abre este Turno sin Código de verificación. Al Reagendar pasa al Turno nuevo y el original queda sin Enlace. */
+  link: string | null;
+  /** The original Turno this one replaced when Reagendar (ADR 0031); null if it was not born from one. */
+  fromRescheduleId: number | null;
   /** Empleado elegido: the Cliente came in by this Empleado's Enlace de reserva, so the Turno stays with them. */
   employeeChosen: boolean;
   /** Seña del Turno, fixed at booking (see `depositAmountFor`); null if the Servicio asked for none. */
   depositAmount: number | null;
   /** Pagar la Seña: when the Cliente paid it; null while it is pending. */
   depositPaidAt: Date | null;
+  /** The Servicio's price fixed at booking: later changes to the Servicio don't touch it. */
+  price: number;
+  /** Cancelar: when it was cancelled, from the clock; null unless CANCELLED. */
+  cancelledAt: Date | null;
+  /** Rechazar turno: when it was rejected, from the clock; null unless REJECTED. */
+  rejectedAt: Date | null;
 }
 
 /**
@@ -80,6 +96,8 @@ export interface ClientBooking extends Booking {
   timeZone: string;
   /** The Empleado's name, or the attending Usuario's own in a Servicio personal. */
   employeeName: string;
+  /** Calificación: what the Cliente rated it; null while unrated. */
+  rating: BookingRating | null;
   service: {
     name: string;
     durationMinutes: number;

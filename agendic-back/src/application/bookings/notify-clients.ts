@@ -13,13 +13,15 @@ export async function notifyClients(
   bookings: ClientNotice[],
   send: (email: string, link: string) => Promise<void>,
 ): Promise<void> {
+  // A Turno without Enlace is an original already replaced by Reagendar: nobody to send it to.
+  const notices = bookings.filter((b) => b.link !== null);
   const results = await Promise.allSettled(
-    bookings.map(({ clientEmail, link }) => send(clientEmail, link)),
+    notices.map(({ clientEmail, link }) => send(clientEmail, link!)),
   );
   results.forEach((result, index) => {
     if (result.status === 'rejected')
       logger.error(
-        `Turno change notice to ${bookings[index].clientEmail} failed`,
+        `Turno change notice to ${notices[index].clientEmail} failed`,
         result.reason instanceof Error ? result.reason.stack : String(result.reason),
       );
   });
