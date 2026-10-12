@@ -11,8 +11,7 @@ import type { ClientBooking, ClientBookingActionResult } from './types';
 
 /**
  * Muestra el detalle de un Turno del Cliente, con Pagar seña, Reagendar y Cancelar abajo cuando todavía se puede, y el aviso de
- * que el Empleado no vino (Falta del Empleado) cuando el back lo permite.
- * la Calificación (formulario o solo lectura).
+ * que el Empleado no vino (Falta del Empleado) cuando el back lo permite, y la Calificación (formulario o solo lectura).
  * Quien lo usa pasa sus propias acciones en `payDeposit`, `cancel`, `reschedule`, `markEmployeeNoShow` y `rate`.
  */
 export function ClientBookingDetail({
