@@ -1,4 +1,4 @@
-import { galleryLayout } from '@/app/[slug]/_components/gallery-layout';
+import { galleryLayout, splitIntoRows } from '@/app/[slug]/_components/gallery-layout';
 
 describe('galleryLayout', () => {
     describe('mosaic', () => {
@@ -41,5 +41,17 @@ describe('galleryLayout', () => {
         ])('alternates full and half rows for %i images, never leaving one alone in a half row', (count, rows) => {
             expect(galleryLayout(count).modalRows).toEqual(rows);
         });
+    });
+});
+
+describe('splitIntoRows', () => {
+    it('puts the images in the rows of the layout, in order', () => {
+        const images = ['a', 'b', 'c', 'd', 'e'];
+
+        expect(splitIntoRows(images, galleryLayout(images.length).modalRows)).toEqual([['a'], ['b', 'c'], ['d', 'e']]);
+    });
+
+    it('puts a single image alone in its row', () => {
+        expect(splitIntoRows(['a'], galleryLayout(1).modalRows)).toEqual([['a']]);
     });
 });

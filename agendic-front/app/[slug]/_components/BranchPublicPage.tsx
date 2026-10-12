@@ -13,6 +13,7 @@ import { BookingFlow } from '@/app/_components/booking/BookingFlow';
 import { ServiceCard } from '@/app/_components/booking/ServiceCard';
 import { initials } from '@/app/_components/booking/format';
 import type { Service } from '@/app/_components/booking/types';
+import { BranchGalleryModal } from './BranchGalleryModal';
 import { galleryLayout } from './gallery-layout';
 import { ShareBranchButton } from './ShareBranchButton';
 import type { Branch, BranchImage, Business, Employee, OtherBranch } from './types';
@@ -20,8 +21,9 @@ import type { Branch, BranchImage, Business, Employee, OtherBranch } from './typ
 /**
  * Página pública de la Sucursal. Muestra solo las Categorías que la Sucursal ofrece, en el orden del enum. La primera
  * Imagen es la portada, la del resumen y la de la reserva; desde md el mosaico suma al costado lo que arma
- * `galleryLayout`, en mobile solo la portada. Compartir usa siempre el Enlace de reserva de la Sucursal, aunque se haya
- * entrado por el de un Servicio.
+ * `galleryLayout`, en mobile solo la portada; con dos o más, "Ver todas las fotos" y cada foto del mosaico abren el
+ * modal de la galería, cuyo estado vive en memoria y no en la URL. Compartir usa siempre el Enlace de reserva de la
+ * Sucursal, aunque se haya entrado por el de un Servicio.
  */
 export function BranchPublicPage({
     business,
@@ -62,6 +64,8 @@ export function BranchPublicPage({
     const cover = images[0]?.url;
     const gallery = galleryLayout(images.length);
     const sideImages = gallery.mosaic.side.map((index) => images[index]);
+    const [galleryOpen, setGalleryOpen] = useState(false);
+    const openGallery = () => setGalleryOpen(true);
 
     return (
         <>
@@ -105,9 +109,18 @@ export function BranchPublicPage({
                                     sizes="(max-width: 768px) 100vw, 66vw"
                                 />
                                 {gallery.showAll && (
+                                    <button
+                                        type="button"
+                                        onClick={openGallery}
+                                        aria-label="Ver la portada en la galería"
+                                        className="absolute inset-0 cursor-zoom-in"
+                                    />
+                                )}
+                                {gallery.showAll && (
                                     <Button
                                         type="button"
                                         variant="outline"
+                                        onClick={openGallery}
                                         className="absolute right-4 bottom-4 h-auto gap-1.5 rounded-full bg-white px-3.5 py-2 text-[13px] font-bold shadow-sm"
                                     >
                                         <Images className="size-4" />
@@ -116,14 +129,35 @@ export function BranchPublicPage({
                                 )}
                             </div>
                             <div className={`hidden gap-3 md:grid ${sideImages.length > 1 ? 'grid-rows-2' : 'grid-rows-1'}`}>
-                                {sideImages.map((image, position) => (
-                                    <div key={`${image.id}-${position}`} className="relative overflow-hidden rounded-2xl">
-                                        <BranchPhoto src={image.url} sizes="33vw" />
-                                    </div>
-                                ))}
+                                {sideImages.map((image, position) =>
+                                    gallery.showAll ? (
+                                        <button
+                                            key={`${image.id}-${position}`}
+                                            type="button"
+                                            onClick={openGallery}
+                                            aria-label="Ver la foto en la galería"
+                                            className="relative cursor-zoom-in overflow-hidden rounded-2xl"
+                                        >
+                                            <BranchPhoto src={image.url} sizes="33vw" />
+                                        </button>
+                                    ) : (
+                                        <div key={`${image.id}-${position}`} className="relative overflow-hidden rounded-2xl">
+                                            <BranchPhoto src={image.url} sizes="33vw" />
+                                        </div>
+                                    ),
+                                )}
                             </div>
                         </div>
                     </section>
+                )}
+                {gallery.showAll && (
+                    <BranchGalleryModal
+                        open={galleryOpen}
+                        onOpenChange={setGalleryOpen}
+                        businessName={business.name}
+                        branchName={branch.name}
+                        images={images}
+                    />
                 )}
 
                 <div className="mt-12 grid items-start gap-10 lg:grid-cols-[1fr_360px]">

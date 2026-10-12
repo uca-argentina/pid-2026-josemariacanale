@@ -35,3 +35,14 @@ export function galleryLayout(count: number): GalleryLayout {
         modalRows,
     };
 }
+
+/** Reparte `items` en las filas `rows` de `galleryLayout`, en orden: la fila i lleva `rows[i]` de ellos. */
+export function splitIntoRows<T>(items: readonly T[], rows: readonly GalleryRow[]): T[][] {
+    const result: T[][] = [];
+    let start = 0;
+    for (const size of rows) {
+        result.push(items.slice(start, start + size));
+        start += size;
+    }
+    return result;
+}
