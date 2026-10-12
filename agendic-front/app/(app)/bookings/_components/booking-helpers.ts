@@ -23,6 +23,9 @@ export const localInstant = (day: string, hhmm: string) => new Date(`${day}T${hh
 /** Dónde pasa el Turno: "Negocio · Sucursal", o "Servicio personal" si no tiene Negocio. */
 export const placeOf = (b: Booking) => (b.business && b.branch ? `${b.business.name} · ${b.branch.name}` : 'Servicio personal');
 
+/** La Cabina que ocupa el Turno, o null si no ocupa ninguna: en ese caso no se muestra nada. */
+export const cabinOf = (b: Booking) => b.cabin?.name ?? null;
+
 export const isClosed = (b: Booking) => b.status === 'CANCELLED' || b.status === 'REJECTED';
 
 /** Un Turno pendiente o aceptado cuya Seña todavía no se pagó. */

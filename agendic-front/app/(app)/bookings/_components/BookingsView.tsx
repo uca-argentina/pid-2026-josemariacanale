@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Tabs } from '@base-ui/react/tabs';
-import { ArrowLeft, ArrowRight, CalendarDays, MapPin } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CalendarDays, DoorOpen, MapPin } from 'lucide-react';
 import { cn } from '@/app/_components/utils';
 import { PanelBadge, PanelIconButton, PanelSelect } from '@/app/(app)/_components/panel-ui';
 import {
@@ -17,6 +17,7 @@ import {
     sortForTab,
     tabOf,
     placeOf,
+    cabinOf,
     type Booking,
     type BookingFilter,
     type BookingTab,
@@ -78,6 +79,12 @@ function BookingRow({ booking, tab }: { booking: Booking; tab: BookingTab }) {
                         <MapPin className="size-3.5" />
                         {placeOf(booking)}
                     </span>
+                    {cabinOf(booking) && (
+                        <span className="flex items-center gap-1 text-[12.5px] font-semibold text-[#6b7280]">
+                            <DoorOpen className="size-3.5" />
+                            {cabinOf(booking)}
+                        </span>
+                    )}
                 </div>
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
                     <span className="text-[14.5px] font-bold tracking-[-0.02em] text-[#0f1b2d]">

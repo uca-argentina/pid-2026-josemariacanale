@@ -1,6 +1,6 @@
 import type { ICabinsRepository } from '@/src/application/repositories/cabins.repository.interface';
 import type { IAuthenticationService } from '@/src/application/services/authentication.service.interface';
-import { CabinNameTakenError, InvalidCabinNameError } from '@/src/entities/errors/cabin';
+import { CabinHasUpcomingBookingsError, CabinNameTakenError, InvalidCabinNameError } from '@/src/entities/errors/cabin';
 import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
 import { cabinSchema, type Cabin, type CreateCabin, type RenameCabin } from '@/src/entities/models/cabin';
 
@@ -60,6 +60,10 @@ export class CabinsRepository implements ICabinsRepository {
      */
     async retireCabin(id: number): Promise<void> {
         const { response, message } = await this.request('DELETE /cabins/:id', `/cabins/${id}`, 'DELETE');
+        if (response.status === 409) {
+            const upcoming = /^Cabin \d+ has (\d+) upcoming Turnos$/.exec(message);
+            if (upcoming) throw new CabinHasUpcomingBookingsError(message, Number(upcoming[1]));
+        }
         this.throwIfFailed(response, message, false);
     }
 

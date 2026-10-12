@@ -6,7 +6,8 @@ export type IRetireCabinUseCase = ReturnType<typeof retireCabinUseCase>;
  * Da de baja una Cabina. "Solo el Dueño" lo valida el back (403); acá no se revalida.
  *
  * @throws {NotFoundError} la Cabina no existe o ya está dada de baja
- * @throws {ApiRequestError} el back la rechazó, por ejemplo porque tiene Turnos futuros (409)
+ * @throws {CabinHasUpcomingBookingsError} la Cabina tiene Turnos futuros
+ * @throws {ApiRequestError} el back la rechazó por otra razón
  */
 export const retireCabinUseCase =
     (instrumentationService: IInstrumentationService, cabinsRepository: ICabinsRepository) =>

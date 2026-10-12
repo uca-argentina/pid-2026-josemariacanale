@@ -30,7 +30,8 @@ export interface ICabinsRepository {
      * Da de baja la Cabina.
      *
      * @throws {NotFoundError} 404: no existe o ya está dada de baja
-     * @throws {ApiRequestError} cualquier otra falla, incluido el 409 de Turnos futuros
+     * @throws {CabinHasUpcomingBookingsError} 409: tiene Turnos pendientes o aceptados que todavía no terminaron
+     * @throws {ApiRequestError} cualquier otra falla
      */
     retireCabin(id: number): Promise<void>;
 }

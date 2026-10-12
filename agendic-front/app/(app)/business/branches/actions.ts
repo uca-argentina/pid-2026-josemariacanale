@@ -6,13 +6,19 @@ import { isSessionExpired } from '@/app/api-error';
 import { SIGN_IN_PATH } from '@/app/routes';
 import { getInjection } from '@/di/container';
 import { BranchImageLimitError, InvalidSlugError, SlugTakenError } from '@/src/entities/errors/business';
-import { CabinNameTakenError, InvalidCabinNameError } from '@/src/entities/errors/cabin';
+import { CabinHasUpcomingBookingsError, CabinNameTakenError, InvalidCabinNameError } from '@/src/entities/errors/cabin';
 import { ApiRequestError, InputParseError } from '@/src/entities/errors/common';
 
 /** `message` se muestra al Usuario; `field` lo pone bajo ese campo en vez de en un toast. */
 export type BranchActionResult<T = undefined> =
     | { ok: true; data: T }
     | { ok: false; message: string; field?: 'slug' | 'name' };
+
+/** Por qué no se puede dar de baja una Cabina con Turnos futuros, con cuántos son. */
+const upcomingBookingsMessage = (count: number) =>
+    count === 1
+        ? 'Esta Cabina tiene 1 Turno próximo. Reagendalo o cancelalo antes de darla de baja.'
+        : `Esta Cabina tiene ${count} Turnos próximos. Reagendalos o cancelalos antes de darla de baja.`;
 
 /**
  * Corre un controller y traduce sus errores a lo que muestra la página; refresca si salió bien.
@@ -31,6 +37,7 @@ async function run<T>(fallback: string, work: () => Promise<T>): Promise<BranchA
         if (error instanceof InvalidSlugError) return { ok: false, field: 'slug', message: 'El Enlace de reserva no es válido.' };
         if (error instanceof CabinNameTakenError) return { ok: false, field: 'name', message: 'Ya hay una Cabina con ese nombre en esta Sucursal.' };
         if (error instanceof InvalidCabinNameError) return { ok: false, field: 'name', message: 'El nombre tiene que tener entre 1 y 60 caracteres.' };
+        if (error instanceof CabinHasUpcomingBookingsError) return { ok: false, message: upcomingBookingsMessage(error.upcomingBookings) };
         if (error instanceof BranchImageLimitError) return { ok: false, message: error.message };
         if (isSessionExpired(error)) redirect(SIGN_IN_PATH);
         // A 409 is a rule of the back (e.g. a Cabina with upcoming Turnos), not a crash: nothing to report.
@@ -101,7 +108,7 @@ export async function renameCabinAction(id: number, name: string) {
     return run('No pudimos renombrar la Cabina. Intentá de nuevo.', () => getInjection('IRenameCabinController')({ id, name }));
 }
 
-/** Da de baja una Cabina; el back la rechaza si tiene Turnos futuros y eso se muestra como aviso genérico. */
+/** Da de baja una Cabina; si tiene Turnos futuros, el aviso dice cuántos son. */
 export async function retireCabinAction(id: number) {
     return run('No pudimos dar de baja la Cabina. Intentá de nuevo.', () => getInjection('IRetireCabinController')({ id }));
 }

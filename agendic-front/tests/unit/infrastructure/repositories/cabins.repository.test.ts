@@ -1,4 +1,4 @@
-import { CabinNameTakenError, InvalidCabinNameError } from '@/src/entities/errors/cabin';
+import { CabinHasUpcomingBookingsError, CabinNameTakenError, InvalidCabinNameError } from '@/src/entities/errors/cabin';
 import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
 import { CabinsRepository } from '@/src/infrastructure/repositories/cabins.repository';
 import { authWith } from '@/tests/unit/stubs';
@@ -93,14 +93,20 @@ describe('CabinsRepository.retireCabin', () => {
         await expect(repo().retireCabin(3)).rejects.toBeInstanceOf(NotFoundError);
     });
 
-    it('keeps the 409 of upcoming Turnos as ApiRequestError, not as a name clash', async () => {
+    it('translates the 409 of upcoming Turnos to CabinHasUpcomingBookingsError with the count, not to a name clash', async () => {
         respond(409, { statusCode: 409, message: 'Cabin 3 has 2 upcoming Turnos' });
 
         const error = await repo()
             .retireCabin(3)
             .catch((e) => e);
-        expect(error).toBeInstanceOf(ApiRequestError);
+        expect(error).toBeInstanceOf(CabinHasUpcomingBookingsError);
         expect(error).not.toBeInstanceOf(CabinNameTakenError);
-        expect(error).toMatchObject({ status: 409, message: 'Cabin 3 has 2 upcoming Turnos' });
+        expect(error).toMatchObject({ upcomingBookings: 2, message: 'Cabin 3 has 2 upcoming Turnos' });
+    });
+
+    it('keeps a 409 whose message carries no count as ApiRequestError', async () => {
+        respond(409, { statusCode: 409, message: 'Conflict' });
+
+        await expect(repo().retireCabin(3)).rejects.toMatchObject({ status: 409 });
     });
 });

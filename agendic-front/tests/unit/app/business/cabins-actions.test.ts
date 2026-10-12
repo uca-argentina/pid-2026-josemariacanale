@@ -1,5 +1,5 @@
 import { createCabinAction, renameCabinAction, retireCabinAction } from '@/app/(app)/business/branches/actions';
-import { CabinNameTakenError, InvalidCabinNameError } from '@/src/entities/errors/cabin';
+import { CabinHasUpcomingBookingsError, CabinNameTakenError, InvalidCabinNameError } from '@/src/entities/errors/cabin';
 import { ApiRequestError } from '@/src/entities/errors/common';
 
 const mockControllers: Record<string, jest.Mock> = {
@@ -76,8 +76,27 @@ describe('retireCabinAction', () => {
         expect(mockRefresh).toHaveBeenCalled();
     });
 
-    it('shows the 409 of upcoming Turnos as a generic notice without reporting it', async () => {
-        mockControllers.IRetireCabinController.mockRejectedValue(new ApiRequestError('Cabin 3 has 2 upcoming Turnos', { status: 409 }));
+    it('tells the Dueño how many upcoming Turnos the Cabina has, without reporting it', async () => {
+        mockControllers.IRetireCabinController.mockRejectedValue(new CabinHasUpcomingBookingsError('Cabin 3 has 2 upcoming Turnos', 2));
+
+        await expect(retireCabinAction(3)).resolves.toEqual({
+            ok: false,
+            message: 'Esta Cabina tiene 2 Turnos próximos. Reagendalos o cancelalos antes de darla de baja.',
+        });
+        expect(mockReport).not.toHaveBeenCalled();
+    });
+
+    it('uses the singular for one upcoming Turno', async () => {
+        mockControllers.IRetireCabinController.mockRejectedValue(new CabinHasUpcomingBookingsError('Cabin 3 has 1 upcoming Turnos', 1));
+
+        await expect(retireCabinAction(3)).resolves.toEqual({
+            ok: false,
+            message: 'Esta Cabina tiene 1 Turno próximo. Reagendalo o cancelalo antes de darla de baja.',
+        });
+    });
+
+    it('shows any other 409 as a generic notice without reporting it', async () => {
+        mockControllers.IRetireCabinController.mockRejectedValue(new ApiRequestError('Conflict', { status: 409 }));
 
         await expect(retireCabinAction(3)).resolves.toEqual({ ok: false, message: 'No pudimos dar de baja la Cabina. Intentá de nuevo.' });
         expect(mockReport).not.toHaveBeenCalled();

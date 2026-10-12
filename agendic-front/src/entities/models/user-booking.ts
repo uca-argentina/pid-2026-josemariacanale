@@ -24,6 +24,8 @@ export const userBookingSchema = z.object({
     business: z.object({ id: z.number(), name: z.string() }).nullable(),
     /** Null en un Servicio personal, junto con `business`. */
     branch: z.object({ id: z.number(), name: z.string() }).nullable(),
+    /** La Cabina que ocupa el Turno (ADR 0030), aunque esté dada de baja; null si no ocupa ninguna. */
+    cabin: z.object({ id: z.number(), name: z.string() }).nullable(),
 });
 /** Turno de Mis turnos del Usuario. */
 export type UserBooking = z.infer<typeof userBookingSchema>;
