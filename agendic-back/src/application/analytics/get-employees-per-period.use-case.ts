@@ -33,7 +33,8 @@ import {
 import { parseAnalyticsRange } from './analytics-range';
 import { assertFiltersBelong } from './assert-filters-belong';
 
-const GRANULARITIES: readonly unknown[] = ['day', 'week', 'month'];
+const isGranularity = (value: unknown): value is Granularity =>
+  value === 'day' || value === 'week' || value === 'month';
 
 /** Turnos por Empleado y período de un Negocio, solo para su Dueño. */
 @Injectable()
@@ -69,7 +70,7 @@ export class GetEmployeesPerPeriodUseCase {
     filters: { branchId?: number; serviceId?: number } = {},
   ): Promise<EmployeesPerPeriod> {
     const { range } = parseAnalyticsRange(from, to);
-    if (!GRANULARITIES.includes(granularity))
+    if (!isGranularity(granularity))
       throw new BadRequestError(`Invalid granularity ${String(granularity)}`);
     const business = await this.businesses.findById(businessId);
     if (!business || business.deletedAt)
@@ -87,7 +88,7 @@ export class GetEmployeesPerPeriodUseCase {
     return this.analytics.employeesPerPeriod(
       { kind: 'business', businessId, branchId: filters.branchId },
       range,
-      granularity as Granularity,
+      granularity,
       user?.weekStart ?? 1,
       filters.serviceId,
     );
