@@ -22,6 +22,7 @@ function presenter(bookings: UserBooking[], instrumentationService: IInstrumenta
             business: b.business,
             branch: b.branch,
             cabin: b.cabin,
+            fromRescheduleId: b.fromRescheduleId,
         })),
     );
 }

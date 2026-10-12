@@ -9,17 +9,17 @@ import { BookingNotAllowedError, BookingStateError, SlotTakenError, SlotUnavaila
 import { InputParseError, NotFoundError } from '@/src/entities/errors/common';
 
 /** Lo que la UI recibe de una acción; `slotTaken` marca el 409 y el 422 de horario no disponible de Reagendar, que el Empleado resuelve eligiendo otro horario. */
-export type BookingActionResult = { ok: true } | { ok: false; message: string; slotTaken?: true };
+export type BookingActionResult = { ok: true; bookingId?: number } | { ok: false; message: string; slotTaken?: true };
 
 /**
  * Corre la acción y la traduce a `BookingActionResult`. Refresca la página en un éxito y también
  * cuando el Turno cambió o desapareció, así la lista muestra lo que hay en el back.
  */
-async function perform(run: () => Promise<void>, unexpected: string): Promise<BookingActionResult> {
+async function perform(run: () => Promise<{ id: number } | void>, unexpected: string): Promise<BookingActionResult> {
     try {
-        await run();
+        const created = await run();
         refresh();
-        return { ok: true };
+        return created ? { ok: true, bookingId: created.id } : { ok: true };
     } catch (error) {
         unstable_rethrow(error);
         if (isSessionExpired(error)) redirect(SIGN_IN_PATH);
@@ -55,7 +55,7 @@ export async function cancelBookingAction(bookingId: number) {
     return perform(() => getInjection('ICancelBookingController')({ bookingId }), 'No pudimos cancelar el turno. Intentá de nuevo.');
 }
 
-/** Reagenda un Turno aceptado al Horario reservable `startsAt` (instante ISO). */
+/** Reagenda un Turno aceptado al Horario reservable `startsAt` (instante ISO). Reagendar lo reemplaza (ADR 0031): `bookingId` es el `id` del Turno nuevo. */
 export async function rescheduleBookingAction(bookingId: number, startsAt: string) {
     return perform(
         () => getInjection('IRescheduleBookingController')({ bookingId, startsAt }),

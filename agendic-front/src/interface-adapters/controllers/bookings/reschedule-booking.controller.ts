@@ -10,7 +10,7 @@ const inputSchema = z.object({ bookingId: z.number().int().positive(), startsAt:
 export type IRescheduleBookingController = ReturnType<typeof rescheduleBookingController>;
 
 /**
- * Reagenda un Turno aceptado al Horario reservable elegido.
+ * Reagenda un Turno aceptado al Horario reservable elegido. Devuelve el `id` del Turno nuevo (ADR 0031).
  *
  * @throws {UnauthenticatedError} no hay Sesión válida
  * @throws {InputParseError} `bookingId` o `startsAt` no son válidos
@@ -25,10 +25,11 @@ export const rescheduleBookingController =
         authenticationService: IAuthenticationService,
         rescheduleBookingUseCase: IRescheduleBookingUseCase,
     ) =>
-    async (input: unknown): Promise<void> =>
+    async (input: unknown): Promise<{ id: number }> =>
         instrumentationService.startSpan({ name: 'rescheduleBooking Controller' }, async () => {
             await authenticationService.getCurrentUser();
             const { data, error } = inputSchema.safeParse(input);
             if (error) throw new InputParseError('Invalid data', { cause: error });
-            await rescheduleBookingUseCase(data);
+            const { id } = await rescheduleBookingUseCase(data);
+            return { id };
         });

@@ -116,3 +116,18 @@ export function matches(b: Booking, filters: BookingFilter[]) {
         return f.op === 'is' ? actual.toLowerCase() === wanted : actual.toLowerCase().includes(wanted);
     });
 }
+
+const RED = 'bg-[#fdecec] text-[#b91c1c]';
+const AMBER = 'bg-[#fff4e5] text-[#b45309]';
+
+/** Los badges de un Turno en la lista; `Reagendado` marca al que reemplazó a otro (ADR 0031). */
+export function badgesOf(b: Booking): { label: string; className: string }[] {
+    return [
+        b.status === 'PENDING' && { label: 'Pendiente', className: AMBER },
+        hasPendingDeposit(b) && { label: 'Seña pendiente', className: AMBER },
+        b.status === 'BOOKED' && b.noShowAt !== null && { label: 'Ausencia', className: RED },
+        b.fromRescheduleId !== null && { label: 'Reagendado', className: AMBER },
+        b.status === 'REJECTED' && { label: 'Rechazado', className: RED },
+        b.status === 'CANCELLED' && { label: 'Cancelado', className: RED },
+    ].filter((badge) => !!badge);
+}

@@ -42,14 +42,15 @@ export interface IUserBookingsRepository {
     cancel(bookingId: number): Promise<void>;
 
     /**
-     * Reagenda un Turno aceptado a otro Horario reservable del mismo Servicio y Empleado.
+     * Reagenda un Turno aceptado a otro Horario reservable del mismo Servicio y Empleado. El back lo
+     * reemplaza por un Turno nuevo (ADR 0031): devuelve su `id`, distinto del de `bookingId`.
      *
      * @throws {BookingNotAllowedError} no es su Turno (403)
      * @throws {NotFoundError} el Turno no existe (404)
      * @throws {SlotTakenError} el horario choca con otro Turno del Empleado (409)
      * @throws {BookingStateError} no está aceptado (422)
      */
-    reschedule(bookingId: number, startsAt: string): Promise<void>;
+    reschedule(bookingId: number, startsAt: string): Promise<{ id: number }>;
 
     /**
      * Marca la Ausencia de un Turno aceptado cuyo horario ya pasó.

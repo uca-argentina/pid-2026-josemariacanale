@@ -1,4 +1,4 @@
-import { cabinOf, groupByDay, hasPendingDeposit, matches, placeOf, sortForTab, tabOf, type Booking } from '@/app/(app)/bookings/_components/booking-helpers';
+import { badgesOf, cabinOf, groupByDay, hasPendingDeposit, matches, placeOf, sortForTab, tabOf, type Booking } from '@/app/(app)/bookings/_components/booking-helpers';
 
 const NOW = Date.parse('2026-09-15T15:00:00-03:00');
 
@@ -19,6 +19,7 @@ const booking = (patch: Partial<Booking>): Booking => ({
     business: { id: 3, name: 'Spa' },
     branch: { id: 4, name: 'Centro' },
     cabin: null,
+    fromRescheduleId: null,
     ...patch,
 });
 
@@ -93,5 +94,12 @@ describe('matches', () => {
         expect(matches(b, [{ field: 'clientName', op: 'is', value: 'lucía bermúdez' }])).toBe(true);
         expect(matches(b, [{ field: 'clientName', op: 'is', value: 'lucía' }])).toBe(false);
         expect(matches(b, [{ field: 'clientEmail', op: 'contains', value: 'GMAIL' }])).toBe(true);
+    });
+});
+
+describe('badgesOf', () => {
+    it('marca Reagendado cuando el Turno viene de un Reagendamiento', () => {
+        expect(badgesOf(booking({ fromRescheduleId: 4 })).map((b) => b.label)).toEqual(['Reagendado']);
+        expect(badgesOf(booking({})).map((b) => b.label)).toEqual([]);
     });
 });
