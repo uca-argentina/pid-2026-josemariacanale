@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import {
   AnalyticsScope,
+  Granularity,
   KpiValues,
 } from '../../domain/analytics/analytics.repository';
 import {
@@ -46,12 +47,12 @@ describe('PrismaAnalyticsRepository (real database)', () => {
     return user;
   };
 
-  const makeService = (userId: number, price = 100) =>
+  const makeService = (userId: number, price = 100, name?: string) =>
     prisma.service.create({
       data: {
         userId,
-        name: `${tag}-${++counter}`,
-        slug: `${tag}-${counter}`,
+        name: name ?? `${tag}-${++counter}`,
+        slug: `${tag}-${++counter}`,
         category: ServiceCategory.SPA,
         durationMinutes: 30,
         price,
@@ -411,6 +412,7 @@ describe('PrismaAnalyticsRepository (real database)', () => {
       {
         listByUser: async () => [{ isDefault: true, timeZone: BUENOS_AIRES }],
       } as never,
+      { findById: async () => ({ weekStart: 1 }) } as never,
       { now: () => NOW },
     );
     await book(service.id, user.id, '2031-03-05T13:00:00Z');
@@ -421,5 +423,268 @@ describe('PrismaAnalyticsRepository (real database)', () => {
     const { kpis } = await useCase.execute(user.id, '2031-03-01', '2031-03-10');
 
     expect(kpis.booked).toEqual({ current: 2, previous: 1 });
+  });
+
+  it.each([
+    [31, 'day', 31],
+    [32, 'week', 6],
+    [183, 'week', 27],
+    [184, 'month', 6],
+  ])(
+    'groups a range of %i days by %s, with %i periods, through the use case',
+    async (days, granularity, periods) => {
+      const { user } = await makeScope();
+      const useCase = new GetPersonalAnalyticsUseCase(
+        repository,
+        {} as never,
+        {
+          listByUser: async () => [{ isDefault: true, timeZone: BUENOS_AIRES }],
+        } as never,
+        { findById: async () => ({ weekStart: 1 }) } as never,
+        { now: () => NOW },
+      );
+      const to = new Date(
+        Date.parse('2031-03-01T00:00:00Z') + (days - 1) * 864e5,
+      );
+
+      const result = await useCase.execute(
+        user.id,
+        '2031-03-01',
+        to.toISOString().slice(0, 10),
+      );
+
+      expect(result.granularity).toBe(granularity);
+      expect(result.trend).toHaveLength(periods);
+    },
+  );
+
+  describe('breakdown', () => {
+    const breakdown = (
+      scope: AnalyticsScope,
+      range: { from: string; to: string },
+      granularity: Granularity,
+      weekStart = 1,
+      serviceId?: number,
+    ) =>
+      repository.breakdown(
+        scope,
+        range,
+        NOW,
+        granularity,
+        weekStart,
+        serviceId,
+      );
+
+    const pad = (day: number) => String(day).padStart(2, '0');
+
+    it('lists every day of the range in order, with 0 where there are no Turnos, each series by the date of its KPI', async () => {
+      const { user, service, scope } = await makeScope();
+      await book(service.id, user.id, '2031-03-02T13:00:00Z');
+      await book(service.id, user.id, '2031-03-02T15:00:00Z', {
+        status: BookingStatus.CANCELLED,
+        cancelledAt: new Date('2031-03-04T13:00:00Z'),
+        createdAt: new Date('2031-03-03T13:00:00Z'),
+      });
+
+      const { trend } = await breakdown(
+        scope,
+        { from: '2031-03-01', to: '2031-03-05' },
+        'day',
+      );
+
+      expect(trend.map((p) => p.bucket)).toEqual([
+        '2031-03-01',
+        '2031-03-02',
+        '2031-03-03',
+        '2031-03-04',
+        '2031-03-05',
+      ]);
+      expect(trend.map((p) => p.booked)).toEqual([0, 1, 1, 0, 0]);
+      expect(trend.map((p) => p.attended)).toEqual([0, 1, 0, 0, 0]);
+      expect(trend.map((p) => p.cancelled)).toEqual([0, 0, 0, 1, 0]);
+      expect(trend[0]).toEqual({
+        bucket: '2031-03-01',
+        booked: 0,
+        attended: 0,
+        rescheduled: 0,
+        cancelled: 0,
+        rejected: 0,
+        noShows: 0,
+        employeeNoShows: 0,
+      });
+    });
+
+    it('starts each week on the weekStart of the Usuario, keeping the Turnos of the partial first week', async () => {
+      const { user, service, scope } = await makeScope();
+      await book(service.id, user.id, '2031-03-05T13:00:00Z');
+      await book(service.id, user.id, '2031-03-12T13:00:00Z');
+      const range = { from: '2031-03-05', to: '2031-03-18' };
+
+      const monday = await breakdown(scope, range, 'week', 1);
+      const sunday = await breakdown(scope, range, 'week', 0);
+
+      expect(monday.trend.map((p) => [p.bucket, p.booked])).toEqual([
+        ['2031-03-03', 1],
+        ['2031-03-10', 1],
+        ['2031-03-17', 0],
+      ]);
+      expect(sunday.trend.map((p) => p.bucket)).toEqual([
+        '2031-03-02',
+        '2031-03-09',
+        '2031-03-16',
+      ]);
+    });
+
+    it('starts each month on the 1st', async () => {
+      const { user, service, scope } = await makeScope();
+      await book(service.id, user.id, '2031-02-10T13:00:00Z');
+
+      const { trend } = await breakdown(
+        scope,
+        { from: '2031-01-15', to: '2031-03-20' },
+        'month',
+      );
+
+      expect(trend.map((p) => [p.bucket, p.booked])).toEqual([
+        ['2031-01-01', 0],
+        ['2031-02-01', 1],
+        ['2031-03-01', 0],
+      ]);
+    });
+
+    it('narrows the trend to one Servicio', async () => {
+      const { user, service, scope } = await makeScope();
+      const other = await makeService(user.id);
+      await book(service.id, user.id, '2031-03-02T13:00:00Z');
+      await book(other.id, user.id, '2031-03-02T14:00:00Z');
+
+      const { trend } = await breakdown(
+        scope,
+        { from: '2031-03-02', to: '2031-03-02' },
+        'day',
+        1,
+        service.id,
+      );
+
+      expect(trend).toHaveLength(1);
+      expect(trend[0].booked).toBe(1);
+    });
+
+    it('ranks the top 5 Servicios by Turnos, ties by name, leaving out Rechazados, rescheduled originals and other dates', async () => {
+      const { user, scope } = await makeScope();
+      const counts = { a: 3, b: 2, c: 2, d: 1, e: 1, f: 1 };
+      const ids = new Map<string, number>();
+      for (const [index, [letter, count]] of Object.entries(counts).entries()) {
+        const service = await makeService(
+          user.id,
+          100,
+          `${tag}-rank-${letter}`,
+        );
+        ids.set(letter, service.id);
+        for (let i = 0; i < count; i++)
+          await book(
+            service.id,
+            user.id,
+            `2031-03-0${i + 1}T${10 + index}:00:00Z`,
+          );
+      }
+      const a = ids.get('a')!;
+      await book(a, user.id, '2031-03-10T13:00:00Z', {
+        status: BookingStatus.REJECTED,
+        rejectedAt: new Date('2031-03-10T14:00:00Z'),
+      });
+      await book(a, user.id, '2031-03-11T13:00:00Z', {
+        status: BookingStatus.CANCELLED,
+        rescheduled: true,
+        cancelledAt: new Date('2031-03-11T14:00:00Z'),
+      });
+      await book(a, user.id, '2031-04-11T13:00:00Z');
+
+      const { popularServices } = await breakdown(scope, MARCH, 'week');
+
+      expect(popularServices).toEqual(
+        ['a', 'b', 'c', 'd', 'e'].map((letter) => ({
+          serviceId: ids.get(letter),
+          name: `${tag}-rank-${letter}`,
+          count: counts[letter as keyof typeof counts],
+        })),
+      );
+      const narrowed = await breakdown(scope, MARCH, 'week', 1, ids.get('b'));
+      expect(narrowed.popularServices.map((s) => s.name)).toEqual([
+        `${tag}-rank-b`,
+      ]);
+    });
+
+    it('lists the 10 most recent Calificaciones of the range, newest first, with the Cliente and the Servicio', async () => {
+      const { user, service, scope } = await makeScope();
+      for (let day = 1; day <= 12; day++) {
+        const booking = await book(
+          service.id,
+          user.id,
+          `2031-03-${pad(day)}T13:00:00Z`,
+        );
+        await prisma.client.create({
+          data: {
+            bookingId: booking.id,
+            name: `Cliente ${day}`,
+            email: `c${day}@example.com`,
+          },
+        });
+        await prisma.bookingRating.create({
+          data: {
+            bookingId: booking.id,
+            score: 5,
+            comment: day === 12 ? 'Muy bien' : null,
+            createdAt: new Date(`2031-03-${pad(day)}T14:00:00Z`),
+          },
+        });
+      }
+      const outside = await book(service.id, user.id, '2031-02-10T13:00:00Z');
+      await prisma.bookingRating.create({
+        data: {
+          bookingId: outside.id,
+          score: 1,
+          createdAt: new Date('2031-04-02T14:00:00Z'),
+        },
+      });
+
+      const { recentRatings } = await breakdown(scope, MARCH, 'week');
+
+      expect(recentRatings.map((r) => r.clientName)).toEqual(
+        [12, 11, 10, 9, 8, 7, 6, 5, 4, 3].map((day) => `Cliente ${day}`),
+      );
+      expect(recentRatings[0]).toEqual({
+        score: 5,
+        comment: 'Muy bien',
+        createdAt: '2031-03-12T14:00:00.000Z',
+        clientName: 'Cliente 12',
+        serviceName: service.name,
+        employeeName: null,
+      });
+      expect(recentRatings[1].comment).toBeNull();
+    });
+  });
+
+  it('lists every personal Servicio of the Usuario by name, hidden and retired ones included, and not those of another Usuario', async () => {
+    const { user, service } = await makeScope();
+    const hidden = await makeService(user.id, 100, `${tag}-opt-b`);
+    await prisma.service.update({
+      where: { id: hidden.id },
+      data: { hidden: true },
+    });
+    const retired = await makeService(user.id, 100, `${tag}-opt-a`);
+    await prisma.service.update({
+      where: { id: retired.id },
+      data: { deletedAt: new Date() },
+    });
+    await makeScope();
+
+    const options = await repository.personalServices(user.id);
+
+    expect(options.map((o) => o.name)).toEqual([
+      service.name,
+      `${tag}-opt-a`,
+      `${tag}-opt-b`,
+    ]);
   });
 });

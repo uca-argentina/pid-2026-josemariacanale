@@ -259,7 +259,11 @@ export async function createTestApp() {
     assertConfigured: jest.fn(),
     fetchHolidays: jest.fn(),
   };
-  const analytics: jest.Mocked<AnalyticsRepository> = { kpis: jest.fn() };
+  const analytics: jest.Mocked<AnalyticsRepository> = {
+    kpis: jest.fn(),
+    breakdown: jest.fn(),
+    personalServices: jest.fn(),
+  };
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(CLOCK)
     .useValue(clock)

@@ -1,4 +1,5 @@
 import {
+  AnalyticsBreakdown,
   KPI_NAMES,
   KpiValues,
 } from '../../domain/analytics/analytics.repository';
@@ -40,6 +41,32 @@ const BRUNOS: Service = { ...PERSONAL, id: 8, userId: BRUNO.id };
 const kpisOf = (value: number | null): KpiValues =>
   Object.fromEntries(KPI_NAMES.map((name) => [name, value])) as KpiValues;
 
+const BREAKDOWN: AnalyticsBreakdown = {
+  trend: [
+    {
+      bucket: '2026-03-01',
+      booked: 1,
+      attended: 0,
+      rescheduled: 0,
+      cancelled: 0,
+      rejected: 0,
+      noShows: 0,
+      employeeNoShows: 0,
+    },
+  ],
+  popularServices: [{ serviceId: 7, name: 'Corte', count: 4 }],
+  recentRatings: [
+    {
+      score: 5,
+      comment: null,
+      createdAt: '2026-03-02T10:00:00.000Z',
+      clientName: 'Cami',
+      serviceName: 'Corte',
+      employeeName: null,
+    },
+  ],
+};
+
 describe('GET /analytics/personal', () => {
   let t: TestApp;
 
@@ -54,6 +81,8 @@ describe('GET /analytics/personal', () => {
     t.analytics.kpis.mockImplementation(async (_scope, range) =>
       kpisOf(range.from === '2026-03-01' ? 5 : 3),
     );
+    t.analytics.breakdown.mockResolvedValue(BREAKDOWN);
+    t.analytics.personalServices.mockResolvedValue([{ id: 7, name: 'Corte' }]);
   });
   afterEach(() => t.app.close());
 
@@ -66,6 +95,65 @@ describe('GET /analytics/personal', () => {
     expect(Object.keys(res.body.kpis).sort()).toEqual([...KPI_NAMES].sort());
     expect(res.body.kpis.booked).toEqual({ current: 5, previous: 3 });
     expect(res.body.kpis.averageRating).toEqual({ current: 5, previous: 3 });
+  });
+
+  it('answers the trend, the ranking, the recent Calificaciones and the filter options next to the KPIs', async () => {
+    const res = await get('from=2026-03-01&to=2026-03-10').expect(200);
+
+    expect(res.body).toEqual({
+      kpis: expect.any(Object),
+      granularity: 'day',
+      ...BREAKDOWN,
+      filterOptions: { services: [{ id: 7, name: 'Corte' }] },
+    });
+  });
+
+  it.each([
+    ['2026-03-01', '2026-03-31', 'day'],
+    ['2026-03-01', '2026-04-01', 'week'],
+    ['2026-01-01', '2026-07-02', 'week'],
+    ['2026-01-01', '2026-07-03', 'month'],
+  ])('groups %s..%s by %s', async (from, to, granularity) => {
+    const res = await get(`from=${from}&to=${to}`).expect(200);
+
+    expect(res.body.granularity).toBe(granularity);
+    expect(t.analytics.breakdown).toHaveBeenCalledWith(
+      expect.anything(),
+      { from, to },
+      t.clock.now(),
+      granularity,
+      1,
+      undefined,
+    );
+  });
+
+  it('starts the weeks on the weekStart of the Usuario', async () => {
+    t.users.findById.mockResolvedValue({ ...ANA, weekStart: 0 });
+
+    await get('from=2026-03-01&to=2026-04-01').expect(200);
+
+    expect(t.analytics.breakdown).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      'week',
+      0,
+      undefined,
+    );
+  });
+
+  it('passes serviceId to the breakdown but not to the filter options', async () => {
+    await get('from=2026-03-01&to=2026-03-10&serviceId=7').expect(200);
+
+    expect(t.analytics.breakdown).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      'day',
+      1,
+      7,
+    );
+    expect(t.analytics.personalServices).toHaveBeenCalledWith(ANA.id);
   });
 
   it('answers null as null', async () => {
