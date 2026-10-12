@@ -131,4 +131,6 @@ export interface BookingsRepository {
   markNoShow(id: number, now: Date): Promise<Booking>;
   /** Sets depositPaidAt on a PENDING or BOOKED Booking that has a Seña, not yet paid, and has not started. Throws BusinessRuleError otherwise. */
   payDeposit(id: number, now: Date): Promise<ClientBooking>;
+  /** Sets employeeNoShowAt on a BOOKED Booking inside its window with no Ausencia or Falta del Empleado yet. Throws BusinessRuleError otherwise. */
+  markEmployeeNoShow(id: number, now: Date): Promise<ClientBooking>;
 }

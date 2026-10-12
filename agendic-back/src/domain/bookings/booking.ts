@@ -25,6 +25,8 @@ export interface Booking {
   notes: string | null;
   /** Ausencia: when the Empleado marked it; null while not marked. */
   noShowAt: Date | null;
+  /** Falta del Empleado: when the Cliente marked it from the Enlace del Turno; null while not marked. */
+  employeeNoShowAt: Date | null;
   /** Enlace del Turno (ADR 0022): identificador secreto, único y no adivinable que abre este Turno sin Código de verificación. Al Reagendar pasa al Turno nuevo y el original queda sin Enlace. */
   link: string | null;
   /** The original Turno this one replaced when Reagendar (ADR 0031); null if it was not born from one. */

@@ -1,7 +1,9 @@
-import { Body, Controller, Get, Param, Patch } from '@nestjs/common';
+import { Body, Controller, Get, Inject, Param, Patch } from '@nestjs/common';
 import { CancelBookingByLinkUseCase } from '../../application/bookings/cancel-booking-by-link.use-case';
 import { GetBookingByLinkUseCase } from '../../application/bookings/get-booking-by-link.use-case';
 import { RescheduleBookingByLinkUseCase } from '../../application/bookings/reschedule-booking-by-link.use-case';
+import { MarkEmployeeNoShowByLinkUseCase } from '../../application/bookings/mark-employee-no-show-by-link.use-case';
+import { CLOCK, Clock } from '../../domain/clock';
 import { PayDepositByLinkUseCase } from '../../application/bookings/pay-deposit-by-link.use-case';
 import { presentClientBooking } from './booking.presenter';
 import { RescheduleBookingDto } from './bookings.dto';
@@ -14,12 +16,14 @@ export class BookingLinksController {
     private readonly cancelBookingByLinkUseCase: CancelBookingByLinkUseCase,
     private readonly rescheduleBookingByLinkUseCase: RescheduleBookingByLinkUseCase,
     private readonly payDepositByLinkUseCase: PayDepositByLinkUseCase,
+    private readonly markEmployeeNoShowByLinkUseCase: MarkEmployeeNoShowByLinkUseCase,
+    @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
   /** @throws {NotFoundError} el Enlace no corresponde a ningún Turno */
   @Get(':secret')
   async get(@Param('secret') secret: string) {
-    return presentClientBooking(await this.getBookingByLinkUseCase.execute(secret));
+    return presentClientBooking(await this.getBookingByLinkUseCase.execute(secret), this.clock.now());
   }
 
   /**
@@ -28,7 +32,7 @@ export class BookingLinksController {
    */
   @Patch(':secret/cancel')
   async cancel(@Param('secret') secret: string) {
-    return presentClientBooking(await this.cancelBookingByLinkUseCase.execute(secret));
+    return presentClientBooking(await this.cancelBookingByLinkUseCase.execute(secret), this.clock.now());
   }
 
   /**
@@ -40,6 +44,7 @@ export class BookingLinksController {
   async reschedule(@Param('secret') secret: string, @Body() dto: RescheduleBookingDto) {
     return presentClientBooking(
       await this.rescheduleBookingByLinkUseCase.execute(secret, new Date(dto.startsAt)),
+      this.clock.now(),
     );
   }
 
@@ -51,6 +56,20 @@ export class BookingLinksController {
    */
   @Patch(':secret/deposit')
   async payDeposit(@Param('secret') secret: string) {
-    return presentClientBooking(await this.payDepositByLinkUseCase.execute(secret));
+    return presentClientBooking(await this.payDepositByLinkUseCase.execute(secret), this.clock.now());
+  }
+
+  /**
+   * Marca la Falta del Empleado del Turno.
+   *
+   * @throws {NotFoundError} el Enlace no corresponde a ningún Turno
+   * @throws {BusinessRuleError} el Turno no está aceptado, no empezó, pasó la ventana, o ya tiene Ausencia o Falta del Empleado
+   */
+  @Patch(':secret/employee-no-show')
+  async markEmployeeNoShow(@Param('secret') secret: string) {
+    return presentClientBooking(
+      await this.markEmployeeNoShowByLinkUseCase.execute(secret),
+      this.clock.now(),
+    );
   }
 }

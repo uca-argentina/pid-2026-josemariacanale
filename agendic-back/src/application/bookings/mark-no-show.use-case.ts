@@ -25,7 +25,7 @@ export class MarkNoShowUseCase {
   /**
    * @throws {NotFoundError} el Turno no existe
    * @throws {ForbiddenError} el Usuario no es el Empleado asignado al Turno
-   * @throws {BusinessRuleError} el Turno no está aceptado, su horario todavía no pasó o ya tiene Ausencia
+   * @throws {BusinessRuleError} el Turno no está aceptado, su horario todavía no pasó, ya tiene Ausencia o tiene Falta del Empleado
    */
   async execute(userId: number, bookingId: number): Promise<Booking> {
     const now = this.clock.now();
@@ -38,6 +38,8 @@ export class MarkNoShowUseCase {
     if (booking.endsAt > now)
       throw new BusinessRuleError('Turno has not ended yet');
     if (booking.noShowAt) throw new BusinessRuleError('Turno already has an Ausencia');
+    if (booking.employeeNoShowAt)
+      throw new BusinessRuleError('Turno has an Employee no-show');
     return this.bookings.markNoShow(bookingId, now);
   }
 }
