@@ -80,11 +80,30 @@ const ANAS_SERVICE = {
   cabins: [],
 };
 
+const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
+const IMAGE = { content: PNG, contentType: 'image/png' };
+const URLS = ['https://files.example.com/a', 'https://files.example.com/b'];
+
+const IMAGE_ROW = {
+  id: 20,
+  branchId: ANAS_BRANCH.id,
+  url: URLS[0],
+  order: 0,
+};
+/** What the API presents for that image. */
+const PRESENTED_IMAGE = {
+  id: 20,
+  branchId: ANAS_BRANCH.id,
+  url: URLS[0],
+  order: 0,
+};
+
 const CREATED = {
   business: ANAS_BUSINESS,
   branch: ANAS_BRANCH,
   service: ANAS_SERVICE,
   employee: ANAS_EMPLOYEE,
+  images: [IMAGE_ROW],
 };
 
 describe('Negocio', () => {
@@ -94,20 +113,38 @@ describe('Negocio', () => {
   afterEach(() => t.app.close());
 
   describe('POST /businesses', () => {
+    /** A multipart create: the Negocio's fields as JSON in `data`, its first Sucursal's images in `images`. */
+    const post = (
+      data: unknown,
+      images: { content: Buffer; contentType: string }[] = [IMAGE],
+      token = CLERK_TOKEN,
+    ) => {
+      let req = t.http
+        .post('/businesses')
+        .set(bearer(token))
+        .field('data', typeof data === 'string' ? data : JSON.stringify(data));
+      for (const [i, image] of images.entries())
+        req = req.attach('images', image.content, {
+          filename: `image-${i}.png`,
+          contentType: image.contentType,
+        });
+      return req;
+    };
+
     beforeEach(() => {
       scriptSession(t);
+      scriptOtherSession(t);
       t.users.findById.mockResolvedValue(ANA);
       t.businesses.listByOwner.mockResolvedValue([]);
+      let uploaded = 0;
+      t.fileStorage.upload.mockImplementation(async () => URLS[uploaded++]);
+      t.fileStorage.delete.mockResolvedValue();
     });
 
     it('creates the Negocio, its Sucursal, its Servicio and the Dueño as its Empleado', async () => {
       t.businesses.create.mockResolvedValue(CREATED);
 
-      const res = await t.http
-        .post('/businesses')
-        .set(bearer(CLERK_TOKEN))
-        .send(VALID_BODY)
-        .expect(201);
+      const res = await post(VALID_BODY).expect(201);
 
       expect(t.businesses.create).toHaveBeenCalledWith({
         business: { ...BUSINESS_PART, ownerId: ANA.id },
@@ -123,6 +160,7 @@ describe('Negocio', () => {
           minimumNoticeMinutes: 0,
         },
         employee: { userId: ANA.id },
+        branchImageUrls: [URLS[0]],
       });
       expect(res.body).toEqual({
         business: PRESENTED_BUSINESS,
@@ -162,23 +200,21 @@ describe('Negocio', () => {
           email: ANAS_EMPLOYEE.email,
           imageUrl: ANAS_EMPLOYEE.imageUrl,
         },
+        images: [PRESENTED_IMAGE],
       });
     });
 
     it('creates the Negocio without a Servicio, answering service null', async () => {
       t.businesses.create.mockResolvedValue({ ...CREATED, service: null });
 
-      const res = await t.http
-        .post('/businesses')
-        .set(bearer(CLERK_TOKEN))
-        .send({ ...VALID_BODY, service: undefined })
-        .expect(201);
+      const res = await post({ ...VALID_BODY, service: undefined }).expect(201);
 
       expect(t.businesses.create).toHaveBeenCalledWith({
         business: { ...BUSINESS_PART, ownerId: ANA.id },
         branch: BRANCH_PART,
         service: undefined,
         employee: { userId: ANA.id },
+        branchImageUrls: [URLS[0]],
       });
       expect(res.body.service).toBeNull();
       expect(res.body.employee.userId).toBe(ANA.id);
@@ -187,14 +223,10 @@ describe('Negocio', () => {
     it('creates the first Sucursal with a description', async () => {
       t.businesses.create.mockResolvedValue(CREATED);
 
-      await t.http
-        .post('/businesses')
-        .set(bearer(CLERK_TOKEN))
-        .send({
-          ...VALID_BODY,
-          branch: { ...BRANCH_PART, description: 'Centro' },
-        })
-        .expect(201);
+      await post({
+        ...VALID_BODY,
+        branch: { ...BRANCH_PART, description: 'Centro' },
+      }).expect(201);
 
       expect(t.businesses.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -206,11 +238,10 @@ describe('Negocio', () => {
     it('gives the first Sucursal the slug it is sent, in lowercase', async () => {
       t.businesses.create.mockResolvedValue(CREATED);
 
-      await t.http
-        .post('/businesses')
-        .set(bearer(CLERK_TOKEN))
-        .send({ ...VALID_BODY, branch: { ...BRANCH_PART, slug: 'Centro' } })
-        .expect(201);
+      await post({
+        ...VALID_BODY,
+        branch: { ...BRANCH_PART, slug: 'Centro' },
+      }).expect(201);
 
       expect(t.businesses.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -222,14 +253,10 @@ describe('Negocio', () => {
     it('creates a Servicio without a description', async () => {
       t.businesses.create.mockResolvedValue(CREATED);
 
-      await t.http
-        .post('/businesses')
-        .set(bearer(CLERK_TOKEN))
-        .send({
-          ...VALID_BODY,
-          service: { ...SERVICE_PART, description: undefined },
-        })
-        .expect(201);
+      await post({
+        ...VALID_BODY,
+        service: { ...SERVICE_PART, description: undefined },
+      }).expect(201);
 
       expect(t.businesses.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -251,14 +278,10 @@ describe('Negocio', () => {
     it('creates the first Servicio with a Seña', async () => {
       t.businesses.create.mockResolvedValue(CREATED);
 
-      await t.http
-        .post('/businesses')
-        .set(bearer(CLERK_TOKEN))
-        .send({
-          ...VALID_BODY,
-          service: { ...SERVICE_PART, depositPercent: 20 },
-        })
-        .expect(201);
+      await post({
+        ...VALID_BODY,
+        service: { ...SERVICE_PART, depositPercent: 20 },
+      }).expect(201);
 
       expect(t.businesses.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -279,11 +302,7 @@ describe('Negocio', () => {
     it('answers 409 and creates nothing when the Usuario already owns a Negocio', async () => {
       t.businesses.listByOwner.mockResolvedValue([ANAS_BUSINESS]);
 
-      const res = await t.http
-        .post('/businesses')
-        .set(bearer(CLERK_TOKEN))
-        .send(VALID_BODY)
-        .expect(409);
+      const res = await post(VALID_BODY).expect(409);
 
       expect(res.body.message).toBe('Ya tenés un Negocio');
       expect(t.businesses.create).not.toHaveBeenCalled();
@@ -297,24 +316,16 @@ describe('Negocio', () => {
       );
       t.businesses.create.mockResolvedValue(CREATED);
 
-      await t.http
-        .post('/businesses')
-        .set(bearer(OTHER_CLERK_TOKEN))
-        .send(VALID_BODY)
-        .expect(201);
+      await post(VALID_BODY, [IMAGE], OTHER_CLERK_TOKEN).expect(201);
     });
 
     it('normalizes the Enlace de reserva to lowercase', async () => {
       t.businesses.create.mockResolvedValue(CREATED);
 
-      await t.http
-        .post('/businesses')
-        .set(bearer(CLERK_TOKEN))
-        .send({
-          ...VALID_BODY,
-          business: { ...BUSINESS_PART, slug: 'Anas-SALON' },
-        })
-        .expect(201);
+      await post({
+        ...VALID_BODY,
+        business: { ...BUSINESS_PART, slug: 'Anas-SALON' },
+      }).expect(201);
 
       expect(t.businesses.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -328,11 +339,7 @@ describe('Negocio', () => {
         new ConflictError('Booking link already in use'),
       );
 
-      const res = await t.http
-        .post('/businesses')
-        .set(bearer(CLERK_TOKEN))
-        .send(VALID_BODY)
-        .expect(409);
+      const res = await post(VALID_BODY).expect(409);
 
       expect(res.body.message).toBe('Booking link already in use');
     });
@@ -342,26 +349,32 @@ describe('Negocio', () => {
         new ConflictError('Booking link already in use'),
       );
 
-      const res = await t.http
-        .post('/businesses')
-        .set(bearer(CLERK_TOKEN))
-        .send({
-          ...VALID_BODY,
-          business: { ...BUSINESS_PART, slug: 'ana-perez' },
-        })
-        .expect(409);
+      const res = await post({
+        ...VALID_BODY,
+        business: { ...BUSINESS_PART, slug: 'ana-perez' },
+      }).expect(409);
 
       expect(res.body.message).toBe('Booking link already in use');
     });
 
-    it.each(['bookings', 'services', 'business', 'availability', 'analytics', 'turnos', 'sign-in', 'sign-up', 'api', 'trpc'])(
+    it.each([
+      'bookings',
+      'services',
+      'business',
+      'availability',
+      'analytics',
+      'turnos',
+      'sign-in',
+      'sign-up',
+      'api',
+      'trpc',
+    ])(
       'answers 409 and creates nothing when the Enlace de reserva is the reserved word %j',
       async (slug) => {
-        const res = await t.http
-          .post('/businesses')
-          .set(bearer(CLERK_TOKEN))
-          .send({ ...VALID_BODY, business: { ...BUSINESS_PART, slug } })
-          .expect(409);
+        const res = await post({
+          ...VALID_BODY,
+          business: { ...BUSINESS_PART, slug },
+        }).expect(409);
 
         expect(res.body.message).toBe('Booking link already in use');
         expect(t.businesses.create).not.toHaveBeenCalled();
@@ -369,26 +382,131 @@ describe('Negocio', () => {
     );
 
     it('creates a Sucursal and a Servicio whose slug is a reserved word', async () => {
+      t.businesses.create.mockResolvedValue({ ...CREATED, service: null });
+
+      await post({
+        ...VALID_BODY,
+        branch: { ...BRANCH_PART, slug: 'services' },
+        service: { ...SERVICE_PART, slug: 'bookings' },
+      }).expect(201);
+    });
+
+    it('puts the images in the first Sucursal, in the order sent', async () => {
       t.businesses.create.mockResolvedValue({
-        business: ANAS_BUSINESS,
-        branch: ANAS_BRANCH,
-        service: null,
-        employee: ANAS_EMPLOYEE,
+        ...CREATED,
+        images: [IMAGE_ROW, { ...IMAGE_ROW, id: 21, url: URLS[1], order: 1 }],
       });
 
-      await t.http
-        .post('/businesses')
-        .set(bearer(CLERK_TOKEN))
-        .send({
-          ...VALID_BODY,
-          branch: { ...BRANCH_PART, slug: 'services' },
-          service: { ...SERVICE_PART, slug: 'bookings' },
-        })
-        .expect(201);
+      const res = await post(VALID_BODY, [IMAGE, IMAGE]).expect(201);
+
+      expect(t.businesses.create).toHaveBeenCalledWith(
+        expect.objectContaining({ branchImageUrls: URLS }),
+      );
+      expect(res.body.images).toEqual([
+        PRESENTED_IMAGE,
+        { ...PRESENTED_IMAGE, id: 21, url: URLS[1], order: 1 },
+      ]);
+      expect(t.fileStorage.delete).not.toHaveBeenCalled();
+    });
+
+    it('creates the Negocio with five images', async () => {
+      t.fileStorage.upload.mockResolvedValue(URLS[0]);
+      t.businesses.create.mockResolvedValue(CREATED);
+
+      await post(VALID_BODY, Array(5).fill(IMAGE)).expect(201);
+
+      expect(t.businesses.create).toHaveBeenCalledWith(
+        expect.objectContaining({ branchImageUrls: Array(5).fill(URLS[0]) }),
+      );
+    });
+
+    it('answers 400 without images, creating nothing', async () => {
+      const res = await post(VALID_BODY, []).expect(400);
+
+      expect(res.body.message).toBe('At least one image is required');
+      expect(t.fileStorage.upload).not.toHaveBeenCalled();
+      expect(t.businesses.create).not.toHaveBeenCalled();
+    });
+
+    it('answers 400 for more than five images, creating nothing', async () => {
+      const res = await post(VALID_BODY, Array(6).fill(IMAGE)).expect(400);
+
+      expect(res.body.message).toBe('Unexpected field - images');
+      expect(t.fileStorage.upload).not.toHaveBeenCalled();
+      expect(t.businesses.create).not.toHaveBeenCalled();
+    });
+
+    it('answers 400 for a file that is not an image, creating nothing', async () => {
+      const res = await post(VALID_BODY, [
+        IMAGE,
+        { content: Buffer.from('%PDF'), contentType: 'application/pdf' },
+      ]).expect(400);
+
+      expect(res.body.message).toBe(
+        'La imagen tiene que ser JPEG, PNG, WebP o GIF',
+      );
+      expect(t.fileStorage.upload).not.toHaveBeenCalled();
+      expect(t.businesses.create).not.toHaveBeenCalled();
+    });
+
+    it('answers 413 for an image over 5 MB, creating nothing', async () => {
+      await post(VALID_BODY, [
+        {
+          content: Buffer.alloc(5 * 1024 * 1024 + 1),
+          contentType: 'image/png',
+        },
+      ]).expect(413);
+
+      expect(t.fileStorage.upload).not.toHaveBeenCalled();
+      expect(t.businesses.create).not.toHaveBeenCalled();
+    });
+
+    it('deletes the uploaded files when the creation fails', async () => {
+      t.businesses.create.mockRejectedValue(
+        new ConflictError('Booking link already in use'),
+      );
+
+      await post(VALID_BODY, [IMAGE, IMAGE]).expect(409);
+
+      expect(t.fileStorage.delete).toHaveBeenCalledWith(URLS[0]);
+      expect(t.fileStorage.delete).toHaveBeenCalledWith(URLS[1]);
+    });
+
+    it('deletes the files already uploaded when another upload fails', async () => {
+      t.fileStorage.upload
+        .mockResolvedValueOnce(URLS[0])
+        .mockRejectedValueOnce(new DatabaseOperationError('storage down'));
+
+      await post(VALID_BODY, [IMAGE, IMAGE]).expect(500);
+
+      expect(t.businesses.create).not.toHaveBeenCalled();
+      expect(t.fileStorage.delete).toHaveBeenCalledWith(URLS[0]);
+    });
+
+    it('uploads nothing when the Usuario already owns a Negocio', async () => {
+      t.businesses.listByOwner.mockResolvedValue([ANAS_BUSINESS]);
+
+      await post(VALID_BODY).expect(409);
+
+      expect(t.fileStorage.upload).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['data that is not JSON', '{business: 1'],
+      ['data that is not an object', '[]'],
+    ])('answers 400 for %s, creating nothing', async (_, data) => {
+      await post(data).expect(400);
+
+      expect(t.fileStorage.upload).not.toHaveBeenCalled();
+      expect(t.businesses.create).not.toHaveBeenCalled();
     });
 
     it('answers 401 without a Sesión', async () => {
-      await t.http.post('/businesses').send(VALID_BODY).expect(401);
+      await t.http
+        .post('/businesses')
+        .field('data', JSON.stringify(VALID_BODY))
+        .attach('images', PNG, { filename: 'a.png', contentType: 'image/png' })
+        .expect(401);
     });
 
     it.each([
@@ -457,12 +575,9 @@ describe('Negocio', () => {
     ])(
       'rejects %s with 400, without reaching the repository',
       async (_, override) => {
-        await t.http
-          .post('/businesses')
-          .set(bearer(CLERK_TOKEN))
-          .send({ ...VALID_BODY, ...override })
-          .expect(400);
+        await post({ ...VALID_BODY, ...override }).expect(400);
 
+        expect(t.fileStorage.upload).not.toHaveBeenCalled();
         expect(t.businesses.create).not.toHaveBeenCalled();
       },
     );
