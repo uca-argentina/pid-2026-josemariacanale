@@ -76,11 +76,18 @@ describe('retireCabinAction', () => {
         expect(mockRefresh).toHaveBeenCalled();
     });
 
-    it('shows any failure, the 409 of upcoming Turnos included, as a generic notice', async () => {
-        const error = new ApiRequestError('Cabin 3 has 2 upcoming Turnos', { status: 409 });
-        mockControllers.IRetireCabinController.mockRejectedValue(error);
+    it('shows the 409 of upcoming Turnos as a generic notice without reporting it', async () => {
+        mockControllers.IRetireCabinController.mockRejectedValue(new ApiRequestError('Cabin 3 has 2 upcoming Turnos', { status: 409 }));
 
         await expect(retireCabinAction(3)).resolves.toEqual({ ok: false, message: 'No pudimos dar de baja la Cabina. Intentá de nuevo.' });
+        expect(mockReport).not.toHaveBeenCalled();
+    });
+
+    it('reports any other failure', async () => {
+        const error = new ApiRequestError('boom', { status: 500 });
+        mockControllers.IRetireCabinController.mockRejectedValue(error);
+
+        await retireCabinAction(3);
         expect(mockReport).toHaveBeenCalledWith(error);
     });
 });

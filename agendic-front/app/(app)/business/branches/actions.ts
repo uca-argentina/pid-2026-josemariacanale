@@ -7,7 +7,7 @@ import { SIGN_IN_PATH } from '@/app/routes';
 import { getInjection } from '@/di/container';
 import { BranchImageLimitError, InvalidSlugError, SlugTakenError } from '@/src/entities/errors/business';
 import { CabinNameTakenError, InvalidCabinNameError } from '@/src/entities/errors/cabin';
-import { InputParseError } from '@/src/entities/errors/common';
+import { ApiRequestError, InputParseError } from '@/src/entities/errors/common';
 
 /** `message` se muestra al Usuario; `field` lo pone bajo ese campo en vez de en un toast. */
 export type BranchActionResult<T = undefined> =
@@ -33,6 +33,8 @@ async function run<T>(fallback: string, work: () => Promise<T>): Promise<BranchA
         if (error instanceof InvalidCabinNameError) return { ok: false, field: 'name', message: 'El nombre tiene que tener entre 1 y 60 caracteres.' };
         if (error instanceof BranchImageLimitError) return { ok: false, message: error.message };
         if (isSessionExpired(error)) redirect(SIGN_IN_PATH);
+        // A 409 is a rule of the back (e.g. a Cabina with upcoming Turnos), not a crash: nothing to report.
+        if (error instanceof ApiRequestError && error.status === 409) return { ok: false, message: fallback };
         if (error instanceof InputParseError) return { ok: false, message: 'Revisá los datos e intentá de nuevo.' };
         getInjection('ICrashReporterService').report(error);
         return { ok: false, message: fallback };

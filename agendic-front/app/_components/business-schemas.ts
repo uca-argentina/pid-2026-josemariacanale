@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { CABIN_NAME_MAX } from '@/src/entities/models/cabin';
 
 // La forma exacta que espera POST /businesses del back. No lleva Servicio.
 // Ver agendic-back/src/infrastructure/businesses/businesses.dto.ts.
@@ -50,7 +51,7 @@ export const branchFormSchema = branchFields.extend({
 
 /** El nombre de una Cabina: requerido y de hasta 60 caracteres, como lo valida el back (ADR 0030). */
 export const cabinFormSchema = z.object({
-    name: required('el nombre de la Cabina').max(60, 'El nombre no puede tener más de 60 caracteres.'),
+    name: required('el nombre de la Cabina').max(CABIN_NAME_MAX, `El nombre no puede tener más de ${CABIN_NAME_MAX} caracteres.`),
 });
 
 export const SERVICE_CATEGORIES = [
