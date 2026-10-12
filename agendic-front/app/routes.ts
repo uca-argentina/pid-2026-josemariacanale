@@ -45,5 +45,9 @@ export const bookAgainPath = (booking: {
           ? bookingLinkPath(booking.business.slug, booking.branch.slug)
           : null;
 
+/** La pantalla Fuera de la oficina; con `nuevo`, abre el modal de período nuevo. */
+export const OUT_OF_OFFICE_PATH = '/availability/out-of-office';
+export const newOutOfOfficePath = `${OUT_OF_OFFICE_PATH}?nuevo`;
+
 /** Servicios con el modal de alta abierto, apuntado al Negocio `businessId` (la tarjeta "Crear servicio" de Mi Negocio). */
 export const newServicePath = (businessId: number) => `${SERVICES_PATH}?nuevo=${businessId}`;

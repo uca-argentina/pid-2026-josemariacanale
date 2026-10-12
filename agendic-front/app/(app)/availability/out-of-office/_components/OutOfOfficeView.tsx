@@ -4,11 +4,13 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Clock, Ellipsis, Pencil, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { OUT_OF_OFFICE_PATH } from '@/app/routes';
 import { PaginationControls } from '@/app/_components/PaginationControls';
 import { Button } from '@/app/_components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/app/_components/ui/dropdown-menu';
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/app/_components/ui/empty';
 import type { OutOfOffice } from '@/src/entities/models/out-of-office';
+import type { Preferences } from '@/src/entities/models/user';
 import { deleteOutOfOfficeAction } from '../actions';
 import { formatOutOfOfficeDate } from './format-out-of-office-date';
 import { OutOfOfficeDialog } from './OutOfOfficeDialog';
@@ -66,7 +68,7 @@ function OutOfOfficeRow({
  * lista completa (10 por página al principio). "Añadir" abre el modal de período nuevo, y con `openNew`
  * (`?nuevo`) arranca abierto. `weekStart` es el primer día de la semana del Usuario, para el Calendar del modal.
  */
-export function OutOfOfficeView({ periods, openNew, weekStart }: { periods: OutOfOffice[]; openNew: boolean; weekStart: number }) {
+export function OutOfOfficeView({ periods, openNew, weekStart }: { periods: OutOfOffice[]; openNew: boolean; weekStart: Preferences['weekStart'] }) {
     const router = useRouter();
     const [dialog, setDialog] = useState<{ period: OutOfOffice | null } | null>(openNew ? { period: null } : null);
     const [busy, setBusy] = useState(false);
@@ -78,7 +80,7 @@ export function OutOfOfficeView({ periods, openNew, weekStart }: { periods: OutO
 
     const closeDialog = () => {
         setDialog(null);
-        if (openNew) router.replace('/availability/out-of-office');
+        if (openNew) router.replace(OUT_OF_OFFICE_PATH);
     };
 
     const remove = async (period: OutOfOffice) => {

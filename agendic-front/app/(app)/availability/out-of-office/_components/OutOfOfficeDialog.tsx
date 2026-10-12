@@ -14,12 +14,13 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/app/_components/ui/po
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/_components/ui/select';
 import { Textarea } from '@/app/_components/ui/textarea';
 import type { OutOfOffice, OutOfOfficeReason } from '@/src/entities/models/out-of-office';
+import type { Preferences } from '@/src/entities/models/user';
 import { createOutOfOfficeAction, updateOutOfOfficeAction } from '../actions';
 import { formatOutOfOfficeDate } from './format-out-of-office-date';
 import { OUT_OF_OFFICE_REASONS } from './out-of-office-reasons';
 import { fromCalendarRange, toCalendarRange } from './out-of-office-range';
 
-/** Al crear, el rango arranca en hoy y mañana, como en cal.diy. */
+/** Al crear, el rango arranca en hoy y mañana. */
 const todayAndTomorrow = (): DateRange => {
     const today = new Date();
     return { from: today, to: new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1) };
@@ -38,7 +39,7 @@ export function OutOfOfficeDialog({
     onClose,
 }: {
     period: OutOfOffice | null;
-    weekStart: number;
+    weekStart: Preferences['weekStart'];
     onClose: () => void;
 }) {
     const [range, setRange] = useState<DateRange | undefined>(period ? toCalendarRange(period) : todayAndTomorrow());
@@ -92,7 +93,7 @@ export function OutOfOfficeDialog({
                                 <Calendar
                                     mode="range"
                                     locale={es}
-                                    weekStartsOn={weekStart as 0 | 1 | 2 | 3 | 4 | 5 | 6}
+                                    weekStartsOn={weekStart}
                                     defaultMonth={range?.from}
                                     selected={range}
                                     onSelect={setRange}
@@ -135,7 +136,7 @@ export function OutOfOfficeDialog({
                                 disabled={!hasNotes}
                             />
                             <Label htmlFor="show-note-publicly" className="font-normal">
-                                Mostrar nota en la página pública de reservas
+                                Mostrar nota en la página de reserva
                             </Label>
                         </div>
                     </div>
