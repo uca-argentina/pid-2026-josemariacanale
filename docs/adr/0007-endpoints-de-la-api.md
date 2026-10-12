@@ -369,6 +369,8 @@ como uno que no existe.
 | GET | `/analytics/businesses` | sí | Los Negocios no dados de baja donde el Usuario es Empleado vigente: `200 [{ id, name, isOwner }]`, el suyo primero y los demás por nombre; `[]` si no es Empleado de ninguno |
 | GET | `/analytics/businesses/:businessId?from&to&branchId=<id>?&serviceId=<id>?&employeeId=<id>?` | sí | Las mismas analíticas que `/analytics/personal`, de los Servicios del Negocio (ocultos y dados de baja incluidos) |
 | GET | `/analytics/businesses/:businessId/employees-per-period?from&to&granularity=day\|week\|month&branchId=<id>?&serviceId=<id>?` | sí | Solo para el Dueño: los Turnos de cada Empleado por período |
+| GET | `/analytics/personal/bookings.csv?from&to&serviceId=<id>?` | sí | El CSV de Turnos de los Servicios personales del Usuario en el rango (#282) |
+| GET | `/analytics/businesses/:businessId/bookings.csv?from&to&branchId=<id>?&serviceId=<id>?&employeeId=<id>?` | sí | El CSV de Turnos del Negocio en el rango y con los filtros (#282) |
 
 - Respuesta 200: la misma forma que la personal (`kpis`, `granularity`, `trend`, `popularServices`, `recentRatings`, `filterOptions`) con estas diferencias:
   - `recentRatings[].employeeName` trae el nombre del Empleado que atendió el Turno.
@@ -393,3 +395,9 @@ como uno que no existe.
 - Cuenta Turnos con `startsAt` en el período, sin Rechazados ni originales reagendados, cortados en la zona de su Sucursal. Una fila por Empleado vigente, incluso con todo en 0, por nombre y luego id. Respeta `branchId` y `serviceId`.
 - Errores: 401 sin Sesión; 403 `Only the owner can see analytics per Employee` si el Usuario no es el Dueño; 400 `Invalid granularity <x>` si no es `day`, `week` ni `month` (`undefined` si falta); los mismos 400 (rango, filtro que no es un número) y 404 (Negocio, Sucursal, Servicio) de `GET /analytics/businesses/:businessId`.
 - El front vuelve a pedir el endpoint al cambiar Por día / Por semana / Por mes; la búsqueda por nombre la hace el front.
+
+#### CSV de Turnos (#282)
+
+- Respuesta 200 `text/csv` con `Content-Disposition: attachment; filename="turnos-<from>-<to>.csv"`. El front arma ese nombre él mismo y no lee el header.
+- Errores: los mismos que las analíticas JSON de cada página (400 rango o filtro inválido, 401 sin Sesión, 403 y 404 en la del Negocio).
+- El front baja el archivo por una acción de servidor que reenvía el token; no es un link directo a la API.

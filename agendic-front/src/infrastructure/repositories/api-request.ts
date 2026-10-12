@@ -2,6 +2,9 @@ import type { IAuthenticationService } from '@/src/application/services/authenti
 import { UnauthenticatedError } from '@/src/entities/errors/auth';
 import { ApiRequestError } from '@/src/entities/errors/common';
 
+/** Cuerpo opcional y el error de dominio de cada status que la llamada espera. */
+type ApiRequestOptions = { body?: unknown; errors?: ErrorByStatus };
+
 /** Error de dominio al que se traduce un status del back; recibe el `message` del back. */
 export type ErrorByStatus = Record<number, new (message: string) => Error>;
 
@@ -19,18 +22,23 @@ export async function apiRequest(
     apiUrl: string | undefined,
     method: string,
     path: string,
-    options: { body?: unknown; errors?: ErrorByStatus } = {},
+    options: ApiRequestOptions = {},
 ) {
     return (await call(authenticationService, apiUrl, method, path, options)).json;
 }
 
-/** Como `apiRequest`, pero devuelve el cuerpo tal cual (para lo que no es JSON, como un CSV). */
+/**
+ * Como `apiRequest`, pero devuelve el cuerpo tal cual (para lo que no es JSON, como un CSV).
+ *
+ * @throws {UnauthenticatedError} el back respondió 401
+ * @throws {ApiRequestError} falta `API_URL`, falla de red u otro status no-OK
+ */
 export async function apiRequestText(
     authenticationService: IAuthenticationService,
     apiUrl: string | undefined,
     method: string,
     path: string,
-    options: { body?: unknown; errors?: ErrorByStatus } = {},
+    options: ApiRequestOptions = {},
 ): Promise<string> {
     return (await call(authenticationService, apiUrl, method, path, options)).text;
 }
@@ -40,7 +48,7 @@ async function call(
     apiUrl: string | undefined,
     method: string,
     path: string,
-    { body, errors = {} }: { body?: unknown; errors?: ErrorByStatus },
+    { body, errors = {} }: ApiRequestOptions,
 ) {
     const what = `${method} ${path}`;
     if (!apiUrl) throw new ApiRequestError(`${what} failed: API_URL is not set`);

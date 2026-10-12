@@ -109,13 +109,15 @@ export function businessSearch(search: string, businessId: number): string {
     return `?${params}`;
 }
 
-/**
- * Lo que pide el CSV de Turnos con el estado de la URL de cada página: sin `businesses` son los Servicios personales;
- * con ellos, el Negocio elegido y sus filtros (`undefined` si no hay Negocio).
- */
-export function bookingsCsvQuery(params: URLSearchParams, today: string, businesses?: { id: number; isOwner: boolean }[]): BookingsCsvQuery | undefined {
+/** Lo que pide el CSV de Turnos en la página de los Servicios personales, con el estado de su URL. */
+export function personalCsvQuery(params: URLSearchParams, today: string): BookingsCsvQuery {
     const { from, to } = parseRange(params, today);
-    if (!businesses) return { from, to, serviceId: parseServiceId(params) };
+    return { from, to, serviceId: parseServiceId(params) };
+}
+
+/** Lo que pide el CSV de Turnos en la página de un Negocio: el Negocio elegido y sus filtros; `undefined` si no hay Negocio. */
+export function businessCsvQuery(params: URLSearchParams, today: string, businesses: { id: number; isOwner: boolean }[]): BookingsCsvQuery | undefined {
+    const { from, to } = parseRange(params, today);
     const { business, ...filters } = parseBusinessFilters(params, businesses);
     return business && { businessId: business.id, from, to, ...filters };
 }
