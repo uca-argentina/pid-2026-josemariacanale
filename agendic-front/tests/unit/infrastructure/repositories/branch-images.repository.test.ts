@@ -1,4 +1,4 @@
-import { BranchImageLimitError } from '@/src/entities/errors/business';
+import { BranchImageLimitError, LastBranchImageError } from '@/src/entities/errors/business';
 import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
 import { BusinessesRepository } from '@/src/infrastructure/repositories/businesses.repository';
 import { authWith } from '@/tests/unit/stubs';
@@ -30,6 +30,11 @@ describe('BusinessesRepository Imágenes de Sucursal', () => {
     it('keeps a 413 as ApiRequestError', async () => {
         respond(413, { message: 'too large' });
         await expect(repo().uploadBranchImage(3, new File([], 'a.png'))).rejects.toBeInstanceOf(ApiRequestError);
+    });
+
+    it('translates the 409 of the last image to LastBranchImageError', async () => {
+        respond(409, { message: 'Branch 3 must keep at least one image' });
+        await expect(repo().deleteBranchImage(3, 1)).rejects.toBeInstanceOf(LastBranchImageError);
     });
 
     it('deletes with a 204', async () => {

@@ -1,10 +1,11 @@
-import { createBranchAction, uploadBranchImageAction } from '@/app/(app)/business/branches/actions';
-import { BranchImageLimitError, SlugTakenError } from '@/src/entities/errors/business';
+import { createBranchAction, deleteBranchImageAction, uploadBranchImageAction } from '@/app/(app)/business/branches/actions';
+import { BranchImageLimitError, LastBranchImageError, SlugTakenError } from '@/src/entities/errors/business';
 import { ApiRequestError } from '@/src/entities/errors/common';
 
 const mockControllers: Record<string, jest.Mock> = {
     ICreateBranchController: jest.fn(),
     IUploadBranchImageController: jest.fn(),
+    IDeleteBranchImageController: jest.fn(),
 };
 const mockReport = jest.fn();
 const mockRefresh = jest.fn();
@@ -65,5 +66,28 @@ describe('uploadBranchImageAction', () => {
 
         await expect(uploadBranchImageAction(4, new FormData())).resolves.toEqual({ ok: false, message: 'La Sucursal ya tiene 5 imágenes' });
         expect(mockReport).not.toHaveBeenCalled();
+    });
+});
+
+describe('deleteBranchImageAction', () => {
+    it('deletes the image and refreshes', async () => {
+        mockControllers.IDeleteBranchImageController.mockResolvedValue(undefined);
+
+        await expect(deleteBranchImageAction(4, 7)).resolves.toEqual({ ok: true, data: undefined });
+        expect(mockControllers.IDeleteBranchImageController).toHaveBeenCalledWith({ branchId: 4, imageId: 7 });
+        expect(mockRefresh).toHaveBeenCalled();
+    });
+
+    it('shows the 409 of the last image as a toast message, without reporting it', async () => {
+        mockControllers.IDeleteBranchImageController.mockRejectedValue(
+            new LastBranchImageError('Branch 4 must keep at least one image'),
+        );
+
+        await expect(deleteBranchImageAction(4, 7)).resolves.toEqual({
+            ok: false,
+            message: 'La sucursal necesita al menos una imagen',
+        });
+        expect(mockReport).not.toHaveBeenCalled();
+        expect(mockRefresh).not.toHaveBeenCalled();
     });
 });
