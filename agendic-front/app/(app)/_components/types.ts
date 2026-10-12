@@ -10,6 +10,8 @@ export interface NavItem {
     href: string;
     label: string;
     count?: number;
+    /** Sub-ítems del sidebar; el ítem sigue yendo a su `href`. */
+    children?: { href: string; label: string }[];
 }
 
 export interface CurrentBusinessUser {
