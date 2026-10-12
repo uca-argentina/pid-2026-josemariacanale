@@ -67,6 +67,7 @@ const SERVICE_ROW = {
       employee: { id: EMPLOYEE_ROW.id, user: { name: EMPLOYEE_ROW.user.name } },
     },
   ],
+  cabins: [],
 };
 
 const CREATE_DATA = {
@@ -223,6 +224,7 @@ describe('PrismaBusinessesRepository', () => {
           availabilityId: 40,
         },
       ],
+      cabins: [],
     });
   });
 

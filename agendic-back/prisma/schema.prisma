@@ -130,9 +130,22 @@ model Cabin {
   name      String
   deletedAt DateTime? @db.Timestamptz // set = dada de baja; the row stays as history
 
-  branch Branch @relation(fields: [branchId], references: [id])
+  branch   Branch         @relation(fields: [branchId], references: [id])
+  services ServiceCabin[]
 
   @@index([branchId])
+}
+
+/// The Cabinas a Servicio del Negocio admits (ADR 0030). Retiring a Cabina deletes its rows.
+model ServiceCabin {
+  serviceId Int
+  cabinId   Int
+
+  service Service @relation(fields: [serviceId], references: [id])
+  cabin   Cabin   @relation(fields: [cabinId], references: [id])
+
+  @@id([serviceId, cabinId])
+  @@index([cabinId])
 }
 
 model Service {
@@ -159,6 +172,7 @@ model Service {
   user         User?             @relation(fields: [userId], references: [id], onDelete: Restrict)
   availability Availability?     @relation(fields: [availabilityId], references: [id], onDelete: Restrict)
   employees    EmployeeService[]
+  cabins       ServiceCabin[]
   bookings     Booking[]
 }
 

@@ -8,6 +8,10 @@ import {
   BusinessesRepository,
 } from '../../domain/businesses/businesses.repository';
 import {
+  CABINS_REPOSITORY,
+  CabinsRepository,
+} from '../../domain/cabins/cabins.repository';
+import {
   AVAILABILITIES_REPOSITORY,
   AvailabilitiesRepository,
 } from '../../domain/availabilities/availabilities.repository';
@@ -17,6 +21,7 @@ import {
   SERVICES_REPOSITORY,
   ServicesRepository,
 } from '../../domain/services/services.repository';
+import { assertActiveCabins } from '../cabins/assert-active-cabins';
 import { getOwnAvailability } from '../availabilities/get-own-availability';
 import { assertServiceOwner } from './assert-service-owner';
 
@@ -31,6 +36,7 @@ export class UpdateServiceUseCase {
     private readonly services: ServicesRepository,
     @Inject(AVAILABILITIES_REPOSITORY)
     private readonly availabilities: AvailabilitiesRepository,
+    @Inject(CABINS_REPOSITORY) private readonly cabins: CabinsRepository,
   ) {}
 
   /**
@@ -38,7 +44,8 @@ export class UpdateServiceUseCase {
    *
    * @throws {NotFoundError} el Servicio no existe, o la Availability nueva no es del Usuario
    * @throws {ForbiddenError} no es quien lo gestiona
-   * @throws {BusinessRuleError} `availabilityId` en un Servicio del Negocio, que no tiene una propia
+   * @throws {BusinessRuleError} `availabilityId` en un Servicio del Negocio, que no tiene una propia; `cabinIds` en un
+   * Servicio personal, o con una Cabina que no es una activa de la Sucursal
    * @throws {ConflictError} el nombre o el tramo nuevo ya está en uso
    */
   async execute(
@@ -55,6 +62,11 @@ export class UpdateServiceUseCase {
           'Only a personal Service has its own Availability',
         );
       await getOwnAvailability(this.availabilities, input.availabilityId, userId);
+    }
+    if (input.cabinIds !== undefined) {
+      if (service.branchId === null)
+        throw new BusinessRuleError('A personal Service has no Cabins');
+      await assertActiveCabins(this.cabins, service.branchId, input.cabinIds);
     }
     return this.services.update(serviceId, input);
   }

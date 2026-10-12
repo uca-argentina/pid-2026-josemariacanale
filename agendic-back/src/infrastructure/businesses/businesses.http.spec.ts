@@ -77,6 +77,7 @@ const ANAS_SERVICE = {
       slug: null,
     },
   ],
+  cabins: [],
 };
 
 const CREATED = {

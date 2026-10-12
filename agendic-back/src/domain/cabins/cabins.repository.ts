@@ -13,6 +13,6 @@ export interface CabinsRepository {
   create(branchId: number, name: string): Promise<Cabin>;
   /** @throws {ConflictError} another active Cabina of the Sucursal has the name, ignoring case */
   rename(cabin: Cabin, name: string): Promise<Cabin>;
-  /** Sets `deletedAt`; the row is kept. */
+  /** Sets `deletedAt`, keeping the row, and takes the Cabina out of every Servicio that admitted it. */
   retire(id: number): Promise<void>;
 }

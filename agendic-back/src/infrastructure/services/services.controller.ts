@@ -27,7 +27,11 @@ import { GetUserPageUseCase } from '../../application/users/get-user-page.use-ca
 import { ListSlotsUseCase } from '../../application/slots/list-slots.use-case';
 import { ParseDatePipe } from '../parse-date.pipe';
 import { ClerkGuard, CurrentUser } from '../users/clerk.guard';
-import { presentCatalogGroup, presentService } from './service.presenter';
+import {
+  presentCatalogGroup,
+  presentPanelService,
+  presentService,
+} from './service.presenter';
 import {
   AssignEmployeeDto,
   ChangeEmployeeAvailabilityDto,
@@ -60,7 +64,7 @@ export class ServicesController {
   @UseGuards(ClerkGuard)
   async listPersonal(@CurrentUser() userId: number) {
     return (await this.listPersonalServicesUseCase.execute(userId)).map(
-      presentService,
+      presentPanelService,
     );
   }
 
@@ -76,7 +80,7 @@ export class ServicesController {
     @CurrentUser() userId: number,
     @Body() dto: CreatePersonalServiceDto,
   ) {
-    return presentService(
+    return presentPanelService(
       await this.createPersonalServiceUseCase.execute(userId, dto),
     );
   }
@@ -120,7 +124,7 @@ export class ServicesController {
     @Param('id', ParseIntPipe) branchId: number,
     @Body() dto: CreateServiceDto,
   ) {
-    return presentService(
+    return presentPanelService(
       await this.createServiceUseCase.execute(userId, branchId, dto),
     );
   }
@@ -132,7 +136,7 @@ export class ServicesController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateServiceDto,
   ) {
-    return presentService(
+    return presentPanelService(
       await this.updateServiceUseCase.execute(userId, id, dto),
     );
   }
@@ -163,7 +167,7 @@ export class ServicesController {
     @Param('id', ParseIntPipe) serviceId: number,
     @Body() dto: AssignEmployeeDto,
   ) {
-    return presentService(
+    return presentPanelService(
       await this.assignEmployeeUseCase.execute(userId, serviceId, dto),
     );
   }
@@ -183,7 +187,7 @@ export class ServicesController {
     @Param('employeeId', ParseIntPipe) employeeId: number,
     @Body() dto: ChangeEmployeeAvailabilityDto,
   ) {
-    return presentService(
+    return presentPanelService(
       await this.changeEmployeeAvailabilityUseCase.execute(
         userId,
         serviceId,

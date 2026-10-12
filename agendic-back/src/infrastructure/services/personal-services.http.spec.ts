@@ -86,7 +86,21 @@ describe('Servicio personal', () => {
         userId: ANA.id,
         availabilityId: AVAILABILITY.id,
         employees: [],
+        cabins: [],
       });
+    });
+
+    it('answers 422 for cabinIds, even empty: it has no Cabinas', async () => {
+      for (const cabinIds of [[10], []]) {
+        const res = await t.http
+          .post('/users/me/services')
+          .set(bearer(CLERK_TOKEN))
+          .send({ ...VALID_PERSONAL, cabinIds })
+          .expect(422);
+
+        expect(res.body.message).toBe('A personal Service has no Cabins');
+      }
+      expect(t.services.createPersonal).not.toHaveBeenCalled();
     });
 
     it("answers 404 for an Availability that is someone else's", async () => {
@@ -148,6 +162,10 @@ describe('Servicio personal', () => {
 
       expect(t.services.listActiveByUser).toHaveBeenCalledWith(ANA.id);
       expect(res.body.map((s: { id: number }) => s.id)).toEqual([5, 6]);
+      expect(res.body.map((s: { cabins: unknown }) => s.cabins)).toEqual([
+        [],
+        [],
+      ]);
     });
   });
 
@@ -194,6 +212,17 @@ describe('Servicio personal', () => {
         .set(bearer(CLERK_TOKEN))
         .send({ availabilityId: 11 })
         .expect(404);
+    });
+
+    it('answers 422 for cabinIds on a Servicio personal', async () => {
+      const res = await t.http
+        .patch(`/services/${PERSONAL.id}`)
+        .set(bearer(CLERK_TOKEN))
+        .send({ cabinIds: [] })
+        .expect(422);
+
+      expect(res.body.message).toBe('A personal Service has no Cabins');
+      expect(t.services.update).not.toHaveBeenCalled();
     });
 
     it('answers 422 for an availabilityId on a Servicio del Negocio', async () => {
@@ -285,6 +314,14 @@ describe('Servicio personal', () => {
       expect(res.body.name).toBe(ANA.name);
       expect(res.body.slug).toBe('ana-perez');
       expect(res.body.services.map((s: { id: number }) => s.id)).toEqual([5]);
+    });
+
+    it("doesn't expose Cabinas in the public views", async () => {
+      const page = await t.http.get('/u/ana-perez').expect(200);
+      const one = await t.http.get('/u/ana-perez/consulta').expect(200);
+
+      expect(page.body.services[0]).not.toHaveProperty('cabins');
+      expect(one.body).not.toHaveProperty('cabins');
     });
 
     it('GET /u/:userSlug shows the Usuario photo, and null when they have none', async () => {

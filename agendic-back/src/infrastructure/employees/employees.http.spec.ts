@@ -450,6 +450,7 @@ describe('Empleado', () => {
               slug: null,
             },
           ],
+          cabins: [],
         },
       ]);
 
@@ -500,6 +501,7 @@ describe('Empleado', () => {
               slug: null,
             },
           ],
+          cabins: [],
         },
       ]);
 

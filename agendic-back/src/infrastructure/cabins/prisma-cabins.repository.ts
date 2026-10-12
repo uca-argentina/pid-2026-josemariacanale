@@ -65,12 +65,20 @@ export class PrismaCabinsRepository implements CabinsRepository {
   }
 
   /**
+   * Also takes it out of every Servicio that admitted it, atomically.
+   *
    * @throws {NotFoundError} the Cabina no longer exists
    * @throws {DatabaseOperationError} the update failed
    */
   async retire(id: number) {
-    await this.prisma.cabin
-      .update({ where: { id }, data: { deletedAt: new Date() } })
+    await this.prisma
+      .$transaction([
+        this.prisma.serviceCabin.deleteMany({ where: { cabinId: id } }),
+        this.prisma.cabin.update({
+          where: { id },
+          data: { deletedAt: new Date() },
+        }),
+      ])
       .catch((error) => translateError(error, id));
   }
 }

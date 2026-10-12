@@ -17,7 +17,7 @@ import {
 } from '../employees/prisma-employees.repository';
 import {
   toService,
-  VISIBLE_EMPLOYEES,
+  SERVICE_RELATIONS,
 } from '../services/prisma-services.repository';
 import { violatedIndex } from '../prisma-errors';
 import { PrismaService } from '../prisma.service';
@@ -68,7 +68,7 @@ export class PrismaBusinessesRepository implements BusinessesRepository {
                 },
               },
             },
-            include: VISIBLE_EMPLOYEES,
+            include: SERVICE_RELATIONS,
           }));
         return {
           business: toBusiness(business),

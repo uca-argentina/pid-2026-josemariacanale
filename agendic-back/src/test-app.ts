@@ -391,6 +391,7 @@ export const ANAS_SERVICE: Service = {
       slug: ANA.slug,
     },
   ],
+  cabins: [],
 };
 
 export const CLERK_TOKEN = 'clerk-jwt-1';
