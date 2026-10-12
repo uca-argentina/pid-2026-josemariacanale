@@ -85,13 +85,13 @@ export function filterSearch(search: string, name: FilterName, id: number | unde
 export const serviceSearch = (search: string, serviceId: number | undefined) => filterSearch(search, 'serviceId', serviceId);
 
 /**
- * El Negocio y los filtros de la URL de las analíticas del Negocio. Viene elegido el primero de `businesses`; un
- * `businessId` que no está en la lista se ignora. `employeeId` solo vale para el Dueño: el back rechaza el filtro a
+ * El Negocio y los filtros de la URL de las analíticas. Sin `businessId`, o con uno que no está en `businesses`, no
+ * hay Negocio: las analíticas son las personales. `employeeId` solo vale para el Dueño: el back rechaza el filtro a
  * quien no lo es.
  */
 export function parseBusinessFilters<B extends { id: number; isOwner: boolean }>(params: URLSearchParams, businesses: B[]) {
     const wanted = positiveId(params.get('businessId'));
-    const business = businesses.find(({ id }) => id === wanted) ?? businesses[0];
+    const business = businesses.find(({ id }) => id === wanted);
     return {
         business,
         branchId: positiveId(params.get('branchId')),
@@ -100,10 +100,12 @@ export function parseBusinessFilters<B extends { id: number; isOwner: boolean }>
     };
 }
 
-/** La URL con otro Negocio elegido: sus filtros no valen en el nuevo, así que se sacan, y el rango queda. */
-export function businessSearch(search: string, businessId: number): string {
+/** La URL con otro Negocio elegido, o el Usuario con `undefined`: los filtros no valen en el nuevo, así que se sacan, y el rango queda. */
+export function businessSearch(search: string, businessId: number | undefined): string {
     const params = new URLSearchParams(search);
     for (const name of FILTER_NAMES) params.delete(name);
-    params.set('businessId', String(businessId));
-    return `?${params}`;
+    if (businessId === undefined) params.delete('businessId');
+    else params.set('businessId', String(businessId));
+    const next = params.toString();
+    return next ? `?${next}` : '';
 }

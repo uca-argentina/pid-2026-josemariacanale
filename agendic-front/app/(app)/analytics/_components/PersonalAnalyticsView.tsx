@@ -6,6 +6,7 @@ import { toIsoDay } from '@/app/_components/day-range';
 import { Button } from '@/app/_components/ui/button';
 import type { Preferences } from '@/src/entities/models/user';
 import { loadPersonalAnalyticsAction, type PersonalAnalyticsData, type PersonalAnalyticsResult } from '../actions';
+import { AnalyticsHeader } from './AnalyticsHeader';
 import { BlocksSkeleton, PopularServices, RecentRatings } from './AnalyticsBlocks';
 import { isValidCustomRange, parseRange, parseServiceId, rangeSearch, serviceSearch, type RangeChange } from './analytics-range';
 import { KpiCards, KpiCardsSkeleton } from './KpiCards';
@@ -16,11 +17,11 @@ import { TrendsChart } from './TrendsChart';
 const subscribeNever = () => () => {};
 
 /**
- * Analíticas de los Servicios personales: el selector de rango, el filtro por Servicio, las tarjetas de KPI, el gráfico de
+ * Analíticas de los Servicios personales: el selector de alcance (`selector`), el de rango, el filtro por Servicio, las tarjetas de KPI, el gráfico de
  * tendencias, el ranking y las Calificaciones. El rango y el Servicio viven en la URL y se resuelven en el browser,
  * porque "hoy" es el de su zona; los datos se piden al server con ellos.
  */
-export function PersonalAnalyticsView({ weekStart }: { weekStart: Preferences['weekStart'] }) {
+export function PersonalAnalyticsView({ weekStart, selector }: { weekStart: Preferences['weekStart']; selector: React.ReactNode }) {
     const searchParams = useSearchParams();
     // El server no sabe en qué zona está el browser: hasta hidratar no hay rango.
     const mounted = useSyncExternalStore(subscribeNever, () => true, () => false);
@@ -62,15 +63,11 @@ export function PersonalAnalyticsView({ weekStart }: { weekStart: Preferences['w
 
     return (
         <div className="flex flex-1 flex-col gap-4 py-4 text-foreground @3xl/main:gap-6 @3xl/main:py-6">
-            <div className="flex flex-wrap items-center justify-between gap-3 px-4 lg:px-6">
-                <h1 className="m-0 text-[21px] font-extrabold tracking-[-0.035em]">Analíticas · Servicios personales</h1>
-                {range && (
-                    <div className="flex flex-wrap items-center gap-2">
-                        <IdFilter label="Servicio" options={services} selected={serviceId} onChange={changeService} />
-                        <RangeSelect range={range} weekStart={weekStart} onChange={change} />
-                    </div>
-                )}
-            </div>
+            <AnalyticsHeader
+                selector={selector}
+                filters={range && <IdFilter label="Servicio" options={services} selected={serviceId} onChange={changeService} />}
+                range={range && <RangeSelect range={range} weekStart={weekStart} onChange={change} />}
+            />
             {result === null ? (
                 <>
                     <KpiCardsSkeleton />

@@ -35,7 +35,7 @@ describe('getBusinessAnalyticsController', () => {
         const result = await getBusinessAnalyticsController(instrumentation, signedIn, get)(input);
 
         expect(get).toHaveBeenCalledWith(input);
-        expect(result.cards).toHaveLength(11);
+        expect(result.cards).toHaveLength(8);
         expect(result.popularServices).toEqual([{ id: 3, name: 'Corte', count: '9' }]);
         expect(result.recentRatings[0]).toMatchObject({ clientName: 'Ana', employeeName: 'Bruno' });
         expect(result.branches).toEqual([{ id: 1, name: 'Centro' }]);

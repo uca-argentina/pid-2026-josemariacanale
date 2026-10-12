@@ -16,6 +16,14 @@ export const KPI_NAMES = [
 ] as const;
 export type KpiName = (typeof KPI_NAMES)[number];
 
+/**
+ * Los KPI que se muestran como tarjetas, en el orden de Cal.com Insights; el back manda más de los que se muestran.
+ * Vive en `entities` porque qué KPIs se presentan es una decisión de negocio, no de UI.
+ */
+export const CARD_KPIS = ['booked', 'attended', 'rescheduled', 'cancelled', 'averageRating', 'employeeNoShows', 'noShows', 'csat'] as const satisfies readonly KpiName[];
+/** Un KPI con tarjeta. */
+export type CardKpi = (typeof CARD_KPIS)[number];
+
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
 /** El valor de un KPI en el período y en el anterior del mismo largo; `null` si no hay datos. */
