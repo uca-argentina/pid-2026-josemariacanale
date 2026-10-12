@@ -665,7 +665,7 @@ describe('PrismaAnalyticsRepository (real database)', () => {
     });
   });
 
-  it('lists every personal Servicio of the Usuario by name, hidden and retired ones included, and nobody elses', async () => {
+  it('lists every personal Servicio of the Usuario by name, hidden and retired ones included, and not those of another Usuario', async () => {
     const { user, service } = await makeScope();
     const hidden = await makeService(user.id, 100, `${tag}-opt-b`);
     await prisma.service.update({

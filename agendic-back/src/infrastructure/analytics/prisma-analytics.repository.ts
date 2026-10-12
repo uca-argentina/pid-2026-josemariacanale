@@ -188,7 +188,7 @@ export class PrismaAnalyticsRepository implements AnalyticsRepository {
         WHERE s."userId" = ${userId} ${serviceFilter}
           AND ${original} AND b."status" <> 'REJECTED' AND ${day('b."startsAt"')}
         GROUP BY s."id", s."name"
-        ORDER BY "count" DESC, s."name" ASC
+        ORDER BY "count" DESC, s."name" ASC, s."id" ASC
         LIMIT 5`,
       this.prisma.$queryRaw<
         {
@@ -226,6 +226,8 @@ export class PrismaAnalyticsRepository implements AnalyticsRepository {
   }
 
   /**
+   * Lista los Servicios personales del Usuario por nombre, con los ocultos y los dados de baja.
+   *
    * @throws {DatabaseOperationError} la consulta falló
    */
   async personalServices(userId: number) {
