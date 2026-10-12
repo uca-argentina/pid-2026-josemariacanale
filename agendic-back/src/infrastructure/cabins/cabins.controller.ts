@@ -64,7 +64,10 @@ export class CabinsController {
     );
   }
 
-  /** @throws {NotFoundError} the Cabina doesn't exist or was already dada de baja */
+  /**
+   * @throws {NotFoundError} the Cabina doesn't exist or was already dada de baja
+   * @throws {ConflictError} the Cabina has upcoming Turnos
+   */
   @Delete('cabins/:id')
   @HttpCode(204)
   async retire(

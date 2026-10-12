@@ -109,12 +109,12 @@ Todos exigen Sesión y solo los hace el Dueño del Negocio de la Sucursal (ADR 0
 | GET | `/branches/:id/cabins` | sí | Las Cabinas activas de la Sucursal, ordenadas por nombre; 404 si la Sucursal no existe |
 | POST | `/branches/:id/cabins` | sí | Crea una Cabina; 201 con la Cabina; 404 si la Sucursal no existe; 409 `Cabin name <name> already in use in Branch <branchId>` |
 | PATCH | `/cabins/:id` | sí | Renombra una Cabina; 200 con la Cabina; mismo 409; 404 si no existe o está dada de baja |
-| DELETE | `/cabins/:id` | sí | Da de baja la Cabina (marca `deletedAt`); 204; 404 si no existe o ya está dada de baja |
+| DELETE | `/cabins/:id` | sí | Da de baja la Cabina (marca `deletedAt`); 204; 404 si no existe o ya está dada de baja; 409 `Cabin <id> has <n> upcoming Turnos` si tiene Turnos `PENDING` o `BOOKED` con `endsAt` posterior a ahora (`<n>` es cuántos): primero se Reagendan o se Cancelan. Los Turnos pasados, cancelados o rechazados no cuentan |
 
 - `CabinNameDto` (POST y PATCH): `{ name }`. Se guarda recortado; falta, queda vacío después de recortarlo, no es un string o tiene más de 60 caracteres → 400
 - El nombre es único por Sucursal entre las activas, sin distinguir mayúsculas (`name` en el 409 es el que mandó el cliente); se puede repetir en otra Sucursal y reusar el de una Cabina dada de baja. Renombrar una Cabina a su mismo nombre con otras mayúsculas es válido
 - Respuesta (`presentCabin`): `{ id, branchId, name }`
-- Pendiente (ticket "Reservar ocupa una Cabina"): `DELETE` responderá 409 si la Cabina tiene Turnos futuros
+- El 409 de `DELETE` no se parece al de la baja de lo demás, que cancela los Turnos futuros (ADR 0030); el front lo muestra en la pantalla de Sucursales
 
 ## Services (Servicio)
 
@@ -269,6 +269,7 @@ como uno que no existe. Todavía no bloquean Horarios reservables.
   6. Un día ya pasado no viene
 - No se copian de cal.diy `showOptimizedSlots`, `offsetStart`, asientos, `travelSchedules` ni OOO
 - `employeeId` (query, opcional, entero): con él la respuesta tiene la misma forma pero solo con los Horarios reservables de ese Empleado. 404 `Employee <employeeId> does not offer Service <serviceId>` si no es un Empleado activo que Ofrece el Servicio (nunca lo ofreció, dejó de ofrecerlo o fue dado de baja del Negocio); 400 si el Servicio es personal; 400 si no es un entero.
+- Cabinas (ADR 0030): en un Servicio que admite Cabinas, el horario de un Empleado vale solo si alguna de ellas no tiene un Turno `PENDING` o `BOOKED`, de cualquier Servicio, que se solape con `[inicio − Tiempo de preparación, inicio + duración)`. Un día que se queda sin horarios por eso es `FULLY_BOOKED`. Con `employeeId` se exigen las dos cosas: ese Empleado y una Cabina libre. Un Servicio sin Cabinas no cambia, y los Turnos tomados antes de que las admitiera (sin Cabina) no ocupan ninguna. La respuesta no dice qué Cabina queda libre
 - Respuesta: `{ timeZone, days: [{ date, slots: [ISO instants], reason? }] }`, con `timeZone` la de la Sucursal (en la que están las fechas `date`). `reason` solo aparece cuando `slots` está vacío: `NOT_WORKING` (ninguna Franja del día alcanza para la duración del Servicio, o Anulación de día libre) o `FULLY_BOOKED` (había horarios pero los Turnos, la Anticipación mínima o el Límite diario se los llevaron todos)
 
 ## Bookings (Turno)
@@ -311,6 +312,7 @@ como uno que no existe. Todavía no bloquean Horarios reservables.
   - `PATCH /booking-links/:secret/reschedule`: `RescheduleBookingDto`, mismas reglas que el Reagendar del Empleado (409 `Overlaps a booked Turno for this Employee`, 422 `Slot <ISO> is not available for Service <id>`, 400 `startsAt` inválido), con una diferencia: si el Servicio tiene Aprobación manual, el Turno queda (o vuelve a quedar) `PENDING`, sea cual sea su estado antes de Reagendar; también vale sobre un Turno `PENDING`. 404 `Turno not found` para un Enlace desconocido; 422 `Turno is not pending or booked` si no está pendiente ni aceptado.
 - **Horario ocupado (409 `Overlaps a booked Turno for this Employee`)**. Como el Turno nace ya `BOOKED` o
   `PENDING`, la creación misma es la que puede chocar:
+  - `POST /bookings` en un Servicio que admite Cabinas (ADR 0030): después de elegir el Empleado con la regla de siempre, asigna una Cabina de las del Servicio libres en `[prepStartsAt, endsAt)`: la que hace más tiempo que no recibe un Turno `PENDING` o `BOOKED` de cualquier Servicio (sin Turnos previos gana esa; si empatan, la de menor id), y la guarda en `Booking.cabinId`. Un Servicio sin Cabinas guarda `null`. Si no queda ninguna es el mismo 422 `Slot <ISO> is not available for Service <id>`. Dos `POST /bookings` casi juntos por la última Cabina: uno da 201, el otro 409 `Overlaps a booked Turno for this Employee` (el mismo de abajo), por la exclusion constraint `Booking_cabin_no_overlap` (ADR 0004). Ninguna respuesta de Turno expone la Cabina
   - `POST /bookings` → 422 `Slot <ISO> is not available for Service <id>` si `startsAt` no está entre los Horarios reservables que `GET /services/:id/slots` calcula en ese momento para algún Empleado (nadie libre, fuera de las Franjas, fuera de la grilla del Intervalo, antes de la Anticipación mínima). El front lo muestra como «ese horario ya no está disponible» y vuelve a pedir la lista.
   - Dos `POST /bookings` casi juntos para el mismo horario: uno da 201, el otro 409 `Overlaps a booked Turno for this Employee`. Lo garantiza la exclusion constraint `Booking_no_overlap` de Postgres (ADR 0004), no solo el chequeo del caso de uso.
   - `POST /bookings` → 409 `The Service reached its Límite diario that day` si el Servicio ya tiene `dailyLimit` Turnos `PENDING` o `BOOKED` ese día de la Sucursal. Dos creaciones casi juntas del mismo Servicio no pueden pasarlo: la creación cuenta y crea dentro de una transacción con `pg_advisory_xact_lock` por Servicio (ADR 0004).

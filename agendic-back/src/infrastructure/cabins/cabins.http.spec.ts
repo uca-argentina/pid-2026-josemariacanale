@@ -52,6 +52,7 @@ describe('Cabinas', () => {
       name,
     }));
     t.cabins.retire.mockResolvedValue();
+    t.bookings.countUpcomingByCabin.mockResolvedValue(0);
   });
   afterEach(() => t.app.close());
 
@@ -236,6 +237,19 @@ describe('Cabinas', () => {
       await del(BOX.id).expect(204);
 
       expect(t.cabins.retire).toHaveBeenCalledWith(BOX.id);
+    });
+
+    it('answers 409 when it has upcoming Turnos, retiring nothing', async () => {
+      t.bookings.countUpcomingByCabin.mockResolvedValue(3);
+
+      const res = await del(BOX.id).expect(409);
+
+      expect(res.body.message).toBe(`Cabin ${BOX.id} has 3 upcoming Turnos`);
+      expect(t.bookings.countUpcomingByCabin).toHaveBeenCalledWith(
+        BOX.id,
+        t.clock.now(),
+      );
+      expect(t.cabins.retire).not.toHaveBeenCalled();
     });
 
     it('answers 401 without a Sesión', async () => {

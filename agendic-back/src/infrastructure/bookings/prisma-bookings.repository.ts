@@ -9,6 +9,7 @@ import {
 } from '../../domain/bookings/booking';
 import {
   BookingsRepository,
+  CabinOccupancy,
   CreateBookingData,
   DailyLimitGuard,
 } from '../../domain/bookings/bookings.repository';
@@ -20,7 +21,11 @@ import {
 } from '../../domain/errors';
 import { DEFAULT_AVAILABILITY } from '../../domain/availabilities/availability';
 import { Prisma } from '../../generated/prisma/client';
-import { BOOKING_NO_OVERLAP, isExclusionViolation } from '../prisma-errors';
+import {
+  BOOKING_CABIN_NO_OVERLAP,
+  BOOKING_NO_OVERLAP,
+  isExclusionViolation,
+} from '../prisma-errors';
 import { PrismaService } from '../prisma.service';
 
 /** Statuses that hold a Usuario's horario, as the Booking_no_overlap constraint does. */
@@ -38,6 +43,7 @@ const BOOKING_SELECT = {
   serviceId: true,
   employeeId: true,
   userId: true,
+  cabinId: true,
   prepStartsAt: true,
   startsAt: true,
   endsAt: true,
@@ -170,6 +176,71 @@ export class PrismaBookingsRepository implements BookingsRepository {
           : [],
       ),
     );
+  }
+
+  /**
+   * @throws {DatabaseOperationError} falló la base
+   */
+  async lastReceivedByCabin(cabinIds: number[], excludeBookingId?: number) {
+    const rows = await this.prisma.booking
+      .groupBy({
+        by: ['cabinId'],
+        where: {
+          ...notExcluded(excludeBookingId),
+          cabinId: { in: cabinIds },
+          status: { in: OCCUPYING },
+        },
+        _max: { createdAt: true },
+      })
+      .catch(translateError);
+    return new Map(
+      rows.flatMap(({ cabinId, _max }) =>
+        cabinId !== null && _max.createdAt
+          ? [[cabinId, _max.createdAt] as const]
+          : [],
+      ),
+    );
+  }
+
+  /**
+   * @throws {DatabaseOperationError} falló la base
+   */
+  async listOccupiedByCabins(
+    cabinIds: number[],
+    from: Date,
+    to: Date,
+    excludeBookingId?: number,
+  ): Promise<CabinOccupancy[]> {
+    const rows = await this.prisma.booking
+      .findMany({
+        where: {
+          ...notExcluded(excludeBookingId),
+          cabinId: { in: cabinIds },
+          status: { in: OCCUPYING },
+          prepStartsAt: { lt: to },
+          endsAt: { gt: from },
+        },
+        select: { cabinId: true, prepStartsAt: true, endsAt: true },
+        orderBy: { prepStartsAt: 'asc' },
+      })
+      .catch(translateError);
+    // The where clause leaves out the Turnos without Cabina.
+    return rows.map(({ cabinId, prepStartsAt, endsAt }) => ({
+      cabinId: cabinId!,
+      prepStartsAt,
+      endsAt,
+    }));
+  }
+
+  /**
+   * @throws {DatabaseOperationError} falló la base
+   */
+  async countUpcomingByCabin(cabinId: number, now: Date) {
+    return this.prisma.booking
+      .count({
+        where: { cabinId, status: { in: OCCUPYING }, endsAt: { gt: now } },
+      })
+      .catch(translateError);
   }
 
   /**
@@ -445,6 +516,7 @@ const toBooking = (row: BookingRow): Booking => ({
   serviceId: row.serviceId,
   employeeId: row.employeeId,
   userId: row.userId,
+  cabinId: row.cabinId,
   clientName: row.client!.name,
   clientEmail: row.client!.email,
   prepStartsAt: row.prepStartsAt,
@@ -498,7 +570,10 @@ const translateError = (error: unknown): never => {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     if (error.code === 'P2025')
       throw new NotFoundError('Booking not found', { cause: error });
-    if (isExclusionViolation(error, BOOKING_NO_OVERLAP))
+    if (
+      isExclusionViolation(error, BOOKING_NO_OVERLAP) ||
+      isExclusionViolation(error, BOOKING_CABIN_NO_OVERLAP)
+    )
       throw new ConflictError('Overlaps a booked Turno for this Employee', {
         cause: error,
       });

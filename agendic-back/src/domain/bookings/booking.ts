@@ -14,6 +14,8 @@ export interface Booking {
   userId: number;
   clientName: string;
   clientEmail: string;
+  /** The Cabina it occupies over the same tramo (ADR 0030); null in a Servicio without Cabinas and in Turnos taken before it admitted them. */
+  cabinId: number | null;
   /** startsAt minus the Servicio's Tiempo de preparación, fixed at booking: the Empleado is held from here. */
   prepStartsAt: Date;
   startsAt: Date;

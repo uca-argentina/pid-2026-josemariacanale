@@ -20,6 +20,7 @@ const BOOKED: Booking = {
   serviceId: ANAS_SERVICE.id,
   employeeId: ANAS_EMPLOYEE.id,
   userId: ANAS_EMPLOYEE.userId,
+  cabinId: null,
   clientName: 'Carla Gómez',
   clientEmail: 'carla@example.com',
   prepStartsAt: new Date('2026-01-02T13:50:00.000Z'),

@@ -361,6 +361,7 @@ describe('Servicio personal', () => {
       serviceId: PERSONAL.id,
       employeeId: null,
       userId: ANA.id,
+      cabinId: null,
       clientName: 'Bruno Díaz',
       clientEmail: 'bruno@example.com',
       prepStartsAt: new Date('2026-01-02T00:00:00.000Z'),

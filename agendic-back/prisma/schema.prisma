@@ -132,6 +132,7 @@ model Cabin {
 
   branch   Branch         @relation(fields: [branchId], references: [id])
   services ServiceCabin[]
+  bookings Booking[]
 
   @@index([branchId])
 }
@@ -266,6 +267,7 @@ model Booking {
   serviceId      Int
   employeeId     Int? // the Empleado of a Servicio del Negocio; null in a Servicio personal
   userId         Int // the User who attends it: occupancy is per User, across Servicios personales and of any Negocio (ADR 0021)
+  cabinId        Int? // the Cabina it occupies from prepStartsAt (ADR 0030); null in a Servicio without Cabinas, and in Turnos taken before it admitted them
   prepStartsAt   DateTime      @db.Timestamptz(3) // startsAt - Service.prepMinutes, fixed at booking: the attending User's agenda is held from here
   startsAt       DateTime      @db.Timestamptz(3)
   endsAt         DateTime      @db.Timestamptz(3) // startsAt + Service.durationMinutes, fixed at booking
@@ -281,6 +283,7 @@ model Booking {
   service  Service   @relation(fields: [serviceId], references: [id])
   employee Employee? @relation(fields: [employeeId], references: [id])
   user     User      @relation(fields: [userId], references: [id])
+  cabin    Cabin?    @relation(fields: [cabinId], references: [id])
   client   Client?
 }
 

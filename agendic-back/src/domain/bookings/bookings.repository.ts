@@ -6,6 +6,8 @@ export interface CreateBookingData {
   serviceId: number;
   employeeId: number | null;
   userId: number;
+  /** The Cabina it occupies; null in a Servicio without Cabinas. */
+  cabinId: number | null;
   clientName: string;
   clientEmail: string;
   prepStartsAt: Date;
@@ -26,12 +28,19 @@ export interface DailyLimitGuard {
   to: Date;
 }
 
+/** The tramo a Turno holds a Cabina. */
+export interface CabinOccupancy {
+  cabinId: number;
+  prepStartsAt: Date;
+  endsAt: Date;
+}
+
 export interface BookingsRepository {
   /**
    * Crea el Turno ya BOOKED o PENDING. Con `dailyLimit`, cuenta y crea serializado por Servicio (advisory lock), así
    * dos creaciones casi juntas no pueden pasar el Límite diario entre las dos.
    *
-   * @throws {ConflictError} el horario ya lo ocupa otro Turno pendiente o aceptado del Empleado, o el Servicio ya alcanzó su Límite diario ese día
+   * @throws {ConflictError} el horario ya lo ocupa otro Turno pendiente o aceptado del Empleado o de la Cabina, o el Servicio ya alcanzó su Límite diario ese día
    */
   create(data: CreateBookingData, dailyLimit?: DailyLimitGuard): Promise<Booking>;
   /** When each of these Empleados last received a PENDING or BOOKED Turno of the Servicio (its `createdAt`); an Empleado with none is absent. Leaves out `excludeBookingId`. */
@@ -40,6 +49,20 @@ export interface BookingsRepository {
     employeeIds: number[],
     excludeBookingId?: number,
   ): Promise<Map<number, Date>>;
+  /** When each of these Cabinas last received a PENDING or BOOKED Turno of any Servicio (its `createdAt`); a Cabina with none is absent. Leaves out `excludeBookingId`. */
+  lastReceivedByCabin(
+    cabinIds: number[],
+    excludeBookingId?: number,
+  ): Promise<Map<number, Date>>;
+  /** PENDING and BOOKED Turnos, of any Servicio, that occupy one of these Cabinas and whose [prepStartsAt, endsAt) overlaps [from, to), leaving out `excludeBookingId`. */
+  listOccupiedByCabins(
+    cabinIds: number[],
+    from: Date,
+    to: Date,
+    excludeBookingId?: number,
+  ): Promise<CabinOccupancy[]>;
+  /** How many PENDING or BOOKED Turnos occupy the Cabina and end after `now`. */
+  countUpcomingByCabin(cabinId: number, now: Date): Promise<number>;
   /** startsAt of the Servicio's PENDING and BOOKED Turnos, of every Empleado, starting in [from, to), leaving out `excludeBookingId`. */
   listOccupiedStartsByService(
     serviceId: number,

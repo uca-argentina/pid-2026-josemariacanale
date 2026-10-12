@@ -63,6 +63,107 @@ describe('GET /services/:id/slots', () => {
     expect(day.slots).toHaveLength(18);
   });
 
+  describe('con Cabinas (ADR 0030)', () => {
+    const BOX = { id: 10, name: 'Box 1' };
+    const LASER = { id: 11, name: 'Láser' };
+    const NINE = '2026-01-02T12:00:00.000Z'; // 09:00 ARG
+    const range = (cabinId: number, from: string, to: string) => ({
+      cabinId,
+      prepStartsAt: new Date(from),
+      endsAt: new Date(to),
+    });
+    const occupy = (...occupied: ReturnType<typeof range>[]) =>
+      t.bookings.listOccupiedByCabins.mockImplementation(
+        async (cabinIds, from, to) =>
+          occupied.filter(
+            (o) =>
+              cabinIds.includes(o.cabinId) &&
+              o.prepStartsAt < to &&
+              o.endsAt > from,
+          ),
+      );
+
+    beforeEach(() => {
+      t.services.findById.mockResolvedValue({ ...SERVICE, cabins: [BOX, LASER] });
+      occupy();
+    });
+
+    it('no ofrece un horario en que todas las Cabinas están ocupadas, aunque el Empleado esté libre', async () => {
+      occupy(
+        range(BOX.id, NINE, '2026-01-02T12:30:00.000Z'),
+        range(LASER.id, NINE, '2026-01-02T13:00:00.000Z'),
+      );
+
+      const [day] = (await query(t, {}).expect(200)).body.days;
+
+      expect(day.slots).not.toContain(NINE);
+      expect(day.slots).toContain('2026-01-02T12:30:00.000Z'); // the Box is back, the Láser is still busy
+      expect(day.slots).toContain('2026-01-02T13:00:00.000Z');
+    });
+
+    it('sí lo ofrece si queda una Cabina libre', async () => {
+      occupy(range(BOX.id, NINE, '2026-01-02T12:30:00.000Z'));
+
+      const [day] = (await query(t, {}).expect(200)).body.days;
+
+      expect(day.slots).toContain(NINE);
+      expect(day.slots).toHaveLength(18);
+    });
+
+    it('cuenta el Tiempo de preparación: el horario que lo pisa tampoco se ofrece', async () => {
+      t.services.findById.mockResolvedValue({
+        ...SERVICE,
+        prepMinutes: 15,
+        cabins: [BOX, LASER],
+      });
+      const from = '2026-01-02T14:00:00.000Z';
+      const to = '2026-01-02T14:30:00.000Z';
+      occupy(range(BOX.id, from, to), range(LASER.id, from, to));
+
+      const [day] = (await query(t, {}).expect(200)).body.days;
+
+      // 14:30Z needs the Cabinas from 14:15Z, and both are held until 14:30Z.
+      expect(day.slots).not.toContain('2026-01-02T14:00:00.000Z');
+      expect(day.slots).not.toContain('2026-01-02T14:30:00.000Z');
+      expect(day.slots).toContain('2026-01-02T15:00:00.000Z');
+    });
+
+    it('un día sin Cabinas libres queda FULLY_BOOKED', async () => {
+      const from = '2026-01-02T00:00:00.000Z';
+      const to = '2026-01-03T00:00:00.000Z';
+      occupy(range(BOX.id, from, to), range(LASER.id, from, to));
+
+      const res = await query(t, {}).expect(200);
+
+      expect(res.body.days).toEqual([
+        { date: '2026-01-02', slots: [], reason: 'FULLY_BOOKED' },
+      ]);
+    });
+
+    it('con employeeId se exige ese Empleado y una Cabina libre', async () => {
+      occupy(
+        range(BOX.id, NINE, '2026-01-02T12:30:00.000Z'),
+        range(LASER.id, NINE, '2026-01-02T12:30:00.000Z'),
+      );
+
+      const busy = await query(t, { employeeId: ANAS_EMPLOYEE.id }).expect(200);
+      expect(busy.body.days[0].slots).not.toContain(NINE);
+
+      occupy(range(BOX.id, NINE, '2026-01-02T12:30:00.000Z'));
+      const free = await query(t, { employeeId: ANAS_EMPLOYEE.id }).expect(200);
+      expect(free.body.days[0].slots).toContain(NINE);
+    });
+
+    it('un Servicio sin Cabinas no cambia ni las consulta', async () => {
+      t.services.findById.mockResolvedValue(SERVICE);
+
+      const [day] = (await query(t, {}).expect(200)).body.days;
+
+      expect(day.slots).toHaveLength(18);
+      expect(t.bookings.listOccupiedByCabins).not.toHaveBeenCalled();
+    });
+  });
+
   describe('con employeeId (Empleado elegido)', () => {
     const JUAN_ID = ANAS_EMPLOYEE.id + 1;
     const JUANS_AVAILABILITY: Availability = {
