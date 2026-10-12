@@ -286,6 +286,7 @@ model Booking {
   rejectedAt       DateTime?     @db.Timestamptz(3) // Rechazar turno: when it was rejected; only with status REJECTED (CHECK, ADR 0004)
   rescheduled      Boolean? // Reagendar (ADR 0031): true only in the original, which stays CANCELLED; null otherwise
   fromRescheduleId Int?          @unique // the original Turno this one replaced; null if it was not born from a Reagendar
+  ratingRequestSentAt DateTime? @db.Timestamptz(3) // Invitación a calificar: when the mail was sent; null while not sent, so each Turno gets one
   createdAt        DateTime      @default(now()) @db.Timestamptz(3)
 
   service        Service   @relation(fields: [serviceId], references: [id])

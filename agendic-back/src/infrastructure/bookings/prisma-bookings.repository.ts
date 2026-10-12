@@ -666,6 +666,33 @@ export class PrismaBookingsRepository implements BookingsRepository {
     return this.findEnriched(id);
   }
 
+  /**
+   * @throws {DatabaseOperationError} falló la base
+   */
+  async listUnrequestedByEndsAtBetween(from: Date, to: Date) {
+    const rows = await this.prisma.booking
+      .findMany({
+        where: {
+          endsAt: { gte: from, lte: to },
+          ratingRequestSentAt: null,
+          link: { not: null },
+        },
+        select: CLIENT_BOOKING_SELECT,
+        orderBy: { endsAt: 'asc' },
+      })
+      .catch(translateError);
+    return rows.map(toClientBooking);
+  }
+
+  /**
+   * @throws {NotFoundError} el Turno no existe
+   */
+  async markRatingRequestSent(id: number, now: Date) {
+    await this.prisma.booking
+      .update({ where: { id }, data: { ratingRequestSentAt: now } })
+      .catch(translateError);
+  }
+
   /** Applies `data` only while the Turno is still one of `fromStatuses` (and matches `extraWhere`), so a race can't resurrect it. */
   private async updateStatus(
     id: number,

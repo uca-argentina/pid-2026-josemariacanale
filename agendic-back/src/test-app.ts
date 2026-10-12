@@ -119,6 +119,7 @@ export async function createTestApp() {
     sendBookingCancellation: jest.fn(),
     sendBookingReschedule: jest.fn(),
     sendBookingRejection: jest.fn(),
+    sendRatingRequest: jest.fn(),
   };
   const bookingCodes: jest.Mocked<BookingVerificationCodes> = {
     request: jest.fn(),
@@ -221,6 +222,8 @@ export async function createTestApp() {
     payDeposit: jest.fn(),
     markEmployeeNoShow: jest.fn(),
     rate: jest.fn(),
+    listUnrequestedByEndsAtBetween: jest.fn(),
+    markRatingRequestSent: jest.fn(),
   };
   const availabilities: jest.Mocked<AvailabilitiesRepository> = {
     listByUser: jest.fn(),
