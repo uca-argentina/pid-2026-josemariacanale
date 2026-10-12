@@ -6,10 +6,10 @@ type Days = Pick<SaveOutOfOffice, 'startDate' | 'endDate'>;
 const pad = (n: number) => String(n).padStart(2, '0');
 
 /** Un `Date` local → su día `YYYY-MM-DD` tal como lo ve el browser, sin pasar por UTC. */
-const toIsoDay = (date: Date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+export const toIsoDay = (date: Date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 
 /** `YYYY-MM-DD` → medianoche local de ese día, que es lo que el Calendar marca. */
-const toLocalDay = (day: string) => {
+export const toLocalDay = (day: string) => {
     const [year, month, date] = day.split('-').map(Number);
     return new Date(year, month - 1, date);
 };

@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { CalendarDays, TriangleAlert } from 'lucide-react';
+import { CalendarDays, ChevronsUpDown, Search, TriangleAlert } from 'lucide-react';
 import { toast } from 'sonner';
+import { Button } from '@/app/_components/ui/button';
 import {
     Combobox,
     ComboboxEmpty,
@@ -10,6 +11,8 @@ import {
     ComboboxItem,
     ComboboxList,
     ComboboxPopup,
+    ComboboxTrigger,
+    ComboboxValue,
 } from '@/app/_components/ui/combobox';
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/app/_components/ui/empty';
 import { Switch } from '@/app/_components/ui/switch';
@@ -63,12 +66,13 @@ function HolidayRow({ holiday, busy, onToggle }: { holiday: Holiday; busy: boole
 }
 
 /**
- * La pestaña Días festivos: el país del Usuario (Combobox con buscador), sus Días festivos con un Switch cada
+ * La pestaña Días festivos: el país del Usuario (Combobox con buscador y "Borrar" al pie, que lo saca), sus Días festivos con un Switch cada
  * uno y, arriba, el aviso de Turnos en Días festivos prendidos. Cada cambio es una acción de servidor que
  * refresca la página, así los conflictos se vuelven a pedir. Con `unavailable` (503) muestra ese mensaje.
  */
 export function HolidaysTab({ data }: { data: HolidaysTabData }) {
     const [busy, setBusy] = useState(false);
+    const [countryOpen, setCountryOpen] = useState(false);
 
     if ('unavailable' in data) {
         return <p className="mt-8 rounded-md border px-4 py-6 text-center text-sm text-muted-foreground">{data.unavailable}</p>;
@@ -100,17 +104,51 @@ export function HolidaysTab({ data }: { data: HolidaysTabData }) {
                         itemToStringLabel={(country: HolidayCountry) => country.name}
                         itemToStringValue={(country: HolidayCountry) => country.code}
                         disabled={busy}
+                        open={countryOpen}
+                        onOpenChange={setCountryOpen}
                     >
-                        <ComboboxInput className="w-64" placeholder="Seleccionar país" aria-label="País" showClear={selected !== null} />
-                        <ComboboxPopup>
+                        <ComboboxTrigger
+                            aria-label="País"
+                            render={<Button type="button" variant="outline" className="w-64 justify-between font-normal" />}
+                        >
+                            <ComboboxValue>
+                                {(country: HolidayCountry | null) =>
+                                    country ? (
+                                        <span className="truncate">{country.name}</span>
+                                    ) : (
+                                        <span className="text-muted-foreground">Seleccionar país</span>
+                                    )
+                                }
+                            </ComboboxValue>
+                            <ChevronsUpDown className="text-muted-foreground" />
+                        </ComboboxTrigger>
+                        <ComboboxPopup align="end" className="w-64">
+                            <div className="border-b p-2">
+                                <ComboboxInput showTrigger={false} startAddon={<Search />} placeholder="Buscar" aria-label="Buscar país" />
+                            </div>
                             <ComboboxEmpty>Sin resultados.</ComboboxEmpty>
                             <ComboboxList>
                                 {(country: HolidayCountry) => (
                                     <ComboboxItem key={country.code} value={country}>
+                                        <span className="me-1.5 text-xs text-muted-foreground">{country.code}</span>
                                         {country.name}
                                     </ComboboxItem>
                                 )}
                             </ComboboxList>
+                            <div className="border-t p-2">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="w-full"
+                                    disabled={!selected}
+                                    onClick={() => {
+                                        setCountryOpen(false);
+                                        apply(() => setHolidayCountryAction({ countryCode: null }));
+                                    }}
+                                >
+                                    Borrar
+                                </Button>
+                            </div>
                         </ComboboxPopup>
                     </Combobox>
                 </div>
