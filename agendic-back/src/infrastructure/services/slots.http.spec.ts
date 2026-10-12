@@ -1,4 +1,5 @@
 import { Availability } from '../../domain/availabilities/availability';
+import { ExternalServiceError, NotConfiguredError } from '../../domain/errors';
 import {
   OutOfOffice,
   OutOfOfficeReason,
@@ -618,6 +619,131 @@ describe('GET /services/:id/slots', () => {
           { date: '2026-01-02', slots: [], reason: 'NOT_WORKING' },
         ]);
       });
+    });
+  });
+
+  describe('Días festivos', () => {
+    const holiday = (eventId: string, date: string, name: string) => ({
+      countryCode: 'AR',
+      calendarId: 'es.ar.official#holiday@group.v.calendar.google.com',
+      eventId,
+      name,
+      date: new Date(`${date}T00:00:00.000Z`),
+      year: 2026,
+    });
+    const PERSONAL = {
+      ...SERVICE,
+      branchId: null,
+      userId: ANAS_EMPLOYEE.userId,
+      availabilityId: AVAILABILITY_ID,
+      employees: [],
+    };
+
+    beforeEach(() => {
+      t.services.findById.mockResolvedValue(PERSONAL);
+      t.userHolidaySettings.findByUserId.mockResolvedValue({
+        countryCode: 'AR',
+        disabledIds: [],
+      });
+      t.holidays.findLatestUpdatedAt.mockResolvedValue(t.clock.now());
+      t.holidays.listByCountryCodeAndYear.mockResolvedValue([
+        holiday('ano-nuevo', '2026-01-02', 'Feriado puente'),
+        holiday('sabado', '2026-01-03', 'Feriado en sábado'),
+      ]);
+    });
+
+    it('un Día festivo prendido deja el día sin horarios, con PUBLIC_HOLIDAY y su nombre', async () => {
+      const res = await query(t, {}).expect(200);
+
+      expect(res.body.days).toEqual([
+        {
+          date: '2026-01-02',
+          slots: [],
+          reason: 'OUT_OF_OFFICE',
+          outOfOffice: { reason: 'PUBLIC_HOLIDAY', notes: 'Feriado puente' },
+        },
+      ]);
+    });
+
+    it('un Día festivo apagado no bloquea', async () => {
+      t.userHolidaySettings.findByUserId.mockResolvedValue({
+        countryCode: 'AR',
+        disabledIds: ['ano-nuevo'],
+      });
+
+      const res = await query(t, {}).expect(200);
+
+      expect(res.body.days[0].slots).toHaveLength(18);
+      expect(res.body.days[0].reason).toBeUndefined();
+    });
+
+    it('un feriado en un día que no se trabaja sigue siendo NOT_WORKING', async () => {
+      const res = await query(t, { from: '2026-01-03', to: '2026-01-03' }).expect(200);
+
+      expect(res.body.days).toEqual([
+        { date: '2026-01-03', slots: [], reason: 'NOT_WORKING' },
+      ]);
+    });
+
+    it('el período Fuera de la oficina le gana al Día festivo el mismo día', async () => {
+      t.outOfOffice.listByUserEndingFrom.mockResolvedValue([
+        {
+          id: 1,
+          userId: ANAS_EMPLOYEE.userId,
+          startDate: '2026-01-02',
+          endDate: '2026-01-02',
+          reason: OutOfOfficeReason.VACATION,
+          notes: 'Playa',
+          showNotePublicly: true,
+        },
+      ]);
+
+      const res = await query(t, {}).expect(200);
+
+      expect(res.body.days[0].outOfOffice).toEqual({
+        reason: 'VACATION',
+        notes: 'Playa',
+      });
+    });
+
+    it('sin GOOGLE_CALENDAR_API_KEY los ignora y responde 200', async () => {
+      t.googleCalendar.assertConfigured.mockImplementation(() => {
+        throw new NotConfiguredError('Días festivos no configurados');
+      });
+
+      const res = await query(t, {}).expect(200);
+
+      expect(res.body.days[0].slots).toHaveLength(18);
+    });
+
+    it('si Google responde con error los ignora y responde 200', async () => {
+      t.holidays.findLatestUpdatedAt.mockResolvedValue(null);
+      t.googleCalendar.fetchHolidays.mockRejectedValue(
+        new ExternalServiceError('Google Calendar API error'),
+      );
+
+      const res = await query(t, {}).expect(200);
+
+      expect(res.body.days[0].slots).toHaveLength(18);
+    });
+
+    it('sin país elegido no pide nada a Google', async () => {
+      t.userHolidaySettings.findByUserId.mockResolvedValue(null);
+
+      const res = await query(t, {}).expect(200);
+
+      expect(res.body.days[0].slots).toHaveLength(18);
+      expect(t.holidays.listByCountryCodeAndYear).not.toHaveBeenCalled();
+    });
+
+    it('en un Servicio del Negocio el día es NOT_WORKING, sin outOfOffice', async () => {
+      t.services.findById.mockResolvedValue(SERVICE);
+
+      const res = await query(t, {}).expect(200);
+
+      expect(res.body.days).toEqual([
+        { date: '2026-01-02', slots: [], reason: 'NOT_WORKING' },
+      ]);
     });
   });
 
