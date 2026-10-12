@@ -3,7 +3,7 @@ import { isSessionExpired } from '@/app/api-error';
 import { BackendErrorNotice } from '@/app/_components/BackendErrorNotice';
 import { SIGN_IN_PATH } from '@/app/routes';
 import { getInjection } from '@/di/container';
-import { DEFAULT_PREFERENCES } from '@/src/entities/models/user';
+import { myPreferences } from '../my-preferences';
 import { AvailabilityView } from './_components/AvailabilityView';
 
 export const metadata = { title: 'Horas laborables' };
@@ -13,15 +13,10 @@ export default async function AvailabilityPage({ searchParams }: { searchParams:
     const { id } = await searchParams;
 
     let view;
-    let preferences;
     try {
-        [view, preferences] = await Promise.all([
-            getInjection('IListMyAvailabilitiesController')({
-                availabilityId: id && /^\d+$/.test(id) ? Number(id) : undefined,
-            }),
-            // Las preferencias solo dan formato: si fallan, el resumen sale con las de fábrica.
-            getInjection('IGetMyPreferencesController')().catch(() => DEFAULT_PREFERENCES),
-        ]);
+        view = await getInjection('IListMyAvailabilitiesController')({
+            availabilityId: id && /^\d+$/.test(id) ? Number(id) : undefined,
+        });
     } catch (error) {
         unstable_rethrow(error);
         if (isSessionExpired(error)) redirect(SIGN_IN_PATH);
@@ -29,5 +24,5 @@ export default async function AvailabilityPage({ searchParams }: { searchParams:
         return <BackendErrorNotice />;
     }
 
-    return <AvailabilityView availabilities={view.availabilities} open={view.open} preferences={preferences} />;
+    return <AvailabilityView availabilities={view.availabilities} open={view.open} preferences={await myPreferences()} />;
 }

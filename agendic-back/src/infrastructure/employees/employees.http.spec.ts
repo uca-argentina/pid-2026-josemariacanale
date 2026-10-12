@@ -447,6 +447,7 @@ describe('Empleado', () => {
               availabilityId: 20,
               userId: OTHER_EMPLOYEE.userId,
               imageUrl: OTHER_EMPLOYEE.imageUrl,
+              slug: null,
             },
           ],
         },
@@ -488,6 +489,7 @@ describe('Empleado', () => {
               availabilityId: 20,
               userId: OTHER_EMPLOYEE.userId,
               imageUrl: OTHER_EMPLOYEE.imageUrl,
+              slug: null,
             },
             {
               id: 99,
@@ -495,6 +497,7 @@ describe('Empleado', () => {
               availabilityId: 990,
               userId: 99,
               imageUrl: null,
+              slug: null,
             },
           ],
         },

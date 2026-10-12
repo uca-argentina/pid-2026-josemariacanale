@@ -2,6 +2,7 @@ import { Body, Controller, Get, Param, Patch } from '@nestjs/common';
 import { CancelBookingByLinkUseCase } from '../../application/bookings/cancel-booking-by-link.use-case';
 import { GetBookingByLinkUseCase } from '../../application/bookings/get-booking-by-link.use-case';
 import { RescheduleBookingByLinkUseCase } from '../../application/bookings/reschedule-booking-by-link.use-case';
+import { PayDepositByLinkUseCase } from '../../application/bookings/pay-deposit-by-link.use-case';
 import { presentClientBooking } from './booking.presenter';
 import { RescheduleBookingDto } from './bookings.dto';
 
@@ -12,6 +13,7 @@ export class BookingLinksController {
     private readonly getBookingByLinkUseCase: GetBookingByLinkUseCase,
     private readonly cancelBookingByLinkUseCase: CancelBookingByLinkUseCase,
     private readonly rescheduleBookingByLinkUseCase: RescheduleBookingByLinkUseCase,
+    private readonly payDepositByLinkUseCase: PayDepositByLinkUseCase,
   ) {}
 
   /** @throws {NotFoundError} el Enlace no corresponde a ningún Turno */
@@ -39,5 +41,16 @@ export class BookingLinksController {
     return presentClientBooking(
       await this.rescheduleBookingByLinkUseCase.execute(secret, new Date(dto.startsAt)),
     );
+  }
+
+  /**
+   * Paga la Seña del Turno (simulado).
+   *
+   * @throws {NotFoundError} el Enlace no corresponde a ningún Turno
+   * @throws {BusinessRuleError} el Turno no está pendiente ni aceptado, ya empezó, no tiene Seña o ya la tiene pagada
+   */
+  @Patch(':secret/deposit')
+  async payDeposit(@Param('secret') secret: string) {
+    return presentClientBooking(await this.payDepositByLinkUseCase.execute(secret));
   }
 }

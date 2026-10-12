@@ -5,7 +5,7 @@ import { InputParseError, NotFoundError } from '@/src/entities/errors/common';
 import type { ClientBooking, ClientBookingActionResult } from './types';
 
 /**
- * Corre Cancelar o Reagendar del Cliente y traduce sus errores a los mensajes que ve; los errores no esperados se
+ * Corre Cancelar, Reagendar o Pagar la Seña del Cliente y traduce sus errores a los mensajes que ve; los errores no esperados se
  * reportan y quedan como `unexpected`.
  */
 export async function performClientBookingAction(

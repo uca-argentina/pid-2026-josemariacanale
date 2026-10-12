@@ -15,10 +15,10 @@ import {
 import { MAILER, Mailer } from '../../domain/mailer';
 import { ListSlotsUseCase } from '../slots/list-slots.use-case';
 import { notifyClients } from './notify-clients';
-import { pickEmployee } from './pick-employee';
+import { chosenEmployeeIdOf, pickEmployee } from './pick-employee';
 import { findOwnBookedBooking } from './find-own-booked-booking';
 
-/** Mueve un Turno aceptado a otro Horario reservable del mismo Servicio, con el mismo Empleado si está libre y si no con otro (ver `pickEmployee`), y le avisa por mail al Cliente. */
+/** Mueve un Turno aceptado a otro Horario reservable del mismo Servicio, con el mismo Empleado si está libre y si no con otro (ver `pickEmployee`; un Turno con Empleado elegido solo a horarios de ese Empleado), y le avisa por mail al Cliente. */
 @Injectable()
 export class RescheduleBookingUseCase {
   constructor(
@@ -38,7 +38,7 @@ export class RescheduleBookingUseCase {
    *
    * @throws {NotFoundError} el Turno no existe
    * @throws {ForbiddenError} el Usuario no es el Empleado asignado al Turno
-   * @throws {BusinessRuleError} el Turno no está aceptado, o `startsAt` no es un Horario reservable de ningún Empleado (incluido un día que ya alcanzó el Límite diario)
+   * @throws {BusinessRuleError} el Turno no está aceptado, o `startsAt` no es un Horario reservable de ningún Empleado, o del elegido, que además puede haber dejado de Ofrecer el Servicio (incluido un día que ya alcanzó el Límite diario)
    */
   async execute(
     userId: number,
@@ -63,7 +63,11 @@ export class RescheduleBookingUseCase {
       this.bookings,
       booking.serviceId,
       startsAt,
-      { excludeBookingId: bookingId, keepEmployeeId: booking.employeeId ?? undefined },
+      {
+        excludeBookingId: bookingId,
+        keepEmployeeId: booking.employeeId ?? undefined,
+        chosenEmployeeId: chosenEmployeeIdOf(booking),
+      },
     );
     const rescheduled = await this.bookings.reschedule(bookingId, {
       ...attendant,

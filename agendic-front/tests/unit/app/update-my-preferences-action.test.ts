@@ -4,10 +4,12 @@ import { ApiRequestError } from '@/src/entities/errors/common';
 
 const mockController = jest.fn();
 const mockReport = jest.fn();
+const mockRefresh = jest.fn();
 
 jest.mock('@/di/container', () => ({
     getInjection: (key: string) => (key === 'IUpdateMyPreferencesController' ? mockController : { report: mockReport }),
 }));
+jest.mock('next/cache', () => ({ refresh: () => mockRefresh() }));
 jest.mock('next/navigation', () => ({
     redirect: (path: string) => {
         throw new Error(`REDIRECT:${path}`);
@@ -27,6 +29,7 @@ describe('updateMyPreferencesAction', () => {
 
         await expect(updateMyPreferencesAction({ timeFormat: 12 })).resolves.toEqual({ ok: true, preferences: { timeFormat: 12, weekStart: 1 } });
         expect(mockController).toHaveBeenCalledWith({ timeFormat: 12 });
+        expect(mockRefresh).toHaveBeenCalled();
     });
 
     it('sends an expired Sesión to Iniciar sesión', async () => {

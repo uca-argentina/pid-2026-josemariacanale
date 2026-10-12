@@ -24,6 +24,18 @@ import {
   BOOKING_VERIFICATION_CODES,
   BookingVerificationCodes,
 } from './domain/bookings/booking-verification-codes';
+import {
+  GOOGLE_CALENDAR_CLIENT,
+  GoogleCalendarClient,
+} from './domain/holidays/google-calendar-client';
+import {
+  HOLIDAYS_REPOSITORY,
+  HolidaysRepository,
+} from './domain/holidays/holidays.repository';
+import {
+  USER_HOLIDAY_SETTINGS_REPOSITORY,
+  UserHolidaySettingsRepository,
+} from './domain/holidays/user-holiday-settings.repository';
 import { Business } from './domain/businesses/business';
 import {
   BUSINESSES_REPOSITORY,
@@ -42,6 +54,10 @@ import {
   InvitationsRepository,
 } from './domain/invitations/invitations.repository';
 import { Mailer, MAILER } from './domain/mailer';
+import {
+  OUT_OF_OFFICE_REPOSITORY,
+  OutOfOfficeRepository,
+} from './domain/out-of-office/out-of-office.repository';
 import { Service, ServiceCategory } from './domain/services/service';
 import {
   SERVICES_REPOSITORY,
@@ -182,11 +198,13 @@ export async function createTestApp() {
     listByBusiness: jest.fn(),
     listOccupiedByUser: jest.fn(),
     listByUser: jest.fn(),
+    listUpcomingByUser: jest.fn(),
     cancel: jest.fn(),
     cancelPendingOrBooked: jest.fn(),
     reschedule: jest.fn(),
     reschedulePendingOrBooked: jest.fn(),
     markNoShow: jest.fn(),
+    payDeposit: jest.fn(),
   };
   const availabilities: jest.Mocked<AvailabilitiesRepository> = {
     listByUser: jest.fn(),
@@ -196,6 +214,27 @@ export async function createTestApp() {
     makeDefault: jest.fn(),
     countServices: jest.fn(),
     delete: jest.fn(),
+  };
+  const outOfOffice: jest.Mocked<OutOfOfficeRepository> = {
+    listByUserEndingFrom: jest.fn().mockResolvedValue([]),
+    findById: jest.fn(),
+    findByUserAndDates: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+  };
+  const holidays: jest.Mocked<HolidaysRepository> = {
+    findLatestUpdatedAt: jest.fn(),
+    listByCountryCodeAndYear: jest.fn(),
+    replaceByCountryCodeAndYear: jest.fn(),
+  };
+  const userHolidaySettings: jest.Mocked<UserHolidaySettingsRepository> = {
+    findByUserId: jest.fn(),
+    save: jest.fn(),
+  };
+  const googleCalendar: jest.Mocked<GoogleCalendarClient> = {
+    assertConfigured: jest.fn(),
+    fetchHolidays: jest.fn(),
   };
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(CLOCK)
@@ -226,6 +265,14 @@ export async function createTestApp() {
     .useValue(bookingCodes)
     .overrideProvider(AVAILABILITIES_REPOSITORY)
     .useValue(availabilities)
+    .overrideProvider(OUT_OF_OFFICE_REPOSITORY)
+    .useValue(outOfOffice)
+    .overrideProvider(HOLIDAYS_REPOSITORY)
+    .useValue(holidays)
+    .overrideProvider(USER_HOLIDAY_SETTINGS_REPOSITORY)
+    .useValue(userHolidaySettings)
+    .overrideProvider(GOOGLE_CALENDAR_CLIENT)
+    .useValue(googleCalendar)
     .compile();
   const app = setupApp(moduleRef.createNestApplication());
   await app.init();
@@ -245,6 +292,10 @@ export async function createTestApp() {
     bookings,
     bookingCodes,
     availabilities,
+    outOfOffice,
+    holidays,
+    userHolidaySettings,
+    googleCalendar,
     http: request(app.getHttpServer()),
   };
 }
@@ -335,6 +386,7 @@ export const ANAS_SERVICE: Service = {
       availabilityId: 10,
       userId: ANA.id,
       imageUrl: ANAS_EMPLOYEE.imageUrl,
+      slug: ANA.slug,
     },
   ],
 };

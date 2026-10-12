@@ -32,6 +32,25 @@ describe('listSlotsController', () => {
         expect(useCase).toHaveBeenCalledWith(query);
     });
 
+    it('presents the Motivo of a day Fuera de la oficina', async () => {
+        const outOfOffice = { reason: 'PUBLIC_HOLIDAY', notes: 'Día de la Independencia' };
+        const useCase = jest.fn().mockResolvedValue({
+            timeZone: 'UTC',
+            days: [{ date: '2026-07-09', slots: [], reason: 'OUT_OF_OFFICE', outOfOffice }],
+        });
+
+        await expect(listSlotsController(instrumentation, useCase)(query)).resolves.toEqual({
+            timeZone: 'UTC',
+            days: [{ date: '2026-07-09', slots: [], reason: 'OUT_OF_OFFICE', outOfOffice }],
+        });
+    });
+
+    it('passes the Empleado elegido to the use case', async () => {
+        const useCase = jest.fn().mockResolvedValue({ timeZone: 'UTC', days: [] });
+        await listSlotsController(instrumentation, useCase)({ ...query, employeeId: 3 });
+        expect(useCase).toHaveBeenCalledWith({ ...query, employeeId: 3 });
+    });
+
     it('formats midnight as 00:00, never 24:00', async () => {
         const useCase = jest.fn().mockResolvedValue({
             timeZone: 'UTC',
@@ -44,6 +63,7 @@ describe('listSlotsController', () => {
 
     it.each([
         ['a serviceId that is not an integer', { ...query, serviceId: 1.5 }],
+        ['an employeeId that is not a positive integer', { ...query, employeeId: 0 }],
         ['a date that is not YYYY-MM-DD', { ...query, from: '28/09/2026' }],
         ['a to before from', { ...query, from: '2026-10-11', to: '2026-09-28' }],
         ['a range over 31 days', { ...query, from: '2026-09-01', to: '2026-10-02' }],

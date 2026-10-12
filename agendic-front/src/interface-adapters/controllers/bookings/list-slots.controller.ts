@@ -20,6 +20,7 @@ function presenter({ timeZone, days }: Slots, instrumentationService: IInstrumen
                 date: day.date,
                 slots: day.slots.map((startsAt) => ({ startsAt, time: localTime.format(new Date(startsAt)) })),
                 ...(day.reason && { reason: day.reason }),
+                ...(day.outOfOffice && { outOfOffice: day.outOfOffice }),
             })),
         };
     });
@@ -30,6 +31,8 @@ const inputSchema = z
         serviceId: z.number().int().positive(),
         from: z.iso.date(),
         to: z.iso.date(),
+        // Empleado elegido (ADR 0026): only that Empleado's Horarios reservables.
+        employeeId: z.number().int().positive().optional(),
     })
     .refine(({ from, to }) => {
         const days = (Date.parse(to) - Date.parse(from)) / DAY_MS + 1;

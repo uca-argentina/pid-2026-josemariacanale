@@ -1,4 +1,10 @@
-import { Booking, BookingStatus, ClientBooking, UserBooking } from './booking';
+import {
+  Booking,
+  BookingStatus,
+  ClientBooking,
+  UpcomingBooking,
+  UserBooking,
+} from './booking';
 
 export const BOOKINGS_REPOSITORY = Symbol('BookingsRepository');
 
@@ -12,6 +18,8 @@ export interface CreateBookingData {
   startsAt: Date;
   endsAt: Date;
   notes: string | null;
+  employeeChosen: boolean;
+  depositAmount: number | null;
   /** BOOKED, o PENDING si el Servicio tiene Aprobación manual. */
   status: BookingStatus.PENDING | BookingStatus.BOOKED;
 }
@@ -63,6 +71,11 @@ export interface BookingsRepository {
     excludeBookingId?: number,
   ): Promise<Pick<Booking, 'prepStartsAt' | 'endsAt'>[]>;
   /**
+   * PENDING and BOOKED Turnos of this Usuario starting at or after `from`, by `startsAt`, each with the zone of the
+   * Availability it is attended with: the Empleado's for the Servicio, or the Servicio personal's.
+   */
+  listUpcomingByUser(userId: number, from: Date): Promise<UpcomingBooking[]>;
+  /**
    * Every Turno, in any status, the Usuario attends: of their Servicios personales and of the Negocios where
    * they are still an active Empleado.
    */
@@ -86,4 +99,6 @@ export interface BookingsRepository {
   ): Promise<ClientBooking>;
   /** Sets noShowAt on a BOOKED Booking whose endsAt has passed and has none yet. Throws BusinessRuleError otherwise. */
   markNoShow(id: number, now: Date): Promise<Booking>;
+  /** Sets depositPaidAt on a PENDING or BOOKED Booking that has a Seña, not yet paid, and has not started. Throws BusinessRuleError otherwise. */
+  payDeposit(id: number, now: Date): Promise<ClientBooking>;
 }

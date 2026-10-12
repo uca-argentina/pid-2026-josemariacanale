@@ -2,12 +2,15 @@ import {
     DEFAULT_DAYS,
     intervalsValid,
     invalidIntervals,
-    nextInterval,
+    fromFormSchedule,
     intervalAsString,
     intervalsFromSchedule,
     sortIntervalStrings,
-    toSchedule,
+    toDateRanges,
+    toFormSchedule,
+    toTimeRanges,
     toWeek,
+    weekdays,
     weekValid,
 } from '@/app/(app)/_components/availability-week';
 import type { TimeRange } from '@/src/entities/models/availability';
@@ -56,24 +59,6 @@ describe('sortIntervalStrings', () => {
     });
 });
 
-describe('nextInterval', () => {
-    it('agrega una hora a partir del fin de la última Franja', () => {
-        expect(nextInterval([r('09:00', '13:00')])).toEqual(r('13:00', '14:00'));
-    });
-
-    it('sin Franjas propone el horario por defecto', () => {
-        expect(nextInterval([])).toEqual(r('09:00', '18:00'));
-    });
-
-    it('se recorta al final del día', () => {
-        expect(nextInterval([r('09:00', '23:15')])).toEqual(r('23:15', '23:45'));
-    });
-
-    it('no propone nada si el día ya está lleno', () => {
-        expect(nextInterval([r('09:00', '23:45')])).toBeNull();
-    });
-});
-
 describe('invalidIntervals / intervalsValid', () => {
     it('acepta un día sin Franjas', () => {
         expect(intervalsValid([])).toBe(true);
@@ -118,18 +103,43 @@ describe('toWeek', () => {
     });
 });
 
-describe('toSchedule', () => {
-    it('manda los 7 días con el domingo primero, y los días sin Franjas como []', () => {
-        const schedule = toSchedule(week({ 0: [r('09:00', '13:00')], 6: [r('10:00', '12:00')] }));
-        expect(schedule).toHaveLength(7);
-        expect(schedule[1]).toEqual([{ start: '09:00', end: '13:00' }]);
-        expect(schedule[0]).toEqual([{ start: '10:00', end: '12:00' }]);
-        expect(schedule[2]).toEqual([]);
+describe('toFormSchedule / fromFormSchedule', () => {
+    it('va y vuelve sin perder Franjas, con el domingo en el índice 0', () => {
+        const schedule = week({ 0: [r('10:00', '12:00')], 2: [r('08:00', '13:00'), r('17:00', '23:59')], 6: [r('00:00', '09:30')] });
+        const form = toFormSchedule(schedule);
+        expect(form).toHaveLength(7);
+        expect(form[0][0].start).toEqual(new Date(Date.UTC(1970, 0, 1, 10)));
+        expect(fromFormSchedule(form)).toEqual(schedule);
     });
 
-    it('es la inversa de toWeek', () => {
-        const days = week({ 2: [r('08:00', '13:00'), r('17:00', '20:00')], 6: [r('10:00', '12:00')] });
-        expect(toWeek(toSchedule(days))).toEqual(days);
+    it('ordena las Franjas de cada día por hora de inicio', () => {
+        const form = toFormSchedule(week({ 3: [r('17:00', '20:00'), r('08:00', '13:00')] }));
+        expect(fromFormSchedule(form)[3]).toEqual([r('08:00', '13:00'), r('17:00', '20:00')]);
+    });
+
+    it('conserva los días sin Franjas', () => {
+        expect(fromFormSchedule(toFormSchedule(week({})))).toEqual(week({}));
+    });
+
+    it('una Anulación de día libre (ranges: []) sigue siendo []', () => {
+        const override = { date: '2026-12-25', ranges: [] as TimeRange[] };
+        expect(toTimeRanges(toDateRanges(override.ranges))).toEqual([]);
+        expect({ ...override, ranges: toTimeRanges(toDateRanges(override.ranges)) }).toEqual(override);
+    });
+
+    it('el fin del día (23:59) es el último instante del día y vuelve como 23:59', () => {
+        const [range] = toDateRanges([r('23:00', '23:59')]);
+        expect(range.end.getTime()).toBe(24 * 60 * 60 * 1000 - 1);
+        expect(toTimeRanges([range])).toEqual([r('23:00', '23:59')]);
+    });
+});
+
+describe('weekdays', () => {
+    it.each([0, 1, 2, 3, 4, 5, 6])('con weekStart %i arranca en ese día y sigue en orden, con el domingo en el índice 0', (weekStart) => {
+        const days = weekdays(weekStart);
+        expect(days.map(({ index }) => index)).toEqual(Array.from({ length: 7 }, (_, i) => (weekStart + i) % 7));
+        expect(days.find(({ name }) => name === 'domingo')?.index).toBe(0);
+        expect(days.find(({ name }) => name === 'lunes')?.index).toBe(1);
     });
 });
 

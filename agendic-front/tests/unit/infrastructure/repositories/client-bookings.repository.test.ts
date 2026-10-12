@@ -19,6 +19,9 @@ const booking = {
     clientName: 'Juana Pérez',
     serviceId: 100,
     employeeId: 1,
+    employeeChosen: false,
+    depositAmount: null,
+    depositPaidAt: null,
     service: { name: 'Corte', durationMinutes: 60, price: 5000, depositPercent: null },
     employeeName: 'Ana',
     business: { name: 'Peluquería Luna', slug: 'peluqueria-luna' },
@@ -74,6 +77,33 @@ describe('ClientBookingsRepository.cancelBookingByLink', () => {
         const error = await repo().cancelBookingByLink('s3cr3t-l1nk').catch((e) => e);
         expect(error).toBeInstanceOf(BookingStateError);
         expect(error.message).toBe('Turno 7 already started');
+    });
+});
+
+describe('ClientBookingsRepository.payDepositByLink', () => {
+    it('PATCHes sin header de acceso ni body, y devuelve el Turno con la Seña pagada', async () => {
+        const paid = { ...booking, depositAmount: 1000, depositPaidAt: '2026-10-09T12:00:00.000Z' };
+        const fetchSpy = respond(200, paid);
+
+        await expect(repo().payDepositByLink('s3cr3t-l1nk')).resolves.toEqual(paid);
+        expect(fetchSpy).toHaveBeenCalledWith('http://api/booking-links/s3cr3t-l1nk/deposit', { method: 'PATCH', headers: {} });
+    });
+
+    it('translates a 404 to NotFoundError', async () => {
+        respond(404, { statusCode: 404, message: 'Turno not found' });
+        await expect(repo().payDepositByLink('unknown')).rejects.toBeInstanceOf(NotFoundError);
+    });
+
+    it.each([
+        'Turno is not pending or booked',
+        'Turno 7 already started',
+        'Turno 7 has no Seña',
+        'Turno 7 already has its Seña paid',
+    ])('translates the 422 "%s" to BookingStateError, keeping the message', async (message) => {
+        respond(422, { statusCode: 422, message });
+        const error = await repo().payDepositByLink('s3cr3t-l1nk').catch((e) => e);
+        expect(error).toBeInstanceOf(BookingStateError);
+        expect(error.message).toBe(message);
     });
 });
 
@@ -134,10 +164,12 @@ describe('ClientBookingsRepository misc', () => {
         respond(404, { message: 'nope' });
         await spanning.getBookingByLink('s3cr3t-l1nk').catch(() => undefined);
         await spanning.cancelBookingByLink('s3cr3t-l1nk').catch(() => undefined);
+        await spanning.payDepositByLink('s3cr3t-l1nk').catch(() => undefined);
         await spanning.rescheduleBookingByLink('s3cr3t-l1nk', '2026-10-11T12:00:00.000Z').catch(() => undefined);
         expect(names).toEqual([
             'ClientBookingsRepository > getBookingByLink',
             'ClientBookingsRepository > cancelBookingByLink',
+            'ClientBookingsRepository > payDepositByLink',
             'ClientBookingsRepository > rescheduleBookingByLink',
         ]);
     });

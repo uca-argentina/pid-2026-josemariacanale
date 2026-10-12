@@ -1,5 +1,7 @@
 # Servicios del Usuario y del Negocio
 
+_Ampliada por la ADR 0026: se va el prefijo `/u/` (y `/business/`) de las URLs del front, y el primer tramo es de un Negocio o de un Usuario, nunca de los dos; la ADR 0026 reabre además que el Cliente no elige Empleado._
+
 Reabre las ADR 0013 y 0017 (solo se atiende un Servicio siendo Empleado de un Negocio) y amplía las
 0014 y 0018 (el Enlace de reserva siempre pasa por Negocio y Sucursal). Seguimos el modelo de
 cal.diy, donde un EventType es de un usuario o de un team: un Servicio es **personal**, de un
@@ -22,5 +24,5 @@ Servicio, y chocaba con la ADR 0012 para quien además es Dueño de otro Negocio
   demás atiendan.
 - Los Turnos ocupan al Usuario, no al vínculo Empleado: un Turno de un Servicio personal bloquea
   ese tramo en todos sus Negocios, y viceversa.
-- El Usuario tiene su propio Enlace de reserva, `/u/<usuario>/<servicio>`, separado de
-  `/business/...` para que los slugs no choquen.
+- El Usuario tiene su propio Enlace de reserva, `/<usuario>/<servicio>`, separado del
+  del Negocio para que los slugs no choquen.

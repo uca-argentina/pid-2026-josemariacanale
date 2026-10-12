@@ -1,62 +1,17 @@
 'use client';
 
+import { Combobox } from '@base-ui/react/combobox';
 import dayjs from 'dayjs';
 import timezonePlugin from 'dayjs/plugin/timezone';
 import utc from 'dayjs/plugin/utc';
-import { useCallback, useMemo, useState } from 'react';
-import type { ITimezoneOption } from 'react-timezone-select';
-import BaseSelect from 'react-timezone-select';
-import { cn } from '@/app/_components/utils';
+import { Check, ChevronsUpDown } from 'lucide-react';
+import { useMemo } from 'react';
 
 dayjs.extend(utc);
 dayjs.extend(timezonePlugin);
 
-type Timezones = { label: string; timezone: string }[];
-
-/** Zonas que `react-timezone-select` no resuelve bien (spacetime#323, timezone-soft#17). */
-const PROBLEMATIC = new Set([
-    'null',
-    'Africa/Malabo',
-    'Africa/Maseru',
-    'Africa/Mbabane',
-    'America/Anguilla',
-    'America/Antigua',
-    'America/Aruba',
-    'America/Bahia',
-    'America/Cayman',
-    'America/Dominica',
-    'America/Grenada',
-    'America/Guadeloupe',
-    'America/Kralendijk',
-    'America/Lower_Princes',
-    'America/Maceio',
-    'America/Marigot',
-    'America/Montserrat',
-    'America/Nassau',
-    'America/St_Barthelemy',
-    'America/St_Kitts',
-    'America/St_Lucia',
-    'America/St_Thomas',
-    'America/St_Vincent',
-    'America/Tortola',
-    'Antarctica/McMurdo',
-    'Arctic/Longyearbyen',
-    'Asia/Bahrain',
-    'Atlantic/St_Helena',
-    'Europe/Busingen',
-    'Europe/Guernsey',
-    'Europe/Isle_of_Man',
-    'Europe/Mariehamn',
-    'Europe/San_Marino',
-    'Europe/Vaduz',
-    'Europe/Vatican',
-    'Indian/Comoro',
-    'Pacific/Saipan',
-    'Africa/Asmara',
-]);
-
-/** Ciudades y nombres comunes que se buscan además de la lista de `react-timezone-select`. */
-const SEARCH_DATA: Timezones = [
+/** Ciudades y nombres comunes que se buscan además del nombre de la zona. */
+const SEARCH_DATA: { label: string; timezone: string }[] = [
     { label: 'San Francisco', timezone: 'America/Los_Angeles' },
     { label: 'Sao Francisco do Sul', timezone: 'America/Sao_Paulo' },
     { label: 'San Francisco de Macoris', timezone: 'America/Santo_Domingo' },
@@ -78,33 +33,25 @@ const SEARCH_DATA: Timezones = [
     { label: 'Hawaii-Aleutian Standard Time', timezone: 'Pacific/Honolulu' },
 ];
 
-/** `react-timezone-select` capitaliza mal estos identificadores IANA. */
-const CORRECTIONS: Record<string, string> = {
-    'America/Port_Of_Spain': 'America/Port_of_Spain',
-    'Africa/Porto-novo': 'Africa/Porto-Novo',
-    'Africa/Dar_Es_Salaam': 'Africa/Dar_es_Salaam',
-};
+/** Las zonas de `Intl` más las de `SEARCH_DATA`: `Intl` usa nombres viejos (`Asia/Calcutta`) para algunas. */
+const ZONES = [...new Set([...Intl.supportedValuesOf('timeZone'), ...SEARCH_DATA.map(({ timezone }) => timezone)])];
 
-const filterBySearchText = (searchText: string, timezones: Timezones) =>
-    timezones.filter(({ label }) => searchText && label.toLowerCase().includes(searchText.toLowerCase()));
+const nameOf = (zone: string) => zone.replace(/_/g, ' ');
 
-const addTimezonesToDropdown = (timezones: Timezones) =>
-    Object.fromEntries(
-        timezones.filter(({ timezone }) => !PROBLEMATIC.has(timezone)).map(({ label, timezone }) => [timezone, label]),
+const offsetOf = (zone: string) =>
+    `GMT ${dayjs().tz(zone).format('Z').replace(/^([-+])0(\d)/, '$1$2')}`;
+
+const matches = (zone: string, query: string) => {
+    const q = query.trim().toLowerCase();
+    return (
+        nameOf(zone).toLowerCase().includes(q) ||
+        SEARCH_DATA.some(({ label, timezone }) => timezone === zone && label.toLowerCase().includes(q))
     );
-
-const formatOffset = (offset: string) => offset.replace(/^([-+])(0)(\d):00$/, (_, sign, _zero, hour) => `${sign}${hour}:00`);
-
-const optionLabel = (option: ITimezoneOption, timezones: Timezones) => {
-    const offsetUnit = option.label.split(/[-+]/)[0].substring(1);
-    const cityName = option.label.split(') ')[1];
-    const suffix = ` ${offsetUnit} ${formatOffset(dayjs.tz(undefined, option.value).format('Z'))}`;
-    return timezones.length > 0 ? `${cityName}${suffix}` : `${option.value.replace(/_/g, ' ')}${suffix}`;
 };
 
 /**
- * Elige una zona horaria IANA buscando por ciudad o zona. Ver ADR 0025;
- * `value` y `onChange` llevan el identificador IANA, como el combobox que reemplaza.
+ * Combobox de zona horaria IANA: se escribe y busca por zona o por ciudad. Ver ADR 0025;
+ * `value` y `onChange` llevan el identificador IANA.
  */
 export function TimezoneSelect({
     id,
@@ -115,55 +62,54 @@ export function TimezoneSelect({
     value: string;
     onChange: (timeZone: string) => void;
 }) {
-    // Una zona puede tener varias etiquetas ('San Francisco' y 'Pacific Time'): se buscan todas.
-    const [additionalTimezones, setAdditionalTimezones] = useState<Timezones>([]);
-
-    const timezones = useMemo(
-        () => ({ ...addTimezonesToDropdown(SEARCH_DATA), ...addTimezonesToDropdown(additionalTimezones) }),
-        [additionalTimezones],
-    );
-
-    const getLabel = useCallback(
-        (option: unknown) => optionLabel(option as ITimezoneOption, additionalTimezones),
-        [additionalTimezones],
-    );
+    const items = useMemo(() => (ZONES.includes(value) ? ZONES : [value, ...ZONES]), [value]);
 
     return (
-        <BaseSelect
-            inputId={id}
+        <Combobox.Root
+            items={items}
             value={value}
-            timezones={timezones}
-            aria-label="Zona horaria"
-            placeholder="Elegí una zona horaria"
-            noOptionsMessage={() => 'Sin resultados.'}
-            onInputChange={(text) => setAdditionalTimezones(filterBySearchText(text, SEARCH_DATA))}
-            onChange={(option: ITimezoneOption | null) => option && onChange(CORRECTIONS[option.value] ?? option.value)}
-            formatOptionLabel={(option: unknown) => (
-                <p className="truncate">{(option as ITimezoneOption).value.replace(/_/g, ' ')}</p>
-            )}
-            getOptionLabel={getLabel}
-            className="w-full"
-            classNames={{
-                control: (state) =>
-                    cn(
-                        'h-9 rounded-md border border-[#d1d5db] bg-white px-3 text-[13.5px] font-medium text-[#0f1b2d] transition-colors',
-                        state.isFocused ? 'border-[#0f1b2d] ring-1 ring-[#0f1b2d]' : 'hover:border-[#9ca3af]',
-                    ),
-                singleValue: () => 'text-[#0f1b2d]',
-                placeholder: () => 'text-[#9ca3af]',
-                dropdownIndicator: () => 'text-[#0f1b2d]',
-                menuList: () => 'max-h-[180px] overflow-y-auto',
-                menu: () =>
-                    'z-50 mt-1 rounded-md border border-[#e5e7eb] bg-white p-1 text-sm shadow-[0_10px_30px_rgba(15,27,45,0.12)]',
-                option: (state) =>
-                    cn(
-                        'rounded-md px-3 py-2.5 text-[#0f1b2d]',
-                        state.isFocused && 'bg-[#f3f4f6]',
-                        state.isSelected && 'bg-[#e5e7eb]',
-                    ),
-                noOptionsMessage: () => 'flex h-12 items-center justify-center py-2 text-[#6b7280]',
-            }}
-            unstyled
-        />
+            onValueChange={(zone: string | null) => zone && onChange(zone)}
+            itemToStringLabel={nameOf}
+            filter={matches}
+        >
+            <div className="relative">
+                <Combobox.Input
+                    id={id}
+                    aria-label="Zona horaria"
+                    placeholder="Elegí una zona horaria"
+                    className="h-9 w-full rounded-md border border-[#d1d5db] bg-white pr-9 pl-3 text-[13.5px] font-medium text-[#0f1b2d] transition-colors outline-none placeholder:text-[#9ca3af] hover:border-[#9ca3af] focus:border-[#0f1b2d] focus:ring-1 focus:ring-[#0f1b2d]"
+                />
+                <Combobox.Trigger
+                    aria-label="Ver zonas horarias"
+                    className="absolute inset-y-0 right-0 flex w-9 items-center justify-center text-[#0f1b2d]"
+                >
+                    <ChevronsUpDown className="size-4" />
+                </Combobox.Trigger>
+            </div>
+            <Combobox.Portal>
+                <Combobox.Positioner sideOffset={4} className="z-50 outline-none">
+                    <Combobox.Popup className="w-(--anchor-width) rounded-md border border-[#e5e7eb] bg-white p-1 text-sm shadow-[0_10px_30px_rgba(15,27,45,0.12)]">
+                        <Combobox.Empty className="flex h-12 items-center justify-center text-[#6b7280] empty:hidden">
+                            Sin resultados.
+                        </Combobox.Empty>
+                        <Combobox.List className="max-h-[min(240px,var(--available-height))] overflow-y-auto empty:hidden">
+                            {(zone: string) => (
+                                <Combobox.Item
+                                    key={zone}
+                                    value={zone}
+                                    className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2.5 text-[#0f1b2d] outline-none data-[highlighted]:bg-[#f3f4f6] data-[selected]:font-semibold"
+                                >
+                                    <span className="truncate">{nameOf(zone)}</span>
+                                    <span className="ml-auto shrink-0 text-xs text-[#6b7280]">{offsetOf(zone)}</span>
+                                    <Combobox.ItemIndicator>
+                                        <Check className="size-4" />
+                                    </Combobox.ItemIndicator>
+                                </Combobox.Item>
+                            )}
+                        </Combobox.List>
+                    </Combobox.Popup>
+                </Combobox.Positioner>
+            </Combobox.Portal>
+        </Combobox.Root>
     );
 }

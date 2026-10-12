@@ -33,7 +33,7 @@ const SERVICE_ROW = {
   employees: [
     {
       availabilityId: 10,
-      employee: { id: 7, userId: 1, user: { name: 'Ana Pérez', imageUrl: null } },
+      employee: { id: 7, userId: 1, user: { name: 'Ana Pérez', imageUrl: null, slug: null } },
     },
   ],
 };
@@ -58,7 +58,7 @@ const SERVICE: Service = {
   slotInterval: null,
   minimumNoticeMinutes: 0,
   employees: [
-    { id: 7, name: 'Ana Pérez', availabilityId: 10, userId: 1, imageUrl: null },
+    { id: 7, name: 'Ana Pérez', availabilityId: 10, userId: 1, imageUrl: null, slug: null },
   ],
 };
 
@@ -88,11 +88,11 @@ describe('PrismaServicesRepository', () => {
     employees: [
       {
         availabilityId: 10,
-        employee: { id: 7, userId: 1, user: { name: 'Ana Pérez', imageUrl: null } },
+        employee: { id: 7, userId: 1, user: { name: 'Ana Pérez', imageUrl: null, slug: null } },
       },
       {
         availabilityId: 11,
-        employee: { id: 8, userId: 2, user: { name: 'Bruno Díaz', imageUrl: null } },
+        employee: { id: 8, userId: 2, user: { name: 'Bruno Díaz', imageUrl: null, slug: null } },
       },
     ],
   };
@@ -244,8 +244,8 @@ describe('PrismaServicesRepository', () => {
       ).resolves.toEqual({
         ...SERVICE,
         employees: [
-          { id: 7, name: 'Ana Pérez', availabilityId: 10, userId: 1, imageUrl: null },
-          { id: 8, name: 'Bruno Díaz', availabilityId: 11, userId: 2, imageUrl: null },
+          { id: 7, name: 'Ana Pérez', availabilityId: 10, userId: 1, imageUrl: null, slug: null },
+          { id: 8, name: 'Bruno Díaz', availabilityId: 11, userId: 2, imageUrl: null, slug: null },
         ],
       });
       expect(prisma.service.update).toHaveBeenCalledWith({

@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { toSchedule } from '@/app/(app)/_components/availability-week';
 import type { Availability, AvailabilityDetail, AvailabilityOverride, TimeRange } from '@/src/entities/models/availability';
 import type { Preferences } from '@/src/entities/models/user';
 import {
@@ -20,7 +19,7 @@ import { AvailabilityList } from './AvailabilityList';
 export interface AvailabilityDraft {
     name: string;
     timeZone: string;
-    days: TimeRange[][];
+    schedule: TimeRange[][];
     overrides: AvailabilityOverride[];
     isDefault: boolean;
 }
@@ -59,6 +58,7 @@ export function AvailabilityView({
         <AvailabilityEditor
             key={open.id}
             availability={open}
+            preferences={preferences}
             busy={busy}
             onBack={() => router.push('/availability')}
             onSave={(draft) =>
@@ -68,7 +68,7 @@ export function AvailabilityView({
                             availabilityId: open.id,
                             name: draft.name,
                             timeZone: draft.timeZone,
-                            schedule: toSchedule(draft.days),
+                            schedule: draft.schedule,
                             overrides: draft.overrides,
                             makeDefault: draft.isDefault && !open.isDefault,
                         }),

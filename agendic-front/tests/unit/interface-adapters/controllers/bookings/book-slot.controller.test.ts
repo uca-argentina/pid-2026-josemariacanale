@@ -46,6 +46,18 @@ describe('bookSlotController', () => {
         });
     });
 
+    it('books with the Empleado elegido (ADR 0026)', async () => {
+        const useCase = jest.fn().mockResolvedValue(booking);
+        await bookSlotController(instrumentation, useCase)({ ...input, employeeId: 1 });
+        expect(useCase).toHaveBeenCalledWith(expect.objectContaining({ serviceId: 100, employeeId: 1 }));
+    });
+
+    it('throws InputParseError with an employeeId that is not a positive integer', async () => {
+        const useCase = jest.fn();
+        await expect(bookSlotController(instrumentation, useCase)({ ...input, employeeId: 0 })).rejects.toBeInstanceOf(InputParseError);
+        expect(useCase).not.toHaveBeenCalled();
+    });
+
     it('presenta el Enlace del Turno recién creado (ADR 0022)', async () => {
         const useCase = jest.fn().mockResolvedValue({ ...booking, link: 's3cr3t-l1nk' });
         await expect(bookSlotController(instrumentation, useCase)(input)).resolves.toMatchObject({ link: 's3cr3t-l1nk' });

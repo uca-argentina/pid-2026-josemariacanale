@@ -5,7 +5,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/app/_components/utils';
 import { PanelButton, PanelDialog, PanelDialogClose } from '@/app/(app)/_components/panel-ui';
-import { formatDate, shortWeekday } from '@/app/_components/booking/format';
+import { chosenEmployeeId, formatDate, shortWeekday } from '@/app/_components/booking/format';
 import { useSlotWeek } from '@/app/_components/booking/use-slot-week';
 import { rescheduleBookingAction } from '../actions';
 import { TIME_ZONE_LABEL, type Booking } from './booking-helpers';
@@ -13,14 +13,16 @@ import { TIME_ZONE_LABEL, type Booking } from './booking-helpers';
 const NO_SLOTS_REASON = {
     NOT_WORKING: 'No atendés ese día.',
     FULLY_BOOKED: 'Tenés la agenda completa ese día.',
+    OUT_OF_OFFICE: 'Estás fuera de la oficina ese día.',
 } as const;
 
 /**
  * Elige el nuevo Horario reservable de un Turno aceptado. Pide al back los horarios del mismo Servicio,
- * de a una semana, igual que la reserva pública, y al confirmar reagenda.
+ * de a una semana, igual que la reserva pública, y al confirmar reagenda. Un Turno con Empleado elegido (ADR 0026)
+ * solo ofrece horarios de ese Empleado.
  */
 export function RescheduleDialog({ booking, onOpenChange }: { booking: Booking; onOpenChange: (open: boolean) => void }) {
-    const { status, message, week, days, label, canGoBack, goToWeek, retry, reload } = useSlotWeek(booking.serviceId, null);
+    const { status, message, week, days, label, canGoBack, goToWeek, retry, reload } = useSlotWeek(booking.serviceId, null, chosenEmployeeId(booking));
     const [date, setDate] = useState<string | null>(null);
     const [startsAt, setStartsAt] = useState<string | null>(null);
     const [notice, setNotice] = useState<string | null>(null);

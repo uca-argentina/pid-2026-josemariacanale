@@ -1,149 +1,23 @@
 'use client';
 
 import { useState } from 'react';
-import { Popover } from '@base-ui/react/popover';
-import { ArrowLeft, Copy, Pencil, Trash2 } from 'lucide-react';
+import { FormProvider, useForm, useWatch } from 'react-hook-form';
+import { ArrowLeft, Pencil, Trash2 } from 'lucide-react';
 import { cn } from '@/app/_components/utils';
+import { Button } from '@/app/_components/ui/button';
+import { Switch } from '@/app/_components/ui/switch';
+import { PanelButton, PanelConfirm, PanelSection } from '@/app/(app)/_components/panel-ui';
 import {
-    PanelButton,
-    PanelCheckbox,
-    PanelConfirm,
-    PanelDivider,
-    PanelIconButton,
-    PanelIconGroup,
-    PanelSection,
-    PanelSwitch,
-} from '@/app/(app)/_components/panel-ui';
-import {
-    DAY_NAMES,
-    DEFAULT_INTERVAL,
-    toWeek,
+    fromFormSchedule,
+    toFormSchedule,
     weekValid,
 } from '@/app/(app)/_components/availability-week';
-import type { AvailabilityDetail, TimeRange } from '@/src/entities/models/availability';
+import type { AvailabilityDetail } from '@/src/entities/models/availability';
+import type { Preferences } from '@/src/entities/models/user';
 import type { AvailabilityDraft } from './AvailabilityView';
-import { AddIntervalButton, IntervalsEditor } from './IntervalsEditor';
 import { OverridesSection } from './OverridesSection';
+import { ScheduleComponent, type ScheduleFormValues } from './ScheduleComponent';
 import { TimezoneSelect } from '@/app/(app)/_components/TimezoneSelect';
-
-function CopyIntervals({
-    fromDay,
-    disabled,
-    onApply,
-}: {
-    fromDay: number;
-    disabled: boolean;
-    onApply: (days: number[]) => void;
-}) {
-    const [open, setOpen] = useState(false);
-    const [picked, setPicked] = useState<number[]>([]);
-    const others = DAY_NAMES.map((_, i) => i).filter((i) => i !== fromDay);
-    const close = () => {
-        setOpen(false);
-        setPicked([]);
-    };
-
-    return (
-        <Popover.Root open={open} onOpenChange={(next) => (next ? setOpen(true) : close())}>
-            <Popover.Trigger
-                render={
-                    <PanelIconButton bordered label="Copiar Franjas a otros días" disabled={disabled}>
-                        <Copy />
-                    </PanelIconButton>
-                }
-            />
-            <Popover.Portal>
-                <Popover.Positioner align="end" sideOffset={4} className="z-50">
-                <Popover.Popup
-                    className="w-[240px] rounded-md border border-[#e5e7eb] bg-white shadow-[0_10px_30px_rgba(15,27,45,0.12)]"
-                >
-                    <div className="flex flex-col gap-1 p-3">
-                        <span className="px-1 pb-1 text-[11.5px] font-extrabold tracking-[0.04em] text-[#0f1b2d] uppercase">
-                            Copiar Franjas a
-                        </span>
-                        <label className="flex cursor-pointer items-center justify-between rounded px-1 py-1.5 text-[13.5px] font-medium text-[#0f1b2d]">
-                            Seleccionar todos
-                            <PanelCheckbox
-                                checked={picked.length === others.length}
-                                onCheckedChange={(on) => setPicked(on === true ? others : [])}
-                            />
-                        </label>
-                        {DAY_NAMES.map((name, day) => (
-                            <label
-                                key={name}
-                                className="flex cursor-pointer items-center justify-between rounded px-1 py-1.5 text-[13.5px] font-medium text-[#0f1b2d] has-[:disabled]:cursor-default"
-                            >
-                                {name}
-                                <PanelCheckbox
-                                    checked={day === fromDay || picked.includes(day)}
-                                    disabled={day === fromDay}
-                                    onCheckedChange={(on) =>
-                                        setPicked((p) => (on === true ? [...p, day] : p.filter((d) => d !== day)))
-                                    }
-                                />
-                            </label>
-                        ))}
-                    </div>
-                    <div className="flex justify-end gap-2 border-t border-[#e5e7eb] px-3 py-3">
-                        <PanelButton variant="ghost" onClick={close}>
-                            Cancelar
-                        </PanelButton>
-                        <PanelButton
-                            disabled={picked.length === 0}
-                            onClick={() => {
-                                onApply(picked);
-                                close();
-                            }}
-                        >
-                            Aplicar
-                        </PanelButton>
-                    </div>
-                </Popover.Popup>
-                </Popover.Positioner>
-            </Popover.Portal>
-        </Popover.Root>
-    );
-}
-
-function DayRow({
-    day,
-    intervals,
-    onChange,
-    onCopy,
-}: {
-    day: number;
-    intervals: TimeRange[];
-    onChange: (intervals: TimeRange[]) => void;
-    onCopy: (days: number[]) => void;
-}) {
-    const id = `day-${day}`;
-
-    return (
-        <div className="flex flex-wrap items-start gap-x-6 gap-y-3 px-6 py-3">
-            <div className="flex h-9 w-[140px] shrink-0 items-center gap-3">
-                <PanelSwitch
-                    id={id}
-                    checked={intervals.length > 0}
-                    onCheckedChange={(on) => onChange(on ? [DEFAULT_INTERVAL] : [])}
-                />
-                <label htmlFor={id} className="text-[13.5px] font-semibold tracking-[-0.01em] text-[#0f1b2d]">
-                    {DAY_NAMES[day]}
-                </label>
-            </div>
-            <div className="min-w-0 flex-1">
-                {intervals.length > 0 ? (
-                    <IntervalsEditor intervals={intervals} onChange={onChange} />
-                ) : (
-                    <span className="flex h-9 items-center text-[13.5px] font-medium text-[#6b7280]">No se trabaja</span>
-                )}
-            </div>
-            <div className="flex h-9 items-center gap-2">
-                <AddIntervalButton intervals={intervals} onChange={onChange} />
-                <CopyIntervals fromDay={day} disabled={intervals.length === 0} onApply={onCopy} />
-            </div>
-        </div>
-    );
-}
 
 function NameField({ name, onChange }: { name: string; onChange: (name: string) => void }) {
     const [editing, setEditing] = useState(false);
@@ -157,14 +31,14 @@ function NameField({ name, onChange }: { name: string; onChange: (name: string) 
                 onChange={(e) => onChange(e.target.value)}
                 onBlur={() => setEditing(false)}
                 onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
-                className="m-0 min-w-0 rounded-md border border-[#d1d5db] px-2 py-0.5 text-[21px] font-extrabold tracking-[-0.035em] outline-none focus:border-[#0f1b2d] focus:ring-1 focus:ring-[#0f1b2d]"
+                className="m-0 min-w-0 rounded-md border border-[#d1d5db] px-2 py-0.5 text-xl font-extrabold tracking-[-0.035em] outline-none focus:border-[#0f1b2d] focus:ring-1 focus:ring-[#0f1b2d]"
             />
         );
     }
 
     return (
         <div className="flex min-w-0 items-center gap-2">
-            <h1 className={cn('m-0 truncate text-[21px] font-extrabold tracking-[-0.035em]', !name.trim() && 'text-[#b91c1c]')}>
+            <h1 className={cn('m-0 truncate text-xl font-extrabold tracking-[-0.035em]', !name.trim() && 'text-[#b91c1c]')}>
                 {name.trim() ? name : 'Poné un nombre para guardar'}
             </h1>
             <button
@@ -185,21 +59,22 @@ function NameField({ name, onChange }: { name: string; onChange: (name: string) 
  */
 export function AvailabilityEditor({
     availability,
+    preferences,
     busy,
     onBack,
     onSave,
     onDelete,
 }: {
     availability: AvailabilityDetail;
+    preferences: Preferences;
     busy: boolean;
     onBack: () => void;
     onSave: (draft: AvailabilityDraft) => Promise<boolean>;
     onDelete: () => void;
 }) {
-    const initial: AvailabilityDraft = {
+    const initial = {
         name: availability.name,
         timeZone: availability.timeZone,
-        days: toWeek(availability.schedule),
         overrides: availability.overrides,
         isDefault: availability.isDefault,
     };
@@ -207,17 +82,17 @@ export function AvailabilityEditor({
     const [draft, setDraft] = useState(initial);
     const [confirmDelete, setConfirmDelete] = useState(false);
     const [confirmLeave, setConfirmLeave] = useState(false);
-    const dirty = JSON.stringify(draft) !== JSON.stringify(saved);
-    const valid = draft.name.trim() !== '' && weekValid(draft.days);
-
-    const setDay = (day: number, intervals: TimeRange[]) =>
-        setDraft((d) => ({ ...d, days: d.days.map((current, i) => (i === day ? intervals : current)) }));
+    const form = useForm<ScheduleFormValues>({ defaultValues: { schedule: toFormSchedule(availability.schedule) } });
+    const schedule = fromFormSchedule(useWatch({ control: form.control, name: 'schedule' }));
+    const dirty = JSON.stringify(draft) !== JSON.stringify(saved) || form.formState.isDirty;
+    const valid = draft.name.trim() !== '' && weekValid(schedule);
 
     const save = async () => {
         const next = { ...draft, name: draft.name.trim() };
-        if (await onSave(next)) {
+        if (await onSave({ ...next, schedule })) {
             setSaved(next);
             setDraft(next);
+            form.reset(form.getValues());
         }
     };
 
@@ -228,61 +103,63 @@ export function AvailabilityEditor({
                     type="button"
                     onClick={() => (dirty ? setConfirmLeave(true) : onBack())}
                     aria-label="Volver a Horas laborables"
-                    className="rounded-md p-1.5 text-[#6b7280] transition-colors hover:bg-[#f3f4f6] hover:text-[#0f1b2d]"
+                    className="flex size-8 items-center justify-center rounded-md text-[#6b7280] transition-colors hover:bg-[#f3f4f6] hover:text-[#0f1b2d]"
                 >
                     <ArrowLeft className="size-5" />
                 </button>
                 <NameField name={draft.name} onChange={(name) => setDraft((d) => ({ ...d, name }))} />
 
                 <div className="ml-auto flex items-center gap-3">
-                    <label htmlFor="availability-default" className="text-[13px] font-semibold">
+                    <label htmlFor="availability-default" className="text-sm font-medium">
                         Establecer como predeterminado
                     </label>
-                    <PanelSwitch
+                    <Switch
                         id="availability-default"
                         checked={draft.isDefault}
                         disabled={saved.isDefault}
                         onCheckedChange={(isDefault) => setDraft((d) => ({ ...d, isDefault }))}
                     />
-                    <PanelDivider />
-                    <PanelIconGroup>
-                        <PanelIconButton label="Eliminar" destructive disabled={busy} onClick={() => setConfirmDelete(true)}>
-                            <Trash2 />
-                        </PanelIconButton>
-                    </PanelIconGroup>
-                    <PanelDivider />
-                    <PanelButton disabled={!dirty || !valid || busy} onClick={save}>
+                    <Button
+                        variant="outline"
+                        size="icon-lg"
+                        aria-label="Eliminar"
+                        title="Eliminar"
+                        className="text-destructive hover:text-destructive"
+                        disabled={busy}
+                        onClick={() => setConfirmDelete(true)}
+                    >
+                        <Trash2 />
+                    </Button>
+                    <PanelButton className="px-4" disabled={!dirty || !valid || busy} onClick={save}>
                         Guardar
                     </PanelButton>
                 </div>
             </header>
 
-            <div className="mt-8 flex max-w-[1080px] flex-col gap-6">
-                <PanelSection title="Zona horaria" description="Las Franjas y las Anulaciones se leen en esta zona.">
-                    <div className="max-w-[420px] px-6 py-4">
-                        <TimezoneSelect value={draft.timeZone} onChange={(timeZone) => setDraft((d) => ({ ...d, timeZone }))} />
-                    </div>
-                </PanelSection>
-                <PanelSection title="Horas semanales" description="Establecé los horarios en los que atiende cada día.">
-                    <div className="divide-y divide-[#e5e7eb]">
-                        {draft.days.map((intervals, day) => (
-                            <DayRow
-                                key={DAY_NAMES[day]}
-                                day={day}
-                                intervals={intervals}
-                                onChange={(next) => setDay(day, next)}
-                                onCopy={(days) =>
-                                    setDraft((d) => ({ ...d, days: d.days.map((current, i) => (days.includes(i) ? intervals : current)) }))
-                                }
-                            />
-                        ))}
-                    </div>
-                </PanelSection>
-                <OverridesSection
-                    overrides={draft.overrides}
-                    busy={busy}
-                    onChange={(overrides) => setDraft((d) => ({ ...d, overrides }))}
-                />
+            <div className="mt-8 flex flex-col gap-6 @7xl/main:flex-row">
+                <div className="flex min-w-0 flex-1 flex-col gap-6">
+                    <PanelSection title="Horas semanales" description="Elegí en qué horario atendés cada día.">
+                        <FormProvider {...form}>
+                            <ScheduleComponent weekStart={preferences.weekStart} timeFormat={preferences.timeFormat} />
+                        </FormProvider>
+                    </PanelSection>
+                    <OverridesSection
+                        overrides={draft.overrides}
+                        preferences={preferences}
+                        busy={busy}
+                        onChange={(overrides) => setDraft((d) => ({ ...d, overrides }))}
+                    />
+                </div>
+                <aside className="w-full max-w-sm shrink-0 @7xl/main:w-[350px] @7xl/main:max-w-none">
+                    <label htmlFor="availability-timezone" className="mb-2 inline-block text-sm font-medium">
+                        Zona horaria
+                    </label>
+                    <TimezoneSelect
+                        id="availability-timezone"
+                        value={draft.timeZone}
+                        onChange={(timeZone) => setDraft((d) => ({ ...d, timeZone }))}
+                    />
+                </aside>
             </div>
 
             <PanelConfirm

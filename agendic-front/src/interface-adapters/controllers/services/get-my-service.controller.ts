@@ -28,7 +28,7 @@ const presentService = (service: CatalogService | PersonalService, offeredByMe: 
     slotInterval: service.slotInterval,
     minimumNoticeMinutes: service.minimumNoticeMinutes,
     offeredByMe,
-    employees: 'employees' in service ? service.employees.map((e) => ({ id: e.id, name: e.name, imageUrl: e.imageUrl })) : [],
+    employees: 'employees' in service ? service.employees.map((e) => ({ id: e.id, name: e.name, imageUrl: e.imageUrl, slug: e.slug })) : [],
 });
 
 const presentAvailabilities = (availabilities: AvailabilityDetail[] | null) =>

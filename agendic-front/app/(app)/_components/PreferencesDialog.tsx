@@ -36,7 +36,7 @@ export function PreferencesDialog({
     const save = () => {
         const changes: Partial<Preferences> = {};
         if (Number(timeFormat) !== preferences.timeFormat) changes.timeFormat = Number(timeFormat) as Preferences['timeFormat'];
-        if (Number(weekStart) !== preferences.weekStart) changes.weekStart = Number(weekStart);
+        if (Number(weekStart) !== preferences.weekStart) changes.weekStart = Number(weekStart) as Preferences['weekStart'];
         if (Object.keys(changes).length === 0) return onClose();
         setError(undefined);
         startTransition(async () => {

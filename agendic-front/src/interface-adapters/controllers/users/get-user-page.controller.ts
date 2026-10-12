@@ -30,7 +30,7 @@ const inputSchema = z.object({ userSlug: slugSchema, serviceSlug: slugSchema.opt
 
 export type IGetUserPageController = ReturnType<typeof getUserPageController>;
 /**
- * Public: the page of a Usuario's Enlace de reserva (ADR 0021), `/u/<usuario>` or `/u/<usuario>/<servicio>`.
+ * Public: the page of a Usuario's Enlace de reserva (ADR 0021), `/<usuario>` or `/<usuario>/<servicio>` (ADR 0026).
  *
  * @throws {InputParseError} a tramo does not have the format of an Enlace de reserva
  * @throws {NotFoundError} no Usuario has that Enlace de reserva, or none of their Servicios personales that tramo

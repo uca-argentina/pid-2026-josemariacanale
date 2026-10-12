@@ -414,6 +414,34 @@ describe('Usuario', () => {
       expect(res.body.message).toBe('Booking link already in use');
     });
 
+    it('answers 409 when the slug is already the Enlace de reserva of a Negocio, even their own', async () => {
+      t.users.update.mockRejectedValue(
+        new ConflictError('Booking link already in use'),
+      );
+
+      const res = await t.http
+        .patch('/users/me')
+        .set(bearer(CLERK_TOKEN))
+        .send({ slug: ANAS_BUSINESS.slug })
+        .expect(409);
+
+      expect(res.body.message).toBe('Booking link already in use');
+    });
+
+    it.each(['bookings', 'services', 'business', 'availability', 'analytics', 'turnos', 'sign-in', 'sign-up', 'api', 'trpc'])(
+      'answers 409 and changes nothing when the slug is the reserved word %j',
+      async (slug) => {
+        const res = await t.http
+          .patch('/users/me')
+          .set(bearer(CLERK_TOKEN))
+          .send({ slug })
+          .expect(409);
+
+        expect(res.body.message).toBe('Booking link already in use');
+        expect(t.users.update).not.toHaveBeenCalled();
+      },
+    );
+
     it.each(['ab', 'Has Spaces', '-lead', 'a'.repeat(41)])(
       'rejects the slug %j with 400',
       async (slug) => {

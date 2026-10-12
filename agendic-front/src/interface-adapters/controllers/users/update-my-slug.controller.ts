@@ -15,7 +15,7 @@ const inputSchema = z.object({ slug: slugSchema });
 
 export type IUpdateMySlugController = ReturnType<typeof updateMySlugController>;
 /**
- * The Usuario picks or changes their Enlace de reserva, `/u/<slug>`.
+ * The Usuario picks or changes their Enlace de reserva, `/<slug>`.
  *
  * @throws {UnauthenticatedError} there is no Sesión
  * @throws {InputParseError} it does not have the format of an Enlace de reserva

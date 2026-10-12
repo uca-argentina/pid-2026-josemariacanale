@@ -17,6 +17,8 @@ Para que el back refresque el nombre, el email y la foto de perfil del Usuario (
 
 ``hasImage` evita guardar la imagen genérica de Clerk: en `false` la foto del Usuario pasa a `null`. Una URL que no se puede parsear se ignora y deja la foto guardada. La foto se refresca aparte del nombre y el email: sin `imageUrl` o sin `hasImage` en el token, solo esa parte queda sin refrescar.
 
+> **Pendiente (producción):** los claims `name`, `email`, `imageUrl` y `hasImage` hay que configurarlos también en la instancia de Clerk de **producción**, no solo en la de desarrollo: los claims no se copian de una instancia a otra. Hasta que estén, el refresco de nombre, email y foto no hace nada en producción (no rompe nada, pero la foto queda desactualizada). Tildar acá cuando esté hecho: `[ ]` claims de perfil configurados en Clerk producción.
+
 Sin esta configuración (o con un token viejo que no la tiene todavía), el back sigue funcionando igual: no refresca nada y no llama a la API de Clerk.
 
 ### Baja de Usuarios
@@ -43,6 +45,14 @@ Proveedor sugerido: **Cloudflare R2** (plan gratis y sin costo de egress). En el
 2. **Manage R2 API Tokens** → crear un token con permiso *Object Read & Write* sobre ese bucket: da `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` y el endpoint `https://<account-id>.r2.cloudflarestorage.com` (`S3_ENDPOINT`).
 
 Cualquier otro proveedor S3-compatible (AWS S3, Supabase Storage, MinIO) sirve cambiando solo estas variables. Los tests no las usan: corren contra un emulador S3 en proceso (`s3rver`).
+
+### Días festivos
+
+Los Días festivos se leen de Google Calendar y se cachean en Postgres (ADR 0027). Sin la variable el back arranca igual, pero los endpoints de Días festivos responden 503 `Días festivos no configurados`:
+
+| Variable | Qué es |
+| --- | --- |
+| `GOOGLE_CALENDAR_API_KEY` | API key de Google con la Calendar API habilitada. Sin valor en el repo. |
 
 ### Turnos del Cliente
 

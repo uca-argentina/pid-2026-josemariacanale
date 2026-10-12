@@ -36,6 +36,7 @@ describe('getPublicBranchUseCase', () => {
             employees: [ana, beto],
             images,
             selectedService: null,
+            selectedEmployee: null,
         });
         expect(repo.getServiceBySlug).not.toHaveBeenCalled();
         expect(repo.getBusinessBySlug).toHaveBeenCalledWith('vitalia');
@@ -80,7 +81,7 @@ describe('getPublicBranchUseCase', () => {
     it('with a Servicio tramo, also returns that Servicio as the chosen one, even when it is hidden and so not listed', async () => {
         const business = { id: 1, name: 'Vitalia', description: 'Desc', slug: 'vitalia', logoUrl: null, ownerId: 7 };
         const centro = { id: 10, businessId: 1, name: 'Centro', address: 'Av. 1', timeZone: TZ, slug: 'centro' };
-        const visible = { id: 100, branchId: 10, name: 'Masaje', description: null, category: 'SPA' as const, durationMinutes: 60, price: 20000, depositPercent: null, employees: [{ id: 1, name: 'Ana' }] };
+        const visible = { id: 100, branchId: 10, name: 'Masaje', description: null, category: 'SPA' as const, durationMinutes: 60, price: 20000, depositPercent: null, employees: [{ id: 1, name: 'Ana', imageUrl: null, slug: 'ana' }] };
         const hidden = { ...visible, id: 101, name: 'Masaje VIP' };
         const repo = publicBusinessesWith({
             getBusinessBySlug: jest.fn().mockResolvedValue(business),
@@ -94,6 +95,41 @@ describe('getPublicBranchUseCase', () => {
             getPublicBranchUseCase(instrumentation, repo)({ businessSlug: 'vitalia', branchSlug: 'centro', serviceSlug: 'masaje-vip' }),
         ).resolves.toMatchObject({ services: [visible], selectedService: hidden });
         expect(repo.getServiceBySlug).toHaveBeenCalledWith(10, 'masaje-vip');
+    });
+
+    describe('with an Empleado tramo (Empleado elegido, ADR 0026)', () => {
+        const business = { id: 1, name: 'Vitalia', description: 'Desc', slug: 'vitalia', logoUrl: null, ownerId: 7 };
+        const centro = { id: 10, businessId: 1, name: 'Centro', address: 'Av. 1', timeZone: TZ, slug: 'centro' };
+        const ana = { id: 1, name: 'Ana', imageUrl: null, slug: 'ana' };
+        const beto = { id: 2, name: 'Beto', imageUrl: null, slug: null };
+        const masaje = { id: 100, branchId: 10, name: 'Masaje', description: null, category: 'SPA' as const, durationMinutes: 60, price: 20000, depositPercent: null, employees: [ana, beto] };
+        const repoWith = () =>
+            publicBusinessesWith({
+                getBusinessBySlug: jest.fn().mockResolvedValue(business),
+                listBranches: jest.fn().mockResolvedValue([centro]),
+                listServices: jest.fn().mockResolvedValue([masaje]),
+                listBranchImages: jest.fn().mockResolvedValue([]),
+                getServiceBySlug: jest.fn().mockResolvedValue(masaje),
+            });
+        const input = { businessSlug: 'vitalia', branchSlug: 'centro', serviceSlug: 'masaje' };
+
+        it('returns the Empleado of the tramo as the chosen one', async () => {
+            await expect(
+                getPublicBranchUseCase(instrumentation, repoWith())({ ...input, employeeSlug: 'ana' }),
+            ).resolves.toMatchObject({ selectedService: masaje, selectedEmployee: ana });
+        });
+
+        it('throws NotFoundError when no Empleado who offers the Servicio has that tramo', async () => {
+            await expect(
+                getPublicBranchUseCase(instrumentation, repoWith())({ ...input, employeeSlug: 'carla' }),
+            ).rejects.toBeInstanceOf(NotFoundError);
+        });
+
+        it('throws NotFoundError for an Empleado tramo without a Servicio tramo', async () => {
+            await expect(
+                getPublicBranchUseCase(instrumentation, repoWith())({ businessSlug: 'vitalia', branchSlug: 'centro', employeeSlug: 'ana' }),
+            ).rejects.toBeInstanceOf(NotFoundError);
+        });
     });
 
     it('propagates NotFoundError when the Sucursal has no active Servicio with that tramo', async () => {

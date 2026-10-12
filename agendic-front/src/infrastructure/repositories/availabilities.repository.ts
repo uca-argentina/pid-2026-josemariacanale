@@ -1,6 +1,5 @@
 import type { IAvailabilitiesRepository } from '@/src/application/repositories/availabilities.repository.interface';
 import type { IAuthenticationService } from '@/src/application/services/authentication.service.interface';
-import { UnauthenticatedError } from '@/src/entities/errors/auth';
 import { AvailabilityRuleError } from '@/src/entities/errors/availability';
 import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
 import {
@@ -11,6 +10,7 @@ import {
     type CreateAvailability,
     type UpdateAvailability,
 } from '@/src/entities/models/availability';
+import { apiRequest } from './api-request';
 
 /**
  * Availability del Usuario contra la API del back.
@@ -90,31 +90,10 @@ export class AvailabilitiesRepository implements IAvailabilitiesRepository {
         }
     }
 
-    private async request(method: string, path: string, body?: unknown) {
-        const what = `${method} ${path}`;
-        if (!this.apiUrl) throw new ApiRequestError(`${what} failed: API_URL is not set`);
-        const token = await this.authenticationService.getAccessToken();
-
-        let response: Response;
-        try {
-            response = await fetch(`${this.apiUrl}${path}`, {
-                method,
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    ...(body !== undefined && { 'Content-Type': 'application/json' }),
-                },
-                body: body === undefined ? undefined : JSON.stringify(body),
-            });
-        } catch (cause) {
-            throw new ApiRequestError(`${what} failed`, { cause });
-        }
-
-        const json = await response.json().catch(() => undefined);
-        const message = String(json?.message ?? `${what} responded ${response.status}`);
-        if (response.status === 401) throw new UnauthenticatedError(message);
-        if (response.status === 404) throw new NotFoundError(message);
-        if (response.status === 422) throw new AvailabilityRuleError(message);
-        if (!response.ok) throw new ApiRequestError(message, { status: response.status });
-        return json;
+    private request(method: string, path: string, body?: unknown) {
+        return apiRequest(this.authenticationService, this.apiUrl, method, path, {
+            body,
+            errors: { 404: NotFoundError, 422: AvailabilityRuleError },
+        });
     }
 }

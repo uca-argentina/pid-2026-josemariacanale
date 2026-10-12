@@ -2,6 +2,9 @@ export class DomainError extends Error {}
 
 export class UnauthenticatedError extends DomainError {}
 
+/** A request that makes no sense for the resource it names, e.g. choosing an Empleado in a Servicio personal. */
+export class BadRequestError extends DomainError {}
+
 export class ForbiddenError extends DomainError {}
 
 export class NotFoundError extends DomainError {}
@@ -21,3 +24,6 @@ export class DatabaseOperationError extends DomainError {}
 
 /** An external service (Clerk) failed; answered as 502. */
 export class ExternalServiceError extends DomainError {}
+
+/** An optional integration (Google Calendar, for Días festivos) has no configuration; answered as 503. */
+export class NotConfiguredError extends DomainError {}

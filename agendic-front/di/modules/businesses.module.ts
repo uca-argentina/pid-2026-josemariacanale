@@ -12,6 +12,8 @@ import { getPublicBusinessUseCase } from '@/src/application/use-cases/businesses
 import { getPublicBranchUseCase } from '@/src/application/use-cases/businesses/get-public-branch.use-case';
 import { getPublicBusinessController } from '@/src/interface-adapters/controllers/businesses/get-public-business.controller';
 import { getPublicBranchController } from '@/src/interface-adapters/controllers/businesses/get-public-branch.controller';
+import { resolveBookingLinkUseCase } from '@/src/application/use-cases/businesses/resolve-booking-link.use-case';
+import { resolveBookingLinkController } from '@/src/interface-adapters/controllers/businesses/resolve-booking-link.controller';
 import { uploadBranchImageUseCase } from '@/src/application/use-cases/businesses/upload-branch-image.use-case';
 import { uploadBranchImageController } from '@/src/interface-adapters/controllers/businesses/upload-branch-image.controller';
 import { deleteBranchImageUseCase } from '@/src/application/use-cases/businesses/delete-branch-image.use-case';
@@ -129,6 +131,14 @@ export function createBusinessesModule() {
         ]);
 
     businessesModule.bind(DI_SYMBOLS.IPublicBusinessesRepository).toClass(PublicBusinessesRepository);
+
+    businessesModule
+        .bind(DI_SYMBOLS.IResolveBookingLinkUseCase)
+        .toHigherOrderFunction(resolveBookingLinkUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IPublicBusinessesRepository]);
+
+    businessesModule
+        .bind(DI_SYMBOLS.IResolveBookingLinkController)
+        .toHigherOrderFunction(resolveBookingLinkController, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IResolveBookingLinkUseCase]);
 
     businessesModule
         .bind(DI_SYMBOLS.IGetPublicBusinessUseCase)

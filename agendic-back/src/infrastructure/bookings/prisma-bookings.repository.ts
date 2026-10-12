@@ -5,6 +5,7 @@ import {
   BookingStatus,
   ClientBooking,
   DAILY_LIMIT_REACHED,
+  UpcomingBooking,
   UserBooking,
 } from '../../domain/bookings/booking';
 import {
@@ -45,6 +46,9 @@ const BOOKING_SELECT = {
   notes: true,
   noShowAt: true,
   link: true,
+  employeeChosen: true,
+  depositAmount: true,
+  depositPaidAt: true,
   client: { select: { name: true, email: true } },
 } satisfies Prisma.BookingSelect;
 
@@ -279,6 +283,50 @@ export class PrismaBookingsRepository implements BookingsRepository {
   /**
    * @throws {DatabaseOperationError} falló la base
    */
+  async listUpcomingByUser(
+    userId: number,
+    from: Date,
+  ): Promise<UpcomingBooking[]> {
+    const rows = await this.prisma.booking
+      .findMany({
+        where: { userId, status: { in: OCCUPYING }, startsAt: { gte: from } },
+        select: {
+          id: true,
+          startsAt: true,
+          employeeId: true,
+          client: { select: { name: true } },
+          service: {
+            select: {
+              availability: { select: { timeZone: true } },
+              // Only the Usuario's own Empleado rows; this Turno's is picked by `employeeId` below.
+              employees: {
+                where: { employee: { userId } },
+                select: {
+                  employeeId: true,
+                  availability: { select: { timeZone: true } },
+                },
+              },
+            },
+          },
+        },
+        orderBy: { startsAt: 'asc' },
+      })
+      .catch(translateError);
+    return rows.map((row) => ({
+      id: row.id,
+      startsAt: row.startsAt,
+      clientName: row.client!.name,
+      timeZone: (
+        row.service.availability ??
+        row.service.employees.find((e) => e.employeeId === row.employeeId)!
+          .availability
+      ).timeZone,
+    }));
+  }
+
+  /**
+   * @throws {DatabaseOperationError} falló la base
+   */
   async listByUser(userId: number): Promise<UserBooking[]> {
     const rows = await this.prisma.booking
       .findMany({
@@ -398,6 +446,23 @@ export class PrismaBookingsRepository implements BookingsRepository {
     return this.findById(id);
   }
 
+  /**
+   * Marca la Seña del Turno como pagada, solo si la guarda sigue valiendo en el momento de escribir.
+   *
+   * @throws {BusinessRuleError} el Turno ya no está pendiente ni aceptado, ya empezó, no tiene Seña o ya la tiene pagada
+   * @throws {NotFoundError} el Turno no existe
+   */
+  async payDeposit(id: number, now: Date) {
+    await this.updateStatus(
+      id,
+      OCCUPYING,
+      { depositPaidAt: now },
+      'Turno is not pending or booked, has already started, has no Seña, or already has its Seña paid',
+      { startsAt: { gt: now }, depositAmount: { not: null }, depositPaidAt: null },
+    );
+    return this.findEnriched(id);
+  }
+
   /** Applies `data` only while the Turno is still one of `fromStatuses` (and matches `extraWhere`), so a race can't resurrect it. */
   private async updateStatus(
     id: number,
@@ -434,6 +499,9 @@ const toBooking = (row: BookingRow): Booking => ({
   notes: row.notes,
   noShowAt: row.noShowAt,
   link: row.link,
+  employeeChosen: row.employeeChosen,
+  depositAmount: row.depositAmount === null ? null : Number(row.depositAmount),
+  depositPaidAt: row.depositPaidAt,
 });
 
 /** 256 bits, URL-safe (ADR 0022 pide al menos 128). */

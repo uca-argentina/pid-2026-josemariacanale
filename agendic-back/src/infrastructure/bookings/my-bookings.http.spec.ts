@@ -29,6 +29,9 @@ const BOOKED: Booking = {
   notes: null,
   noShowAt: null,
   link: 'booking-link-secret',
+  employeeChosen: false,
+  depositAmount: null,
+  depositPaidAt: null,
 };
 
 const AVAILABILITY: Availability = {
@@ -89,6 +92,9 @@ describe('Mis turnos del Usuario', () => {
           clientName: 'Carla Gómez',
           clientEmail: 'carla@example.com',
           noShowAt: null,
+          employeeChosen: false,
+          depositAmount: null,
+          depositPaidAt: null,
           serviceId: ANAS_SERVICE.id,
           serviceName: 'Haircut',
           business: { id: 1, name: 'Negocio 1' },
@@ -101,6 +107,29 @@ describe('Mis turnos del Usuario', () => {
           branch: null,
         }),
       ]);
+    });
+
+    it('lists the Seña of a Turno and when it was paid', async () => {
+      t.bookings.listByUser.mockResolvedValue([
+        {
+          ...BOOKED,
+          depositAmount: 6,
+          depositPaidAt: new Date('2026-01-01T10:00:00.000Z'),
+          serviceName: 'Haircut',
+          business: null,
+          branch: null,
+        },
+      ]);
+
+      const res = await t.http
+        .get('/users/me/bookings')
+        .set(bearer(CLERK_TOKEN))
+        .expect(200);
+
+      expect(res.body[0]).toMatchObject({
+        depositAmount: 6,
+        depositPaidAt: '2026-01-01T10:00:00.000Z',
+      });
     });
 
     it('answers 401 without a Sesión', async () => {
@@ -238,6 +267,7 @@ describe('Mis turnos del Usuario', () => {
         availabilityId: 11,
         userId: ANAS_EMPLOYEE.userId + 1,
         imageUrl: null,
+        slug: null,
       };
       const busyAtNewStart = [
         { prepStartsAt: new Date(NEW_START), endsAt: new Date('2026-01-02T15:30:00.000Z') },
@@ -274,6 +304,48 @@ describe('Mis turnos del Usuario', () => {
           BOOKED.id,
           expect.objectContaining({ employeeId: ANAS_EMPLOYEE.id }),
         );
+      });
+
+      describe('con Empleado elegido', () => {
+        beforeEach(() => {
+          t.bookings.findById.mockResolvedValue({ ...BOOKED, employeeChosen: true });
+        });
+
+        it('se queda con su Empleado a un horario en el que está libre', async () => {
+          t.bookings.lastReceivedByEmployee.mockResolvedValue(
+            new Map([[ANAS_EMPLOYEE.id, new Date('2026-01-01T10:00:00.000Z')]]),
+          );
+
+          await patch({ startsAt: NEW_START }).expect(200);
+
+          expect(t.bookings.reschedule).toHaveBeenCalledWith(
+            BOOKED.id,
+            expect.objectContaining({ employeeId: ANAS_EMPLOYEE.id }),
+          );
+        });
+
+        it('a un horario donde solo otro Empleado está libre responde 422 y no lo mueve', async () => {
+          t.bookings.listOccupiedByUser.mockImplementation(async (userId) =>
+            userId === ANAS_EMPLOYEE.userId ? busyAtNewStart : [],
+          );
+
+          const res = await patch({ startsAt: NEW_START }).expect(422);
+
+          expect(res.body.message).toBe(
+            `Slot ${NEW_START} is not available for Service ${ANAS_SERVICE.id}`,
+          );
+          expect(t.bookings.reschedule).not.toHaveBeenCalled();
+        });
+
+        it('si su Empleado dejó de Ofrecer el Servicio responde 422', async () => {
+          t.services.findById.mockResolvedValue({
+            ...ANAS_SERVICE,
+            employees: [JUAN],
+          });
+
+          await patch({ startsAt: NEW_START }).expect(422);
+          expect(t.bookings.reschedule).not.toHaveBeenCalled();
+        });
       });
     });
 

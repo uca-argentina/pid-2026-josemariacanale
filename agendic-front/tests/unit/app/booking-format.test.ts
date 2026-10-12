@@ -1,4 +1,4 @@
-import { addDays, depositFor, endTime, formatDuration, formatWeekRange, shortWeekday, todayIn, weekIndexOf, weekStart } from '@/app/_components/booking/format';
+import { addDays, depositFor, endTime, formatDuration, formatPrice, formatWeekRange, shortWeekday, todayIn, weekIndexOf, weekStart } from '@/app/_components/booking/format';
 
 describe('depositFor', () => {
     it('reparte el precio entre lo que se adelanta y lo que resta', () => {
@@ -13,6 +13,21 @@ describe('depositFor', () => {
 
     it('un Servicio sin Seña no pide nada', () => {
         expect(depositFor({ price: 18000, depositPercent: null })).toBeNull();
+    });
+});
+
+describe('depositFor redondeo', () => {
+    it('redondea la Seña al centavo, igual que el back', () => {
+        expect(depositFor({ price: 999, depositPercent: 15 })).toEqual({ percent: 15, upfront: 149.85, rest: 849.15 });
+        expect(depositFor({ price: 1001, depositPercent: 33 })!.upfront).toBe(330.33);
+    });
+});
+
+describe('formatPrice', () => {
+    it('muestra los centavos solo cuando los hay', () => {
+        expect(formatPrice(3600)).toBe('$3.600');
+        expect(formatPrice(149.85)).toBe('$149,85');
+        expect(formatPrice(149.5)).toBe('$149,50');
     });
 });
 

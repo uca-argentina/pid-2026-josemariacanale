@@ -157,8 +157,20 @@ _Avoid_: excepción, override, licencia, ausencia (eso es del Cliente)
 Espacio o equipo de una Sucursal que un Turno ocupa mientras dura, como una cabina, un consultorio o una máquina. No es un puesto de trabajo. Un Servicio del Negocio puede declarar los Puestos que usa: cada Turno de ese Servicio ocupa uno de ellos, el que esté libre, desde el inicio de su Tiempo de preparación. Dos Turnos no comparten un Puesto al mismo tiempo. Un Servicio sin Puestos no ocupa ninguno.
 _Avoid_: recurso, cabina (a secas), sala, equipo
 
+**Fuera de la oficina**:
+Período de uno o más días enteros en que un Usuario no atiende: en esos días ninguno de sus Servicios, personales o de cualquier Negocio, tiene Horarios reservables con él. Es del Usuario, no de una Availability: no es una Anulación. Sus días se leen en la zona horaria de cada Availability. Los Turnos que ya tenía en esos días siguen en pie. Lleva un Motivo y, opcionalmente, una nota que el Usuario puede mostrar en la página de reserva de sus Servicios personales. Solo lo gestiona el propio Usuario.
+_Avoid_: ausencia (eso es el no-show), OOO, licencia, vacaciones
+
+**Motivo**:
+Por qué un Usuario está Fuera de la oficina, elegido de una lista fija: No especificado, Vacaciones, Viaje, Baja por enfermedad, Día festivo.
+_Avoid_: razón, causa
+
+**Día festivo**:
+Feriado de un país o de un calendario religioso que el Usuario elige. Todos los Días festivos de lo elegido quedan prendidos hasta que el Usuario apaga alguno, y cada uno prendido bloquea al Usuario como un día Fuera de la oficina, siempre que caiga en un día que trabaja. No toca los Turnos ya tomados.
+_Avoid_: feriado, holiday
+
 **Horario reservable**:
-Hora concreta en la que un Cliente puede Reservar un Turno para un Servicio, ya descontadas las Anulaciones, la Anticipación mínima y los Turnos tomados. En un Servicio del Negocio, basta con que un Empleado que lo Ofrece esté libre y, si el Servicio usa Puestos, también uno de ellos. Los Turnos ocupan al Usuario que los atiende en todos sus Servicios, personales o de cualquier Negocio.
+Hora concreta en la que un Cliente puede Reservar un Turno para un Servicio, ya descontadas las Anulaciones, los días Fuera de la oficina, los Días festivos, la Anticipación mínima y los Turnos tomados. En un Servicio del Negocio, basta con que un Empleado que lo Ofrece esté libre y, si el Servicio usa Puestos, también uno de ellos. Los Turnos ocupan al Usuario que los atiende en todos sus Servicios, personales o de cualquier Negocio.
 _Avoid_: slot, hueco, disponibilidad
 
 **Categoría de Servicio**:
@@ -231,7 +243,7 @@ _Avoid_: eliminar, borrar, desactivar, bajar (un usuario)
 
 **Ausencia**:
 Turno al que el Cliente no se presentó sin cancelarlo. El Empleado la marca a mano, solo en Turnos ya aceptados cuyo horario ya pasó. Excluye a Turno atendido.
-_Avoid_: inasistencia, no-show
+_Avoid_: inasistencia, no-show, ausencia del Usuario (eso es Fuera de la oficina)
 
 **Turno atendido**:
 Turno aceptado cuyo horario ya pasó y que el Empleado marcó a mano como atendido. Excluye a Ausencia. Un Turno que pasó sin ninguna de las dos marcas no cuenta como atendido.

@@ -1,4 +1,4 @@
-import { groupByDay, matches, placeOf, sortForTab, tabOf, type Booking } from '@/app/(app)/bookings/_components/booking-helpers';
+import { groupByDay, hasPendingDeposit, matches, placeOf, sortForTab, tabOf, type Booking } from '@/app/(app)/bookings/_components/booking-helpers';
 
 const NOW = Date.parse('2026-09-15T15:00:00-03:00');
 
@@ -12,6 +12,9 @@ const booking = (patch: Partial<Booking>): Booking => ({
     noShowAt: null,
     serviceId: 2,
     employeeId: 5,
+    employeeChosen: false,
+    depositAmount: null,
+    depositPaidAt: null,
     serviceName: 'Masaje',
     business: { id: 3, name: 'Spa' },
     branch: { id: 4, name: 'Centro' },
@@ -22,6 +25,23 @@ describe('placeOf', () => {
     it('muestra Negocio y Sucursal, o Servicio personal si el Turno no tiene Negocio', () => {
         expect(placeOf(booking({}))).toBe('Spa · Centro');
         expect(placeOf(booking({ employeeId: null, business: null, branch: null }))).toBe('Servicio personal');
+    });
+});
+
+describe('hasPendingDeposit', () => {
+    it('un Turno pendiente o aceptado con Seña sin pagar la tiene pendiente', () => {
+        expect(hasPendingDeposit(booking({ status: 'BOOKED', depositAmount: 3600 }))).toBe(true);
+        expect(hasPendingDeposit(booking({ status: 'PENDING', depositAmount: 3600 }))).toBe(true);
+    });
+
+    it('una Seña pagada o un Turno sin Seña no la tienen pendiente', () => {
+        expect(hasPendingDeposit(booking({ depositAmount: 3600, depositPaidAt: '2026-09-14T12:00:00.000Z' }))).toBe(false);
+        expect(hasPendingDeposit(booking({}))).toBe(false);
+    });
+
+    it('un Turno cancelado o rechazado no la tiene pendiente', () => {
+        expect(hasPendingDeposit(booking({ status: 'CANCELLED', depositAmount: 3600 }))).toBe(false);
+        expect(hasPendingDeposit(booking({ status: 'REJECTED', depositAmount: 3600 }))).toBe(false);
     });
 });
 

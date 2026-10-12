@@ -1,4 +1,6 @@
 import type { IAvailabilitiesRepository } from '@/src/application/repositories/availabilities.repository.interface';
+import type { IHolidaysRepository } from '@/src/application/repositories/holidays.repository.interface';
+import type { IOutOfOfficeRepository } from '@/src/application/repositories/out-of-office.repository.interface';
 import type { IBookingsRepository } from '@/src/application/repositories/bookings.repository.interface';
 import type { IClientBookingsRepository } from '@/src/application/repositories/client-bookings.repository.interface';
 import type { IUserBookingsRepository } from '@/src/application/repositories/user-bookings.repository.interface';
@@ -19,6 +21,7 @@ export const authWith = (stubs: Partial<IAuthenticationService>): IAuthenticatio
 });
 
 export const publicBusinessesWith = (stubs: Partial<IPublicBusinessesRepository>): IPublicBusinessesRepository => ({
+    resolveSlug: jest.fn(notStubbed('resolveSlug')),
     getBusinessBySlug: jest.fn(notStubbed('getBusinessBySlug')),
     listBranches: jest.fn(notStubbed('listBranches')),
     listServices: jest.fn(notStubbed('listServices')),
@@ -47,6 +50,7 @@ export const userBookingsWith = (stubs: Partial<IUserBookingsRepository>): IUser
 export const clientBookingsWith = (stubs: Partial<IClientBookingsRepository>): IClientBookingsRepository => ({
     getBookingByLink: jest.fn(notStubbed('getBookingByLink')),
     cancelBookingByLink: jest.fn(notStubbed('cancelBookingByLink')),
+    payDepositByLink: jest.fn(notStubbed('payDepositByLink')),
     rescheduleBookingByLink: jest.fn(notStubbed('rescheduleBookingByLink')),
     ...stubs,
 });
@@ -58,6 +62,23 @@ export const availabilitiesWith = (stubs: Partial<IAvailabilitiesRepository>): I
     updateAvailability: jest.fn(notStubbed('updateAvailability')),
     makeDefault: jest.fn(notStubbed('makeDefault')),
     deleteAvailability: jest.fn(notStubbed('deleteAvailability')),
+    ...stubs,
+});
+
+export const outOfOfficeWith = (stubs: Partial<IOutOfOfficeRepository>): IOutOfOfficeRepository => ({
+    listOutOfOffice: jest.fn(notStubbed('listOutOfOffice')),
+    createOutOfOffice: jest.fn(notStubbed('createOutOfOffice')),
+    updateOutOfOffice: jest.fn(notStubbed('updateOutOfOffice')),
+    deleteOutOfOffice: jest.fn(notStubbed('deleteOutOfOffice')),
+    ...stubs,
+});
+
+export const holidaysWith = (stubs: Partial<IHolidaysRepository>): IHolidaysRepository => ({
+    listCountries: jest.fn(notStubbed('listCountries')),
+    getSettings: jest.fn(notStubbed('getSettings')),
+    setCountry: jest.fn(notStubbed('setCountry')),
+    setEnabled: jest.fn(notStubbed('setEnabled')),
+    listConflicts: jest.fn(notStubbed('listConflicts')),
     ...stubs,
 });
 

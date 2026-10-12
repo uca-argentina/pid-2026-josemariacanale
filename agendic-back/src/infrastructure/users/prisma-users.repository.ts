@@ -75,7 +75,7 @@ export class PrismaUsersRepository implements UsersRepository {
   }
 
   /**
-   * @throws {ConflictError} el slug ya es el Enlace de reserva de otro Usuario
+   * @throws {ConflictError} el slug ya es el Enlace de reserva de un Negocio o de otro Usuario
    * @throws {NotFoundError} el Usuario no existe
    */
   async update(
@@ -86,11 +86,25 @@ export class PrismaUsersRepository implements UsersRepository {
       slug?: string;
     },
   ) {
-    return toUser(
-      await this.prisma.user
-        .update({ where: { id }, data })
-        .catch(translateError),
-    );
+    if (data.slug === undefined)
+      return toUser(
+        await this.prisma.user
+          .update({ where: { id }, data })
+          .catch(translateError),
+      );
+    const { slug } = data;
+    return this.prisma
+      .$transaction(async (tx) => {
+        const row = await tx.user.update({ where: { id }, data });
+        // The old slug is freed by moving the row: a Usuario holds at most one BookingSlug.
+        await tx.bookingSlug.upsert({
+          where: { userId: id },
+          create: { slug, userId: id },
+          update: { slug },
+        });
+        return toUser(row);
+      })
+      .catch(translateError);
   }
 
   /**
@@ -165,7 +179,8 @@ const translateError = (error: unknown): never => {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     if (error.code === 'P2002')
       throw new ConflictError(
-        violatedIndex(error) === 'User_slug_key'
+        violatedIndex(error) === 'User_slug_key' ||
+        violatedIndex(error) === 'BookingSlug_pkey'
           ? 'Booking link already in use'
           : 'Clerk identity already registered',
         { cause: error },

@@ -29,6 +29,8 @@ const BOOKING_ROW = {
   createdAt: new Date('2026-01-01T12:00:00.000Z'),
   notes: null,
   noShowAt: null,
+  depositAmount: null,
+  depositPaidAt: null,
 };
 
 const CREATE_DATA: CreateBookingData = {
@@ -41,6 +43,8 @@ const CREATE_DATA: CreateBookingData = {
   startsAt: BOOKING_ROW.startsAt,
   endsAt: BOOKING_ROW.endsAt,
   notes: null,
+  employeeChosen: false,
+  depositAmount: null,
   status: BookingStatus.BOOKED,
 };
 
@@ -86,6 +90,8 @@ describe('PrismaBookingsRepository', () => {
       status: BOOKING_ROW.status,
       notes: null,
       noShowAt: null,
+      depositAmount: null,
+      depositPaidAt: null,
     });
     expect(prisma.booking.create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -365,6 +371,51 @@ describe('PrismaBookingsRepository', () => {
         },
         data: { noShowAt: NOW },
       });
+    });
+
+    it('payDeposit requires a pending or booked Turno with a Seña unpaid that has not started', async () => {
+      jest.spyOn(repository as never, 'findEnriched').mockResolvedValue({} as never);
+      prisma.booking.updateMany.mockResolvedValue({ count: 1 });
+
+      await repository.payDeposit(1, NOW);
+
+      expect(prisma.booking.updateMany).toHaveBeenCalledWith({
+        where: {
+          id: 1,
+          status: { in: [BookingStatus.PENDING, BookingStatus.BOOKED] },
+          startsAt: { gt: NOW },
+          depositAmount: { not: null },
+          depositPaidAt: null,
+        },
+        data: { depositPaidAt: NOW },
+      });
+    });
+
+    it('cancel, reject and reschedule leave depositPaidAt as it was', async () => {
+      jest.spyOn(repository as never, 'findEnriched').mockResolvedValue({} as never);
+      prisma.booking.updateMany.mockResolvedValue({ count: 1 });
+
+      await repository.cancel(1);
+      await repository.reschedule(1, { employeeId: 1, userId: 1, prepStartsAt: NOW, startsAt: NOW, endsAt: NOW });
+      await repository.cancelPendingOrBooked(1);
+      await repository.resolvePending(1, BookingStatus.REJECTED);
+      await repository.reschedulePendingOrBooked(1, {
+        employeeId: 1,
+        userId: 1,
+        prepStartsAt: NOW,
+        startsAt: NOW,
+        endsAt: NOW,
+        status: BookingStatus.PENDING,
+      });
+
+      for (const [{ data }] of prisma.booking.updateMany.mock.calls)
+        expect(data).not.toHaveProperty('depositPaidAt');
+    });
+
+    it('payDeposit answers BusinessRuleError when the guard no longer holds', async () => {
+      prisma.booking.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(repository.payDeposit(1, NOW)).rejects.toBeInstanceOf(BusinessRuleError);
     });
 
     it('excludes the given Turno from the occupied horarios', async () => {

@@ -15,6 +15,9 @@ const booking = {
     serviceId: 2,
     serviceName: 'Masaje',
     employeeId: 5,
+    employeeChosen: false,
+    depositAmount: 3600,
+    depositPaidAt: null,
     business: { id: 3, name: 'Spa' },
     branch: { id: 4, name: 'Centro' },
 };

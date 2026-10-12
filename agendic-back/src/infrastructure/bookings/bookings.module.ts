@@ -5,6 +5,7 @@ import { GetBookingByLinkUseCase } from '../../application/bookings/get-booking-
 import { MarkNoShowUseCase } from '../../application/bookings/mark-no-show.use-case';
 import { RescheduleBookingUseCase } from '../../application/bookings/reschedule-booking.use-case';
 import { RescheduleBookingByLinkUseCase } from '../../application/bookings/reschedule-booking-by-link.use-case';
+import { PayDepositByLinkUseCase } from '../../application/bookings/pay-deposit-by-link.use-case';
 import { ListSlotsUseCase } from '../../application/slots/list-slots.use-case';
 import { CreateBookingUseCase } from '../../application/bookings/create-booking.use-case';
 import { ListMyBookingsUseCase } from '../../application/bookings/list-my-bookings.use-case';
@@ -12,12 +13,13 @@ import { ListBookingsByBusinessUseCase } from '../../application/bookings/list-b
 import { AcceptBookingUseCase } from '../../application/bookings/accept-booking.use-case';
 import { RejectBookingUseCase } from '../../application/bookings/reject-booking.use-case';
 import { RequestBookingCodeUseCase } from '../../application/bookings/request-booking-code.use-case';
+import { HolidaysModule } from '../holidays/holidays.module';
 import { UsersModule } from '../users/users.module';
 import { BookingLinksController } from './booking-links.controller';
 import { BookingsController } from './bookings.controller';
 
 @Module({
-  imports: [UsersModule],
+  imports: [UsersModule, HolidaysModule],
   controllers: [BookingsController, BookingLinksController],
   providers: [
     CreateBookingUseCase,
@@ -32,6 +34,7 @@ import { BookingsController } from './bookings.controller';
     GetBookingByLinkUseCase,
     CancelBookingByLinkUseCase,
     RescheduleBookingByLinkUseCase,
+    PayDepositByLinkUseCase,
     ListMyBookingsUseCase,
   ],
 })

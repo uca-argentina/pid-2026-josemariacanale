@@ -1,10 +1,18 @@
 import type { Branch } from '@/src/entities/models/branch';
 import type { BranchImage } from '@/src/entities/models/branch-image';
+import type { ResolvedBookingLink } from '@/src/entities/models/booking-link';
 import type { Business } from '@/src/entities/models/business';
 import type { Service } from '@/src/entities/models/service';
 
 // What the page of the Enlace de reserva reads from the back. Public: no Sesión involved.
 export interface IPublicBusinessesRepository {
+    /**
+     * Says whose first tramo of an Enlace de reserva `slug` is, a Negocio or a Usuario (ADR 0026).
+     *
+     * @throws {NotFoundError} nobody has it (404)
+     * @throws {ApiRequestError} the back failed or answered an unexpected body
+     */
+    resolveSlug(slug: string): Promise<ResolvedBookingLink>;
     // Throws NotFoundError (404) if no Negocio has that Enlace de reserva.
     getBusinessBySlug(slug: string): Promise<Business>;
     listBranches(businessId: number): Promise<Branch[]>;

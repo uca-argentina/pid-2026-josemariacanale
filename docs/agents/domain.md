@@ -23,7 +23,8 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | --- | --- |
 | Negocio | `Business` |
 | Dueño | `owner` (`Business.ownerId`) |
-| Enlace de reserva | `Business.slug` (tramo del Negocio) + `Branch.slug` (tramo de la Sucursal, único por `businessId`); la URL del front es `/business/<negocio-slug>/<sucursal-slug>`, y `/business/<negocio-slug>/<sucursal-slug>/<servicio-slug>` con el tramo del Servicio (`Service.slug`, único por `branchId` entre los no dados de baja) |
+| Enlace de reserva | `Business.slug` (tramo del Negocio) + `Branch.slug` (tramo de la Sucursal, único por `businessId`); la URL del front, sin prefijo (ADR 0026), es `/<negocio-slug>/<sucursal-slug>`, y `/<negocio-slug>/<sucursal-slug>/<servicio-slug>` con el tramo del Servicio (`Service.slug`, único por `branchId` entre los no dados de baja) |
+| Primer tramo del Enlace de reserva (ADR 0026) | `BookingSlug` (`slug` clave primaria, `businessId` o `userId`, exactamente uno; la escriben `PrismaBusinessesRepository` y `PrismaUsersRepository` con el slug); palabras reservadas → `RESERVED_SLUGS`; `GET /slugs/:slug` → `ResolveSlugUseCase`; en el front, `ResolvedBookingLink` (`kind: 'business' \| 'user'`), `resolveBookingLinkController` y `resolveBookingLink` (`app/[slug]/_components`), que elige la página del primer tramo |
 | Sucursal | `Branch` (sin horario de apertura ni de cierre; descripción propia opcional → `Branch.description`) |
 | Logo del Negocio | `Business.logoUrl` (`string \| null`; `PUT` / `DELETE /businesses/:id/logo`) |
 | Imágenes de Sucursal | `BranchImage` (`url`, `order`) |
@@ -31,21 +32,26 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | Usuario | `User` (foto de perfil → `User.imageUrl`, la de Clerk al crearse) |
 | Preferencias del Usuario | `User.timeFormat` (`12 \| 24`, por defecto 24) y `User.weekStart` (0 = domingo … 6, por defecto 1 = lunes); en el front, `Preferences` y el diálogo `PreferencesDialog` del menú de Usuario |
 | Cliente | `Client` (`name`, `email`; una fila por Turno vía `Client.bookingId`, índice no único sobre `email`); la API sigue exponiendo `clientName` / `clientEmail` en el Turno |
+| Empleado elegido (ADR 0026) | `Booking.employeeChosen` (`boolean`, por defecto `false`); `employeeId` en `GET /services/:id/slots` y en `POST /bookings`; el Enlace de reserva de ese Empleado es `User.slug`, que `employees[].slug` expone; en el front, `bookingLinkPath(negocio, sucursal, servicio, empleado)` arma la URL, `PublicBranchScreen` busca al Empleado por ese tramo (`selectedEmployee`, 404 si no Ofrece el Servicio) y `BookingFlow` recibe `employee`; `ClientBooking` y `UserBooking` traen `employeeChosen` |
 | Quien atiende un Turno | `Booking.userId` (siempre); `Booking.employeeId` solo en un Servicio del Negocio |
 | Empleado | `Employee` |
 | Invitación | `Invitation` (`email`, `expiresAt`) |
 | Availability | `Availability` (predeterminada → `isDefault`; zona horaria → `Availability.timeZone`; es del Usuario, `userId`) |
 | Franja | `AvailabilityInterval` (días → `days`, 0 = domingo como `dayjs().day()`, varios por Franja; inicio/fin → `startTime`/`endTime`) |
 | Anulación | `AvailabilityOverride` (`availabilityId`) |
+| Fuera de la oficina (ADR 0027) | `OutOfOffice` (`userId`; `startDate` / `endDate` como fechas sin hora, inclusivas; `notes` opcional; `showNotePublicly`, por defecto `false`; `GET/POST /users/me/out-of-office`, `PUT/DELETE /users/me/out-of-office/:id`) |
+| Motivo | `OutOfOfficeReason` (`UNSPECIFIED \| VACATION \| TRAVEL \| SICK_LEAVE \| PUBLIC_HOLIDAY`; el emoji y la etiqueta viven en el front) |
+| Día festivo (ADR 0027) | `Holiday` (`HolidayCache`: `countryCode`, `calendarId`, `eventId`, `name`, `date`, `year`; el país elegido y los apagados del Usuario → `UserHolidaySettings`: `userId` único, `countryCode`, `disabledIds`); puerto `GoogleCalendarClient`, `GetHolidaysForCountryUseCase`; `GET /holidays/countries` → `ListHolidayCountriesUseCase`; `GET/PUT /users/me/holidays`, `PATCH /users/me/holidays/:holidayId`, `GET /users/me/holidays/conflicts` |
 | Horario reservable | `Slot` (`GET /services/:id/slots`) |
 | Servicio | `Service` |
-| Servicio personal (ADR 0021) | `PersonalService` (`Service.userId`, `Service.availabilityId`; sin `branchId`; Enlace de reserva `User.slug`, la URL del front es `/u/<slug>/<servicio>`) |
+| Servicio personal (ADR 0021) | `PersonalService` (`Service.userId`, `Service.availabilityId`; sin `branchId`; Enlace de reserva `User.slug`, la URL del front es `/<slug>/<servicio>`) |
 | Servicio personal | `Service.userId` (con `Service.availabilityId`; sin `branchId` ni Empleados) |
 | Servicio del Negocio | `Service.branchId` (sin `userId`) |
-| Enlace de reserva del Usuario | `User.slug`; la URL del front es `/u/<usuario-slug>`, y `/u/<usuario-slug>/<servicio-slug>` con el tramo del Servicio personal (`Service.slug`, único por `userId` entre los no dados de baja) |
+| Enlace de reserva del Usuario | `User.slug`; la URL del front es `/<usuario-slug>`, y `/<usuario-slug>/<servicio-slug>` con el tramo del Servicio personal (`Service.slug`, único por `userId` entre los no dados de baja) |
 | Categoría de Servicio | `ServiceCategory` (`Service.category`) |
 | Aprobación manual | `Service.requiresApproval` |
 | Seña | `Service.depositPercent` (opcional) |
+| Seña pendiente | `Booking.depositAmount` (monto fijado al Reservar: precio × `depositPercent` / 100 redondeado al centavo; `null` sin Seña) y `Booking.depositPaidAt` (`null` mientras no se paga); Seña pendiente = `depositAmount !== null && depositPaidAt === null` |
 | Servicio oculto | `Service.hidden` |
 | Tiempo de preparación | `Service.prepMinutes` (0 = sin preparación); en el Turno, `Booking.prepStartsAt` (desde cuándo ocupa al Empleado) |
 | Límite diario | `Service.dailyLimit` (opcional) |
@@ -64,6 +70,7 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | Ausencia | `Booking.noShowAt` (marcado a mano; no reemplaza `status`) |
 | Reservar | `book` |
 | Reagendar | `reschedule` (`RescheduleBookingUseCase`); por Enlace del Turno, `reschedulePendingOrBooked` (`RescheduleBookingByLinkUseCase`) |
+| Pagar la Seña (ADR 0027) | `payDeposit`, `PayDepositByLinkUseCase`, `PATCH /booking-links/:secret/deposit`; en el front, `payDepositByLink` |
 | Mis turnos del Usuario (ADR 0023) | `UserBooking` (`GET /users/me/bookings`) |
 | Cancelar | `cancel` (del Empleado); por Enlace del Turno, `cancelPendingOrBooked` (también sobre `PENDING`) |
 | Dar de baja | `retire` (`Service.deletedAt`, `Employee.deletedAt`); ADR 0024: `User.deletedAt` (`RetireMeUseCase`, `DELETE /users/me`; Clerk, `ClerkAuth.deleteUser`); `Business.deletedAt` (#122, la baja del Dueño lo marca) |

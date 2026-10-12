@@ -54,6 +54,8 @@ export type ServiceEmployee = EmployeeSummary & {
    * From the Usuario's foto de perfil; public along with the Empleado's name (ADR 0007).
    */
   imageUrl: string | null;
+  /** The Usuario's Enlace de reserva, the last tramo of an Empleado elegido's link; null until they choose it. */
+  slug: string | null;
 };
 
 /** An Empleado attending a Servicio with one of their own Availabilities: a reference, not a copy. */
