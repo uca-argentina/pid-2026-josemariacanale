@@ -19,7 +19,7 @@ export type IGetEmployeesPerPeriodController = ReturnType<typeof getEmployeesPer
  * La tabla "Turnos por Empleado y período" de un Negocio, solo para el Dueño. Los conteos van crudos: la UI muestra el 0 vacío y el CSV los necesita así.
  *
  * @throws {UnauthenticatedError} no hay Sesión válida
- * @throws {InputParseError} el Negocio, el rango, la agrupación o un filtro no son válidos
+ * @throws {InputParseError} el rango, la agrupación o un filtro no son válidos
  * @throws {UnauthorizedError} no es el Dueño del Negocio
  * @throws {NotFoundError} el Negocio, la Sucursal o el Servicio no existen
  */
