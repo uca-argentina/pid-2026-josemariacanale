@@ -1,7 +1,7 @@
 import { addDays } from '@/app/_components/booking/format';
 import type { OutOfOffice } from '@/src/entities/models/out-of-office';
 import { OUT_OF_OFFICE_REASONS } from './out-of-office-reasons';
-import { toIsoDay, toLocalDay } from './out-of-office-range';
+import { toIsoDay, toLocalDay } from '@/app/_components/day-range';
 
 /** Los presets del Rango de Fechas, en el orden del popover, con su etiqueta. */
 export const RANGE_PRESETS = {

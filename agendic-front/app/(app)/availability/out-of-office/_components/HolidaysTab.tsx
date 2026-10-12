@@ -18,7 +18,7 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/
 import { Switch } from '@/app/_components/ui/switch';
 import type { Holiday, HolidayConflict, HolidayCountry, HolidaySettings } from '@/src/entities/models/holiday';
 import { setHolidayCountryAction, toggleHolidayAction, type OutOfOfficeActionResult } from '../actions';
-import { formatOutOfOfficeDate } from './format-out-of-office-date';
+import { formatOutOfOfficeDate } from '@/app/_components/format-day';
 import { getHolidayEmoji } from './get-holiday-emoji';
 
 /** Lo que la pestaña Días festivos recibe del server: o el mensaje del back (503), o los datos. */

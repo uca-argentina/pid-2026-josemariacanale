@@ -5,13 +5,14 @@ import { formatPrice as formatPriceWithCents } from '@/app/_components/booking/f
 import { Button } from '@/app/_components/ui/button';
 import { STATUS_BADGE, canPayDeposit, hasPendingDeposit, hostName, isActionable } from './client-booking-helpers';
 import { formatDuration, formatLongDate, formatPrice, formatTime } from './format';
+import { RatingSection } from './RatingSection';
 import { RescheduleOverlay } from './RescheduleOverlay';
 import type { ClientBooking, ClientBookingActionResult } from './types';
 
 /**
  * Muestra el detalle de un Turno del Cliente, con Pagar seña, Reagendar y Cancelar abajo cuando todavía se puede, y el aviso de
- * que el Empleado no vino (Falta del Empleado) cuando el back lo permite.
- * Quien lo usa pasa sus propias acciones en `payDeposit`, `cancel`, `reschedule` y `markEmployeeNoShow`.
+ * que el Empleado no vino (Falta del Empleado) cuando el back lo permite, y la Calificación (formulario o solo lectura).
+ * Quien lo usa pasa sus propias acciones en `payDeposit`, `cancel`, `reschedule`, `markEmployeeNoShow` y `rate`.
  */
 export function ClientBookingDetail({
     booking,
@@ -20,6 +21,7 @@ export function ClientBookingDetail({
     cancel,
     reschedule,
     markEmployeeNoShow,
+    rate,
     onUpdated,
 }: {
     booking: ClientBooking;
@@ -28,6 +30,7 @@ export function ClientBookingDetail({
     cancel: () => Promise<ClientBookingActionResult>;
     reschedule: (startsAt: string) => Promise<ClientBookingActionResult>;
     markEmployeeNoShow: () => Promise<ClientBookingActionResult>;
+    rate: (score: number, comment?: string) => Promise<ClientBookingActionResult>;
     onUpdated: (booking: ClientBooking) => void;
 }) {
     const [rescheduling, setRescheduling] = useState(false);
@@ -108,6 +111,8 @@ export function ClientBookingDetail({
                     </Button>
                 </div>
             )}
+
+            <RatingSection booking={booking} rate={rate} onUpdated={onUpdated} onNotice={setNotice} />
 
             {markingNoShow && (
                 <MarkEmployeeNoShowConfirm

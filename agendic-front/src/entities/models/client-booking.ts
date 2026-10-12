@@ -20,6 +20,9 @@ export const clientBookingSchema = z.object({
     // Falta del Empleado: cuándo el Cliente avisó que no vino (null mientras no), y si todavía puede avisarlo (lo calcula el back).
     employeeNoShowAt: z.iso.datetime().nullable(),
     canMarkEmployeeNoShow: z.boolean(),
+    // Calificación del Cliente (null mientras no califica) y si todavía puede calificar (lo calcula el back).
+    rating: z.object({ score: z.number(), comment: z.string().nullable(), createdAt: z.iso.datetime() }).nullable(),
+    canRate: z.boolean(),
     service: z.object({
         name: z.string(),
         durationMinutes: z.number(),

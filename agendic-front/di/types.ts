@@ -117,6 +117,8 @@ import type { IGetBookingByLinkUseCase } from '@/src/application/use-cases/booki
 import type { IGetBookingByLinkController } from '@/src/interface-adapters/controllers/bookings/get-booking-by-link.controller';
 import type { ICancelBookingByLinkUseCase } from '@/src/application/use-cases/bookings/cancel-booking-by-link.use-case';
 import type { ICancelBookingByLinkController } from '@/src/interface-adapters/controllers/bookings/cancel-booking-by-link.controller';
+import type { IRateBookingByLinkUseCase } from '@/src/application/use-cases/bookings/rate-booking-by-link.use-case';
+import type { IRateBookingByLinkController } from '@/src/interface-adapters/controllers/bookings/rate-booking-by-link.controller';
 import type { IMarkEmployeeNoShowByLinkUseCase } from '@/src/application/use-cases/bookings/mark-employee-no-show-by-link.use-case';
 import type { IMarkEmployeeNoShowByLinkController } from '@/src/interface-adapters/controllers/bookings/mark-employee-no-show-by-link.controller';
 import type { IPayDepositByLinkUseCase } from '@/src/application/use-cases/bookings/pay-deposit-by-link.use-case';
@@ -130,6 +132,9 @@ import type { ICreateAvailabilityUseCase } from '@/src/application/use-cases/ava
 import type { IUpdateAvailabilityUseCase } from '@/src/application/use-cases/availabilities/update-availability.use-case';
 import type { IMakeAvailabilityDefaultUseCase } from '@/src/application/use-cases/availabilities/make-availability-default.use-case';
 import type { IDeleteAvailabilityUseCase } from '@/src/application/use-cases/availabilities/delete-availability.use-case';
+import type { IAnalyticsRepository } from '@/src/application/repositories/analytics.repository.interface';
+import type { IGetPersonalAnalyticsUseCase } from '@/src/application/use-cases/analytics/get-personal-analytics.use-case';
+import type { IGetPersonalAnalyticsController } from '@/src/interface-adapters/controllers/analytics/get-personal-analytics.controller';
 import type { IOutOfOfficeRepository } from '@/src/application/repositories/out-of-office.repository.interface';
 import type { IListOutOfOfficeUseCase } from '@/src/application/use-cases/out-of-office/list-out-of-office.use-case';
 import type { IListMyOutOfOfficeController } from '@/src/interface-adapters/controllers/out-of-office/list-my-out-of-office.controller';
@@ -171,6 +176,7 @@ export const DI_SYMBOLS = {
     IClientBookingsRepository: Symbol.for('IClientBookingsRepository'),
     IAvailabilitiesRepository: Symbol.for('IAvailabilitiesRepository'),
     IOutOfOfficeRepository: Symbol.for('IOutOfOfficeRepository'),
+    IAnalyticsRepository: Symbol.for('IAnalyticsRepository'),
     IHolidaysRepository: Symbol.for('IHolidaysRepository'),
     IServicesRepository: Symbol.for('IServicesRepository'),
 
@@ -222,6 +228,7 @@ export const DI_SYMBOLS = {
     ICancelBookingByLinkUseCase: Symbol.for('ICancelBookingByLinkUseCase'),
     IPayDepositByLinkUseCase: Symbol.for('IPayDepositByLinkUseCase'),
     IMarkEmployeeNoShowByLinkUseCase: Symbol.for('IMarkEmployeeNoShowByLinkUseCase'),
+    IRateBookingByLinkUseCase: Symbol.for('IRateBookingByLinkUseCase'),
     IRescheduleBookingByLinkUseCase: Symbol.for('IRescheduleBookingByLinkUseCase'),
     IListAvailabilitiesUseCase: Symbol.for('IListAvailabilitiesUseCase'),
     IGetAvailabilityUseCase: Symbol.for('IGetAvailabilityUseCase'),
@@ -229,6 +236,7 @@ export const DI_SYMBOLS = {
     IUpdateAvailabilityUseCase: Symbol.for('IUpdateAvailabilityUseCase'),
     IMakeAvailabilityDefaultUseCase: Symbol.for('IMakeAvailabilityDefaultUseCase'),
     IDeleteAvailabilityUseCase: Symbol.for('IDeleteAvailabilityUseCase'),
+    IGetPersonalAnalyticsUseCase: Symbol.for('IGetPersonalAnalyticsUseCase'),
     IListOutOfOfficeUseCase: Symbol.for('IListOutOfOfficeUseCase'),
     ICreateOutOfOfficeUseCase: Symbol.for('ICreateOutOfOfficeUseCase'),
     IUpdateOutOfOfficeUseCase: Symbol.for('IUpdateOutOfOfficeUseCase'),
@@ -302,12 +310,14 @@ export const DI_SYMBOLS = {
     ICancelBookingByLinkController: Symbol.for('ICancelBookingByLinkController'),
     IPayDepositByLinkController: Symbol.for('IPayDepositByLinkController'),
     IMarkEmployeeNoShowByLinkController: Symbol.for('IMarkEmployeeNoShowByLinkController'),
+    IRateBookingByLinkController: Symbol.for('IRateBookingByLinkController'),
     IRescheduleBookingByLinkController: Symbol.for('IRescheduleBookingByLinkController'),
     IListMyAvailabilitiesController: Symbol.for('IListMyAvailabilitiesController'),
     ICreateAvailabilityController: Symbol.for('ICreateAvailabilityController'),
     IUpdateAvailabilityController: Symbol.for('IUpdateAvailabilityController'),
     IMakeAvailabilityDefaultController: Symbol.for('IMakeAvailabilityDefaultController'),
     IDeleteAvailabilityController: Symbol.for('IDeleteAvailabilityController'),
+    IGetPersonalAnalyticsController: Symbol.for('IGetPersonalAnalyticsController'),
     IListMyOutOfOfficeController: Symbol.for('IListMyOutOfOfficeController'),
     ICreateOutOfOfficeController: Symbol.for('ICreateOutOfOfficeController'),
     IUpdateOutOfOfficeController: Symbol.for('IUpdateOutOfOfficeController'),
@@ -334,6 +344,7 @@ export interface DI_RETURN_TYPES {
     IClientBookingsRepository: IClientBookingsRepository;
     IAvailabilitiesRepository: IAvailabilitiesRepository;
     IOutOfOfficeRepository: IOutOfOfficeRepository;
+    IAnalyticsRepository: IAnalyticsRepository;
     IHolidaysRepository: IHolidaysRepository;
     IServicesRepository: IServicesRepository;
 
@@ -385,6 +396,7 @@ export interface DI_RETURN_TYPES {
     ICancelBookingByLinkUseCase: ICancelBookingByLinkUseCase;
     IPayDepositByLinkUseCase: IPayDepositByLinkUseCase;
     IMarkEmployeeNoShowByLinkUseCase: IMarkEmployeeNoShowByLinkUseCase;
+    IRateBookingByLinkUseCase: IRateBookingByLinkUseCase;
     IRescheduleBookingByLinkUseCase: IRescheduleBookingByLinkUseCase;
     IListAvailabilitiesUseCase: IListAvailabilitiesUseCase;
     IGetAvailabilityUseCase: IGetAvailabilityUseCase;
@@ -392,6 +404,7 @@ export interface DI_RETURN_TYPES {
     IUpdateAvailabilityUseCase: IUpdateAvailabilityUseCase;
     IMakeAvailabilityDefaultUseCase: IMakeAvailabilityDefaultUseCase;
     IDeleteAvailabilityUseCase: IDeleteAvailabilityUseCase;
+    IGetPersonalAnalyticsUseCase: IGetPersonalAnalyticsUseCase;
     IListOutOfOfficeUseCase: IListOutOfOfficeUseCase;
     ICreateOutOfOfficeUseCase: ICreateOutOfOfficeUseCase;
     IUpdateOutOfOfficeUseCase: IUpdateOutOfOfficeUseCase;
@@ -465,12 +478,14 @@ export interface DI_RETURN_TYPES {
     ICancelBookingByLinkController: ICancelBookingByLinkController;
     IPayDepositByLinkController: IPayDepositByLinkController;
     IMarkEmployeeNoShowByLinkController: IMarkEmployeeNoShowByLinkController;
+    IRateBookingByLinkController: IRateBookingByLinkController;
     IRescheduleBookingByLinkController: IRescheduleBookingByLinkController;
     IListMyAvailabilitiesController: IListMyAvailabilitiesController;
     ICreateAvailabilityController: ICreateAvailabilityController;
     IUpdateAvailabilityController: IUpdateAvailabilityController;
     IMakeAvailabilityDefaultController: IMakeAvailabilityDefaultController;
     IDeleteAvailabilityController: IDeleteAvailabilityController;
+    IGetPersonalAnalyticsController: IGetPersonalAnalyticsController;
     IListMyOutOfOfficeController: IListMyOutOfOfficeController;
     ICreateOutOfOfficeController: ICreateOutOfOfficeController;
     IUpdateOutOfOfficeController: IUpdateOutOfOfficeController;

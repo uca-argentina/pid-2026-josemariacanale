@@ -20,6 +20,8 @@ function presenter(booking: ClientBooking, instrumentationService: IInstrumentat
         depositPaidAt: booking.depositPaidAt,
         employeeNoShowAt: booking.employeeNoShowAt,
         canMarkEmployeeNoShow: booking.canMarkEmployeeNoShow,
+        rating: booking.rating,
+        canRate: booking.canRate,
         service: booking.service,
         employeeName: booking.employeeName,
         business: booking.business,

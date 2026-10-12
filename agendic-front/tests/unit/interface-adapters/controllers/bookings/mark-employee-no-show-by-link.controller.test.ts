@@ -18,6 +18,8 @@ const booking = {
     depositPaidAt: null,
     employeeNoShowAt: '2026-10-10T14:00:00.000Z',
     canMarkEmployeeNoShow: false,
+    rating: null,
+    canRate: false,
     service: { name: 'Corte', durationMinutes: 60, price: 5000, depositPercent: 20 },
     employeeName: 'Ana',
     business: null,
