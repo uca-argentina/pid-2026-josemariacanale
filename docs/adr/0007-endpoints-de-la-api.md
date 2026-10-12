@@ -100,6 +100,22 @@ una Sucursal); sus archivos en el storage no.
 - DELETE de una imagen que no es de esa Sucursal (o no existe) → 404; si el archivo no se puede borrar del storage igual responde 204 (queda un archivo sin uso, nunca una imagen rota)
 - Respuesta (`presentBranchImage`): `{ id, branchId, url, order }`. `order` es ascendente pero no necesariamente contiguo (borrar deja huecos); el front ordena por él, no lo usa como índice
 
+## Cabins (Cabina)
+
+Todos exigen Sesión y solo los hace el Dueño del Negocio de la Sucursal (ADR 0030): cualquier otro Usuario recibe 403. Un Negocio dado de baja responde como inexistente (404, ADR 0024). La Cabina no sale en ningún endpoint público.
+
+| Método | Ruta | Auth | Qué hace |
+|---|---|---|---|
+| GET | `/branches/:id/cabins` | sí | Las Cabinas activas de la Sucursal, ordenadas por nombre; 404 si la Sucursal no existe |
+| POST | `/branches/:id/cabins` | sí | Crea una Cabina; 201 con la Cabina; 404 si la Sucursal no existe; 409 `Cabin name <name> already in use in Branch <branchId>` |
+| PATCH | `/cabins/:id` | sí | Renombra una Cabina; 200 con la Cabina; mismo 409; 404 si no existe o está dada de baja |
+| DELETE | `/cabins/:id` | sí | Da de baja la Cabina (marca `deletedAt`); 204; 404 si no existe o ya está dada de baja |
+
+- `CabinNameDto` (POST y PATCH): `{ name }`. Se guarda recortado; falta, queda vacío después de recortarlo, no es un string o tiene más de 60 caracteres → 400
+- El nombre es único por Sucursal entre las activas, sin distinguir mayúsculas (`name` en el 409 es el que mandó el cliente); se puede repetir en otra Sucursal y reusar el de una Cabina dada de baja. Renombrar una Cabina a su mismo nombre con otras mayúsculas es válido
+- Respuesta (`presentCabin`): `{ id, branchId, name }`
+- Pendiente (ticket "Reservar ocupa una Cabina"): `DELETE` responderá 409 si la Cabina tiene Turnos futuros
+
 ## Services (Servicio)
 
 | Método | Ruta | Auth | Qué hace |

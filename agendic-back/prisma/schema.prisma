@@ -106,6 +106,7 @@ model Branch {
   business Business      @relation(fields: [businessId], references: [id])
   services Service[]
   images   BranchImage[]
+  cabins   Cabin[]
 
   @@unique([businessId, slug]) // unique within its Negocio only, unlike Business.slug
 }
@@ -120,6 +121,18 @@ model BranchImage {
   branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
 
   @@index([branchId, order])
+}
+
+/// Cabina (ADR 0030): espacio o equipo de una Sucursal. The unique (branchId, lower(name)) among the active ones is written by hand in the migration.
+model Cabin {
+  id        Int       @id @default(autoincrement())
+  branchId  Int
+  name      String
+  deletedAt DateTime? @db.Timestamptz // set = dada de baja; the row stays as history
+
+  branch Branch @relation(fields: [branchId], references: [id])
+
+  @@index([branchId])
 }
 
 model Service {
