@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Booking } from '../../domain/bookings/booking';
+import { PanelBooking } from '../../domain/bookings/booking';
 import {
   BOOKINGS_REPOSITORY,
   BookingsRepository,
@@ -15,6 +15,7 @@ import {
 import { MAILER, Mailer } from '../../domain/mailer';
 import { ListSlotsUseCase } from '../slots/list-slots.use-case';
 import { notifyClients } from './notify-clients';
+import { pickCabin } from './pick-cabin';
 import { chosenEmployeeIdOf, pickEmployee } from './pick-employee';
 import { findOwnBookedBooking } from './find-own-booked-booking';
 
@@ -38,13 +39,13 @@ export class RescheduleBookingUseCase {
    *
    * @throws {NotFoundError} el Turno no existe
    * @throws {ForbiddenError} el Usuario no es el Empleado asignado al Turno
-   * @throws {BusinessRuleError} el Turno no está aceptado, o `startsAt` no es un Horario reservable de ningún Empleado, o del elegido, que además puede haber dejado de Ofrecer el Servicio (incluido un día que ya alcanzó el Límite diario)
+   * @throws {BusinessRuleError} el Turno no está aceptado, o `startsAt` no es un Horario reservable de ningún Empleado, o del elegido, que además puede haber dejado de Ofrecer el Servicio, o no queda una Cabina libre si el Servicio las admite (incluido un día que ya alcanzó el Límite diario)
    */
   async execute(
     userId: number,
     bookingId: number,
     startsAt: Date,
-  ): Promise<Booking> {
+  ): Promise<PanelBooking> {
     const booking = await findOwnBookedBooking(
       this.bookings,
       this.employees,
@@ -69,8 +70,16 @@ export class RescheduleBookingUseCase {
         chosenEmployeeId: chosenEmployeeIdOf(booking),
       },
     );
+    // The Empleado and the Cabina are resolved apart; the Turno's own tramo counts as free for both.
+    const cabinId = service
+      ? await pickCabin(this.bookings, service, startsAt, prepStartsAt, endsAt, {
+          excludeBookingId: bookingId,
+          keepCabinId: booking.cabinId ?? undefined,
+        })
+      : null;
     const rescheduled = await this.bookings.reschedule(bookingId, {
       ...attendant,
+      cabinId,
       prepStartsAt,
       startsAt,
       endsAt,

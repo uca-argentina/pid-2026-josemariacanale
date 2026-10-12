@@ -5,6 +5,7 @@ import {
   BookingStatus,
   ClientBooking,
   DAILY_LIMIT_REACHED,
+  PanelBooking,
   UserBooking,
 } from '../../domain/bookings/booking';
 import {
@@ -58,6 +59,16 @@ const BOOKING_SELECT = {
 } satisfies Prisma.BookingSelect;
 
 type BookingRow = Prisma.BookingGetPayload<{ select: typeof BOOKING_SELECT }>;
+
+/** `BOOKING_SELECT` plus the Cabina the panel shows, even once dada de baja. */
+const PANEL_BOOKING_SELECT = {
+  ...BOOKING_SELECT,
+  cabin: { select: { id: true, name: true } },
+} satisfies Prisma.BookingSelect;
+
+type PanelBookingRow = Prisma.BookingGetPayload<{
+  select: typeof PANEL_BOOKING_SELECT;
+}>;
 
 /** `BOOKING_SELECT` plus the Servicio, Negocio and Sucursal data the Enlace del Turno shows (ADR 0022). */
 const CLIENT_BOOKING_SELECT = {
@@ -274,15 +285,18 @@ export class PrismaBookingsRepository implements BookingsRepository {
     return rows.map(({ startsAt }) => startsAt);
   }
 
+  /**
+   * @throws {DatabaseOperationError} falló la base
+   */
   async listByBusiness(businessId: number) {
     return (
       await this.prisma.booking
         .findMany({
           where: { employee: { businessId } },
-          select: BOOKING_SELECT,
+          select: PANEL_BOOKING_SELECT,
         })
         .catch(translateError)
-    ).map(toBooking);
+    ).map(toPanelBooking);
   }
 
   /**
@@ -368,7 +382,7 @@ export class PrismaBookingsRepository implements BookingsRepository {
           OR: [{ employeeId: null }, { employee: { deletedAt: null } }],
         },
         select: {
-          ...BOOKING_SELECT,
+          ...PANEL_BOOKING_SELECT,
           service: {
             select: {
               name: true,
@@ -388,7 +402,7 @@ export class PrismaBookingsRepository implements BookingsRepository {
     return rows.map((row) => {
       const branch = row.service.branch;
       return {
-        ...toBooking(row),
+        ...toPanelBooking(row),
         serviceName: row.service.name,
         business: branch && branch.business,
         branch: branch && { id: branch.id, name: branch.name },
@@ -431,15 +445,22 @@ export class PrismaBookingsRepository implements BookingsRepository {
    */
   async reschedule(
     id: number,
-    { employeeId, userId, prepStartsAt, startsAt, endsAt }: Pick<Booking, 'employeeId' | 'userId' | 'prepStartsAt' | 'startsAt' | 'endsAt'>,
-  ) {
+    { employeeId, userId, cabinId, prepStartsAt, startsAt, endsAt }: Pick<
+      Booking,
+      'employeeId' | 'userId' | 'cabinId' | 'prepStartsAt' | 'startsAt' | 'endsAt'
+    >,
+  ): Promise<PanelBooking> {
     await this.updateStatus(
       id,
       [BookingStatus.BOOKED],
-      { employeeId, userId, prepStartsAt, startsAt, endsAt },
+      { employeeId, userId, cabinId, prepStartsAt, startsAt, endsAt },
       'Turno is not booked',
     );
-    return this.findById(id);
+    const row = await this.prisma.booking
+      .findUnique({ where: { id }, select: PANEL_BOOKING_SELECT })
+      .catch(translateError);
+    if (!row) throw new NotFoundError('Booking not found');
+    return toPanelBooking(row);
   }
 
   /**
@@ -449,15 +470,21 @@ export class PrismaBookingsRepository implements BookingsRepository {
    */
   async reschedulePendingOrBooked(
     id: number,
-    { employeeId, userId, prepStartsAt, startsAt, endsAt, status }: Pick<
+    { employeeId, userId, cabinId, prepStartsAt, startsAt, endsAt, status }: Pick<
       Booking,
-      'employeeId' | 'userId' | 'prepStartsAt' | 'startsAt' | 'endsAt' | 'status'
+      | 'employeeId'
+      | 'userId'
+      | 'cabinId'
+      | 'prepStartsAt'
+      | 'startsAt'
+      | 'endsAt'
+      | 'status'
     >,
   ) {
     await this.updateStatus(
       id,
       OCCUPYING,
-      { employeeId, userId, prepStartsAt, startsAt, endsAt, status },
+      { employeeId, userId, cabinId, prepStartsAt, startsAt, endsAt, status },
       'Turno is not pending or booked',
     );
     return this.findEnriched(id);
@@ -535,6 +562,12 @@ const toBooking = (row: BookingRow): Booking => ({
   employeeChosen: row.employeeChosen,
   depositAmount: row.depositAmount === null ? null : Number(row.depositAmount),
   depositPaidAt: row.depositPaidAt,
+});
+
+/** The Turno with its Cabina, for the panel. */
+const toPanelBooking = (row: PanelBookingRow): PanelBooking => ({
+  ...toBooking(row),
+  cabin: row.cabin,
 });
 
 /** 256 bits, URL-safe (ADR 0022 pide al menos 128). */

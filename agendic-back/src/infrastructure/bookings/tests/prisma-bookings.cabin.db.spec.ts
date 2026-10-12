@@ -116,6 +116,26 @@ describe('PrismaBookingsRepository, Cabinas (real database)', () => {
     await expect(book(1, laser, 14, 14.25, 15)).resolves.toMatchObject({ cabinId: laser });
   }, 60_000);
 
+  it('moves a Turno to another Cabina on reschedule and shows the Cabina by name in the panel, even once dada de baja', async () => {
+    const turno = await book(0, box, 5, 5, 6);
+    const at = (hours: number) => new Date(Date.UTC(2031, 0, 1) + hours * 3_600_000);
+
+    const moved = await repository.reschedule(turno.id, {
+      employeeId: null,
+      userId: userIds[0],
+      cabinId: laser,
+      prepStartsAt: at(7),
+      startsAt: at(7),
+      endsAt: at(8),
+    });
+
+    expect(moved).toMatchObject({ cabinId: laser, cabin: { id: laser, name: 'Láser' } });
+    await prisma.cabin.update({ where: { id: laser }, data: { deletedAt: new Date() } });
+    const mine = await repository.listByUser(userIds[0]);
+    expect(mine.find(({ id }) => id === turno.id)?.cabin).toEqual({ id: laser, name: 'Láser' });
+    await prisma.cabin.update({ where: { id: laser }, data: { deletedAt: null } });
+  }, 60_000);
+
   it('lists the occupied tramos of the Cabinas, counts the upcoming ones and finds when each last received a Turno', async () => {
     const from = new Date(Date.UTC(2031, 0, 1, 9));
     const to = new Date(Date.UTC(2031, 0, 1, 12));

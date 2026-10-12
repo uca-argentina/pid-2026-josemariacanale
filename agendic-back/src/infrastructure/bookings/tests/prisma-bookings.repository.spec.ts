@@ -389,7 +389,7 @@ describe('PrismaBookingsRepository', () => {
 
       await expect(repository.cancel(1)).rejects.toBeInstanceOf(BusinessRuleError);
       await expect(
-        repository.reschedule(1, { employeeId: 1, userId: 1, prepStartsAt: NOW, startsAt: NOW, endsAt: NOW }),
+        repository.reschedule(1, { employeeId: 1, userId: 1, cabinId: null, prepStartsAt: NOW, startsAt: NOW, endsAt: NOW }),
       ).rejects.toBeInstanceOf(BusinessRuleError);
     });
 
@@ -399,7 +399,7 @@ describe('PrismaBookingsRepository', () => {
       prisma.booking.updateMany.mockRejectedValue(cause);
 
       await expect(
-        repository.reschedule(1, { employeeId: 1, userId: 1, prepStartsAt: NOW, startsAt: NOW, endsAt: NOW }),
+        repository.reschedule(1, { employeeId: 1, userId: 1, cabinId: null, prepStartsAt: NOW, startsAt: NOW, endsAt: NOW }),
       ).rejects.toBeInstanceOf(ConflictError);
     });
 
@@ -442,12 +442,13 @@ describe('PrismaBookingsRepository', () => {
       prisma.booking.updateMany.mockResolvedValue({ count: 1 });
 
       await repository.cancel(1);
-      await repository.reschedule(1, { employeeId: 1, userId: 1, prepStartsAt: NOW, startsAt: NOW, endsAt: NOW });
+      await repository.reschedule(1, { employeeId: 1, userId: 1, cabinId: null, prepStartsAt: NOW, startsAt: NOW, endsAt: NOW });
       await repository.cancelPendingOrBooked(1);
       await repository.resolvePending(1, BookingStatus.REJECTED);
       await repository.reschedulePendingOrBooked(1, {
         employeeId: 1,
         userId: 1,
+        cabinId: null,
         prepStartsAt: NOW,
         startsAt: NOW,
         endsAt: NOW,

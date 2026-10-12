@@ -23,6 +23,7 @@ import {
   presentBooking,
   presentBookingForOwner,
   presentBookingWithNoShow,
+  presentPanelBooking,
   presentUserBooking,
 } from './booking.presenter';
 import {
@@ -138,7 +139,7 @@ export class BookingsController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: RescheduleBookingDto,
   ) {
-    return presentBooking(
+    return presentPanelBooking(
       await this.rescheduleBookingUseCase.execute(
         userId,
         id,

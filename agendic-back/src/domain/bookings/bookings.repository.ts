@@ -1,4 +1,10 @@
-import { Booking, BookingStatus, ClientBooking, UserBooking } from './booking';
+import {
+  Booking,
+  BookingStatus,
+  ClientBooking,
+  PanelBooking,
+  UserBooking,
+} from './booking';
 
 export const BOOKINGS_REPOSITORY = Symbol('BookingsRepository');
 
@@ -79,7 +85,7 @@ export interface BookingsRepository {
   ): Promise<Booking>;
   /** The Turno for its Enlace del Turno, in any status, with the data to show it (ADR 0022). Throws NotFoundError for an unknown link. */
   findByLink(link: string): Promise<ClientBooking>;
-  listByBusiness(businessId: number): Promise<Booking[]>;
+  listByBusiness(businessId: number): Promise<PanelBooking[]>;
   /** PENDING and BOOKED Turnos of this Usuario, personal or of any Negocio, whose [prepStartsAt, endsAt) overlaps [from, to), leaving out `excludeBookingId`. */
   listOccupiedByUser(
     userId: number,
@@ -96,17 +102,26 @@ export interface BookingsRepository {
   cancel(id: number): Promise<Booking>;
   /** As `cancel`, by Enlace del Turno (ADR 0022): also from PENDING. Throws BusinessRuleError if it is no longer pending or booked. */
   cancelPendingOrBooked(id: number): Promise<ClientBooking>;
-  /** Moves a BOOKED Booking to the new times, with the given Empleado and Usuario (the same or another). Throws BusinessRuleError if it is no longer BOOKED, ConflictError if it now overlaps another. */
+  /** Moves a BOOKED Booking to the new times, with the given Empleado, Usuario and Cabina (the same or another). Throws BusinessRuleError if it is no longer BOOKED, ConflictError if it now overlaps another. */
   reschedule(
     id: number,
-    times: Pick<Booking, 'employeeId' | 'userId' | 'prepStartsAt' | 'startsAt' | 'endsAt'>,
-  ): Promise<Booking>;
+    times: Pick<
+      Booking,
+      'employeeId' | 'userId' | 'cabinId' | 'prepStartsAt' | 'startsAt' | 'endsAt'
+    >,
+  ): Promise<PanelBooking>;
   /** As `reschedule`, by Enlace del Turno (ADR 0022): also from PENDING, and sets the new status (PENDING again with Aprobación manual). Throws BusinessRuleError if it is no longer pending or booked, ConflictError if it now overlaps another. */
   reschedulePendingOrBooked(
     id: number,
     times: Pick<
       Booking,
-      'employeeId' | 'userId' | 'prepStartsAt' | 'startsAt' | 'endsAt' | 'status'
+      | 'employeeId'
+      | 'userId'
+      | 'cabinId'
+      | 'prepStartsAt'
+      | 'startsAt'
+      | 'endsAt'
+      | 'status'
     >,
   ): Promise<ClientBooking>;
   /** Sets noShowAt on a BOOKED Booking whose endsAt has passed and has none yet. Throws BusinessRuleError otherwise. */

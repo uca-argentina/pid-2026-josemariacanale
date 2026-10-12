@@ -457,7 +457,7 @@ describe('Turno', () => {
         await t.http.post('/bookings').send(VALID_BOOKING).expect(201);
 
         expect(cabinOfCreatedBooking()).toBe(LASER.id);
-        expect(t.bookings.lastReceivedByCabin).toHaveBeenCalledWith([LASER.id]);
+        expect(t.bookings.lastReceivedByCabin).toHaveBeenCalledWith([LASER.id], undefined);
       });
 
       it('answers 422 when no Cabina is free, even with an Empleado free', async () => {
@@ -794,7 +794,7 @@ describe('Turno', () => {
       scriptSession(t);
       scriptOtherSession(t);
       t.businesses.findById.mockResolvedValue(ANAS_BUSINESS);
-      t.bookings.listByBusiness.mockResolvedValue([BOOKING]);
+      t.bookings.listByBusiness.mockResolvedValue([{ ...BOOKING, cabin: null }]);
     });
 
     it("lists every Turno of the Negocio, with the Cliente's name, email and status, for the Dueño", async () => {
@@ -812,15 +812,30 @@ describe('Turno', () => {
           endsAt: BOOKING.endsAt.toISOString(),
           status: BOOKING.status,
           notes: BOOKING.notes,
+          cabin: null,
           clientName: BOOKING.clientName,
           clientEmail: BOOKING.clientEmail,
         },
       ]);
     });
 
+    it('shows the Cabina each Turno occupies, by name even once dada de baja', async () => {
+      t.bookings.listByBusiness.mockResolvedValue([
+        { ...BOOKING, cabinId: 10, cabin: { id: 10, name: 'Box 1' } },
+      ]);
+
+      const res = await t.http
+        .get(`/businesses/${ANAS_BUSINESS.id}/bookings`)
+        .set(bearer(CLERK_TOKEN))
+        .expect(200);
+
+      expect(res.body[0].cabin).toEqual({ id: 10, name: 'Box 1' });
+      expect(res.body[0]).not.toHaveProperty('cabinId');
+    });
+
     it('shows a cascaded Turno as CANCELLED', async () => {
       t.bookings.listByBusiness.mockResolvedValue([
-        { ...BOOKING, status: BookingStatus.CANCELLED },
+        { ...BOOKING, status: BookingStatus.CANCELLED, cabin: null },
       ]);
 
       const res = await t.http

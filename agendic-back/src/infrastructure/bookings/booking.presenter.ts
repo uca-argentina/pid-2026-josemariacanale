@@ -1,4 +1,9 @@
-import { Booking, ClientBooking, UserBooking } from '../../domain/bookings/booking';
+import {
+  Booking,
+  ClientBooking,
+  PanelBooking,
+  UserBooking,
+} from '../../domain/bookings/booking';
 
 export const presentBooking = (booking: Booking) => ({
   id: booking.id,
@@ -10,9 +15,15 @@ export const presentBooking = (booking: Booking) => ({
   notes: booking.notes,
 });
 
-/** Adds what only the Dueño may see. */
-export const presentBookingForOwner = (booking: Booking) => ({
+/** The Turno with the Cabina it occupies (ADR 0030), for the panel; the Cliente never gets it. */
+export const presentPanelBooking = (booking: PanelBooking) => ({
   ...presentBooking(booking),
+  cabin: booking.cabin,
+});
+
+/** Adds what only the Dueño may see. */
+export const presentBookingForOwner = (booking: PanelBooking) => ({
+  ...presentPanelBooking(booking),
   clientName: booking.clientName,
   clientEmail: booking.clientEmail,
 });
@@ -36,6 +47,7 @@ export const presentUserBooking = (booking: UserBooking) => ({
   employeeChosen: booking.employeeChosen,
   depositAmount: booking.depositAmount,
   depositPaidAt: booking.depositPaidAt,
+  cabin: booking.cabin,
   serviceId: booking.serviceId,
   serviceName: booking.serviceName,
   business: booking.business,

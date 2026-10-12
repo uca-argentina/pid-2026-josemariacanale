@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Booking } from '../../domain/bookings/booking';
+import { PanelBooking } from '../../domain/bookings/booking';
 import {
   BOOKINGS_REPOSITORY,
   BookingsRepository,
@@ -18,7 +18,7 @@ export class ListBookingsByBusinessUseCase {
     @Inject(BOOKINGS_REPOSITORY) private readonly bookings: BookingsRepository,
   ) {}
 
-  async execute(userId: number, businessId: number): Promise<Booking[]> {
+  async execute(userId: number, businessId: number): Promise<PanelBooking[]> {
     assertOwner(await this.businesses.findById(businessId), userId);
     return this.bookings.listByBusiness(businessId);
   }

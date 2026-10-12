@@ -51,8 +51,14 @@ export const depositAmountFor = (
 /** Who to send an Aviso de cambio del Turno to: the Cliente's email and the Turno's Enlace del Turno. */
 export type ClientNotice = Pick<Booking, 'clientEmail' | 'link'>;
 
+/** A Turno as the panel shows it (ADR 0030): with the Cabina it occupies, which the Cliente never sees. */
+export interface PanelBooking extends Booking {
+  /** Still named once dada de baja; null in a Turno without Cabina. */
+  cabin: { id: number; name: string } | null;
+}
+
 /** A Turno as the Usuario who attends it sees it in Mis turnos (ADR 0023): with the names of where it happens. */
-export interface UserBooking extends Booking {
+export interface UserBooking extends PanelBooking {
   serviceName: string;
   /** Null in a Servicio personal, together with `branch`. */
   business: { id: number; name: string } | null;
