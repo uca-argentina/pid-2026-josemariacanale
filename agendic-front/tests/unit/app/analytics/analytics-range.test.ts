@@ -1,4 +1,4 @@
-import { businessSearch, filterSearch, parseBusinessFilters, parseRange, parseServiceId, presetRange, serviceSearch } from '@/app/(app)/analytics/_components/analytics-range';
+import { bookingsCsvQuery, businessSearch, filterSearch, parseBusinessFilters, parseRange, parseServiceId, presetRange, serviceSearch } from '@/app/(app)/analytics/_components/analytics-range';
 
 const today = '2026-10-12';
 
@@ -103,5 +103,29 @@ describe('filterSearch', () => {
 describe('businessSearch', () => {
     it('switches the Negocio and drops the filters of the previous one', () => {
         expect(businessSearch('?range=7d&businessId=4&branchId=2&serviceId=3&employeeId=5', 9)).toBe('?range=7d&businessId=9');
+    });
+});
+
+describe('bookingsCsvQuery', () => {
+    const businesses = [{ id: 4, isOwner: true }, { id: 9, isOwner: false }];
+
+    it('takes the range and the Servicio from the URL on the personal page', () => {
+        expect(bookingsCsvQuery(new URLSearchParams('range=7d&serviceId=3'), today)).toEqual({ from: '2026-10-06', to: today, serviceId: 3 });
+    });
+
+    it('falls back to the default range', () => {
+        expect(bookingsCsvQuery(new URLSearchParams(''), today)).toEqual({ from: '2026-09-13', to: today, serviceId: undefined });
+    });
+
+    it('takes the Negocio and its filters on the Negocio page', () => {
+        const params = new URLSearchParams('from=2026-10-01&to=2026-10-05&businessId=4&branchId=2&serviceId=3&employeeId=5');
+        expect(bookingsCsvQuery(params, today, businesses)).toEqual({
+            businessId: 4, from: '2026-10-01', to: '2026-10-05', branchId: 2, serviceId: 3, employeeId: 5,
+        });
+    });
+
+    it('drops employeeId for a non-owner', () => {
+        const params = new URLSearchParams('businessId=9&employeeId=5');
+        expect(bookingsCsvQuery(params, today, businesses)).toMatchObject({ businessId: 9, employeeId: undefined });
     });
 });

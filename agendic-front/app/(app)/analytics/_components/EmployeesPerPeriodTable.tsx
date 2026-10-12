@@ -11,17 +11,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ToggleGroup, ToggleGroupItem } from '@/app/_components/ui/toggle-group';
 import type { Granularity } from '@/src/entities/models/analytics';
 import { loadEmployeesPerPeriodAction, type EmployeesPerPeriodResult } from '../actions';
+import { downloadCsv } from './download-csv';
 import { employeesCsv, filterEmployees } from './employees-table';
 
 const GRANULARITIES: Record<Granularity, string> = { day: 'Por día', week: 'Por semana', month: 'Por mes' };
-
-/** Baja `csv` como `turnos-por-empleado.csv`; el BOM hace que Excel lo lea como UTF-8. */
-function download(csv: string) {
-    const url = URL.createObjectURL(new Blob(['﻿', csv], { type: 'text/csv;charset=utf-8' }));
-    const link = Object.assign(document.createElement('a'), { href: url, download: 'turnos-por-empleado.csv' });
-    link.click();
-    URL.revokeObjectURL(url);
-}
 
 /**
  * "Turnos por Empleado y período", solo del Dueño: un conteo por Empleado y bucket, con la agrupación (por semana al
@@ -79,7 +72,7 @@ export function EmployeesPerPeriodTable({
                         ))}
                     </ToggleGroup>
                     <Input type="search" size="sm" className="w-44" placeholder="Buscar Empleado" aria-label="Buscar Empleado" value={search} onChange={(event) => setSearch(event.target.value)} />
-                    <Button type="button" variant="outline" size="sm" disabled={!data} onClick={() => data && download(employeesCsv(data.labels, rows))}>
+                    <Button type="button" variant="outline" size="sm" disabled={!data} onClick={() => data && downloadCsv('turnos-por-empleado.csv', employeesCsv(data.labels, rows))}>
                         <Download /> Descargar CSV
                     </Button>
                 </div>

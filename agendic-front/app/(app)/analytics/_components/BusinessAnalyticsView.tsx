@@ -9,6 +9,7 @@ import type { Preferences } from '@/src/entities/models/user';
 import { loadBusinessAnalyticsAction, type BusinessAnalyticsData, type BusinessAnalyticsResult } from '../actions';
 import { BlocksSkeleton, EmployeeRanking, PopularServices, RecentRatings } from './AnalyticsBlocks';
 import {
+    bookingsCsvQuery,
     businessSearch,
     FILTER_NAMES,
     filterSearch,
@@ -20,6 +21,7 @@ import {
     type RangeChange,
 } from './analytics-range';
 import { BusinessSelect } from './BusinessSelect';
+import { DownloadBookingsCsvButton } from './DownloadBookingsCsvButton';
 import { EmployeesPerPeriodTable } from './EmployeesPerPeriodTable';
 import { IdFilter } from './IdFilter';
 import { KpiCards, KpiCardsSkeleton } from './KpiCards';
@@ -109,6 +111,7 @@ export function BusinessAnalyticsView({
                         <IdFilter label="Servicio" options={filters.services} selected={serviceId} onChange={changeFilter('serviceId')} />
                         {business?.isOwner && <IdFilter label="Empleado" options={filters.employees ?? []} selected={employeeId} onChange={changeFilter('employeeId')} />}
                         <RangeSelect range={range} weekStart={weekStart} onChange={changeRange} />
+                        {businessId && <DownloadBookingsCsvButton query={bookingsCsvQuery(searchParams, toIsoDay(new Date()), businesses)!} />}
                     </div>
                 )}
             </div>

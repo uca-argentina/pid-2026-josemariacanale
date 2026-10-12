@@ -19,7 +19,28 @@ export async function apiRequest(
     apiUrl: string | undefined,
     method: string,
     path: string,
-    { body, errors = {} }: { body?: unknown; errors?: ErrorByStatus } = {},
+    options: { body?: unknown; errors?: ErrorByStatus } = {},
+) {
+    return (await call(authenticationService, apiUrl, method, path, options)).json;
+}
+
+/** Como `apiRequest`, pero devuelve el cuerpo tal cual (para lo que no es JSON, como un CSV). */
+export async function apiRequestText(
+    authenticationService: IAuthenticationService,
+    apiUrl: string | undefined,
+    method: string,
+    path: string,
+    options: { body?: unknown; errors?: ErrorByStatus } = {},
+): Promise<string> {
+    return (await call(authenticationService, apiUrl, method, path, options)).text;
+}
+
+async function call(
+    authenticationService: IAuthenticationService,
+    apiUrl: string | undefined,
+    method: string,
+    path: string,
+    { body, errors = {} }: { body?: unknown; errors?: ErrorByStatus },
 ) {
     const what = `${method} ${path}`;
     if (!apiUrl) throw new ApiRequestError(`${what} failed: API_URL is not set`);
@@ -39,11 +60,18 @@ export async function apiRequest(
         throw new ApiRequestError(`${what} failed`, { cause });
     }
 
-    const json = await response.json().catch(() => undefined);
+    const text = await response.text().catch(() => '');
+    const json = (() => {
+        try {
+            return JSON.parse(text);
+        } catch {
+            return undefined;
+        }
+    })();
     const message = String(json?.message ?? `${what} responded ${response.status}`);
     if (response.status === 401) throw new UnauthenticatedError(message);
     const KnownError = errors[response.status];
     if (KnownError) throw new KnownError(message);
     if (!response.ok) throw new ApiRequestError(message, { status: response.status });
-    return json;
+    return { json, text };
 }

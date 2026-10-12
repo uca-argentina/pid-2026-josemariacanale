@@ -10,13 +10,14 @@ import {
     personalAnalyticsSchema,
     type AnalyticsBusiness,
     type AnalyticsQuery,
+    type BookingsCsvQuery,
     type BusinessAnalytics,
     type BusinessAnalyticsQuery,
     type EmployeesPerPeriod,
     type EmployeesPerPeriodQuery,
     type PersonalAnalytics,
 } from '@/src/entities/models/analytics';
-import { apiRequest } from './api-request';
+import { apiRequest, apiRequestText } from './api-request';
 
 /**
  * Analíticas del Usuario contra la API del back.
@@ -111,6 +112,24 @@ export class AnalyticsRepository implements IAnalyticsRepository {
             } catch (cause) {
                 throw new ApiRequestError(`GET ${path} responded with an unexpected body`, { cause });
             }
+        });
+    }
+
+    /**
+     * @throws {UnauthenticatedError} la API respondió 401
+     * @throws {InputParseError} la API respondió 400
+     * @throws {UnauthorizedError} la API respondió 403
+     * @throws {NotFoundError} la API respondió 404
+     * @throws {ApiRequestError} falla de red u otro status no-OK
+     */
+    async downloadBookingsCsv({ businessId, from, to, branchId, serviceId, employeeId }: BookingsCsvQuery): Promise<string> {
+        return this.instrumentationService.startSpan({ name: 'AnalyticsRepository > downloadBookingsCsv', op: 'http.client' }, async () => {
+            const params = new URLSearchParams({ from, to });
+            for (const [name, id] of Object.entries({ branchId, serviceId, employeeId })) if (id !== undefined) params.set(name, String(id));
+            const base = businessId === undefined ? '/analytics/personal' : `/analytics/businesses/${businessId}`;
+            return apiRequestText(this.authenticationService, this.apiUrl, 'GET', `${base}/bookings.csv?${params}`, {
+                errors: { 400: InputParseError, 403: UnauthorizedError, 404: NotFoundError },
+            });
         });
     }
 }

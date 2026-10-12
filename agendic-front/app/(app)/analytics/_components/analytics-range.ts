@@ -1,5 +1,6 @@
 import { addDays } from '@/app/_components/booking/format';
 import { toIsoDay, toLocalDay } from '@/app/_components/day-range';
+import type { BookingsCsvQuery } from '@/src/entities/models/analytics';
 
 /** Los presets del selector de rango, con su etiqueta, en el orden del menú. */
 export const RANGE_PRESETS = {
@@ -106,4 +107,15 @@ export function businessSearch(search: string, businessId: number): string {
     for (const name of FILTER_NAMES) params.delete(name);
     params.set('businessId', String(businessId));
     return `?${params}`;
+}
+
+/**
+ * Lo que pide el CSV de Turnos con el estado de la URL de cada página: sin `businesses` son los Servicios personales;
+ * con ellos, el Negocio elegido y sus filtros (`undefined` si no hay Negocio).
+ */
+export function bookingsCsvQuery(params: URLSearchParams, today: string, businesses?: { id: number; isOwner: boolean }[]): BookingsCsvQuery | undefined {
+    const { from, to } = parseRange(params, today);
+    if (!businesses) return { from, to, serviceId: parseServiceId(params) };
+    const { business, ...filters } = parseBusinessFilters(params, businesses);
+    return business && { businessId: business.id, from, to, ...filters };
 }

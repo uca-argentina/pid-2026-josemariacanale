@@ -6,8 +6,8 @@ import { SIGN_IN_PATH } from '@/app/routes';
 import { getInjection } from '@/di/container';
 import type { DI_RETURN_TYPES } from '@/di/types';
 import { UnauthorizedError } from '@/src/entities/errors/auth';
-import { NotFoundError } from '@/src/entities/errors/common';
-import type { AnalyticsQuery, BusinessAnalyticsQuery, EmployeesPerPeriodQuery } from '@/src/entities/models/analytics';
+import { InputParseError, NotFoundError } from '@/src/entities/errors/common';
+import type { AnalyticsQuery, BookingsCsvQuery, BusinessAnalyticsQuery, CsvFile, EmployeesPerPeriodQuery } from '@/src/entities/models/analytics';
 
 /** Lo que presenta el controller: tarjetas, gráfico, ranking, Calificaciones y Servicios del filtro. */
 export type PersonalAnalyticsData = Awaited<ReturnType<DI_RETURN_TYPES['IGetPersonalAnalyticsController']>>;
@@ -65,5 +65,23 @@ export async function loadEmployeesPerPeriodAction(query: EmployeesPerPeriodQuer
         if (isSessionExpired(error)) redirect(SIGN_IN_PATH);
         getInjection('ICrashReporterService').report(error);
         return { ok: false };
+    }
+}
+
+/** El archivo a bajar, o por qué no se pudo, ya en palabras para el toast. */
+export type DownloadBookingsCsvResult = { ok: true; file: CsvFile } | { ok: false; message: string };
+
+/** El CSV de Turnos del rango y los filtros de la página; por qué es una acción, ver `loadPersonalAnalyticsAction`. */
+export async function downloadBookingsCsvAction(query: BookingsCsvQuery): Promise<DownloadBookingsCsvResult> {
+    try {
+        return { ok: true, file: await getInjection('IDownloadBookingsCsvController')(query) };
+    } catch (error) {
+        unstable_rethrow(error);
+        if (isSessionExpired(error)) redirect(SIGN_IN_PATH);
+        if (error instanceof UnauthorizedError) return { ok: false, message: 'Solo los Empleados de este Negocio pueden descargar sus Turnos.' };
+        if (error instanceof NotFoundError) return { ok: false, message: 'No encontramos el Negocio o algo de lo que filtraste.' };
+        if (error instanceof InputParseError) return { ok: false, message: 'El rango no es válido.' };
+        getInjection('ICrashReporterService').report(error);
+        return { ok: false, message: 'No pudimos descargar los Turnos. Intentá de nuevo.' };
     }
 }
