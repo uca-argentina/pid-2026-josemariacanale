@@ -70,6 +70,7 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | Turno pendiente | `BookingStatus.PENDING` |
 | Aceptar turno | `accept` (`PENDING` → `BOOKED`) |
 | Rechazar turno | `reject` (`PENDING` → `REJECTED`) |
+| Turno reagendado (ADR 0031) | Reagendar cancela el Turno original (`Booking.rescheduled = true`, `status` `CANCELLED`, sin `Booking.link`) y crea uno nuevo con `Booking.fromRescheduleId` = id del original, que hereda el Enlace del Turno; `GET /users/me/bookings` trae `fromRescheduleId` y ni esa lista ni `GET /businesses/:id/bookings` devuelven los originales |
 | Ausencia | `Booking.noShowAt` (marcado a mano; no reemplaza `status`) |
 | Reservar | `book` |
 | Reagendar | `reschedule` (`RescheduleBookingUseCase`); por Enlace del Turno, `reschedulePendingOrBooked` (`RescheduleBookingByLinkUseCase`) |

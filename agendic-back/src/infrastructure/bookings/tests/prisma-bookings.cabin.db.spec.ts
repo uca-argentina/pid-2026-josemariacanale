@@ -128,12 +128,12 @@ describe('PrismaBookingsRepository, Cabinas (real database)', () => {
       prepStartsAt: at(7),
       startsAt: at(7),
       endsAt: at(8),
-    });
+    }, new Date());
 
     expect(moved).toMatchObject({ cabinId: laser, cabin: { id: laser, name: 'Láser' } });
     await prisma.cabin.update({ where: { id: laser }, data: { deletedAt: new Date() } });
     const mine = await repository.listByUser(userIds[0]);
-    expect(mine.find(({ id }) => id === turno.id)?.cabin).toEqual({ id: laser, name: 'Láser' });
+    expect(mine.find(({ id }) => id === moved.id)?.cabin).toEqual({ id: laser, name: 'Láser' });
     await prisma.cabin.update({ where: { id: laser }, data: { deletedAt: null } });
   }, 60_000);
 

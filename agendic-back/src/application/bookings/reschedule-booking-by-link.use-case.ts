@@ -8,6 +8,7 @@ import {
   SERVICES_REPOSITORY,
   ServicesRepository,
 } from '../../domain/services/services.repository';
+import { CLOCK, Clock } from '../../domain/clock';
 import { MAILER, Mailer } from '../../domain/mailer';
 import { ListSlotsUseCase } from '../slots/list-slots.use-case';
 import { notifyClients } from './notify-clients';
@@ -25,6 +26,7 @@ export class RescheduleBookingByLinkUseCase {
     @Inject(SERVICES_REPOSITORY) private readonly services: ServicesRepository,
     private readonly listSlots: ListSlotsUseCase,
     @Inject(MAILER) private readonly mailer: Mailer,
+    @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
   /**
@@ -40,6 +42,7 @@ export class RescheduleBookingByLinkUseCase {
       this.listSlots,
       booking,
       startsAt,
+      this.clock.now(),
     );
     await notifyClients([rescheduled], (email, noticeLink) =>
       this.mailer.sendBookingReschedule(email, noticeLink),

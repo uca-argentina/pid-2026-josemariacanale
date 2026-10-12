@@ -30,6 +30,7 @@ const BOOKED: Booking = {
   notes: null,
   noShowAt: null,
   link: 'booking-link-secret',
+  fromRescheduleId: null,
   employeeChosen: false,
   depositAmount: null,
   depositPaidAt: null,
@@ -99,6 +100,7 @@ describe('Mis turnos del Usuario', () => {
           clientEmail: 'carla@example.com',
           noShowAt: null,
           employeeChosen: false,
+          fromRescheduleId: null,
           depositAmount: null,
           depositPaidAt: null,
           cabin: { id: 10, name: 'Box 1' },
@@ -244,7 +246,7 @@ describe('Mis turnos del Usuario', () => {
         prepStartsAt: new Date('2026-01-02T14:45:00.000Z'),
         startsAt: new Date(NEW_START),
         endsAt: new Date('2026-01-02T15:30:00.000Z'),
-      });
+      }, expect.any(Date));
       expect(t.bookings.listOccupiedByUser).toHaveBeenCalledWith(
         ANAS_EMPLOYEE.id,
         expect.any(Date),
@@ -398,6 +400,7 @@ describe('Mis turnos del Usuario', () => {
             employeeId: ANAS_EMPLOYEE.id,
             cabinId: BOX.id,
           }),
+          expect.any(Date),
         );
       });
 
@@ -454,6 +457,7 @@ describe('Mis turnos del Usuario', () => {
         expect(t.bookings.reschedule).toHaveBeenCalledWith(
           BOOKED.id,
           expect.objectContaining({ employeeId: JUAN.id }),
+          expect.any(Date),
         );
       });
 
@@ -467,6 +471,7 @@ describe('Mis turnos del Usuario', () => {
         expect(t.bookings.reschedule).toHaveBeenCalledWith(
           BOOKED.id,
           expect.objectContaining({ employeeId: ANAS_EMPLOYEE.id }),
+          expect.any(Date),
         );
       });
 
@@ -485,6 +490,7 @@ describe('Mis turnos del Usuario', () => {
           expect(t.bookings.reschedule).toHaveBeenCalledWith(
             BOOKED.id,
             expect.objectContaining({ employeeId: ANAS_EMPLOYEE.id }),
+            expect.any(Date),
           );
         });
 

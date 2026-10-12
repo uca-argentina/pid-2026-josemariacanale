@@ -28,6 +28,7 @@ const BOOKED: Booking = {
   notes: null,
   noShowAt: null,
   link: LINK,
+  fromRescheduleId: null,
   employeeChosen: false,
   depositAmount: null,
   depositPaidAt: null,
@@ -362,7 +363,7 @@ describe('Enlace del Turno', () => {
         startsAt: new Date(NEW_START),
         endsAt: new Date('2026-01-02T15:30:00.000Z'),
         status: BookingStatus.BOOKED,
-      });
+      }, expect.any(Date));
       expect(res.body).toMatchObject({ id: BOOKED.id, startsAt: NEW_START });
       expect(t.mailer.sendBookingReschedule).toHaveBeenCalledWith(
         BOOKED.clientEmail,
@@ -495,6 +496,7 @@ describe('Enlace del Turno', () => {
       expect(t.bookings.reschedulePendingOrBooked).toHaveBeenCalledWith(
         BOOKED.id,
         expect.not.objectContaining({ depositPaidAt: expect.anything() }),
+        expect.any(Date),
       );
       expect(res.body).toMatchObject({
         status: 'PENDING',
@@ -524,6 +526,7 @@ describe('Enlace del Turno', () => {
       expect(t.bookings.reschedulePendingOrBooked).toHaveBeenCalledWith(
         BOOKED.id,
         expect.objectContaining({ status: BookingStatus.PENDING }),
+        expect.any(Date),
       );
     });
 
@@ -558,6 +561,7 @@ describe('Enlace del Turno', () => {
         expect(t.bookings.reschedulePendingOrBooked).toHaveBeenCalledWith(
           BOOKED.id,
           expect.objectContaining({ employeeId: ANAS_EMPLOYEE.id }),
+          expect.any(Date),
         );
       });
 
@@ -592,6 +596,7 @@ describe('Enlace del Turno', () => {
         expect(t.bookings.reschedulePendingOrBooked).toHaveBeenCalledWith(
           BOOKED.id,
           expect.objectContaining({ employeeId: JUAN.id }),
+          expect.any(Date),
         );
       });
     });

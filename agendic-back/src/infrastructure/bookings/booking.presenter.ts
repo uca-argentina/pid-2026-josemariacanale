@@ -45,6 +45,7 @@ export const presentUserBooking = (booking: UserBooking) => ({
   clientEmail: booking.clientEmail,
   noShowAt: booking.noShowAt,
   employeeChosen: booking.employeeChosen,
+  fromRescheduleId: booking.fromRescheduleId,
   depositAmount: booking.depositAmount,
   depositPaidAt: booking.depositPaidAt,
   cabin: booking.cabin,
