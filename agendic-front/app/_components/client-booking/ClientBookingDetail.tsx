@@ -117,7 +117,6 @@ export function ClientBookingDetail({
                     onMarked={(updated) => {
                         onUpdated(updated);
                         setMarkingNoShow(false);
-                        setNotice(`Marcaste que ${updated.employeeName} no vino.`);
                     }}
                 />
             )}

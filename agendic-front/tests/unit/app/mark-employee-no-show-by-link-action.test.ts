@@ -26,8 +26,13 @@ describe('markEmployeeNoShowByLinkAction', () => {
         await expect(markEmployeeNoShowByLinkAction('x')).resolves.toEqual({ ok: false, message: 'Este turno ya no existe.' });
     });
 
-    it('muestra los 422 como en Cancelar', async () => {
+    it('muestra cada 422 con su mensaje', async () => {
         mockController.mockRejectedValue(new BookingStateError('Employee no-show window closed'));
+        await expect(markEmployeeNoShowByLinkAction('x')).resolves.toEqual({ ok: false, message: 'Ya pasó el plazo para marcar la falta.' });
+    });
+
+    it('un 422 desconocido cae al mensaje genérico', async () => {
+        mockController.mockRejectedValue(new BookingStateError('algo nuevo'));
         await expect(markEmployeeNoShowByLinkAction('x')).resolves.toEqual({ ok: false, message: 'El turno ya no se puede cambiar.' });
     });
 
