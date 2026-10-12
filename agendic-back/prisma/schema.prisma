@@ -265,31 +265,35 @@ model OutOfOffice {
 }
 
 model Booking {
-  id             Int           @id @default(autoincrement())
-  serviceId      Int
-  employeeId     Int? // the Empleado of a Servicio del Negocio; null in a Servicio personal
-  userId         Int // the User who attends it: occupancy is per User, across Servicios personales and of any Negocio (ADR 0021)
-  cabinId        Int? // the Cabina it occupies from prepStartsAt (ADR 0030); null in a Servicio without Cabinas, and in Turnos taken before it admitted them
-  prepStartsAt   DateTime      @db.Timestamptz(3) // startsAt - Service.prepMinutes, fixed at booking: the attending User's agenda is held from here
-  startsAt       DateTime      @db.Timestamptz(3)
-  endsAt         DateTime      @db.Timestamptz(3) // startsAt + Service.durationMinutes, fixed at booking
-  status         BookingStatus // fijado al crear: BOOKED, o PENDING con Aprobación manual (ADR 0022)
-  notes          String? // Comentario del Turno, up to 500 characters (checked by the API)
-  noShowAt       DateTime?     @db.Timestamptz(3) // Ausencia: when the Empleado marked it; never replaces status
-  link           String        @unique // Enlace del Turno (ADR 0022): secret, random, URL-safe, generated at creation
-  employeeChosen Boolean       @default(false) // Empleado elegido (ADR 0026): the Cliente came in by this Empleado's Enlace de reserva; Reagendar never moves it to another
-  depositAmount  Decimal?      @db.Decimal(10, 2) // Seña pendiente: price × depositPercent / 100 at booking, rounded to the cent; null if the Servicio asked for none. Later changes to the Servicio don't touch it
-  depositPaidAt  DateTime?     @db.Timestamptz(3) // Pagar la Seña: when the Cliente paid it; null while pending
-  price          Decimal       @db.Decimal(10, 2) // the Servicio's price fixed at booking, like depositAmount; later changes to the Servicio don't touch it
-  cancelledAt    DateTime?     @db.Timestamptz(3) // Cancelar: when it was cancelled; only with status CANCELLED (CHECK, ADR 0004)
-  rejectedAt     DateTime?     @db.Timestamptz(3) // Rechazar turno: when it was rejected; only with status REJECTED (CHECK, ADR 0004)
-  createdAt      DateTime      @default(now()) @db.Timestamptz(3)
+  id               Int           @id @default(autoincrement())
+  serviceId        Int
+  employeeId       Int? // the Empleado of a Servicio del Negocio; null in a Servicio personal
+  userId           Int // the User who attends it: occupancy is per User, across Servicios personales and of any Negocio (ADR 0021)
+  cabinId          Int? // the Cabina it occupies from prepStartsAt (ADR 0030); null in a Servicio without Cabinas, and in Turnos taken before it admitted them
+  prepStartsAt     DateTime      @db.Timestamptz(3) // startsAt - Service.prepMinutes, fixed at booking: the attending User's agenda is held from here
+  startsAt         DateTime      @db.Timestamptz(3)
+  endsAt           DateTime      @db.Timestamptz(3) // startsAt + Service.durationMinutes, fixed at booking
+  status           BookingStatus // fijado al crear: BOOKED, o PENDING con Aprobación manual (ADR 0022)
+  notes            String? // Comentario del Turno, up to 500 characters (checked by the API)
+  noShowAt         DateTime?     @db.Timestamptz(3) // Ausencia: when the Empleado marked it; never replaces status
+  link             String?       @unique // Enlace del Turno (ADR 0022): secret, random, URL-safe, generated at creation; Reagendar moves it to the new Turno (ADR 0031), leaving null in the original
+  employeeChosen   Boolean       @default(false) // Empleado elegido (ADR 0026): the Cliente came in by this Empleado's Enlace de reserva; Reagendar never moves it to another
+  depositAmount    Decimal?      @db.Decimal(10, 2) // Seña pendiente: price × depositPercent / 100 at booking, rounded to the cent; null if the Servicio asked for none. Later changes to the Servicio don't touch it
+  depositPaidAt    DateTime?     @db.Timestamptz(3) // Pagar la Seña: when the Cliente paid it; null while pending
+  price            Decimal       @db.Decimal(10, 2) // the Servicio's price fixed at booking, like depositAmount; later changes to the Servicio don't touch it
+  cancelledAt      DateTime?     @db.Timestamptz(3) // Cancelar: when it was cancelled; only with status CANCELLED (CHECK, ADR 0004)
+  rejectedAt       DateTime?     @db.Timestamptz(3) // Rechazar turno: when it was rejected; only with status REJECTED (CHECK, ADR 0004)
+  rescheduled      Boolean? // Reagendar (ADR 0031): true only in the original, which stays CANCELLED; null otherwise
+  fromRescheduleId Int?          @unique // the original Turno this one replaced; null if it was not born from a Reagendar
+  createdAt        DateTime      @default(now()) @db.Timestamptz(3)
 
-  service  Service   @relation(fields: [serviceId], references: [id])
-  employee Employee? @relation(fields: [employeeId], references: [id])
-  user     User      @relation(fields: [userId], references: [id])
-  cabin    Cabin?    @relation(fields: [cabinId], references: [id])
-  client   Client?
+  service        Service   @relation(fields: [serviceId], references: [id])
+  employee       Employee? @relation(fields: [employeeId], references: [id])
+  user           User      @relation(fields: [userId], references: [id])
+  cabin          Cabin?    @relation(fields: [cabinId], references: [id])
+  client         Client?
+  fromReschedule Booking?  @relation("Reschedule", fields: [fromRescheduleId], references: [id])
+  rescheduledTo  Booking?  @relation("Reschedule")
 }
 
 /// Cliente (ADR 0022): una fila por Turno, con el nombre con el que se reservó; el mismo email en tres Turnos son tres filas.

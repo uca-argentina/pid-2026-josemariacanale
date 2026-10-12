@@ -393,19 +393,6 @@ describe('PrismaBookingsRepository', () => {
       prisma.booking.updateMany.mockResolvedValue({ count: 0 });
 
       await expect(repository.cancel(1, CANCEL_NOW)).rejects.toBeInstanceOf(BusinessRuleError);
-      await expect(
-        repository.reschedule(1, { employeeId: 1, userId: 1, cabinId: null, prepStartsAt: NOW, startsAt: NOW, endsAt: NOW }),
-      ).rejects.toBeInstanceOf(BusinessRuleError);
-    });
-
-    it('translates the overlap exclusion violation into ConflictError on reschedule', async () => {
-      const cause = knownError('P2039');
-      cause.meta = { driverAdapterError: { cause: { originalCode: '23P01' } } };
-      prisma.booking.updateMany.mockRejectedValue(cause);
-
-      await expect(
-        repository.reschedule(1, { employeeId: 1, userId: 1, cabinId: null, prepStartsAt: NOW, startsAt: NOW, endsAt: NOW }),
-      ).rejects.toBeInstanceOf(ConflictError);
     });
 
     it('markNoShow requires an ended Turno without an Ausencia', async () => {
@@ -442,23 +429,13 @@ describe('PrismaBookingsRepository', () => {
       });
     });
 
-    it('cancel, reject and reschedule leave depositPaidAt as it was', async () => {
+    it('cancel and reject leave depositPaidAt as it was', async () => {
       jest.spyOn(repository as never, 'findEnriched').mockResolvedValue({} as never);
       prisma.booking.updateMany.mockResolvedValue({ count: 1 });
 
       await repository.cancel(1, CANCEL_NOW);
-      await repository.reschedule(1, { employeeId: 1, userId: 1, cabinId: null, prepStartsAt: NOW, startsAt: NOW, endsAt: NOW });
       await repository.cancelPendingOrBooked(1, CANCEL_NOW);
       await repository.resolvePending(1, BookingStatus.REJECTED, CANCEL_NOW);
-      await repository.reschedulePendingOrBooked(1, {
-        employeeId: 1,
-        userId: 1,
-        cabinId: null,
-        prepStartsAt: NOW,
-        startsAt: NOW,
-        endsAt: NOW,
-        status: BookingStatus.PENDING,
-      });
 
       for (const [{ data }] of prisma.booking.updateMany.mock.calls)
         expect(data).not.toHaveProperty('depositPaidAt');

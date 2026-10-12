@@ -146,7 +146,7 @@ describe('PrismaBookingsRepository (real database)', () => {
         status: BookingStatus.BOOKED,
       });
 
-      const found = await repository.findByLink(created.link);
+      const found = await repository.findByLink(created.link!);
 
       expect(found).toMatchObject({
         timeZone: 'America/Argentina/Buenos_Aires',
@@ -213,7 +213,7 @@ describe('PrismaBookingsRepository (real database)', () => {
         status: BookingStatus.BOOKED,
       });
 
-      const found = await repository.findByLink(created.link);
+      const found = await repository.findByLink(created.link!);
 
       expect(found.id).toBe(created.id);
       expect(found.user).toEqual({ slug: `${tag}-link` });
@@ -226,7 +226,7 @@ describe('PrismaBookingsRepository (real database)', () => {
         where: { id: serviceId },
         data: { deletedAt: new Date(), availabilityId: null },
       });
-      const afterRetire = await repository.findByLink(created.link);
+      const afterRetire = await repository.findByLink(created.link!);
       expect(afterRetire.timeZone).toBe('America/Argentina/Buenos_Aires');
     } finally {
       await prisma.booking.deleteMany({ where: { userId: linkUserId } });

@@ -44,6 +44,12 @@ export interface CabinOccupancy {
   endsAt: Date;
 }
 
+/** What Reagendar changes of a Turno: who attends it, where, and when. */
+export type RescheduleTimes = Pick<
+  Booking,
+  'employeeId' | 'userId' | 'cabinId' | 'prepStartsAt' | 'startsAt' | 'endsAt'
+>;
+
 export interface BookingsRepository {
   /**
    * Crea el Turno ya BOOKED o PENDING. Con `dailyLimit`, cuenta y crea serializado por Servicio (advisory lock), así
@@ -111,27 +117,15 @@ export interface BookingsRepository {
   cancel(id: number, now: Date): Promise<Booking>;
   /** As `cancel`, by Enlace del Turno (ADR 0022): also from PENDING. Throws BusinessRuleError if it is no longer pending or booked. */
   cancelPendingOrBooked(id: number, now: Date): Promise<ClientBooking>;
-  /** Moves a BOOKED Booking to the new times, with the given Empleado, Usuario and Cabina (the same or another). Throws BusinessRuleError if it is no longer BOOKED, ConflictError if it now overlaps another. */
-  reschedule(
-    id: number,
-    times: Pick<
-      Booking,
-      'employeeId' | 'userId' | 'cabinId' | 'prepStartsAt' | 'startsAt' | 'endsAt'
-    >,
-  ): Promise<PanelBooking>;
+  /**
+   * Reagendar (ADR 0031): cancels the BOOKED Turno as rescheduled (`cancelledAt` = `now`) and creates the one at the new times, with the given Empleado, Usuario and Cabina, in one transaction. The new Turno takes the Enlace del Turno and copies the Cliente, Comentario, Empleado elegido, price and Seña. Returns the new Turno. Throws BusinessRuleError if it is no longer BOOKED, ConflictError if it now overlaps another.
+   */
+  reschedule(id: number, times: RescheduleTimes, now: Date): Promise<PanelBooking>;
   /** As `reschedule`, by Enlace del Turno (ADR 0022): also from PENDING, and sets the new status (PENDING again with Aprobación manual). Throws BusinessRuleError if it is no longer pending or booked, ConflictError if it now overlaps another. */
   reschedulePendingOrBooked(
     id: number,
-    times: Pick<
-      Booking,
-      | 'employeeId'
-      | 'userId'
-      | 'cabinId'
-      | 'prepStartsAt'
-      | 'startsAt'
-      | 'endsAt'
-      | 'status'
-    >,
+    times: RescheduleTimes & Pick<Booking, 'status'>,
+    now: Date,
   ): Promise<ClientBooking>;
   /** Sets noShowAt on a BOOKED Booking whose endsAt has passed and has none yet. Throws BusinessRuleError otherwise. */
   markNoShow(id: number, now: Date): Promise<Booking>;

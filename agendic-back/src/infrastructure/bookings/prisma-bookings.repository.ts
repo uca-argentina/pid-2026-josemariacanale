@@ -14,6 +14,7 @@ import {
   CabinOccupancy,
   CreateBookingData,
   DailyLimitGuard,
+  RescheduleTimes,
 } from '../../domain/bookings/bookings.repository';
 import {
   BusinessRuleError,
@@ -53,6 +54,7 @@ const BOOKING_SELECT = {
   notes: true,
   noShowAt: true,
   link: true,
+  fromRescheduleId: true,
   employeeChosen: true,
   depositAmount: true,
   depositPaidAt: true,
@@ -296,7 +298,7 @@ export class PrismaBookingsRepository implements BookingsRepository {
     return (
       await this.prisma.booking
         .findMany({
-          where: { employee: { businessId } },
+          where: { employee: { businessId }, rescheduled: null },
           select: PANEL_BOOKING_SELECT,
         })
         .catch(translateError)
@@ -430,6 +432,7 @@ export class PrismaBookingsRepository implements BookingsRepository {
       .findMany({
         where: {
           userId,
+          rescheduled: null,
           // A Negocio that dio de baja the Usuario no longer shows its Turnos to them.
           OR: [{ employeeId: null }, { employee: { deletedAt: null } }],
         },
@@ -491,28 +494,28 @@ export class PrismaBookingsRepository implements BookingsRepository {
   }
 
   /**
+   * Reagenda reemplazando el Turno (ADR 0031): el original queda cancelado y el nuevo, en el horario nuevo, lleva su Enlace.
+   *
    * @throws {BusinessRuleError} el Turno ya no está aceptado
    * @throws {ConflictError} el nuevo horario pisa otro Turno pendiente o aceptado del Empleado
    * @throws {NotFoundError} el Turno no existe
    */
   async reschedule(
     id: number,
-    { employeeId, userId, cabinId, prepStartsAt, startsAt, endsAt }: Pick<
-      Booking,
-      'employeeId' | 'userId' | 'cabinId' | 'prepStartsAt' | 'startsAt' | 'endsAt'
-    >,
+    times: RescheduleTimes,
+    now: Date,
   ): Promise<PanelBooking> {
-    await this.updateStatus(
+    const newId = await this.replace(
       id,
       [BookingStatus.BOOKED],
-      { employeeId, userId, cabinId, prepStartsAt, startsAt, endsAt },
+      { ...times, status: BookingStatus.BOOKED },
+      now,
       'Turno is not booked',
     );
     const row = await this.prisma.booking
-      .findUnique({ where: { id }, select: PANEL_BOOKING_SELECT })
+      .findUnique({ where: { id: newId }, select: PANEL_BOOKING_SELECT })
       .catch(translateError);
-    if (!row) throw new NotFoundError('Booking not found');
-    return toPanelBooking(row);
+    return toPanelBooking(row!);
   }
 
   /**
@@ -522,24 +525,12 @@ export class PrismaBookingsRepository implements BookingsRepository {
    */
   async reschedulePendingOrBooked(
     id: number,
-    { employeeId, userId, cabinId, prepStartsAt, startsAt, endsAt, status }: Pick<
-      Booking,
-      | 'employeeId'
-      | 'userId'
-      | 'cabinId'
-      | 'prepStartsAt'
-      | 'startsAt'
-      | 'endsAt'
-      | 'status'
-    >,
+    times: RescheduleTimes & Pick<Booking, 'status'>,
+    now: Date,
   ) {
-    await this.updateStatus(
-      id,
-      OCCUPYING,
-      { employeeId, userId, cabinId, prepStartsAt, startsAt, endsAt, status },
-      'Turno is not pending or booked',
+    return this.findEnriched(
+      await this.replace(id, OCCUPYING, times, now, 'Turno is not pending or booked'),
     );
-    return this.findEnriched(id);
   }
 
   /**
@@ -572,6 +563,65 @@ export class PrismaBookingsRepository implements BookingsRepository {
       { startsAt: { gt: now }, depositAmount: { not: null }, depositPaidAt: null },
     );
     return this.findEnriched(id);
+  }
+
+  /**
+   * Cancels the Turno as rescheduled and creates its replacement in one transaction, so a failed creation leaves the
+   * original untouched. The new Turno takes over the Enlace del Turno (unique, so the original lets go of it first)
+   * and copies what the Cliente gave and paid. Returns the new id.
+   */
+  private async replace(
+    id: number,
+    fromStatuses: BookingStatus[],
+    times: RescheduleTimes & Pick<Booking, 'status'>,
+    now: Date,
+    message: string,
+  ): Promise<number> {
+    return this.prisma
+      .$transaction(async (tx) => {
+        const original = await tx.booking.findUnique({
+          where: { id },
+          select: {
+            serviceId: true,
+            link: true,
+            notes: true,
+            employeeChosen: true,
+            price: true,
+            depositAmount: true,
+            depositPaidAt: true,
+            // Kept so the rotation of Empleados and Cabinas ("el que hace más tiempo que no recibe un Turno") ignores a Reagendar.
+            createdAt: true,
+            client: { select: { name: true, email: true } },
+          },
+        });
+        if (!original) throw new NotFoundError(`Booking ${id} not found`);
+        const { count } = await tx.booking.updateMany({
+          where: { id, status: { in: fromStatuses } },
+          data: {
+            status: BookingStatus.CANCELLED,
+            cancelledAt: now,
+            rescheduled: true,
+            link: null,
+          },
+        });
+        if (count === 0) throw new BusinessRuleError(message);
+        const { client, ...copied } = original;
+        const created = await tx.booking.create({
+          select: { id: true },
+          data: {
+            ...copied,
+            ...times,
+            fromRescheduleId: id,
+            client: { create: { name: client!.name, email: client!.email } },
+          },
+        });
+        return created.id;
+      })
+      .catch((error: unknown) =>
+        error instanceof BusinessRuleError || error instanceof NotFoundError
+          ? Promise.reject(error)
+          : translateError(error),
+      );
   }
 
   /** Applies `data` only while the Turno is still one of `fromStatuses` (and matches `extraWhere`), so a race can't resurrect it. */
@@ -611,6 +661,7 @@ const toBooking = (row: BookingRow): Booking => ({
   notes: row.notes,
   noShowAt: row.noShowAt,
   link: row.link,
+  fromRescheduleId: row.fromRescheduleId,
   employeeChosen: row.employeeChosen,
   depositAmount: row.depositAmount === null ? null : Number(row.depositAmount),
   depositPaidAt: row.depositPaidAt,
