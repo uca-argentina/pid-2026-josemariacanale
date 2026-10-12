@@ -13,12 +13,17 @@ import { BookingFlow } from '@/app/_components/booking/BookingFlow';
 import { ServiceCard } from '@/app/_components/booking/ServiceCard';
 import { initials } from '@/app/_components/booking/format';
 import type { Service } from '@/app/_components/booking/types';
+import { BranchGalleryModal } from './BranchGalleryModal';
+import { galleryLayout } from './gallery-layout';
+import { ShareBranchButton } from './ShareBranchButton';
 import type { Branch, BranchImage, Business, Employee, OtherBranch } from './types';
 
 /**
  * Página pública de la Sucursal. Muestra solo las Categorías que la Sucursal ofrece, en el orden del enum. La primera
- * Imagen es la portada, la del resumen y la de la reserva; desde md se ven la portada y hasta dos más al costado, en
- * mobile solo la portada.
+ * Imagen es la portada, la del resumen y la de la reserva; desde md el mosaico suma al costado lo que arma
+ * `galleryLayout`, en mobile solo la portada; con dos o más, "Ver todas las fotos" y cada foto del mosaico abren el
+ * modal de la galería, cuyo estado vive en memoria y no en la URL. Compartir usa siempre el Enlace de reserva de la
+ * Sucursal, aunque se haya entrado por el de un Servicio.
  */
 export function BranchPublicPage({
     business,
@@ -45,7 +50,6 @@ export function BranchPublicPage({
     const [category, setCategory] = useState<ServiceCategoryValue | undefined>(categories[0]?.value);
     const [initialService, setInitialService] = useState<Service | null>(selectedService);
     const [flowOpen, setFlowOpen] = useState(selectedService !== null);
-    const [allImagesOpen, setAllImagesOpen] = useState(false);
 
     const bookable =
         selectedService && !services.some((s) => s.id === selectedService.id) ? [...services, selectedService] : services;
@@ -58,22 +62,30 @@ export function BranchPublicPage({
 
     const shown = services.filter((s) => s.category === category);
     const cover = images[0]?.url;
-    const sideImages = images.slice(1, 3);
-    const hasSide = sideImages.length > 0;
+    const gallery = galleryLayout(images.length);
+    const sideImages = gallery.mosaic.side.map((index) => images[index]);
+    const [galleryOpen, setGalleryOpen] = useState(false);
+    const openGallery = () => setGalleryOpen(true);
 
     return (
         <>
             <div className="mx-auto w-full max-w-[1400px] flex-1 px-4 pb-20 sm:px-8 lg:px-16">
                 <header className="pt-6 pb-7">
-                    <Avatar className="mb-4 size-16">
-                        {business.logoUrl && <AvatarImage src={business.logoUrl} alt={`Logo de ${business.name}`} />}
-                        <AvatarFallback className="bg-foreground text-[20px] font-extrabold text-white">
-                            {initials(business.name)}
-                        </AvatarFallback>
-                    </Avatar>
-                    <h1 className="text-[40px] leading-[1.05] font-extrabold tracking-[-0.03em] sm:text-[52px]">
-                        {business.name}
-                    </h1>
+                    <div className="flex items-center gap-4">
+                        <Avatar className="size-14 shrink-0">
+                            {business.logoUrl && <AvatarImage src={business.logoUrl} alt={`Logo de ${business.name}`} />}
+                            <AvatarFallback className="bg-foreground text-[18px] font-extrabold text-white">
+                                {initials(business.name)}
+                            </AvatarFallback>
+                        </Avatar>
+                        <h1 className="min-w-0 flex-1 text-[32px] leading-[1.05] font-extrabold tracking-[-0.03em] break-words sm:text-[52px]">
+                            {business.name}
+                        </h1>
+                        <ShareBranchButton
+                            path={bookingLinkPath(business.slug, branch.slug)}
+                            title={`${business.name} · ${branch.name}`}
+                        />
+                    </div>
                     <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-[14.5px] font-medium text-muted-foreground">
                         <span className="flex items-center gap-1.5">
                             <Building2 className="size-4" />
@@ -86,50 +98,66 @@ export function BranchPublicPage({
                     </div>
                 </header>
 
-                {/* Sin Imágenes no hay galería: la página arranca directo en los Servicios. */}
                 {cover && (
                     <section aria-label="Fotos de la sucursal">
-                        <div className={`grid gap-3 ${hasSide ? 'md:grid-cols-[2fr_1fr]' : ''}`}>
+                        <div className="grid gap-3 md:grid-cols-[2fr_1fr]">
                             <div className="relative aspect-[4/3] overflow-hidden rounded-2xl md:aspect-auto md:min-h-[420px]">
                                 <BranchPhoto
                                     src={cover}
                                     alt={`Sucursal ${branch.name} de ${business.name}`}
                                     priority
-                                    sizes={hasSide ? '(max-width: 768px) 100vw, 66vw' : '100vw'}
+                                    sizes="(max-width: 768px) 100vw, 66vw"
                                 />
-                                {/* Solo cuando quedan Imágenes sin ver: en mobile desde la segunda, desde md desde la cuarta. */}
-                                {images.length > 1 && (
+                                {gallery.showAll && (
+                                    <button
+                                        type="button"
+                                        onClick={openGallery}
+                                        aria-label="Ver la portada en la galería"
+                                        className="absolute inset-0 cursor-zoom-in"
+                                    />
+                                )}
+                                {gallery.showAll && (
                                     <Button
+                                        type="button"
                                         variant="outline"
-                                        onClick={() => setAllImagesOpen((open) => !open)}
-                                        aria-expanded={allImagesOpen}
-                                        className={`absolute right-4 bottom-4 h-auto gap-1.5 rounded-full bg-white px-3.5 py-2 text-[13px] font-bold shadow-sm ${images.length <= 3 ? 'md:hidden' : ''}`}
+                                        onClick={openGallery}
+                                        className="absolute right-4 bottom-4 h-auto gap-1.5 rounded-full bg-white px-3.5 py-2 text-[13px] font-bold shadow-sm"
                                     >
                                         <Images className="size-4" />
-                                        {allImagesOpen ? 'Ver menos fotos' : 'Ver todas las fotos'}
+                                        Ver todas las fotos
                                     </Button>
                                 )}
                             </div>
-                            {hasSide && (
-                                <div className={`hidden gap-3 md:grid ${sideImages.length > 1 ? 'grid-rows-2' : 'grid-rows-1'}`}>
-                                    {sideImages.map((image) => (
-                                        <div key={image.id} className="relative overflow-hidden rounded-2xl">
+                            <div className={`hidden gap-3 md:grid ${sideImages.length > 1 ? 'grid-rows-2' : 'grid-rows-1'}`}>
+                                {sideImages.map((image, position) =>
+                                    gallery.showAll ? (
+                                        <button
+                                            key={`${image.id}-${position}`}
+                                            type="button"
+                                            onClick={openGallery}
+                                            aria-label="Ver la foto en la galería"
+                                            className="relative cursor-zoom-in overflow-hidden rounded-2xl"
+                                        >
+                                            <BranchPhoto src={image.url} sizes="33vw" />
+                                        </button>
+                                    ) : (
+                                        <div key={`${image.id}-${position}`} className="relative overflow-hidden rounded-2xl">
                                             <BranchPhoto src={image.url} sizes="33vw" />
                                         </div>
-                                    ))}
-                                </div>
-                            )}
+                                    ),
+                                )}
+                            </div>
                         </div>
-                        {allImagesOpen && (
-                            <ul className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-3">
-                                {images.map((image) => (
-                                    <li key={image.id} className="relative aspect-[4/3] overflow-hidden rounded-2xl">
-                                        <BranchPhoto src={image.url} sizes="(max-width: 768px) 50vw, 33vw" />
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
                     </section>
+                )}
+                {gallery.showAll && (
+                    <BranchGalleryModal
+                        open={galleryOpen}
+                        onOpenChange={setGalleryOpen}
+                        businessName={business.name}
+                        branchName={branch.name}
+                        images={images}
+                    />
                 )}
 
                 <div className="mt-12 grid items-start gap-10 lg:grid-cols-[1fr_360px]">

@@ -1,20 +1,33 @@
-import { ChartAreaInteractive } from './_components/ChartAreaInteractive';
-import { DataTable } from './_components/DataTable';
-import { SectionCards } from './_components/SectionCards';
-import { services } from './_components/mock-analytics';
+import { redirect, unstable_rethrow } from 'next/navigation';
+import { getCurrentUser } from '@/app/(public)/(auth)/current-user';
+import { isSessionExpired } from '@/app/api-error';
+import { BackendErrorNotice } from '@/app/_components/BackendErrorNotice';
+import { SIGN_IN_PATH } from '@/app/routes';
+import { getInjection } from '@/di/container';
+import { myPreferences } from '../my-preferences';
+import { AnalyticsView } from './_components/AnalyticsView';
 
 export const metadata = { title: 'Analíticas' };
 
-/** Cómo se vería un tablero de analíticas del Negocio: el contenido del bloque `dashboard-01`, con datos de ejemplo. */
-export default function AnalyticsPage() {
+/** Analíticas del Usuario con Sesión: las de sus Servicios personales y las de cada Negocio del que es Empleado. */
+export default async function AnalyticsPage() {
+    const user = await getCurrentUser();
+    if (!user) redirect(SIGN_IN_PATH);
+    let businesses;
+    try {
+        businesses = await getInjection('IListAnalyticsBusinessesController')();
+    } catch (error) {
+        unstable_rethrow(error);
+        if (isSessionExpired(error)) redirect(SIGN_IN_PATH);
+        getInjection('ICrashReporterService').report(error);
+        return <BackendErrorNotice />;
+    }
+
     return (
-        <div className="flex flex-1 flex-col gap-4 py-4 text-[#0f1b2d] @3xl/main:gap-6 @3xl/main:py-6">
-            <h1 className="m-0 px-4 text-[21px] font-extrabold tracking-[-0.035em] lg:px-6">Analíticas</h1>
-            <SectionCards />
-            <div className="px-4 lg:px-6">
-                <ChartAreaInteractive />
-            </div>
-            <DataTable data={services} />
-        </div>
+        <AnalyticsView
+            user={{ name: user.name, imageUrl: user.imageUrl ?? null }}
+            businesses={businesses}
+            weekStart={(await myPreferences()).weekStart}
+        />
     );
 }

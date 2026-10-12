@@ -1,4 +1,4 @@
-import { canPayDeposit, hasPendingDeposit } from '@/app/_components/client-booking/client-booking-helpers';
+import { canPayDeposit, hasPendingDeposit, ratingSection } from '@/app/_components/client-booking/client-booking-helpers';
 import type { ClientBooking } from '@/app/_components/client-booking/types';
 
 const NOW = Date.parse('2026-10-10T10:00:00.000Z');
@@ -35,5 +35,18 @@ describe('canPayDeposit', () => {
         expect(canPayDeposit(booking({ status: 'CANCELLED' }), NOW)).toBe(false);
         expect(canPayDeposit(booking({ status: 'REJECTED' }), NOW)).toBe(false);
         expect(canPayDeposit(booking({ startsAt: '2026-10-10T09:00:00.000Z' }), NOW)).toBe(false);
+    });
+});
+
+describe('ratingSection', () => {
+    const rating = { score: 4, comment: null, createdAt: '2026-10-10T14:00:00.000Z' };
+
+    it('muestra el formulario solo con canRate', () => {
+        expect(ratingSection(booking({ canRate: true, rating: null }))).toBe('form');
+        expect(ratingSection(booking({ canRate: false, rating: null }))).toBeNull();
+    });
+
+    it('muestra la Calificación en solo lectura cuando hay rating', () => {
+        expect(ratingSection(booking({ canRate: false, rating }))).toBe('readonly');
     });
 });

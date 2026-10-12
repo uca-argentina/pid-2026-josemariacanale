@@ -26,6 +26,9 @@ export const placeOf = (b: Booking) => (b.business && b.branch ? `${b.business.n
 /** La Cabina que ocupa el Turno, o null si no ocupa ninguna: en ese caso no se muestra nada. */
 export const cabinOf = (b: Booking) => b.cabin?.name ?? null;
 
+/** El Empleado puede marcar la Ausencia: el Turno no tiene ya una Ausencia ni una Falta del Empleado (se excluyen, ADR 0004). */
+export const canMarkNoShow = (b: Booking) => b.noShowAt === null && b.employeeNoShowAt === null;
+
 export const isClosed = (b: Booking) => b.status === 'CANCELLED' || b.status === 'REJECTED';
 
 /** Un Turno pendiente o aceptado cuya Seña todavía no se pagó. */
@@ -115,4 +118,20 @@ export function matches(b: Booking, filters: BookingFilter[]) {
         if (!wanted) return true;
         return f.op === 'is' ? actual.toLowerCase() === wanted : actual.toLowerCase().includes(wanted);
     });
+}
+
+const RED = 'bg-[#fdecec] text-[#b91c1c]';
+const AMBER = 'bg-[#fff4e5] text-[#b45309]';
+
+/** Los badges de un Turno en la lista; `Reagendado` marca al que reemplazó a otro (ADR 0031). */
+export function badgesOf(b: Booking): { label: string; className: string }[] {
+    return [
+        b.status === 'PENDING' && { label: 'Pendiente', className: AMBER },
+        hasPendingDeposit(b) && { label: 'Seña pendiente', className: AMBER },
+        b.status === 'BOOKED' && b.noShowAt !== null && { label: 'Ausencia', className: RED },
+        b.status === 'BOOKED' && b.employeeNoShowAt !== null && { label: 'Falta del Empleado', className: RED },
+        b.fromRescheduleId !== null && { label: 'Reagendado', className: AMBER },
+        b.status === 'REJECTED' && { label: 'Rechazado', className: RED },
+        b.status === 'CANCELLED' && { label: 'Cancelado', className: RED },
+    ].filter((badge) => !!badge);
 }

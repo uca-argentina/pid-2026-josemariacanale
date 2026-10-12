@@ -16,9 +16,9 @@ import { Textarea } from '@/app/_components/ui/textarea';
 import type { OutOfOffice, OutOfOfficeReason } from '@/src/entities/models/out-of-office';
 import type { Preferences } from '@/src/entities/models/user';
 import { createOutOfOfficeAction, updateOutOfOfficeAction } from '../actions';
-import { formatOutOfOfficeDate } from './format-out-of-office-date';
+import { formatOutOfOfficeDate } from '@/app/_components/format-day';
 import { OUT_OF_OFFICE_REASONS } from './out-of-office-reasons';
-import { fromCalendarRange, toCalendarRange } from './out-of-office-range';
+import { fromCalendarRange, toCalendarRange } from '@/app/_components/day-range';
 
 /** Al crear, el rango arranca en hoy y mañana. */
 const todayAndTomorrow = (): DateRange => {

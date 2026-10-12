@@ -4,13 +4,17 @@ import type { IInstrumentationService } from '@/src/application/services/instrum
 import type { IRescheduleBookingUseCase } from '@/src/application/use-cases/bookings/reschedule-booking.use-case';
 import { InputParseError } from '@/src/entities/errors/common';
 
+function presenter(booking: { id: number }, instrumentationService: IInstrumentationService) {
+    return instrumentationService.startSpan({ name: 'rescheduleBooking Presenter', op: 'serialize' }, () => ({ id: booking.id }));
+}
+
 const inputSchema = z.object({ bookingId: z.number().int().positive(), startsAt: z.iso.datetime() });
 
 /** Tipo del controller ya compuesto, como lo consume `app/`. */
 export type IRescheduleBookingController = ReturnType<typeof rescheduleBookingController>;
 
 /**
- * Reagenda un Turno aceptado al Horario reservable elegido.
+ * Reagenda un Turno aceptado al Horario reservable elegido. Devuelve el `id` del Turno nuevo (ADR 0031).
  *
  * @throws {UnauthenticatedError} no hay Sesión válida
  * @throws {InputParseError} `bookingId` o `startsAt` no son válidos
@@ -18,6 +22,7 @@ export type IRescheduleBookingController = ReturnType<typeof rescheduleBookingCo
  * @throws {NotFoundError} el Turno no existe
  * @throws {SlotTakenError} el horario choca con otro Turno del Empleado
  * @throws {BookingStateError} el Turno no está aceptado
+ * @throws {ApiRequestError} el back respondió sin el `id` del Turno nuevo
  */
 export const rescheduleBookingController =
     (
@@ -25,10 +30,10 @@ export const rescheduleBookingController =
         authenticationService: IAuthenticationService,
         rescheduleBookingUseCase: IRescheduleBookingUseCase,
     ) =>
-    async (input: unknown): Promise<void> =>
+    async (input: unknown): Promise<ReturnType<typeof presenter>> =>
         instrumentationService.startSpan({ name: 'rescheduleBooking Controller' }, async () => {
             await authenticationService.getCurrentUser();
             const { data, error } = inputSchema.safeParse(input);
             if (error) throw new InputParseError('Invalid data', { cause: error });
-            await rescheduleBookingUseCase(data);
+            return presenter(await rescheduleBookingUseCase(data), instrumentationService);
         });

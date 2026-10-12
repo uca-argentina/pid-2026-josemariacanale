@@ -11,7 +11,7 @@ import {
     formatShortDay,
     formatTimeRange,
     groupByDay,
-    hasPendingDeposit,
+    badgesOf,
     isClosed,
     listValueOf,
     matches,
@@ -51,19 +51,6 @@ const TABS: { id: BookingTab; label: string; empty: { title: string; description
 ];
 
 const PAGE_SIZES = [10, 25, 50];
-
-const RED = 'bg-[#fdecec] text-[#b91c1c]';
-const AMBER = 'bg-[#fff4e5] text-[#b45309]';
-
-function badgesOf(b: Booking): { label: string; className: string }[] {
-    return [
-        b.status === 'PENDING' && { label: 'Pendiente', className: AMBER },
-        hasPendingDeposit(b) && { label: 'Seña pendiente', className: AMBER },
-        b.status === 'BOOKED' && b.noShowAt !== null && { label: 'Ausencia', className: RED },
-        b.status === 'REJECTED' && { label: 'Rechazado', className: RED },
-        b.status === 'CANCELLED' && { label: 'Cancelado', className: RED },
-    ].filter((badge) => !!badge);
-}
 
 function BookingRow({ booking, tab }: { booking: Booking; tab: BookingTab }) {
     const badges = badgesOf(booking);

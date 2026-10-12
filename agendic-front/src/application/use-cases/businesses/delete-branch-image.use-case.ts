@@ -6,6 +6,7 @@ export type IDeleteBranchImageUseCase = ReturnType<typeof deleteBranchImageUseCa
  * Borra una imagen de la Sucursal.
  *
  * @throws {NotFoundError} la imagen no es de esa Sucursal
+ * @throws {LastBranchImageError} es la última imagen de la Sucursal
  * @throws {ApiRequestError} no es el Dueño
  */
 export const deleteBranchImageUseCase =

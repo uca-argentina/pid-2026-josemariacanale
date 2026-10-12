@@ -50,3 +50,10 @@ export class BookingStateError extends Error {
         super(message, options);
     }
 }
+
+/** 409 al Calificar: el Turno ya tiene su Calificación (una por Turno). Esperable: el Cliente la ve en solo lectura. */
+export class BookingAlreadyRatedError extends Error {
+    constructor(message: string, options?: ErrorOptions) {
+        super(message, options);
+    }
+}

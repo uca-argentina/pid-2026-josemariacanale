@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { cache } from 'react';
+import { AppToaster } from '@/app/_components/AppToaster';
 import { BackendErrorNotice } from '@/app/_components/BackendErrorNotice';
 import { Footer } from '@/app/_components/Footer';
 import { Header } from '@/app/_components/Header';
@@ -66,6 +67,7 @@ export async function PublicBranchScreen({ businessSlug, branchSlug, serviceSlug
                 )}
             </div>
             <Footer />
+            <AppToaster />
         </>
     );
 }

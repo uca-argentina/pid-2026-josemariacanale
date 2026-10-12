@@ -5,7 +5,7 @@ import { redirect, unstable_rethrow } from 'next/navigation';
 import { isSessionExpired } from '@/app/api-error';
 import { SIGN_IN_PATH } from '@/app/routes';
 import { getInjection } from '@/di/container';
-import { BranchImageLimitError, BranchImagesRejectedError, InvalidSlugError, SlugTakenError, type BranchImagesRejection } from '@/src/entities/errors/business';
+import { BranchImageLimitError, BranchImagesRejectedError, InvalidSlugError, LastBranchImageError, SlugTakenError, type BranchImagesRejection } from '@/src/entities/errors/business';
 import { CabinHasUpcomingBookingsError, CabinNameTakenError, InvalidCabinNameError } from '@/src/entities/errors/cabin';
 import { ApiRequestError, InputParseError } from '@/src/entities/errors/common';
 
@@ -20,6 +20,9 @@ const IMAGES_REJECTED: Record<BranchImagesRejection, string> = {
     size: 'Cada imagen puede pesar hasta 5 MB.',
     count: 'Elegí entre una y cinco imágenes.',
 };
+
+/** Por qué no se puede borrar la única imagen de una Sucursal, si el back lo rechaza igual (otra pestaña desactualizada). */
+const LAST_BRANCH_IMAGE_MESSAGE = 'La sucursal necesita al menos una imagen';
 
 /** Por qué no se puede dar de baja una Cabina con Turnos futuros, con cuántos son. */
 const upcomingBookingsMessage = (count: number) =>
@@ -47,6 +50,8 @@ async function run<T>(fallback: string, work: () => Promise<T>): Promise<BranchA
         if (error instanceof CabinHasUpcomingBookingsError) return { ok: false, message: upcomingBookingsMessage(error.upcomingBookings) };
         if (error instanceof BranchImageLimitError) return { ok: false, message: error.message };
         if (error instanceof BranchImagesRejectedError) return { ok: false, message: IMAGES_REJECTED[error.reason] };
+
+        if (error instanceof LastBranchImageError) return { ok: false, message: LAST_BRANCH_IMAGE_MESSAGE };
         if (isSessionExpired(error)) redirect(SIGN_IN_PATH);
         // A 409 is a rule of the back, not a crash: nothing to report.
         if (error instanceof ApiRequestError && error.status === 409) return { ok: false, message: fallback };

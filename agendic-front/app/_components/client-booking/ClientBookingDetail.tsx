@@ -5,12 +5,14 @@ import { formatPrice as formatPriceWithCents } from '@/app/_components/booking/f
 import { Button } from '@/app/_components/ui/button';
 import { STATUS_BADGE, canPayDeposit, hasPendingDeposit, hostName, isActionable } from './client-booking-helpers';
 import { formatDuration, formatLongDate, formatPrice, formatTime } from './format';
+import { RatingSection } from './RatingSection';
 import { RescheduleOverlay } from './RescheduleOverlay';
 import type { ClientBooking, ClientBookingActionResult } from './types';
 
 /**
- * Muestra el detalle de un Turno del Cliente, con Pagar seña, Reagendar y Cancelar abajo cuando todavía se puede.
- * Quien lo usa pasa sus propias acciones en `payDeposit`, `cancel` y `reschedule`.
+ * Muestra el detalle de un Turno del Cliente, con Pagar seña, Reagendar y Cancelar abajo cuando todavía se puede, y el aviso de
+ * que el Empleado no vino (Falta del Empleado) cuando el back lo permite, y la Calificación (formulario o solo lectura).
+ * Quien lo usa pasa sus propias acciones en `payDeposit`, `cancel`, `reschedule`, `markEmployeeNoShow` y `rate`.
  */
 export function ClientBookingDetail({
     booking,
@@ -18,6 +20,8 @@ export function ClientBookingDetail({
     payDeposit,
     cancel,
     reschedule,
+    markEmployeeNoShow,
+    rate,
     onUpdated,
 }: {
     booking: ClientBooking;
@@ -25,11 +29,14 @@ export function ClientBookingDetail({
     payDeposit: () => Promise<ClientBookingActionResult>;
     cancel: () => Promise<ClientBookingActionResult>;
     reschedule: (startsAt: string) => Promise<ClientBookingActionResult>;
+    markEmployeeNoShow: () => Promise<ClientBookingActionResult>;
+    rate: (score: number, comment?: string) => Promise<ClientBookingActionResult>;
     onUpdated: (booking: ClientBooking) => void;
 }) {
     const [rescheduling, setRescheduling] = useState(false);
     const [cancelling, setCancelling] = useState(false);
     const [payingDeposit, setPayingDeposit] = useState(false);
+    const [markingNoShow, setMarkingNoShow] = useState(false);
     const [notice, setNotice] = useState<string | null>(null);
     const status = STATUS_BADGE[booking.status];
 
@@ -68,6 +75,10 @@ export function ClientBookingDetail({
                 </p>
             )}
 
+            {booking.employeeNoShowAt !== null && (
+                <p className="mt-3 text-[14px] font-semibold">Marcaste que {booking.employeeName} no vino</p>
+            )}
+
             {booking.branch && <p className="mt-4 text-[13.5px] text-muted-foreground">{booking.branch.address}</p>}
 
             {booking.notes && (
@@ -91,6 +102,28 @@ export function ClientBookingDetail({
                         Cancelar
                     </Button>
                 </div>
+            )}
+
+            {booking.canMarkEmployeeNoShow && (
+                <div className="mt-7 flex flex-wrap gap-3 border-t border-border pt-6">
+                    <Button variant="outline" onClick={() => setMarkingNoShow(true)}>
+                        {booking.employeeName} no vino
+                    </Button>
+                </div>
+            )}
+
+            <RatingSection booking={booking} rate={rate} onUpdated={onUpdated} onNotice={setNotice} />
+
+            {markingNoShow && (
+                <MarkEmployeeNoShowConfirm
+                    employeeName={booking.employeeName}
+                    markEmployeeNoShow={markEmployeeNoShow}
+                    onClose={() => setMarkingNoShow(false)}
+                    onMarked={(updated) => {
+                        onUpdated(updated);
+                        setMarkingNoShow(false);
+                    }}
+                />
             )}
 
             {payingDeposit && (
@@ -170,6 +203,47 @@ function PayDepositConfirm({
                 </Button>
                 <Button onClick={confirm} disabled={pending} className="bg-foreground text-white hover:bg-foreground/90">
                     {pending ? 'Pagando…' : 'Pagar seña'}
+                </Button>
+            </div>
+        </div>
+    );
+}
+
+function MarkEmployeeNoShowConfirm({
+    employeeName,
+    markEmployeeNoShow,
+    onClose,
+    onMarked,
+}: {
+    employeeName: string;
+    markEmployeeNoShow: () => Promise<ClientBookingActionResult>;
+    onClose: () => void;
+    onMarked: (booking: ClientBooking) => void;
+}) {
+    const [pending, startTransition] = useTransition();
+    const [error, setError] = useState<string | null>(null);
+
+    const confirm = () =>
+        startTransition(async () => {
+            const result = await markEmployeeNoShow();
+            if (result.ok) return onMarked(result.booking);
+            setError(result.message);
+        });
+
+    return (
+        <div role="alertdialog" aria-label="Marcar que el Empleado no vino" className="mt-6 rounded-xl border border-border p-4">
+            <p className="text-[14px] font-semibold">¿Marcar que {employeeName} no vino? No se puede deshacer.</p>
+            {error && (
+                <p role="alert" className="mt-2 text-[13px] text-muted-foreground">
+                    {error}
+                </p>
+            )}
+            <div className="mt-4 flex gap-3">
+                <Button variant="outline" onClick={onClose} disabled={pending}>
+                    Volver
+                </Button>
+                <Button onClick={confirm} disabled={pending} className="bg-foreground text-white hover:bg-foreground/90">
+                    {pending ? 'Marcando…' : 'Marcar que no vino'}
                 </Button>
             </div>
         </div>

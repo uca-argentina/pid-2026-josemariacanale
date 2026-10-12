@@ -10,6 +10,7 @@ const booking = {
     clientName: 'Lucía',
     clientEmail: 'lucia@gmail.com',
     noShowAt: null,
+    employeeNoShowAt: null,
     serviceId: 2,
     serviceName: 'Masaje',
     employeeId: 5,
@@ -18,6 +19,7 @@ const booking = {
     depositPaidAt: null,
     business: { id: 3, name: 'Spa' },
     branch: { id: 4, name: 'Centro' },
+    fromRescheduleId: 4,
 };
 
 describe('listMyBookingsController', () => {
@@ -32,6 +34,7 @@ describe('listMyBookingsController', () => {
             clientName: 'Lucía',
             clientEmail: 'lucia@gmail.com',
             noShowAt: null,
+            employeeNoShowAt: null,
             serviceId: 2,
             employeeId: 5,
             employeeChosen: false,
@@ -40,6 +43,7 @@ describe('listMyBookingsController', () => {
             serviceName: 'Masaje',
             business: { id: 3, name: 'Spa' },
             branch: { id: 4, name: 'Centro' },
+            fromRescheduleId: 4,
         });
     });
 

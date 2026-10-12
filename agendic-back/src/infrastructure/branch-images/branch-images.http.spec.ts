@@ -1,4 +1,7 @@
-import { BranchImage } from '../../domain/branch-images/branch-image';
+import {
+  BranchImage,
+  MIN_BRANCH_IMAGES,
+} from '../../domain/branch-images/branch-image';
 import { DatabaseOperationError } from '../../domain/errors';
 import {
   ANAS_BRANCH,
@@ -50,6 +53,7 @@ describe('Imágenes de Sucursal', () => {
     );
     t.businesses.findById.mockResolvedValue(ANAS_BUSINESS);
     t.fileStorage.delete.mockResolvedValue();
+    t.branchImages.delete.mockResolvedValue(true);
     t.branchImages.listByBranch.mockResolvedValue([FIRST, SECOND]);
     t.branchImages.findById.mockImplementation(
       async (id) =>
@@ -244,7 +248,11 @@ describe('Imágenes de Sucursal', () => {
         .set(bearer(CLERK_TOKEN))
         .expect(204);
 
-      expect(t.branchImages.delete).toHaveBeenCalledWith(FIRST.id);
+      expect(t.branchImages.delete).toHaveBeenCalledWith(
+        ANAS_BRANCH.id,
+        FIRST.id,
+        MIN_BRANCH_IMAGES,
+      );
     });
 
     it('deletes the image and its file, for the Dueño', async () => {
@@ -253,8 +261,26 @@ describe('Imágenes de Sucursal', () => {
         .set(bearer(CLERK_TOKEN))
         .expect(204);
 
-      expect(t.branchImages.delete).toHaveBeenCalledWith(FIRST.id);
+      expect(t.branchImages.delete).toHaveBeenCalledWith(
+        ANAS_BRANCH.id,
+        FIRST.id,
+        MIN_BRANCH_IMAGES,
+      );
       expect(t.fileStorage.delete).toHaveBeenCalledWith(URL_1);
+    });
+
+    it('answers 409 for the last image of the Sucursal, deleting neither the row nor the file', async () => {
+      t.branchImages.delete.mockResolvedValue(false);
+
+      const res = await t.http
+        .delete(`/branches/${ANAS_BRANCH.id}/images/${FIRST.id}`)
+        .set(bearer(CLERK_TOKEN))
+        .expect(409);
+
+      expect(res.body.message).toBe(
+        `Branch ${ANAS_BRANCH.id} must keep at least one image`,
+      );
+      expect(t.fileStorage.delete).not.toHaveBeenCalled();
     });
 
     it('answers 401 without a Sesión', async () => {

@@ -32,6 +32,9 @@ const BRANCH_ROW = {
   address: '123 Main St',
   timeZone: 'America/Argentina/Buenos_Aires',
   slug: ANAS_BUSINESS.slug,
+  images: [
+    { id: 30, branchId: 10, url: 'https://files.example.com/a', order: 0 },
+  ],
 };
 
 const EMPLOYEE_ROW = {
@@ -101,6 +104,7 @@ const CREATE_DATA = {
   employee: {
     userId: ANAS_BUSINESS.ownerId,
   },
+  branchImageUrls: ['https://files.example.com/a'],
 };
 
 describe('PrismaBusinessesRepository', () => {
@@ -226,6 +230,22 @@ describe('PrismaBusinessesRepository', () => {
       ],
       cabins: [],
     });
+    expect(created.images).toEqual(BRANCH_ROW.images);
+    expect(tx.branch.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          images: {
+            create: [{ url: 'https://files.example.com/a', order: 0 }],
+          },
+        }),
+        include: {
+          images: {
+            select: { id: true, branchId: true, url: true, order: true },
+            orderBy: { order: 'asc' },
+          },
+        },
+      }),
+    );
   });
 
   it('links the new Employee to the new Service with their default Availability, in the same transaction', async () => {

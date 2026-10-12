@@ -38,3 +38,10 @@ export class BranchImagesRejectedError extends Error {
         this.reason = options.reason;
     }
 }
+
+/** 409: es la última imagen de la Sucursal, que nunca queda sin imágenes. */
+export class LastBranchImageError extends Error {
+    constructor(message: string, options?: ErrorOptions) {
+        super(message, options);
+    }
+}

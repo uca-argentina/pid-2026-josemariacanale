@@ -39,6 +39,9 @@ import {
     SidebarMenuBadge,
     SidebarMenuButton,
     SidebarMenuItem,
+    SidebarMenuSub,
+    SidebarMenuSubButton,
+    SidebarMenuSubItem,
     useSidebar,
 } from '@/app/_components/ui/sidebar';
 import { Logo } from '@/app/_components/Logo';
@@ -102,7 +105,8 @@ export function AppSidebar({
 }
 
 function NavMain({ items }: { items: NavItem[] }) {
-    const active = sectionOf(usePathname(), items);
+    const pathname = usePathname();
+    const active = sectionOf(pathname, items);
     const { setOpenMobile } = useSidebar();
 
     return (
@@ -134,6 +138,26 @@ function NavMain({ items }: { items: NavItem[] }) {
                                         <span className="sr-only"> pendientes</span>
                                     </SidebarMenuBadge>
                                 ) : null}
+                                {item.children && (
+                                    <SidebarMenuSub>
+                                        {item.children.map((child) => (
+                                            <SidebarMenuSubItem key={child.href}>
+                                                <SidebarMenuSubButton
+                                                    isActive={pathname === child.href}
+                                                    render={
+                                                        <Link
+                                                            href={child.href}
+                                                            aria-current={pathname === child.href ? 'page' : undefined}
+                                                            onClick={() => setOpenMobile(false)}
+                                                        />
+                                                    }
+                                                >
+                                                    <span>{child.label}</span>
+                                                </SidebarMenuSubButton>
+                                            </SidebarMenuSubItem>
+                                        ))}
+                                    </SidebarMenuSub>
+                                )}
                             </SidebarMenuItem>
                         );
                     })}

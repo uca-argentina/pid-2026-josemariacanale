@@ -15,7 +15,16 @@ export interface BranchImagesRepository {
     url: string,
     limit: number,
   ): Promise<BranchImage | null>;
-  delete(id: number): Promise<void>;
+  /**
+   * Deletes image `id` of Sucursal `branchId`. Locks the Sucursal and counts and deletes in one transaction, so
+   * concurrent calls queue up and never leave fewer than `keep`; `false`, deleting nothing, when the Sucursal is
+   * already down to `keep` images. Checks the image under the lock, so a concurrent delete of the same image
+   * answers not found rather than `false`.
+   *
+   * @throws {NotFoundError} la imagen no existe en esa Sucursal
+   * @throws {DatabaseOperationError} la base respondió con error
+   */
+  delete(branchId: number, id: number, keep: number): Promise<boolean>;
   /** Gives each image its position in imageIds as its order, atomically; imageIds are exactly the Sucursal's images. */
   reorder(branchId: number, imageIds: number[]): Promise<BranchImage[]>;
 }

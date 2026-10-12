@@ -15,6 +15,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { Loader2, Plus, X } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/app/_components/ui/tooltip';
 import { IMAGE_ACCEPT, takeUpToLimit } from './limit';
 
 /** Una imagen del cargador: ya en el back, o un archivo en memoria con su vista previa local. */
@@ -31,9 +32,24 @@ type Props = {
     onDelete: (id: UploaderImage['id']) => void;
     /** Recibe los ids en el orden nuevo. Si rechaza, el cargador vuelve al orden anterior y avisa con un toast. */
     onReorder?: (ids: UploaderImage['id'][]) => void | Promise<void>;
+    /**
+     * Por qué no puede quedar sin imágenes: con una sola ya guardada, borrarla queda deshabilitado con esto como
+     * tooltip. Sin él, siempre se puede borrar.
+     */
+    keepOneReason?: string;
 };
 
-function Card({ image, reorderable, onDelete }: { image: UploaderImage; reorderable: boolean; onDelete: Props['onDelete'] }) {
+function Card({
+    image,
+    reorderable,
+    onDelete,
+    deleteLockedReason,
+}: {
+    image: UploaderImage;
+    reorderable: boolean;
+    onDelete: Props['onDelete'];
+    deleteLockedReason?: string;
+}) {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
         id: image.id,
         disabled: !reorderable || image.uploading,
@@ -54,17 +70,46 @@ function Card({ image, reorderable, onDelete }: { image: UploaderImage; reordera
                     <Loader2 className="size-5 animate-spin" aria-label="Subiendo" />
                 </div>
             )}
-            <button
-                type="button"
-                aria-label="Borrar imagen"
-                onPointerDown={(e) => e.stopPropagation()}
-                onKeyDown={(e) => e.stopPropagation()}
-                disabled={image.uploading}
-                onClick={() => onDelete(image.id)}
-                className="absolute right-1 top-1 rounded-full bg-background/80 p-0.5 hover:bg-background"
-            >
-                <X className="size-4" />
-            </button>
+            {deleteLockedReason ? (
+                <Tooltip>
+                    <TooltipTrigger
+                        render={
+                            <span
+                                role="button"
+                                tabIndex={0}
+                                aria-disabled="true"
+                                aria-label={`Borrar imagen: ${deleteLockedReason}`}
+                                onPointerDown={(e) => e.stopPropagation()}
+                                onKeyDown={(e) => e.stopPropagation()}
+                                className="absolute right-1 top-1 flex"
+                            />
+                        }
+                    >
+                        <button
+                            type="button"
+                            disabled
+                            tabIndex={-1}
+                            aria-hidden="true"
+                            className="pointer-events-none rounded-full bg-background/80 p-0.5 opacity-50"
+                        >
+                            <X className="size-4" />
+                        </button>
+                    </TooltipTrigger>
+                    <TooltipContent>{deleteLockedReason}</TooltipContent>
+                </Tooltip>
+            ) : (
+                <button
+                    type="button"
+                    aria-label="Borrar imagen"
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => e.stopPropagation()}
+                    disabled={image.uploading}
+                    onClick={() => onDelete(image.id)}
+                    className="absolute right-1 top-1 rounded-full bg-background/80 p-0.5 hover:bg-background"
+                >
+                    <X className="size-4" />
+                </button>
+            )}
         </div>
     );
 }
@@ -74,7 +119,7 @@ function Card({ image, reorderable, onDelete }: { image: UploaderImage; reordera
  * scrollean en X cuando no entran. No sabe de la API: `onUpload`, `onDelete` y `onReorder` sirven tanto para
  * imágenes ya en el back como para archivos en memoria.
  */
-export function ImageUploader({ images, max, reorderable = false, onUpload, onDelete, onReorder }: Props) {
+export function ImageUploader({ images, max, reorderable = false, onUpload, onDelete, onReorder, keepOneReason }: Props) {
     const input = useRef<HTMLInputElement>(null);
     // Orden optimista, válido mientras `images` sea la lista sobre la que se arrastró: cuando el padre la reemplaza
     // con el orden confirmado, deja de aplicar y no hay parpadeo entre el PUT y el nuevo `images`.
@@ -87,6 +132,7 @@ export function ImageUploader({ images, max, reorderable = false, onUpload, onDe
 
     const shown = pending?.base === images ? pending.ids.map((id) => images.find((i) => i.id === id)).filter((i): i is UploaderImage => !!i) : images;
     const full = images.length >= max;
+    const deleteLockedReason = images.filter((i) => !i.uploading).length <= 1 ? keepOneReason : undefined;
 
     function pick(list: FileList | null) {
         const { accepted, dropped } = takeUpToLimit(Array.from(list ?? []), max, images.length);
@@ -131,7 +177,13 @@ export function ImageUploader({ images, max, reorderable = false, onUpload, onDe
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
                     <SortableContext items={shown.map((i) => i.id)} strategy={horizontalListSortingStrategy}>
                         {shown.map((image) => (
-                            <Card key={image.id} image={image} reorderable={reorderable} onDelete={onDelete} />
+                            <Card
+                                key={image.id}
+                                image={image}
+                                reorderable={reorderable}
+                                onDelete={onDelete}
+                                deleteLockedReason={image.uploading ? undefined : deleteLockedReason}
+                            />
                         ))}
                     </SortableContext>
                 </DndContext>
