@@ -19,6 +19,10 @@ export class PrismaAnalyticsRepository implements AnalyticsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
+   * Cuenta con un solo recorrido de Turnos, un `FILTER` por KPI. Reagendar deja el original `CANCELLED` con
+   * `rescheduled = true`: solo el KPI `rescheduled` lo cuenta, y el resto lo excluye con `IS NOT TRUE` (no
+   * `= FALSE`) porque la columna es `null` en todo Turno que no es un original.
+   *
    * @throws {DatabaseOperationError} la consulta falló
    */
   async kpis(
@@ -32,22 +36,20 @@ export class PrismaAnalyticsRepository implements AnalyticsRepository {
       serviceId === undefined
         ? Prisma.empty
         : Prisma.sql`AND b."serviceId" = ${serviceId}`;
-    // Reagendar deja el original CANCELLED con `rescheduled = true`: solo el KPI `rescheduled` lo cuenta.
-    // `IS NOT TRUE` y no `= FALSE`: la columna es `null` en todo Turno que no es un original.
-    const live = Prisma.sql`b."rescheduled" IS NOT TRUE`;
-    const attended = Prisma.sql`${live} AND b."status" = 'BOOKED' AND b."endsAt" < ${now} AND b."noShowAt" IS NULL AND b."employeeNoShowAt" IS NULL AND ${day('b."startsAt"')}`;
-    const rated = Prisma.sql`${live} AND r."id" IS NOT NULL AND ${day('r."createdAt"')}`;
+    const notRescheduledOriginal = Prisma.sql`b."rescheduled" IS NOT TRUE`;
+    const attended = Prisma.sql`${notRescheduledOriginal} AND b."status" = 'BOOKED' AND b."endsAt" < ${now} AND b."noShowAt" IS NULL AND b."employeeNoShowAt" IS NULL AND ${day('b."startsAt"')}`;
+    const rated = Prisma.sql`${notRescheduledOriginal} AND r."id" IS NOT NULL AND ${day('r."createdAt"')}`;
 
     const rows = await this.prisma.$queryRaw<KpiValues[]>`
       SELECT
-        (COUNT(*) FILTER (WHERE ${live} AND b."fromRescheduleId" IS NULL AND ${day('b."createdAt"')}))::int AS "booked",
+        (COUNT(*) FILTER (WHERE ${notRescheduledOriginal} AND b."fromRescheduleId" IS NULL AND ${day('b."createdAt"')}))::int AS "booked",
         (COUNT(*) FILTER (WHERE ${attended}))::int AS "attended",
         (COUNT(*) FILTER (WHERE b."rescheduled" = TRUE AND ${day('b."cancelledAt"')}))::int AS "rescheduled",
-        (COUNT(*) FILTER (WHERE ${live} AND b."status" = 'CANCELLED' AND ${day('b."cancelledAt"')}))::int AS "cancelled",
-        (COUNT(*) FILTER (WHERE ${live} AND b."status" = 'REJECTED' AND ${day('b."rejectedAt"')}))::int AS "rejected",
-        (COUNT(*) FILTER (WHERE ${live} AND b."status" = 'PENDING' AND ${day('b."startsAt"')}))::int AS "pending",
-        (COUNT(*) FILTER (WHERE ${live} AND b."noShowAt" IS NOT NULL AND ${day('b."startsAt"')}))::int AS "noShows",
-        (COUNT(*) FILTER (WHERE ${live} AND b."employeeNoShowAt" IS NOT NULL AND ${day('b."startsAt"')}))::int AS "employeeNoShows",
+        (COUNT(*) FILTER (WHERE ${notRescheduledOriginal} AND b."status" = 'CANCELLED' AND ${day('b."cancelledAt"')}))::int AS "cancelled",
+        (COUNT(*) FILTER (WHERE ${notRescheduledOriginal} AND b."status" = 'REJECTED' AND ${day('b."rejectedAt"')}))::int AS "rejected",
+        (COUNT(*) FILTER (WHERE ${notRescheduledOriginal} AND b."status" = 'PENDING' AND ${day('b."startsAt"')}))::int AS "pending",
+        (COUNT(*) FILTER (WHERE ${notRescheduledOriginal} AND b."noShowAt" IS NOT NULL AND ${day('b."startsAt"')}))::int AS "noShows",
+        (COUNT(*) FILTER (WHERE ${notRescheduledOriginal} AND b."employeeNoShowAt" IS NOT NULL AND ${day('b."startsAt"')}))::int AS "employeeNoShows",
         (AVG(r."score") FILTER (WHERE ${rated}))::float8 AS "averageRating",
         ROUND(
           100.0 * COUNT(*) FILTER (WHERE r."score" >= 4 AND ${rated})

@@ -1,5 +1,7 @@
+/** Token de inyección del puerto {@link AnalyticsRepository}. */
 export const ANALYTICS_REPOSITORY = Symbol('AnalyticsRepository');
 
+/** Los KPIs de analíticas, en el orden en que se responden. */
 export const KPI_NAMES = [
   'booked',
   'attended',
@@ -14,6 +16,7 @@ export const KPI_NAMES = [
   'revenue',
 ] as const;
 
+/** Nombre de un KPI de analíticas. */
 export type KpiName = (typeof KPI_NAMES)[number];
 
 /** El valor de cada KPI en un período; `null` si no hay con qué calcularlo (sin Calificaciones). */

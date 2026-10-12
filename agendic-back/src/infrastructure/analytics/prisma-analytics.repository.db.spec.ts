@@ -8,6 +8,7 @@ import {
   Prisma,
   ServiceCategory,
 } from '../../generated/prisma/client';
+import { GetPersonalAnalyticsUseCase } from '../../application/analytics/get-personal-analytics.use-case';
 import { PrismaBusinessesRepository } from '../businesses/prisma-businesses.repository';
 import { PrismaService } from '../prisma.service';
 import { PrismaAnalyticsRepository } from './prisma-analytics.repository';
@@ -164,7 +165,6 @@ describe('PrismaAnalyticsRepository (real database)', () => {
     await book(service.id, user.id, '2031-04-05T13:00:00Z');
 
     expect((await kpis(scope)).attended).toBe(1);
-    // `endsAt` < now, strictly: a Turno ending exactly now is not attended yet.
     const endsAt = new Date('2031-03-05T13:30:00Z');
     expect((await repository.kpis(scope, MARCH, endsAt)).attended).toBe(0);
     expect(
@@ -284,7 +284,6 @@ describe('PrismaAnalyticsRepository (real database)', () => {
     await rate('2031-03-05T13:00:00Z', 5, '2031-03-06T13:00:00Z');
     await rate('2031-03-06T13:00:00Z', 4, '2031-03-07T13:00:00Z');
     await rate('2031-03-07T13:00:00Z', 1, '2031-03-08T13:00:00Z');
-    // Turno in March, Calificación in April: out of the range.
     await rate('2031-03-08T13:00:00Z', 1, '2031-04-08T13:00:00Z');
 
     const { averageRating, csat } = await kpis(scope);
@@ -320,7 +319,6 @@ describe('PrismaAnalyticsRepository (real database)', () => {
 
   it('cuts the day in the time zone of the scope: 23:30 in Buenos Aires is still that day, though it is the next one in UTC', async () => {
     const { user, service, scope } = await makeScope();
-    // 2031-03-10T02:30Z is 2031-03-09 23:30 in Buenos Aires.
     await book(service.id, user.id, '2031-03-10T02:30:00Z');
 
     expect(
@@ -403,5 +401,25 @@ describe('PrismaAnalyticsRepository (real database)', () => {
     });
 
     expect((await kpis(scope)).booked).toBe(1);
+  });
+
+  it('answers the previous period with the same length ending the day before from, through the use case', async () => {
+    const { user, service } = await makeScope();
+    const useCase = new GetPersonalAnalyticsUseCase(
+      repository,
+      {} as never,
+      {
+        listByUser: async () => [{ isDefault: true, timeZone: BUENOS_AIRES }],
+      } as never,
+      { now: () => NOW },
+    );
+    await book(service.id, user.id, '2031-03-05T13:00:00Z');
+    await book(service.id, user.id, '2031-03-06T13:00:00Z');
+    await book(service.id, user.id, '2031-02-25T13:00:00Z');
+    await book(service.id, user.id, '2031-02-18T13:00:00Z');
+
+    const { kpis } = await useCase.execute(user.id, '2031-03-01', '2031-03-10');
+
+    expect(kpis.booked).toEqual({ current: 2, previous: 1 });
   });
 });

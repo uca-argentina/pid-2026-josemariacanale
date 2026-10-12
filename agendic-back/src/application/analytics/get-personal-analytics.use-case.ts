@@ -17,6 +17,7 @@ import {
 } from '../../domain/services/services.repository';
 import { defaultAvailability } from '../availabilities/default-availability';
 
+/** Cada KPI con su valor en el rango pedido y en el período anterior. */
 export type PersonalAnalytics = {
   kpis: Record<KpiName, { current: number | null; previous: number | null }>;
 };
@@ -36,6 +37,7 @@ const parseDay = (value: unknown): number | null => {
 
 const formatDay = (ms: number) => new Date(ms).toISOString().slice(0, 10);
 
+/** Analíticas de los Servicios personales del Usuario de la Sesión. */
 @Injectable()
 export class GetPersonalAnalyticsUseCase {
   constructor(

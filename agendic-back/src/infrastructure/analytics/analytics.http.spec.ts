@@ -167,4 +167,14 @@ describe('GET /analytics/personal', () => {
     expect(res.body.message).toBe(`Service ${serviceId} not found`);
     expect(t.analytics.kpis).not.toHaveBeenCalled();
   });
+
+  it('is 400 with a serviceId that is not a number', async () => {
+    await get('from=2026-03-01&to=2026-03-10&serviceId=abc').expect(400);
+  });
+
+  it('is 422 when the Usuario has no default Availability', async () => {
+    t.availabilities.listByUser.mockResolvedValue([]);
+
+    await get('from=2026-03-01&to=2026-03-10').expect(422);
+  });
 });
