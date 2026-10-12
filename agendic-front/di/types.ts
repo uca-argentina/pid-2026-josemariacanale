@@ -134,6 +134,10 @@ import type { IMakeAvailabilityDefaultUseCase } from '@/src/application/use-case
 import type { IDeleteAvailabilityUseCase } from '@/src/application/use-cases/availabilities/delete-availability.use-case';
 import type { IAnalyticsRepository } from '@/src/application/repositories/analytics.repository.interface';
 import type { IGetPersonalAnalyticsUseCase } from '@/src/application/use-cases/analytics/get-personal-analytics.use-case';
+import type { IGetBusinessAnalyticsUseCase } from '@/src/application/use-cases/analytics/get-business-analytics.use-case';
+import type { IListAnalyticsBusinessesUseCase } from '@/src/application/use-cases/analytics/list-analytics-businesses.use-case';
+import type { IGetBusinessAnalyticsController } from '@/src/interface-adapters/controllers/analytics/get-business-analytics.controller';
+import type { IListAnalyticsBusinessesController } from '@/src/interface-adapters/controllers/analytics/list-analytics-businesses.controller';
 import type { IGetPersonalAnalyticsController } from '@/src/interface-adapters/controllers/analytics/get-personal-analytics.controller';
 import type { IOutOfOfficeRepository } from '@/src/application/repositories/out-of-office.repository.interface';
 import type { IListOutOfOfficeUseCase } from '@/src/application/use-cases/out-of-office/list-out-of-office.use-case';
@@ -237,6 +241,8 @@ export const DI_SYMBOLS = {
     IMakeAvailabilityDefaultUseCase: Symbol.for('IMakeAvailabilityDefaultUseCase'),
     IDeleteAvailabilityUseCase: Symbol.for('IDeleteAvailabilityUseCase'),
     IGetPersonalAnalyticsUseCase: Symbol.for('IGetPersonalAnalyticsUseCase'),
+    IListAnalyticsBusinessesUseCase: Symbol.for('IListAnalyticsBusinessesUseCase'),
+    IGetBusinessAnalyticsUseCase: Symbol.for('IGetBusinessAnalyticsUseCase'),
     IListOutOfOfficeUseCase: Symbol.for('IListOutOfOfficeUseCase'),
     ICreateOutOfOfficeUseCase: Symbol.for('ICreateOutOfOfficeUseCase'),
     IUpdateOutOfOfficeUseCase: Symbol.for('IUpdateOutOfOfficeUseCase'),
@@ -318,6 +324,8 @@ export const DI_SYMBOLS = {
     IMakeAvailabilityDefaultController: Symbol.for('IMakeAvailabilityDefaultController'),
     IDeleteAvailabilityController: Symbol.for('IDeleteAvailabilityController'),
     IGetPersonalAnalyticsController: Symbol.for('IGetPersonalAnalyticsController'),
+    IListAnalyticsBusinessesController: Symbol.for('IListAnalyticsBusinessesController'),
+    IGetBusinessAnalyticsController: Symbol.for('IGetBusinessAnalyticsController'),
     IListMyOutOfOfficeController: Symbol.for('IListMyOutOfOfficeController'),
     ICreateOutOfOfficeController: Symbol.for('ICreateOutOfOfficeController'),
     IUpdateOutOfOfficeController: Symbol.for('IUpdateOutOfOfficeController'),
@@ -405,6 +413,8 @@ export interface DI_RETURN_TYPES {
     IMakeAvailabilityDefaultUseCase: IMakeAvailabilityDefaultUseCase;
     IDeleteAvailabilityUseCase: IDeleteAvailabilityUseCase;
     IGetPersonalAnalyticsUseCase: IGetPersonalAnalyticsUseCase;
+    IListAnalyticsBusinessesUseCase: IListAnalyticsBusinessesUseCase;
+    IGetBusinessAnalyticsUseCase: IGetBusinessAnalyticsUseCase;
     IListOutOfOfficeUseCase: IListOutOfOfficeUseCase;
     ICreateOutOfOfficeUseCase: ICreateOutOfOfficeUseCase;
     IUpdateOutOfOfficeUseCase: IUpdateOutOfOfficeUseCase;
@@ -486,6 +496,8 @@ export interface DI_RETURN_TYPES {
     IMakeAvailabilityDefaultController: IMakeAvailabilityDefaultController;
     IDeleteAvailabilityController: IDeleteAvailabilityController;
     IGetPersonalAnalyticsController: IGetPersonalAnalyticsController;
+    IListAnalyticsBusinessesController: IListAnalyticsBusinessesController;
+    IGetBusinessAnalyticsController: IGetBusinessAnalyticsController;
     IListMyOutOfOfficeController: IListMyOutOfOfficeController;
     ICreateOutOfOfficeController: ICreateOutOfOfficeController;
     IUpdateOutOfOfficeController: IUpdateOutOfOfficeController;

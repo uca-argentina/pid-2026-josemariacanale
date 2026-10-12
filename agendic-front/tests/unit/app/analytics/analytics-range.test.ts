@@ -1,4 +1,4 @@
-import { parseRange, parseServiceId, presetRange, serviceSearch } from '@/app/(app)/analytics/_components/analytics-range';
+import { businessSearch, filterSearch, parseBusinessFilters, parseRange, parseServiceId, presetRange, serviceSearch } from '@/app/(app)/analytics/_components/analytics-range';
 
 const today = '2026-10-12';
 
@@ -55,5 +55,53 @@ describe('serviceSearch', () => {
         expect(serviceSearch('?range=7d&serviceId=7', 9)).toBe('?range=7d&serviceId=9');
         expect(serviceSearch('?range=7d&serviceId=7', undefined)).toBe('?range=7d');
         expect(serviceSearch('?serviceId=7', undefined)).toBe('');
+    });
+});
+
+describe('parseBusinessFilters', () => {
+    const owned = { id: 4, name: 'Spa', isOwner: true };
+    const other = { id: 9, name: 'Gym', isOwner: false };
+    const parse = (search: string, businesses = [owned, other]) => parseBusinessFilters(new URLSearchParams(search), businesses);
+
+    it('picks the first Negocio without businessId', () => {
+        expect(parse('').business).toEqual(owned);
+    });
+
+    it('picks the Negocio in the URL', () => {
+        expect(parse('businessId=9').business).toEqual(other);
+    });
+
+    it.each(['businessId=77', 'businessId=abc', 'businessId=0', 'businessId=-1', 'businessId=4x'])('ignores the invalid or unlisted %s', (search) => {
+        expect(parse(search).business).toEqual(owned);
+    });
+
+    it('has no Negocio when the list is empty', () => {
+        expect(parse('businessId=4', []).business).toBeUndefined();
+    });
+
+    it('reads valid branchId, serviceId and employeeId', () => {
+        expect(parse('branchId=2&serviceId=3&employeeId=5')).toMatchObject({ branchId: 2, serviceId: 3, employeeId: 5 });
+    });
+
+    it.each(['branchId=0', 'branchId=x', 'serviceId=-2', 'serviceId=1.5', 'employeeId=', 'employeeId=3a'])('ignores the invalid filter %s', (search) => {
+        expect(parse(search)).toMatchObject({ branchId: undefined, serviceId: undefined, employeeId: undefined });
+    });
+
+    it('ignores employeeId when the Usuario is not the Dueño of the Negocio', () => {
+        expect(parse('businessId=9&employeeId=5').employeeId).toBeUndefined();
+        expect(parse('businessId=4&employeeId=5').employeeId).toBe(5);
+    });
+});
+
+describe('filterSearch', () => {
+    it('sets and clears a filter keeping the rest of the URL', () => {
+        expect(filterSearch('?range=7d', 'branchId', 2)).toBe('?range=7d&branchId=2');
+        expect(filterSearch('?branchId=2&range=7d', 'branchId', undefined)).toBe('?range=7d');
+    });
+});
+
+describe('businessSearch', () => {
+    it('switches the Negocio and drops the filters of the previous one', () => {
+        expect(businessSearch('?range=7d&businessId=4&branchId=2&serviceId=3&employeeId=5', 9)).toBe('?range=7d&businessId=9');
     });
 });

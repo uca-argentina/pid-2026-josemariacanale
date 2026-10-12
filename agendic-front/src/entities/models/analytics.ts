@@ -65,3 +65,34 @@ export const analyticsQuerySchema = z.object({
     serviceId: z.number().int().positive().optional(),
 });
 export type AnalyticsQuery = z.infer<typeof analyticsQuerySchema>;
+
+const idNameSchema = z.object({ id: z.number(), name: z.string() });
+const rankedEmployeesSchema = z.array(z.object({ employeeId: z.number(), name: z.string(), imageUrl: z.string().nullable(), count: z.number() }));
+
+/** Un Negocio del que el Usuario es Empleado, en el selector de Analíticas; el propio viene primero. */
+export const analyticsBusinessSchema = z.object({ id: z.number(), name: z.string(), isOwner: z.boolean() });
+export type AnalyticsBusiness = z.infer<typeof analyticsBusinessSchema>;
+
+/**
+ * Lo que el front lee de `GET /analytics/businesses/:businessId`: lo de las analíticas personales, con las Sucursales y
+ * los Empleados como filtro y, solo para el Dueño, los rankings de Empleados.
+ */
+export const businessAnalyticsSchema = personalAnalyticsSchema.extend({
+    filterOptions: z.object({
+        branches: z.array(idNameSchema),
+        services: z.array(idNameSchema),
+        employees: z.array(idNameSchema).optional(),
+    }),
+    mostBookedEmployees: rankedEmployeesSchema.optional(),
+    leastBookedEmployees: rankedEmployeesSchema.optional(),
+    mostCancelledEmployees: rankedEmployeesSchema.optional(),
+});
+export type BusinessAnalytics = z.infer<typeof businessAnalyticsSchema>;
+
+/** El período y los filtros de las analíticas de un Negocio. */
+export const businessAnalyticsQuerySchema = analyticsQuerySchema.extend({
+    businessId: z.number().int().positive(),
+    branchId: z.number().int().positive().optional(),
+    employeeId: z.number().int().positive().optional(),
+});
+export type BusinessAnalyticsQuery = z.infer<typeof businessAnalyticsQuerySchema>;

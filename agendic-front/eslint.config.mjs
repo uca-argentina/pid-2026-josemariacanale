@@ -10,11 +10,12 @@ const ALLOWED_IMPORTS = {
   entities: ["entities"],
   ports: ["entities"],
   "use-cases": ["entities", "ports"],
-  controllers: ["entities", "ports", "use-cases"],
+  controllers: ["entities", "ports", "use-cases", "presenters"],
+  presenters: ["entities"],
   infrastructure: ["entities", "ports", "infrastructure"],
-  di: ["entities", "ports", "use-cases", "controllers", "infrastructure", "di"],
+  di: ["entities", "ports", "use-cases", "controllers", "presenters", "infrastructure", "di"],
   app: ["entities", "di", "app"],
-  tests: ["entities", "ports", "use-cases", "controllers", "infrastructure", "di", "app", "tests"],
+  tests: ["entities", "ports", "use-cases", "controllers", "presenters", "infrastructure", "di", "app", "tests"],
 };
 
 const eslintConfig = defineConfig([
@@ -30,6 +31,7 @@ const eslintConfig = defineConfig([
         { type: "ports", pattern: "src/application/{repositories,services}", partialMatch: false },
         { type: "use-cases", pattern: "src/application/use-cases", partialMatch: false },
         { type: "controllers", pattern: "src/interface-adapters/controllers", partialMatch: false },
+        { type: "presenters", pattern: "src/interface-adapters/presenters", partialMatch: false },
         { type: "infrastructure", pattern: "src/infrastructure", partialMatch: false },
         { type: "di", pattern: "di", partialMatch: false },
         { type: "app", pattern: "app", partialMatch: false },
