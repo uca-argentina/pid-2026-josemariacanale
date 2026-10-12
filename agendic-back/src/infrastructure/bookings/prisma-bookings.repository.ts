@@ -21,6 +21,7 @@ import {
   DatabaseOperationError,
   NotFoundError,
 } from '../../domain/errors';
+import { EMPLOYEE_NO_SHOW_WINDOW_HOURS } from '../../domain/bookings/employee-no-show';
 import { DEFAULT_AVAILABILITY } from '../../domain/availabilities/availability';
 import { Prisma } from '../../generated/prisma/client';
 import {
@@ -52,6 +53,7 @@ const BOOKING_SELECT = {
   status: true,
   notes: true,
   noShowAt: true,
+  employeeNoShowAt: true,
   link: true,
   employeeChosen: true,
   depositAmount: true,
@@ -536,7 +538,7 @@ export class PrismaBookingsRepository implements BookingsRepository {
   }
 
   /**
-   * @throws {BusinessRuleError} el Turno no está aceptado, su horario no terminó o ya tiene Ausencia
+   * @throws {BusinessRuleError} el Turno no está aceptado, su horario no terminó, ya tiene Ausencia o tiene Falta del Empleado
    * @throws {NotFoundError} el Turno no existe
    */
   async markNoShow(id: number, now: Date) {
@@ -544,8 +546,8 @@ export class PrismaBookingsRepository implements BookingsRepository {
       id,
       [BookingStatus.BOOKED],
       { noShowAt: now },
-      'Turno is not booked, has not ended yet, or already has an Ausencia',
-      { endsAt: { lte: now }, noShowAt: null },
+      'Turno is not booked, has not ended yet, or already has an Ausencia or an Employee no-show',
+      { endsAt: { lte: now }, noShowAt: null, employeeNoShowAt: null },
     );
     return this.findById(id);
   }
@@ -563,6 +565,28 @@ export class PrismaBookingsRepository implements BookingsRepository {
       { depositPaidAt: now },
       'Turno is not pending or booked, has already started, has no Seña, or already has its Seña paid',
       { startsAt: { gt: now }, depositAmount: { not: null }, depositPaidAt: null },
+    );
+    return this.findEnriched(id);
+  }
+
+  /**
+   * Marca la Falta del Empleado, solo si la guarda sigue valiendo en el momento de escribir.
+   *
+   * @throws {BusinessRuleError} el Turno ya no está aceptado, no empezó, pasó la ventana, o ya tiene Ausencia o Falta del Empleado
+   * @throws {NotFoundError} el Turno no existe
+   */
+  async markEmployeeNoShow(id: number, now: Date) {
+    await this.updateStatus(
+      id,
+      [BookingStatus.BOOKED],
+      { employeeNoShowAt: now },
+      'Employee no-show not allowed for this Turno',
+      {
+        startsAt: { lte: now },
+        endsAt: { gte: new Date(now.getTime() - EMPLOYEE_NO_SHOW_WINDOW_HOURS * 3_600_000) },
+        noShowAt: null,
+        employeeNoShowAt: null,
+      },
     );
     return this.findEnriched(id);
   }
@@ -603,6 +627,7 @@ const toBooking = (row: BookingRow): Booking => ({
   status: row.status as BookingStatus,
   notes: row.notes,
   noShowAt: row.noShowAt,
+  employeeNoShowAt: row.employeeNoShowAt,
   link: row.link,
   employeeChosen: row.employeeChosen,
   depositAmount: row.depositAmount === null ? null : Number(row.depositAmount),

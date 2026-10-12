@@ -29,6 +29,7 @@ const BOOKED: Booking = {
   status: BookingStatus.BOOKED,
   notes: null,
   noShowAt: null,
+  employeeNoShowAt: null,
   link: 'booking-link-secret',
   employeeChosen: false,
   depositAmount: null,
@@ -95,6 +96,7 @@ describe('Mis turnos del Usuario', () => {
           clientName: 'Carla Gómez',
           clientEmail: 'carla@example.com',
           noShowAt: null,
+          employeeNoShowAt: null,
           employeeChosen: false,
           depositAmount: null,
           depositPaidAt: null,
@@ -593,6 +595,19 @@ describe('Mis turnos del Usuario', () => {
         status: 'BOOKED',
         noShowAt: '2026-01-01T13:00:00.000Z',
       });
+    });
+
+    it('answers 422 when the Turno has an Employee no-show', async () => {
+      t.clock.advance(3 * 24 * HOUR_MS);
+      t.bookings.findById.mockResolvedValue({
+        ...BOOKED,
+        employeeNoShowAt: new Date('2026-01-02T16:00:00.000Z'),
+      });
+
+      const res = await patch().expect(422);
+
+      expect(res.body.message).toBe('Turno has an Employee no-show');
+      expect(t.bookings.markNoShow).not.toHaveBeenCalled();
     });
 
     it('answers 422 when the Turno already has an Ausencia', async () => {

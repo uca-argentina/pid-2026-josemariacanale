@@ -1,3 +1,4 @@
+import { employeeNoShowBlocker } from '../../domain/bookings/employee-no-show';
 import {
   Booking,
   ClientBooking,
@@ -44,6 +45,7 @@ export const presentUserBooking = (booking: UserBooking) => ({
   clientName: booking.clientName,
   clientEmail: booking.clientEmail,
   noShowAt: booking.noShowAt,
+  employeeNoShowAt: booking.employeeNoShowAt,
   employeeChosen: booking.employeeChosen,
   depositAmount: booking.depositAmount,
   depositPaidAt: booking.depositPaidAt,
@@ -55,7 +57,8 @@ export const presentUserBooking = (booking: UserBooking) => ({
 });
 
 /** Enlace del Turno: el Turno con los datos de dónde pasa, para quien abre su Enlace. */
-export const presentClientBooking = (booking: ClientBooking) => ({
+/** `now` decides `canMarkEmployeeNoShow`, which the back computes because the Cliente never sees the Ausencia. */
+export const presentClientBooking = (booking: ClientBooking, now: Date) => ({
   id: booking.id,
   status: booking.status,
   startsAt: booking.startsAt,
@@ -68,6 +71,8 @@ export const presentClientBooking = (booking: ClientBooking) => ({
   employeeChosen: booking.employeeChosen,
   depositAmount: booking.depositAmount,
   depositPaidAt: booking.depositPaidAt,
+  employeeNoShowAt: booking.employeeNoShowAt,
+  canMarkEmployeeNoShow: employeeNoShowBlocker(booking, now) === null,
   service: booking.service,
   employeeName: booking.employeeName,
   business: booking.business,

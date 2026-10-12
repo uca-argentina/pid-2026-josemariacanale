@@ -69,6 +69,7 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | Aceptar turno | `accept` (`PENDING` → `BOOKED`) |
 | Rechazar turno | `reject` (`PENDING` → `REJECTED`) |
 | Ausencia | `Booking.noShowAt` (marcado a mano; no reemplaza `status`) |
+| Falta del Empleado | `Booking.employeeNoShowAt` (la marca el Cliente; no reemplaza `status`; excluye a `noShowAt` con el CHECK `Booking_no_show_exclusive`, ADR 0004); `MarkEmployeeNoShowByLinkUseCase`, `PATCH /booking-links/:secret/employee-no-show`; `ClientBooking.canMarkEmployeeNoShow` lo calcula el back |
 | Reservar | `book` |
 | Reagendar | `reschedule` (`RescheduleBookingUseCase`); por Enlace del Turno, `reschedulePendingOrBooked` (`RescheduleBookingByLinkUseCase`) |
 | Pagar la Seña (ADR 0027) | `payDeposit`, `PayDepositByLinkUseCase`, `PATCH /booking-links/:secret/deposit`; en el front, `payDepositByLink` |

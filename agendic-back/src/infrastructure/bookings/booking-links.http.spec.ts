@@ -27,6 +27,7 @@ const BOOKED: Booking = {
   status: BookingStatus.BOOKED,
   notes: null,
   noShowAt: null,
+  employeeNoShowAt: null,
   link: LINK,
   employeeChosen: false,
   depositAmount: null,
@@ -630,6 +631,166 @@ describe('Enlace del Turno', () => {
     it('rejects a missing or malformed startsAt with 400', async () => {
       await patch({}).expect(400);
       await patch({ startsAt: 'mañana' }).expect(400);
+    });
+  });
+
+  describe('PATCH /booking-links/:secret/employee-no-show', () => {
+    const patch = () => t.http.patch(`/booking-links/${LINK}/employee-no-show`);
+    const HOUR_MS = 60 * 60 * 1000;
+    const untilStart = () => BOOKED.startsAt.getTime() - t.clock.now().getTime();
+    const untilEnd = () => BOOKED.endsAt.getTime() - t.clock.now().getTime();
+
+    beforeEach(() => {
+      t.bookings.findByLink.mockResolvedValue(CLIENT_BOOKED);
+      t.bookings.markEmployeeNoShow.mockImplementation(async () => ({
+        ...CLIENT_BOOKED,
+        employeeNoShowAt: t.clock.now(),
+      }));
+    });
+
+    it('marks the Falta del Empleado from the start of the Turno', async () => {
+      t.clock.advance(untilStart());
+
+      const res = await patch().expect(200);
+
+      expect(t.bookings.markEmployeeNoShow).toHaveBeenCalledWith(BOOKED.id, t.clock.now());
+      expect(res.body).toMatchObject({
+        id: BOOKED.id,
+        status: 'BOOKED',
+        employeeNoShowAt: t.clock.now().toISOString(),
+      });
+    });
+
+    it('marks it up to 24 hours after the Turno ends', async () => {
+      t.clock.advance(untilEnd() + 24 * HOUR_MS);
+
+      await patch().expect(200);
+    });
+
+    it('answers 422 one millisecond before the Turno starts', async () => {
+      t.clock.advance(untilStart() - 1);
+
+      const res = await patch().expect(422);
+
+      expect(res.body.message).toBe('Turno has not started yet');
+      expect(t.bookings.markEmployeeNoShow).not.toHaveBeenCalled();
+    });
+
+    it('answers 422 one millisecond after the window closes', async () => {
+      t.clock.advance(untilEnd() + 24 * HOUR_MS + 1);
+
+      const res = await patch().expect(422);
+
+      expect(res.body.message).toBe('Employee no-show window closed');
+      expect(t.bookings.markEmployeeNoShow).not.toHaveBeenCalled();
+    });
+
+    it.each([BookingStatus.PENDING, BookingStatus.REJECTED, BookingStatus.CANCELLED])(
+      'answers 422 when the Turno is %s',
+      async (status) => {
+        t.clock.advance(untilEnd());
+        t.bookings.findByLink.mockResolvedValue({ ...CLIENT_BOOKED, status });
+
+        const res = await patch().expect(422);
+
+        expect(res.body.message).toBe('Turno is not booked');
+        expect(t.bookings.markEmployeeNoShow).not.toHaveBeenCalled();
+      },
+    );
+
+    it('answers 422 when the Turno has an Ausencia', async () => {
+      t.clock.advance(untilEnd());
+      t.bookings.findByLink.mockResolvedValue({
+        ...CLIENT_BOOKED,
+        noShowAt: t.clock.now(),
+      });
+
+      const res = await patch().expect(422);
+
+      expect(res.body.message).toBe('Turno has an Ausencia');
+    });
+
+    it('answers 422 when the Falta del Empleado is already marked', async () => {
+      t.clock.advance(untilEnd());
+      t.bookings.findByLink.mockResolvedValue({
+        ...CLIENT_BOOKED,
+        employeeNoShowAt: t.clock.now(),
+      });
+
+      const res = await patch().expect(422);
+
+      expect(res.body.message).toBe('Employee no-show already marked');
+    });
+
+    it('answers 422 when a race changes the Turno between the read and the write', async () => {
+      t.clock.advance(untilEnd());
+      t.bookings.markEmployeeNoShow.mockRejectedValue(
+        new BusinessRuleError('Employee no-show not allowed for this Turno'),
+      );
+
+      const res = await patch().expect(422);
+
+      expect(res.body.message).toBe('Employee no-show not allowed for this Turno');
+    });
+
+    it('answers 404 for an unknown link', async () => {
+      t.bookings.findByLink.mockRejectedValue(new NotFoundError('Turno not found'));
+
+      const res = await patch().expect(404);
+
+      expect(res.body.message).toBe('Turno not found');
+    });
+
+    it('works the same in a Servicio personal', async () => {
+      t.clock.advance(untilEnd());
+      t.bookings.findByLink.mockResolvedValue({
+        ...CLIENT_BOOKED,
+        employeeId: null,
+        business: null,
+        branch: null,
+        user: { slug: 'ana' },
+      });
+
+      await patch().expect(200);
+    });
+  });
+
+  describe('canMarkEmployeeNoShow', () => {
+    const get = () => t.http.get(`/booking-links/${LINK}`);
+
+    it('is false before the Turno starts', async () => {
+      t.bookings.findByLink.mockResolvedValue(CLIENT_BOOKED);
+
+      const res = await get().expect(200);
+
+      expect(res.body).toMatchObject({ canMarkEmployeeNoShow: false, employeeNoShowAt: null });
+    });
+
+    it('is true inside the window and false once marked', async () => {
+      t.clock.advance(BOOKED.endsAt.getTime() - t.clock.now().getTime());
+      t.bookings.findByLink.mockResolvedValue(CLIENT_BOOKED);
+      expect((await get().expect(200)).body.canMarkEmployeeNoShow).toBe(true);
+
+      t.bookings.findByLink.mockResolvedValue({
+        ...CLIENT_BOOKED,
+        employeeNoShowAt: t.clock.now(),
+      });
+      const res = await get().expect(200);
+
+      expect(res.body).toMatchObject({
+        canMarkEmployeeNoShow: false,
+        employeeNoShowAt: t.clock.now().toISOString(),
+      });
+    });
+
+    it('is false when the Turno has an Ausencia, without exposing it', async () => {
+      t.clock.advance(BOOKED.endsAt.getTime() - t.clock.now().getTime());
+      t.bookings.findByLink.mockResolvedValue({ ...CLIENT_BOOKED, noShowAt: t.clock.now() });
+
+      const res = await get().expect(200);
+
+      expect(res.body.canMarkEmployeeNoShow).toBe(false);
+      expect(res.body).not.toHaveProperty('noShowAt');
     });
   });
 });
