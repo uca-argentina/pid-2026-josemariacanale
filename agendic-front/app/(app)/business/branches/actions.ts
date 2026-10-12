@@ -6,12 +6,13 @@ import { isSessionExpired } from '@/app/api-error';
 import { SIGN_IN_PATH } from '@/app/routes';
 import { getInjection } from '@/di/container';
 import { BranchImageLimitError, InvalidSlugError, SlugTakenError } from '@/src/entities/errors/business';
+import { CabinNameTakenError, InvalidCabinNameError } from '@/src/entities/errors/cabin';
 import { InputParseError } from '@/src/entities/errors/common';
 
 /** `message` se muestra al Usuario; `field` lo pone bajo ese campo en vez de en un toast. */
 export type BranchActionResult<T = undefined> =
     | { ok: true; data: T }
-    | { ok: false; message: string; field?: 'slug' };
+    | { ok: false; message: string; field?: 'slug' | 'name' };
 
 /**
  * Corre un controller y traduce sus errores a lo que muestra la página; refresca si salió bien.
@@ -28,6 +29,8 @@ async function run<T>(fallback: string, work: () => Promise<T>): Promise<BranchA
         unstable_rethrow(error);
         if (error instanceof SlugTakenError) return { ok: false, field: 'slug', message: 'Esa dirección ya está en uso.' };
         if (error instanceof InvalidSlugError) return { ok: false, field: 'slug', message: 'El Enlace de reserva no es válido.' };
+        if (error instanceof CabinNameTakenError) return { ok: false, field: 'name', message: 'Ya hay una Cabina con ese nombre en esta Sucursal.' };
+        if (error instanceof InvalidCabinNameError) return { ok: false, field: 'name', message: 'El nombre tiene que tener entre 1 y 60 caracteres.' };
         if (error instanceof BranchImageLimitError) return { ok: false, message: error.message };
         if (isSessionExpired(error)) redirect(SIGN_IN_PATH);
         if (error instanceof InputParseError) return { ok: false, message: 'Revisá los datos e intentá de nuevo.' };
@@ -84,4 +87,19 @@ export async function deleteBusinessLogoAction(businessId: number) {
     return run('No pudimos quitar el Logo. Intentá de nuevo.', () =>
         getInjection('IDeleteBusinessLogoController')({ businessId }),
     );
+}
+
+/** Agrega una Cabina a la Sucursal. */
+export async function createCabinAction(branchId: number, name: string) {
+    return run('No pudimos agregar la Cabina. Intentá de nuevo.', () => getInjection('ICreateCabinController')({ branchId, name }));
+}
+
+/** Renombra una Cabina. */
+export async function renameCabinAction(id: number, name: string) {
+    return run('No pudimos renombrar la Cabina. Intentá de nuevo.', () => getInjection('IRenameCabinController')({ id, name }));
+}
+
+/** Da de baja una Cabina; el back la rechaza si tiene Turnos futuros y eso se muestra como aviso genérico. */
+export async function retireCabinAction(id: number) {
+    return run('No pudimos dar de baja la Cabina. Intentá de nuevo.', () => getInjection('IRetireCabinController')({ id }));
 }

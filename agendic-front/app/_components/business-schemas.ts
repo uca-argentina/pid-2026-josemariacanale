@@ -48,6 +48,11 @@ export const branchFormSchema = branchFields.extend({
     description: z.string().trim(),
 });
 
+/** El nombre de una Cabina: requerido y de hasta 60 caracteres, como lo valida el back (ADR 0030). */
+export const cabinFormSchema = z.object({
+    name: required('el nombre de la Cabina').max(60, 'El nombre no puede tener más de 60 caracteres.'),
+});
+
 export const SERVICE_CATEGORIES = [
     { value: 'CLINICA', label: 'Clínica' },
     { value: 'SPA', label: 'Spa' },

@@ -16,6 +16,7 @@ import {
     type BranchActionResult,
 } from '../actions';
 import { AddBranchDialog } from './AddBranchDialog';
+import { CabinsSection, type CabinItem } from './CabinsSection';
 import { BranchFormFields as Fields } from './BranchFormFields';
 
 /** Una Sucursal con sus imágenes, como la lista la página. */
@@ -27,6 +28,7 @@ export type BranchItem = {
     slug: string;
     description: string | null;
     images: { id: number; url: string }[];
+    cabins: CabinItem[];
 };
 
 const oneFile = (file: File) => {
@@ -162,6 +164,7 @@ function BranchCard({ branch, businessSlug }: { branch: BranchItem; businessSlug
                     reorder={(ids) => reorderBranchImagesAction(branch.id, ids)}
                 />
             </div>
+            <CabinsSection branchId={branch.id} cabins={branch.cabins} />
         </PanelCard>
     );
 }
