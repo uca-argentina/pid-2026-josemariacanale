@@ -8,17 +8,14 @@ import {
   Post,
   UploadedFiles,
   UseGuards,
-  UseInterceptors,
 } from '@nestjs/common';
-import { FilesInterceptor } from '@nestjs/platform-express';
 import { CreateBranchUseCase } from '../../application/branches/create-branch.use-case';
 import { ListBranchesByBusinessUseCase } from '../../application/branches/list-branches-by-business.use-case';
 import { UpdateBranchUseCase } from '../../application/branches/update-branch.use-case';
-import { MAX_BRANCH_IMAGES } from '../../domain/branch-images/branch-image';
 import { FileUpload } from '../../domain/file-storage';
 import {
   ImageFilesPipe,
-  MAX_IMAGE_BYTES,
+  UseBranchImagesInterceptor,
 } from '../branch-images/image-file.pipe';
 import { MultipartJson } from '../multipart-json';
 import { ClerkGuard, CurrentUser } from '../users/clerk.guard';
@@ -39,11 +36,7 @@ export class BranchesController {
    */
   @Post('businesses/:businessId/branches')
   @UseGuards(ClerkGuard)
-  @UseInterceptors(
-    FilesInterceptor('images', MAX_BRANCH_IMAGES, {
-      limits: { fileSize: MAX_IMAGE_BYTES },
-    }),
-  )
+  @UseBranchImagesInterceptor()
   async create(
     @CurrentUser() userId: number,
     @Param('businessId', ParseIntPipe) businessId: number,

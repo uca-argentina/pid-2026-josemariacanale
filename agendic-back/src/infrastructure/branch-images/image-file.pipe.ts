@@ -1,4 +1,11 @@
-import { BadRequestException, Injectable, PipeTransform } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  PipeTransform,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import { MAX_BRANCH_IMAGES } from '../../domain/branch-images/branch-image';
 import { FileUpload } from '../../domain/file-storage';
 
 /** What multer hands over for a multipart file field; only the parts read here. */
@@ -50,3 +57,14 @@ export class ImageFilesPipe implements PipeTransform<
     return files.map(toImageUpload);
   }
 }
+
+/**
+ * Reads a Sucursal's images from the multipart field `images`, for `ImageFilesPipe`: over 5 MB each is a 413, more
+ * than five files a 400 (`Unexpected field - images`).
+ */
+export const UseBranchImagesInterceptor = () =>
+  UseInterceptors(
+    FilesInterceptor('images', MAX_BRANCH_IMAGES, {
+      limits: { fileSize: MAX_IMAGE_BYTES },
+    }),
+  );

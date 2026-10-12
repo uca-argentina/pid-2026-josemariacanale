@@ -17,6 +17,7 @@ import {
   FileUpload,
 } from '../../domain/file-storage';
 import { assertOwner } from '../businesses/assert-owner';
+import { withUploadedFiles } from '../uploaded-files';
 
 @Injectable()
 export class CreateBranchUseCase {
@@ -46,29 +47,8 @@ export class CreateBranchUseCase {
     images: FileUpload[],
   ): Promise<BranchWithImages> {
     assertOwner(await this.businesses.findById(businessId), userId);
-    const uploads = await Promise.allSettled(
-      images.map((image) => this.storage.upload(image)),
+    return withUploadedFiles(this.storage, images, (urls) =>
+      this.branches.createWithImages({ businessId, ...input }, urls),
     );
-    const urls = uploads.flatMap((upload) =>
-      upload.status === 'fulfilled' ? [upload.value] : [],
-    );
-    const discardFiles = () =>
-      Promise.all(
-        urls.map((url) => this.storage.delete(url).catch(() => undefined)),
-      );
-    const failed = uploads.find((upload) => upload.status === 'rejected');
-    if (failed) {
-      await discardFiles();
-      throw failed.reason;
-    }
-    try {
-      return await this.branches.createWithImages(
-        { businessId, ...input },
-        urls,
-      );
-    } catch (error) {
-      await discardFiles();
-      throw error;
-    }
   }
 }
