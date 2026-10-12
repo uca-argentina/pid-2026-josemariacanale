@@ -8,8 +8,8 @@ const startsAt = '2026-10-02T15:00:00.000Z';
 
 describe('rescheduleBookingController', () => {
     it('runs the use case with the id and the chosen horario', async () => {
-        const useCase = jest.fn().mockResolvedValue(undefined);
-        await rescheduleBookingController(instrumentation, signedIn, useCase)({ bookingId: 7, startsAt });
+        const useCase = jest.fn().mockResolvedValue({ id: 9 });
+        await expect(rescheduleBookingController(instrumentation, signedIn, useCase)({ bookingId: 7, startsAt })).resolves.toEqual({ id: 9 });
         expect(useCase).toHaveBeenCalledWith({ bookingId: 7, startsAt });
     });
 

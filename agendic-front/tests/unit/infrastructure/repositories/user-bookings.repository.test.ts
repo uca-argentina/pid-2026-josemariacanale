@@ -12,6 +12,7 @@ const booking = {
     clientName: 'Lucía',
     clientEmail: 'lucia@gmail.com',
     noShowAt: null,
+    employeeNoShowAt: null,
     serviceId: 2,
     serviceName: 'Masaje',
     employeeId: 5,
@@ -21,6 +22,7 @@ const booking = {
     business: { id: 3, name: 'Spa' },
     branch: { id: 4, name: 'Centro' },
     cabin: { id: 6, name: 'Box 1' },
+    fromRescheduleId: null,
 };
 
 const repo = (apiUrl: string | undefined = 'http://api') =>
@@ -120,8 +122,8 @@ describe('UserBookingsRepository actions', () => {
     });
 
     it('reschedule PATCHes /bookings/:id/reschedule with the chosen startsAt', async () => {
-        const fetchSpy = respond(200, {});
-        await repo().reschedule(7, '2026-10-02T15:00:00.000Z');
+        const fetchSpy = respond(200, { id: 9 });
+        await expect(repo().reschedule(7, '2026-10-02T15:00:00.000Z')).resolves.toEqual({ id: 9 });
         expect(fetchSpy).toHaveBeenCalledWith(
             'http://api/bookings/7/reschedule',
             expect.objectContaining({

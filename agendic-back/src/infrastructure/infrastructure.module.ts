@@ -1,4 +1,5 @@
 import { Global, Module } from '@nestjs/common';
+import { ANALYTICS_REPOSITORY } from '../domain/analytics/analytics.repository';
 import { AVAILABILITIES_REPOSITORY } from '../domain/availabilities/availabilities.repository';
 import { CLOCK, Clock } from '../domain/clock';
 import { FILE_STORAGE } from '../domain/file-storage';
@@ -17,6 +18,8 @@ import { OUT_OF_OFFICE_REPOSITORY } from '../domain/out-of-office/out-of-office.
 import { SERVICES_REPOSITORY } from '../domain/services/services.repository';
 import { CLERK_AUTH } from '../domain/users/clerk-auth';
 import { USERS_REPOSITORY } from '../domain/users/users.repository';
+import { AnalyticsModule } from './analytics/analytics.module';
+import { PrismaAnalyticsRepository } from './analytics/prisma-analytics.repository';
 import { AvailabilitiesModule } from './availabilities/availabilities.module';
 import { PrismaAvailabilitiesRepository } from './availabilities/prisma-availabilities.repository';
 import { PrismaBookingsRepository } from './bookings/prisma-bookings.repository';
@@ -67,6 +70,7 @@ import { UsersModule } from './users/users.module';
     OutOfOfficeModule,
     SlugsModule,
     HolidaysModule,
+    AnalyticsModule,
   ],
   providers: [
     PrismaService,
@@ -112,6 +116,7 @@ import { UsersModule } from './users/users.module';
       useClass: PrismaUserHolidaySettingsRepository,
     },
     { provide: GOOGLE_CALENDAR_CLIENT, useClass: GoogleCalendarApiClient },
+    { provide: ANALYTICS_REPOSITORY, useClass: PrismaAnalyticsRepository },
   ],
   exports: [
     CLOCK,
@@ -133,6 +138,7 @@ import { UsersModule } from './users/users.module';
     HOLIDAYS_REPOSITORY,
     USER_HOLIDAY_SETTINGS_REPOSITORY,
     GOOGLE_CALENDAR_CLIENT,
+    ANALYTICS_REPOSITORY,
   ],
 })
 export class InfrastructureModule {}

@@ -138,7 +138,7 @@ Cuántas veces puede el Cliente Reagendar un mismo Turno. Es del Servicio y es o
 _Avoid_: límite de cambios, cupo de reprogramaciones
 
 **Paquete**:
-Cantidad de sesiones de un Servicio que el Dueño define con un precio, y que el Empleado o el Dueño cargan en una Ficha del Cliente cuando lo venden. Cada Turno de ese Servicio que se Reserva con ese email usa una sesión y no pide Seña. Si el Turno se Cancela o se Rechaza, la sesión vuelve. Si queda con Ausencia, se pierde. No vence.
+Cantidad de sesiones de un Servicio que el Dueño define con un precio, y que el Empleado o el Dueño cargan en una Ficha del Cliente cuando lo venden. Cada Turno de ese Servicio que se Reserva con ese email usa una sesión y no pide Seña. Si el Turno se Cancela o se Rechaza, la sesión vuelve. Si queda con Ausencia del Invitado, se pierde. No vence.
 _Avoid_: bono, abono, pack, membresía
 
 **Límite diario**:
@@ -198,7 +198,7 @@ Acción del Cliente de tomar un turno disponible. Exige Verificar email: el Turn
 _Avoid_: agendar, sacar turno, pedir turno
 
 **Mis turnos**:
-Pantalla del panel donde un Empleado ve los Turnos que atiende, en todos los Negocios donde lo es, y desde donde los Acepta, Rechaza, Cancela, Reagenda, o los marca como atendidos o con Ausencia. Es del Empleado: el Cliente no tiene una, vuelve a su Turno por el Enlace del Turno.
+Pantalla del panel donde un Empleado ve los Turnos que atiende, en todos los Negocios donde lo es, y desde donde los Acepta, Rechaza, Cancela, Reagenda, o los marca como atendidos o con Ausencia del Invitado. Es del Empleado: el Cliente no tiene una, vuelve a su Turno por el Enlace del Turno.
 _Avoid_: mis reservas, agenda, turnos del cliente (no existe)
 
 **Enlace del Turno**:
@@ -241,12 +241,16 @@ _Avoid_: eliminar, borrar (un turno)
 Retirar un Servicio de la agenda de un Negocio, retirar a un Empleado de un Negocio, retirar una Cabina de una Sucursal (solo sin Turnos futuros), o retirar a un Usuario de Agendic. Sus Turnos futuros en ese Negocio quedan cancelados; los de un Usuario, en todos lados. Lo dado de baja no se borra: queda como historial. Un Usuario dado de baja deja de existir para el Proveedor de autenticación: si vuelve a registrarse con el mismo email, es un Usuario nuevo. Un Usuario solo se da de baja a sí mismo; si es Dueño, su Negocio queda dado de baja con él, y su Enlace de reserva no vuelve a quedar libre.
 _Avoid_: eliminar, borrar, desactivar, bajar (un usuario)
 
-**Ausencia**:
-Turno al que el Cliente no se presentó sin cancelarlo. El Empleado la marca a mano, solo en Turnos ya aceptados cuyo horario ya pasó. Excluye a Turno atendido.
-_Avoid_: inasistencia, no-show, ausencia del Usuario (eso es Fuera de la oficina)
+**Ausencia del Invitado**:
+Turno al que el Cliente no se presentó sin cancelarlo. La marca a mano quien lo atiende, solo en Turnos ya aceptados cuyo horario ya pasó. Excluye a Turno atendido y a Ausencia del Anfitrión: gana la primera que se marca.
+_Avoid_: Ausencia (a secas), ausencia del Cliente, inasistencia, no-show, ausencia del Usuario (eso es Fuera de la oficina)
+
+**Ausencia del Anfitrión**:
+Turno al que no se presentó quien lo atiende: el Empleado, o el Usuario en un Servicio personal. La marca el Cliente desde el Enlace del Turno, en un Turno aceptado, desde que empieza hasta 24 horas después de que termina. Nadie la deshace. Excluye a Ausencia del Invitado.
+_Avoid_: Falta del Empleado, ausencia del Empleado, Fuera de la oficina (es otra cosa)
 
 **Turno atendido**:
-Turno aceptado cuyo horario ya pasó y que el Empleado marcó a mano como atendido. Excluye a Ausencia. Un Turno que pasó sin ninguna de las dos marcas no cuenta como atendido.
+Turno aceptado cuyo horario ya pasó y que el Empleado marcó a mano como atendido. Excluye a Ausencia del Invitado. Un Turno que pasó sin ninguna de las dos marcas no cuenta como atendido.
 _Avoid_: completado, realizado, finalizado
 
 **Turno pendiente**:

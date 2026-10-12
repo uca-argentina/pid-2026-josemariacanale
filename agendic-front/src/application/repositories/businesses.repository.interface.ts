@@ -40,6 +40,7 @@ export interface IBusinessesRepository {
     uploadBranchImage(branchId: number, file: File): Promise<BranchImage>;
     /**
      * @throws {NotFoundError} 404, the image is not of the Sucursal
+     * @throws {LastBranchImageError} 409, it is the Sucursal's only image
      * @throws {ApiRequestError} 403, not the Dueño
      */
     deleteBranchImage(branchId: number, imageId: number): Promise<void>;

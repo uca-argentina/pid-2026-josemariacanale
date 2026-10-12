@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { ClientBookingDetail } from '@/app/_components/client-booking/ClientBookingDetail';
 import type { ClientBooking } from '@/app/_components/client-booking/types';
-import { cancelBookingByLinkAction, payDepositByLinkAction, rescheduleBookingByLinkAction } from '../../actions';
+import { cancelBookingByLinkAction, markEmployeeNoShowByLinkAction, payDepositByLinkAction, rateBookingByLinkAction, rescheduleBookingByLinkAction } from '../../actions';
 import { BookAgainLink } from './BookAgainLink';
 
 /**
@@ -23,6 +23,8 @@ export function BookingLinkScreen({ link, booking: initial, now }: { link: strin
                 payDeposit={() => payDepositByLinkAction(link)}
                 cancel={() => cancelBookingByLinkAction(link)}
                 reschedule={(startsAt) => rescheduleBookingByLinkAction(link, startsAt)}
+                markEmployeeNoShow={() => markEmployeeNoShowByLinkAction(link)}
+                rate={(score, comment) => rateBookingByLinkAction(link, score, comment)}
                 onUpdated={setBooking}
             />
 

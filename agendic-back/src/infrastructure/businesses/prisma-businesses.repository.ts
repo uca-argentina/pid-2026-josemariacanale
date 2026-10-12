@@ -10,6 +10,7 @@ import {
   NotFoundError,
 } from '../../domain/errors';
 import { Business as BusinessRow, Prisma } from '../../generated/prisma/client';
+import { toBranchImage } from '../branch-images/prisma-branch-images.repository';
 import { toBranch } from '../branches/prisma-branches.repository';
 import {
   toEmployee,
@@ -45,6 +46,18 @@ export class PrismaBusinessesRepository implements BusinessesRepository {
             timeZone: data.branch.timeZone,
             slug: data.branch.slug,
             description: data.branch.description,
+            images: {
+              create: data.branchImageUrls.map((url, order) => ({
+                url,
+                order,
+              })),
+            },
+          },
+          include: {
+            images: {
+              select: { id: true, branchId: true, url: true, order: true },
+              orderBy: { order: 'asc' },
+            },
           },
         });
         const employee = await tx.employee.create({
@@ -75,6 +88,7 @@ export class PrismaBusinessesRepository implements BusinessesRepository {
           branch: toBranch(branch),
           service: service ? toService(service) : null,
           employee: toEmployee(employee),
+          images: branch.images.map(toBranchImage),
         };
       })
       .catch(translateError);

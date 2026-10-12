@@ -1,6 +1,8 @@
 'use server';
 
 import { getInjection } from '@/di/container';
+import { BookingAlreadyRatedError } from '@/src/entities/errors/booking';
+import type { ClientBooking } from '@/app/_components/client-booking/types';
 import { performClientBookingAction } from '@/app/_components/client-booking/perform-client-booking-action';
 
 // El Enlace del Turno es la credencial (ADR 0022): sin Sesión ni acceso, viaja como parámetro en cada acción.
@@ -21,10 +23,50 @@ export async function payDepositByLinkAction(link: string) {
     );
 }
 
+const EMPLOYEE_NO_SHOW_ERRORS: Record<string, string> = {
+    'Turno is not booked': 'El turno no está aceptado, así que no se puede marcar la falta.',
+    'Turno has not started yet': 'El turno todavía no empezó.',
+    'Employee no-show window closed': 'Ya pasó el plazo para marcar la falta.',
+    'Turno has an Ausencia': 'El turno ya tiene una ausencia marcada.',
+    'Employee no-show already marked': 'Ya marcaste que no vino.',
+    'Employee no-show not allowed for this Turno': 'No se puede marcar la falta en este turno.',
+};
+
+/** Marca la Falta del Empleado del Turno del Enlace: el Cliente avisa que el Empleado no vino. */
+export async function markEmployeeNoShowByLinkAction(link: string) {
+    return performClientBookingAction(
+        () => getInjection('IMarkEmployeeNoShowByLinkController')({ link }),
+        'No pudimos marcar la falta. Intentá de nuevo.',
+        (message) => EMPLOYEE_NO_SHOW_ERRORS[message],
+    );
+}
+
 /** Reagenda el Turno pendiente o aceptado del Enlace al Horario reservable `startsAt` (instante ISO). */
 export async function rescheduleBookingByLinkAction(link: string, startsAt: string) {
     return performClientBookingAction(
         () => getInjection('IRescheduleBookingByLinkController')({ link, startsAt }),
         'No pudimos reagendar el turno. Intentá de nuevo.',
     );
+}
+
+/**
+ * Califica el Turno del Enlace de 1 a 5, con un comentario opcional. Si el Turno ya tenía Calificación (409), devuelve el Turno
+ * recargado para mostrarla.
+ */
+export async function rateBookingByLinkAction(link: string, score: number, comment?: string) {
+    let reloaded: ClientBooking | undefined;
+    const result = await performClientBookingAction(
+        async () => {
+            try {
+                return await getInjection('IRateBookingByLinkController')({ link, score, comment });
+            } catch (error) {
+                if (!(error instanceof BookingAlreadyRatedError)) throw error;
+                reloaded = await getInjection('IGetBookingByLinkController')({ link });
+                return reloaded;
+            }
+        },
+        'No pudimos guardar tu calificación. Intentá de nuevo.',
+        (message) => (message === 'Turno cannot be rated' ? 'Este turno no se puede calificar.' : undefined),
+    );
+    return reloaded ? { ok: false as const, message: 'Este Turno ya tiene una Calificación', booking: reloaded } : result;
 }

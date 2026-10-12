@@ -29,6 +29,23 @@ export interface IClientBookingsRepository {
     payDepositByLink(link: string): Promise<ClientBooking>;
 
     /**
+     * Marca la Falta del Empleado en el Turno de un Enlace del Turno.
+     *
+     * @throws {NotFoundError} el Enlace no es de ningún Turno (404)
+     * @throws {BookingStateError} el Turno no está aceptado, no empezó, venció el plazo, tiene Ausencia, ya tiene la Falta o no admite marcarla (422)
+     */
+    markEmployeeNoShowByLink(link: string): Promise<ClientBooking>;
+
+    /**
+     * Califica el Turno de un Enlace del Turno de 1 a 5, con un comentario opcional.
+     *
+     * @throws {NotFoundError} el Enlace no es de ningún Turno (404)
+     * @throws {BookingStateError} el Turno no se puede calificar (422)
+     * @throws {BookingAlreadyRatedError} el Turno ya tiene su Calificación (409)
+     */
+    rateBookingByLink(link: string, rating: { score: number; comment?: string }): Promise<ClientBooking>;
+
+    /**
      * Reagenda el Turno de un Enlace del Turno a otro Horario reservable del mismo Servicio.
      *
      * @throws {NotFoundError} el Enlace no es de ningún Turno (404)

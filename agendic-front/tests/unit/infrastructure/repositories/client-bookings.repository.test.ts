@@ -1,4 +1,4 @@
-import { BookingStateError, SlotTakenError, SlotUnavailableError } from '@/src/entities/errors/booking';
+import { BookingAlreadyRatedError, BookingStateError, SlotTakenError, SlotUnavailableError } from '@/src/entities/errors/booking';
 import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
 import { ClientBookingsRepository } from '@/src/infrastructure/repositories/client-bookings.repository';
 import { instrumentation } from '@/tests/unit/stubs';
@@ -22,6 +22,10 @@ const booking = {
     employeeChosen: false,
     depositAmount: null,
     depositPaidAt: null,
+    employeeNoShowAt: null,
+    canMarkEmployeeNoShow: false,
+    rating: null,
+    canRate: false,
     service: { name: 'Corte', durationMinutes: 60, price: 5000, depositPercent: null },
     employeeName: 'Ana',
     business: { name: 'Peluquería Luna', slug: 'peluqueria-luna' },
@@ -107,6 +111,68 @@ describe('ClientBookingsRepository.payDepositByLink', () => {
     });
 });
 
+describe('ClientBookingsRepository.rateBookingByLink', () => {
+    it('POSTs score y comment sin header de acceso, y devuelve el Turno', async () => {
+        const rated = { ...booking, rating: { score: 5, comment: 'Genial', createdAt: '2026-10-10T14:00:00.000Z' } };
+        const fetchSpy = respond(201, rated);
+
+        await expect(repo().rateBookingByLink('s3cr3t-l1nk', { score: 5, comment: 'Genial' })).resolves.toEqual(rated);
+        expect(fetchSpy).toHaveBeenCalledWith('http://api/booking-links/s3cr3t-l1nk/rating', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ score: 5, comment: 'Genial' }),
+        });
+    });
+
+    it('translates a 404 to NotFoundError', async () => {
+        respond(404, { statusCode: 404, message: 'Turno not found' });
+        await expect(repo().rateBookingByLink('unknown', { score: 5 })).rejects.toBeInstanceOf(NotFoundError);
+    });
+
+    it('translates the 422 to BookingStateError, keeping the message', async () => {
+        respond(422, { statusCode: 422, message: 'Turno cannot be rated' });
+        const error = await repo().rateBookingByLink('l', { score: 5 }).catch((e) => e);
+        expect(error).toBeInstanceOf(BookingStateError);
+        expect(error.message).toBe('Turno cannot be rated');
+    });
+
+    it('translates the 409 to BookingAlreadyRatedError', async () => {
+        respond(409, { statusCode: 409, message: 'Turno already rated' });
+        const error = await repo().rateBookingByLink('l', { score: 5 }).catch((e) => e);
+        expect(error).toBeInstanceOf(BookingAlreadyRatedError);
+        expect(error.message).toBe('Turno already rated');
+    });
+});
+
+describe('ClientBookingsRepository.markEmployeeNoShowByLink', () => {
+    it('PATCHes sin header de acceso ni body, y devuelve el Turno con la Falta marcada', async () => {
+        const marked = { ...booking, employeeNoShowAt: '2026-10-10T14:00:00.000Z' };
+        const fetchSpy = respond(200, marked);
+
+        await expect(repo().markEmployeeNoShowByLink('s3cr3t-l1nk')).resolves.toEqual(marked);
+        expect(fetchSpy).toHaveBeenCalledWith('http://api/booking-links/s3cr3t-l1nk/employee-no-show', { method: 'PATCH', headers: {} });
+    });
+
+    it('translates a 404 to NotFoundError', async () => {
+        respond(404, { statusCode: 404, message: 'Turno not found' });
+        await expect(repo().markEmployeeNoShowByLink('unknown')).rejects.toBeInstanceOf(NotFoundError);
+    });
+
+    it.each([
+        'Turno is not booked',
+        'Turno has not started yet',
+        'Employee no-show window closed',
+        'Turno has an Ausencia',
+        'Employee no-show already marked',
+        'Employee no-show not allowed for this Turno',
+    ])('translates the 422 "%s" to BookingStateError, keeping the message', async (message) => {
+        respond(422, { statusCode: 422, message });
+        const error = await repo().markEmployeeNoShowByLink('s3cr3t-l1nk').catch((e) => e);
+        expect(error).toBeInstanceOf(BookingStateError);
+        expect(error.message).toBe(message);
+    });
+});
+
 describe('ClientBookingsRepository.rescheduleBookingByLink', () => {
     const startsAt = '2026-10-11T12:00:00.000Z';
 
@@ -165,11 +231,13 @@ describe('ClientBookingsRepository misc', () => {
         await spanning.getBookingByLink('s3cr3t-l1nk').catch(() => undefined);
         await spanning.cancelBookingByLink('s3cr3t-l1nk').catch(() => undefined);
         await spanning.payDepositByLink('s3cr3t-l1nk').catch(() => undefined);
+        await spanning.markEmployeeNoShowByLink('s3cr3t-l1nk').catch(() => undefined);
         await spanning.rescheduleBookingByLink('s3cr3t-l1nk', '2026-10-11T12:00:00.000Z').catch(() => undefined);
         expect(names).toEqual([
             'ClientBookingsRepository > getBookingByLink',
             'ClientBookingsRepository > cancelBookingByLink',
             'ClientBookingsRepository > payDepositByLink',
+            'ClientBookingsRepository > markEmployeeNoShowByLink',
             'ClientBookingsRepository > rescheduleBookingByLink',
         ]);
     });

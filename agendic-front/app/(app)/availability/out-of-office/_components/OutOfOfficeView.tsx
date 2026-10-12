@@ -14,11 +14,11 @@ import type { OutOfOffice } from '@/src/entities/models/out-of-office';
 import type { Preferences } from '@/src/entities/models/user';
 import { deleteOutOfOfficeAction } from '../actions';
 import { HolidaysTab, type HolidaysTabData } from './HolidaysTab';
-import { formatOutOfOfficeDate } from './format-out-of-office-date';
+import { formatOutOfOfficeDate } from '@/app/_components/format-day';
 import { OutOfOfficeDialog } from './OutOfOfficeDialog';
 import { OutOfOfficeFilters } from './OutOfOfficeFilters';
 import { EMPTY_FILTERS, matchesFilters, parseFilters, writeFilters, type OutOfOfficeFilterState } from './out-of-office-filters';
-import { toIsoDay } from './out-of-office-range';
+import { toIsoDay } from '@/app/_components/day-range';
 import { OUT_OF_OFFICE_REASONS } from './out-of-office-reasons';
 
 const outOfOfficeUrl = (params: URLSearchParams) => (params.size ? `${OUT_OF_OFFICE_PATH}?${params}` : OUT_OF_OFFICE_PATH);

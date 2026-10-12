@@ -11,7 +11,7 @@ import { Input } from '@/app/_components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/app/_components/ui/popover';
 import { cn } from '@/app/_components/utils';
 import type { Preferences } from '@/src/entities/models/user';
-import { formatOutOfOfficeDate } from './format-out-of-office-date';
+import { formatOutOfOfficeDate } from '@/app/_components/format-day';
 import {
     EMPTY_FILTERS,
     parseFilters,
@@ -22,7 +22,7 @@ import {
     type OutOfOfficeFilterState as Filters,
     type RangePreset,
 } from './out-of-office-filters';
-import { fromCalendarRange, toCalendarRange, toIsoDay, toLocalDay } from './out-of-office-range';
+import { fromCalendarRange, toCalendarRange, toIsoDay, toLocalDay } from '@/app/_components/day-range';
 
 const SAVED_KEY = 'agendic:out-of-office:saved-filters';
 

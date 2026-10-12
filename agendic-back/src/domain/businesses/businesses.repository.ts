@@ -1,3 +1,4 @@
+import { BranchImage } from '../branch-images/branch-image';
 import { Branch } from '../branches/branch';
 import { Employee } from '../employees/employee';
 import { Service } from '../services/service';
@@ -29,6 +30,8 @@ export interface CreateBusinessData {
   >;
   /** The Dueño, in charge of that first Servicio with their default Availability. */
   employee: Pick<Employee, 'userId'>;
+  /** The first Sucursal's images, one per URL, each one's order being its position here. */
+  branchImageUrls: string[];
 }
 
 export interface CreatedBusiness {
@@ -37,6 +40,8 @@ export interface CreatedBusiness {
   /** `null` si el Negocio se creó sin Servicio. */
   service: Service | null;
   employee: Employee;
+  /** The first Sucursal's images, ascending by order. */
+  images: BranchImage[];
 }
 
 export interface BusinessesRepository {

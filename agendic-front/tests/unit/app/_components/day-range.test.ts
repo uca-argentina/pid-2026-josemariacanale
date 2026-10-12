@@ -1,4 +1,4 @@
-import { fromCalendarRange, toCalendarRange } from '@/app/(app)/availability/out-of-office/_components/out-of-office-range';
+import { fromCalendarRange, toCalendarRange } from '@/app/_components/day-range';
 
 const ORIGINAL_TZ = process.env.TZ;
 afterEach(() => {

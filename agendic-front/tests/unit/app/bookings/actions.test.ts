@@ -79,6 +79,11 @@ describe.each([
 });
 
 describe('rescheduleBookingAction', () => {
+    it('returns the id of the new Turno that replaced the original', async () => {
+        mockControllers.IRescheduleBookingController.mockResolvedValue({ id: 9 });
+        await expect(rescheduleBookingAction(7, '2026-10-02T15:00:00.000Z')).resolves.toEqual({ ok: true, bookingId: 9 });
+    });
+
     it('sends the chosen startsAt', async () => {
         await rescheduleBookingAction(7, '2026-10-02T15:00:00.000Z');
         expect(mockControllers.IRescheduleBookingController).toHaveBeenCalledWith({ bookingId: 7, startsAt: '2026-10-02T15:00:00.000Z' });
