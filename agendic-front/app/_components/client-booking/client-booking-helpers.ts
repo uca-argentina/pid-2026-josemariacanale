@@ -22,3 +22,6 @@ export const canPayDeposit = (b: ClientBooking, now: number) => hasPendingDeposi
 
 /** El Negocio del Turno o, en un Servicio personal, el Usuario que lo atiende. */
 export const hostName = (b: ClientBooking) => b.business?.name ?? b.employeeName;
+
+/** Qué muestra el Turno de la Calificación: el formulario si todavía puede calificar, la suya en solo lectura si ya calificó. */
+export const ratingSection = (b: ClientBooking): 'form' | 'readonly' | null => (b.canRate ? 'form' : b.rating ? 'readonly' : null);
