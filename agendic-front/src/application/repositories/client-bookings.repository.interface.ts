@@ -37,6 +37,15 @@ export interface IClientBookingsRepository {
     markEmployeeNoShowByLink(link: string): Promise<ClientBooking>;
 
     /**
+     * Califica el Turno de un Enlace del Turno de 1 a 5, con un comentario opcional.
+     *
+     * @throws {NotFoundError} el Enlace no es de ningún Turno (404)
+     * @throws {BookingStateError} el Turno no se puede calificar (422)
+     * @throws {BookingAlreadyRatedError} el Turno ya tiene su Calificación (409)
+     */
+    rateBookingByLink(link: string, rating: { score: number; comment?: string }): Promise<ClientBooking>;
+
+    /**
      * Reagenda el Turno de un Enlace del Turno a otro Horario reservable del mismo Servicio.
      *
      * @throws {NotFoundError} el Enlace no es de ningún Turno (404)

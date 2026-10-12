@@ -1,6 +1,8 @@
 'use server';
 
 import { getInjection } from '@/di/container';
+import { BookingAlreadyRatedError } from '@/src/entities/errors/booking';
+import type { ClientBooking } from '@/app/_components/client-booking/types';
 import { performClientBookingAction } from '@/app/_components/client-booking/perform-client-booking-action';
 
 // El Enlace del Turno es la credencial (ADR 0022): sin Sesión ni acceso, viaja como parámetro en cada acción.
@@ -45,4 +47,26 @@ export async function rescheduleBookingByLinkAction(link: string, startsAt: stri
         () => getInjection('IRescheduleBookingByLinkController')({ link, startsAt }),
         'No pudimos reagendar el turno. Intentá de nuevo.',
     );
+}
+
+/**
+ * Califica el Turno del Enlace de 1 a 5, con un comentario opcional. Si el Turno ya tenía Calificación (409), devuelve el Turno
+ * recargado para mostrarla.
+ */
+export async function rateBookingByLinkAction(link: string, score: number, comment?: string) {
+    let reloaded: ClientBooking | undefined;
+    const result = await performClientBookingAction(
+        async () => {
+            try {
+                return await getInjection('IRateBookingByLinkController')({ link, score, comment });
+            } catch (error) {
+                if (!(error instanceof BookingAlreadyRatedError)) throw error;
+                reloaded = await getInjection('IGetBookingByLinkController')({ link });
+                return reloaded;
+            }
+        },
+        'No pudimos guardar tu calificación. Intentá de nuevo.',
+        (message) => (message === 'Turno cannot be rated' ? 'Este turno no se puede calificar.' : undefined),
+    );
+    return reloaded ? { ok: false as const, message: 'Este Turno ya tiene una Calificación', booking: reloaded } : result;
 }
