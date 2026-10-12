@@ -18,6 +18,10 @@ _Avoid_: usuario final, paciente, consumidor
 Sede física de un Negocio, con zona horaria propia. Un Negocio puede tener varias. No tiene horario de apertura ni de cierre: los Horarios reservables salen solo de las Availability de sus Empleados. Solo los Servicios del Negocio tienen Sucursal. Tiene siempre al menos una imagen, desde que se crea. Puede tener una descripción propia, opcional, que reemplaza a la del Negocio en la página de la Sucursal.
 _Avoid_: sede, local
 
+**Cabina**:
+Espacio o equipo de una Sucursal (un box, una camilla, un láser) que un Turno ocupa mientras dura, con su Tiempo de preparación. Dos Turnos no pueden ocupar la misma Cabina a la vez, igual que pasa con el Empleado. No tiene horario propio: solo resta Horarios reservables. Solo la usan los Servicios del Negocio que la admiten, y es opcional: un Servicio sin Cabinas depende solo de sus Empleados. Un Servicio puede admitir varias; cada Turno ocupa una sola. Al Reservar se le asigna una libre, la que hace más tiempo que no recibe un Turno de cualquier Servicio, sin atarla al Empleado. Reagendar la conserva si sigue libre; si no, pasa a otra. El Cliente no la elige ni la ve. Solo la gestiona el Dueño. Los Turnos tomados antes de que su Servicio admitiera Cabinas no ocupan ninguna hasta que se Reagendan. A diferencia de lo demás, no se puede Dar de baja una Cabina mientras tenga Turnos futuros: primero se Reagendan o se Cancelan.
+_Avoid_: recurso, sala, box, equipo, puesto
+
 **Empleado**:
 Usuario que atiende los Servicios del Negocio. Puede atender cualquiera de ellos. Un Usuario puede ser Empleado de varios Negocios a la vez, sea o no Dueño de otro.
 _Avoid_: recurso
@@ -146,7 +150,7 @@ Feriado de un país o de un calendario religioso que el Usuario elige. Todos los
 _Avoid_: feriado, holiday
 
 **Horario reservable**:
-Hora concreta en la que un Cliente puede Reservar un Turno para un Servicio, ya descontadas las Anulaciones, los días Fuera de la oficina, los Días festivos, la Anticipación mínima y los Turnos tomados. En un Servicio del Negocio, basta con que un Empleado que lo Ofrece esté libre. Los Turnos ocupan al Usuario que los atiende en todos sus Servicios, personales o de cualquier Negocio.
+Hora concreta en la que un Cliente puede Reservar un Turno para un Servicio, ya descontadas las Anulaciones, los días Fuera de la oficina, los Días festivos, la Anticipación mínima y los Turnos tomados. En un Servicio del Negocio, basta con que un Empleado que lo Ofrece esté libre y, si el Servicio admite Cabinas, también una de ellas. Los Turnos ocupan al Usuario que los atiende en todos sus Servicios, personales o de cualquier Negocio.
 _Avoid_: slot, hueco, disponibilidad
 
 **Categoría de Servicio**:
@@ -202,7 +206,7 @@ Anular un Turno. Su horario queda libre. El Cliente puede Cancelar un Turno pend
 _Avoid_: eliminar, borrar (un turno)
 
 **Dar de baja**:
-Retirar un Servicio de la agenda de un Negocio, retirar a un Empleado de un Negocio, o retirar a un Usuario de Agendic. Sus Turnos futuros en ese Negocio quedan cancelados; los de un Usuario, en todos lados. Lo dado de baja no se borra: queda como historial. Un Usuario dado de baja deja de existir para el Proveedor de autenticación: si vuelve a registrarse con el mismo email, es un Usuario nuevo. Un Usuario solo se da de baja a sí mismo; si es Dueño, su Negocio queda dado de baja con él, y su Enlace de reserva no vuelve a quedar libre.
+Retirar un Servicio de la agenda de un Negocio, retirar a un Empleado de un Negocio, retirar una Cabina de una Sucursal (solo sin Turnos futuros), o retirar a un Usuario de Agendic. Sus Turnos futuros en ese Negocio quedan cancelados; los de un Usuario, en todos lados. Lo dado de baja no se borra: queda como historial. Un Usuario dado de baja deja de existir para el Proveedor de autenticación: si vuelve a registrarse con el mismo email, es un Usuario nuevo. Un Usuario solo se da de baja a sí mismo; si es Dueño, su Negocio queda dado de baja con él, y su Enlace de reserva no vuelve a quedar libre.
 _Avoid_: eliminar, borrar, desactivar, bajar (un usuario)
 
 **Ausencia**:
