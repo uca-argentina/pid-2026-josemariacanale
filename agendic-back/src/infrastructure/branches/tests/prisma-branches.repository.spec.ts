@@ -49,18 +49,33 @@ describe('PrismaBranchesRepository', () => {
 
   beforeEach(() => jest.resetAllMocks());
 
-  it('creates a Branch, converting HH:mm hours to Prisma Time values', async () => {
-    prisma.branch.create.mockResolvedValue(BRANCH_ROW);
+  it('creates a Sucursal with one image per URL, ordered as given, in the same create', async () => {
+    prisma.branch.create.mockResolvedValue({
+      ...BRANCH_ROW,
+      images: [
+        { id: 10, branchId: 1, url: 'https://files.example.com/a', order: 0 },
+        { id: 11, branchId: 1, url: 'https://files.example.com/b', order: 1 },
+      ],
+    });
 
     await expect(
-      repository.create({
-        businessId: 1,
-        name: 'Downtown',
-        address: '123 Main St',
-        timeZone: 'America/Argentina/Buenos_Aires',
-        slug: 'downtown',
-      }),
-    ).resolves.toEqual(BRANCH);
+      repository.createWithImages(
+        {
+          businessId: 1,
+          name: 'Downtown',
+          address: '123 Main St',
+          timeZone: 'America/Argentina/Buenos_Aires',
+          slug: 'downtown',
+        },
+        ['https://files.example.com/a', 'https://files.example.com/b'],
+      ),
+    ).resolves.toEqual({
+      branch: BRANCH,
+      images: [
+        { id: 10, branchId: 1, url: 'https://files.example.com/a', order: 0 },
+        { id: 11, branchId: 1, url: 'https://files.example.com/b', order: 1 },
+      ],
+    });
     expect(prisma.branch.create).toHaveBeenCalledWith({
       data: {
         businessId: 1,
@@ -68,6 +83,18 @@ describe('PrismaBranchesRepository', () => {
         address: '123 Main St',
         timeZone: 'America/Argentina/Buenos_Aires',
         slug: 'downtown',
+        images: {
+          create: [
+            { url: 'https://files.example.com/a', order: 0 },
+            { url: 'https://files.example.com/b', order: 1 },
+          ],
+        },
+      },
+      include: {
+        images: {
+          select: { id: true, branchId: true, url: true, order: true },
+          orderBy: { order: 'asc' },
+        },
       },
     });
   });
@@ -102,12 +129,13 @@ describe('PrismaBranchesRepository', () => {
 
   describe('translates Prisma errors, keeping the original as cause', () => {
     const calls = {
-      create: () => repository.create(BRANCH),
+      createWithImages: () =>
+        repository.createWithImages(BRANCH, ['https://files.example.com/a']),
       findById: () => repository.findById(1),
       update: () => repository.update(1, { name: 'New name' }),
     };
     const prismaCall = {
-      create: prisma.branch.create,
+      createWithImages: prisma.branch.create,
       findById: prisma.branch.findUnique,
       update: prisma.branch.update,
     };
@@ -125,7 +153,7 @@ describe('PrismaBranchesRepository', () => {
       },
     );
 
-    it.each(['create', 'update'] as const)(
+    it.each(['createWithImages', 'update'] as const)(
       '%s: P2002 on the slug index into a ConflictError naming the Enlace de reserva',
       async (method) => {
         const cause = knownError('P2002');

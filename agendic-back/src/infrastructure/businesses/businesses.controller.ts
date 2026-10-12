@@ -10,6 +10,7 @@ import {
   Post,
   Put,
   UploadedFile,
+  UploadedFiles,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
@@ -22,7 +23,14 @@ import { RemoveBusinessLogoUseCase } from '../../application/businesses/remove-b
 import { SetBusinessLogoUseCase } from '../../application/businesses/set-business-logo.use-case';
 import { UpdateBusinessUseCase } from '../../application/businesses/update-business.use-case';
 import { FileUpload } from '../../domain/file-storage';
-import { ImageFilePipe, MAX_IMAGE_BYTES } from '../branch-images/image-file.pipe';
+import { presentBranchImage } from '../branch-images/branch-image.presenter';
+import {
+  ImageFilePipe,
+  ImageFilesPipe,
+  MAX_IMAGE_BYTES,
+  UseBranchImagesInterceptor,
+} from '../branch-images/image-file.pipe';
+import { MultipartJson } from '../multipart-json';
 import { presentBranch } from '../branches/branch.presenter';
 import { presentEmployee } from '../employees/employee.presenter';
 import { presentService } from '../services/service.presenter';
@@ -42,15 +50,26 @@ export class BusinessesController {
     private readonly getBusinessBySlugUseCase: GetBusinessBySlugUseCase,
   ) {}
 
+  /** Multipart: the Negocio's fields as JSON in `data`, and its first Sucursal's 1 to 5 images in `images`. */
   @Post()
   @UseGuards(ClerkGuard)
-  async create(@CurrentUser() userId: number, @Body() dto: CreateBusinessDto) {
-    const created = await this.createBusinessUseCase.execute(userId, dto);
+  @UseBranchImagesInterceptor()
+  async create(
+    @CurrentUser() userId: number,
+    @MultipartJson('data', CreateBusinessDto) dto: CreateBusinessDto,
+    @UploadedFiles(ImageFilesPipe) images: FileUpload[],
+  ) {
+    const created = await this.createBusinessUseCase.execute(
+      userId,
+      dto,
+      images,
+    );
     return {
       business: presentBusiness(created.business),
       branch: presentBranch(created.branch),
       service: created.service && presentService(created.service),
       employee: presentEmployee(created.employee),
+      images: created.images.map(presentBranchImage),
     };
   }
 

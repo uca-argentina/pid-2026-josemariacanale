@@ -41,6 +41,7 @@ describe('BookingSlug (real database)', () => {
         slug: 'sucursal',
       },
       employee: { userId: ownerId },
+      branchImageUrls: ['https://files.example.com/sucursal'],
     });
     created.businessIds.push(business.id);
     return business;

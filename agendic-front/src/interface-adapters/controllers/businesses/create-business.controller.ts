@@ -14,6 +14,12 @@ function presenter({ business, branch }: CreatedBusiness, instrumentationService
 }
 
 export type ICreateBusinessController = ReturnType<typeof createBusinessController>;
+/**
+ * Crea el Negocio del Usuario con su primera Sucursal y las imágenes de esa Sucursal, de 1 a 5.
+ *
+ * @throws {UnauthenticatedError} no hay Sesión
+ * @throws {InputParseError} el input no tiene la forma esperada, o no trae de 1 a 5 imágenes
+ */
 export const createBusinessController =
     (
         instrumentationService: IInstrumentationService,

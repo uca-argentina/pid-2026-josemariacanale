@@ -3,9 +3,11 @@ import { InputParseError } from '@/src/entities/errors/common';
 import { createBusinessController } from '@/src/interface-adapters/controllers/businesses/create-business.controller';
 import { authWith, instrumentation } from '@/tests/unit/stubs';
 
+const IMAGE = new File(['a'], 'a.png', { type: 'image/png' });
 const validInput = () => ({
     business: { name: 'Estudio', description: 'Desc', slug: 'estudio' },
     branch: { name: 'Centro', address: 'Av. 1', timeZone: 'America/Argentina/Buenos_Aires', slug: 'centro' },
+    images: [IMAGE],
 });
 const user = { id: 'user_1', name: 'Ana', email: 'a@a.com' };
 
@@ -37,6 +39,22 @@ describe('createBusinessController', () => {
         await expect(controller({ ...input, branch: { name: 'Centro', address: 'Av. 1' } })).rejects.toBeInstanceOf(
             InputParseError,
         );
+        expect(useCase).not.toHaveBeenCalled();
+    });
+
+    it.each([
+        ['no images', []],
+        ['more than five images', Array(6).fill(IMAGE)],
+        ['an image that is not a File', ['a.png']],
+    ])('throws InputParseError with %s, without calling the use case', async (_case, images) => {
+        const useCase = jest.fn();
+        const controller = createBusinessController(
+            instrumentation,
+            authWith({ getCurrentUser: jest.fn().mockResolvedValue(user) }),
+            useCase,
+        );
+
+        await expect(controller({ ...validInput(), images })).rejects.toBeInstanceOf(InputParseError);
         expect(useCase).not.toHaveBeenCalled();
     });
 

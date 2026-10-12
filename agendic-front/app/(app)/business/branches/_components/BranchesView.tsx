@@ -50,6 +50,7 @@ function RemoteUploader({
     saved,
     max,
     reorderable,
+    keepOneReason,
     upload,
     remove,
     reorder,
@@ -57,6 +58,7 @@ function RemoteUploader({
     saved: { id: number | string; url: string }[];
     max: number;
     reorderable?: boolean;
+    keepOneReason?: string;
     upload: (file: File) => Promise<BranchActionResult<unknown>>;
     remove: (id: UploaderImage['id']) => Promise<BranchActionResult<unknown>>;
     reorder?: (ids: number[]) => Promise<BranchActionResult<unknown>>;
@@ -80,6 +82,7 @@ function RemoteUploader({
             images={images}
             max={max}
             reorderable={reorderable && uploading.length === 0}
+            keepOneReason={keepOneReason}
             onUpload={onUpload}
             onDelete={async (id) => toastIfFailed(await remove(id))}
             onReorder={
@@ -158,6 +161,7 @@ function BranchCard({ branch, businessSlug }: { branch: BranchItem; businessSlug
                 <RemoteUploader
                     max={5}
                     reorderable
+                    keepOneReason="La sucursal necesita al menos una imagen"
                     saved={branch.images}
                     upload={(file) => uploadBranchImageAction(branch.id, oneFile(file))}
                     remove={(id) => deleteBranchImageAction(branch.id, Number(id))}

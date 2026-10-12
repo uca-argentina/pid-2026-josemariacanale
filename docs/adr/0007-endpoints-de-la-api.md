@@ -51,7 +51,7 @@ actualizarlo a mano cuando se agregue, cambie o borre un endpoint.
 
 | Método | Ruta | Auth | Qué hace |
 |---|---|---|---|
-| POST | `/businesses` | sí | Crea un negocio junto con su primera sucursal y su empleado, y opcionalmente su primer servicio; el Empleado creado es el propio Dueño (su Usuario de Sesión, ADR 0013), y el primer servicio, si viene, queda atendido por ese Empleado con la Availability predeterminada de su Usuario (ADR 0020), todo en la misma transacción; sin `service`, la respuesta trae `service: null`; 409 si el Usuario ya es Dueño de un Negocio (ADR 0012) |
+| POST | `/businesses` | sí | Crea un negocio junto con su primera sucursal y su empleado, y opcionalmente su primer servicio; el Empleado creado es el propio Dueño (su Usuario de Sesión, ADR 0013), y el primer servicio, si viene, queda atendido por ese Empleado con la Availability predeterminada de su Usuario (ADR 0020), todo en la misma transacción; sin `service`, la respuesta trae `service: null`; las imágenes de la primera Sucursal llegan en el mismo pedido, en `multipart/form-data`; 409 si el Usuario ya es Dueño de un Negocio (ADR 0012) |
 | PATCH | `/businesses/:id` | sí | Actualiza name/description/slug (solo el dueño); cambiar el slug deja de servir el Enlace de reserva anterior |
 | PUT | `/businesses/:id/logo` | sí | Pone o reemplaza el Logo del Negocio (solo el Dueño; otro Usuario 403, Negocio inexistente o dado de baja 404). `multipart/form-data` con la imagen en `file`, mismas validaciones que `POST /branches/:id/images`: sin archivo 400 `file is required`, tipo que no es JPEG/PNG/WebP/GIF 400 `La imagen tiene que ser JPEG, PNG, WebP o GIF`, más de 5 MB 413. Borra el archivo del Logo anterior (si ese borrado falla, la operación igual sale bien). 200 con el Negocio |
 | DELETE | `/businesses/:id/logo` | sí | Saca el Logo y borra su archivo (solo el Dueño); 204, también si no tenía Logo o si el archivo no se pudo borrar |
@@ -60,26 +60,28 @@ actualizarlo a mano cuando se agregue, cambie o borre un endpoint.
 | GET | `/slugs/:slug` | no | De quién es el primer tramo de un Enlace de reserva, sin prefijo (ADR 0026): `200 { kind: 'business', business }` con la forma de `GET /businesses/by-slug/:slug`, o `200 { kind: 'user', user: { name, slug, imageUrl, services } }` con la de `GET /u/:userSlug`; el slug se compara en minúsculas; 404 `Booking link <slug> not found` si nadie lo tiene, si es de un Negocio o Usuario dado de baja, o si no tiene formato de slug. El front resuelve el primer tramo de cada URL pública con esta llamada |
 | GET | `/businesses/by-slug/:slug` | no | Detalle de un negocio por su Enlace de reserva; el slug se compara en minúsculas; 404 si no existe o si el Negocio está dado de baja (ADR 0024; su slug no se libera, otro Negocio no puede tomarlo: 409) |
 
+- POST: `multipart/form-data`, con la misma forma que el alta de Sucursal. El campo `data` lleva el `CreateBusinessDto` como JSON string, con la misma validación que un body JSON: falta `data`, JSON inválido, que no es un objeto o que no pasa el DTO → 400. El campo `images` lleva de 1 a 5 archivos, las imágenes de la primera Sucursal, con las mismas validaciones que `POST /branches/:id/images`: tipo que no es JPEG, PNG, WebP o GIF → 400 `La imagen tiene que ser JPEG, PNG, WebP o GIF`; más de 5 MB → 413. Sin archivos → 400 `At least one image is required`; más de 5 → 400 `Unexpected field - images`. Ningún 400/413 crea nada ni sube archivos, y tampoco se sube nada si el Usuario ya es Dueño o el Enlace de reserva es una palabra reservada. Las imágenes quedan en la primera Sucursal (con `order` según el orden recibido) en la misma transacción que crea Negocio, Sucursal, Servicio y Empleado; si una subida o el alta fallan (por ejemplo el 409 de Enlace de reserva en uso), los archivos ya subidos se borran. El Logo sigue subiéndose aparte con `PUT /businesses/:id/logo`
 - `CreateBusinessDto`: `{ business: { name, description, slug }, branch: { name, address, timeZone, slug }, service?: ServiceFieldsDto }`; `service` es opcional; `branch` valida sus campos igual que `CreateBranchDto` del endpoint de Sucursales, `slug` incluido: es requerido y sin él es 400 (antes, sin él la primera Sucursal tomaba el `slug` del Negocio y el Enlace de reserva quedaba `/x/x`)
 - `UpdateBusinessDto`: `{ name?, description?, slug? }`
 - `slug` (Enlace de reserva): se pasa a minúsculas, 3-40 caracteres, palabras de letras y dígitos unidas por guiones (`^[a-z0-9]+(-[a-z0-9]+)*$`); formato inválido → 400, slug ya tomado por otro Negocio o por un Usuario (aunque esté dado de baja) o palabra reservada (`bookings, services, business, availability, analytics, turnos, sign-in, sign-up, api, trpc, u`) → 409 `Booking link already in use` (ADR 0026); `POST /businesses` y `PATCH /businesses/:id` comparten esa regla
 - Respuesta (`presentBusiness`): `{ id, name, description, slug, ownerId }`
-- Respuesta del POST: `{ business, branch, service, employee }` (cada uno con su propio presenter)
+- Respuesta del POST: `{ business, branch, service, employee, images }` (cada uno con su propio presenter; `images` es la lista de imágenes de la primera Sucursal con `presentBranchImage`, en orden)
 
 ## Branches (Sucursal)
 
 | Método | Ruta | Auth | Qué hace |
 |---|---|---|---|
-| POST | `/businesses/:businessId/branches` | sí | Crea una sucursal bajo un negocio (solo el dueño); 409 si su `slug` ya está en uso en ese negocio |
+| POST | `/businesses/:businessId/branches` | sí | Crea una sucursal bajo un negocio (solo el dueño) junto con sus imágenes, en `multipart/form-data`; 201 con la Sucursal e `images`; 409 si su `slug` ya está en uso en ese negocio |
 | PATCH | `/branches/:id` | sí | Actualiza una sucursal (solo el dueño); 409 si su `slug` ya está en uso en ese negocio; cambiar el `slug` deja de servir el Enlace de reserva anterior de esa sucursal |
 | GET | `/businesses/:businessId/branches` | no | Lista sucursales de un negocio |
 
+- POST: `multipart/form-data`, para que la Sucursal nunca nazca sin imagen. El campo `data` lleva el `CreateBranchDto` como JSON string, con la misma validación que un body JSON: falta `data`, JSON inválido, que no es un objeto o que no pasa el DTO → 400. El campo `images` lleva de 1 a 5 archivos, con las mismas validaciones que `POST /branches/:id/images`: tipo que no es JPEG, PNG, WebP o GIF → 400 `La imagen tiene que ser JPEG, PNG, WebP o GIF`; más de 5 MB → 413. Sin archivos → 400 `At least one image is required`; más de 5 → 400 `Unexpected field - images`. Ningún 400/413 crea nada ni sube archivos. La Sucursal y sus imágenes (con `order` según el orden recibido) se crean en la misma transacción; si una subida o el alta fallan (por ejemplo el 409 de `slug`), los archivos ya subidos se borran
 - `CreateBranchDto`: `{ name, address, timeZone, slug, description? }`. La Sucursal no tiene horario de apertura ni de cierre (ADR 0020): los Horarios reservables salen solo de las Availability
 - `slug` (tramo de Sucursal del Enlace de reserva, ADR 0014: `/<slug del negocio>/<slug de la sucursal>`): mismo formato que el `slug` del Negocio (se pasa a minúsculas, 3-40 caracteres, `^[a-z0-9]+(-[a-z0-9]+)*$`); requerido en creación, opcional en `UpdateBranchDto`; formato inválido → 400; ya usado por otra sucursal del mismo negocio → 409 `Booking link already in use` (dos negocios distintos sí pueden repetirlo)
 - `timeZone`: nombre IANA (por ejemplo `America/Argentina/Buenos_Aires`), nunca un offset; requerido en creación, opcional en `UpdateBranchDto`; inválido → 400
 - `description`: texto libre opcional de la Sucursal, que en su página pública reemplaza al del Negocio; un string vacío (o en blanco) se guarda como `null`. También vale en el `branch` de `POST /businesses`. En `UpdateBranchDto`, `description: null` la quita
 - `UpdateBranchDto`: los mismos campos, todos opcionales
-- Respuesta (`presentBranch`): `{ id, businessId, name, address, timeZone, slug, description }` (`description: string | null`)
+- Respuesta (`presentBranch`): `{ id, businessId, name, address, timeZone, slug, description }` (`description: string | null`). El POST suma `images`: la lista de imágenes de la Sucursal con `presentBranchImage` (`{ id, branchId, url, order }`), en orden
 
 ## Imágenes de Sucursal (BranchImage)
 
@@ -92,7 +94,7 @@ una Sucursal); sus archivos en el storage no.
 |---|---|---|---|
 | GET | `/branches/:id/images` | no | Las imágenes de la Sucursal, ordenadas por `order`; 404 si la Sucursal no existe |
 | POST | `/branches/:id/images` | sí | Sube una imagen y la agrega al final; 201 con la imagen; 422 `La Sucursal ya tiene 5 imágenes` si ya tiene cinco (el conteo y el alta van en la misma transacción, y el archivo subido se borra) |
-| DELETE | `/branches/:id/images/:imageId` | sí | Borra la imagen y su archivo; 204 |
+| DELETE | `/branches/:id/images/:imageId` | sí | Borra la imagen y su archivo; 204; 409 `Branch <id> must keep at least one image` si es la única imagen de la Sucursal (el conteo y el borrado van en la misma transacción, y no se borra ni la fila ni el archivo) |
 | PUT | `/branches/:id/images/order` | sí | Reemplaza el orden de todas las imágenes; 200 con la lista ya ordenada |
 
 - POST: `multipart/form-data` con la imagen en el campo `file`. Sin archivo → 400 `file is required`; tipo que no es `image/jpeg`, `image/png`, `image/webp` o `image/gif` → 400 `La imagen tiene que ser JPEG, PNG, WebP o GIF`; más de 5 MB → 413

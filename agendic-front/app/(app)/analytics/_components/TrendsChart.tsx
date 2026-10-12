@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from 'recharts';
 import { Card, CardAction, CardHeader, CardTitle } from '@/app/_components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/app/_components/ui/chart';
@@ -11,10 +11,21 @@ const COLORS = ['#2563eb', '#16a34a', '#9333ea', '#ea580c', '#dc2626', '#ca8a04'
 
 /**
  * "Tendencias": una línea por conteo. La leyenda, arriba a la derecha de la tarjeta, prende y apaga cada serie; el
- * tooltip con todos los valores del punto aparece al hacer clic.
+ * tooltip con todos los valores del punto aparece al hacer clic y se va al hacer clic afuera del gráfico.
  */
 export function TrendsChart({ chart }: { chart: PersonalAnalyticsData['chart'] }) {
     const [hidden, setHidden] = useState<ReadonlySet<string>>(new Set());
+    const [tooltipOpen, setTooltipOpen] = useState(false);
+    const chartRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (!tooltipOpen) return;
+        const close = (event: PointerEvent) => {
+            if (!chartRef.current?.contains(event.target as Node)) setTooltipOpen(false);
+        };
+        document.addEventListener('pointerdown', close);
+        return () => document.removeEventListener('pointerdown', close);
+    }, [tooltipOpen]);
     const config = Object.fromEntries(
         chart.series.map(({ key, label }, index) => [key, { label, color: COLORS[index % COLORS.length] }]),
     ) satisfies ChartConfig;
@@ -36,7 +47,7 @@ export function TrendsChart({ chart }: { chart: PersonalAnalyticsData['chart'] }
                             type="button"
                             aria-pressed={!hidden.has(key)}
                             onClick={() => toggle(key)}
-                            className={cn('flex items-center gap-1.5 text-sm text-muted-foreground', hidden.has(key) && 'line-through opacity-60')}
+                            className={cn('flex items-center gap-1.5 text-xs text-muted-foreground', hidden.has(key) && 'line-through opacity-60')}
                         >
                             <span className="size-2 rounded-full" style={{ backgroundColor: config[key].color }} />
                             {label}
@@ -44,13 +55,13 @@ export function TrendsChart({ chart }: { chart: PersonalAnalyticsData['chart'] }
                     ))}
                 </CardAction>
             </CardHeader>
-            <div className="px-6">
+            <div ref={chartRef} className="px-6" onClick={() => setTooltipOpen(true)}>
                 <ChartContainer config={config} className="aspect-auto h-72 w-full" data-testid="trends-chart">
                     <LineChart data={chart.points} margin={{ left: 4, right: 12 }}>
-                        <CartesianGrid vertical={false} strokeDasharray="4 4" strokeWidth={0.5} />
+                        <CartesianGrid vertical={false} strokeDasharray="4 4" stroke="#cbd5e1" />
                         <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} minTickGap={24} />
                         <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={32} />
-                        <ChartTooltip trigger="click" content={<ChartTooltipContent labelKey="label" />} />
+                        <ChartTooltip trigger="click" active={tooltipOpen ? undefined : false} content={<ChartTooltipContent labelKey="label" />} />
                         {chart.series.map(({ key }) => (
                             <Line
                                 key={key}

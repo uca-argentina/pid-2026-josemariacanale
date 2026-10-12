@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Branch } from '../../domain/branches/branch';
 import { BranchesRepository } from '../../domain/branches/branches.repository';
+import { toBranchImage } from '../branch-images/prisma-branch-images.repository';
 import {
   ConflictError,
   DatabaseOperationError,
@@ -14,27 +15,36 @@ import { PrismaService } from '../prisma.service';
 export class PrismaBranchesRepository implements BranchesRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(
+  async createWithImages(
     data: Pick<
       Branch,
       'businessId' | 'name' | 'address' | 'timeZone' | 'slug'
     > &
       Partial<Pick<Branch, 'description'>>,
+    imageUrls: string[],
   ) {
-    return toBranch(
-      await this.prisma.branch
-        .create({
-          data: {
-            businessId: data.businessId,
-            name: data.name,
-            address: data.address,
-            timeZone: data.timeZone,
-            slug: data.slug,
-            description: data.description,
+    const row = await this.prisma.branch
+      .create({
+        data: {
+          businessId: data.businessId,
+          name: data.name,
+          address: data.address,
+          timeZone: data.timeZone,
+          slug: data.slug,
+          description: data.description,
+          images: {
+            create: imageUrls.map((url, order) => ({ url, order })),
           },
-        })
-        .catch(translateError),
-    );
+        },
+        include: {
+          images: {
+            select: { id: true, branchId: true, url: true, order: true },
+            orderBy: { order: 'asc' },
+          },
+        },
+      })
+      .catch(translateError);
+    return { branch: toBranch(row), images: row.images.map(toBranchImage) };
   }
 
   async findById(id: number) {

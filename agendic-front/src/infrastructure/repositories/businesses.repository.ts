@@ -1,8 +1,9 @@
 import type { IBusinessesRepository } from '@/src/application/repositories/businesses.repository.interface';
 import type { IAuthenticationService } from '@/src/application/services/authentication.service.interface';
-import { AlreadyOwnerError, BranchImageLimitError, InvalidSlugError, SlugTakenError } from '@/src/entities/errors/business';
+import { AlreadyOwnerError, BranchImageLimitError, LastBranchImageError, InvalidSlugError, SlugTakenError } from '@/src/entities/errors/business';
 import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
 import { branchImageSchema, type BranchImage } from '@/src/entities/models/branch-image';
+import { throwIfBranchImagesRejected } from './branch-images-rejection';
 import {
     businessSchema,
     createdBusinessSchema,
@@ -63,16 +64,28 @@ export class BusinessesRepository implements IBusinessesRepository {
     }
 
     /**
+     * `POST /businesses`, multipart: los campos como JSON en `data` y las imágenes de la primera Sucursal en `images`.
+     *
      * Solo un 400 que habla del `business.slug` se traduce a `InvalidSlugError`; cualquier otro campo inválido sale
      * como `ApiRequestError` con su mensaje real, para no disfrazarlo de slug. Los dos 409 (ya es Dueño, dirección en
      * uso) el back los distingue solo por el mensaje (ticket 11).
+     *
+     * @throws {AlreadyOwnerError} 409 "Ya tenés un Negocio"
+     * @throws {SlugTakenError} el otro 409, dirección en uso
+     * @throws {InvalidSlugError} 400 sobre `business.slug`
+     * @throws {BranchImagesRejectedError} 400 sobre las imágenes, o 413
+     * @throws {ApiRequestError} cualquier otra falla, o un body que no es un Negocio creado
      */
-    async createBusiness(input: CreateBusiness): Promise<CreatedBusiness> {
-        const { response, body, message } = await this.request('POST /businesses', '/businesses', { method: 'POST', json: input });
+    async createBusiness({ images, ...fields }: CreateBusiness): Promise<CreatedBusiness> {
+        const form = new FormData();
+        form.append('data', JSON.stringify(fields));
+        for (const image of images) form.append('images', image);
+        const { response, body, message } = await this.request('POST /businesses', '/businesses', { method: 'POST', body: form });
         if (response.status === 409) {
             throw /ya ten[eé]s un negocio/i.test(message) ? new AlreadyOwnerError(message) : new SlugTakenError(message);
         }
         if (response.status === 400 && /business\.slug/i.test(message)) throw new InvalidSlugError(message);
+        throwIfBranchImagesRejected(response.status, message);
         if (!response.ok) throw new ApiRequestError(message, { status: response.status });
 
         return parseOrFail(() => createdBusinessSchema.parse(body), 'POST /businesses');
@@ -140,6 +153,7 @@ export class BusinessesRepository implements IBusinessesRepository {
         );
         if (response.ok) return;
         if (response.status === 404) throw new NotFoundError(message);
+        if (response.status === 409) throw new LastBranchImageError(message);
         throw new ApiRequestError(message, { status: response.status });
     }
 

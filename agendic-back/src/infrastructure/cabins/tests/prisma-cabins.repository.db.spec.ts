@@ -43,6 +43,7 @@ describe('PrismaCabinsRepository (real database)', () => {
         slug: 'sucursal',
       },
       employee: { userId },
+      branchImageUrls: ['https://files.example.com/sucursal'],
     });
     businessId = business.id;
     branchId = branch.id;

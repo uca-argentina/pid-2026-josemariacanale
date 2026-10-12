@@ -28,6 +28,7 @@ import {
     type FieldErrors,
 } from '@/app/_components/business-schemas';
 import { ImageUploader } from '@/app/_components/image-uploader/ImageUploader';
+import { BRANCH_IMAGES } from '@/src/entities/models/branch';
 import { createBusinessAction } from '../actions';
 import { BusinessFieldset } from './BusinessFieldset';
 import { RoleBadge } from './business-ui';
@@ -38,10 +39,10 @@ const STEPS = [
     { title: 'Invitá a tus Empleados', description: 'Mandales una Invitación por email a quienes atienden en tu Negocio. Podés hacerlo después.' },
     { title: 'Ya casi', description: 'Revisá los datos antes de crear tu Negocio.' },
 ];
+const BRANCH_STEP = 2;
 const EMPLOYEES_STEP = 3;
 const SUMMARY_STEP = STEPS.length;
 const LOGO_MAX = 1;
-const BRANCH_IMAGES_MAX = 5;
 
 const LIST = new Intl.ListFormat('es', { type: 'conjunction' });
 const invalid = (errors: FieldErrors, field: string, id: string) =>
@@ -92,7 +93,7 @@ export function CreateBusinessDialog({ owner, onClose }: { owner: Owner; onClose
     // El mini formulario de Invitar; null mientras está cerrado.
     const [draft, setDraft] = useState<InviteFields | null>(null);
     const logo = usePickedImages(LOGO_MAX);
-    const images = usePickedImages(BRANCH_IMAGES_MAX);
+    const images = usePickedImages(BRANCH_IMAGES.max);
     const [submitError, setSubmitError] = useState<string>();
     const [isPending, startTransition] = useTransition();
 
@@ -135,6 +136,10 @@ export function CreateBusinessDialog({ owner, onClose }: { owner: Owner; onClose
                     setErrors(fieldErrorsOf(result.error));
                     return;
                 }
+                if (step === BRANCH_STEP && images.picked.length < BRANCH_IMAGES.min) {
+                    setErrors({ images: 'Elegí al menos una imagen de la Sucursal.' });
+                    return;
+                }
             }
             goTo(step + 1);
             return;
@@ -158,8 +163,7 @@ export function CreateBusinessDialog({ owner, onClose }: { owner: Owner; onClose
             toast.success(`${payload.business.name}: negocio creado`);
             if (result.failedEmployees.length)
                 toast.error(`No pudimos sumar a ${LIST.format(result.failedEmployees)}. Invitalos desde Empleados.`);
-            if (result.failedUploads.length)
-                toast.error(`No pudimos subir ${LIST.format(result.failedUploads)}. Cargala desde Sucursales.`);
+            if (result.logoFailed) toast.error('No pudimos subir el Logo. Cargalo desde Sucursales.');
             onClose();
         });
     };
@@ -229,7 +233,15 @@ export function CreateBusinessDialog({ owner, onClose }: { owner: Owner; onClose
                         </PanelField>
                     </>
                 )}
-                {step === 2 && <BranchStep value={branch} onChange={setBranch} errors={errors} images={images} />}
+                {step === BRANCH_STEP && (
+                    <BranchStep
+                        value={branch}
+                        onChange={setBranch}
+                        errors={errors}
+                        images={images}
+                        onImagesAdded={() => setErrors((current) => Object.fromEntries(Object.entries(current).filter(([field]) => field !== 'images')))}
+                    />
+                )}
                 {step === EMPLOYEES_STEP && (
                     <EmployeesStep
                         owner={owner}
@@ -280,11 +292,14 @@ function BranchStep({
     onChange,
     errors,
     images,
+    onImagesAdded,
 }: {
     value: BranchFields;
     onChange: (value: BranchFields) => void;
     errors: FieldErrors;
     images: PickedImages;
+    /** Avisa que se sumaron imágenes, para sacar el error de que falta al menos una. */
+    onImagesAdded: () => void;
 }) {
     return (
         <>
@@ -313,12 +328,20 @@ function BranchStep({
                     onChange={(tz) => onChange({ ...value, timeZone: tz })}
                 />
             </PanelField>
-            <PanelField label="Imágenes" htmlFor="branch-images" hint="Opcional. Hasta 5; arrastralas para ordenarlas.">
+            <PanelField
+                label="Imágenes"
+                htmlFor="branch-images"
+                hint={`Al menos una, hasta ${BRANCH_IMAGES.max}. Arrastralas para ordenarlas.`}
+                error={errors.images}
+            >
                 <ImageUploader
                     images={images.picked}
-                    max={BRANCH_IMAGES_MAX}
+                    max={BRANCH_IMAGES.max}
                     reorderable
-                    onUpload={images.add}
+                    onUpload={(files) => {
+                        images.add(files);
+                        onImagesAdded();
+                    }}
                     onDelete={images.remove}
                     onReorder={images.reorder}
                 />
