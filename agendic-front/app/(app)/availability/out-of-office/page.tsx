@@ -3,12 +3,14 @@ import { isSessionExpired } from '@/app/api-error';
 import { BackendErrorNotice } from '@/app/_components/BackendErrorNotice';
 import { SIGN_IN_PATH } from '@/app/routes';
 import { getInjection } from '@/di/container';
+import { myPreferences } from '../../my-preferences';
 import { OutOfOfficeView } from './_components/OutOfOfficeView';
 
 export const metadata = { title: 'Fuera de la oficina' };
 
-/** Los períodos Fuera de la oficina del Usuario con Sesión. */
-export default async function OutOfOfficePage() {
+/** Los períodos Fuera de la oficina del Usuario con Sesión; `?nuevo` abre el modal de período nuevo. */
+export default async function OutOfOfficePage({ searchParams }: { searchParams: Promise<{ nuevo?: string }> }) {
+    const { nuevo } = await searchParams;
     let periods;
     try {
         periods = await getInjection('IListMyOutOfOfficeController')();
@@ -19,5 +21,5 @@ export default async function OutOfOfficePage() {
         return <BackendErrorNotice />;
     }
 
-    return <OutOfOfficeView periods={periods} />;
+    return <OutOfOfficeView periods={periods} openNew={nuevo !== undefined} weekStart={(await myPreferences()).weekStart} />;
 }

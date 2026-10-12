@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { Clock, Plus } from 'lucide-react';
 import { TimezoneSelect } from '@/app/(app)/_components/TimezoneSelect';
+import { newOutOfOfficePath } from '@/app/routes';
 import { Button } from '@/app/_components/ui/button';
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/app/_components/ui/dialog';
 import { Input } from '@/app/_components/ui/input';
@@ -146,7 +147,7 @@ export function AvailabilityList({
 
             <p className="mt-4 mb-16 text-center text-sm text-muted-foreground">
                 ¿Fuera de la oficina temporalmente?{' '}
-                <Link href="/availability/out-of-office" className="underline">
+                <Link href={newOutOfOfficePath} className="underline">
                     Cargar un período
                 </Link>
             </p>

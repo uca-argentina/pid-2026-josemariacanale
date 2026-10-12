@@ -17,3 +17,17 @@ export const outOfOfficeSchema = z.object({
 });
 /** Período en que el Usuario no atiende. */
 export type OutOfOffice = z.infer<typeof outOfOfficeSchema>;
+
+/** Lo que el Usuario carga de un período: el cuerpo de `POST` y `PUT /users/me/out-of-office`. */
+export const saveOutOfOfficeSchema = z.object({
+    startDate: dateSchema,
+    endDate: dateSchema,
+    reason: outOfOfficeReasonSchema,
+    notes: z.string().trim().optional(),
+    showNotePublicly: z.boolean().optional(),
+});
+export type SaveOutOfOffice = z.infer<typeof saveOutOfOfficeSchema>;
+
+/** Un período existente con lo que el Usuario le cambia: el `id` va en la ruta y el resto en el cuerpo. */
+export const updateOutOfOfficeSchema = saveOutOfOfficeSchema.extend({ outOfOfficeId: z.number().int().positive() });
+export type UpdateOutOfOffice = z.infer<typeof updateOutOfOfficeSchema>;
