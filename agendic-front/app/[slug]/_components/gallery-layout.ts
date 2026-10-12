@@ -46,3 +46,6 @@ export function splitIntoRows<T>(items: readonly T[], rows: readonly GalleryRow[
     }
     return result;
 }
+
+/** El contador de la galería oscura, "n/N": la Imagen `index` (desde 0) de `total`. */
+export const slideCounter = (index: number, total: number) => `${index + 1}/${total}`;
