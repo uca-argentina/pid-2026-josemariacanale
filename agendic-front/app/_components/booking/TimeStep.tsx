@@ -228,7 +228,6 @@ export function TimeStep({
                         <CalendarX2 className="size-5 text-muted-foreground" />
                     </div>
                     <p className="text-[15px] font-bold tracking-[-0.02em]">No se atiende ese día</p>
-                    {goToNext && <div className="mt-3">{goToNext}</div>}
                 </div>
             )}
         </>
