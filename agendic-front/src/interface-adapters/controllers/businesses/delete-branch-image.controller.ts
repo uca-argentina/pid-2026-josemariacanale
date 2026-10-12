@@ -10,6 +10,7 @@ export type IDeleteBranchImageController = ReturnType<typeof deleteBranchImageCo
  *
  * @throws {UnauthenticatedError} no hay Sesión
  * @throws {InputParseError} el input no es válido
+ * @throws {LastBranchImageError} es la última imagen de la Sucursal
  */
 export const deleteBranchImageController =
     (

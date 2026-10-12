@@ -1,6 +1,6 @@
 import type { IBusinessesRepository } from '@/src/application/repositories/businesses.repository.interface';
 import type { IAuthenticationService } from '@/src/application/services/authentication.service.interface';
-import { AlreadyOwnerError, BranchImageLimitError, InvalidSlugError, SlugTakenError } from '@/src/entities/errors/business';
+import { AlreadyOwnerError, BranchImageLimitError, LastBranchImageError, InvalidSlugError, SlugTakenError } from '@/src/entities/errors/business';
 import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
 import { branchImageSchema, type BranchImage } from '@/src/entities/models/branch-image';
 import {
@@ -140,6 +140,7 @@ export class BusinessesRepository implements IBusinessesRepository {
         );
         if (response.ok) return;
         if (response.status === 404) throw new NotFoundError(message);
+        if (response.status === 409) throw new LastBranchImageError(message);
         throw new ApiRequestError(message, { status: response.status });
     }
 

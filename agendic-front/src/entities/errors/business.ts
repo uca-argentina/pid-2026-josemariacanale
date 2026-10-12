@@ -25,3 +25,10 @@ export class BranchImageLimitError extends Error {
         super(message, options);
     }
 }
+
+/** 409: es la última imagen de la Sucursal, que nunca queda sin imágenes. */
+export class LastBranchImageError extends Error {
+    constructor(message: string, options?: ErrorOptions) {
+        super(message, options);
+    }
+}
