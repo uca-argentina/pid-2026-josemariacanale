@@ -4,14 +4,13 @@ import { useEffect, useState, useSyncExternalStore } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { toIsoDay } from '@/app/_components/day-range';
 import { Button } from '@/app/_components/ui/button';
-import { Skeleton } from '@/app/_components/ui/skeleton';
 import type { Preferences } from '@/src/entities/models/user';
 import { loadPersonalAnalyticsAction, type PersonalAnalyticsData, type PersonalAnalyticsResult } from '../actions';
-import { PopularServices, RecentRatings } from './AnalyticsBlocks';
+import { BlocksSkeleton, PopularServices, RecentRatings } from './AnalyticsBlocks';
 import { isValidCustomRange, parseRange, parseServiceId, rangeSearch, serviceSearch, type RangeChange } from './analytics-range';
 import { KpiCards, KpiCardsSkeleton } from './KpiCards';
 import { RangeSelect } from './RangeSelect';
-import { ServiceFilter } from './ServiceFilter';
+import { IdFilter } from './IdFilter';
 import { TrendsChart } from './TrendsChart';
 
 const subscribeNever = () => () => {};
@@ -67,7 +66,7 @@ export function PersonalAnalyticsView({ weekStart }: { weekStart: Preferences['w
                 <h1 className="m-0 text-[21px] font-extrabold tracking-[-0.035em]">Analíticas · Servicios personales</h1>
                 {range && (
                     <div className="flex flex-wrap items-center gap-2">
-                        <ServiceFilter services={services} selected={serviceId} onChange={changeService} />
+                        <IdFilter label="Servicio" options={services} selected={serviceId} onChange={changeService} />
                         <RangeSelect range={range} weekStart={weekStart} onChange={change} />
                     </div>
                 )}
@@ -75,11 +74,7 @@ export function PersonalAnalyticsView({ weekStart }: { weekStart: Preferences['w
             {result === null ? (
                 <>
                     <KpiCardsSkeleton />
-                    <Skeleton className="mx-4 h-96 rounded-xl lg:mx-6" aria-busy aria-label="Cargando tendencias" />
-                    <div className="grid grid-cols-1 gap-4 px-4 lg:px-6 @3xl/main:grid-cols-2">
-                        <Skeleton className="h-64 rounded-xl" aria-busy aria-label="Cargando Servicios más reservados" />
-                        <Skeleton className="h-64 rounded-xl" aria-busy aria-label="Cargando Calificaciones recientes" />
-                    </div>
+                    <BlocksSkeleton />
                 </>
             ) : result.ok ? (
                 <>

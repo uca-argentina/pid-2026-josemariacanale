@@ -11,7 +11,7 @@ Work from the innermost layer outward. Each step compiles and is testable before
 2. **Ports** in `src/application/repositories/` and `src/application/services/`. `interface I<Name>Repository` / `I<Name>Service`; signatures use only entities types and primitives. Check: contract written, nothing implemented yet.
 3. **Use case** at `src/application/use-cases/<feature>/<verb>-<noun>.use-case.ts`. Check: curried, one operation, authorization inside (throws `UnauthorizedError`), receives an already-verified `userId`, parses no input shape, returns an entity, `tx?` last, exports `I<Verb><Noun>UseCase = ReturnType<typeof …>`.
 4. **Adapter** in `src/infrastructure/`. A class implementing exactly one port, dependencies via constructor, vendor errors translated to entities errors with `{ cause }`. No mock adapter: tests stub ports per case (step 7). Check: the adapter's own test stubs the vendor edge (`fetch`, SDK) per case.
-5. **Controller + presenter** at `src/interface-adapters/controllers/<feature>/<verb>-<noun>.controller.ts`. Body order: authenticate (`UnauthenticatedError`) → `inputSchema.safeParse` (`InputParseError` with `cause`) → compose use cases, inside a transaction when several writes → `presenter()` whitelisting fields. Check: return type is `ReturnType<typeof presenter>`, exports `I<Verb><Noun>Controller`.
+5. **Controller + presenter** at `src/interface-adapters/controllers/<feature>/<verb>-<noun>.controller.ts`. Body order: authenticate (`UnauthenticatedError`) → `inputSchema.safeParse` (`InputParseError` with `cause`) → compose use cases, inside a transaction when several writes → `presenter()` whitelisting fields (in the controller file, unless several controllers share the shaping: then `src/interface-adapters/presenters/`). Check: return type is `ReturnType<typeof presenter>`, exports `I<Verb><Noun>Controller`.
 6. **Register** in `di/types.ts` (`DI_SYMBOLS` and `DI_RETURN_TYPES`, same `I`-prefixed key, `Symbol.for(key)`) and `di/modules/<feature>.module.ts` (`toHigherOrderFunction`, dependency list in parameter order; adapters bound straight to the real class, never branching on `NODE_ENV`). Check: `getInjection('I…Controller')` type-checks and `tests/unit/di/container.test.ts` resolves it.
 7. **Unit tests** at `tests/unit/<mirrored src path>/<same>.test.ts`. Build the subject by calling the curried function yourself, never through `getInjection`: `signInUseCase(instrumentation, authWith({ signIn: jest.fn().mockResolvedValue(session) }))`, with `instrumentation` and `authWith` taken from `tests/unit/stubs.ts`. A controller gets its use cases as `jest.fn()`. Each test declares its own fake data, and no state is shared between tests. Controller file: happy path, one case per `InputParseError` scenario (asserting the use case wasn't called), unauthenticated. Use-case file: happy path plus every authorization and not-found branch. Check: `npm test` green with no database or network, each file green on its own.
 8. **Entry point** in `app/` (server action, route handler, server component): `getInjection('I…Controller')`, pass raw input and session id, branch with `instanceof` on each entities error → response, report the rest through `ICrashReporterService` and return a generic message. Cookies, redirects, revalidation live here only.
@@ -26,7 +26,8 @@ Dependencies point inward. Anything not listed is forbidden and lint-enforced.
 | `src/entities` | `entities` |
 | `src/application/repositories`, `src/application/services` (ports) | `entities` |
 | `src/application/use-cases` | `entities`, ports |
-| `src/interface-adapters/controllers` | `entities`, ports, use cases |
+| `src/interface-adapters/controllers` | `entities`, ports, use cases, `presenters` |
+| `src/interface-adapters/presenters` | `entities` (shaping shared by several controllers; a presenter used by one stays in its controller file) |
 | `src/infrastructure` | `entities`, ports, other `infrastructure` files for shared helpers such as `api-request.ts` (never use cases or controllers) |
 | `app/` | `entities`, `di/` |
 | `di/` | everything except `app/` |
@@ -113,7 +114,7 @@ Instrumentation, crash reporting, and transactions are ports too (`IInstrumentat
 | Check "is this user logged in?" | controller |
 | Parse raw input | controller, schema at top of file |
 | Run several writes atomically | controller + `ITransactionManagerService` |
-| Shape data for the client | presenter, inside the controller file |
+| Shape data for the client | presenter, inside the controller file (shared by several controllers: `interface-adapters/presenters`) |
 | Talk to a database, backend API, auth or monitoring SDK | `infrastructure` adapter |
 | Fake a port for a test | stub inside the test, helpers in `tests/unit/stubs.ts` |
 | Wire dependencies | `di/modules/*.module.ts` |
