@@ -351,7 +351,7 @@ function SummaryPanel({
                     </div>
                     {employee && (
                         <div className="flex gap-2">
-                            <dt className="sr-only">Con</dt>
+                            <dt className="sr-only">Empleado</dt>
                             <dd className="text-muted-foreground">Con {employee.name}</dd>
                         </div>
                     )}
