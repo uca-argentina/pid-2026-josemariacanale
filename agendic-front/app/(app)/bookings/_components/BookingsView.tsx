@@ -209,7 +209,6 @@ export function BookingsView({ bookings, now, preferences }: { bookings: Booking
                 <BookingsCalendar
                     bookings={matching}
                     week={currentWeek}
-                    now={now}
                     preferences={preferences}
                     onWeekChange={(next) => update({ week: next })}
                 />

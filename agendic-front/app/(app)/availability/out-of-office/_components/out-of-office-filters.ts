@@ -1,6 +1,6 @@
 import { addDays } from '@/app/_components/booking/format';
 import type { OutOfOffice } from '@/src/entities/models/out-of-office';
-import { OUT_OF_OFFICE_REASONS } from './out-of-office-reasons';
+import { OUT_OF_OFFICE_REASONS } from '@/app/_components/out-of-office-reasons';
 import { isDay, type DayRange } from '@/app/_components/day-range';
 
 /** Los presets del Rango de Fechas, en el orden del popover, con su etiqueta. */

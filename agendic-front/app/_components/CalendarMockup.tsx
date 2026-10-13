@@ -8,9 +8,9 @@ export function CalendarMockup() {
                 {/* Sidebar */}
                 <div className="border-r border-[#e6e9f0] px-4 py-5 flex flex-col gap-1.5 text-[14px]">
                     <div className="font-extrabold mb-3 text-[#0f1b2d]">
-                        agendic<span className="text-[#2d5bff]">.</span>
+                        agendic<span className="text-[#0b3558]">.</span>
                     </div>
-                    <div className="px-3 py-[9px] rounded-lg bg-[#e8edff] text-[#2d5bff] font-semibold">
+                    <div className="px-3 py-[9px] rounded-lg bg-[#e8edff] text-[#0b3558] font-semibold">
                         Agenda
                     </div>
                     <div className="px-3 py-[9px] text-[#4b5567]">Clientes</div>
@@ -47,7 +47,7 @@ export function CalendarMockup() {
                             </Button>
                             <Button
                                 size="sm"
-                                className="px-3 py-[7px] bg-[#2d5bff] text-white rounded-lg text-[13px] font-semibold h-auto border-0 hover:bg-[#2d5bff]/90"
+                                className="px-3 py-[7px] bg-[#0b3558] text-white rounded-lg text-[13px] font-semibold h-auto border-0 hover:bg-[#0b3558]/90"
                             >
                                 + Nuevo turno
                             </Button>
@@ -84,7 +84,7 @@ export function CalendarMockup() {
 
                         {/* Lunes */}
                         <div className="relative border-l border-[#eef0f5]">
-                            <div className="absolute top-1 left-1 right-1 h-[52px] bg-[#e8edff] border-l-[3px] border-[#2d5bff] rounded-md px-2 py-1.5 text-[12px]">
+                            <div className="absolute top-1 left-1 right-1 h-[52px] bg-[#e8edff] border-l-[3px] border-[#0b3558] rounded-md px-2 py-1.5 text-[12px]">
                                 <b className="text-[#0f1b2d]">
                                     Consulta · Dra. Ruiz
                                 </b>
@@ -125,7 +125,7 @@ export function CalendarMockup() {
                                     Sofía M. · 10:00
                                 </span>
                             </div>
-                            <div className="absolute top-[184px] left-1 right-1 h-[112px] bg-[#e8edff] border-l-[3px] border-[#2d5bff] rounded-md px-2 py-1.5 text-[12px]">
+                            <div className="absolute top-[184px] left-1 right-1 h-[112px] bg-[#e8edff] border-l-[3px] border-[#0b3558] rounded-md px-2 py-1.5 text-[12px]">
                                 <b className="text-[#0f1b2d]">
                                     Clase funcional
                                 </b>
@@ -160,7 +160,7 @@ export function CalendarMockup() {
 
                         {/* Jueves */}
                         <div className="relative border-l border-[#eef0f5]">
-                            <div className="absolute top-[64px] left-1 right-1 h-[52px] bg-[#e8edff] border-l-[3px] border-[#2d5bff] rounded-md px-2 py-1.5 text-[12px]">
+                            <div className="absolute top-[64px] left-1 right-1 h-[52px] bg-[#e8edff] border-l-[3px] border-[#0b3558] rounded-md px-2 py-1.5 text-[12px]">
                                 <b className="text-[#0f1b2d]">
                                     Consulta · Dr. Peña
                                 </b>

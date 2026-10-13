@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { CalendarX2, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { Button } from '@/app/_components/ui/button';
 import { cn } from '@/app/_components/utils';
-import { OUT_OF_OFFICE_REASONS } from '@/app/(app)/availability/out-of-office/_components/out-of-office-reasons';
+import { OUT_OF_OFFICE_REASONS } from '@/app/_components/out-of-office-reasons';
 import { endTime, formatDate, shortWeekday } from './format';
 import type { Service, Slot } from './types';
 import { useSlotWeek } from './use-slot-week';

@@ -6,7 +6,7 @@ import { CalendarRange, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/app/_components/ui/button';
 import { Calendar } from '@/app/_components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/app/_components/ui/popover';
-import { WeeklyView } from '@/app/_components/weekly-view/WeeklyView';
+import { Calendar as WeeklyCalendar } from '@/app/_components/weekly-view';
 import { toIsoDay, toLocalDay } from '@/app/_components/day-range';
 import type { Preferences } from '@/src/entities/models/user';
 import { localInstant, TIME_ZONE, type Booking } from './booking-helpers';
@@ -19,13 +19,11 @@ import { addDays, bookingsOfWeek, toCalendarEvent, weekStartOf, weekTitle } from
 export function BookingsCalendar({
     bookings,
     week,
-    now,
     preferences,
     onWeekChange,
 }: {
     bookings: Booking[];
     week: string;
-    now: number;
     preferences: Preferences;
     onWeekChange: (week: string | null) => void;
 }) {
@@ -61,14 +59,25 @@ export function BookingsCalendar({
                     </PopoverContent>
                 </Popover>
             </div>
-            <div className="mt-4 overflow-hidden rounded-md border">
-                <WeeklyView
-                    weekStart={localInstant(week, '12:00')}
-                    events={bookingsOfWeek(bookings, week).map(toCalendarEvent)}
-                    timeZone={TIME_ZONE}
+            <div className="mt-4 flex h-[calc(100vh-16rem)] flex-col overflow-x-hidden overflow-y-auto rounded-md border">
+                <WeeklyCalendar
+                    timezone={TIME_ZONE}
                     timeFormat={preferences.timeFormat}
-                    now={now}
-                    onEventClick={(id) => router.push(`/bookings/${id}`)}
+                    sortEvents
+                    startHour={0}
+                    endHour={23}
+                    events={bookingsOfWeek(bookings, week).map(toCalendarEvent)}
+                    startDate={localInstant(week, '12:00')}
+                    endDate={localInstant(addDays(week, 6), '12:00')}
+                    gridCellsPerHour={4}
+                    hoverEventDuration={0}
+                    showBackgroundPattern={false}
+                    showBorder={false}
+                    borderColor="subtle"
+                    onEventClick={(event) => router.push(`/bookings/${event.id}`)}
+                    showTimezone
+                    hideHeader
+                    updateCurrentTimeOnFocus
                 />
             </div>
         </div>

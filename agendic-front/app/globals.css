@@ -8,15 +8,15 @@
     --color-foreground: #0f1b2d;
     --color-card: #ffffff;
     --color-card-foreground: #0f1b2d;
-    --color-primary: #2d5bff;
+    --color-primary: #0b3558;
     --color-primary-foreground: #ffffff;
     --color-secondary: #e8edff;
-    --color-secondary-foreground: #2d5bff;
+    --color-secondary-foreground: #0b3558;
     --color-muted: #f7f8fb;
     --color-muted-foreground: #4b5567;
     --color-border: #e6e9f0;
     --color-input: #e6e9f0;
-    --color-ring: #2d5bff;
+    --color-ring: #0b3558;
     --color-destructive: #dc2626;
     --color-destructive-foreground: #ffffff;
     --color-popover: #ffffff;
@@ -30,10 +30,10 @@
     --color-sidebar-muted-foreground: #476788;
     --color-sidebar-accent: #e6f0ff;
     --color-sidebar-accent-foreground: #004eba;
-    --color-sidebar-primary: #2d5bff;
+    --color-sidebar-primary: #0b3558;
     --color-sidebar-primary-foreground: #ffffff;
     --color-sidebar-border: #e6e9f0;
-    --color-sidebar-ring: #2d5bff;
+    --color-sidebar-ring: #0b3558;
 }
 
 @layer base {
