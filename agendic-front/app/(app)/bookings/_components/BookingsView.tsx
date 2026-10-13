@@ -174,25 +174,27 @@ export function BookingsView({ bookings, now, preferences }: { bookings: Booking
                 </ToggleGroup>
             )}
 
-            {view === 'list' && <Tabs.Root
-                value={tab}
-                onValueChange={(v) => update({ tab: v as BookingTab })}
-            >
-                <Tabs.List aria-label="Turnos" className="mt-8 flex flex-wrap gap-1">
-                    {TABS.map((t) => (
-                        <Tabs.Tab
-                            key={t.id}
-                            value={t.id}
-                            className="inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-[13.5px] font-bold text-[#6b7280] transition-colors outline-none hover:text-[#0f1b2d] focus-visible:ring-2 focus-visible:ring-[#0f1b2d] data-[active]:bg-[#f3f4f6] data-[active]:text-[#0f1b2d]"
-                        >
-                            {t.label}
-                            {t.id === 'pending' && pendingCount > 0 && (
-                                <span className="rounded-full bg-[#0f1b2d] px-1.5 text-[11px] leading-[18px] font-bold text-white">{pendingCount}</span>
-                            )}
-                        </Tabs.Tab>
-                    ))}
-                </Tabs.List>
-            </Tabs.Root>}
+            {view === 'list' && (
+                <Tabs.Root
+                    value={tab}
+                    onValueChange={(v) => update({ tab: v as BookingTab })}
+                >
+                    <Tabs.List aria-label="Turnos" className="mt-8 flex flex-wrap gap-1">
+                        {TABS.map((t) => (
+                            <Tabs.Tab
+                                key={t.id}
+                                value={t.id}
+                                className="inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-[13.5px] font-bold text-[#6b7280] transition-colors outline-none hover:text-[#0f1b2d] focus-visible:ring-2 focus-visible:ring-[#0f1b2d] data-[active]:bg-[#f3f4f6] data-[active]:text-[#0f1b2d]"
+                            >
+                                {t.label}
+                                {t.id === 'pending' && pendingCount > 0 && (
+                                    <span className="rounded-full bg-[#0f1b2d] px-1.5 text-[11px] leading-[18px] font-bold text-white">{pendingCount}</span>
+                                )}
+                            </Tabs.Tab>
+                        ))}
+                    </Tabs.List>
+                </Tabs.Root>
+            )}
 
             <div className="mt-5 flex flex-wrap items-center gap-2">
                 <BookingFilters

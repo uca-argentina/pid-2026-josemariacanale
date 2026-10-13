@@ -81,8 +81,8 @@ describe('toCalendarEvent', () => {
         expect(event.end).toEqual(new Date('2026-10-14T10:30:00-03:00'));
     });
 
-    it('marca la Ausencia y la Falta del Empleado', () => {
-        expect(toCalendarEvent(booking({ noShowAt: '2026-10-14T11:00:00Z' })).title).toBe('Masaje con Lucía · Ausencia');
-        expect(toCalendarEvent(booking({ employeeNoShowAt: '2026-10-14T11:00:00Z' })).title).toBe('Masaje con Lucía · Falta del Empleado');
+    it('marca la Ausencia del Invitado y la del Anfitrión', () => {
+        expect(toCalendarEvent(booking({ noShowAt: '2026-10-14T11:00:00Z' })).title).toBe('Masaje con Lucía · Ausencia del Invitado');
+        expect(toCalendarEvent(booking({ employeeNoShowAt: '2026-10-14T11:00:00Z' })).title).toBe('Masaje con Lucía · Ausencia del Anfitrión');
     });
 });

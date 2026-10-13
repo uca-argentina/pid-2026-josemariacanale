@@ -45,9 +45,9 @@ export function weekTitle(start: string) {
     return `${from.date} – ${to.date} ${to.month} ${to.year}`;
 }
 
-/** El Turno como evento de la grilla semanal; la Ausencia y la Falta del Empleado van en el título. */
+/** El Turno como evento de la grilla semanal; la Ausencia del Invitado y la del Anfitrión van en el título. */
 export function toCalendarEvent(b: Booking): CalendarEvent {
-    const mark = b.noShowAt !== null ? ' · Ausencia' : b.employeeNoShowAt !== null ? ' · Falta del Empleado' : '';
+    const mark = b.noShowAt !== null ? ' · Ausencia del Invitado' : b.employeeNoShowAt !== null ? ' · Ausencia del Anfitrión' : '';
     return {
         id: b.id,
         title: `${b.serviceName} con ${b.clientName}${mark}`,
