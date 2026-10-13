@@ -1,4 +1,4 @@
-import { badgesOf, cabinOf, canMarkNoShow, groupByDay, hasPendingDeposit, matches, placeOf, sortForTab, tabOf, type Booking } from '@/app/(app)/bookings/_components/booking-helpers';
+import { badgesOf, cabinOf, canMarkNoShow, formatTime, formatTimeRange, groupByDay, hasPendingDeposit, matches, matchesRange, placeOf, sortForTab, tabOf, type Booking } from '@/app/(app)/bookings/_components/booking-helpers';
 
 const NOW = Date.parse('2026-09-15T15:00:00-03:00');
 
@@ -116,5 +116,36 @@ describe('Falta del Empleado', () => {
         expect(canMarkNoShow(booking({}))).toBe(true);
         expect(canMarkNoShow(booking({ employeeNoShowAt: '2026-09-15T20:00:00.000Z' }))).toBe(false);
         expect(canMarkNoShow(booking({ noShowAt: '2026-09-15T20:00:00.000Z' }))).toBe(false);
+    });
+});
+
+describe('formatTime / formatTimeRange', () => {
+    const at = '2026-09-15T14:30:00-03:00';
+
+    it('con timeFormat 24 da "14:30"; con 12, "2:30 p. m."', () => {
+        expect(formatTime(at, 24)).toBe('14:30');
+        expect(formatTime(at, 12)).toBe('2:30 p. m.');
+        expect(formatTime('2026-09-15T00:05:00-03:00', 12)).toBe('12:05 a. m.');
+    });
+
+    it('sin timeFormat usa 24 horas', () => {
+        expect(formatTimeRange(booking({ startsAt: at, endsAt: '2026-09-15T15:00:00-03:00' }))).toBe('14:30 – 15:00');
+        expect(formatTimeRange(booking({ startsAt: at, endsAt: '2026-09-15T15:00:00-03:00' }), 12)).toBe('2:30 p. m. – 3:00 p. m.');
+    });
+});
+
+describe('matchesRange', () => {
+    const range = { from: '2026-09-15', to: '2026-09-16' };
+
+    it('compara el día del startsAt en la hora de la Sucursal, con los extremos incluidos', () => {
+        expect(matchesRange(booking({ startsAt: '2026-09-15T00:00:00-03:00' }), range)).toBe(true);
+        expect(matchesRange(booking({ startsAt: '2026-09-16T23:59:00-03:00' }), range)).toBe(true);
+        expect(matchesRange(booking({ startsAt: '2026-09-14T23:59:00-03:00' }), range)).toBe(false);
+        expect(matchesRange(booking({ startsAt: '2026-09-17T00:00:00-03:00' }), range)).toBe(false);
+        expect(matchesRange(booking({ startsAt: '2026-09-17T01:00:00Z' }), range)).toBe(true);
+    });
+
+    it('sin rango deja pasar todo', () => {
+        expect(matchesRange(booking({}), null)).toBe(true);
     });
 });

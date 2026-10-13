@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { Tabs } from '@base-ui/react/tabs';
 import { CalendarDays, DoorOpen, MapPin } from 'lucide-react';
 import { PaginationControls } from '@/app/_components/PaginationControls';
@@ -15,17 +16,21 @@ import {
     isClosed,
     listValueOf,
     matches,
+    matchesRange,
     sortForTab,
     tabOf,
     placeOf,
     cabinOf,
     type Booking,
-    type BookingFilter,
     type BookingTab,
+    type DayRange,
     type ListField,
 } from './booking-helpers';
 import { BookingActions } from './BookingActions';
+import { BookingDateRange } from './BookingDateRange';
 import { BookingFilters } from './BookingFilters';
+import { parseBookingsUrl, writeBookingsUrl, type BookingsUrlState } from './bookings-url';
+import type { Preferences } from '@/src/entities/models/user';
 
 const TABS: { id: BookingTab; label: string; empty: { title: string; description: string } }[] = [
     {
@@ -52,7 +57,7 @@ const TABS: { id: BookingTab; label: string; empty: { title: string; description
 
 const PAGE_SIZES = [10, 25, 50];
 
-function BookingRow({ booking, tab }: { booking: Booking; tab: BookingTab }) {
+function BookingRow({ booking, tab, timeFormat }: { booking: Booking; tab: BookingTab; timeFormat: Preferences['timeFormat'] }) {
     const badges = badgesOf(booking);
     const cabin = cabinOf(booking);
     return (
@@ -63,7 +68,7 @@ function BookingRow({ booking, tab }: { booking: Booking; tab: BookingTab }) {
             >
                 <div className="flex w-[140px] shrink-0 flex-col gap-0.5">
                     <span className="text-[14px] font-bold text-[#0f1b2d] first-letter:uppercase">{formatShortDay(booking.startsAt)}</span>
-                    <span className={cn('text-[13px] font-medium text-[#6b7280]', isClosed(booking) && 'line-through')}>{formatTimeRange(booking)}</span>
+                    <span className={cn('text-[13px] font-medium text-[#6b7280]', isClosed(booking) && 'line-through')}>{formatTimeRange(booking, timeFormat)}</span>
                     <span className="mt-1 flex items-center gap-1 text-[12.5px] font-semibold text-[#6b7280]">
                         <MapPin className="size-3.5" />
                         {placeOf(booking)}
@@ -102,12 +107,22 @@ const unique = (list: string[]) => [...new Set(list)].sort((a, b) => a.localeCom
 
 /**
  * Lista de Turnos del Empleado, tal como la devuelve el back; las acciones de cada Turno refrescan la página.
+ * La pestaña, los filtros y el rango de fechas viven en la URL: se leen al montar y se copian con
+ * `history.replaceState`, que no le vuelve a pedir la página al server. Las horas siguen las Preferencias.
  */
-export function BookingsView({ bookings, now }: { bookings: Booking[]; now: number }) {
-    const [tab, setTab] = useState<BookingTab>('upcoming');
-    const [filters, setFilters] = useState<BookingFilter[]>([]);
+export function BookingsView({ bookings, now, preferences }: { bookings: Booking[]; now: number; preferences: Preferences }) {
+    const searchParams = useSearchParams();
+    const [{ tab, filters, range }, setUrlState] = useState(() => parseBookingsUrl(searchParams));
     const [pageSize, setPageSize] = useState(10);
     const [page, setPage] = useState(0);
+
+    const update = (patch: Partial<BookingsUrlState>) => {
+        const next = { tab, filters, range, ...patch };
+        setUrlState(next);
+        setPage(0);
+        const params = writeBookingsUrl(next, new URLSearchParams(window.location.search));
+        window.history.replaceState(null, '', params.size ? `${window.location.pathname}?${params}` : window.location.pathname);
+    };
 
     const options: Record<ListField, string[]> = {
         service: unique(bookings.map((b) => listValueOf('service', b))),
@@ -115,7 +130,7 @@ export function BookingsView({ bookings, now }: { bookings: Booking[]; now: numb
     };
 
     const pendingCount = bookings.filter((b) => tabOf(b, now) === 'pending').length;
-    const inTab = sortForTab(tab, bookings.filter((b) => tabOf(b, now) === tab && matches(b, filters)));
+    const inTab = sortForTab(tab, bookings.filter((b) => tabOf(b, now) === tab && matches(b, filters) && matchesRange(b, range)));
     const pageCount = Math.max(1, Math.ceil(inTab.length / pageSize));
     const current = Math.min(page, pageCount - 1);
     const from = current * pageSize;
@@ -134,10 +149,7 @@ export function BookingsView({ bookings, now }: { bookings: Booking[]; now: numb
 
             <Tabs.Root
                 value={tab}
-                onValueChange={(v) => {
-                    setTab(v as BookingTab);
-                    setPage(0);
-                }}
+                onValueChange={(v) => update({ tab: v as BookingTab })}
             >
                 <Tabs.List aria-label="Turnos" className="mt-8 flex flex-wrap gap-1">
                     {TABS.map((t) => (
@@ -159,11 +171,9 @@ export function BookingsView({ bookings, now }: { bookings: Booking[]; now: numb
                 <BookingFilters
                     filters={filters}
                     options={options}
-                    onChange={(next) => {
-                        setFilters(next);
-                        setPage(0);
-                    }}
+                    onChange={(next) => update({ filters: next })}
                 />
+                <BookingDateRange range={range} weekStart={preferences.weekStart} onChange={(next: DayRange | null) => update({ range: next })} />
             </div>
 
             {inTab.length > 0 ? (
@@ -176,7 +186,7 @@ export function BookingsView({ bookings, now }: { bookings: Booking[]; now: numb
                                 </h2>
                                 <ul className="m-0 list-none divide-y divide-[#e5e7eb] p-0">
                                     {group.items.map((b) => (
-                                        <BookingRow key={b.id} booking={b} tab={tab} />
+                                        <BookingRow key={b.id} booking={b} tab={tab} timeFormat={preferences.timeFormat} />
                                     ))}
                                 </ul>
                             </section>
@@ -202,10 +212,10 @@ export function BookingsView({ bookings, now }: { bookings: Booking[]; now: numb
                         <CalendarDays className="size-6 text-[#0f1b2d]" />
                     </div>
                     <p className="m-0 text-[17px] font-extrabold tracking-[-0.03em]">
-                        {filters.length > 0 ? 'No hay turnos que coincidan' : empty.title}
+                        {filters.length > 0 || range ? 'No hay turnos que coincidan' : empty.title}
                     </p>
                     <p className="m-0 max-w-[380px] text-[13px] font-medium leading-relaxed text-[#6b7280]">
-                        {filters.length > 0 ? 'Probá sacando algún filtro.' : empty.description}
+                        {filters.length > 0 || range ? 'Probá sacando algún filtro.' : empty.description}
                     </p>
                 </div>
             )}

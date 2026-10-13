@@ -1,4 +1,8 @@
+import type { DayRange } from '@/app/_components/day-range';
 import type { DI_RETURN_TYPES } from '@/di/types';
+import type { Preferences } from '@/src/entities/models/user';
+
+export type { DayRange };
 
 /** Un Turno de Mis turnos del Usuario, como lo arma el controller. */
 export type Booking = Awaited<ReturnType<DI_RETURN_TYPES['IListMyBookingsController']>>[number];
@@ -53,11 +57,16 @@ const dayKeyFormat = new Intl.DateTimeFormat('en-CA', { timeZone: TIME_ZONE });
 /** `YYYY-MM-DD` en la hora de la Sucursal. */
 export const dayKey = (at: string | number) => dayKeyFormat.format(new Date(at));
 
-const timeFormat = new Intl.DateTimeFormat('es-AR', { timeZone: TIME_ZONE, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
-/** `HH:MM`, 00–23. */
-export const formatTime = (at: string | number) => timeFormat.format(new Date(at));
+const timeFormats = {
+    24: new Intl.DateTimeFormat('es-AR', { timeZone: TIME_ZONE, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }),
+    12: new Intl.DateTimeFormat('es-AR', { timeZone: TIME_ZONE, hour: 'numeric', minute: '2-digit', hourCycle: 'h12' }),
+};
+/** `HH:MM` (24) o `h:MM a. m.` (12), según las Preferencias del Usuario; sin ellas, 24. */
+export const formatTime = (at: string | number, timeFormat: Preferences['timeFormat'] = 24) =>
+    timeFormats[timeFormat].format(new Date(at));
 /** `HH:MM – HH:MM` del Turno. */
-export const formatTimeRange = (b: Booking) => `${formatTime(b.startsAt)} – ${formatTime(b.endsAt)}`;
+export const formatTimeRange = (b: Booking, timeFormat?: Preferences['timeFormat']) =>
+    `${formatTime(b.startsAt, timeFormat)} – ${formatTime(b.endsAt, timeFormat)}`;
 
 const shortDayFormat = new Intl.DateTimeFormat('es-AR', { timeZone: TIME_ZONE, weekday: 'short', day: 'numeric', month: 'short' });
 /** Día corto, ej. `mar 15 sep`. */
@@ -119,6 +128,13 @@ export function matches(b: Booking, filters: BookingFilter[]) {
         return f.op === 'is' ? actual.toLowerCase() === wanted : actual.toLowerCase().includes(wanted);
     });
 }
+
+/** Si el día del `startsAt` del Turno, en la hora de la Sucursal, cae en el rango (extremos incluidos); sin rango, sí. */
+export const matchesRange = (b: Booking, range: DayRange | null) => {
+    if (!range) return true;
+    const day = dayKey(b.startsAt);
+    return day >= range.from && day <= range.to;
+};
 
 const RED = 'bg-[#fdecec] text-[#b91c1c]';
 const AMBER = 'bg-[#fff4e5] text-[#b45309]';
