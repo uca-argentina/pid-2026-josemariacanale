@@ -1,7 +1,7 @@
 import { addDays } from '@/app/_components/booking/format';
 import type { OutOfOffice } from '@/src/entities/models/out-of-office';
 import { OUT_OF_OFFICE_REASONS } from './out-of-office-reasons';
-import { toIsoDay, toLocalDay } from '@/app/_components/day-range';
+import { isDay, type DayRange } from '@/app/_components/day-range';
 
 /** Los presets del Rango de Fechas, en el orden del popover, con su etiqueta. */
 export const RANGE_PRESETS = {
@@ -17,9 +17,6 @@ export const RANGE_PRESETS = {
 /** Un preset del Rango de Fechas; `custom` es el Rango personalizado, con sus días en la URL. */
 export type RangePreset = keyof typeof RANGE_PRESETS;
 
-/** Días `YYYY-MM-DD`, inclusivos. */
-export type DayRange = { from: string; to: string };
-
 /** El Rango de Fechas activo. Un preset se guarda sin fechas, así sigue siendo relativo a hoy. */
 export type DateRangeFilter = { preset: Exclude<RangePreset, 'custom'> } | ({ preset: 'custom' } & DayRange);
 
@@ -31,10 +28,6 @@ export const EMPTY_FILTERS: OutOfOfficeFilterState = { q: '', range: null };
 
 /** Los parámetros de la URL que son de los filtros; el resto (`type`, `nuevo`) no se toca. */
 const FILTER_PARAMS = ['q', 'rango', 'desde', 'hasta'];
-
-/** `YYYY-MM-DD` de un día que existe: `2026-13-45` no pasa, aunque `Date` lo correría a otra fecha. */
-const isDay = (value: string | null): value is string =>
-    value !== null && /^\d{4}-\d{2}-\d{2}$/.test(value) && toIsoDay(toLocalDay(value)) === value;
 
 /** Lee los filtros de la URL; lo que no se entiende se ignora. */
 export function parseFilters(params: URLSearchParams): OutOfOfficeFilterState {

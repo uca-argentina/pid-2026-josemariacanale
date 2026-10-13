@@ -6,6 +6,7 @@ import { SIGN_IN_PATH } from '@/app/routes';
 import { getInjection } from '@/di/container';
 import { loadMyBookings } from '@/app/(app)/bookings/load-my-bookings';
 import { BookingsView } from './_components/BookingsView';
+import { myPreferences } from '../my-preferences';
 import { readClock } from '@/app/_components/clock';
 
 export const metadata = { title: 'Turnos' };
@@ -25,5 +26,5 @@ export default async function BookingsPage() {
         return <BackendErrorNotice />;
     }
 
-    return <BookingsView bookings={bookings} now={now} />;
+    return <BookingsView bookings={bookings} now={now} preferences={await myPreferences()} />;
 }

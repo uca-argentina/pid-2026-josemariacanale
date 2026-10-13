@@ -29,3 +29,10 @@ export function fromCalendarRange(range: DateRange | undefined): Days | null {
     const startDate = toIsoDay(range.from);
     return { startDate, endDate: range.to ? toIsoDay(range.to) : startDate };
 }
+
+/** Días `YYYY-MM-DD`, inclusivos. */
+export type DayRange = { from: string; to: string };
+
+/** `YYYY-MM-DD` de un día que existe: `2026-13-45` no pasa, aunque `Date` lo correría a otra fecha. */
+export const isDay = (value: string | null): value is string =>
+    value !== null && /^\d{4}-\d{2}-\d{2}$/.test(value) && toIsoDay(toLocalDay(value)) === value;
