@@ -1,5 +1,3 @@
-// Cómo cambia el borrador de la reserva. Puro, para probarlo sin montar el flujo.
-
 import type { BookingDraft, ChosenEmployee, Service } from './types';
 
 /** El borrador con que abre la reserva: el Servicio y el Empleado del enlace, si vinieron; sin ellos, `null`. */
