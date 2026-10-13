@@ -592,7 +592,7 @@ export function BookingFlow({
             {/* pb-32 en mobile deja aire para la barra fija de abajo. */}
             <div className="mx-auto w-full max-w-[1400px] px-4 pb-32 sm:px-8 lg:px-16 lg:pb-24">
                 <div className="grid items-start gap-10 lg:grid-cols-[1fr_400px]">
-                    <div>
+                    <div className="min-w-0">
                         <Breadcrumb step={step} locked={locked} onGo={goTo} />
                         {/* La key cruza el formulario con el paso del código: uno sale y el otro entra. */}
                         <ViewTransition key={codeOpen ? 'code' : 'steps'} enter="step-in" exit="step-out" default="none">
