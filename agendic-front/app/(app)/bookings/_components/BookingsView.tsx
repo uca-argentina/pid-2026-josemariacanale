@@ -4,11 +4,14 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Tabs } from '@base-ui/react/tabs';
-import { CalendarDays, DoorOpen, MapPin } from 'lucide-react';
+import { CalendarDays, DoorOpen, List, MapPin } from 'lucide-react';
+import { useIsMobile } from '@/app/_components/hooks/use-mobile';
+import { ToggleGroup, ToggleGroupItem } from '@/app/_components/ui/toggle-group';
 import { PaginationControls } from '@/app/_components/PaginationControls';
 import { cn } from '@/app/_components/utils';
 import { PanelBadge } from '@/app/(app)/_components/panel-ui';
 import {
+    dayKey,
     formatShortDay,
     formatTimeRange,
     groupByDay,
@@ -28,7 +31,9 @@ import {
 import { BookingActions } from './BookingActions';
 import { BookingDateRange } from './BookingDateRange';
 import { BookingFilters } from './BookingFilters';
-import { parseBookingsUrl, writeBookingsUrl, type BookingsUrlState } from './bookings-url';
+import { BookingsCalendar } from './BookingsCalendar';
+import { weekOf } from './calendar-week';
+import { parseBookingsUrl, writeBookingsUrl, type BookingsUrlState, type BookingsView as View } from './bookings-url';
 import type { Preferences } from '@/src/entities/models/user';
 
 const TABS: { id: BookingTab; label: string; empty: { title: string; description: string } }[] = [
@@ -111,18 +116,21 @@ const unique = (list: string[]) => [...new Set(list)].sort((a, b) => a.localeCom
  */
 export function BookingsView({ bookings, now, preferences }: { bookings: Booking[]; now: number; preferences: Preferences }) {
     const searchParams = useSearchParams();
-    const [{ tab, filters, range }, setUrlState] = useState(() => parseBookingsUrl(searchParams));
+    const [{ tab, filters, range, view: chosenView, week }, setUrlState] = useState(() => parseBookingsUrl(searchParams));
     const [pageSize, setPageSize] = useState(10);
     const [page, setPage] = useState(0);
 
     const update = (patch: Partial<BookingsUrlState>) => {
-        const next = { tab, filters, range, ...patch };
+        const next = { tab, filters, range, view: chosenView, week, ...patch };
         setUrlState(next);
         setPage(0);
         const params = writeBookingsUrl(next, new URLSearchParams(window.location.search));
         window.history.replaceState(null, '', params.size ? `${window.location.pathname}?${params}` : window.location.pathname);
     };
 
+    const isMobile = useIsMobile();
+    const view: View = isMobile ? 'list' : chosenView;
+    const currentWeek = weekOf(week, dayKey(now), preferences.weekStart);
     const options: Record<ListField, string[]> = {
         service: unique(bookings.map((b) => listValueOf('service', b))),
         branch: unique(bookings.map((b) => listValueOf('branch', b))),
@@ -136,7 +144,7 @@ export function BookingsView({ bookings, now, preferences }: { bookings: Booking
     const pageItems = inTab.slice(from, from + pageSize);
     const filtered = filters.length > 0 || range !== null;
     const empty = TABS.find((t) => t.id === tab)!.empty;
-
+    const matching = bookings.filter((b) => matches(b, filters) && matchesRange(b, range));
 
     return (
         <div className="flex-1 bg-white px-4 py-8 text-[#0f1b2d] sm:px-8">
@@ -147,7 +155,26 @@ export function BookingsView({ bookings, now, preferences }: { bookings: Booking
                 </p>
             </header>
 
-            <Tabs.Root
+            {!isMobile && (
+                <ToggleGroup
+                    className="mt-6"
+                    variant="outline"
+                    spacing={0}
+                    value={[view]}
+                    onValueChange={([next]) => next && update({ view: next as View })}
+                >
+                    <ToggleGroupItem value="list">
+                        <List />
+                        Lista
+                    </ToggleGroupItem>
+                    <ToggleGroupItem value="calendar">
+                        <CalendarDays />
+                        Calendario
+                    </ToggleGroupItem>
+                </ToggleGroup>
+            )}
+
+            {view === 'list' && <Tabs.Root
                 value={tab}
                 onValueChange={(v) => update({ tab: v as BookingTab })}
             >
@@ -165,7 +192,7 @@ export function BookingsView({ bookings, now, preferences }: { bookings: Booking
                         </Tabs.Tab>
                     ))}
                 </Tabs.List>
-            </Tabs.Root>
+            </Tabs.Root>}
 
             <div className="mt-5 flex flex-wrap items-center gap-2">
                 <BookingFilters
@@ -176,7 +203,15 @@ export function BookingsView({ bookings, now, preferences }: { bookings: Booking
                 <BookingDateRange range={range} weekStart={preferences.weekStart} onChange={(next) => update({ range: next })} />
             </div>
 
-            {inTab.length > 0 ? (
+            {view === 'calendar' ? (
+                <BookingsCalendar
+                    bookings={matching}
+                    week={currentWeek}
+                    now={now}
+                    preferences={preferences}
+                    onWeekChange={(next) => update({ week: next })}
+                />
+            ) : inTab.length > 0 ? (
                 <>
                     <div className="mt-4 divide-y divide-[#e5e7eb] overflow-hidden rounded-md border border-[#e5e7eb]">
                         {groupByDay(pageItems, now).map((group) => (
