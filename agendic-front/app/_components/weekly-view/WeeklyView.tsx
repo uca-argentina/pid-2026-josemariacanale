@@ -1,16 +1,11 @@
 'use client';
 
 import dayjs from 'dayjs';
-import timezone from 'dayjs/plugin/timezone';
-import utc from 'dayjs/plugin/utc';
 import { cn } from '@/app/_components/utils';
 import { CurrentTime } from './CurrentTime';
 import { EventList } from './EventList';
 import { dayKey, eventsOfDay, formatDayHeader, formatTimeIn, type TimeFormat } from './grid-math';
 import type { CalendarEvent } from './types';
-
-dayjs.extend(utc);
-dayjs.extend(timezone);
 
 const HOUR_SIZE_PX = 58;
 const HOURS = Array.from({ length: 24 }, (_, hour) => hour);

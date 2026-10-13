@@ -23,6 +23,7 @@ const STATUS_LABELS: Record<BookingStatus, string> = {
 };
 
 const HOVER_Z_INDEX = 79;
+const MINUTES_IN_DAY = 24 * 60;
 
 interface EventListProps {
     events: CalendarEvent[];
@@ -41,7 +42,11 @@ export function EventList({ events, timeZone, timeFormat, onEventClick }: EventL
             {events.map((event) => {
                 const layout = layouts.get(event.id);
                 if (!layout) return null;
-                const duration = Math.round((event.end.getTime() - new Date(event.start).getTime()) / 60000);
+                const startMinutes = minutesFromStart(event.start, timeZone);
+                const duration = Math.min(
+                    Math.round((event.end.getTime() - new Date(event.start).getTime()) / 60000),
+                    MINUTES_IN_DAY - startMinutes,
+                );
                 const status = event.options?.status;
                 const range = `${formatTimeIn(event.start, timeZone, timeFormat)} – ${formatTimeIn(event.end, timeZone, timeFormat)}`;
 
@@ -56,7 +61,7 @@ export function EventList({ events, timeZone, timeFormat, onEventClick }: EventL
                             left: `${layout.leftOffsetPercent}%`,
                             width: `${layout.widthPercent}%`,
                             zIndex: hoveredId === event.id ? HOVER_Z_INDEX : layout.baseZIndex,
-                            top: `calc(${minutesFromStart(event.start, timeZone)} * var(--one-minute-height))`,
+                            top: `calc(${startMinutes} * var(--one-minute-height))`,
                             height: `max(15px, calc(${duration} * var(--one-minute-height)))`,
                         }}
                     >

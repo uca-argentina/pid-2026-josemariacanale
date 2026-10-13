@@ -6,11 +6,12 @@ import type { CalendarEvent } from './types';
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
+/** Formato de hora del panel: 12 o 24 horas. */
 export type TimeFormat = 12 | 24;
 
 const timeFormatters = new Map<string, Intl.DateTimeFormat>();
 
-/** La hora de `at` en la zona `timeZone`, en 12 o 24 horas. */
+/** La hora de `at` en la zona `timeZone`, en 12 o 24 horas. Cambia los espacios finos que emite ICU por un espacio común. */
 export function formatTimeIn(at: Date | string | number, timeZone: string, timeFormat: TimeFormat) {
     const key = `${timeZone}|${timeFormat}`;
     let formatter = timeFormatters.get(key);
