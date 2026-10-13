@@ -1,5 +1,5 @@
 import { isDay, toIsoDay, toLocalDay } from '@/app/_components/day-range';
-import type { CalendarEvent } from '@/app/_components/weekly-view/types';
+import type { CalendarEvent } from '@/app/_components/weekly-view/types/events';
 import type { Preferences } from '@/src/entities/models/user';
 import { dayKey, isClosed, placeOf, type Booking } from './booking-helpers';
 

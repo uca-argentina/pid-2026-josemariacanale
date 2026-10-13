@@ -1,10 +1,10 @@
-import type { CalendarEvent } from '@/app/_components/weekly-view/types';
+import type { CalendarEvent } from '@/app/_components/weekly-view/types/events';
 import {
     buildOverlapGroups,
     calculateEventLayouts,
     createLayoutMap,
     sortEvents,
-} from '@/app/_components/weekly-view/overlap';
+} from '@/app/_components/weekly-view/utils/overlap';
 
 const ev = (id: number, start: string, end: string): CalendarEvent => ({
     id,

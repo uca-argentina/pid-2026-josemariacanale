@@ -1,5 +1,5 @@
 import dayjs from 'dayjs';
-import type { CalendarEvent } from './types';
+import type { CalendarEvent } from '../types/events';
 
 /** Ajustes del solapamiento; cada uno tiene un valor por defecto. */
 export interface OverlapLayoutConfig {

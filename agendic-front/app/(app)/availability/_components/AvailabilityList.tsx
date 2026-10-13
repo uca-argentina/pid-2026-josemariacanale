@@ -111,10 +111,19 @@ export function AvailabilityList({
         <div className="flex-1 bg-background px-4 py-8 text-foreground sm:px-8">
             <header className="flex flex-wrap items-start gap-4">
                 <div className="flex min-w-0 flex-col gap-1">
-                    <h1 className="m-0 text-xl font-extrabold tracking-tight">Horas laborables</h1>
-                    <p className="m-0 text-sm text-muted-foreground">Los horarios en los que atendés para recibir Turnos.</p>
+                    <h1 className="m-0 text-xl font-extrabold tracking-tight">
+                        Horas laborables
+                    </h1>
+                    <p className="m-0 text-sm text-muted-foreground">
+                        Configura los horarios en los que estas dispuesto a
+                        recibir turnos.
+                    </p>
                 </div>
-                <Button className="ml-auto" disabled={busy} onClick={() => setCreating(true)}>
+                <Button
+                    className="ml-auto"
+                    disabled={busy}
+                    onClick={() => setCreating(true)}
+                >
                     <Plus />
                     Nuevo
                 </Button>
@@ -139,8 +148,12 @@ export function AvailabilityList({
                 ) : (
                     <div className="flex flex-col items-center gap-2 px-6 py-12 text-center">
                         <Clock className="size-8 text-muted-foreground" />
-                        <p className="m-0 font-medium">Todavía no tenés horas laborables</p>
-                        <p className="m-0 text-sm text-muted-foreground">Agregá unas para empezar a recibir Turnos.</p>
+                        <p className="m-0 font-medium">
+                            Todavía no tenés horas laborables
+                        </p>
+                        <p className="m-0 text-sm text-muted-foreground">
+                            Agregá unas para empezar a recibir Turnos.
+                        </p>
                     </div>
                 )}
             </div>
@@ -152,7 +165,11 @@ export function AvailabilityList({
                 </Link>
             </p>
 
-            <NewAvailabilityDialog open={creating} onOpenChange={setCreating} onCreate={onCreate} />
+            <NewAvailabilityDialog
+                open={creating}
+                onOpenChange={setCreating}
+                onCreate={onCreate}
+            />
         </div>
     );
 }

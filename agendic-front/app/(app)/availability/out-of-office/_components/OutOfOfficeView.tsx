@@ -19,7 +19,7 @@ import { OutOfOfficeDialog } from './OutOfOfficeDialog';
 import { OutOfOfficeFilters } from './OutOfOfficeFilters';
 import { EMPTY_FILTERS, matchesFilters, parseFilters, writeFilters, type OutOfOfficeFilterState } from './out-of-office-filters';
 import { toIsoDay } from '@/app/_components/day-range';
-import { OUT_OF_OFFICE_REASONS } from './out-of-office-reasons';
+import { OUT_OF_OFFICE_REASONS } from '@/app/_components/out-of-office-reasons';
 
 const outOfOfficeUrl = (params: URLSearchParams) => (params.size ? `${OUT_OF_OFFICE_PATH}?${params}` : OUT_OF_OFFICE_PATH);
 
