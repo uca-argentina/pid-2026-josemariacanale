@@ -3,6 +3,8 @@ import {
     getDaysBetweenDates,
     getHoursToDisplay,
     gridCellToDateTime,
+    formatTime,
+    mergeOverlappingDateRanges,
 } from '@/app/_components/weekly-view/utils';
 
 describe('getDaysBetweenDates', () => {
@@ -80,5 +82,38 @@ describe('gridCellToDateTime', () => {
         });
 
         expect(date.format('HH:mm')).toBe('10:30');
+    });
+});
+
+describe('getDaysBetweenDates with a timezone', () => {
+    it('reads the days in that zone', () => {
+        const days = getDaysBetweenDates(new Date('2026-10-13T01:00:00Z'), new Date('2026-10-14T01:00:00Z'), 'America/Argentina/Buenos_Aires');
+
+        expect(days.map((d) => d.format('YYYY-MM-DD HH:mm'))).toEqual(['2026-10-12 00:00', '2026-10-13 00:00']);
+    });
+});
+
+describe('formatTime', () => {
+    const at = new Date('2026-10-12T18:05:00Z');
+
+    it('formats 24h in the given zone', () => {
+        expect(formatTime(at, 'America/Argentina/Buenos_Aires', 24)).toBe('15:05');
+    });
+
+    it('formats 12h in the given zone', () => {
+        expect(formatTime(at, 'America/Argentina/Buenos_Aires', 12)).toMatch(/^3:05 ?p\. ?m\.$/);
+    });
+});
+
+describe('mergeOverlappingDateRanges', () => {
+    it('merges ranges that overlap or touch and keeps the rest apart', () => {
+        const at = (h: number) => new Date(Date.UTC(2026, 9, 12, h));
+        const merged = mergeOverlappingDateRanges([
+            { start: at(12), end: at(13) },
+            { start: at(9), end: at(11) },
+            { start: at(10), end: at(12) },
+        ]);
+
+        expect(merged).toEqual([{ start: at(9), end: at(13) }]);
     });
 });
