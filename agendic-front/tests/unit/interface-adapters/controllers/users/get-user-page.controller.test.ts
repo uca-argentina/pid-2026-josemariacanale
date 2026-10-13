@@ -27,6 +27,7 @@ const shown = (id: number) => ({
     durationMinutes: 45,
     price: 5000,
     depositPercent: 10,
+    employees: [],
 });
 
 describe('getUserPageController', () => {

@@ -11,6 +11,7 @@ import { Textarea } from '@/app/_components/ui/textarea';
 import { cn } from '@/app/_components/utils';
 import type { ServiceCategoryValue } from '@/app/_components/business-schemas';
 import { bookingPath } from '@/app/routes';
+import { chooseService, initialDraft } from './booking-draft';
 import { BranchPhoto } from './BranchPhoto';
 import { ChipTabs } from './ChipTabs';
 import { CodeStep } from './CodeStep';
@@ -422,17 +423,13 @@ export function BookingFlow({
     categories: readonly { value: ServiceCategoryValue; label: string }[];
     coverUrl: string | undefined;
     initialService: Service | null;
-    /** El Empleado elegido (ADR 0026): el Turno es con él y el paso Horario solo muestra sus horarios; null, como siempre. */
+    /** El Empleado del Enlace de reserva (ADR 0026): arranca como el Empleado elegido del borrador; null, Cualquiera. */
     employee: ChosenEmployee | null;
     onClose: () => void;
 }) {
     const router = useRouter();
     const [step, setStep] = useState<Step>(initialService ? 'time' : 'service');
-    const [draft, setDraft] = useState<BookingDraft>({
-        service: initialService,
-        date: null,
-        slot: null,
-    });
+    const [draft, setDraft] = useState<BookingDraft>(() => initialDraft(initialService, employee));
     const [client, setClient] = useState<ClientData>({ name: '', email: '', notes: '' });
     /** El 409 de horario ocupado: se muestra en el paso Horario, que es donde se resuelve. */
     const [slotNotice, setSlotNotice] = useState<string | null>(null);
@@ -455,16 +452,9 @@ export function BookingFlow({
         return () => document.removeEventListener('keydown', onKey);
     }, [onClose, locked]);
 
-    const { service, date, slot } = draft;
+    const { service, date, slot, employee: chosenEmployee } = draft;
 
-    // Volver a elegir lo mismo no puede borrar lo que ya se eligió después: solo un cambio real
-    // invalida los pasos siguientes.
-    const chooseService = (next: Service) =>
-        setDraft((d) =>
-            d.service?.id === next.id
-                ? d
-                : { service: next, date: null, slot: null },
-        );
+    const onChooseService = (next: Service) => setDraft((d) => chooseService(d, next));
 
     const canAdvance =
         (step === 'service' && !!service) ||
@@ -519,7 +509,7 @@ export function BookingFlow({
         const result = await bookSlotAction({
             serviceId: service.id,
             startsAt: slot.startsAt,
-            employeeId: employee?.id,
+            employeeId: chosenEmployee?.id,
             clientName: client.name,
             clientEmail: client.email,
             notes: client.notes,
@@ -597,15 +587,15 @@ export function BookingFlow({
                 <div className="grid items-start gap-10 lg:grid-cols-[1fr_400px]">
                     <div>
                         <Breadcrumb step={step} locked={locked} onGo={goTo} />
-                        {employee && (
+                        {chosenEmployee && (
                             <p className="mt-4 flex items-center gap-2.5 text-[14px] font-semibold">
                                 <Avatar>
-                                    {employee.imageUrl && <AvatarImage src={employee.imageUrl} alt="" />}
+                                    {chosenEmployee.imageUrl && <AvatarImage src={chosenEmployee.imageUrl} alt="" />}
                                     <AvatarFallback className="bg-muted text-[10px] font-extrabold text-foreground">
-                                        {initials(employee.name)}
+                                        {initials(chosenEmployee.name)}
                                     </AvatarFallback>
                                 </Avatar>
-                                Reservás con {employee.name}
+                                Reservás con {chosenEmployee.name}
                             </p>
                         )}
                         {/* La key cruza el formulario con el paso del código: uno sale y el otro entra. */}
@@ -630,7 +620,7 @@ export function BookingFlow({
                                                 services={services}
                                                 categories={categories}
                                                 chosen={service}
-                                                onChoose={chooseService}
+                                                onChoose={onChooseService}
                                             />
                                         )}
 
@@ -641,7 +631,7 @@ export function BookingFlow({
                                                 date={date}
                                                 slot={slot}
                                                 notice={slotNotice}
-                                                employeeId={employee?.id}
+                                                employeeId={chosenEmployee?.id}
                                                 hostName={host.name}
                                                 onSelect={(nextDate, nextSlot) =>
                                                     setDraft((d) => ({ ...d, date: nextDate, slot: nextSlot }))
