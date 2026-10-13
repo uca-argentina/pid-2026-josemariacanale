@@ -4,8 +4,8 @@ const parse = (search: string) => parseBookingsUrl(new URLSearchParams(search));
 
 describe('parseBookingsUrl / writeBookingsUrl', () => {
     it.each<BookingsUrlState>([
-        { tab: 'upcoming', filters: [], range: null, view: 'list', week: null },
-        { tab: 'past', filters: [], range: { from: '2026-09-01', to: '2026-09-30' }, view: 'calendar', week: '2026-10-12' },
+        { tab: 'upcoming', filters: [], range: null, view: 'list', week: null, turno: null },
+        { tab: 'past', filters: [], range: { from: '2026-09-01', to: '2026-09-30' }, view: 'calendar', week: '2026-10-12', turno: 7 },
         {
             tab: 'cancelled',
             filters: [
@@ -17,13 +17,14 @@ describe('parseBookingsUrl / writeBookingsUrl', () => {
             range: null,
             view: 'list',
             week: null,
+            turno: null,
         },
     ])('round-trips %j', (state) => {
         expect(parseBookingsUrl(writeBookingsUrl(state))).toEqual(state);
     });
 
     it('sin parámetros cae en los valores por defecto', () => {
-        expect(parse('')).toEqual({ tab: 'upcoming', filters: [], range: null, view: 'list', week: null });
+        expect(parse('')).toEqual({ tab: 'upcoming', filters: [], range: null, view: 'list', week: null, turno: null });
     });
 
     it('una pestaña inválida cae en Próximos', () => {
@@ -43,12 +44,12 @@ describe('parseBookingsUrl / writeBookingsUrl', () => {
     });
 
     it('al escribir conserva los parámetros ajenos y omite los valores por defecto', () => {
-        const params = writeBookingsUrl({ tab: 'upcoming', filters: [], range: null, view: 'list', week: null }, new URLSearchParams('otro=1&tab=past&view=calendar&week=2026-10-12&desde=2026-09-01&hasta=2026-09-02'));
+        const params = writeBookingsUrl({ tab: 'upcoming', filters: [], range: null, view: 'list', week: null, turno: null }, new URLSearchParams('otro=1&tab=past&view=calendar&week=2026-10-12&desde=2026-09-01&hasta=2026-09-02'));
         expect(params.toString()).toBe('otro=1');
     });
 
     it('un filtro sin valor no se escribe', () => {
-        const params = writeBookingsUrl({ tab: 'pending', filters: [{ field: 'service', values: [] }, { field: 'clientName', op: 'is', value: '' }], range: null, view: 'list', week: null });
+        const params = writeBookingsUrl({ tab: 'pending', filters: [{ field: 'service', values: [] }, { field: 'clientName', op: 'is', value: '' }], range: null, view: 'list', week: null, turno: null });
         expect(params.toString()).toBe('tab=pending');
     });
 
@@ -58,7 +59,26 @@ describe('parseBookingsUrl / writeBookingsUrl', () => {
     });
 
     it('la semana solo se escribe en el calendario', () => {
-        expect(writeBookingsUrl({ tab: 'upcoming', filters: [], range: null, view: 'calendar', week: '2026-10-12' }).toString()).toBe('view=calendar&week=2026-10-12');
-        expect(writeBookingsUrl({ tab: 'upcoming', filters: [], range: null, view: 'list', week: '2026-10-12' }).toString()).toBe('');
+        expect(writeBookingsUrl({ tab: 'upcoming', filters: [], range: null, view: 'calendar', week: '2026-10-12', turno: null }).toString()).toBe('view=calendar&week=2026-10-12');
+        expect(writeBookingsUrl({ tab: 'upcoming', filters: [], range: null, view: 'list', week: '2026-10-12', turno: null }).toString()).toBe('');
+    });
+});
+
+describe('turno', () => {
+    it('lee el Turno abierto de ?turno=', () => {
+        expect(parse('turno=12').turno).toBe(12);
+    });
+
+    it('un turno que no es un id se ignora', () => {
+        expect(parse('turno=abc').turno).toBeNull();
+        expect(parse('turno=0').turno).toBeNull();
+        expect(parse('turno=-3').turno).toBeNull();
+        expect(parse('turno=1.5').turno).toBeNull();
+    });
+
+    it('se escribe solo si hay un Turno abierto y se conserva el resto de los parámetros', () => {
+        const open: BookingsUrlState = { tab: 'upcoming', filters: [], range: null, view: 'list', week: null, turno: 4 };
+        expect(writeBookingsUrl(open, new URLSearchParams('ajeno=1')).toString()).toBe('ajeno=1&turno=4');
+        expect(writeBookingsUrl({ ...open, turno: null }, new URLSearchParams('turno=4')).toString()).toBe('');
     });
 });
