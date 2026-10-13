@@ -1,6 +1,7 @@
 import dayjs from 'dayjs';
 import type { CalendarEvent } from './types';
 
+/** Ajustes del solapamiento; cada uno tiene un valor por defecto. */
 export interface OverlapLayoutConfig {
     baseZIndex?: number;
     safetyMarginPercent?: number;
@@ -8,6 +9,7 @@ export interface OverlapLayoutConfig {
     curveExponent?: number;
 }
 
+/** Dónde y a qué altura apilar un evento: `left%`, `width%` y `zIndex` dentro de su grupo de solapamiento. */
 export interface EventLayout {
     event: CalendarEvent;
     leftOffsetPercent: number;

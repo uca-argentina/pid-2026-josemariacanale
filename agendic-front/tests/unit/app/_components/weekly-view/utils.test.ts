@@ -31,6 +31,28 @@ describe('getHoursToDisplay', () => {
     });
 });
 
+describe('gridCellToDateTime in a non-UTC zone', () => {
+    it('reads the cell in the given zone', () => {
+        const date = gridCellToDateTime({
+            day: dayjs('2024-01-01T12:00:00Z'),
+            gridCellIdx: 0,
+            totalGridCells: 48,
+            selectionLength: 23,
+            startHour: 9,
+            timezone: 'America/Argentina/Buenos_Aires',
+        });
+
+        expect(date.format('YYYY-MM-DD HH:mm')).toBe('2024-01-01 09:00');
+        expect(date.utcOffset()).toBe(-180);
+    });
+});
+
+describe('getHoursToDisplay without a timezone', () => {
+    it('still returns every hour', () => {
+        expect(getHoursToDisplay(8, 10).map((h) => h.hour())).toEqual([8, 9, 10]);
+    });
+});
+
 describe('gridCellToDateTime', () => {
     const day = dayjs('2024-01-01T00:00:00Z');
 

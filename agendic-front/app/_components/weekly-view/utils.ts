@@ -5,6 +5,7 @@ import utc from 'dayjs/plugin/utc';
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
+/** Qué celda de la grilla convertir en fecha. */
 export type GridCellToDateProps = {
     day: dayjs.Dayjs;
     gridCellIdx: number;
