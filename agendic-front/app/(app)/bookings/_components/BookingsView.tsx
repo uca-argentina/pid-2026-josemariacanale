@@ -29,9 +29,8 @@ import {
     type ListField,
 } from './booking-helpers';
 import { BookingActions } from './BookingActions';
-import { BookingDateRange } from './BookingDateRange';
 import { BookingFilters } from './BookingFilters';
-import { BookingsCalendar } from './BookingsCalendar';
+import { BookingsCalendar, WeekNav } from './BookingsCalendar';
 import { weekOf } from './calendar-week';
 import { parseBookingsUrl, writeBookingsUrl, type BookingsUrlState, type BookingsView as View } from './bookings-url';
 import type { Preferences } from '@/src/entities/models/user';
@@ -155,62 +154,62 @@ export function BookingsView({ bookings, now, preferences }: { bookings: Booking
                 </p>
             </header>
 
-            {!isMobile && (
-                <ToggleGroup
-                    className="mt-6"
-                    variant="outline"
-                    spacing={0}
-                    value={[view]}
-                    onValueChange={([next]) => next && update({ view: next as View })}
-                >
-                    <ToggleGroupItem value="list">
-                        <List />
-                        Lista
-                    </ToggleGroupItem>
-                    <ToggleGroupItem value="calendar">
-                        <CalendarDays />
-                        Calendario
-                    </ToggleGroupItem>
-                </ToggleGroup>
-            )}
-
-            {view === 'list' && (
-                <Tabs.Root
-                    value={tab}
-                    onValueChange={(v) => update({ tab: v as BookingTab })}
-                >
-                    <Tabs.List aria-label="Turnos" className="mt-8 flex flex-wrap gap-1">
-                        {TABS.map((t) => (
-                            <Tabs.Tab
-                                key={t.id}
-                                value={t.id}
-                                className="inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-[13.5px] font-bold text-[#6b7280] transition-colors outline-none hover:text-[#0f1b2d] focus-visible:ring-2 focus-visible:ring-[#0f1b2d] data-[active]:bg-[#f3f4f6] data-[active]:text-[#0f1b2d]"
+            <BookingFilters
+                filters={filters}
+                options={options}
+                onChange={(next) => update({ filters: next })}
+                range={range}
+                onRangeChange={(next) => update({ range: next })}
+                today={dayKey(now)}
+                weekStart={preferences.weekStart}
+                leading={
+                    view === 'calendar' ? (
+                        <WeekNav week={currentWeek} weekStart={preferences.weekStart} onWeekChange={(next) => update({ week: next })} />
+                    ) : (
+                        <Tabs.Root value={tab} onValueChange={(v) => update({ tab: v as BookingTab })}>
+                            <Tabs.List aria-label="Turnos" className="flex flex-wrap gap-1">
+                                {TABS.map((t) => (
+                                    <Tabs.Tab
+                                        key={t.id}
+                                        value={t.id}
+                                        className="inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-[13.5px] font-bold text-[#6b7280] transition-colors outline-none hover:text-[#0f1b2d] focus-visible:ring-2 focus-visible:ring-[#0f1b2d] data-[active]:bg-[#f3f4f6] data-[active]:text-[#0f1b2d]"
+                                    >
+                                        {t.label}
+                                        {t.id === 'pending' && pendingCount > 0 && (
+                                            <span className="rounded-full bg-[#0f1b2d] px-1.5 text-[11px] leading-[18px] font-bold text-white">{pendingCount}</span>
+                                        )}
+                                    </Tabs.Tab>
+                                ))}
+                            </Tabs.List>
+                        </Tabs.Root>
+                    )
+                }
+                trailing={
+                    <>
+                        {!isMobile && (
+                            <ToggleGroup
+                                variant="outline"
+                                spacing={0}
+                                value={[view]}
+                                onValueChange={([next]) => next && update({ view: next as View })}
                             >
-                                {t.label}
-                                {t.id === 'pending' && pendingCount > 0 && (
-                                    <span className="rounded-full bg-[#0f1b2d] px-1.5 text-[11px] leading-[18px] font-bold text-white">{pendingCount}</span>
-                                )}
-                            </Tabs.Tab>
-                        ))}
-                    </Tabs.List>
-                </Tabs.Root>
-            )}
-
-            <div className="mt-5 flex flex-wrap items-center gap-2">
-                <BookingFilters
-                    filters={filters}
-                    options={options}
-                    onChange={(next) => update({ filters: next })}
-                />
-                <BookingDateRange range={range} weekStart={preferences.weekStart} onChange={(next) => update({ range: next })} />
-            </div>
+                                <ToggleGroupItem value="list" aria-label="Lista">
+                                    <List />
+                                </ToggleGroupItem>
+                                <ToggleGroupItem value="calendar" aria-label="Calendario">
+                                    <CalendarDays />
+                                </ToggleGroupItem>
+                            </ToggleGroup>
+                        )}
+                    </>
+                }
+            />
 
             {view === 'calendar' ? (
                 <BookingsCalendar
                     bookings={matching}
                     week={currentWeek}
                     preferences={preferences}
-                    onWeekChange={(next) => update({ week: next })}
                 />
             ) : inTab.length > 0 ? (
                 <>

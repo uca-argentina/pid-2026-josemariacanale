@@ -13,53 +13,57 @@ import { localInstant, TIME_ZONE, type Booking } from './booking-helpers';
 import { addDays, bookingsOfWeek, toCalendarEvent, weekStartOf, weekTitle } from './calendar-week';
 
 /**
- * Calendario semanal de los Turnos aceptados y pendientes: barra con Hoy, semana anterior y siguiente y
- * selector de semana, y la grilla. `week` es el primer día de la semana mostrada; `onWeekChange(null)` vuelve a la actual.
+ * Barra de la semana mostrada: Hoy, semana anterior y siguiente y selector de semana. `week` es el primer día
+ * de la semana; `onWeekChange(null)` vuelve a la actual.
  */
-export function BookingsCalendar({
-    bookings,
+export function WeekNav({
     week,
-    preferences,
+    weekStart,
     onWeekChange,
 }: {
-    bookings: Booking[];
     week: string;
-    preferences: Preferences;
+    weekStart: Preferences['weekStart'];
     onWeekChange: (week: string | null) => void;
 }) {
+    const pick = (day: string) => onWeekChange(weekStartOf(day, weekStart));
+    return (
+        <div className="flex flex-wrap items-center gap-2">
+            <Button type="button" variant="outline" onClick={() => onWeekChange(null)}>
+                Hoy
+            </Button>
+            <Button type="button" variant="outline" size="icon" aria-label="Semana anterior" onClick={() => pick(addDays(week, -7))}>
+                <ChevronLeft />
+            </Button>
+            <Button type="button" variant="outline" size="icon" aria-label="Semana siguiente" onClick={() => pick(addDays(week, 7))}>
+                <ChevronRight />
+            </Button>
+            <Popover>
+                <PopoverTrigger render={<Button type="button" variant="outline" />}>
+                    <CalendarRange />
+                    {weekTitle(week)}
+                </PopoverTrigger>
+                <PopoverContent align="start" className="w-auto">
+                    <Calendar
+                        mode="single"
+                        locale={es}
+                        weekStartsOn={weekStart}
+                        defaultMonth={toLocalDay(week)}
+                        selected={toLocalDay(week)}
+                        onSelect={(date) => date && pick(toIsoDay(date))}
+                    />
+                </PopoverContent>
+            </Popover>
+        </div>
+    );
+}
+
+/** Grilla semanal de los Turnos aceptados y pendientes de la semana `week`. */
+export function BookingsCalendar({ bookings, week, preferences }: { bookings: Booking[]; week: string; preferences: Preferences }) {
     const router = useRouter();
-    const pick = (day: string) => onWeekChange(weekStartOf(day, preferences.weekStart));
 
     return (
         <div className="mt-4">
-            <div className="flex flex-wrap items-center gap-2">
-                <Button type="button" variant="outline" onClick={() => onWeekChange(null)}>
-                    Hoy
-                </Button>
-                <Button type="button" variant="outline" size="icon" aria-label="Semana anterior" onClick={() => pick(addDays(week, -7))}>
-                    <ChevronLeft />
-                </Button>
-                <Button type="button" variant="outline" size="icon" aria-label="Semana siguiente" onClick={() => pick(addDays(week, 7))}>
-                    <ChevronRight />
-                </Button>
-                <Popover>
-                    <PopoverTrigger render={<Button type="button" variant="outline" />}>
-                        <CalendarRange />
-                        {weekTitle(week)}
-                    </PopoverTrigger>
-                    <PopoverContent align="start" className="w-auto">
-                        <Calendar
-                            mode="single"
-                            locale={es}
-                            weekStartsOn={preferences.weekStart}
-                            defaultMonth={toLocalDay(week)}
-                            selected={toLocalDay(week)}
-                            onSelect={(date) => date && pick(toIsoDay(date))}
-                        />
-                    </PopoverContent>
-                </Popover>
-            </div>
-            <div className="mt-4 flex h-[calc(100vh-16rem)] flex-col overflow-x-hidden overflow-y-auto rounded-md border">
+            <div className="flex h-[calc(100vh-16rem)] flex-col overflow-x-hidden overflow-y-auto rounded-md border">
                 <WeeklyCalendar
                     timezone={TIME_ZONE}
                     timeFormat={preferences.timeFormat}
