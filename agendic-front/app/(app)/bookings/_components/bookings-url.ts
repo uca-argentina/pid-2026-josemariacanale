@@ -1,5 +1,5 @@
-import { isDay } from '@/app/_components/day-range';
-import type { BookingFilter, BookingTab, DayRange, TextField, TextOp } from './booking-helpers';
+import { isDay, type DayRange } from '@/app/_components/day-range';
+import type { BookingFilter, BookingTab, TextField, TextOp } from './booking-helpers';
 
 /** Lo que Mis turnos guarda en la URL: la pestaña, los filtros y el rango de fechas. */
 export type BookingsUrlState = { tab: BookingTab; filters: BookingFilter[]; range: DayRange | null };

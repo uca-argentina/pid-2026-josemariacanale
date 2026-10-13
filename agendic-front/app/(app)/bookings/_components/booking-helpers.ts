@@ -2,8 +2,6 @@ import type { DayRange } from '@/app/_components/day-range';
 import type { DI_RETURN_TYPES } from '@/di/types';
 import type { Preferences } from '@/src/entities/models/user';
 
-export type { DayRange };
-
 /** Un Turno de Mis turnos del Usuario, como lo arma el controller. */
 export type Booking = Awaited<ReturnType<DI_RETURN_TYPES['IListMyBookingsController']>>[number];
 
@@ -63,7 +61,7 @@ const timeFormats = {
 };
 /** `HH:MM` (24) o `h:MM a. m.` (12), según las Preferencias del Usuario; sin ellas, 24. */
 export const formatTime = (at: string | number, timeFormat: Preferences['timeFormat'] = 24) =>
-    timeFormats[timeFormat].format(new Date(at));
+    timeFormats[timeFormat].format(new Date(at)).replace(/[  ]/g, ' ');
 /** `HH:MM – HH:MM` del Turno. */
 export const formatTimeRange = (b: Booking, timeFormat?: Preferences['timeFormat']) =>
     `${formatTime(b.startsAt, timeFormat)} – ${formatTime(b.endsAt, timeFormat)}`;

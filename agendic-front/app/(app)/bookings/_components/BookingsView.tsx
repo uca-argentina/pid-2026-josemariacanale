@@ -23,7 +23,6 @@ import {
     cabinOf,
     type Booking,
     type BookingTab,
-    type DayRange,
     type ListField,
 } from './booking-helpers';
 import { BookingActions } from './BookingActions';
@@ -135,6 +134,7 @@ export function BookingsView({ bookings, now, preferences }: { bookings: Booking
     const current = Math.min(page, pageCount - 1);
     const from = current * pageSize;
     const pageItems = inTab.slice(from, from + pageSize);
+    const filtered = filters.length > 0 || range !== null;
     const empty = TABS.find((t) => t.id === tab)!.empty;
 
 
@@ -173,7 +173,7 @@ export function BookingsView({ bookings, now, preferences }: { bookings: Booking
                     options={options}
                     onChange={(next) => update({ filters: next })}
                 />
-                <BookingDateRange range={range} weekStart={preferences.weekStart} onChange={(next: DayRange | null) => update({ range: next })} />
+                <BookingDateRange range={range} weekStart={preferences.weekStart} onChange={(next) => update({ range: next })} />
             </div>
 
             {inTab.length > 0 ? (
@@ -212,10 +212,10 @@ export function BookingsView({ bookings, now, preferences }: { bookings: Booking
                         <CalendarDays className="size-6 text-[#0f1b2d]" />
                     </div>
                     <p className="m-0 text-[17px] font-extrabold tracking-[-0.03em]">
-                        {filters.length > 0 || range ? 'No hay turnos que coincidan' : empty.title}
+                        {filtered ? 'No hay turnos que coincidan' : empty.title}
                     </p>
                     <p className="m-0 max-w-[380px] text-[13px] font-medium leading-relaxed text-[#6b7280]">
-                        {filters.length > 0 || range ? 'Probá sacando algún filtro.' : empty.description}
+                        {filtered ? 'Probá sacando algún filtro.' : empty.description}
                     </p>
                 </div>
             )}

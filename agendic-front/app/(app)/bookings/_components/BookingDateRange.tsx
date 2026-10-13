@@ -8,7 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/app/_components/ui/po
 import { formatOutOfOfficeDate } from '@/app/_components/format-day';
 import { fromCalendarRange, toCalendarRange, toLocalDay } from '@/app/_components/day-range';
 import type { Preferences } from '@/src/entities/models/user';
-import type { DayRange } from './booking-helpers';
+import type { DayRange } from '@/app/_components/day-range';
 
 /**
  * El filtro de rango de fechas de los Turnos: un botón que abre el Calendar y, con rango, "Limpiar". Elegir un
