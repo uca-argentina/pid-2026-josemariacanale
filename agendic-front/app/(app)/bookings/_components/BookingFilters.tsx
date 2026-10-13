@@ -1,10 +1,13 @@
 'use client';
 
-import { useId, useState } from 'react';
+import { useId, useState, type ReactNode } from 'react';
 import { Popover } from '@base-ui/react/popover';
-import { AtSign, ChevronDown, Layers, MapPin, Plus, SlidersHorizontal, User, X } from 'lucide-react';
+import { AtSign, CalendarRange, ChevronDown, Layers, MapPin, SlidersHorizontal, User, X } from 'lucide-react';
 import { cn } from '@/app/_components/utils';
 import { PanelButton, PanelCheckbox, PanelInput, PanelSelect } from '@/app/(app)/_components/panel-ui';
+import type { DayRange } from '@/app/_components/day-range';
+import type { Preferences } from '@/src/entities/models/user';
+import { BookingDateRange, defaultRange, rangeSummary } from './BookingDateRange';
 import type { BookingFilter, FilterField, ListField, TextField, TextOp } from './booking-helpers';
 
 type Field = { label: string; icon: typeof Layers } & ({ id: ListField; kind: 'list' } | { id: TextField; kind: 'text' });
@@ -35,7 +38,10 @@ function SearchBox({ value, onChange, label }: { value: string; onChange: (v: st
 
 const NO_RESULTS = <li className="px-2.5 py-2 text-[13px] font-medium text-[#9ca3af]">Sin resultados</li>;
 
-function FieldPicker({ available, onPick }: { available: Field[]; onPick: (field: Field) => void }) {
+const RANGE_ITEM = { id: 'range', label: 'Rango de Fechas', icon: CalendarRange } as const;
+type PickerItem = Field | typeof RANGE_ITEM;
+
+function FieldPicker({ available, onPick }: { available: PickerItem[]; onPick: (field: PickerItem) => void }) {
     const [query, setQuery] = useState('');
     const shown = available.filter((f) => f.label.toLowerCase().includes(query.trim().toLowerCase()));
     return (
@@ -170,91 +176,150 @@ function ChipSummary({ filter }: { filter: BookingFilter }) {
 const CHIP =
     'inline-flex h-9 items-center gap-1.5 rounded-md border border-[#e5e7eb] bg-white px-3 text-[13px] font-bold whitespace-nowrap text-[#0f1b2d] transition-colors hover:bg-[#f3f4f6] outline-none focus-visible:ring-2 focus-visible:ring-[#0f1b2d] focus-visible:ring-offset-1 [&>svg]:size-4 [&>svg]:shrink-0';
 
+/**
+ * Barra de filtros de los Turnos: en la primera fila `leading`, el botón "Filtrar" y a la derecha `trailing`;
+ * debajo, un chip por cada filtro activo.
+ */
 export function BookingFilters({
     filters,
     onChange,
     options,
+    range,
+    onRangeChange,
+    today,
+    weekStart,
+    leading,
+    trailing,
 }: {
     filters: BookingFilter[];
     onChange: (filters: BookingFilter[]) => void;
     options: Record<ListField, string[]>;
+    range: DayRange | null;
+    onRangeChange: (range: DayRange | null) => void;
+    today: string;
+    weekStart: Preferences['weekStart'];
+    leading?: ReactNode;
+    trailing?: ReactNode;
 }) {
-    const [open, setOpen] = useState<FilterField | 'add' | null>(null);
-    const available = FIELDS.filter((f) => !filters.some((active) => active.field === f.id));
+    const [open, setOpen] = useState<FilterField | 'range' | 'add' | null>(null);
+    const available: PickerItem[] = [...FIELDS.filter((f) => !filters.some((active) => active.field === f.id)), ...(range ? [] : [RANGE_ITEM])];
 
     const setFilter = (next: BookingFilter) => onChange(filters.map((f) => (f.field === next.field ? next : f)));
-    const add = (field: Field) => {
-        onChange([...filters, emptyFilter(field)]);
+    const add = (field: PickerItem) => {
+        if (field.id === 'range') onRangeChange(defaultRange(today));
+        else onChange([...filters, emptyFilter(field)]);
         setOpen(field.id);
     };
-    const toggle = (id: FilterField | 'add') => (next: boolean) => setOpen(next ? id : null);
+    const toggle = (id: FilterField | 'range' | 'add') => (next: boolean) => setOpen(next ? id : null);
+
+    const addButton = available.length > 0 && (
+        <Popover.Root open={open === 'add'} onOpenChange={toggle('add')}>
+            <Popover.Trigger className={CHIP}>
+                <SlidersHorizontal />
+                Filtrar
+                {filters.length + (range ? 1 : 0) > 0 && (
+                    <span className="rounded-full bg-[#0f1b2d] px-1.5 text-[11px] leading-[18px] font-bold text-white">{filters.length + (range ? 1 : 0)}</span>
+                )}
+            </Popover.Trigger>
+            <Popover.Portal>
+                <Popover.Positioner align="start" sideOffset={4} className="z-50">
+                    <Popover.Popup
+                        className={POPOVER}
+                        // Al elegir un campo se abre el popover del chip nuevo; devolverle el foco a este
+                        // botón lo cerraría por foco afuera.
+                        finalFocus={false}
+                    >
+                        <FieldPicker available={available} onPick={add} />
+                    </Popover.Popup>
+                </Popover.Positioner>
+            </Popover.Portal>
+        </Popover.Root>
+    );
 
     return (
-        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-            {filters.map((filter) => {
-                const field = FIELDS.find((f) => f.id === filter.field)!;
-                return (
-                    <Popover.Root key={filter.field} open={open === filter.field} onOpenChange={toggle(filter.field)}>
-                        <Popover.Trigger className={CHIP}>
-                            <field.icon />
-                            {field.label}
-                            <ChipSummary filter={filter} />
-                            <ChevronDown className="text-[#6b7280]" />
-                        </Popover.Trigger>
-                        <Popover.Portal>
-                            <Popover.Positioner align="start" sideOffset={4} className="z-50">
-                            <Popover.Popup className={POPOVER}>
-                                {'values' in filter ? (
-                                    <ListEditor filter={filter} options={options[filter.field]} onChange={setFilter} />
-                                ) : (
-                                    <TextEditor
-                                        filter={filter}
-                                        onApply={(f) => {
-                                            setFilter(f);
-                                            setOpen(null);
-                                        }}
-                                    />
-                                )}
-                            </Popover.Popup>
-                            </Popover.Positioner>
-                        </Popover.Portal>
-                    </Popover.Root>
-                );
-            })}
+        <div className="mt-6 flex flex-col gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
+                    {leading}
+                    {addButton}
+                </div>
+                <div className="flex items-center gap-2">{trailing}</div>
+            </div>
 
-            {available.length > 0 && (
-                <Popover.Root open={open === 'add'} onOpenChange={toggle('add')}>
-                    {filters.length === 0 ? (
-                        <Popover.Trigger className={CHIP}>
-                            <SlidersHorizontal />
-                            Filtrar
-                        </Popover.Trigger>
-                    ) : (
-                        <Popover.Trigger aria-label="Agregar filtro" title="Agregar filtro" className={cn(CHIP, 'w-9 justify-center px-0')}>
-                            <Plus />
-                        </Popover.Trigger>
+            {filters.length > 0 || range ? (
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
+                    {range && (
+                        <Popover.Root open={open === 'range'} onOpenChange={toggle('range')}>
+                            <div className="inline-flex">
+                                <Popover.Trigger className={cn(CHIP, 'rounded-r-none')}>
+                                    <CalendarRange />
+                                    Rango de Fechas
+                                    <span className="max-w-[240px] truncate rounded bg-[#f3f4f6] px-1.5 py-0.5 text-[12px] font-bold text-[#0f1b2d]">
+                                        {rangeSummary(range, today)}
+                                    </span>
+                                    <ChevronDown className="text-[#6b7280]" />
+                                </Popover.Trigger>
+                                <button
+                                    type="button"
+                                    aria-label="Quitar rango de fechas"
+                                    onClick={() => onRangeChange(null)}
+                                    className={cn(CHIP, 'w-9 justify-center rounded-l-none border-l-0 px-0')}
+                                >
+                                    <X />
+                                </button>
+                            </div>
+                            <Popover.Portal>
+                                <Popover.Positioner align="start" sideOffset={4} className="z-50">
+                                    <Popover.Popup className={cn(POPOVER, 'w-auto')}>
+                                        <BookingDateRange range={range} today={today} weekStart={weekStart} onChange={onRangeChange} />
+                                    </Popover.Popup>
+                                </Popover.Positioner>
+                            </Popover.Portal>
+                        </Popover.Root>
                     )}
-                    <Popover.Portal>
-                        <Popover.Positioner align="start" sideOffset={4} className="z-50">
-                        <Popover.Popup
-                            className={POPOVER}
-                            // Al elegir un campo se abre el popover del chip nuevo; devolverle el foco a este
-                            // botón lo cerraría por foco afuera.
-                            finalFocus={false}
-                        >
-                            <FieldPicker available={available} onPick={add} />
-                        </Popover.Popup>
-                        </Popover.Positioner>
-                    </Popover.Portal>
-                </Popover.Root>
-            )}
-
-            {filters.length > 0 && (
-                <PanelButton variant="ghost" className="ml-auto text-[#6b7280]" onClick={() => onChange([])}>
-                    <X className="size-4" />
-                    Limpiar
-                </PanelButton>
-            )}
+                    {filters.map((filter) => {
+                        const field = FIELDS.find((f) => f.id === filter.field)!;
+                        return (
+                            <Popover.Root key={filter.field} open={open === filter.field} onOpenChange={toggle(filter.field)}>
+                                <Popover.Trigger className={CHIP}>
+                                    <field.icon />
+                                    {field.label}
+                                    <ChipSummary filter={filter} />
+                                    <ChevronDown className="text-[#6b7280]" />
+                                </Popover.Trigger>
+                                <Popover.Portal>
+                                    <Popover.Positioner align="start" sideOffset={4} className="z-50">
+                                        <Popover.Popup className={POPOVER}>
+                                            {'values' in filter ? (
+                                                <ListEditor filter={filter} options={options[filter.field]} onChange={setFilter} />
+                                            ) : (
+                                                <TextEditor
+                                                    filter={filter}
+                                                    onApply={(f) => {
+                                                        setFilter(f);
+                                                        setOpen(null);
+                                                    }}
+                                                />
+                                            )}
+                                        </Popover.Popup>
+                                    </Popover.Positioner>
+                                </Popover.Portal>
+                            </Popover.Root>
+                        );
+                    })}
+                    <PanelButton
+                        variant="ghost"
+                        className="ml-auto text-[#6b7280]"
+                        onClick={() => {
+                            onChange([]);
+                            onRangeChange(null);
+                        }}
+                    >
+                        <X className="size-4" />
+                        Limpiar
+                    </PanelButton>
+                </div>
+            ) : null}
         </div>
     );
 }
