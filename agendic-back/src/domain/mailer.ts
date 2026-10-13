@@ -9,12 +9,12 @@ export interface Mailer {
     link: string,
     depositAmount: number | null,
   ): Promise<void>;
-  /** Aviso de cambio del Turno: the Turno was cancelled, by whoever did it or by a baja, with its Enlace del Turno. */
-  sendBookingCancellation(email: string, link: string): Promise<void>;
+  /** Aviso de cambio del Turno: the Turno was cancelled, by whoever did it or by a baja, with its Enlace del Turno and the Motivo de cancelación if it has one. */
+  sendBookingCancellation(email: string, link: string, reason?: string | null): Promise<void>;
   /** Aviso de cambio del Turno: the Turno moved to another horario, with its Enlace del Turno. */
   sendBookingReschedule(email: string, link: string): Promise<void>;
-  /** Aviso de cambio del Turno: the Negocio rejected the pending Turno, with its Enlace del Turno. */
-  sendBookingRejection(email: string, link: string): Promise<void>;
+  /** Aviso de cambio del Turno: the Negocio rejected the pending Turno, with its Enlace del Turno and the Motivo de cancelación if it has one. */
+  sendBookingRejection(email: string, link: string, reason?: string | null): Promise<void>;
   /** Invitación a Calificar: asks the Cliente to rate the Turno of `serviceName` that started at `startsAt`, shown in `timeZone`, with its Enlace del Turno. */
   sendRatingRequest(
     email: string,

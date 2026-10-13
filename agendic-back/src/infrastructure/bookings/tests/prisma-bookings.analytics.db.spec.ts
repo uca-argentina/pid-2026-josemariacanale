@@ -32,6 +32,7 @@ describe('PrismaBookingsRepository, price, cancelledAt y rejectedAt (real databa
       depositAmount: null,
       price: 1234.5,
       status,
+      acceptedAt: status === BookingStatus.BOOKED ? new Date() : null,
     });
   };
 
@@ -77,10 +78,10 @@ describe('PrismaBookingsRepository, price, cancelledAt y rejectedAt (real databa
     const rejected = await book(BookingStatus.PENDING);
     const accepted = await book(BookingStatus.PENDING);
 
-    await repository.cancel(cancelled.id, now);
-    await repository.cancelPendingOrBooked(cancelledByLink.id, now);
-    await repository.resolvePending(rejected.id, BookingStatus.REJECTED, now);
-    await repository.resolvePending(accepted.id, BookingStatus.BOOKED, now);
+    await repository.cancel(cancelled.id, now, null);
+    await repository.cancelPendingOrBooked(cancelledByLink.id, now, null);
+    await repository.resolvePending(rejected.id, BookingStatus.REJECTED, now, null);
+    await repository.resolvePending(accepted.id, BookingStatus.BOOKED, now, null);
 
     const rows = await Promise.all(
       [cancelled, cancelledByLink, rejected, accepted].map((b) => repository.findById(b.id)),
