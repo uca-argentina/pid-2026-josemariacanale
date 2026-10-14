@@ -83,7 +83,7 @@ describe('PrismaBookingsRepository, Reagendar (real database)', () => {
 
     expect(moved).toMatchObject({
       status: BookingStatus.BOOKED,
-      acceptedAt: new Date(),
+      acceptedAt: NOW,
       startsAt: at(3),
       fromRescheduleId: original.id,
       link: original.link,
@@ -119,7 +119,7 @@ describe('PrismaBookingsRepository, Reagendar (real database)', () => {
 
     expect(await prisma.booking.findUnique({ where: { id: original.id } })).toMatchObject({
       status: BookingStatus.BOOKED,
-      acceptedAt: new Date(),
+      acceptedAt: original.acceptedAt,
       cancelledAt: null,
       rescheduled: null,
       link: original.link,
