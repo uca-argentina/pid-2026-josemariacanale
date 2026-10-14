@@ -146,7 +146,7 @@ export class CreateBookingSeriesUseCase {
         dailyLimit,
         data: {
           serviceId: input.serviceId,
-          employeeId: employeeId,
+          employeeId,
           userId,
           clientName: input.clientName,
           clientEmail: input.clientEmail,

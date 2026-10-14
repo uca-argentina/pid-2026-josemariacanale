@@ -191,6 +191,7 @@ export class PrismaBookingsRepository implements BookingsRepository {
    * primer choque, y así se puede probar otra Cabina o seguir con la fecha siguiente para juntar todas las que fallan.
    *
    * @throws {ConflictError} `Series dates not available: <fechas>`
+   * @throws {DatabaseOperationError} falló la base
    */
   async createSeries(items: SeriesBookingData[]) {
     const seriesId = randomUUID();
