@@ -11,6 +11,7 @@ describe('PrismaBookingsRepository, Reagendar (real database)', () => {
   const tag = `booking-reschedule-${Date.now()}`;
   const at = (hours: number) => new Date(Date.UTC(2031, 0, 1) + hours * 3_600_000);
   const NOW = new Date('2031-01-01T00:00:00.000Z');
+  const ACCEPTED_AT = new Date('2030-12-31T00:00:00.000Z');
   let userId: number;
   let serviceId: number;
 
@@ -30,7 +31,7 @@ describe('PrismaBookingsRepository, Reagendar (real database)', () => {
       depositAmount: 10,
       price: 50,
       status: BookingStatus.BOOKED,
-      acceptedAt: new Date(),
+      acceptedAt: ACCEPTED_AT,
     });
 
   const times = (hour: number) => ({
@@ -83,7 +84,7 @@ describe('PrismaBookingsRepository, Reagendar (real database)', () => {
 
     expect(moved).toMatchObject({
       status: BookingStatus.BOOKED,
-      acceptedAt: new Date(),
+      acceptedAt: NOW,
       startsAt: at(3),
       fromRescheduleId: original.id,
       link: original.link,
@@ -119,7 +120,7 @@ describe('PrismaBookingsRepository, Reagendar (real database)', () => {
 
     expect(await prisma.booking.findUnique({ where: { id: original.id } })).toMatchObject({
       status: BookingStatus.BOOKED,
-      acceptedAt: new Date(),
+      acceptedAt: ACCEPTED_AT,
       cancelledAt: null,
       rescheduled: null,
       link: original.link,
