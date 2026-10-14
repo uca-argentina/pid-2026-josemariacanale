@@ -165,4 +165,49 @@ describe('PrismaOutOfOfficeRepository.createCancelling (real database)', () => {
     expect(await repository.findByUserAndDates(userId, '2031-03-01', '2031-03-02')).toBeNull();
     expect((await prisma.booking.findUniqueOrThrow({ where: { id: turno.id } })).status).toBe('BOOKED');
   });
+
+  describe('updateCancelling', () => {
+    it('replaces the período and cancels the Turnos in one transaction', async () => {
+      const saved = await repository.create(userId, period('2031-01-12', '2031-01-14'));
+      const turno = await book(15);
+
+      const { outOfOffice, cancelledIds } = await repository.updateCancelling(
+        saved.id,
+        period('2031-01-12', '2031-01-16'),
+        [order(turno.id)],
+        now,
+      );
+
+      expect(outOfOffice).toMatchObject({ id: saved.id, endDate: '2031-01-16' });
+      expect(cancelledIds).toEqual([turno.id]);
+      expect((await repository.findById(saved.id))?.endDate).toBe('2031-01-16');
+      const row = await prisma.booking.findUniqueOrThrow({ where: { id: turno.id } });
+      expect([row.status, row.cancellationCause]).toEqual(['CANCELLED', 'OUT_OF_OFFICE']);
+    });
+
+    it('keeps the período as it was when a cancellation fails', async () => {
+      const saved = await repository.create(userId, period('2031-05-01', '2031-05-05'));
+      const turno = await book(27);
+      const unknown = { ...order(turno.id), cause: 'UNKNOWN' as CancellationCause };
+
+      await expect(
+        repository.updateCancelling(saved.id, period('2031-05-01', '2031-05-09'), [unknown], now),
+      ).rejects.toThrow();
+
+      expect((await repository.findById(saved.id))?.endDate).toBe('2031-05-05');
+      expect((await prisma.booking.findUniqueOrThrow({ where: { id: turno.id } })).status).toBe('BOOKED');
+    });
+
+    it('cancels nothing when the new dates collide with another período', async () => {
+      await repository.create(userId, period('2031-06-10', '2031-06-12'));
+      const saved = await repository.create(userId, period('2031-06-01', '2031-06-05'));
+      const turno = await book(28);
+
+      await expect(
+        repository.updateCancelling(saved.id, period('2031-06-10', '2031-06-12'), [order(turno.id)], now),
+      ).rejects.toThrow(ConflictError);
+
+      expect((await prisma.booking.findUniqueOrThrow({ where: { id: turno.id } })).status).toBe('BOOKED');
+    });
+  });
 });

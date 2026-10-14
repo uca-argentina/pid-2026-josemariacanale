@@ -14,9 +14,10 @@ import { CreateOutOfOfficeUseCase } from '../../application/out-of-office/create
 import { DeleteOutOfOfficeUseCase } from '../../application/out-of-office/delete-out-of-office.use-case';
 import { ListOutOfOfficeUseCase } from '../../application/out-of-office/list-out-of-office.use-case';
 import { PreviewOutOfOfficeUseCase } from '../../application/out-of-office/preview-out-of-office.use-case';
+import { PreviewEditOutOfOfficeUseCase } from '../../application/out-of-office/preview-edit-out-of-office.use-case';
 import { UpdateOutOfOfficeUseCase } from '../../application/out-of-office/update-out-of-office.use-case';
 import { ClerkGuard, CurrentUser } from '../users/clerk.guard';
-import { CreateOutOfOfficeDto, OutOfOfficeDto } from './out-of-office.dto';
+import { ConfirmedOutOfOfficeDto, OutOfOfficeDto } from './out-of-office.dto';
 import { presentLeftOutside, presentOutOfOffice } from './out-of-office.presenter';
 
 /** Períodos Fuera de la oficina del propio Usuario (ADR 0027). */
@@ -27,6 +28,7 @@ export class OutOfOfficeController {
     private readonly listOutOfOfficeUseCase: ListOutOfOfficeUseCase,
     private readonly createOutOfOfficeUseCase: CreateOutOfOfficeUseCase,
     private readonly previewOutOfOfficeUseCase: PreviewOutOfOfficeUseCase,
+    private readonly previewEditOutOfOfficeUseCase: PreviewEditOutOfOfficeUseCase,
     private readonly updateOutOfOfficeUseCase: UpdateOutOfOfficeUseCase,
     private readonly deleteOutOfOfficeUseCase: DeleteOutOfOfficeUseCase,
   ) {}
@@ -50,7 +52,7 @@ export class OutOfOfficeController {
   @Post()
   async create(
     @CurrentUser() userId: number,
-    @Body() dto: CreateOutOfOfficeDto,
+    @Body() dto: ConfirmedOutOfOfficeDto,
   ) {
     const { outOfOffice, cancelledBookings } =
       await this.createOutOfOfficeUseCase.execute(
@@ -61,15 +63,37 @@ export class OutOfOfficeController {
     return { ...presentOutOfOffice(outOfOffice), cancelledBookings };
   }
 
-  @Put(':id')
-  async update(
+  /** Los Turnos que editar el período dejaría afuera; no guarda nada. */
+  @Post(':id/preview')
+  @HttpCode(200)
+  async previewEdit(
     @CurrentUser() userId: number,
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: OutOfOfficeDto,
   ) {
-    return presentOutOfOffice(
-      await this.updateOutOfOfficeUseCase.execute(userId, id, toFields(dto)),
-    );
+    return (
+      await this.previewEditOutOfOfficeUseCase.execute(
+        userId,
+        id,
+        toFields(dto),
+      )
+    ).map(presentLeftOutside);
+  }
+
+  @Put(':id')
+  async update(
+    @CurrentUser() userId: number,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: ConfirmedOutOfOfficeDto,
+  ) {
+    const { outOfOffice, cancelledBookings } =
+      await this.updateOutOfOfficeUseCase.execute(
+        userId,
+        id,
+        toFields(dto),
+        dto.cancelBookingIds,
+      );
+    return { ...presentOutOfOffice(outOfOffice), cancelledBookings };
   }
 
   @Delete(':id')

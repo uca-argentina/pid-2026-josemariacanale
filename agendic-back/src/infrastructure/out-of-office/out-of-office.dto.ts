@@ -39,8 +39,8 @@ export class OutOfOfficeDto {
   showNotePublicly?: boolean;
 }
 
-/** Body of POST: the período, plus the Turnos the Usuario confirmed to cancel after seeing the vista previa. */
-export class CreateOutOfOfficeDto extends OutOfOfficeDto {
+/** Body of POST and PUT: the período, plus the Turnos the Usuario confirmed to cancel after seeing the vista previa. */
+export class ConfirmedOutOfOfficeDto extends OutOfOfficeDto {
   @IsOptional()
   @IsArray()
   @IsInt({ each: true })

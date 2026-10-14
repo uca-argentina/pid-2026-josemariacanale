@@ -42,7 +42,7 @@ export class CreateOutOfOfficeUseCase {
     assertValidOutOfOffice(input);
     await assertNoDuplicateOutOfOffice(this.outOfOffice, userId, input);
 
-    const left = await this.leftOutside.forNewOutOfOffice(userId, input);
+    const left = await this.leftOutside.forOutOfOffice(userId, input);
     if (left.length === 0)
       return {
         outOfOffice: await this.outOfOffice.create(userId, input),

@@ -120,6 +120,31 @@ export class PrismaOutOfOfficeRepository implements OutOfOfficeRepository {
    * @throws {NotFoundError} el período no existe
    * @throws {DatabaseOperationError} la base falló
    */
+  async updateCancelling(
+    id: number,
+    data: OutOfOfficeFields,
+    cancellations: CausedCancellationOrder[],
+    now: Date,
+  ) {
+    return this.prisma
+      .$transaction(async (tx) => {
+        const row = await tx.outOfOffice.update({
+          where: { id },
+          data: toData(data),
+        });
+        return {
+          outOfOffice: toOutOfOffice(row),
+          cancelledIds: await cancelCaused(tx, cancellations, now),
+        };
+      })
+      .catch(translateError);
+  }
+
+  /**
+   * @throws {ConflictError} otro período del Usuario tiene esas fechas
+   * @throws {NotFoundError} el período no existe
+   * @throws {DatabaseOperationError} la base falló
+   */
   async update(id: number, data: OutOfOfficeFields) {
     return toOutOfOffice(
       await this.prisma.outOfOffice

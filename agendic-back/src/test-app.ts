@@ -245,6 +245,7 @@ export async function createTestApp() {
     findByUserAndDates: jest.fn(),
     create: jest.fn(),
     createCancelling: jest.fn(),
+    updateCancelling: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
   };
