@@ -38,6 +38,7 @@ export class OutOfOfficeController {
     );
   }
 
+  /** Los Turnos que un período nuevo dejaría afuera; no guarda nada. */
   @Post('preview')
   @HttpCode(200)
   async preview(@CurrentUser() userId: number, @Body() dto: OutOfOfficeDto) {

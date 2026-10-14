@@ -35,7 +35,8 @@ export async function cancelCaused(
   }
   for (const { order, ids } of groups.values())
     await tx.booking.updateMany({
-      where: { id: { in: ids } },
+      // The same filter as above: a Turno cancelled or started in between is not overwritten.
+      where: { id: { in: ids }, status: { in: ['PENDING', 'BOOKED'] }, startsAt: { gt: now } },
       data: {
         status: 'CANCELLED',
         cancelledAt: now,

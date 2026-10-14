@@ -13,6 +13,7 @@ import {
 } from '../bookings/left-outside-bookings.service';
 import { assertNoDuplicateOutOfOffice } from './assert-no-duplicate-out-of-office';
 
+/** Vista previa de los Turnos que un período Fuera de la oficina nuevo deja afuera (ADR 0034). */
 @Injectable()
 export class PreviewOutOfOfficeUseCase {
   constructor(
