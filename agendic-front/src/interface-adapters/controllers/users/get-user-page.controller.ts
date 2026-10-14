@@ -6,7 +6,7 @@ import { slugSchema } from '@/src/entities/models/business';
 import type { PersonalService } from '@/src/entities/models/service';
 import type { PublicUserPage } from '@/src/entities/models/user';
 
-/** Same fields as a Servicio of the page of a Sucursal: the booking flow is the same one. */
+/** Same fields as a Servicio of the page of a Sucursal: the booking flow is the same one. A Servicio personal has no Empleados. */
 const presentService = (s: PersonalService) => ({
     id: s.id,
     name: s.name,
@@ -15,6 +15,7 @@ const presentService = (s: PersonalService) => ({
     durationMinutes: s.durationMinutes,
     price: s.price,
     depositPercent: s.depositPercent,
+    employees: [],
 });
 
 function presenter({ name, slug, imageUrl, services, selectedService }: PublicUserPage, instrumentationService: IInstrumentationService) {

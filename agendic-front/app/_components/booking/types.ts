@@ -27,6 +27,8 @@ export interface Service {
     durationMinutes: number;
     price: number;
     depositPercent: number | null;
+    /** Los Empleados que lo Ofrecen; vacío en un Servicio personal. */
+    employees: ChosenEmployee[];
 }
 
 /** Un día de la tira del paso Horario, como lo devuelve listSlotsController. */
@@ -40,6 +42,8 @@ export type Slot = SlotDay['slots'][number];
  */
 export interface BookingDraft {
     service: Service | null;
+    /** El Empleado elegido (ADR 0026, 0029); `null` es Cualquiera. */
+    employee: ChosenEmployee | null;
     date: string | null;
     slot: Slot | null;
 }
