@@ -124,6 +124,7 @@ export async function createTestApp() {
     sendBookingReschedule: jest.fn(),
     sendBookingRejection: jest.fn(),
     sendRatingRequest: jest.fn(),
+    sendBookingCancellationWithCause: jest.fn(),
   };
   const bookingCodes: jest.Mocked<BookingVerificationCodes> = {
     request: jest.fn(),

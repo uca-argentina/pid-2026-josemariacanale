@@ -40,7 +40,7 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | Availability | `Availability` (predeterminada → `isDefault`; zona horaria → `Availability.timeZone`; es del Usuario, `userId`) |
 | Franja | `AvailabilityInterval` (días → `days`, 0 = domingo como `dayjs().day()`, varios por Franja; inicio/fin → `startTime`/`endTime`) |
 | Anulación | `AvailabilityOverride` (`availabilityId`) |
-| Causa de cancelación (ADR 0034) | `CancellationCause` (`OUT_OF_OFFICE \| PUBLIC_HOLIDAY \| SCHEDULE_CHANGE`); el Motivo de cancelación que escribe Agendic y ve el Cliente → `Booking.cancellationMessage` |
+| Causa de cancelación (ADR 0034) | `CancellationCause` (`OUT_OF_OFFICE \| PUBLIC_HOLIDAY \| SCHEDULE_CHANGE`); `Booking.cancellationCause` (opcional; CHECK `Booking_cancellationCause_only_with_reason`); el texto lo arma `cancellationReasonFor` (módulo puro de `domain/bookings`) y es el Motivo de cancelación, `Booking.cancellationReason`, que escribe Agendic y ve el Cliente; el panel (`UserBooking` y el resto de las respuestas del panel, no `ClientBooking`) trae `cancellationCause` |
 | Turnos que quedan afuera (ADR 0034) | `bookingsLeftOutside(bookings, before, after)` (módulo puro de `domain/slots`; `UserSchedule`: `availabilities` y `blocked` de `BlockedPeriod`); la regla de "dentro" es la de `computeSlots`, con `dayRangesReader` compartido; los Turnos que mira → `BookingsRepository.listUpcomingByUser(userId, from, to?)` (`UpcomingBooking`) |
 | Fuera de la oficina (ADR 0027) | `OutOfOffice` (`userId`; `startDate` / `endDate` como fechas sin hora, inclusivas; `notes` opcional; `showNotePublicly`, por defecto `false`; `GET/POST /users/me/out-of-office`, `PUT/DELETE /users/me/out-of-office/:id`) |
 | Motivo | `OutOfOfficeReason` (`UNSPECIFIED \| VACATION \| TRAVEL \| SICK_LEAVE \| PUBLIC_HOLIDAY`; el emoji y la etiqueta viven en el front) |
@@ -68,6 +68,7 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | Enlace del Turno (ADR 0022) | `Booking.link` (secreto, único, generado al crear); `POST /bookings` lo devuelve como `link`; `GET/PATCH /booking-links/:secret` responden el Turno con `ClientBooking` (incluye `user: { slug } \| null`, el Enlace de reserva del Usuario en un Servicio personal); en el front, `getBookingByLink` / `cancelBookingByLink` / `rescheduleBookingByLink` y la ruta `/turnos/<link>` |
 | Reservar de nuevo | `bookAgainPath` (`app/routes.ts`), el botón `BookAgainLink` al pie de `/turnos/<link>` |
 | Aviso de cambio del Turno | `Mailer.sendBookingCancellation` / `sendBookingReschedule` / `sendBookingRejection` (`notifyClients`: un mail que falla se loguea y no deshace el cambio) |
+| Aviso de cambio del Turno con Causa | `Mailer.sendBookingCancellationWithCause(email, bookings: CausedCancellation[])` (`link`, `serviceName`, `startsAt`, `timeZone`, `reason`): un solo mail por acción, con uno o más Turnos; el Motivo va una vez si es el mismo en todos |
 | Código de verificación del Turno | `BookingVerificationCodes` (ADR 0006, 0022); en el front, las seis casillas de `CodeStep` sobre `code-input.ts` |
 | Turno pendiente | `BookingStatus.PENDING` |
 | Aceptar turno | `accept` (`PENDING` → `BOOKED`) |

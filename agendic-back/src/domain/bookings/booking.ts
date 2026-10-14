@@ -12,6 +12,13 @@ export enum BookingActor {
   RETIREMENT = 'RETIREMENT',
 }
 
+/** Por qué se Canceló un Turno cuando lo cancela un cambio en el horario de quien lo atiende (ADR 0034). */
+export enum CancellationCause {
+  OUT_OF_OFFICE = 'OUT_OF_OFFICE',
+  PUBLIC_HOLIDAY = 'PUBLIC_HOLIDAY',
+  SCHEDULE_CHANGE = 'SCHEDULE_CHANGE',
+}
+
 /** Calificación: the score the Cliente left on an attended Turno from its Enlace del Turno. */
 export interface BookingRating {
   /** From 1 to 5. */
@@ -60,6 +67,8 @@ export interface Booking {
   cancelledBy: BookingActor | null;
   /** Motivo de cancelación: free text of up to 500 characters; null without `cancelledBy` or when none was given. */
   cancellationReason: string | null;
+  /** Causa de cancelación (ADR 0034): set only in a Turno cancelled by a change in the horario of whoever attends it, together with a Motivo de cancelación Agendic wrote; null otherwise. */
+  cancellationCause: CancellationCause | null;
   /** Cancelar: when it was cancelled, from the clock; null unless CANCELLED. */
   cancelledAt: Date | null;
   /** Rechazar turno: when it was rejected, from the clock; null unless REJECTED. */
