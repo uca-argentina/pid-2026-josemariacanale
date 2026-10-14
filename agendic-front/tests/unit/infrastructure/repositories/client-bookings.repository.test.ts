@@ -145,7 +145,7 @@ describe('ClientBookingsRepository.rateBookingByLink', () => {
 });
 
 describe('ClientBookingsRepository.markEmployeeNoShowByLink', () => {
-    it('PATCHes sin header de acceso ni body, y devuelve el Turno con la Falta marcada', async () => {
+    it('PATCHes sin header de acceso ni body, y devuelve el Turno con la Ausencia del Anfitrión marcada', async () => {
         const marked = { ...booking, employeeNoShowAt: '2026-10-10T14:00:00.000Z' };
         const fetchSpy = respond(200, marked);
 

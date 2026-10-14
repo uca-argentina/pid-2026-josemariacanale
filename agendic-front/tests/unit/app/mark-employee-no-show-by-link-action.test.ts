@@ -28,7 +28,7 @@ describe('markEmployeeNoShowByLinkAction', () => {
 
     it('muestra cada 422 con su mensaje', async () => {
         mockController.mockRejectedValue(new BookingStateError('Employee no-show window closed'));
-        await expect(markEmployeeNoShowByLinkAction('x')).resolves.toEqual({ ok: false, message: 'Ya pasó el plazo para marcar la falta.' });
+        await expect(markEmployeeNoShowByLinkAction('x')).resolves.toEqual({ ok: false, message: 'Ya pasó el plazo para marcar la Ausencia del Anfitrión.' });
     });
 
     it('un 422 desconocido cae al mensaje genérico', async () => {
@@ -43,7 +43,7 @@ describe('markEmployeeNoShowByLinkAction', () => {
 
     it('reporta un error inesperado y da el mensaje genérico', async () => {
         mockController.mockRejectedValue(new Error('boom'));
-        await expect(markEmployeeNoShowByLinkAction('x')).resolves.toEqual({ ok: false, message: 'No pudimos marcar la falta. Intentá de nuevo.' });
+        await expect(markEmployeeNoShowByLinkAction('x')).resolves.toEqual({ ok: false, message: 'No pudimos marcar la Ausencia del Anfitrión. Intentá de nuevo.' });
         expect(mockReport).toHaveBeenCalled();
     });
 });

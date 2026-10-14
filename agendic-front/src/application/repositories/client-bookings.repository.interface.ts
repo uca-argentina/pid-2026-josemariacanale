@@ -29,10 +29,10 @@ export interface IClientBookingsRepository {
     payDepositByLink(link: string): Promise<ClientBooking>;
 
     /**
-     * Marca la Falta del Empleado en el Turno de un Enlace del Turno.
+     * Marca la Ausencia del Anfitrión en el Turno de un Enlace del Turno.
      *
      * @throws {NotFoundError} el Enlace no es de ningún Turno (404)
-     * @throws {BookingStateError} el Turno no está aceptado, no empezó, venció el plazo, tiene Ausencia, ya tiene la Falta o no admite marcarla (422)
+     * @throws {BookingStateError} el Turno no está aceptado, no empezó, venció el plazo, tiene Ausencia del Invitado, ya tiene la del Anfitrión o no admite marcarla (422)
      */
     markEmployeeNoShowByLink(link: string): Promise<ClientBooking>;
 
