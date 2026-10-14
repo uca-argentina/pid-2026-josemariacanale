@@ -26,7 +26,7 @@ const MINUTE_MS = 60_000;
 const ALIGNMENTS = [60, 30, 20, 15, 10, 5];
 
 /** Millisecond range [start, end). */
-interface Range {
+export interface Range {
   start: number;
   end: number;
 }
@@ -36,8 +36,22 @@ export const addDays = (date: string, days: number): string =>
   dayjs.utc(date).add(days, 'day').format('YYYY-MM-DD');
 
 /** The local calendar date (YYYY-MM-DD) an instant falls on in timeZone. */
-export const localDate = (instant: Date, timeZone: string): string =>
-  dayjs(instant).tz(timeZone).format('YYYY-MM-DD');
+export const localDate = (instant: Date, timeZone: string): string => {
+  let format = dateFormats.get(timeZone);
+  if (!format) {
+    // en-CA writes YYYY-MM-DD. A formatter per call costs far more than the format, so keep one per zone.
+    format = new Intl.DateTimeFormat('en-CA', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+    dateFormats.set(timeZone, format);
+  }
+  return format.format(instant);
+};
+
+const dateFormats = new Map<string, Intl.DateTimeFormat>();
 
 /** A local date + HH:mm in timeZone, as the UTC instant it denotes. dayjs resolves the daylight-saving shift. */
 const instantAt = (date: string, time: string, timeZone: string): number =>
@@ -63,25 +77,36 @@ const ceilToWallClock = (ms: number, minutes: number, timeZone: string) => {
   return Math.ceil((ms + offset) / step) * step - offset;
 };
 
-/** The Availability's Franjas for a local date, or its Anulación's if it has one. 23:59 reaches midnight. */
-const rangesOf = (
-  {
-    timeZone,
-    schedule,
-    overrides,
-  }: Pick<Availability, 'timeZone' | 'schedule' | 'overrides'>,
+/**
+ * Reads the Availability's Franjas for a local date, or its Anulación's if it has one. 23:59 reaches midnight.
+ * The Anulaciones are indexed by date once and each date is read once, so asking for many dates stays linear.
+ */
+export const dayRangesReader = ({
+  timeZone,
+  schedule,
+  overrides,
+}: Pick<Availability, 'timeZone' | 'schedule' | 'overrides'>): ((
   date: string,
-): Range[] =>
-  (
-    overrides.find((o) => o.date === date)?.ranges ??
-    schedule[dayjs.utc(date).day()]
-  ).map(({ start, end }) => ({
-    start: instantAt(date, start, timeZone),
-    end:
-      end === '23:59'
-        ? instantAt(addDays(date, 1), '00:00', timeZone)
-        : instantAt(date, end, timeZone),
-  }));
+) => Range[]) => {
+  const overrideByDate = new Map(overrides.map((o) => [o.date, o.ranges]));
+  const read = new Map<string, Range[]>();
+  return (date) => {
+    let ranges = read.get(date);
+    if (!ranges) {
+      ranges = (
+        overrideByDate.get(date) ?? schedule[dayjs.utc(date).day()]
+      ).map(({ start, end }) => ({
+        start: instantAt(date, start, timeZone),
+        end:
+          end === '23:59'
+            ? instantAt(addDays(date, 1), '00:00', timeZone)
+            : instantAt(date, end, timeZone),
+      }));
+      read.set(date, ranges);
+    }
+    return ranges;
+  };
+};
 
 /** Both lists sorted by start: one pass, each busy range visited only by the ranges it touches. */
 const subtract = (ranges: Range[], busy: Range[]): Range[] => {
@@ -165,6 +190,7 @@ export function computeSlots({
     return starts;
   };
 
+  const rangesOn = dayRangesReader(availability);
   const periodOn = (date: string) =>
     outOfOffice.find((p) => p.startDate <= date && date <= p.endDate);
   // `working` ignores Fuera de la oficina, to tell a day nobody works from one the período emptied; `open` drops it (it beats an Anulación too).
@@ -172,7 +198,7 @@ export function computeSlots({
   const open: Range[] = [];
   // A day of slack either side (wider than any UTC offset) covers every Sucursal date in [from, to].
   for (let d = addDays(from, -1); d <= addDays(to, 1); d = addDays(d, 1)) {
-    const ranges = rangesOf(availability, d);
+    const ranges = rangesOn(d);
     working.push(...ranges);
     if (!periodOn(d)) open.push(...ranges);
   }
