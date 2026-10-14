@@ -5,7 +5,7 @@ import {
   BookingActor,
   BookingStatus,
   ClientBooking,
-  SeriesTurno,
+  SeriesBooking,
   DAILY_LIMIT_REACHED,
   PanelBooking,
   seriesDatesNotAvailable,
@@ -468,7 +468,7 @@ export class PrismaBookingsRepository implements BookingsRepository {
     const seriesIds = [
       ...new Set(rows.flatMap(({ seriesId }) => (seriesId === null ? [] : [seriesId]))),
     ];
-    const bySeries = new Map<string, SeriesTurno[]>();
+    const bySeries = new Map<string, SeriesBooking[]>();
     if (seriesIds.length > 0) {
       const turnos = await this.prisma.booking
         .findMany({

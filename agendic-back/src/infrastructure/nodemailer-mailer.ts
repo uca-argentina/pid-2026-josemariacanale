@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { createTransport, Transporter } from 'nodemailer';
-import { Mailer } from '../domain/mailer';
+import { Mailer, SeriesConfirmation } from '../domain/mailer';
 
 /**
  * Reads the front's base URL, where the Enlace del Turno of the Confirmación de reserva points. Throws when it is
@@ -48,13 +48,17 @@ export class NodemailerMailer implements Mailer {
     email: string,
     link: string,
     depositAmount: number | null,
-    series?: { bookings: { startsAt: Date; link: string }[]; timeZone: string },
+    series?: SeriesConfirmation,
   ) {
     const deposit =
       depositAmount === null
         ? ''
         : ` Seña: ${depositAmount.toFixed(2)}. You can pay it from the same link.`;
     if (series) {
+      const seriesDeposit =
+        depositAmount === null
+          ? ''
+          : ` Seña per Turno: ${depositAmount.toFixed(2)}. You can pay each from its own link.`;
       const when = new Intl.DateTimeFormat('es-AR', {
         dateStyle: 'full',
         timeStyle: 'short',
@@ -62,8 +66,8 @@ export class NodemailerMailer implements Mailer {
         timeZone: series.timeZone,
       });
       const items = series.bookings
-        .map(({ startsAt, link: turnoLink }) => {
-          const url = `${this.frontendUrl}/turnos/${turnoLink}`;
+        .map(({ startsAt, link: bookingLink }) => {
+          const url = `${this.frontendUrl}/turnos/${bookingLink}`;
           return `<li>${when.format(startsAt)}: <a href="${url}">${url}</a></li>`;
         })
         .join('');
@@ -71,7 +75,7 @@ export class NodemailerMailer implements Mailer {
         from: process.env.SMTP_FROM,
         to: email,
         subject: 'Your bookings are confirmed',
-        html: `<p>Your Turnos are confirmed.${deposit} Manage each one from its link:</p><ul>${items}</ul>`,
+        html: `<p>Your Turnos are confirmed.${seriesDeposit} Manage each one from its link:</p><ul>${items}</ul>`,
       });
       return;
     }

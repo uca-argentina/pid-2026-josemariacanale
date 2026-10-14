@@ -179,7 +179,7 @@ export class CreateBookingSeriesUseCase {
       });
     } catch (error) {
       logger.error(
-        `Confirmación de reserva of Serie ${first.seriesId} to ${input.clientEmail} failed`,
+        `Confirmación de reserva de la Serie ${first.seriesId} a ${input.clientEmail} falló`,
         error instanceof Error ? error.stack : String(error),
       );
     }
