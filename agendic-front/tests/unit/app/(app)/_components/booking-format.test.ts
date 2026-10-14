@@ -10,12 +10,16 @@ const booking = (patch: Partial<{ startsAt: string; endsAt: string; employeeId: 
 });
 
 describe('placeOf', () => {
+    it('acepta un objeto reducido, solo con business y branch', () => {
+        expect(placeOf({ business: { name: 'Spa' }, branch: { name: 'Centro' } })).toBe('Spa · Centro');
+        expect(placeOf({ business: null, branch: null })).toBe('Servicio personal');
+    });
+
     it('muestra Negocio y Sucursal, o Servicio personal si el Turno no tiene Negocio', () => {
         expect(placeOf(booking({}))).toBe('Spa · Centro');
         expect(placeOf(booking({ employeeId: null, business: null, branch: null }))).toBe('Servicio personal');
     });
 });
-
 
 describe('formatTime / formatTimeRange', () => {
     const at = '2026-09-15T14:30:00-03:00';
@@ -31,4 +35,3 @@ describe('formatTime / formatTimeRange', () => {
         expect(formatTimeRange(booking({ startsAt: at, endsAt: '2026-09-15T15:00:00-03:00' }), 12)).toBe('2:30 p. m. – 3:00 p. m.');
     });
 });
-
