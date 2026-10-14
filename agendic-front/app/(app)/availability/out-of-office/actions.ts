@@ -130,19 +130,49 @@ export async function deleteOutOfOfficeAction(outOfOfficeId: number) {
     );
 }
 
-/** Cambia el país de los Días festivos del Usuario (`null` lo saca). */
-export async function setHolidayCountryAction(input: SetHolidayCountry) {
-    return perform(
-        () => getInjection('ISetHolidayCountryController')(input),
-        'No pudimos cambiar el país. Intentá de nuevo.',
-    );
+const HOLIDAY_NOT_FOUND = 'Este Día festivo ya no existe. Actualizamos la lista.';
+
+/** Los Turnos que cambiar el país de los Días festivos dejaría afuera. No guarda nada. */
+export async function previewSetHolidayCountryAction(input: SetHolidayCountry): Promise<PreviewOutOfOfficeResult> {
+    const unexpected = 'No pudimos revisar tus Turnos. Intentá de nuevo.';
+    const result = await settle(() => getInjection('IPreviewSetHolidayCountryController')(input), unexpected);
+    if (result.ok) return { ok: true, bookings: result.value };
+    return 'message' in result ? result : { ok: false, message: unexpected };
 }
 
-/** Prende o apaga un Día festivo del Usuario. */
-export async function toggleHolidayAction(input: ToggleHoliday) {
-    return perform(
-        () => getInjection('IToggleHolidayController')(input),
-        'No pudimos guardar el cambio. Intentá de nuevo.',
-        'Este Día festivo ya no existe. Actualizamos la lista.',
+/**
+ * Cambia el país de los Días festivos del Usuario (`null` lo saca) y cancela los Turnos de `cancelBookingIds`.
+ * Con el 409 de Turnos responde `leftOutChanged` y no refresca la página: nada se guardó.
+ */
+export async function setHolidayCountryAction(input: SetHolidayCountry, cancelBookingIds?: number[]): Promise<SaveOutOfOfficeResult> {
+    const result = await settle(
+        () => getInjection('ISetHolidayCountryController')({ ...input, cancelBookingIds }),
+        'No pudimos cambiar el país. Intentá de nuevo.',
     );
+    if (!result.ok) return result;
+    refresh();
+    return { ok: true, cancelledBookings: result.value.cancelledBookings };
+}
+
+/** Los Turnos que prender o apagar un Día festivo dejaría afuera. No guarda nada; ante un 404 refresca la página. */
+export async function previewToggleHolidayAction(input: ToggleHoliday): Promise<PreviewOutOfOfficeResult> {
+    const unexpected = 'No pudimos revisar tus Turnos. Intentá de nuevo.';
+    const result = await settle(() => getInjection('IPreviewToggleHolidayController')(input), unexpected, HOLIDAY_NOT_FOUND);
+    if (result.ok) return { ok: true, bookings: result.value };
+    return 'message' in result ? result : { ok: false, message: unexpected };
+}
+
+/**
+ * Prende o apaga un Día festivo del Usuario y cancela los Turnos de `cancelBookingIds`. Con el 409 de Turnos
+ * responde `leftOutChanged` y no refresca la página: nada se guardó.
+ */
+export async function toggleHolidayAction(input: ToggleHoliday, cancelBookingIds?: number[]): Promise<SaveOutOfOfficeResult> {
+    const result = await settle(
+        () => getInjection('IToggleHolidayController')({ ...input, cancelBookingIds }),
+        'No pudimos guardar el cambio. Intentá de nuevo.',
+        HOLIDAY_NOT_FOUND,
+    );
+    if (!result.ok) return result;
+    refresh();
+    return { ok: true, cancelledBookings: result.value.cancelledBookings };
 }
