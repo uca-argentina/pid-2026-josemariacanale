@@ -1,4 +1,4 @@
-import { randomBytes } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 import {
   Booking,
@@ -7,6 +7,7 @@ import {
   ClientBooking,
   DAILY_LIMIT_REACHED,
   PanelBooking,
+  seriesDatesNotAvailable,
   UpcomingBooking,
   UserBooking,
 } from '../../domain/bookings/booking';
@@ -16,6 +17,7 @@ import {
   CreateBookingData,
   DailyLimitGuard,
   RescheduleTimes,
+  SeriesBookingData,
 } from '../../domain/bookings/bookings.repository';
 import {
   BusinessRuleError,
@@ -59,6 +61,7 @@ const BOOKING_SELECT = {
   employeeNoShowAt: true,
   link: true,
   fromRescheduleId: true,
+  seriesId: true,
   employeeChosen: true,
   depositAmount: true,
   depositPaidAt: true,
@@ -181,6 +184,84 @@ export class PrismaBookingsRepository implements BookingsRepository {
             : translateError(error),
         ),
     );
+  }
+
+  /**
+   * Crea los Turnos de una Serie en una transacción. Cada intento va en un SAVEPOINT: Postgres anula la transacción al
+   * primer choque, y así se puede probar otra Cabina o seguir con la fecha siguiente para juntar todas las que fallan.
+   *
+   * @throws {ConflictError} `Series dates not available: <fechas>`
+   */
+  async createSeries(items: SeriesBookingData[]) {
+    const seriesId = randomUUID();
+    const rows = await this.prisma
+      .$transaction(async (tx) => {
+        const limited = [
+          ...new Set(items.flatMap(({ dailyLimit }) => (dailyLimit ? [dailyLimit.serviceId] : []))),
+        ].sort((a, b) => a - b);
+        for (const serviceId of limited)
+          await tx.$executeRaw`SELECT pg_advisory_xact_lock(${DAILY_LIMIT_LOCK}::int, ${serviceId}::int)`;
+
+        const created: BookingRow[] = [];
+        const failed: string[] = [];
+        let previousCabinId: number | null = null;
+        for (const { data: { clientName, clientEmail, ...booking }, date, cabinIds, dailyLimit } of items) {
+          if (dailyLimit) {
+            const { serviceId, limit, from, to } = dailyLimit;
+            const taken = await tx.booking.count({
+              where: { serviceId, status: { in: OCCUPYING }, startsAt: { gte: from, lt: to } },
+            });
+            if (taken >= limit) {
+              failed.push(date);
+              continue;
+            }
+          }
+          // The Cabina of the previous Turno of the Serie, if this one can take it, then the order of the rule.
+          const candidates: (number | null)[] =
+            cabinIds.length === 0
+              ? [null]
+              : previousCabinId !== null && cabinIds.includes(previousCabinId)
+                ? [previousCabinId, ...cabinIds.filter((id) => id !== previousCabinId)]
+                : cabinIds;
+          let row: BookingRow | null = null;
+          for (const cabinId of candidates) {
+            await tx.$executeRaw`SAVEPOINT series_booking`;
+            try {
+              row = await tx.booking.create({
+                select: BOOKING_SELECT,
+                data: {
+                  ...booking,
+                  cabinId,
+                  seriesId,
+                  link: generateBookingLink(),
+                  client: { create: { name: clientName, email: normalizeEmail(clientEmail) } },
+                },
+              });
+              await tx.$executeRaw`RELEASE SAVEPOINT series_booking`;
+              break;
+            } catch (error) {
+              await tx.$executeRaw`ROLLBACK TO SAVEPOINT series_booking`;
+              if (error instanceof Prisma.PrismaClientKnownRequestError) {
+                if (isExclusionViolation(error, BOOKING_CABIN_NO_OVERLAP)) continue;
+                // Another Cabina doesn't help if it is the Empleado who is taken.
+                if (isExclusionViolation(error, BOOKING_NO_OVERLAP)) break;
+              }
+              throw error;
+            }
+          }
+          if (!row) failed.push(date);
+          else {
+            created.push(row);
+            previousCabinId = row.cabinId;
+          }
+        }
+        if (failed.length > 0) throw new ConflictError(seriesDatesNotAvailable(failed));
+        return created;
+      })
+      .catch((error: unknown) =>
+        error instanceof ConflictError ? Promise.reject(error) : translateError(error),
+      );
+    return rows.map(toBooking);
   }
 
   /**
@@ -664,6 +745,7 @@ export class PrismaBookingsRepository implements BookingsRepository {
             link: true,
             notes: true,
             employeeChosen: true,
+            seriesId: true,
             price: true,
             depositAmount: true,
             depositPaidAt: true,
@@ -809,6 +891,7 @@ const toBooking = (row: BookingRow): Booking => ({
   employeeNoShowAt: row.employeeNoShowAt,
   link: row.link,
   fromRescheduleId: row.fromRescheduleId,
+  seriesId: row.seriesId,
   employeeChosen: row.employeeChosen,
   depositAmount: row.depositAmount === null ? null : Number(row.depositAmount),
   depositPaidAt: row.depositPaidAt,
