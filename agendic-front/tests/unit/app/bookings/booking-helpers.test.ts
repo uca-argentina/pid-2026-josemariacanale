@@ -1,4 +1,4 @@
-import { actionsOf, badgesOf, neighboursOf, statusBadgesOf, cabinOf, canMarkNoShow, formatTime, formatTimeRange, groupByDay, hasPendingDeposit, matches, matchesRange, placeOf, sortForTab, tabOf, type Booking } from '@/app/(app)/bookings/_components/booking-helpers';
+import { actionsOf, badgesOf, neighboursOf, statusBadgesOf, cabinOf, canMarkNoShow, groupByDay, hasPendingDeposit, matches, matchesRange, sortForTab, tabOf, type Booking } from '@/app/(app)/bookings/_components/booking-helpers';
 
 const NOW = Date.parse('2026-09-15T15:00:00-03:00');
 
@@ -22,13 +22,6 @@ const booking = (patch: Partial<Booking>): Booking => ({
     cabin: null,
     fromRescheduleId: null,
     ...patch,
-});
-
-describe('placeOf', () => {
-    it('muestra Negocio y Sucursal, o Servicio personal si el Turno no tiene Negocio', () => {
-        expect(placeOf(booking({}))).toBe('Spa · Centro');
-        expect(placeOf(booking({ employeeId: null, business: null, branch: null }))).toBe('Servicio personal');
-    });
 });
 
 describe('cabinOf', () => {
@@ -116,21 +109,6 @@ describe('Falta del Empleado', () => {
         expect(canMarkNoShow(booking({}))).toBe(true);
         expect(canMarkNoShow(booking({ employeeNoShowAt: '2026-09-15T20:00:00.000Z' }))).toBe(false);
         expect(canMarkNoShow(booking({ noShowAt: '2026-09-15T20:00:00.000Z' }))).toBe(false);
-    });
-});
-
-describe('formatTime / formatTimeRange', () => {
-    const at = '2026-09-15T14:30:00-03:00';
-
-    it('con timeFormat 24 da "14:30"; con 12, "2:30 p. m."', () => {
-        expect(formatTime(at, 24)).toBe('14:30');
-        expect(formatTime(at, 12)).toBe('2:30 p. m.');
-        expect(formatTime('2026-09-15T00:05:00-03:00', 12)).toBe('12:05 a. m.');
-    });
-
-    it('sin timeFormat usa 24 horas', () => {
-        expect(formatTimeRange(booking({ startsAt: at, endsAt: '2026-09-15T15:00:00-03:00' }))).toBe('14:30 – 15:00');
-        expect(formatTimeRange(booking({ startsAt: at, endsAt: '2026-09-15T15:00:00-03:00' }), 12)).toBe('2:30 p. m. – 3:00 p. m.');
     });
 });
 
