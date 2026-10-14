@@ -10,7 +10,7 @@ export const userBookingSchema = z.object({
     clientName: z.string(),
     clientEmail: z.string(),
     noShowAt: z.iso.datetime().nullable(),
-    /** Falta del Empleado: cuándo el Cliente avisó que no vino; null si no. */
+    /** Ausencia del Anfitrión: cuándo el Cliente avisó que quien lo atiende no vino; null si no. */
     employeeNoShowAt: z.iso.datetime().nullable(),
     serviceId: z.number(),
     serviceName: z.string(),

@@ -537,7 +537,7 @@ export class PrismaBookingsRepository implements BookingsRepository {
   }
 
   /**
-   * @throws {BusinessRuleError} el Turno no está aceptado, su horario no terminó, ya tiene Ausencia o tiene Falta del Empleado
+   * @throws {BusinessRuleError} el Turno no está aceptado, su horario no terminó, ya tiene Ausencia del Invitado o tiene Ausencia del Anfitrión
    * @throws {NotFoundError} el Turno no existe
    */
   async markNoShow(id: number, now: Date) {
@@ -628,9 +628,9 @@ export class PrismaBookingsRepository implements BookingsRepository {
   }
 
   /**
-   * Marca la Falta del Empleado, solo si la guarda sigue valiendo en el momento de escribir.
+   * Marca la Ausencia del Anfitrión, solo si la guarda sigue valiendo en el momento de escribir.
    *
-   * @throws {BusinessRuleError} el Turno ya no está aceptado, no empezó, pasó la ventana, o ya tiene Ausencia o Falta del Empleado
+   * @throws {BusinessRuleError} el Turno ya no está aceptado, no empezó, pasó la ventana, o ya tiene Ausencia del Invitado o del Anfitrión
    * @throws {NotFoundError} el Turno no existe
    */
   async markEmployeeNoShow(id: number, now: Date) {

@@ -395,7 +395,7 @@ describe('PrismaBookingsRepository', () => {
       await expect(repository.cancel(1, CANCEL_NOW)).rejects.toBeInstanceOf(BusinessRuleError);
     });
 
-    it('markNoShow requires an ended Turno without an Ausencia or a Falta del Empleado', async () => {
+    it('markNoShow requires an ended Turno without an Ausencia del Invitado or an Ausencia del Anfitrión', async () => {
       prisma.booking.updateMany.mockResolvedValue({ count: 1 });
 
       await repository.markNoShow(1, NOW);

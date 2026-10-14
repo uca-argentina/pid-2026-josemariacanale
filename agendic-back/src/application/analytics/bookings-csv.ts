@@ -9,8 +9,8 @@ const HEADER = [
   'Email',
   'Estado',
   'Atendido',
-  'Ausencia',
-  'Falta del Empleado',
+  'Ausencia del Invitado',
+  'Ausencia del Anfitrión',
   'Precio',
   'Calificación',
 ];

@@ -619,7 +619,7 @@ describe('Mis turnos del Usuario', () => {
       expect(t.bookings.markNoShow).not.toHaveBeenCalled();
     });
 
-    it('answers 422 when the Turno already has an Ausencia', async () => {
+    it('answers 422 when the Turno already has an Ausencia del Invitado', async () => {
       t.clock.advance(3 * 24 * HOUR_MS);
       t.bookings.findById.mockResolvedValue({
         ...BOOKED,

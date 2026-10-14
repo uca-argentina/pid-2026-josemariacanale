@@ -13,7 +13,7 @@ type Dialog = 'reschedule' | 'reject' | 'no-show' | null;
 
 /**
  * Las acciones de un Turno en la lista, según su pestaña: Aceptar y Rechazar en Pendientes; Cancelar
- * y Reagendar en Próximos; Ausencia en Pasados. Cada una pega contra el back y la página se refresca.
+ * y Reagendar en Próximos; Ausencia del Invitado en Pasados. Cada una pega contra el back y la página se refresca.
  */
 export function BookingActions({ booking, tab }: { booking: Booking; tab: BookingTab }) {
     const router = useRouter();
@@ -55,16 +55,16 @@ export function BookingActions({ booking, tab }: { booking: Booking; tab: Bookin
             <>
                 <PanelButton variant="secondary" disabled={pending} onClick={() => setDialog('no-show')}>
                     <UserX className="size-4" />
-                    Marcar ausencia
+                    Marcar Ausencia del Invitado
                 </PanelButton>
                 <PanelConfirm
                     open={dialog === 'no-show'}
                     onOpenChange={setOpen('no-show')}
-                    title="¿Marcar la ausencia?"
+                    title="¿Marcar la Ausencia del Invitado?"
                     description={`${booking.clientName} no se presentó al turno. No se puede deshacer.`}
-                    confirmLabel="Marcar ausencia"
+                    confirmLabel="Marcar Ausencia del Invitado"
                     destructive
-                    onConfirm={() => run(markBookingNoShowAction, `Ausencia de ${booking.clientName} marcada`)}
+                    onConfirm={() => run(markBookingNoShowAction, `Ausencia del Invitado de ${booking.clientName} marcada`)}
                 />
             </>
         );

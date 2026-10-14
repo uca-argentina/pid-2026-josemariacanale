@@ -10,13 +10,13 @@ const inputSchema = z.object({ bookingId: z.number().int().positive() });
 export type IMarkBookingNoShowController = ReturnType<typeof markBookingNoShowController>;
 
 /**
- * Marca la Ausencia de un Turno aceptado cuyo horario ya pasó.
+ * Marca la Ausencia del Invitado de un Turno aceptado cuyo horario ya pasó.
  *
  * @throws {UnauthenticatedError} no hay Sesión válida
  * @throws {InputParseError} `bookingId` no es un id válido
  * @throws {BookingNotAllowedError} el Turno no es del Empleado logueado
  * @throws {NotFoundError} el Turno no existe
- * @throws {BookingStateError} el Turno no está aceptado, su horario no pasó o ya tiene Ausencia
+ * @throws {BookingStateError} el Turno no está aceptado, su horario no pasó o ya tiene Ausencia del Invitado
  */
 export const markBookingNoShowController =
     (
