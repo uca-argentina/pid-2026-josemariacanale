@@ -29,16 +29,20 @@ export class CancelBookingUseCase {
    * @throws {ForbiddenError} el Usuario no es el Empleado asignado al Turno
    * @throws {BusinessRuleError} el Turno no está aceptado
    */
-  async execute(userId: number, bookingId: number): Promise<Booking> {
+  async execute(
+    userId: number,
+    bookingId: number,
+    reason: string | null = null,
+  ): Promise<Booking> {
     await findOwnBookedBooking(
       this.bookings,
       this.employees,
       userId,
       bookingId,
     );
-    const cancelled = await this.bookings.cancel(bookingId, this.clock.now());
-    await notifyClients([cancelled], (email, link) =>
-      this.mailer.sendBookingCancellation(email, link),
+    const cancelled = await this.bookings.cancel(bookingId, this.clock.now(), reason);
+    await notifyClients([cancelled], (email, link, noticeReason) =>
+      this.mailer.sendBookingCancellation(email, link, noticeReason),
     );
     return cancelled;
   }

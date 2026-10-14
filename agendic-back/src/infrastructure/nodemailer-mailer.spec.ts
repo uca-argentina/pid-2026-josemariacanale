@@ -74,3 +74,30 @@ describe('NodemailerMailer.sendRatingRequest', () => {
     expect(html).toContain('http://localhost:3000/turnos/secret');
   });
 });
+
+describe.each([
+  ['sendBookingCancellation', 'was cancelled'],
+  ['sendBookingRejection', 'was rejected'],
+] as const)('NodemailerMailer.%s', (method, wording) => {
+  const sendMail = jest.fn().mockResolvedValue(undefined);
+
+  beforeEach(() => {
+    process.env.FRONTEND_URL = 'http://localhost:3000';
+    (createTransport as jest.Mock).mockReturnValue({ sendMail });
+    sendMail.mockClear();
+  });
+
+  it('says the Motivo de cancelación, escaped, when there is one', async () => {
+    await new NodemailerMailer()[method]('a@b.com', 'secret', 'Llueve <b>');
+
+    expect(sendMail.mock.calls[0][0].html).toContain(
+      `${wording}. Reason: Llueve &#60;b&#62;. See it here`,
+    );
+  });
+
+  it('is unchanged without a Motivo de cancelación', async () => {
+    await new NodemailerMailer()[method]('a@b.com', 'secret', null);
+
+    expect(sendMail.mock.calls[0][0].html).toContain(`${wording}. See it here`);
+  });
+});

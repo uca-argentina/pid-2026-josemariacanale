@@ -12,9 +12,10 @@ export async function cancelResolvedBooking(
   bookings: BookingsRepository,
   clock: Clock,
   booking: Pick<Booking, 'id' | 'startsAt'>,
+  reason: string | null = null,
 ): Promise<ClientBooking> {
   const now = clock.now();
   if (booking.startsAt <= now)
     throw new BusinessRuleError(`Turno ${booking.id} already started`);
-  return bookings.cancelPendingOrBooked(booking.id, now);
+  return bookings.cancelPendingOrBooked(booking.id, now, reason);
 }

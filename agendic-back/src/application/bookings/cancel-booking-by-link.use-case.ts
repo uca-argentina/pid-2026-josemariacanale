@@ -23,15 +23,16 @@ export class CancelBookingByLinkUseCase {
    * @throws {NotFoundError} el Enlace no corresponde a ningún Turno
    * @throws {BusinessRuleError} el Turno no está pendiente ni aceptado, o ya empezó
    */
-  async execute(link: string): Promise<ClientBooking> {
+  async execute(link: string, reason: string | null = null): Promise<ClientBooking> {
     const booking = await findBookingByLink(this.bookings, link);
     const cancelled = await cancelResolvedBooking(
       this.bookings,
       this.clock,
       booking,
+      reason,
     );
-    await notifyClients([cancelled], (email, noticeLink) =>
-      this.mailer.sendBookingCancellation(email, noticeLink),
+    await notifyClients([cancelled], (email, noticeLink, noticeReason) =>
+      this.mailer.sendBookingCancellation(email, noticeLink, noticeReason),
     );
     return cancelled;
   }

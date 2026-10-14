@@ -261,6 +261,10 @@ _Avoid_: completado, realizado, finalizado
 Turno de un Servicio con Aprobación manual que todavía espera que el Empleado lo Acepte o lo Rechace. Mientras tanto ocupa su Horario reservable igual que uno aceptado. Si el Cliente lo Reagenda, o Reagenda uno aceptado de un Servicio con Aprobación manual, vuelve a quedar pendiente.
 _Avoid_: turno sin verificar (no existe: todo Turno nace con el email verificado)
 
+**Motivo de cancelación**:
+Texto libre, opcional y de hasta 500 caracteres, que quien Cancela o Rechaza un Turno deja para el Cliente (o el Cliente, para el Negocio). Va en el Aviso de cambio del Turno y se ve en el Turno junto a quién lo Canceló o Rechazó: el Empleado, el Cliente o una baja. El original de un Reagendamiento guarda quién Reagendó, sin motivo.
+_Avoid_: razón, justificación, comentario (es el del Cliente al Reservar)
+
 **Aceptar turno**:
 Acción del Negocio de dar por válido un Turno pendiente, es decir, uno que no quedó aceptado automáticamente al reservarse.
 _Avoid_: confirmar (a secas, se confunde con Confirmación de asistencia), Turno confirmado (es el Turno aceptado)

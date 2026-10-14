@@ -135,6 +135,7 @@ export class CreateBookingUseCase {
         depositAmount,
         price: service.price,
         status,
+        acceptedAt: status === BookingStatus.BOOKED ? now : null,
       },
       dailyLimit,
     );
