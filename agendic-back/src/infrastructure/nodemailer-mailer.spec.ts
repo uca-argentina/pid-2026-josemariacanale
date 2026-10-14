@@ -128,3 +128,35 @@ describe.each([
     expect(sendMail.mock.calls[0][0].html).toContain(`${wording}. See it here`);
   });
 });
+
+describe.each([
+  ['sendBookingCancellation', 'were cancelled'],
+  ['sendBookingRejection', 'were rejected'],
+] as const)('NodemailerMailer.%s de una Serie', (method, wording) => {
+  const sendMail = jest.fn().mockResolvedValue(undefined);
+
+  beforeEach(() => {
+    process.env.FRONTEND_URL = 'http://localhost:3000';
+    (createTransport as jest.Mock).mockReturnValue({ sendMail });
+    sendMail.mockClear();
+  });
+
+  it('lists every date, in the zone of the Turno, with its Enlace, and the Motivo de cancelación', async () => {
+    await new NodemailerMailer()[method]('a@b.com', 'one', 'Llueve <b>', {
+      bookings: [
+        { startsAt: new Date('2026-10-19T01:30:00.000Z'), link: 'one' },
+        { startsAt: new Date('2026-10-26T01:30:00.000Z'), link: 'two' },
+      ],
+      timeZone: 'America/Argentina/Buenos_Aires',
+    });
+
+    expect(sendMail).toHaveBeenCalledTimes(1);
+    const { to, html } = sendMail.mock.calls[0][0];
+    expect(to).toBe('a@b.com');
+    expect(html).toContain(`Turnos ${wording}. Reason: Llueve &#60;b&#62;`);
+    expect(html).toContain('domingo, 18 de octubre de 2026');
+    expect(html).toContain('http://localhost:3000/turnos/one');
+    expect(html).toContain('domingo, 25 de octubre de 2026');
+    expect(html).toContain('http://localhost:3000/turnos/two');
+  });
+});

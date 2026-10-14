@@ -1,5 +1,8 @@
 import { Module } from '@nestjs/common';
 import { CancelBookingUseCase } from '../../application/bookings/cancel-booking.use-case';
+import { CancelBookingSeriesUseCase } from '../../application/bookings/cancel-booking-series.use-case';
+import { CancelBookingSeriesByLinkUseCase } from '../../application/bookings/cancel-booking-series-by-link.use-case';
+import { ResolvePendingSeriesUseCase } from '../../application/bookings/resolve-pending-series.use-case';
 import { CancelBookingByLinkUseCase } from '../../application/bookings/cancel-booking-by-link.use-case';
 import { GetBookingByLinkUseCase } from '../../application/bookings/get-booking-by-link.use-case';
 import { MarkNoShowUseCase } from '../../application/bookings/mark-no-show.use-case';
@@ -38,6 +41,9 @@ import { BookingsController } from './bookings.controller';
     RejectBookingUseCase,
     ListBookingsByBusinessUseCase,
     CancelBookingUseCase,
+    CancelBookingSeriesUseCase,
+    CancelBookingSeriesByLinkUseCase,
+    ResolvePendingSeriesUseCase,
     RescheduleBookingUseCase,
     MarkNoShowUseCase,
     UnmarkNoShowUseCase,

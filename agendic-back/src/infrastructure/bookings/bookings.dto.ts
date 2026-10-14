@@ -2,6 +2,7 @@ import { Type } from 'class-transformer';
 import {
   Allow,
   IsArray,
+  IsBoolean,
   IsDateString,
   IsInt,
   IsString,
@@ -93,13 +94,34 @@ export class RescheduleBookingDto {
 }
 
 /** The Motivo de cancelación of a body, trimmed; a blank one is none. */
-export const reasonOf = ({ reason }: CancelBookingDto): string | null =>
+export const reasonOf = ({ reason }: ReasonDto): string | null =>
   reason?.trim() || null;
 
 /** Body opcional de Cancelar y Rechazar turno: el Motivo de cancelación. */
-export class CancelBookingDto {
+export class ReasonDto {
   @IfPresent()
   @IsString()
   @MaxLength(500, { message: 'reason is too long' })
   reason?: string;
+}
+
+/** Body opcional de Cancelar: el Motivo y, con `andFollowing`, que también se cancelen los siguientes de la Serie (#305). */
+export class CancelBookingDto extends ReasonDto {
+  @IfPresent()
+  @IsBoolean()
+  andFollowing?: boolean;
+}
+
+/** Body opcional de Rechazar turno: el Motivo y, con `series`, que se rechace toda la Serie pendiente (#305). */
+export class RejectBookingDto extends ReasonDto {
+  @IfPresent()
+  @IsBoolean()
+  series?: boolean;
+}
+
+/** Body opcional de Aceptar turno: con `series`, que se acepte toda la Serie pendiente (#305). */
+export class AcceptBookingDto {
+  @IfPresent()
+  @IsBoolean()
+  series?: boolean;
 }

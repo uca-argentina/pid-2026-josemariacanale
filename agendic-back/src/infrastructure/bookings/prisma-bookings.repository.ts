@@ -516,6 +516,102 @@ export class PrismaBookingsRepository implements BookingsRepository {
     return this.findById(id);
   }
 
+  /**
+   * @throws {DatabaseOperationError} falló la base
+   */
+  async resolvePendingSeries(
+    seriesId: string,
+    userId: number,
+    status: BookingStatus.BOOKED | BookingStatus.REJECTED,
+    now: Date,
+    reason: string | null,
+  ) {
+    const ids = await this.updateSeries(
+      { seriesId, userId, status: BookingStatus.PENDING, endsAt: { gt: now } },
+      status === BookingStatus.REJECTED
+        ? {
+            status,
+            rejectedAt: now,
+            cancelledBy: BookingActor.EMPLOYEE,
+            cancellationReason: reason,
+          }
+        : { status, acceptedAt: now },
+    );
+    return this.findByIds(ids);
+  }
+
+  /**
+   * @throws {DatabaseOperationError} falló la base
+   */
+  async cancelSeriesFrom(
+    seriesId: string,
+    userId: number,
+    from: Date,
+    now: Date,
+    reason: string | null,
+  ) {
+    const ids = await this.updateSeries(
+      { seriesId, userId, status: { in: OCCUPYING }, startsAt: { gte: from } },
+      {
+        status: BookingStatus.CANCELLED,
+        cancelledAt: now,
+        cancelledBy: BookingActor.EMPLOYEE,
+        cancellationReason: reason,
+      },
+    );
+    return this.findByIds(ids);
+  }
+
+  /**
+   * @throws {DatabaseOperationError} falló la base
+   */
+  async cancelSeriesFromByLink(
+    seriesId: string,
+    from: Date,
+    now: Date,
+    reason: string | null,
+  ) {
+    const ids = await this.updateSeries(
+      { seriesId, status: { in: OCCUPYING }, startsAt: { gte: from } },
+      {
+        status: BookingStatus.CANCELLED,
+        cancelledAt: now,
+        cancelledBy: BookingActor.CLIENT,
+        cancellationReason: reason,
+      },
+    );
+    const rows = await this.prisma.booking
+      .findMany({
+        where: { id: { in: ids } },
+        select: CLIENT_BOOKING_SELECT,
+        orderBy: [{ startsAt: 'asc' }, { id: 'asc' }],
+      })
+      .catch(translateError);
+    return this.withSeriesAll(rows);
+  }
+
+  /** Applies `data` to the Turnos matching `where` in one statement, so the status guard in `where` holds even against a race; returns the ids it changed. */
+  private async updateSeries(
+    where: Prisma.BookingWhereInput,
+    data: Prisma.BookingUncheckedUpdateManyInput,
+  ): Promise<number[]> {
+    const rows = await this.prisma.booking
+      .updateManyAndReturn({ where, data, select: { id: true } })
+      .catch(translateError);
+    return rows.map(({ id }) => id);
+  }
+
+  private async findByIds(ids: number[]): Promise<Booking[]> {
+    const rows = await this.prisma.booking
+      .findMany({
+        where: { id: { in: ids } },
+        select: BOOKING_SELECT,
+        orderBy: [{ startsAt: 'asc' }, { id: 'asc' }],
+      })
+      .catch(translateError);
+    return rows.map(toBooking);
+  }
+
   async listOccupiedByUser(
     userId: number,
     from: Date,

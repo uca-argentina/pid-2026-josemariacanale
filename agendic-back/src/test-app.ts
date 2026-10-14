@@ -207,6 +207,9 @@ export async function createTestApp() {
   const bookings: jest.Mocked<BookingsRepository> = {
     create: jest.fn(),
     createSeries: jest.fn(),
+    resolvePendingSeries: jest.fn(),
+    cancelSeriesFrom: jest.fn(),
+    cancelSeriesFromByLink: jest.fn(),
     lastReceivedByEmployee: jest.fn(),
     lastReceivedByCabin: jest.fn(),
     listOccupiedByCabins: jest.fn(),

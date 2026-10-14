@@ -10,6 +10,8 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { CancelBookingSeriesUseCase } from '../../application/bookings/cancel-booking-series.use-case';
+import { ResolvePendingSeriesUseCase } from '../../application/bookings/resolve-pending-series.use-case';
 import { CancelBookingUseCase } from '../../application/bookings/cancel-booking.use-case';
 import { MarkNoShowUseCase } from '../../application/bookings/mark-no-show.use-case';
 import { GetBookingHistoryUseCase } from '../../application/bookings/get-booking-history.use-case';
@@ -22,6 +24,7 @@ import { CreateBookingUseCase } from '../../application/bookings/create-booking.
 import { ListMyBookingsUseCase } from '../../application/bookings/list-my-bookings.use-case';
 import { ListBookingsByBusinessUseCase } from '../../application/bookings/list-bookings-by-business.use-case';
 import { RequestBookingCodeUseCase } from '../../application/bookings/request-booking-code.use-case';
+import { BookingStatus } from '../../domain/bookings/booking';
 import { ClerkGuard, CurrentUser } from '../users/clerk.guard';
 import {
   presentBooking,
@@ -31,9 +34,11 @@ import {
   presentUserBooking,
 } from './booking.presenter';
 import {
+  AcceptBookingDto,
   CancelBookingDto,
   CreateBookingDto,
   reasonOf,
+  RejectBookingDto,
   RequestBookingCodeDto,
   RescheduleBookingDto,
 } from './bookings.dto';
@@ -48,6 +53,8 @@ export class BookingsController {
     private readonly acceptBookingUseCase: AcceptBookingUseCase,
     private readonly rejectBookingUseCase: RejectBookingUseCase,
     private readonly cancelBookingUseCase: CancelBookingUseCase,
+    private readonly cancelBookingSeriesUseCase: CancelBookingSeriesUseCase,
+    private readonly resolvePendingSeriesUseCase: ResolvePendingSeriesUseCase,
     private readonly rescheduleBookingUseCase: RescheduleBookingUseCase,
     private readonly markNoShowUseCase: MarkNoShowUseCase,
     private readonly unmarkNoShowUseCase: UnmarkNoShowUseCase,
@@ -111,40 +118,64 @@ export class BookingsController {
   }
 
   /**
+   * Con `series`, acepta los Turnos pendientes de la Serie que no terminaron (#305) y responde `{ accepted }`.
+   *
    * @throws {NotFoundError} el Turno no existe
    * @throws {ForbiddenError} el Usuario no es el Empleado asignado
-   * @throws {BusinessRuleError} el Turno no está pendiente
+   * @throws {BusinessRuleError} el Turno no está pendiente, o con `series` no es de una Serie
    */
   @Patch('bookings/:id/accept')
   @UseGuards(ClerkGuard)
   async accept(
     @CurrentUser() userId: number,
     @Param('id', ParseIntPipe) id: number,
+    @Body() dto: AcceptBookingDto,
   ) {
+    if (dto.series) {
+      const accepted = await this.resolvePendingSeriesUseCase.execute(
+        userId,
+        id,
+        BookingStatus.BOOKED,
+      );
+      return { accepted: accepted.map(presentBooking) };
+    }
     return presentBooking(await this.acceptBookingUseCase.execute(userId, id));
   }
 
   /**
+   * Con `series`, rechaza los Turnos pendientes de la Serie que no terminaron (#305) y responde `{ rejected }`.
+   *
    * @throws {NotFoundError} el Turno no existe
    * @throws {ForbiddenError} el Usuario no es el Empleado asignado
-   * @throws {BusinessRuleError} el Turno no está pendiente
+   * @throws {BusinessRuleError} el Turno no está pendiente, o con `series` no es de una Serie
    */
   @Patch('bookings/:id/reject')
   @UseGuards(ClerkGuard)
   async reject(
     @CurrentUser() userId: number,
     @Param('id', ParseIntPipe) id: number,
-    @Body() dto: CancelBookingDto,
+    @Body() dto: RejectBookingDto,
   ) {
+    if (dto.series) {
+      const rejected = await this.resolvePendingSeriesUseCase.execute(
+        userId,
+        id,
+        BookingStatus.REJECTED,
+        reasonOf(dto),
+      );
+      return { rejected: rejected.map(presentBooking) };
+    }
     return presentBooking(
       await this.rejectBookingUseCase.execute(userId, id, reasonOf(dto)),
     );
   }
 
   /**
+   * Con `andFollowing`, cancela también los siguientes de la Serie (#305) y responde `{ cancelled }`.
+   *
    * @throws {NotFoundError} el Turno no existe
    * @throws {ForbiddenError} el Usuario no es el Empleado asignado
-   * @throws {BusinessRuleError} el Turno no está aceptado
+   * @throws {BusinessRuleError} el Turno no está aceptado, o con `andFollowing` no es de una Serie
    */
   @Patch('bookings/:id/cancel')
   @UseGuards(ClerkGuard)
@@ -153,6 +184,14 @@ export class BookingsController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: CancelBookingDto,
   ) {
+    if (dto.andFollowing) {
+      const cancelled = await this.cancelBookingSeriesUseCase.execute(
+        userId,
+        id,
+        reasonOf(dto),
+      );
+      return { cancelled: cancelled.map(presentBooking) };
+    }
     return presentBooking(
       await this.cancelBookingUseCase.execute(userId, id, reasonOf(dto)),
     );

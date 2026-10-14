@@ -115,6 +115,37 @@ export interface BookingsRepository {
     now: Date,
     reason: string | null,
   ): Promise<Booking>;
+  /**
+   * Aceptar o Rechazar la Serie (#305): moves to BOOKED (`acceptedAt` = `now`) or REJECTED (`rejectedAt` = `now`,
+   * `cancelledBy` EMPLOYEE and `reason`) every PENDING Turno of the Serie attended by `userId` that has not ended,
+   * in one statement guarded on that status. Returns the Turnos it changed, by `startsAt`; none if none was left.
+   */
+  resolvePendingSeries(
+    seriesId: string,
+    userId: number,
+    status: BookingStatus.BOOKED | BookingStatus.REJECTED,
+    now: Date,
+    reason: string | null,
+  ): Promise<Booking[]>;
+  /**
+   * Cancelar este y los siguientes (#305): moves to CANCELLED (`cancelledAt` = `now`, `cancelledBy` EMPLOYEE and `reason`)
+   * every PENDING or BOOKED Turno of the Serie attended by `userId` starting at or after `from`, in one statement
+   * guarded on that status. Returns the Turnos it changed, by `startsAt`.
+   */
+  cancelSeriesFrom(
+    seriesId: string,
+    userId: number,
+    from: Date,
+    now: Date,
+    reason: string | null,
+  ): Promise<Booking[]>;
+  /** As `cancelSeriesFrom`, by Enlace del Turno (ADR 0022): of any attendant, with `cancelledBy` CLIENT. */
+  cancelSeriesFromByLink(
+    seriesId: string,
+    from: Date,
+    now: Date,
+    reason: string | null,
+  ): Promise<ClientBooking[]>;
   /** The Turno and the originals it replaced by Reagendar (ADR 0031), oldest first, the Turno last. Throws NotFoundError for an unknown id. */
   findHistoryChain(id: number): Promise<HistoryBooking[]>;
   /** The Turno for its Enlace del Turno, in any status, with the data to show it (ADR 0022). Throws NotFoundError for an unknown link. */
