@@ -17,6 +17,7 @@ import {
   OUT_OF_OFFICE_REPOSITORY,
   OutOfOfficeRepository,
 } from '../../domain/out-of-office/out-of-office.repository';
+import { UserHolidaySettings } from '../../domain/holidays/user-holiday-settings';
 import { bookingsLeftOutside, UserSchedule } from '../../domain/slots/bookings-left-outside';
 import { addDays } from '../../domain/slots/slot';
 import {
@@ -35,10 +36,20 @@ const DAY_MS = 86_400_000;
 
 const isoDay = (date: Date) => date.toISOString().slice(0, 10);
 
+/** The dates a day before the first Turno and `daysAfter` days after the last: wider than any UTC offset, so every local date of the Turnos is inside. */
+const dateRange = (upcoming: UpcomingBooking[], daysAfter: number) => {
+  const times = upcoming.map(({ startsAt }) => startsAt.getTime());
+  return {
+    firstDate: isoDay(new Date(Math.min(...times) - DAY_MS)),
+    lastDate: isoDay(new Date(Math.max(...times) + daysAfter * DAY_MS)),
+  };
+};
+
 /**
  * Arma el horario de un Usuario antes y después de un cambio y devuelve los Turnos que el cambio deja afuera (ADR 0034),
  * cada uno con su Causa y su Motivo de cancelación. Es lo que usan la vista previa y la escritura de cada tipo de cambio;
- * `forOutOfOffice` mira un período Fuera de la oficina nuevo o editado; `forAvailability`, una Availability que se guarda.
+ * `forOutOfOffice` mira un período Fuera de la oficina nuevo o editado; `forAvailability`, una Availability que se guarda;
+ * `forHolidays`, un cambio en los Días festivos del Usuario.
  *
  * La Causa sale de qué se está guardando, no del Motivo del período: un período con Motivo "Día festivo" sigue siendo
  * `OUT_OF_OFFICE`.
@@ -135,19 +146,11 @@ export class LeftOutsideBookingsService {
     );
     if (upcoming.length === 0) return [];
 
-    // A day either side (wider than any UTC offset) keeps every local date of the Turnos inside the range.
-    const { first, last } = upcoming.reduce(
-      (range, { startsAt }) => ({
-        first: Math.min(range.first, startsAt.getTime()),
-        last: Math.max(range.last, startsAt.getTime()),
-      }),
-      { first: Infinity, last: -Infinity },
-    );
-    const firstDate = isoDay(new Date(first - DAY_MS));
+    const { firstDate, lastDate } = dateRange(upcoming, 2);
     const [user, existing, holidays] = await Promise.all([
       this.users.findById(userId),
       this.outOfOffice.listByUserEndingFrom(userId, firstDate),
-      this.holidayPeriods.execute(userId, firstDate, isoDay(new Date(last + 2 * DAY_MS))),
+      this.holidayPeriods.execute(userId, firstDate, lastDate),
     ]);
     if (!user) throw new NotFoundError(`User ${userId} not found`);
 
@@ -165,6 +168,74 @@ export class LeftOutsideBookingsService {
       ...booking,
       cancellationCause: CancellationCause.SCHEDULE_CHANGE,
       cancellationReason,
+    }));
+  }
+
+  /**
+   * Los Turnos pendientes o aceptados del Usuario, que todavía no empezaron, que dejar sus Días festivos como
+   * `replacement` deja afuera, por `startsAt`; cada uno con el nombre del Día festivo de su día en el Motivo de cancelación.
+   * Sin país en `replacement` no queda afuera ninguno.
+   *
+   * El horario de antes lee los Días festivos con la lectura tolerante de siempre; el de después, en modo estricto y con la
+   * configuración nueva. Con `onDate` (prender un Día festivo) solo se miran los Turnos de ese día; sin ella (elegir país),
+   * todos los futuros.
+   *
+   * @throws {NotFoundError} el Usuario no existe
+   * @throws {NotConfiguredError} falta `GOOGLE_CALENDAR_API_KEY`
+   * @throws {ExternalServiceError} Google respondió con error al calcular el horario de después
+   */
+  async forHolidays(
+    userId: number,
+    replacement: UserHolidaySettings,
+    onDate?: string,
+  ): Promise<LeftOutsideBooking[]> {
+    if (!replacement.countryCode) return [];
+    const now = this.clock.now();
+    let upcoming: UpcomingBooking[];
+    let firstDate: string;
+    let lastDate: string;
+    if (onDate) {
+      // A day either side (wider than any UTC offset) keeps the Turnos of that local date inside the window.
+      firstDate = addDays(onDate, -1);
+      lastDate = addDays(onDate, 1);
+      const windowStart = new Date(Date.parse(`${firstDate}T00:00:00.000Z`));
+      const windowEnd = new Date(Date.parse(`${onDate}T00:00:00.000Z`) + 2 * DAY_MS);
+      const from = windowStart > now ? windowStart : now;
+      if (from >= windowEnd) return [];
+      upcoming = await this.bookings.listUpcomingByUser(userId, from, windowEnd);
+    } else {
+      upcoming = await this.bookings.listUpcomingByUser(userId, now);
+      if (upcoming.length === 0) return [];
+      ({ firstDate, lastDate } = dateRange(upcoming, 1));
+    }
+    if (upcoming.length === 0) return [];
+
+    const [user, existing, before, after] = await Promise.all([
+      this.users.findById(userId),
+      this.outOfOffice.listByUserEndingFrom(userId, firstDate),
+      this.holidayPeriods.execute(userId, firstDate, lastDate),
+      this.holidayPeriods.forSettings(replacement, firstDate, lastDate),
+    ]);
+    if (!user) throw new NotFoundError(`User ${userId} not found`);
+
+    const availabilityIds = [...new Set(upcoming.map((b) => b.availabilityId))];
+    const availabilities = (
+      await Promise.all(availabilityIds.map((id) => this.availabilities.findById(id)))
+    ).filter((a) => a !== null);
+
+    const names = new Map(after.map(({ startDate, notes }) => [startDate, notes]));
+    return bookingsLeftOutside(
+      upcoming,
+      { availabilities, blocked: [...existing, ...before] },
+      { availabilities, blocked: [...existing, ...after] },
+    ).map(({ booking, date }) => ({
+      ...booking,
+      cancellationCause: CancellationCause.PUBLIC_HOLIDAY,
+      cancellationReason: cancellationReasonFor({
+        cause: CancellationCause.PUBLIC_HOLIDAY,
+        userName: user.name,
+        holidayName: names.get(date) ?? '',
+      }),
     }));
   }
 }
