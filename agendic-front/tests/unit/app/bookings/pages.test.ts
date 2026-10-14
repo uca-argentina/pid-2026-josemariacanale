@@ -11,7 +11,6 @@ jest.mock('@/di/container', () => ({
     getInjection: (key: string) => (key === 'IListMyBookingsController' ? mockList : { report: mockReport }),
 }));
 jest.mock('@/app/(app)/bookings/_components/BookingsView', () => ({ BookingsView: () => null }));
-jest.mock('@/app/(app)/bookings/[bookingId]/_components/BookingDetail', () => ({ BookingDetail: () => null }));
 jest.mock('next/navigation', () => ({
     redirect: (path: string) => {
         throw new Error(`REDIRECT:${path}`);
@@ -57,20 +56,7 @@ describe('BookingsPage', () => {
 });
 
 describe('BookingPage', () => {
-    const render = (bookingId: string) =>
-        BookingPage({ params: Promise.resolve({ bookingId }), searchParams: Promise.resolve({}) });
-
-    it('finds the Turno by id in the list', async () => {
-        const element = await render('7');
-        expect(element.props.booking).toEqual(booking);
-    });
-
-    it('is not found when the list has no such Turno', async () => {
-        await expect(render('8')).rejects.toThrow('NOT_FOUND');
-    });
-
-    it('redirects to sign-in without Sesión', async () => {
-        mockGetCurrentUser.mockResolvedValue(null);
-        await expect(render('7')).rejects.toThrow('REDIRECT:');
+    it('redirects an old detail link to Mis turnos with the panel open', async () => {
+        await expect(BookingPage({ params: Promise.resolve({ bookingId: '7' }) })).rejects.toThrow('REDIRECT:/bookings?turno=7');
     });
 });

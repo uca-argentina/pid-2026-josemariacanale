@@ -6,16 +6,16 @@ export type BookingsView = 'list' | 'calendar';
 
 /**
  * Lo que Mis turnos guarda en la URL: la pestaña, los filtros, el rango de fechas, la vista y la semana
- * (su primer día; `null` es la actual).
+ * (su primer día; `null` es la actual) y el Turno abierto en el panel lateral (`?turno=<id>`).
  */
-export type BookingsUrlState = { tab: BookingTab; filters: BookingFilter[]; range: DayRange | null; view: BookingsView; week: string | null };
+export type BookingsUrlState = { tab: BookingTab; filters: BookingFilter[]; range: DayRange | null; view: BookingsView; week: string | null; turno: number | null };
 
 const TABS: BookingTab[] = ['upcoming', 'pending', 'past', 'cancelled'];
 const LIST_FIELDS = ['service', 'branch'] as const;
 const TEXT_FIELDS: TextField[] = ['clientName', 'clientEmail'];
 
 /** Los parámetros de la URL que son de Mis turnos; el resto no se toca. */
-const OWN_PARAMS: string[] = ['tab', 'view', 'week', 'desde', 'hasta', ...LIST_FIELDS, ...TEXT_FIELDS, ...TEXT_FIELDS.map((field) => `${field}Op`)];
+const OWN_PARAMS: string[] = ['tab', 'view', 'week', 'turno', 'desde', 'hasta', ...LIST_FIELDS, ...TEXT_FIELDS, ...TEXT_FIELDS.map((field) => `${field}Op`)];
 
 /**
  * Lee la pestaña, los filtros, el rango, la vista y la semana de la URL. Lo que no se entiende se ignora: una pestaña inválida es
@@ -37,17 +37,19 @@ export function parseBookingsUrl(params: URLSearchParams): BookingsUrlState {
     const from = params.get('desde');
     const to = params.get('hasta');
     const week = params.get('week');
+    const turno = Number(params.get('turno'));
     return {
         tab: TABS.find((id) => id === tab) ?? 'upcoming',
         filters,
         range: isDay(from) && isDay(to) && from <= to ? { from, to } : null,
         view: params.get('view') === 'calendar' ? 'calendar' : 'list',
         week: isDay(week) ? week : null,
+        turno: Number.isInteger(turno) && turno > 0 ? turno : null,
     };
 }
 
 /** Escribe el estado sobre `params`, conservando los parámetros ajenos; los valores por defecto no se escriben. */
-export function writeBookingsUrl({ tab, filters, range, view, week }: BookingsUrlState, params = new URLSearchParams()): URLSearchParams {
+export function writeBookingsUrl({ tab, filters, range, view, week, turno }: BookingsUrlState, params = new URLSearchParams()): URLSearchParams {
     const next = new URLSearchParams(params);
     OWN_PARAMS.forEach((name) => next.delete(name));
     if (tab !== 'upcoming') next.set('tab', tab);
@@ -62,6 +64,7 @@ export function writeBookingsUrl({ tab, filters, range, view, week }: BookingsUr
         next.set('view', view);
         if (week) next.set('week', week);
     }
+    if (turno !== null) next.set('turno', String(turno));
     if (range) {
         next.set('desde', range.from);
         next.set('hasta', range.to);

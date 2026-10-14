@@ -1,5 +1,5 @@
 import { Availability } from '../../domain/availabilities/availability';
-import { Booking, BookingStatus } from '../../domain/bookings/booking';
+import { Booking, BookingActor, BookingStatus } from '../../domain/bookings/booking';
 import {
   BusinessRuleError,
   ConflictError,
@@ -67,6 +67,9 @@ const BOOKING: Booking = {
   price: 50,
   cancelledAt: null,
   rejectedAt: null,
+  acceptedAt: null,
+  cancelledBy: null,
+  cancellationReason: null,
 };
 
 describe('Turno', () => {
@@ -134,6 +137,9 @@ describe('Turno', () => {
         endsAt: BOOKING.endsAt.toISOString(),
         status: 'BOOKED',
         notes: null,
+        acceptedAt: null,
+        cancelledBy: null,
+        cancellationReason: null,
         employeeName: ANAS_EMPLOYEE.name,
         link: BOOKING.link,
       });
@@ -157,6 +163,7 @@ describe('Turno', () => {
           depositAmount: null,
           price: SERVICE.price,
           status: BookingStatus.BOOKED,
+          acceptedAt: t.clock.now(),
         },
         undefined,
       );
@@ -208,7 +215,7 @@ describe('Turno', () => {
 
       expect(res.body).toMatchObject({ status: 'PENDING' });
       expect(t.bookings.create).toHaveBeenCalledWith(
-        expect.objectContaining({ status: BookingStatus.PENDING }),
+        expect.objectContaining({ status: BookingStatus.PENDING, acceptedAt: null }),
         undefined,
       );
     });
@@ -763,9 +770,58 @@ describe('Turno', () => {
     it(`moves a PENDING Turno to ${status} for the assigned Empleado`, async () => {
       const res = await patch(CLERK_TOKEN).expect(200);
 
-      expect(t.bookings.resolvePending).toHaveBeenCalledWith(BOOKING.id, status, t.clock.now());
+      expect(t.bookings.resolvePending).toHaveBeenCalledWith(BOOKING.id, status, t.clock.now(), null);
       expect(res.body).toMatchObject({ id: BOOKING.id, status });
     });
+
+    if (action === 'reject') {
+      it('saves the Motivo de cancelación and puts it in the Aviso de cambio del Turno', async () => {
+        t.bookings.resolvePending.mockResolvedValue({
+          ...PENDING,
+          status,
+          cancelledBy: BookingActor.EMPLOYEE,
+          cancellationReason: 'No atendemos ese día',
+        });
+
+        const res = await patch(CLERK_TOKEN).send({ reason: 'No atendemos ese día' }).expect(200);
+
+        expect(t.bookings.resolvePending).toHaveBeenCalledWith(
+          BOOKING.id,
+          status,
+          t.clock.now(),
+          'No atendemos ese día',
+        );
+        expect(t.mailer.sendBookingRejection).toHaveBeenCalledWith(
+          BOOKING.clientEmail,
+          BOOKING.link,
+          'No atendemos ese día',
+        );
+        expect(res.body).toMatchObject({
+          cancelledBy: 'EMPLOYEE',
+          cancellationReason: 'No atendemos ese día',
+        });
+      });
+
+      it('answers 400 reason is too long over 500 characters, without rejecting', async () => {
+        const res = await patch(CLERK_TOKEN).send({ reason: 'a'.repeat(501) }).expect(400);
+
+        expect(res.body.message).toContain('reason is too long');
+        expect(t.bookings.resolvePending).not.toHaveBeenCalled();
+      });
+    }
+
+    if (action === 'accept')
+      it('returns acceptedAt', async () => {
+        t.bookings.resolvePending.mockResolvedValue({
+          ...PENDING,
+          status,
+          acceptedAt: t.clock.now(),
+        });
+
+        const res = await patch(CLERK_TOKEN).expect(200);
+
+        expect(res.body.acceptedAt).toBe(t.clock.now().toISOString());
+      });
 
     it(
       action === 'reject'
@@ -780,6 +836,7 @@ describe('Turno', () => {
           expect(t.mailer.sendBookingRejection).toHaveBeenCalledWith(
             BOOKING.clientEmail,
             BOOKING.link,
+            null,
           );
         else expect(t.mailer.sendBookingRejection).not.toHaveBeenCalled();
         expect(t.mailer.sendBookingCancellation).not.toHaveBeenCalled();
@@ -840,6 +897,9 @@ describe('Turno', () => {
           endsAt: BOOKING.endsAt.toISOString(),
           status: BOOKING.status,
           notes: BOOKING.notes,
+          acceptedAt: null,
+          cancelledBy: null,
+          cancellationReason: null,
           cabin: null,
           clientName: BOOKING.clientName,
           clientEmail: BOOKING.clientEmail,

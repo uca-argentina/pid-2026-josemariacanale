@@ -30,6 +30,7 @@ describe('PrismaBookingsRepository, Reagendar (real database)', () => {
       depositAmount: 10,
       price: 50,
       status: BookingStatus.BOOKED,
+      acceptedAt: new Date(),
     });
 
   const times = (hour: number) => ({
@@ -82,6 +83,7 @@ describe('PrismaBookingsRepository, Reagendar (real database)', () => {
 
     expect(moved).toMatchObject({
       status: BookingStatus.BOOKED,
+      acceptedAt: new Date(),
       startsAt: at(3),
       fromRescheduleId: original.id,
       link: original.link,
@@ -117,6 +119,7 @@ describe('PrismaBookingsRepository, Reagendar (real database)', () => {
 
     expect(await prisma.booking.findUnique({ where: { id: original.id } })).toMatchObject({
       status: BookingStatus.BOOKED,
+      acceptedAt: new Date(),
       cancelledAt: null,
       rescheduled: null,
       link: original.link,

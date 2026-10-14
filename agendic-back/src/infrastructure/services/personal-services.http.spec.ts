@@ -379,6 +379,9 @@ describe('Servicio personal', () => {
       price: 50,
       cancelledAt: null,
       rejectedAt: null,
+      acceptedAt: null,
+      cancelledBy: null,
+      cancellationReason: null,
     };
 
     beforeEach(() => {

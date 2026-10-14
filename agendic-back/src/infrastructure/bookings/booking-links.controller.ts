@@ -7,7 +7,7 @@ import { CLOCK, Clock } from '../../domain/clock';
 import { PayDepositByLinkUseCase } from '../../application/bookings/pay-deposit-by-link.use-case';
 import { presentClientBooking } from './booking.presenter';
 import { RateBookingByLinkUseCase } from '../../application/bookings/rate-booking-by-link.use-case';
-import { RateBookingDto, RescheduleBookingDto } from './bookings.dto';
+import { CancelBookingDto, RateBookingDto, reasonOf, RescheduleBookingDto } from './bookings.dto';
 
 /** Enlace del Turno (ADR 0022): abre, Cancela o Reagenda un Turno solo, sin Código de verificación. */
 @Controller('booking-links')
@@ -33,8 +33,11 @@ export class BookingLinksController {
    * @throws {BusinessRuleError} el Turno no está pendiente ni aceptado, o ya empezó
    */
   @Patch(':secret/cancel')
-  async cancel(@Param('secret') secret: string) {
-    return presentClientBooking(await this.cancelBookingByLinkUseCase.execute(secret), this.clock.now());
+  async cancel(@Param('secret') secret: string, @Body() dto: CancelBookingDto) {
+    return presentClientBooking(
+      await this.cancelBookingByLinkUseCase.execute(secret, reasonOf(dto)),
+      this.clock.now(),
+    );
   }
 
   /**

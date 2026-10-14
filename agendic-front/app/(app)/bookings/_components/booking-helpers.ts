@@ -134,6 +134,28 @@ export const matchesRange = (b: Booking, range: DayRange | null) => {
     return day >= range.from && day <= range.to;
 };
 
+/** Lo que se puede hacer con un Turno: `main` son los botones y `menu` lo que va en el menú "…". */
+export type BookingActionId = 'accept' | 'reject' | 'cancel' | 'reschedule' | 'no-show';
+
+/**
+ * Las acciones del Turno según su estado: Aceptar y Rechazar en uno pendiente; Cancelar y Reagendar en
+ * uno aceptado y futuro; Marcar ausencia en uno aceptado y pasado que todavía no tiene una marca.
+ */
+export function actionsOf(b: Booking, now: number): { main: BookingActionId[]; menu: BookingActionId[] } {
+    if (b.status === 'PENDING') return { main: ['accept', 'reject'], menu: [] };
+    if (b.status !== 'BOOKED') return { main: [], menu: [] };
+    if (Date.parse(b.endsAt) >= now) return b.noShowAt === null ? { main: [], menu: ['cancel', 'reschedule'] } : { main: [], menu: [] };
+    return { main: [], menu: canMarkNoShow(b) ? ['no-show'] : [] };
+}
+
+/** El Turno anterior y el siguiente a `id` dentro de `list`; sin `id` en la lista, ninguno. */
+export function neighboursOf(list: Booking[], id: number): { previous: Booking | null; next: Booking | null } {
+    const index = list.findIndex((b) => b.id === id);
+    if (index === -1) return { previous: null, next: null };
+    return { previous: list[index - 1] ?? null, next: list[index + 1] ?? null };
+}
+
+const GREEN = 'bg-[#e6f6ec] text-[#15803d]';
 const RED = 'bg-[#fdecec] text-[#b91c1c]';
 const AMBER = 'bg-[#fff4e5] text-[#b45309]';
 
@@ -148,4 +170,10 @@ export function badgesOf(b: Booking): { label: string; className: string }[] {
         b.status === 'REJECTED' && { label: 'Rechazado', className: RED },
         b.status === 'CANCELLED' && { label: 'Cancelado', className: RED },
     ].filter((badge) => !!badge);
+}
+
+/** Los badges del panel lateral: los de la lista y, en un Turno aceptado sin marcas, `Aceptado`. */
+export function statusBadgesOf(b: Booking): { label: string; className: string }[] {
+    const accepted = b.status === 'BOOKED' && b.noShowAt === null && b.employeeNoShowAt === null;
+    return [...(accepted ? [{ label: 'Aceptado', className: GREEN }] : []), ...badgesOf(b)];
 }

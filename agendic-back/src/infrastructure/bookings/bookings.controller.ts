@@ -27,7 +27,9 @@ import {
   presentUserBooking,
 } from './booking.presenter';
 import {
+  CancelBookingDto,
   CreateBookingDto,
+  reasonOf,
   RequestBookingCodeDto,
   RescheduleBookingDto,
 } from './bookings.dto';
@@ -108,8 +110,11 @@ export class BookingsController {
   async reject(
     @CurrentUser() userId: number,
     @Param('id', ParseIntPipe) id: number,
+    @Body() dto: CancelBookingDto,
   ) {
-    return presentBooking(await this.rejectBookingUseCase.execute(userId, id));
+    return presentBooking(
+      await this.rejectBookingUseCase.execute(userId, id, reasonOf(dto)),
+    );
   }
 
   /**
@@ -122,8 +127,11 @@ export class BookingsController {
   async cancel(
     @CurrentUser() userId: number,
     @Param('id', ParseIntPipe) id: number,
+    @Body() dto: CancelBookingDto,
   ) {
-    return presentBooking(await this.cancelBookingUseCase.execute(userId, id));
+    return presentBooking(
+      await this.cancelBookingUseCase.execute(userId, id, reasonOf(dto)),
+    );
   }
 
   /**

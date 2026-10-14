@@ -11,12 +11,14 @@ const logger = new Logger('NotifyClients');
  */
 export async function notifyClients(
   bookings: ClientNotice[],
-  send: (email: string, link: string) => Promise<void>,
+  send: (email: string, link: string, reason: string | null) => Promise<void>,
 ): Promise<void> {
   // A Turno without Enlace is an original already replaced by Reagendar: nobody to send it to.
   const notices = bookings.filter((b) => b.link !== null);
   const results = await Promise.allSettled(
-    notices.map(({ clientEmail, link }) => send(clientEmail, link!)),
+    notices.map(({ clientEmail, link, cancellationReason }) =>
+      send(clientEmail, link!, cancellationReason ?? null),
+    ),
   );
   results.forEach((result, index) => {
     if (result.status === 'rejected')

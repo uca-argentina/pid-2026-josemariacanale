@@ -28,6 +28,7 @@ describe('PrismaBookingsRepository (real database)', () => {
       depositAmount: null,
       price: 50,
       status: BookingStatus.BOOKED,
+      acceptedAt: new Date(),
     });
 
   afterAll(async () => {
@@ -90,6 +91,7 @@ describe('PrismaBookingsRepository (real database)', () => {
       depositAmount: 1.51,
       price: 50,
       status: BookingStatus.BOOKED,
+      acceptedAt: new Date(),
     });
     expect([first, withDeposit].map((b) => [b.depositAmount, b.depositPaidAt])).toEqual([
       [null, null],
@@ -144,6 +146,7 @@ describe('PrismaBookingsRepository (real database)', () => {
         depositAmount: null,
         price: 50,
         status: BookingStatus.BOOKED,
+        acceptedAt: new Date(),
       });
 
       const found = await repository.findByLink(created.link!);
@@ -211,6 +214,7 @@ describe('PrismaBookingsRepository (real database)', () => {
         depositAmount: null,
         price: 50,
         status: BookingStatus.BOOKED,
+        acceptedAt: new Date(),
       });
 
       const found = await repository.findByLink(created.link!);
@@ -280,6 +284,7 @@ describe('PrismaBookingsRepository (real database)', () => {
         depositAmount: null,
         price: 50,
         status: BookingStatus.BOOKED,
+        acceptedAt: new Date(),
       });
 
     try {

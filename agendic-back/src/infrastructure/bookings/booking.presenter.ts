@@ -15,6 +15,9 @@ export const presentBooking = (booking: Booking) => ({
   endsAt: booking.endsAt,
   status: booking.status,
   notes: booking.notes,
+  acceptedAt: booking.acceptedAt,
+  cancelledBy: booking.cancelledBy,
+  cancellationReason: booking.cancellationReason,
 });
 
 /** The Turno with the Cabina it occupies (ADR 0030), for the panel; the Cliente never gets it. */
@@ -47,6 +50,9 @@ export const presentUserBooking = (booking: UserBooking) => ({
   clientEmail: booking.clientEmail,
   noShowAt: booking.noShowAt,
   employeeNoShowAt: booking.employeeNoShowAt,
+  acceptedAt: booking.acceptedAt,
+  cancelledBy: booking.cancelledBy,
+  cancellationReason: booking.cancellationReason,
   employeeChosen: booking.employeeChosen,
   fromRescheduleId: booking.fromRescheduleId,
   depositAmount: booking.depositAmount,
@@ -77,6 +83,7 @@ export const presentClientBooking = (booking: ClientBooking, now: Date) => ({
   depositAmount: booking.depositAmount,
   depositPaidAt: booking.depositPaidAt,
   employeeNoShowAt: booking.employeeNoShowAt,
+  cancellationReason: booking.cancellationReason,
   canMarkEmployeeNoShow: employeeNoShowBlocker(booking, now) === null,
   rating: booking.rating,
   canRate: !booking.rating && ratingBlocker(booking, now) === null,

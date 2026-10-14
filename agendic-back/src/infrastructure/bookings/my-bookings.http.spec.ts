@@ -1,5 +1,5 @@
 import { Availability } from '../../domain/availabilities/availability';
-import { Booking, BookingStatus } from '../../domain/bookings/booking';
+import { Booking, BookingActor, BookingStatus } from '../../domain/bookings/booking';
 import { ConflictError, NotFoundError } from '../../domain/errors';
 import {
   ANAS_BRANCH,
@@ -38,6 +38,9 @@ const BOOKED: Booking = {
   price: 50,
   cancelledAt: null,
   rejectedAt: null,
+  acceptedAt: null,
+  cancelledBy: null,
+  cancellationReason: null,
 };
 
 const AVAILABILITY: Availability = {
@@ -101,6 +104,9 @@ describe('Mis turnos del Usuario', () => {
           clientEmail: 'carla@example.com',
           noShowAt: null,
           employeeNoShowAt: null,
+          acceptedAt: null,
+          cancelledBy: null,
+          cancellationReason: null,
           employeeChosen: false,
           fromRescheduleId: null,
           depositAmount: null,
@@ -171,12 +177,47 @@ describe('Mis turnos del Usuario', () => {
 
       const res = await patch(CLERK_TOKEN).expect(200);
 
-      expect(t.bookings.cancel).toHaveBeenCalledWith(BOOKED.id, t.clock.now());
+      expect(t.bookings.cancel).toHaveBeenCalledWith(BOOKED.id, t.clock.now(), null);
       expect(res.body).toMatchObject({ id: BOOKED.id, status: 'CANCELLED' });
       expect(t.mailer.sendBookingCancellation).toHaveBeenCalledWith(
         BOOKED.clientEmail,
         BOOKED.link,
+        null,
       );
+    });
+
+    it('saves the Motivo de cancelación, trimmed, and puts it in the Aviso de cambio del Turno', async () => {
+      t.bookings.cancel.mockResolvedValue({
+        ...BOOKED,
+        status: BookingStatus.CANCELLED,
+        cancelledBy: BookingActor.EMPLOYEE,
+        cancellationReason: 'Estoy enfermo',
+      });
+
+      const res = await patch(CLERK_TOKEN).send({ reason: '  Estoy enfermo ' }).expect(200);
+
+      expect(t.bookings.cancel).toHaveBeenCalledWith(BOOKED.id, t.clock.now(), 'Estoy enfermo');
+      expect(t.mailer.sendBookingCancellation).toHaveBeenCalledWith(
+        BOOKED.clientEmail,
+        BOOKED.link,
+        'Estoy enfermo',
+      );
+      expect(res.body).toMatchObject({ cancelledBy: 'EMPLOYEE', cancellationReason: 'Estoy enfermo' });
+    });
+
+    it('takes a blank reason as none', async () => {
+      t.bookings.cancel.mockResolvedValue({ ...BOOKED, status: BookingStatus.CANCELLED });
+
+      await patch(CLERK_TOKEN).send({ reason: '   ' }).expect(200);
+
+      expect(t.bookings.cancel).toHaveBeenCalledWith(BOOKED.id, t.clock.now(), null);
+    });
+
+    it('answers 400 reason is too long over 500 characters, without cancelling', async () => {
+      const res = await patch(CLERK_TOKEN).send({ reason: 'a'.repeat(501) }).expect(400);
+
+      expect(res.body.message).toContain('reason is too long');
+      expect(t.bookings.cancel).not.toHaveBeenCalled();
     });
 
     it('still answers 200 when the Cliente mail fails, since the Turno is already cancelled', async () => {
