@@ -106,6 +106,8 @@ const SERVICE = {
   dailyLimit: null,
   slotInterval: null,
   minimumNoticeMinutes: 0,
+  repeatEveryWeeks: null,
+  repeatMaxBookings: null,
   employees: IN_CHARGE,
   cabins: [],
 };
@@ -128,6 +130,8 @@ const PRESENTED_SERVICE = {
   dailyLimit: SERVICE.dailyLimit,
   slotInterval: SERVICE.slotInterval,
   minimumNoticeMinutes: SERVICE.minimumNoticeMinutes,
+  repeatEveryWeeks: null,
+  repeatMaxBookings: null,
   // The Usuario behind an Empleado is not part of the public API; their foto de perfil is.
   employees: IN_CHARGE.map(({ userId: _, ...employee }) => employee),
 };
@@ -172,6 +176,8 @@ describe('Servicio', () => {
         dailyLimit: null,
         slotInterval: null,
         minimumNoticeMinutes: 0,
+        repeatEveryWeeks: null,
+        repeatMaxBookings: null,
         employees: [{ employeeId: ANAS_EMPLOYEE.id, availabilityId: 10 }],
         cabinIds: [],
       });
@@ -354,6 +360,8 @@ describe('Servicio', () => {
         dailyLimit: null,
         slotInterval: null,
         minimumNoticeMinutes: 0,
+        repeatEveryWeeks: null,
+        repeatMaxBookings: null,
         employees: [{ employeeId: ANAS_EMPLOYEE.id, availabilityId: 10 }],
         cabinIds: [],
       });
@@ -791,6 +799,122 @@ describe('Servicio', () => {
         expect(t.services.update).not.toHaveBeenCalled();
       },
     );
+  });
+
+  describe('Repetición', () => {
+    beforeEach(() => {
+      scriptSession(t);
+      scriptOtherSession(t);
+      t.employees.listByIds.mockResolvedValue([ANAS_EMPLOYEE]);
+      t.cabins.listActiveByBranch.mockResolvedValue([]);
+      scriptAvailabilities(t);
+      t.services.findById.mockResolvedValue(SERVICE);
+      t.branches.findById.mockResolvedValue(BRANCH);
+      t.businesses.findById.mockResolvedValue(ANAS_BUSINESS);
+    });
+
+    it('creates a Servicio with Repetición and shows it in the panel and public views', async () => {
+      t.services.create.mockResolvedValue({
+        ...SERVICE,
+        repeatEveryWeeks: 2,
+        repeatMaxBookings: 6,
+      });
+
+      const res = await t.http
+        .post(`/branches/${BRANCH.id}/services`)
+        .set(bearer(CLERK_TOKEN))
+        .send({ ...VALID_SERVICE, repeatEveryWeeks: 2, repeatMaxBookings: 6 })
+        .expect(201);
+
+      expect(t.services.create).toHaveBeenCalledWith(
+        expect.objectContaining({ repeatEveryWeeks: 2, repeatMaxBookings: 6 }),
+      );
+      expect(res.body).toMatchObject({ repeatEveryWeeks: 2, repeatMaxBookings: 6 });
+    });
+
+    it('edits the Repetición, and null in both drops it', async () => {
+      t.services.update.mockResolvedValue({
+        ...SERVICE,
+        repeatEveryWeeks: 1,
+        repeatMaxBookings: 10,
+      });
+
+      const res = await t.http
+        .patch(`/services/${SERVICE.id}`)
+        .set(bearer(CLERK_TOKEN))
+        .send({ repeatEveryWeeks: 1, repeatMaxBookings: 10 })
+        .expect(200);
+      expect(t.services.update).toHaveBeenCalledWith(SERVICE.id, {
+        repeatEveryWeeks: 1,
+        repeatMaxBookings: 10,
+      });
+      expect(res.body).toMatchObject({ repeatEveryWeeks: 1, repeatMaxBookings: 10 });
+
+      t.services.update.mockResolvedValue(SERVICE);
+      await t.http
+        .patch(`/services/${SERVICE.id}`)
+        .set(bearer(CLERK_TOKEN))
+        .send({ repeatEveryWeeks: null, repeatMaxBookings: null })
+        .expect(200);
+      expect(t.services.update).toHaveBeenLastCalledWith(SERVICE.id, {
+        repeatEveryWeeks: null,
+        repeatMaxBookings: null,
+      });
+    });
+
+    it.each([
+      [
+        'only repeatEveryWeeks',
+        { repeatEveryWeeks: 2 },
+        'Repetición needs both repeatEveryWeeks and repeatMaxBookings',
+      ],
+      [
+        'only repeatMaxBookings',
+        { repeatMaxBookings: 4 },
+        'Repetición needs both repeatEveryWeeks and repeatMaxBookings',
+      ],
+      [
+        'one of them null',
+        { repeatEveryWeeks: 2, repeatMaxBookings: null },
+        'Repetición needs both repeatEveryWeeks and repeatMaxBookings',
+      ],
+      [
+        'a repeatMaxBookings of 1',
+        { repeatEveryWeeks: 2, repeatMaxBookings: 1 },
+        'repeatMaxBookings must be between 2 and 10',
+      ],
+      [
+        'a repeatMaxBookings of 11',
+        { repeatEveryWeeks: 2, repeatMaxBookings: 11 },
+        'repeatMaxBookings must be between 2 and 10',
+      ],
+      [
+        'a repeatEveryWeeks of 0',
+        { repeatEveryWeeks: 0, repeatMaxBookings: 4 },
+        'repeatEveryWeeks must be at least 1',
+      ],
+      [
+        'a fractional repeatEveryWeeks',
+        { repeatEveryWeeks: 1.5, repeatMaxBookings: 4 },
+        'repeatEveryWeeks must be at least 1',
+      ],
+    ])('rejects %s with 400, on create and on edit', async (_, body, message) => {
+      const created = await t.http
+        .post(`/branches/${BRANCH.id}/services`)
+        .set(bearer(CLERK_TOKEN))
+        .send({ ...VALID_SERVICE, ...body })
+        .expect(400);
+      expect(created.body.message).toContain(message);
+      expect(t.services.create).not.toHaveBeenCalled();
+
+      const edited = await t.http
+        .patch(`/services/${SERVICE.id}`)
+        .set(bearer(CLERK_TOKEN))
+        .send(body)
+        .expect(400);
+      expect(edited.body.message).toContain(message);
+      expect(t.services.update).not.toHaveBeenCalled();
+    });
   });
 
   describe('PATCH /services/:id and the Cabinas it admits', () => {

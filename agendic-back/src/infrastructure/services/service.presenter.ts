@@ -20,6 +20,8 @@ export const presentService = (service: Service) => ({
   dailyLimit: service.dailyLimit,
   slotInterval: service.slotInterval,
   minimumNoticeMinutes: service.minimumNoticeMinutes,
+  repeatEveryWeeks: service.repeatEveryWeeks,
+  repeatMaxBookings: service.repeatMaxBookings,
   employees: service.employees.map(({ id, name, availabilityId, imageUrl, slug }) => ({
     id,
     name,

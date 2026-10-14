@@ -64,6 +64,8 @@ const SERVICE_ROW = {
   dailyLimit: null,
   slotInterval: null,
   minimumNoticeMinutes: 0,
+  repeatEveryWeeks: null,
+  repeatMaxBookings: null,
   employees: [
     {
       availabilityId: 40,
@@ -100,6 +102,8 @@ const CREATE_DATA = {
     dailyLimit: null,
     slotInterval: null,
     minimumNoticeMinutes: 0,
+    repeatEveryWeeks: null,
+    repeatMaxBookings: null,
   },
   employee: {
     userId: ANAS_BUSINESS.ownerId,
@@ -221,6 +225,8 @@ describe('PrismaBusinessesRepository', () => {
       dailyLimit: null,
       slotInterval: null,
       minimumNoticeMinutes: 0,
+      repeatEveryWeeks: null,
+      repeatMaxBookings: null,
       employees: [
         {
           id: EMPLOYEE_ROW.id,
