@@ -25,7 +25,7 @@ describe('bookingsCsv', () => {
 
     expect(csv.startsWith('﻿')).toBe(true);
     expect(lines(csv)[0]).toBe(
-      'Fecha y hora,Servicio,Sucursal,Empleado,Cliente,Email,Estado,Atendido,Ausencia,Falta del Empleado,Precio,Calificación',
+      'Fecha y hora,Servicio,Sucursal,Empleado,Cliente,Email,Estado,Atendido,Ausencia del Invitado,Ausencia del Anfitrión,Precio,Calificación',
     );
   });
 

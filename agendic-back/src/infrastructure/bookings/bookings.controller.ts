@@ -151,7 +151,7 @@ export class BookingsController {
   /**
    * @throws {NotFoundError} el Turno no existe
    * @throws {ForbiddenError} el Usuario no es el Empleado asignado
-   * @throws {BusinessRuleError} el Turno no está aceptado, no terminó, ya tiene Ausencia o tiene Falta del Empleado
+   * @throws {BusinessRuleError} el Turno no está aceptado, no terminó, ya tiene Ausencia del Invitado o tiene Ausencia del Anfitrión
    */
   @Patch('bookings/:id/no-show')
   @UseGuards(ClerkGuard)

@@ -97,8 +97,8 @@ describe('SendRatingRequestsUseCase', () => {
   });
 
   it.each([
-    ['Ausencia', { noShowAt: endedAgo(HOUR) }],
-    ['Falta del Empleado', { employeeNoShowAt: endedAgo(HOUR) }],
+    ['Ausencia del Invitado', { noShowAt: endedAgo(HOUR) }],
+    ['Ausencia del Anfitrión', { employeeNoShowAt: endedAgo(HOUR) }],
     ['ya calificado', { rating: { score: 5, comment: null, createdAt: NOW } }],
     ['Cancelado', { status: BookingStatus.CANCELLED }],
     ['pendiente', { status: BookingStatus.PENDING }],

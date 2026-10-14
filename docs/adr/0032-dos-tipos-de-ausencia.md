@@ -11,4 +11,4 @@ Un Turno puede quedar con una de dos Ausencias, según quién no se presentó: l
 ## Qué arrastra
 
 - Glosario y ADRs ya usan los términos nuevos; la pantalla de Analíticas también.
-- El resto de la app (badges y acciones de Mis turnos, la página del Enlace del Turno, columnas del CSV de Analíticas, TSDoc y comentarios de front y back) se actualiza en #312. Hasta entonces, el CSV sigue con las columnas `Ausencia` y `Falta del Empleado` que lista el ADR 0007.
+- El resto de la app (badges y acciones de Mis turnos, la página del Enlace del Turno, columnas del CSV de Analíticas, TSDoc y comentarios de front y back) se actualiza en #312.

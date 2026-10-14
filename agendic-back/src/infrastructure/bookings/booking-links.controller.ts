@@ -62,10 +62,10 @@ export class BookingLinksController {
   }
 
   /**
-   * Marca la Falta del Empleado del Turno.
+   * Marca la Ausencia del Anfitrión del Turno.
    *
    * @throws {NotFoundError} el Enlace no corresponde a ningún Turno
-   * @throws {BusinessRuleError} el Turno no está aceptado, no empezó, pasó la ventana, o ya tiene Ausencia o Falta del Empleado
+   * @throws {BusinessRuleError} el Turno no está aceptado, no empezó, pasó la ventana, o ya tiene Ausencia del Invitado o del Anfitrión
    */
   @Patch(':secret/employee-no-show')
   async markEmployeeNoShow(@Param('secret') secret: string) {
@@ -80,7 +80,7 @@ export class BookingLinksController {
    *
    * @throws {NotFoundError} el Enlace no corresponde a ningún Turno
    * @throws {ConflictError} el Turno ya tiene Calificación
-   * @throws {BusinessRuleError} el Turno no está aceptado, no terminó, o tiene Ausencia o Falta del Empleado
+   * @throws {BusinessRuleError} el Turno no está aceptado, no terminó, o tiene Ausencia del Invitado o del Anfitrión
    */
   @Post(':secret/rating')
   async rate(@Param('secret') secret: string, @Body() dto: RateBookingDto) {
