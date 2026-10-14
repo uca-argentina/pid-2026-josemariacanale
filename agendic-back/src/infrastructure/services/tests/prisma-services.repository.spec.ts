@@ -378,7 +378,7 @@ describe('PrismaServicesRepository', () => {
       });
       expect(tx.booking.updateMany).toHaveBeenCalledWith({
         where: { id: { in: [10, 11] } },
-        data: { status: 'CANCELLED', cancelledAt: now },
+        data: { status: 'CANCELLED', cancelledAt: now, cancelledBy: 'RETIREMENT' },
       });
     });
   });
@@ -425,7 +425,7 @@ describe('PrismaServicesRepository', () => {
       });
       expect(tx.booking.updateMany).toHaveBeenCalledWith({
         where: { id: { in: [10] } },
-        data: { status: 'CANCELLED', cancelledAt: deletedAt },
+        data: { status: 'CANCELLED', cancelledAt: deletedAt, cancelledBy: 'RETIREMENT' },
       });
     });
   });

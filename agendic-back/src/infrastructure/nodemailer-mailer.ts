@@ -59,12 +59,12 @@ export class NodemailerMailer implements Mailer {
   }
 
   /** Avisa que el Turno quedó cancelado. */
-  async sendBookingCancellation(email: string, link: string) {
+  async sendBookingCancellation(email: string, link: string, reason?: string | null) {
     await this.sendBookingMail(
       email,
       link,
       'Your booking was cancelled',
-      'Your Turno was cancelled. See it here',
+      withReason('Your Turno was cancelled', reason) + '. See it here',
     );
   }
 
@@ -79,12 +79,12 @@ export class NodemailerMailer implements Mailer {
   }
 
   /** Avisa que el Negocio rechazó el Turno pendiente. */
-  async sendBookingRejection(email: string, link: string) {
+  async sendBookingRejection(email: string, link: string, reason?: string | null) {
     await this.sendBookingMail(
       email,
       link,
       'Your booking was rejected',
-      'Your Turno was rejected. See it here',
+      withReason('Your Turno was rejected', reason) + '. See it here',
     );
   }
 
@@ -129,3 +129,7 @@ export class NodemailerMailer implements Mailer {
     });
   }
 }
+
+/** Appends the Motivo de cancelación, if any, to a mail text; it is typed by a person, so it goes escaped into the HTML. */
+const withReason = (text: string, reason?: string | null) =>
+  reason ? `${text}. Reason: ${escapeHtml(reason)}` : text;

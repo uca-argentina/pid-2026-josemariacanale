@@ -5,6 +5,13 @@ export enum BookingStatus {
   CANCELLED = 'CANCELLED',
 }
 
+/** Quién cancela o rechaza un Turno, o Reagenda el original (ADR 0033); `RETIREMENT` es una baja. */
+export enum BookingActor {
+  EMPLOYEE = 'EMPLOYEE',
+  CLIENT = 'CLIENT',
+  RETIREMENT = 'RETIREMENT',
+}
+
 /** Calificación: the score the Cliente left on an attended Turno from its Enlace del Turno. */
 export interface BookingRating {
   /** From 1 to 5. */
@@ -47,6 +54,12 @@ export interface Booking {
   depositPaidAt: Date | null;
   /** The Servicio's price fixed at booking: later changes to the Servicio don't touch it. */
   price: number;
+  /** Aceptar turno: when it was accepted, or created already BOOKED, from the clock; null while PENDING. */
+  acceptedAt: Date | null;
+  /** Who cancelled or rejected it, or Reagendó it in the original (ADR 0033); null unless CANCELLED or REJECTED, and in Turnos cancelled before it was recorded. */
+  cancelledBy: BookingActor | null;
+  /** Motivo de cancelación: free text of up to 500 characters; null without `cancelledBy` or when none was given. */
+  cancellationReason: string | null;
   /** Cancelar: when it was cancelled, from the clock; null unless CANCELLED. */
   cancelledAt: Date | null;
   /** Rechazar turno: when it was rejected, from the clock; null unless REJECTED. */
@@ -66,8 +79,9 @@ export const depositAmountFor = (
   return Math.round(Number((price * depositPercent).toFixed(6))) / 100;
 };
 
-/** Who to send an Aviso de cambio del Turno to: the Cliente's email and the Turno's Enlace del Turno. */
-export type ClientNotice = Pick<Booking, 'clientEmail' | 'link'>;
+/** Who to send an Aviso de cambio del Turno to: the Cliente's email, the Turno's Enlace del Turno and, if it was cancelled or rejected with one, the Motivo de cancelación. */
+export type ClientNotice = Pick<Booking, 'clientEmail' | 'link'> &
+  Partial<Pick<Booking, 'cancellationReason'>>;
 
 /** A Turno as the panel shows it (ADR 0030): with the Cabina it occupies, which the Cliente never sees. */
 export interface PanelBooking extends Booking {
