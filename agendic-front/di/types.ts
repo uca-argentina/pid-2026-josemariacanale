@@ -152,6 +152,8 @@ import type { IDeleteOutOfOfficeController } from '@/src/interface-adapters/cont
 import type { ICreateOutOfOfficeUseCase } from '@/src/application/use-cases/out-of-office/create-out-of-office.use-case';
 import type { IUpdateOutOfOfficeUseCase } from '@/src/application/use-cases/out-of-office/update-out-of-office.use-case';
 import type { IDeleteOutOfOfficeUseCase } from '@/src/application/use-cases/out-of-office/delete-out-of-office.use-case';
+import type { IPreviewOutOfOfficeUseCase } from '@/src/application/use-cases/out-of-office/preview-out-of-office.use-case';
+import type { IPreviewOutOfOfficeController } from '@/src/interface-adapters/controllers/out-of-office/preview-out-of-office.controller';
 import type { IHolidaysRepository } from '@/src/application/repositories/holidays.repository.interface';
 import type { IListHolidayCountriesUseCase } from '@/src/application/use-cases/holidays/list-holiday-countries.use-case';
 import type { IListHolidayCountriesController } from '@/src/interface-adapters/controllers/holidays/list-holiday-countries.controller';
@@ -253,6 +255,7 @@ export const DI_SYMBOLS = {
     ICreateOutOfOfficeUseCase: Symbol.for('ICreateOutOfOfficeUseCase'),
     IUpdateOutOfOfficeUseCase: Symbol.for('IUpdateOutOfOfficeUseCase'),
     IDeleteOutOfOfficeUseCase: Symbol.for('IDeleteOutOfOfficeUseCase'),
+    IPreviewOutOfOfficeUseCase: Symbol.for('IPreviewOutOfOfficeUseCase'),
     IListHolidayCountriesUseCase: Symbol.for('IListHolidayCountriesUseCase'),
     IGetMyHolidaysUseCase: Symbol.for('IGetMyHolidaysUseCase'),
     ISetHolidayCountryUseCase: Symbol.for('ISetHolidayCountryUseCase'),
@@ -338,6 +341,7 @@ export const DI_SYMBOLS = {
     ICreateOutOfOfficeController: Symbol.for('ICreateOutOfOfficeController'),
     IUpdateOutOfOfficeController: Symbol.for('IUpdateOutOfOfficeController'),
     IDeleteOutOfOfficeController: Symbol.for('IDeleteOutOfOfficeController'),
+    IPreviewOutOfOfficeController: Symbol.for('IPreviewOutOfOfficeController'),
     IListHolidayCountriesController: Symbol.for('IListHolidayCountriesController'),
     IGetMyHolidaysController: Symbol.for('IGetMyHolidaysController'),
     ISetHolidayCountryController: Symbol.for('ISetHolidayCountryController'),
@@ -429,6 +433,7 @@ export interface DI_RETURN_TYPES {
     ICreateOutOfOfficeUseCase: ICreateOutOfOfficeUseCase;
     IUpdateOutOfOfficeUseCase: IUpdateOutOfOfficeUseCase;
     IDeleteOutOfOfficeUseCase: IDeleteOutOfOfficeUseCase;
+    IPreviewOutOfOfficeUseCase: IPreviewOutOfOfficeUseCase;
     IListHolidayCountriesUseCase: IListHolidayCountriesUseCase;
     IGetMyHolidaysUseCase: IGetMyHolidaysUseCase;
     ISetHolidayCountryUseCase: ISetHolidayCountryUseCase;
@@ -514,6 +519,7 @@ export interface DI_RETURN_TYPES {
     ICreateOutOfOfficeController: ICreateOutOfOfficeController;
     IUpdateOutOfOfficeController: IUpdateOutOfOfficeController;
     IDeleteOutOfOfficeController: IDeleteOutOfOfficeController;
+    IPreviewOutOfOfficeController: IPreviewOutOfOfficeController;
     IListHolidayCountriesController: IListHolidayCountriesController;
     IGetMyHolidaysController: IGetMyHolidaysController;
     ISetHolidayCountryController: ISetHolidayCountryController;
