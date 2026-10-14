@@ -24,19 +24,19 @@ export async function payDepositByLinkAction(link: string) {
 }
 
 const EMPLOYEE_NO_SHOW_ERRORS: Record<string, string> = {
-    'Turno is not booked': 'El turno no está aceptado, así que no se puede marcar la falta.',
+    'Turno is not booked': 'El turno no está aceptado, así que no se puede marcar la Ausencia del Anfitrión.',
     'Turno has not started yet': 'El turno todavía no empezó.',
-    'Employee no-show window closed': 'Ya pasó el plazo para marcar la falta.',
-    'Turno has an Ausencia': 'El turno ya tiene una ausencia marcada.',
-    'Employee no-show already marked': 'Ya marcaste que no vino.',
-    'Employee no-show not allowed for this Turno': 'No se puede marcar la falta en este turno.',
+    'Employee no-show window closed': 'Ya pasó el plazo para marcar la Ausencia del Anfitrión.',
+    'Turno has an Ausencia': 'El turno ya tiene una Ausencia del Invitado marcada.',
+    'Employee no-show already marked': 'Ya marcaste la Ausencia del Anfitrión.',
+    'Employee no-show not allowed for this Turno': 'No se puede marcar la Ausencia del Anfitrión en este turno.',
 };
 
-/** Marca la Falta del Empleado del Turno del Enlace: el Cliente avisa que el Empleado no vino. */
+/** Marca la Ausencia del Anfitrión del Turno del Enlace: el Cliente avisa que quien lo atiende no vino. */
 export async function markEmployeeNoShowByLinkAction(link: string) {
     return performClientBookingAction(
         () => getInjection('IMarkEmployeeNoShowByLinkController')({ link }),
-        'No pudimos marcar la falta. Intentá de nuevo.',
+        'No pudimos marcar la Ausencia del Anfitrión. Intentá de nuevo.',
         (message) => EMPLOYEE_NO_SHOW_ERRORS[message],
     );
 }

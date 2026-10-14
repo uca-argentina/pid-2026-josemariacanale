@@ -106,7 +106,7 @@ Servicio de un Usuario, sin Negocio ni Sucursal. Lo atiende solo ese Usuario, co
 _Avoid_: servicio individual, servicio propio
 
 **Servicio del Negocio**:
-Servicio de una Sucursal de un Negocio, atendido por los Empleados que lo Ofrecen. Al Reservar, el Cliente elige con quién o deja "cualquiera". Con "cualquiera" se le asigna un Empleado libre en ese horario: el que hace más tiempo que no recibe un Turno de ese Servicio. Si elige a alguien, queda un Empleado elegido.
+Servicio de una Sucursal de un Negocio, atendido por los Empleados que lo Ofrecen. Al Reservar, el Cliente elige con quién entre quienes lo Ofrecen, o deja que se le asigne uno ("cualquiera"). Con "cualquiera" se le asigna un Empleado libre en ese horario: el que hace más tiempo que no recibe un Turno de ese Servicio. Si elige a alguien, queda un Empleado elegido.
 _Avoid_: servicio de equipo, servicio compartido
 
 **Intervalo**:
@@ -226,7 +226,7 @@ Dirección pública que un Negocio comparte para que un Cliente entre a Reservar
 _Avoid_: link del negocio, perfil público, página pública, slug (eso es el identificador en el código)
 
 **Empleado elegido**:
-Empleado que el Cliente eligió al Reservar un Servicio del Negocio, o en la página de la Sucursal o entrando por el Enlace de reserva de esa persona. El Turno queda con él y al Cliente solo se le ofrecen sus Horarios reservables; si el horario se ocupó, no se pasa a otro Empleado. Si el Cliente deja "cualquiera", el Turno no tiene Empleado elegido y se asigna como siempre.
+Empleado que el Cliente eligió al Reservar un Servicio del Negocio, por su Enlace de reserva o de la lista de la página de reserva. El Turno queda con él y al Cliente solo se le ofrecen sus Horarios reservables; si el horario se ocupó, no se pasa a otro Empleado. Si el Cliente deja "cualquiera", el Turno no tiene Empleado elegido y se asigna como siempre.
 _Avoid_: Empleado asignado, Empleado preferido
 
 **Reagendar**:

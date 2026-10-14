@@ -31,7 +31,7 @@ export function BookingActions({ booking, now }: { booking: Booking; now: number
     const menuItems: Record<'cancel' | 'reschedule' | 'no-show', PanelMenuItem> = {
         cancel: { label: 'Cancelar', icon: <X />, destructive: true, onSelect: () => setDialog('cancel') },
         reschedule: { label: 'Reagendar', icon: <CalendarClock />, onSelect: () => setDialog('reschedule') },
-        'no-show': { label: 'Marcar ausencia', icon: <UserX />, onSelect: () => setDialog('no-show') },
+        'no-show': { label: 'Marcar Ausencia del Invitado', icon: <UserX />, onSelect: () => setDialog('no-show') },
     };
 
     return (
@@ -78,11 +78,11 @@ export function BookingActions({ booking, now }: { booking: Booking; now: number
             <PanelConfirm
                 open={dialog === 'no-show'}
                 onOpenChange={setOpen('no-show')}
-                title="¿Marcar la ausencia?"
+                title="¿Marcar la Ausencia del Invitado?"
                 description={`${booking.clientName} no se presentó al turno. No se puede deshacer.`}
-                confirmLabel="Marcar ausencia"
+                confirmLabel="Marcar Ausencia del Invitado"
                 destructive
-                onConfirm={() => run(markBookingNoShowAction, `Ausencia de ${booking.clientName} marcada`)}
+                onConfirm={() => run(markBookingNoShowAction, `Ausencia del Invitado de ${booking.clientName} marcada`)}
             />
             {dialog === 'reschedule' && <RescheduleDialog booking={booking} onOpenChange={setOpen('reschedule')} />}
         </>

@@ -5,14 +5,14 @@ import type { IInstrumentationService } from '@/src/application/services/instrum
 export type IMarkBookingNoShowUseCase = ReturnType<typeof markBookingNoShowUseCase>;
 
 /**
- * Marca la Ausencia de un Turno aceptado cuyo horario ya pasó.
+ * Marca la Ausencia del Invitado de un Turno aceptado cuyo horario ya pasó.
  *
  * Que el Turno sea del Empleado lo valida el back.
  *
  * @throws {UnauthenticatedError} no hay Sesión válida
  * @throws {BookingNotAllowedError} el Turno no es del Empleado logueado
  * @throws {NotFoundError} el Turno no existe
- * @throws {BookingStateError} el Turno no está aceptado, su horario no pasó o ya tiene Ausencia
+ * @throws {BookingStateError} el Turno no está aceptado, su horario no pasó o ya tiene Ausencia del Invitado
  */
 export const markBookingNoShowUseCase =
     (instrumentationService: IInstrumentationService, userBookingsRepository: IUserBookingsRepository) =>

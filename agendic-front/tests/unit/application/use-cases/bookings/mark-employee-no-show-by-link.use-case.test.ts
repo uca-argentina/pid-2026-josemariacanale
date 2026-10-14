@@ -4,7 +4,7 @@ import { NotFoundError } from '@/src/entities/errors/common';
 import { clientBookingsWith, instrumentation } from '@/tests/unit/stubs';
 
 describe('markEmployeeNoShowByLinkUseCase', () => {
-    it('asks the repository to mark the Falta del Empleado of the Turno of the link', async () => {
+    it('asks the repository to mark the Ausencia del Anfitrión of the Turno of the link', async () => {
         const paid = { id: 7 };
         const markEmployeeNoShowByLink = jest.fn().mockResolvedValue(paid);
         const result = await markEmployeeNoShowByLinkUseCase(instrumentation, clientBookingsWith({ markEmployeeNoShowByLink }))({ link: 's3cr3t-l1nk' });

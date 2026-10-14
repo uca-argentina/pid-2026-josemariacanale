@@ -63,10 +63,10 @@ export async function rescheduleBookingAction(bookingId: number, startsAt: strin
     );
 }
 
-/** Marca la Ausencia de un Turno aceptado cuyo horario ya pasó. */
+/** Marca la Ausencia del Invitado de un Turno aceptado cuyo horario ya pasó. */
 export async function markBookingNoShowAction(bookingId: number) {
     return perform(
         () => getInjection('IMarkBookingNoShowController')({ bookingId }),
-        'No pudimos marcar la ausencia. Intentá de nuevo.',
+        'No pudimos marcar la Ausencia del Invitado. Intentá de nuevo.',
     );
 }

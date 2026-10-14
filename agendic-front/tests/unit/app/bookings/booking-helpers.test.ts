@@ -105,14 +105,20 @@ describe('badgesOf', () => {
     });
 });
 
-describe('Falta del Empleado', () => {
-    it('lleva el badge rojo "Falta del Empleado"', () => {
+describe('Ausencia del Anfitrión y del Invitado', () => {
+    it('lleva el badge rojo "Ausencia del Anfitrión"', () => {
         expect(badgesOf(booking({ employeeNoShowAt: '2026-09-15T20:00:00.000Z' }))).toEqual([
-            { label: 'Falta del Empleado', className: expect.stringContaining('#b91c1c') },
+            { label: 'Ausencia del Anfitrión', className: expect.stringContaining('#b91c1c') },
         ]);
     });
 
-    it('no ofrece Marcar ausencia con Falta del Empleado ni con Ausencia', () => {
+    it('lleva el badge rojo "Ausencia del Invitado"', () => {
+        expect(badgesOf(booking({ noShowAt: '2026-09-15T20:00:00.000Z' }))).toEqual([
+            { label: 'Ausencia del Invitado', className: expect.stringContaining('#b91c1c') },
+        ]);
+    });
+
+    it('no ofrece Marcar Ausencia del Invitado con Ausencia del Anfitrión ni con Ausencia del Invitado', () => {
         expect(canMarkNoShow(booking({}))).toBe(true);
         expect(canMarkNoShow(booking({ employeeNoShowAt: '2026-09-15T20:00:00.000Z' }))).toBe(false);
         expect(canMarkNoShow(booking({ noShowAt: '2026-09-15T20:00:00.000Z' }))).toBe(false);
@@ -198,6 +204,6 @@ describe('statusBadgesOf', () => {
 
     it('suma los badges de la lista a los del estado', () => {
         expect(statusBadgesOf(booking({ status: 'PENDING' })).map((b) => b.label)).toEqual(['Pendiente']);
-        expect(statusBadgesOf(booking({ noShowAt: '2026-09-15T20:00:00.000Z', fromRescheduleId: 4 })).map((b) => b.label)).toEqual(['Ausencia', 'Reagendado']);
+        expect(statusBadgesOf(booking({ noShowAt: '2026-09-15T20:00:00.000Z', fromRescheduleId: 4 })).map((b) => b.label)).toEqual(['Ausencia del Invitado', 'Reagendado']);
     });
 });
