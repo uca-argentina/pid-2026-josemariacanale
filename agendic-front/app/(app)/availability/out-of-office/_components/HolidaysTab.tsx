@@ -29,6 +29,8 @@ import {
     previewToggleHolidayAction,
     setHolidayCountryAction,
     toggleHolidayAction,
+    type PreviewOutOfOfficeResult,
+    type SaveOutOfOfficeResult,
 } from '../actions';
 import { LeftOutsideBookingsDialog } from '@/app/(app)/_components/LeftOutsideBookingsDialog';
 import { savedToast } from '@/app/(app)/_components/left-outside-bookings';
@@ -40,11 +42,26 @@ import { getHolidayEmoji } from './get-holiday-emoji';
 /** Lo que la pestaña Días festivos recibe del server: o el mensaje del back (503), o los datos. */
 export type HolidaysTabData = { unavailable: string } | { countries: HolidayCountry[]; settings: HolidaySettings; conflicts: HolidayConflict[] };
 
-/** Lo que el Usuario pidió cambiar: el país (`null` lo saca) o prender o apagar un Día festivo. */
-type HolidayChange = SetHolidayCountry | ToggleHoliday;
+/** Lo que el Usuario pidió cambiar, con su propia vista previa y su propio guardado. */
+type HolidayChange = {
+    preview: () => Promise<PreviewOutOfOfficeResult>;
+    save: (cancelBookingIds: number[]) => Promise<SaveOutOfOfficeResult>;
+};
 
-/** Sacar el país o apagar un Día festivo solo libera horarios: no puede dejar Turnos afuera, así que no pide la vista previa. */
-const changesBookings = (change: HolidayChange) => ('holidayId' in change ? change.enabled : change.countryCode !== null);
+// Sacar el país o apagar un Día festivo solo libera horarios: no puede dejar Turnos afuera, así que no pide la vista previa.
+const noBookingsLeftOutside = (): Promise<PreviewOutOfOfficeResult> => Promise.resolve({ ok: true, bookings: [] });
+
+/** Cambiar el país (`null` lo saca). */
+const countryChange = (input: SetHolidayCountry): HolidayChange => ({
+    preview: () => (input.countryCode === null ? noBookingsLeftOutside() : previewSetHolidayCountryAction(input)),
+    save: (cancelBookingIds) => setHolidayCountryAction(input, cancelBookingIds),
+});
+
+/** Prender o apagar un Día festivo. */
+const toggleChange = (input: ToggleHoliday): HolidayChange => ({
+    preview: () => (input.enabled ? previewToggleHolidayAction(input) : noBookingsLeftOutside()),
+    save: (cancelBookingIds) => toggleHolidayAction(input, cancelBookingIds),
+});
 
 /** Aviso de Turnos tomados en Días festivos prendidos: "Tenés N Turnos en Días festivos:" y hasta tres con su cantidad. */
 function ConflictWarning({ conflicts }: { conflicts: HolidayConflict[] }) {
@@ -102,12 +119,8 @@ export function HolidaysTab({ data, timeFormat }: { data: HolidaysTabData; timeF
     const [countryOpen, setCountryOpen] = useState(false);
 
     const leftOutside = useLeftOutsideSave<HolidayChange>({
-        preview: (change) => {
-            if (!changesBookings(change)) return Promise.resolve({ ok: true, bookings: [] });
-            return 'holidayId' in change ? previewToggleHolidayAction(change) : previewSetHolidayCountryAction(change);
-        },
-        save: (change, cancelBookingIds) =>
-            'holidayId' in change ? toggleHolidayAction(change, cancelBookingIds) : setHolidayCountryAction(change, cancelBookingIds),
+        preview: (change) => change.preview(),
+        save: (change, cancelBookingIds) => change.save(cancelBookingIds),
         onSaved: (cancelledBookings) => toast.success(savedToast('Configuración de días festivos actualizada', cancelledBookings)),
         onError: (message) => toast.error(message),
     });
@@ -139,7 +152,7 @@ export function HolidaysTab({ data, timeFormat }: { data: HolidaysTabData; timeF
                         items={countries}
                         value={selected}
                         onValueChange={(country: HolidayCountry | null) =>
-                            leftOutside.run({ countryCode: country?.code ?? null })
+                            leftOutside.run(countryChange({ countryCode: country?.code ?? null }))
                         }
                         itemToStringLabel={(country: HolidayCountry) => country.name}
                         itemToStringValue={(country: HolidayCountry) => country.code}
@@ -183,7 +196,7 @@ export function HolidaysTab({ data, timeFormat }: { data: HolidaysTabData; timeF
                                     disabled={!selected}
                                     onClick={() => {
                                         setCountryOpen(false);
-                                        leftOutside.run({ countryCode: null });
+                                        leftOutside.run(countryChange({ countryCode: null }));
                                     }}
                                 >
                                     Borrar
@@ -200,7 +213,7 @@ export function HolidaysTab({ data, timeFormat }: { data: HolidaysTabData; timeF
                                 key={holiday.id}
                                 holiday={holiday}
                                 busy={busy}
-                                onToggle={(enabled) => leftOutside.run({ holidayId: holiday.id, enabled })}
+                                onToggle={(enabled) => leftOutside.run(toggleChange({ holidayId: holiday.id, enabled }))}
                             />
                         ))}
                     </ul>
