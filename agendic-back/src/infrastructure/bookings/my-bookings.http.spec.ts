@@ -691,4 +691,48 @@ describe('Mis turnos del Usuario', () => {
       await patch('').expect(401);
     });
   });
+
+  describe('DELETE /bookings/:id/no-show', () => {
+    const del = (token: string | undefined = CLERK_TOKEN) => {
+      const req = t.http.delete(`/bookings/${BOOKED.id}/no-show`);
+      return token ? req.set(bearer(token)) : req;
+    };
+    const MARKED = { ...BOOKED, noShowAt: new Date('2026-01-01T13:00:00.000Z') };
+
+    it('clears noShowAt and answers the Turno', async () => {
+      t.bookings.findById.mockResolvedValue(MARKED);
+      t.bookings.unmarkNoShow.mockResolvedValue({ ...BOOKED, noShowAt: null });
+
+      const res = await del().expect(200);
+
+      expect(t.bookings.unmarkNoShow).toHaveBeenCalledWith(BOOKED.id);
+      expect(res.body).toMatchObject({ id: BOOKED.id, status: 'BOOKED', noShowAt: null });
+    });
+
+    it('answers 422 when the Turno has no Ausencia', async () => {
+      t.bookings.findById.mockResolvedValue(BOOKED);
+
+      const res = await del().expect(422);
+
+      expect(res.body.message).toBe('Turno has no Ausencia');
+      expect(t.bookings.unmarkNoShow).not.toHaveBeenCalled();
+    });
+
+    it('answers 404 when the Turno does not exist', async () => {
+      t.bookings.findById.mockRejectedValue(new NotFoundError('Booking 1 not found'));
+
+      await del().expect(404);
+    });
+
+    it('answers 403 for a Usuario who is not the assigned Empleado', async () => {
+      t.bookings.findById.mockResolvedValue(MARKED);
+
+      await del(OTHER_CLERK_TOKEN).expect(403);
+      expect(t.bookings.unmarkNoShow).not.toHaveBeenCalled();
+    });
+
+    it('answers 401 without a Sesión', async () => {
+      await del('').expect(401);
+    });
+  });
 });
