@@ -40,6 +40,7 @@ export class ListSeriesSlotsUseCase {
    * no recibe un Turno del Servicio, y después al de menor id. En un Servicio personal, `employeeId` es nulo.
    *
    * @throws {NotFoundError} el Servicio no existe o está dado de baja, o `employeeId` no lo Ofrece
+   * @throws {BadRequestError} `count` no es un entero de 2 al máximo de la Repetición
    * @throws {BusinessRuleError} el Servicio no tiene Repetición, o el primer horario no es reservable
    * @throws {BadRequestError} `count` fuera de 2 al máximo de la Repetición, o `employeeId` en un Servicio personal
    */
@@ -80,24 +81,24 @@ export class ListSeriesSlotsUseCase {
     );
     const isFree = (employee: EmployeeSlots, at: Date) =>
       employee.days.some((day) => day.slots.includes(at.toISOString()));
-    const freeDates = (employee: EmployeeSlots, i: number) =>
+    const isFreeOnDate = (employee: EmployeeSlots, i: number) =>
       isFree(perDate[i].employees.find((e) => e.userId === employee.userId)!, dates[i].startsAt);
 
-    const candidates = perDate[0].employees.filter((e) => freeDates(e, 0));
+    const candidates = perDate[0].employees.filter((e) => isFreeOnDate(e, 0));
     if (candidates.length === 0)
       throw new BusinessRuleError(
         `Slot ${dates[0].startsAt.toISOString()} is not available for Service ${serviceId}`,
       );
 
     const chosen = await this.pick(serviceId, candidates, (e) =>
-      dates.reduce((n, _, i) => n + Number(freeDates(e, i)), 0),
+      dates.reduce((n, _, i) => n + Number(isFreeOnDate(e, i)), 0),
     );
     return {
       employeeId: chosen.employeeId,
       dates: dates.map(({ date, startsAt: at }, i) => ({
         date,
         startsAt: at.toISOString(),
-        available: freeDates(chosen, i),
+        available: isFreeOnDate(chosen, i),
       })),
     };
   }

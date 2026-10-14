@@ -202,6 +202,31 @@ describe('GET /services/:id/series-slots', () => {
       expect(res.body.message).toBe('count must be between 2 and 4');
     });
 
+    it('400 con el mismo mensaje si count falta o no es un número', async () => {
+      await get({ count: 'muchos' }).expect(400);
+      const res = await t.http
+        .get(`/services/${SERVICE.id}/series-slots?startsAt=${FIRST}`)
+        .expect(400);
+
+      expect(res.body.message).toBe('count must be between 2 and 4');
+    });
+
+    it('en un Servicio personal, employeeId es null y las fechas son de su Usuario', async () => {
+      t.services.findById.mockResolvedValue({
+        ...SERVICE,
+        branchId: null,
+        userId: ANAS_EMPLOYEE.userId,
+        availabilityId: AVAILABILITY_ID,
+        employees: [],
+      });
+
+      const res = await get().expect(200);
+
+      expect(res.body.employeeId).toBeNull();
+      expect(res.body.dates).toHaveLength(3);
+      expect(res.body.dates.every((d: { available: boolean }) => d.available)).toBe(true);
+    });
+
     it('422 si el primer horario no es reservable', async () => {
       const res = await get({ startsAt: '2026-01-05T03:00:00.000Z' }).expect(422);
 

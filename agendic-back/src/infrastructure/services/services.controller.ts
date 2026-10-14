@@ -263,13 +263,19 @@ export class ServicesController {
   async seriesSlots(
     @Param('id', ParseIntPipe) serviceId: number,
     @Query('startsAt') startsAt: string,
-    @Query('count', ParseIntPipe) count: number,
+    @Query('count') count: string,
     @Query('employeeId', new ParseIntPipe({ optional: true }))
     employeeId?: number,
   ) {
     const first = new Date(startsAt);
     if (Number.isNaN(first.getTime()))
       throw new BadRequestError('startsAt must be an ISO date-string');
-    return this.listSeriesSlotsUseCase.execute(serviceId, first, count, employeeId);
+    return this.listSeriesSlotsUseCase.execute(
+      serviceId,
+      first,
+      // A missing or non-numeric count is NaN, which the use case rejects with the contract message.
+      count === undefined || count === '' ? NaN : Number(count),
+      employeeId,
+    );
   }
 }
