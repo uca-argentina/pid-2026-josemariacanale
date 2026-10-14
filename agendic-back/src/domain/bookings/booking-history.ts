@@ -48,7 +48,8 @@ export const buildBookingHistory = (chain: HistoryBooking[]): BookingHistoryEntr
     const isCurrent = index === chain.length - 1;
     const actor = booking.cancelledBy ? ACTORS[booking.cancelledBy] : null;
 
-    push('booked', booking.createdAt, 'client');
+    // Only the first Turno of the chain is a reserva: the others were born from a Reagendar, which has its own entry.
+    if (index === 0) push('booked', booking.createdAt, 'client');
     // A Turno that accepted itself is born with acceptedAt equal to createdAt: nobody accepted it.
     if (booking.acceptedAt && booking.acceptedAt.getTime() !== booking.createdAt.getTime())
       push('accepted', booking.acceptedAt, 'employee');

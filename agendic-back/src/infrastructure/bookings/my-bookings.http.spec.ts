@@ -797,7 +797,6 @@ describe('Mis turnos del Usuario', () => {
           reason: null,
           from: { startsAt: '2026-01-02T14:00:00.000Z', endsAt: '2026-01-02T14:30:00.000Z' },
         },
-        { type: 'booked', at: '2026-01-01T12:00:00.000Z', actor: 'client', reason: null, from: null },
         {
           type: 'rescheduled',
           at: '2026-01-01T13:00:00.000Z',
@@ -805,7 +804,6 @@ describe('Mis turnos del Usuario', () => {
           reason: null,
           from: { startsAt: '2026-01-03T14:00:00.000Z', endsAt: '2026-01-03T14:30:00.000Z' },
         },
-        { type: 'booked', at: '2026-01-01T13:00:00.000Z', actor: 'client', reason: null, from: null },
         { type: 'cancelled', at: '2026-01-01T14:00:00.000Z', actor: 'employee', reason: 'Me enfermé', from: null },
       ]);
     });
