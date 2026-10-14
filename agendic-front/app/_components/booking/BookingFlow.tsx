@@ -3,7 +3,6 @@
 import { useEffect, useState, useTransition, ViewTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Check, ChevronRight, X } from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/app/_components/ui/avatar';
 import { Button } from '@/app/_components/ui/button';
 import { Input } from '@/app/_components/ui/input';
 import { Label } from '@/app/_components/ui/label';
@@ -11,14 +10,15 @@ import { Textarea } from '@/app/_components/ui/textarea';
 import { cn } from '@/app/_components/utils';
 import type { ServiceCategoryValue } from '@/app/_components/business-schemas';
 import { bookingPath } from '@/app/routes';
-import { chooseService, initialDraft } from './booking-draft';
+import { chooseEmployee, chooseService, initialDraft } from './booking-draft';
 import { BranchPhoto } from './BranchPhoto';
 import { ChipTabs } from './ChipTabs';
 import { CodeStep } from './CodeStep';
+import { EmployeePicker } from './EmployeePicker';
 import { bookSlotAction, requestVerificationCodeAction } from './actions';
 import type { BookSlotResult } from './actions';
 import { TimeStep } from './TimeStep';
-import { depositFor, endTime, formatDate, formatDuration, formatPrice, initials } from './format';
+import { depositFor, endTime, formatDate, formatDuration, formatPrice } from './format';
 import { STEPS } from './types';
 import type { BookingDraft, ChosenEmployee, ClientData, Host, Service, Step } from './types';
 
@@ -315,7 +315,7 @@ function SummaryPanel({
     pending: boolean;
     onAdvance: () => void;
 }) {
-    const { service, date, slot } = draft;
+    const { service, date, slot, employee } = draft;
     const deposit = service ? depositFor(service) : null;
 
     return (
@@ -349,6 +349,12 @@ function SummaryPanel({
                             {formatDuration(service.durationMinutes)})
                         </dd>
                     </div>
+                    {employee && (
+                        <div className="flex gap-2">
+                            <dt className="sr-only">Empleado</dt>
+                            <dd className="text-muted-foreground">Con {employee.name}</dd>
+                        </div>
+                    )}
                 </dl>
             )}
 
@@ -455,6 +461,7 @@ export function BookingFlow({
     const { service, date, slot, employee: chosenEmployee } = draft;
 
     const onChooseService = (next: Service) => setDraft((d) => chooseService(d, next));
+    const onChooseEmployee = (next: ChosenEmployee | null) => setDraft((d) => chooseEmployee(d, next));
 
     const canAdvance =
         (step === 'service' && !!service) ||
@@ -585,19 +592,8 @@ export function BookingFlow({
             {/* pb-32 en mobile deja aire para la barra fija de abajo. */}
             <div className="mx-auto w-full max-w-[1400px] px-4 pb-32 sm:px-8 lg:px-16 lg:pb-24">
                 <div className="grid items-start gap-10 lg:grid-cols-[1fr_400px]">
-                    <div>
+                    <div className="min-w-0">
                         <Breadcrumb step={step} locked={locked} onGo={goTo} />
-                        {chosenEmployee && (
-                            <p className="mt-4 flex items-center gap-2.5 text-[14px] font-semibold">
-                                <Avatar>
-                                    {chosenEmployee.imageUrl && <AvatarImage src={chosenEmployee.imageUrl} alt="" />}
-                                    <AvatarFallback className="bg-muted text-[10px] font-extrabold text-foreground">
-                                        {initials(chosenEmployee.name)}
-                                    </AvatarFallback>
-                                </Avatar>
-                                Reservás con {chosenEmployee.name}
-                            </p>
-                        )}
                         {/* La key cruza el formulario con el paso del código: uno sale y el otro entra. */}
                         <ViewTransition key={codeOpen ? 'code' : 'steps'} enter="step-in" exit="step-out" default="none">
                             <div>
@@ -625,18 +621,29 @@ export function BookingFlow({
                                         )}
 
                                         {step === 'time' && service && (
-                                            <TimeStep
-                                                key={service.id}
-                                                service={service}
-                                                date={date}
-                                                slot={slot}
-                                                notice={slotNotice}
-                                                employeeId={chosenEmployee?.id}
-                                                hostName={host.name}
-                                                onSelect={(nextDate, nextSlot) =>
-                                                    setDraft((d) => ({ ...d, date: nextDate, slot: nextSlot }))
-                                                }
-                                            />
+                                            <>
+                                                {service.employees.length > 1 && (
+                                                    <div className="mb-6">
+                                                        <EmployeePicker
+                                                            employees={service.employees}
+                                                            value={chosenEmployee}
+                                                            onChange={onChooseEmployee}
+                                                        />
+                                                    </div>
+                                                )}
+                                                <TimeStep
+                                                    key={`${service.id}-${chosenEmployee?.id ?? 'any'}`}
+                                                    service={service}
+                                                    date={date}
+                                                    slot={slot}
+                                                    notice={slotNotice}
+                                                    employeeId={chosenEmployee?.id}
+                                                    hostName={host.name}
+                                                    onSelect={(nextDate, nextSlot) =>
+                                                        setDraft((d) => ({ ...d, date: nextDate, slot: nextSlot }))
+                                                    }
+                                                />
+                                            </>
                                         )}
 
                                         {step === 'confirm' && service && (
