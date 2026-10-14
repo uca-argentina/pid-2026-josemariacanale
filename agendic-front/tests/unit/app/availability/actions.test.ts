@@ -2,14 +2,17 @@ import {
     createAvailabilityAction,
     deleteAvailabilityAction,
     makeAvailabilityDefaultAction,
+    previewAvailabilityAction,
     saveAvailabilityAction,
 } from '@/app/(app)/availability/actions';
 import { UnauthenticatedError } from '@/src/entities/errors/auth';
 import { AvailabilityRuleError } from '@/src/entities/errors/availability';
 import { ApiRequestError, InputParseError, NotFoundError } from '@/src/entities/errors/common';
+import { LeftOutsideBookingsChangedError } from '@/src/entities/errors/out-of-office';
 
 const mockControllers: Record<string, jest.Mock> = {
     ICreateAvailabilityController: jest.fn(),
+    IPreviewUpdateAvailabilityController: jest.fn(),
     IUpdateAvailabilityController: jest.fn(),
     IMakeAvailabilityDefaultController: jest.fn(),
     IDeleteAvailabilityController: jest.fn(),
@@ -39,15 +42,11 @@ const content = {
 beforeEach(() => {
     jest.clearAllMocks();
     Object.values(mockControllers).forEach((controller) => controller.mockResolvedValue(undefined));
+    mockControllers.IUpdateAvailabilityController.mockResolvedValue({ cancelledBookings: 0 });
 });
 
 describe.each([
     ['createAvailabilityAction', 'ICreateAvailabilityController', () => createAvailabilityAction('Verano', 'UTC')],
-    [
-        'saveAvailabilityAction',
-        'IUpdateAvailabilityController',
-        () => saveAvailabilityAction({ availabilityId: 7, name: 'Verano', ...content, makeDefault: false }),
-    ],
     ['makeAvailabilityDefaultAction', 'IMakeAvailabilityDefaultController', () => makeAvailabilityDefaultAction(7)],
     ['deleteAvailabilityAction', 'IDeleteAvailabilityController', () => deleteAvailabilityAction(7)],
 ])('%s', (_name, controller, run) => {
@@ -95,13 +94,19 @@ describe.each([
 describe('saveAvailabilityAction', () => {
     it('sends the whole content to the update, not the makeDefault flag', async () => {
         await saveAvailabilityAction({ availabilityId: 7, name: 'Verano', ...content, makeDefault: false });
-        expect(mockControllers.IUpdateAvailabilityController).toHaveBeenCalledWith({ availabilityId: 7, name: 'Verano', ...content });
+        expect(mockControllers.IUpdateAvailabilityController).toHaveBeenCalledWith({
+            availabilityId: 7,
+            name: 'Verano',
+            ...content,
+            cancelBookingIds: undefined,
+        });
         expect(mockControllers.IMakeAvailabilityDefaultController).not.toHaveBeenCalled();
     });
 
     it('marks it default after updating when asked', async () => {
         await expect(saveAvailabilityAction({ availabilityId: 7, name: 'Verano', ...content, makeDefault: true })).resolves.toEqual({
             ok: true,
+            cancelledBookings: 0,
         });
         expect(mockControllers.IMakeAvailabilityDefaultController).toHaveBeenCalledWith({ availabilityId: 7 });
     });
@@ -122,5 +127,65 @@ describe('saveAvailabilityAction', () => {
             message: 'Guardamos los cambios, pero no pudimos marcarlas como predeterminadas. Intentá de nuevo.',
         });
         expect(mockControllers.IUpdateAvailabilityController).toHaveBeenCalled();
+    });
+});
+
+const inputs = { availabilityId: 7, name: 'Verano', ...content };
+const booking = { id: 9, serviceName: 'Corte' };
+
+describe.each([
+    ['previewAvailabilityAction', 'IPreviewUpdateAvailabilityController', () => previewAvailabilityAction(inputs)],
+    ['saveAvailabilityAction', 'IUpdateAvailabilityController', () => saveAvailabilityAction({ ...inputs, makeDefault: false })],
+])('%s errors', (_name, controller, run) => {
+    it('sends the Usuario to sign-in when the Sesión expired', async () => {
+        mockControllers[controller].mockRejectedValue(new UnauthenticatedError('no'));
+        await expect(run()).rejects.toThrow('REDIRECT:');
+    });
+
+    it.each([
+        [new AvailabilityRuleError('Dos Franjas del mismo día se solapan'), 'Dos Franjas del mismo día se solapan', false],
+        [new NotFoundError('404'), 'Estas horas laborables ya no existen. Actualizamos la lista.', true],
+        [new InputParseError('bad'), 'Revisá los datos e intentá de nuevo.', false],
+    ])('maps %p to its message without opening the dialog', async (error, message, refreshes) => {
+        mockControllers[controller].mockRejectedValue(error);
+        await expect(run()).resolves.toEqual({ ok: false, message });
+        expect(mockReport).not.toHaveBeenCalled();
+        expect(mockRefresh).toHaveBeenCalledTimes(refreshes ? 1 : 0);
+    });
+
+    it('reports an unexpected error and answers with a generic message', async () => {
+        const error = new ApiRequestError('boom', { status: 500 });
+        mockControllers[controller].mockRejectedValue(error);
+        await expect(run()).resolves.toMatchObject({ ok: false, message: expect.any(String) });
+        expect(mockReport).toHaveBeenCalledWith(error);
+    });
+});
+
+describe('previewAvailabilityAction', () => {
+    it('sends the whole content and answers the Turnos without refreshing the page', async () => {
+        mockControllers.IPreviewUpdateAvailabilityController.mockResolvedValue([booking]);
+        await expect(previewAvailabilityAction(inputs)).resolves.toEqual({ ok: true, bookings: [booking] });
+        expect(mockControllers.IPreviewUpdateAvailabilityController).toHaveBeenCalledWith(inputs);
+        expect(mockRefresh).not.toHaveBeenCalled();
+    });
+});
+
+describe('saveAvailabilityAction with Turnos that quedan afuera', () => {
+    it('sends the confirmed Turno ids, refreshes the page and answers how many were cancelled', async () => {
+        mockControllers.IUpdateAvailabilityController.mockResolvedValue({ cancelledBookings: 2 });
+        await expect(saveAvailabilityAction({ ...inputs, makeDefault: false }, [9, 11])).resolves.toEqual({
+            ok: true,
+            cancelledBookings: 2,
+        });
+        expect(mockControllers.IUpdateAvailabilityController).toHaveBeenCalledWith({ ...inputs, cancelBookingIds: [9, 11] });
+        expect(mockRefresh).toHaveBeenCalledTimes(1);
+    });
+
+    it('answers leftOutChanged on the 409 of Turnos without refreshing or marking it default', async () => {
+        mockControllers.IUpdateAvailabilityController.mockRejectedValue(new LeftOutsideBookingsChangedError('cambiaron'));
+        await expect(saveAvailabilityAction({ ...inputs, makeDefault: true }, [9])).resolves.toEqual({ ok: false, leftOutChanged: true });
+        expect(mockRefresh).not.toHaveBeenCalled();
+        expect(mockReport).not.toHaveBeenCalled();
+        expect(mockControllers.IMakeAvailabilityDefaultController).not.toHaveBeenCalled();
     });
 });

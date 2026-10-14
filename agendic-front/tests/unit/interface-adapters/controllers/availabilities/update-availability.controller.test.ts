@@ -9,14 +9,22 @@ const body = { availabilityId: 7, name: 'Verano', timeZone: 'UTC', schedule, ove
 
 describe('updateAvailabilityController', () => {
     it('runs the use case with the whole body', async () => {
-        const useCase = jest.fn().mockResolvedValue(undefined);
+        const useCase = jest.fn().mockResolvedValue({ cancelledBookings: 0 });
         await updateAvailabilityController(instrumentation, signedIn, useCase)(body);
         expect(useCase).toHaveBeenCalledWith(body);
+    });
+
+    it('passes the confirmed Turno ids and answers how many were cancelled', async () => {
+        const useCase = jest.fn().mockResolvedValue({ cancelledBookings: 2, extra: 'no' });
+        const confirmed = { ...body, cancelBookingIds: [4, 5] };
+        await expect(updateAvailabilityController(instrumentation, signedIn, useCase)(confirmed)).resolves.toEqual({ cancelledBookings: 2 });
+        expect(useCase).toHaveBeenCalledWith(confirmed);
     });
 
     it.each([
         { ...body, availabilityId: 0 },
         { ...body, name: '  ' },
+        { ...body, cancelBookingIds: [0] },
         { ...body, schedule: [[]] },
         { ...body, schedule: [[{ start: '9', end: '13:00' }], [], [], [], [], [], []] },
         { availabilityId: 7, name: 'Verano' },

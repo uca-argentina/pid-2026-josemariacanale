@@ -1,6 +1,7 @@
 import { UnauthenticatedError } from '@/src/entities/errors/auth';
 import { AvailabilityRuleError } from '@/src/entities/errors/availability';
 import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
+import { LeftOutsideBookingsChangedError } from '@/src/entities/errors/out-of-office';
 import { AvailabilitiesRepository } from '@/src/infrastructure/repositories/availabilities.repository';
 import { authWith } from '@/tests/unit/stubs';
 
@@ -101,24 +102,97 @@ describe('AvailabilitiesRepository.createAvailability', () => {
     });
 });
 
+const leftOutside = {
+    id: 9,
+    startsAt: '2026-10-12T13:00:00.000Z',
+    endsAt: '2026-10-12T14:00:00.000Z',
+    timeZone: 'America/Argentina/Buenos_Aires',
+    serviceName: 'Corte',
+    clientName: 'Ana',
+    business: { id: 1, name: 'Spa' },
+    branch: { id: 2, name: 'Centro' },
+    cancellationCause: 'SCHEDULE_CHANGE',
+    cancellationReason: 'Cambió el horario de quien te atiende',
+};
+
+describe('AvailabilitiesRepository.previewUpdateAvailability', () => {
+    const body = { name: detail.name, timeZone: detail.timeZone, schedule: detail.schedule, overrides: detail.overrides };
+
+    it('POSTs the body to the preview without the id in it and parses the Turnos', async () => {
+        const fetchSpy = respond(200, [leftOutside]);
+
+        await expect(repo().previewUpdateAvailability({ availabilityId: 10, ...body })).resolves.toEqual([leftOutside]);
+        expect(fetchSpy).toHaveBeenCalledWith(
+            'http://api/availabilities/10/preview',
+            expect.objectContaining({ method: 'POST', body: JSON.stringify(body) }),
+        );
+    });
+
+    it('returns an empty list when nothing is left outside', async () => {
+        respond(200, []);
+        await expect(repo().previewUpdateAvailability({ availabilityId: 10, ...body })).resolves.toEqual([]);
+    });
+
+    it('translates a 404 to NotFoundError and a 422 to AvailabilityRuleError', async () => {
+        respond(404, { message: 'no existe' });
+        await expect(repo().previewUpdateAvailability({ availabilityId: 10, ...body })).rejects.toBeInstanceOf(NotFoundError);
+        jest.restoreAllMocks();
+        respond(422, { message: 'El miércoles tiene un rango que no termina después de empezar' });
+        await expect(repo().previewUpdateAvailability({ availabilityId: 10, ...body })).rejects.toBeInstanceOf(AvailabilityRuleError);
+    });
+
+    it('translates a 401 to UnauthenticatedError', async () => {
+        respond(401, { message: 'no' });
+        await expect(repo().previewUpdateAvailability({ availabilityId: 10, ...body })).rejects.toBeInstanceOf(UnauthenticatedError);
+    });
+
+    it('fails with ApiRequestError keeping the cause on an unexpected body', async () => {
+        respond(200, [{ id: 'x' }]);
+        const error = await repo()
+            .previewUpdateAvailability({ availabilityId: 10, ...body })
+            .catch((e) => e);
+        expect(error).toBeInstanceOf(ApiRequestError);
+        expect(error.cause).toBeDefined();
+    });
+});
+
 describe('AvailabilitiesRepository.updateAvailability', () => {
     const body = { name: detail.name, timeZone: detail.timeZone, schedule: detail.schedule, overrides: detail.overrides };
 
-    it('PUTs the whole body without the id', async () => {
-        const fetchSpy = respond(200, detail);
+    it('PUTs the whole body without the id, with the confirmed Turnos, and reads how many were cancelled', async () => {
+        const fetchSpy = respond(200, { ...detail, cancelledBookings: 2 });
 
-        await repo().updateAvailability({ availabilityId: 10, ...body });
+        await expect(repo().updateAvailability({ availabilityId: 10, ...body, cancelBookingIds: [9, 11] })).resolves.toEqual({
+            cancelledBookings: 2,
+        });
         expect(fetchSpy).toHaveBeenCalledWith(
             'http://api/availabilities/10',
-            expect.objectContaining({ method: 'PUT', body: JSON.stringify(body) }),
+            expect.objectContaining({ method: 'PUT', body: JSON.stringify({ ...body, cancelBookingIds: [9, 11] }) }),
         );
     });
 
     it('translates a 404 to NotFoundError and a 422 to AvailabilityRuleError', async () => {
         respond(404, { message: 'no existe' });
         await expect(repo().updateAvailability({ availabilityId: 10, ...body })).rejects.toBeInstanceOf(NotFoundError);
+        jest.restoreAllMocks();
         respond(422, { message: 'El miércoles tiene un rango que no termina después de empezar' });
         await expect(repo().updateAvailability({ availabilityId: 10, ...body })).rejects.toBeInstanceOf(AvailabilityRuleError);
+    });
+
+    it('translates the 409 of Turnos to LeftOutsideBookingsChangedError', async () => {
+        respond(409, { message: 'Los Turnos que quedan fuera de tu horario cambiaron' });
+        await expect(repo().updateAvailability({ availabilityId: 10, ...body, cancelBookingIds: [9] })).rejects.toBeInstanceOf(
+            LeftOutsideBookingsChangedError,
+        );
+    });
+
+    it('fails with ApiRequestError keeping the cause on an unexpected body', async () => {
+        respond(200, { cancelledBookings: 'x' });
+        const error = await repo()
+            .updateAvailability({ availabilityId: 10, ...body })
+            .catch((e) => e);
+        expect(error).toBeInstanceOf(ApiRequestError);
+        expect(error.cause).toBeDefined();
     });
 });
 

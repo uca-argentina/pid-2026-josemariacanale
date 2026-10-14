@@ -1,11 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { FormProvider, useForm, useWatch } from 'react-hook-form';
 import { ArrowLeft, Pencil, Trash2 } from 'lucide-react';
 import { cn } from '@/app/_components/utils';
 import { Button } from '@/app/_components/ui/button';
 import { Switch } from '@/app/_components/ui/switch';
+import { LeftOutsideBookingsDialog } from '@/app/(app)/_components/LeftOutsideBookingsDialog';
+import { useLeftOutsideSave } from '@/app/(app)/_components/use-left-outside-save';
 import { PanelButton, PanelConfirm, PanelSection } from '@/app/(app)/_components/panel-ui';
 import {
     fromFormSchedule,
@@ -14,6 +16,7 @@ import {
 } from '@/app/(app)/_components/availability-week';
 import type { AvailabilityDetail } from '@/src/entities/models/availability';
 import type { Preferences } from '@/src/entities/models/user';
+import type { PreviewAvailabilityResult, SaveAvailabilityResult } from '../actions';
 import type { AvailabilityDraft } from './AvailabilityView';
 import { OverridesSection } from './OverridesSection';
 import { ScheduleComponent, type ScheduleFormValues } from './ScheduleComponent';
@@ -56,20 +59,34 @@ function NameField({ name, onChange }: { name: string; onChange: (name: string) 
 /**
  * Edita nombre, zona horaria, Franjas por día, Anulaciones y si son las predeterminadas. "Guardar" manda
  * todo junto; no deja guardar si una Franja es vacía, invertida o se solapa con otra del mismo día.
+ *
+ * Si guardar deja Turnos afuera de las Franjas, abre el diálogo para confirmar su cancelación; "Volver" lo cierra
+ * y deja el editor con los cambios sin guardar. Sin Turnos afuera, guarda directo.
+ *
+ * @param onPreview pide los Turnos que guardar `draft` dejaría afuera
+ * @param onSave guarda `draft` y cancela los Turnos de `cancelBookingIds`
+ * @param onSaved se llama al guardar, con el nombre guardado y cuántos Turnos se cancelaron
+ * @param onError se llama con el mensaje de un fallo de la vista previa o del guardado
  */
 export function AvailabilityEditor({
     availability,
     preferences,
     busy,
     onBack,
+    onPreview,
     onSave,
+    onSaved,
+    onError,
     onDelete,
 }: {
     availability: AvailabilityDetail;
     preferences: Preferences;
     busy: boolean;
     onBack: () => void;
-    onSave: (draft: AvailabilityDraft) => Promise<boolean>;
+    onPreview: (draft: AvailabilityDraft) => Promise<PreviewAvailabilityResult>;
+    onSave: (draft: AvailabilityDraft, cancelBookingIds: number[]) => Promise<SaveAvailabilityResult>;
+    onSaved: (name: string, cancelledBookings: number) => void;
+    onError: (message: string) => void;
     onDelete: () => void;
 }) {
     const initial = {
@@ -87,13 +104,28 @@ export function AvailabilityEditor({
     const dirty = JSON.stringify(draft) !== JSON.stringify(saved) || form.formState.isDirty;
     const valid = draft.name.trim() !== '' && weekValid(schedule);
 
-    const save = async () => {
+    /** Lo que se mandó a guardar, para dejar el editor limpio con eso si el guardado sale bien. */
+    const submitted = useRef<typeof draft | null>(null);
+    const leftOutside = useLeftOutsideSave<AvailabilityDraft>({
+        preview: onPreview,
+        save: onSave,
+        onSaved: (cancelledBookings) => {
+            const next = submitted.current;
+            if (next) {
+                setSaved(next);
+                setDraft(next);
+                form.reset(form.getValues());
+                onSaved(next.name, cancelledBookings);
+            }
+        },
+        onError,
+    });
+    const working = busy || leftOutside.isPending;
+
+    const save = () => {
         const next = { ...draft, name: draft.name.trim() };
-        if (await onSave({ ...next, schedule })) {
-            setSaved(next);
-            setDraft(next);
-            form.reset(form.getValues());
-        }
+        submitted.current = next;
+        leftOutside.run({ ...next, schedule });
     };
 
     return (
@@ -125,12 +157,12 @@ export function AvailabilityEditor({
                         aria-label="Eliminar"
                         title="Eliminar"
                         className="text-destructive hover:text-destructive"
-                        disabled={busy}
+                        disabled={working}
                         onClick={() => setConfirmDelete(true)}
                     >
                         <Trash2 />
                     </Button>
-                    <PanelButton className="px-4" disabled={!dirty || !valid || busy} onClick={save}>
+                    <PanelButton className="px-4" disabled={!dirty || !valid || working} onClick={save}>
                         Guardar
                     </PanelButton>
                 </div>
@@ -146,7 +178,7 @@ export function AvailabilityEditor({
                     <OverridesSection
                         overrides={draft.overrides}
                         preferences={preferences}
-                        busy={busy}
+                        busy={working}
                         onChange={(overrides) => setDraft((d) => ({ ...d, overrides }))}
                     />
                 </div>
@@ -162,6 +194,15 @@ export function AvailabilityEditor({
                 </aside>
             </div>
 
+            {leftOutside.review && (
+                <LeftOutsideBookingsDialog
+                    bookings={leftOutside.review}
+                    timeFormat={preferences.timeFormat}
+                    pending={leftOutside.isPending}
+                    onBack={leftOutside.back}
+                    onConfirm={leftOutside.confirm}
+                />
+            )}
             <PanelConfirm
                 open={confirmLeave}
                 onOpenChange={setConfirmLeave}
