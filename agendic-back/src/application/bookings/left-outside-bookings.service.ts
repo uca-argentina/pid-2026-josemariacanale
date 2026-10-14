@@ -33,6 +33,8 @@ export interface LeftOutsideBooking extends UpcomingBooking {
 
 const DAY_MS = 86_400_000;
 
+const isoDay = (date: Date) => date.toISOString().slice(0, 10);
+
 /**
  * Arma el horario de un Usuario antes y después de un cambio y devuelve los Turnos que el cambio deja afuera (ADR 0034),
  * cada uno con su Causa y su Motivo de cancelación. Es lo que usan la vista previa y la escritura de cada tipo de cambio;
@@ -134,12 +136,18 @@ export class LeftOutsideBookingsService {
     if (upcoming.length === 0) return [];
 
     // A day either side (wider than any UTC offset) keeps every local date of the Turnos inside the range.
-    const firstDate = isoDay(new Date(upcoming[0].startsAt.getTime() - DAY_MS));
-    const lastStart = Math.max(...upcoming.map(({ startsAt }) => startsAt.getTime()));
+    const { first, last } = upcoming.reduce(
+      (range, { startsAt }) => ({
+        first: Math.min(range.first, startsAt.getTime()),
+        last: Math.max(range.last, startsAt.getTime()),
+      }),
+      { first: Infinity, last: -Infinity },
+    );
+    const firstDate = isoDay(new Date(first - DAY_MS));
     const [user, existing, holidays] = await Promise.all([
       this.users.findById(userId),
       this.outOfOffice.listByUserEndingFrom(userId, firstDate),
-      this.holidayPeriods.execute(userId, firstDate, isoDay(new Date(lastStart + 2 * DAY_MS))),
+      this.holidayPeriods.execute(userId, firstDate, isoDay(new Date(last + 2 * DAY_MS))),
     ]);
     if (!user) throw new NotFoundError(`User ${userId} not found`);
 
@@ -160,5 +168,3 @@ export class LeftOutsideBookingsService {
     }));
   }
 }
-
-const isoDay = (date: Date) => date.toISOString().slice(0, 10);

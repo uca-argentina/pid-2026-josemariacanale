@@ -87,6 +87,11 @@ export class PrismaAvailabilitiesRepository implements AvailabilitiesRepository 
       .catch(translateError);
   }
 
+  /**
+   * @throws {NotFoundError} la Availability no existe
+   * @throws {BusinessRuleError} dos rangos de una Anulación se solapan
+   * @throws {DatabaseOperationError} la base falló
+   */
   async replaceCancelling(
     id: number,
     data: AvailabilityFields,
