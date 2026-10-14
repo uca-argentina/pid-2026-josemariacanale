@@ -1,3 +1,4 @@
+import { CausedCancellationOrder } from '../bookings/booking';
 import {
   Availability,
   AvailabilityFields,
@@ -17,6 +18,17 @@ export interface AvailabilitiesRepository {
   ): Promise<Availability>;
   /** Replaces all its Franjas and Anulaciones, atomically. */
   replace(id: number, data: AvailabilityFields): Promise<Availability>;
+  /**
+   * As `replace`, and in the same transaction cancels the Turnos of `cancellations` (ADR 0034) that are still PENDING or
+   * BOOKED and have not started by `now`: CANCELLED, `cancelledAt` = `now`, `cancelledBy` EMPLOYEE, with each one's Motivo
+   * de cancelación and Causa. Returns the Availability and the ids it really cancelled. If either write fails, neither stays.
+   */
+  replaceCancelling(
+    id: number,
+    data: AvailabilityFields,
+    cancellations: CausedCancellationOrder[],
+    now: Date,
+  ): Promise<{ availability: Availability; cancelledIds: number[] }>;
   /** Unmarks the Usuario's current default and marks this one, atomically. */
   makeDefault(id: number): Promise<Availability>;
   /** How many Servicios use it. */

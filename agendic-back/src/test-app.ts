@@ -235,6 +235,7 @@ export async function createTestApp() {
     findById: jest.fn(),
     create: jest.fn(),
     replace: jest.fn(),
+    replaceCancelling: jest.fn(),
     makeDefault: jest.fn(),
     countServices: jest.fn(),
     delete: jest.fn(),

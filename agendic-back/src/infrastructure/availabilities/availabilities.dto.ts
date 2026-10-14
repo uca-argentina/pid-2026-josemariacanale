@@ -4,6 +4,7 @@ import {
   ArrayMinSize,
   IsArray,
   IsBoolean,
+  IsInt,
   IsOptional,
   IsString,
   Matches,
@@ -60,4 +61,12 @@ export class UpdateAvailabilityDto extends CreateAvailabilityDto {
   @ValidateNested({ each: true })
   @Type(() => OverrideDto)
   overrides!: OverrideDto[];
+}
+
+/** Body of PUT: the Availability, plus the Turnos the Usuario confirmed to cancel after seeing the vista previa. */
+export class ConfirmedAvailabilityDto extends UpdateAvailabilityDto {
+  @IsOptional()
+  @IsArray()
+  @IsInt({ each: true })
+  cancelBookingIds?: number[];
 }

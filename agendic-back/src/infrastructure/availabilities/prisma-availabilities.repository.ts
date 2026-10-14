@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { CausedCancellationOrder } from '../../domain/bookings/booking';
 import { AvailabilitiesRepository } from '../../domain/availabilities/availabilities.repository';
 import {
   Availability,
@@ -20,6 +21,7 @@ import {
   AvailabilityOverride as AvailabilityOverrideRow,
   Prisma,
 } from '../../generated/prisma/client';
+import { cancelCaused } from '../bookings/cancel-caused';
 import { fromTime, toTime } from '../branches/prisma-branches.repository';
 import { isExclusionViolation } from '../prisma-errors';
 import { PrismaService } from '../prisma.service';
@@ -81,28 +83,21 @@ export class PrismaAvailabilitiesRepository implements AvailabilitiesRepository 
   /** Deletes the old rows before writing the new ones, or the Anulaciones would clash with themselves. */
   async replace(id: number, data: AvailabilityFields) {
     return this.prisma
-      .$transaction(async (tx) => {
-        await tx.availabilityInterval.deleteMany({
-          where: { availabilityId: id },
-        });
-        await tx.availabilityOverride.deleteMany({
-          where: { availabilityId: id },
-        });
-        return toAvailability(
-          await tx.availability.update({
-            where: { id },
-            data: {
-              name: data.name,
-              timeZone: data.timeZone,
-              intervals: {
-                create: toIntervalRows(data.schedule),
-              },
-              overrides: { create: data.overrides.flatMap(toOverrideRows) },
-            },
-            include: WITH_SCHEDULE,
-          }),
-        );
-      })
+      .$transaction((tx) => replaceRows(tx, id, data))
+      .catch(translateError);
+  }
+
+  async replaceCancelling(
+    id: number,
+    data: AvailabilityFields,
+    cancellations: CausedCancellationOrder[],
+    now: Date,
+  ) {
+    return this.prisma
+      .$transaction(async (tx) => ({
+        availability: await replaceRows(tx, id, data),
+        cancelledIds: await cancelCaused(tx, cancellations, now),
+      }))
       .catch(translateError);
   }
 
@@ -153,6 +148,28 @@ export class PrismaAvailabilitiesRepository implements AvailabilitiesRepository 
       });
   }
 }
+
+/** Deletes the old rows before writing the new ones, or the Anulaciones would clash with themselves. */
+const replaceRows = async (
+  tx: Prisma.TransactionClient,
+  id: number,
+  data: AvailabilityFields,
+) => {
+  await tx.availabilityInterval.deleteMany({ where: { availabilityId: id } });
+  await tx.availabilityOverride.deleteMany({ where: { availabilityId: id } });
+  return toAvailability(
+    await tx.availability.update({
+      where: { id },
+      data: {
+        name: data.name,
+        timeZone: data.timeZone,
+        intervals: { create: toIntervalRows(data.schedule) },
+        overrides: { create: data.overrides.flatMap(toOverrideRows) },
+      },
+      include: WITH_SCHEDULE,
+    }),
+  );
+};
 
 /** The Franjas as rows: the days with equal hours share one. */
 export const toIntervalRows = (schedule: Schedule) =>
