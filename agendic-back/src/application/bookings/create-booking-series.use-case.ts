@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import {
   AVAILABILITIES_REPOSITORY,
   AvailabilitiesRepository,
@@ -46,6 +46,8 @@ import { ListSeriesSlotsUseCase } from '../slots/list-series-slots.use-case';
 import { assertBookable } from './assert-booking-rules';
 import { freeCabinsInOrder } from './pick-cabin';
 
+const logger = new Logger('CreateBookingSeries');
+
 /** La Serie reservada: el primer Turno con el nombre de quien atiende, y los Enlaces de todos. */
 export type BookedSeries = Booking & {
   employeeName: string;
@@ -74,7 +76,7 @@ export class CreateBookingSeriesUseCase {
 
   /**
    * El código sigue valiendo para reintentar después de un 409, así que no se gasta. La Confirmación de reserva sale una
-   * sola vez, con el Enlace del primer Turno. Si `startsAt` mismo no es reservable responde 422 como un Turno suelto,
+   * sola vez, con todas las fechas y el Enlace de cada Turno; si el mail falla se loguea y la Serie queda creada. Si `startsAt` mismo no es reservable responde 422 como un Turno suelto,
    * aunque esté en `skipDates`.
    *
    * @throws {InvalidCodeError} el código no es válido para clientEmail en su ventana
@@ -169,11 +171,18 @@ export class CreateBookingSeriesUseCase {
     const attendingUser = employee ? null : await this.users.findById(userId);
     if (!employee && !attendingUser)
       throw new NotFoundError(`User ${userId} not found`);
-    await this.mailer.sendBookingConfirmation(
-      input.clientEmail,
-      first.link!,
-      first.depositAmount,
-    );
+    // The Serie is already saved: a mail that fails is logged, since a 500 would not undo it.
+    try {
+      await this.mailer.sendBookingConfirmation(input.clientEmail, first.link!, first.depositAmount, {
+        bookings: created.map(({ startsAt, link }) => ({ startsAt, link: link! })),
+        timeZone,
+      });
+    } catch (error) {
+      logger.error(
+        `Confirmación de reserva of Serie ${first.seriesId} to ${input.clientEmail} failed`,
+        error instanceof Error ? error.stack : String(error),
+      );
+    }
     return {
       ...first,
       employeeName: (employee ?? attendingUser!).name,

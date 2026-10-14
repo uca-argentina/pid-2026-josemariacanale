@@ -61,6 +61,7 @@ const CLIENT_BOOKED: ClientBooking = {
     coverUrl: null,
   },
   user: null,
+  series: null,
 };
 
 const AVAILABILITY: Availability = {
@@ -89,6 +90,31 @@ describe('Enlace del Turno', () => {
 
       expect(t.bookings.findByLink).toHaveBeenCalledWith(LINK);
       expect(res.body).toMatchObject({ id: BOOKED.id, status: 'BOOKED' });
+    });
+
+    it('un Turno suelto trae series null', async () => {
+      t.bookings.findByLink.mockResolvedValue(CLIENT_BOOKED);
+
+      const res = await t.http.get(`/booking-links/${LINK}`).expect(200);
+
+      expect(res.body.series).toBeNull();
+    });
+
+    it('un Turno de una Serie trae los Turnos de la Serie con su estado y su Enlace', async () => {
+      const turnos = [
+        { startsAt: new Date('2026-01-05T12:00:00Z'), status: BookingStatus.BOOKED, link: LINK },
+        { startsAt: new Date('2026-01-12T12:00:00Z'), status: BookingStatus.CANCELLED, link: 'otro' },
+      ];
+      t.bookings.findByLink.mockResolvedValue({ ...CLIENT_BOOKED, series: { bookings: turnos } });
+
+      const res = await t.http.get(`/booking-links/${LINK}`).expect(200);
+
+      expect(res.body.series).toEqual({
+        bookings: [
+          { startsAt: '2026-01-05T12:00:00.000Z', status: 'BOOKED', link: LINK },
+          { startsAt: '2026-01-12T12:00:00.000Z', status: 'CANCELLED', link: 'otro' },
+        ],
+      });
     });
 
     it('no expone la Cabina del Turno', async () => {

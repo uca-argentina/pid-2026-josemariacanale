@@ -48,6 +48,33 @@ describe('NodemailerMailer.sendBookingConfirmation', () => {
   });
 });
 
+describe('NodemailerMailer.sendBookingConfirmation de una Serie', () => {
+  const sendMail = jest.fn().mockResolvedValue(undefined);
+
+  beforeEach(() => {
+    process.env.FRONTEND_URL = 'http://localhost:3000';
+    (createTransport as jest.Mock).mockReturnValue({ sendMail });
+    sendMail.mockClear();
+  });
+
+  it('lista en un solo mail cada fecha en la zona del Turno con su Enlace', async () => {
+    await new NodemailerMailer().sendBookingConfirmation('a@b.com', 'uno', null, {
+      timeZone: 'America/Argentina/Buenos_Aires',
+      bookings: [
+        { startsAt: new Date('2026-01-05T12:00:00Z'), link: 'uno' },
+        { startsAt: new Date('2026-01-12T12:00:00Z'), link: 'dos' },
+      ],
+    });
+
+    expect(sendMail).toHaveBeenCalledTimes(1);
+    const { html } = sendMail.mock.calls[0][0];
+    expect(html).toContain('http://localhost:3000/turnos/uno');
+    expect(html).toContain('http://localhost:3000/turnos/dos');
+    expect(html).toContain('9:00');
+    expect(html.match(/<li>/g)).toHaveLength(2);
+  });
+});
+
 describe('NodemailerMailer.sendRatingRequest', () => {
   const sendMail = jest.fn().mockResolvedValue(undefined);
 

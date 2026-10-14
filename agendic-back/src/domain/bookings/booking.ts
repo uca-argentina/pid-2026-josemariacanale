@@ -132,6 +132,15 @@ export interface ClientBooking extends Booking {
   } | null;
   /** The Enlace de reserva del Usuario that attends a Servicio personal. Null in a Servicio del Negocio. */
   user: { slug: string | null } | null;
+  /** The Turnos vigentes of its Serie (#304) by date, itself included, without the originals replaced by Reagendar. Null in a Turno suelto. */
+  series: { bookings: SeriesTurno[] } | null;
+}
+
+/** A Turno of a Serie as the Enlace del Turno lists it, with the Enlace del Turno to open it. */
+export interface SeriesTurno {
+  startsAt: Date;
+  status: BookingStatus;
+  link: string;
 }
 
 export interface CreateBookingInput {

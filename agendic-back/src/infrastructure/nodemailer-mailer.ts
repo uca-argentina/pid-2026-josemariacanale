@@ -40,16 +40,41 @@ export class NodemailerMailer implements Mailer {
     });
   }
 
-  /** Avisa que el Turno quedó creado; con Seña, suma el monto y dice que se paga desde el Enlace del Turno. */
+  /**
+   * Avisa que el Turno quedó creado; con Seña, suma el monto y dice que se paga desde el Enlace del Turno. De una Serie
+   * lista cada fecha, en la zona del Turno, con su Enlace.
+   */
   async sendBookingConfirmation(
     email: string,
     link: string,
     depositAmount: number | null,
+    series?: { bookings: { startsAt: Date; link: string }[]; timeZone: string },
   ) {
     const deposit =
       depositAmount === null
         ? ''
         : ` Seña: ${depositAmount.toFixed(2)}. You can pay it from the same link.`;
+    if (series) {
+      const when = new Intl.DateTimeFormat('es-AR', {
+        dateStyle: 'full',
+        timeStyle: 'short',
+        hourCycle: 'h23',
+        timeZone: series.timeZone,
+      });
+      const items = series.bookings
+        .map(({ startsAt, link: turnoLink }) => {
+          const url = `${this.frontendUrl}/turnos/${turnoLink}`;
+          return `<li>${when.format(startsAt)}: <a href="${url}">${url}</a></li>`;
+        })
+        .join('');
+      await this.transporter.sendMail({
+        from: process.env.SMTP_FROM,
+        to: email,
+        subject: 'Your bookings are confirmed',
+        html: `<p>Your Turnos are confirmed.${deposit} Manage each one from its link:</p><ul>${items}</ul>`,
+      });
+      return;
+    }
     await this.sendBookingMail(
       email,
       link,
