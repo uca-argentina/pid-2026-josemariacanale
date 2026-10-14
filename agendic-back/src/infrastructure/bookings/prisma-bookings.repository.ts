@@ -31,6 +31,7 @@ import {
   BOOKING_NO_OVERLAP,
   isExclusionViolation,
 } from '../prisma-errors';
+import { HistoryBooking } from '../../domain/bookings/booking-history';
 import { PrismaService } from '../prisma.service';
 
 /** Statuses that hold a Usuario's horario, as the Booking_no_overlap constraint does. */
@@ -81,6 +82,15 @@ const PANEL_BOOKING_SELECT = {
 type PanelBookingRow = Prisma.BookingGetPayload<{
   select: typeof PANEL_BOOKING_SELECT;
 }>;
+
+/** `BOOKING_SELECT` plus when it was created and its Calificación, for the Historial del Turno. */
+const HISTORY_SELECT = {
+  ...BOOKING_SELECT,
+  createdAt: true,
+  rating: { select: { score: true, comment: true, createdAt: true } },
+} satisfies Prisma.BookingSelect;
+
+type HistoryRow = Prisma.BookingGetPayload<{ select: typeof HISTORY_SELECT }>;
 
 /** `BOOKING_SELECT` plus the Servicio, Negocio and Sucursal data the Enlace del Turno shows (ADR 0022). */
 const CLIENT_BOOKING_SELECT = {
@@ -321,6 +331,25 @@ export class PrismaBookingsRepository implements BookingsRepository {
       .catch(translateError);
     if (!row) throw new NotFoundError('Booking not found');
     return toBooking(row);
+  }
+
+  /**
+   * Recorre `fromRescheduleId` hacia atrás hasta el primer Turno de la cadena.
+   *
+   * @throws {NotFoundError} el Turno no existe
+   */
+  async findHistoryChain(id: number): Promise<HistoryBooking[]> {
+    const chain: HistoryBooking[] = [];
+    let nextId: number | null = id;
+    while (nextId !== null) {
+      const row: HistoryRow | null = await this.prisma.booking
+        .findUnique({ where: { id: nextId }, select: HISTORY_SELECT })
+        .catch(translateError);
+      if (!row) throw new NotFoundError('Booking not found');
+      chain.unshift({ ...toBooking(row), createdAt: row.createdAt, rating: row.rating });
+      nextId = row.fromRescheduleId;
+    }
+    return chain;
   }
 
   /**
