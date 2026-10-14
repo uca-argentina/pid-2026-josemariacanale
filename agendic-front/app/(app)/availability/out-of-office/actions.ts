@@ -96,12 +96,30 @@ export async function createOutOfOfficeAction(input: SaveOutOfOffice, cancelBook
     return { ok: true, cancelledBookings: result.value.cancelledBookings };
 }
 
-/** Guarda los datos de un período Fuera de la oficina. */
-export async function updateOutOfOfficeAction(outOfOfficeId: number, input: SaveOutOfOffice) {
-    return perform(
-        () => getInjection('IUpdateOutOfOfficeController')({ outOfOfficeId, ...input }),
+/** Los Turnos que editar este período Fuera de la oficina dejaría afuera. No guarda nada; ante un 404 refresca la página. */
+export async function previewUpdateOutOfOfficeAction(outOfOfficeId: number, input: SaveOutOfOffice): Promise<PreviewOutOfOfficeResult> {
+    const unexpected = 'No pudimos revisar tus Turnos. Intentá de nuevo.';
+    const result = await settle(() => getInjection('IPreviewUpdateOutOfOfficeController')({ outOfOfficeId, ...input }), unexpected);
+    if (result.ok) return { ok: true, bookings: result.value };
+    return 'message' in result ? result : { ok: false, message: unexpected };
+}
+
+/**
+ * Guarda los datos de un período Fuera de la oficina y cancela los Turnos de `cancelBookingIds`. Con el 409 de
+ * Turnos responde `leftOutChanged` y no refresca la página: nada se guardó.
+ */
+export async function updateOutOfOfficeAction(
+    outOfOfficeId: number,
+    input: SaveOutOfOffice,
+    cancelBookingIds?: number[],
+): Promise<CreateOutOfOfficeResult> {
+    const result = await settle(
+        () => getInjection('IUpdateOutOfOfficeController')({ outOfOfficeId, ...input, cancelBookingIds }),
         'No pudimos guardar el período. Intentá de nuevo.',
     );
+    if (!result.ok) return result;
+    refresh();
+    return { ok: true, cancelledBookings: result.value.cancelledBookings };
 }
 
 /** Borra un período Fuera de la oficina. */

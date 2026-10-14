@@ -17,6 +17,7 @@ import {
 import {
     outOfOfficeSchema,
     type ConfirmedOutOfOffice,
+    type ConfirmedUpdateOutOfOffice,
     type OutOfOffice,
     type SaveOutOfOffice,
     type UpdateOutOfOffice,
@@ -95,11 +96,37 @@ export class OutOfOfficeRepository implements IOutOfOfficeRepository {
      * @throws {NotFoundError} la API respondió 404
      * @throws {OutOfOfficeRuleError} la API respondió 422
      * @throws {OutOfOfficeConflictError} la API respondió 409
-     * @throws {ApiRequestError} falla de red u otro status no-OK
+     * @throws {ApiRequestError} falla de red, otro status no-OK o cuerpo inesperado
      */
-    async updateOutOfOffice({ outOfOfficeId, ...body }: UpdateOutOfOffice): Promise<void> {
+    async previewUpdateOutOfOffice({ outOfOfficeId, ...body }: UpdateOutOfOffice): Promise<LeftOutsideBooking[]> {
+        return this.instrumentationService.startSpan({ name: 'OutOfOfficeRepository > previewUpdateOutOfOffice', op: 'http.client' }, async () => {
+            const path = `/users/me/out-of-office/${outOfOfficeId}/preview`;
+            const json = await this.write('POST', path, body);
+            try {
+                return leftOutsideBookingSchema.array().parse(json);
+            } catch (cause) {
+                throw new ApiRequestError(`POST ${path} responded with an unexpected body`, { cause });
+            }
+        });
+    }
+
+    /**
+     * @throws {UnauthenticatedError} la API respondió 401
+     * @throws {NotFoundError} la API respondió 404
+     * @throws {OutOfOfficeRuleError} la API respondió 422
+     * @throws {OutOfOfficeConflictError} la API respondió 409 por fechas repetidas
+     * @throws {LeftOutsideBookingsChangedError} la API respondió 409 por Turnos que quedan afuera
+     * @throws {ApiRequestError} falla de red, otro status no-OK o cuerpo inesperado
+     */
+    async updateOutOfOffice({ outOfOfficeId, ...body }: ConfirmedUpdateOutOfOffice): Promise<CancelledBookings> {
         return this.instrumentationService.startSpan({ name: 'OutOfOfficeRepository > updateOutOfOffice', op: 'http.client' }, async () => {
-            await this.write('PUT', `/users/me/out-of-office/${outOfOfficeId}`, body);
+            const path = `/users/me/out-of-office/${outOfOfficeId}`;
+            const json = await this.write('PUT', path, body);
+            try {
+                return cancelledBookingsSchema.parse(json);
+            } catch (cause) {
+                throw new ApiRequestError(`PUT ${path} responded with an unexpected body`, { cause });
+            }
         });
     }
 

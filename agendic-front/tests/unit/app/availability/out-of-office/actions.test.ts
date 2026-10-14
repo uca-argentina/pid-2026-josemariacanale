@@ -2,6 +2,7 @@ import {
     createOutOfOfficeAction,
     deleteOutOfOfficeAction,
     previewOutOfOfficeAction,
+    previewUpdateOutOfOfficeAction,
     updateOutOfOfficeAction,
 } from '@/app/(app)/availability/out-of-office/actions';
 import { UnauthenticatedError } from '@/src/entities/errors/auth';
@@ -13,6 +14,7 @@ const mockControllers: Record<string, jest.Mock> = {
     IUpdateOutOfOfficeController: jest.fn(),
     IDeleteOutOfOfficeController: jest.fn(),
     IPreviewOutOfOfficeController: jest.fn(),
+    IPreviewUpdateOutOfOfficeController: jest.fn(),
 };
 const mockReport = jest.fn();
 const mockRefresh = jest.fn();
@@ -36,14 +38,15 @@ beforeEach(() => {
     jest.clearAllMocks();
     Object.values(mockControllers).forEach((controller) => controller.mockResolvedValue(undefined));
     mockControllers.ICreateOutOfOfficeController.mockResolvedValue({ cancelledBookings: 0 });
+    mockControllers.IUpdateOutOfOfficeController.mockResolvedValue({ cancelledBookings: 0 });
 });
 
 describe.each([
-    ['updateOutOfOfficeAction', 'IUpdateOutOfOfficeController', () => updateOutOfOfficeAction(7, input)],
-    ['deleteOutOfOfficeAction', 'IDeleteOutOfOfficeController', () => deleteOutOfOfficeAction(7)],
-])('%s', (_name, controller, run) => {
+    ['updateOutOfOfficeAction', 'IUpdateOutOfOfficeController', () => updateOutOfOfficeAction(7, input), { ok: true, cancelledBookings: 0 }],
+    ['deleteOutOfOfficeAction', 'IDeleteOutOfOfficeController', () => deleteOutOfOfficeAction(7), { ok: true }],
+])('%s', (_name, controller, run, success) => {
     it('calls its controller and refreshes the page', async () => {
-        await expect(run()).resolves.toEqual({ ok: true });
+        await expect(run()).resolves.toEqual(success);
         expect(mockControllers[controller]).toHaveBeenCalledTimes(1);
         expect(mockRefresh).toHaveBeenCalled();
     });
@@ -78,12 +81,6 @@ describe.each([
     });
 });
 
-describe('updateOutOfOfficeAction', () => {
-    it('sends the id together with the body', async () => {
-        await updateOutOfOfficeAction(7, input);
-        expect(mockControllers.IUpdateOutOfOfficeController).toHaveBeenCalledWith({ outOfOfficeId: 7, ...input });
-    });
-});
 
 const leftOutside = {
     id: 9,
@@ -153,5 +150,46 @@ describe('previewOutOfOfficeAction', () => {
     it('sends the Usuario to sign-in when the Sesión expired', async () => {
         mockControllers.IPreviewOutOfOfficeController.mockRejectedValue(new UnauthenticatedError('no'));
         await expect(previewOutOfOfficeAction(input)).rejects.toThrow('REDIRECT:');
+    });
+});
+
+describe('updateOutOfOfficeAction', () => {
+    it('sends the id and the confirmed ids with the body, refreshes and answers how many Turnos it cancelled', async () => {
+        mockControllers.IUpdateOutOfOfficeController.mockResolvedValue({ cancelledBookings: 2 });
+        await expect(updateOutOfOfficeAction(7, input, [4, 5])).resolves.toEqual({ ok: true, cancelledBookings: 2 });
+        expect(mockControllers.IUpdateOutOfOfficeController).toHaveBeenCalledWith({ outOfOfficeId: 7, ...input, cancelBookingIds: [4, 5] });
+        expect(mockRefresh).toHaveBeenCalledTimes(1);
+    });
+
+    it('answers leftOutChanged on the Turnos 409 without refreshing, reporting or showing its message', async () => {
+        mockControllers.IUpdateOutOfOfficeController.mockRejectedValue(new LeftOutsideBookingsChangedError('cambiaron'));
+        await expect(updateOutOfOfficeAction(7, input, [4])).resolves.toEqual({ ok: false, leftOutChanged: true });
+        expect(mockRefresh).not.toHaveBeenCalled();
+        expect(mockReport).not.toHaveBeenCalled();
+    });
+});
+
+describe('previewUpdateOutOfOfficeAction', () => {
+    it('returns the Turnos that the edit would leave outside without refreshing', async () => {
+        mockControllers.IPreviewUpdateOutOfOfficeController.mockResolvedValue([leftOutside]);
+        await expect(previewUpdateOutOfOfficeAction(7, input)).resolves.toEqual({ ok: true, bookings: [leftOutside] });
+        expect(mockControllers.IPreviewUpdateOutOfOfficeController).toHaveBeenCalledWith({ outOfOfficeId: 7, ...input });
+        expect(mockRefresh).not.toHaveBeenCalled();
+    });
+
+    it.each([
+        [new OutOfOfficeRuleError('fin antes'), 'fin antes', false],
+        [new OutOfOfficeConflictError('Ya hay un período'), 'Ya hay un período', false],
+        [new InputParseError('bad'), 'Revisá los datos e intentá de nuevo.', false],
+        [new NotFoundError('404'), 'Este período ya no existe. Actualizamos la lista.', true],
+    ])('maps %p to its message', async (error, message, refreshes) => {
+        mockControllers.IPreviewUpdateOutOfOfficeController.mockRejectedValue(error);
+        await expect(previewUpdateOutOfOfficeAction(7, input)).resolves.toEqual({ ok: false, message });
+        expect(mockRefresh).toHaveBeenCalledTimes(refreshes ? 1 : 0);
+    });
+
+    it('sends the Usuario to sign-in when the Sesión expired', async () => {
+        mockControllers.IPreviewUpdateOutOfOfficeController.mockRejectedValue(new UnauthenticatedError('no'));
+        await expect(previewUpdateOutOfOfficeAction(7, input)).rejects.toThrow('REDIRECT:');
     });
 });
