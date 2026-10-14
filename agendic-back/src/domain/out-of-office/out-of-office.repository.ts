@@ -30,7 +30,7 @@ export interface OutOfOfficeRepository {
     now: Date,
   ): Promise<{ outOfOffice: OutOfOffice; cancelledIds: number[] }>;
   /**
-   * As `update`, and in the same transaction cancels the Turnos of `cancellations` like `createCancelling`.
+   * Igual que `update`, y en la misma transacción cancela los Turnos de `cancellations` como `createCancelling`.
    *
    * @throws {ConflictError} otro período del Usuario tiene esas fechas
    * @throws {NotFoundError} el período no existe

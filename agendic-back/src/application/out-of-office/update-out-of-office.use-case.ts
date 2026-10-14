@@ -1,6 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { CLOCK, Clock } from '../../domain/clock';
-import { ConflictError } from '../../domain/errors';
 import { MAILER, Mailer } from '../../domain/mailer';
 import {
   OutOfOffice,
@@ -13,6 +12,7 @@ import {
 } from '../../domain/out-of-office/out-of-office.repository';
 import { LeftOutsideBookingsService } from '../bookings/left-outside-bookings.service';
 import { notifyCausedCancellations } from '../bookings/notify-caused-cancellations';
+import { confirmedCancellations } from './confirmed-cancellations';
 import { assertNoDuplicateOutOfOffice } from './assert-no-duplicate-out-of-office';
 import { getOwnOutOfOffice } from './get-own-out-of-office';
 
@@ -52,21 +52,12 @@ export class UpdateOutOfOfficeUseCase {
         outOfOffice: await this.outOfOffice.update(id, input),
         cancelledBookings: 0,
       };
-    const confirmed = new Set(cancelBookingIds);
-    if (left.some((booking) => !confirmed.has(booking.id)))
-      throw new ConflictError(
-        'Los Turnos que quedan fuera de tu horario cambiaron',
-      );
-
+    const orders = confirmedCancellations(left, cancelBookingIds);
     const { outOfOffice, cancelledIds } =
       await this.outOfOffice.updateCancelling(
         id,
         input,
-        left.map((booking) => ({
-          id: booking.id,
-          cause: booking.cancellationCause,
-          reason: booking.cancellationReason,
-        })),
+        orders,
         this.clock.now(),
       );
     const cancelled = new Set(cancelledIds);

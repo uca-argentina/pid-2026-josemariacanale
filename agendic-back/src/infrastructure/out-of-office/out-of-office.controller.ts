@@ -80,6 +80,7 @@ export class OutOfOfficeController {
     ).map(presentLeftOutside);
   }
 
+  /** Reemplaza el período y cancela los Turnos que la edición deja afuera, los que el Usuario confirmó. */
   @Put(':id')
   async update(
     @CurrentUser() userId: number,

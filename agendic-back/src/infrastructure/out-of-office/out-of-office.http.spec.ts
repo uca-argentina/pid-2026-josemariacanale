@@ -691,6 +691,16 @@ describe('Fuera de la oficina', () => {
         );
       });
 
+      it('cancels the Turnos of the new dates when the período moves', async () => {
+        t.bookings.listUpcomingByUser.mockResolvedValue([turno(7, JAN_15), turno(8, JAN_22)]);
+        const moved = { ...JAN_PERIOD, startDate: '2026-01-21', endDate: '2026-01-23' };
+
+        const res = await put({ ...moved, cancelBookingIds: [8] }).expect(200);
+
+        expect(res.body.cancelledBookings).toBe(1);
+        expect(t.outOfOffice.updateCancelling.mock.calls[0][2].map((c) => c.id)).toEqual([8]);
+      });
+
       it('writes nothing and answers 409 when a Turno left outside is not in the list', async () => {
         t.bookings.listUpcomingByUser.mockResolvedValue([turno(8, JAN_22)]);
 
