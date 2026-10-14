@@ -70,7 +70,7 @@ async function perform(
 export type PreviewOutOfOfficeResult = { ok: true; bookings: LeftOutsideBooking[] } | { ok: false; message: string };
 
 /** Lo que devuelve crear: cuántos Turnos canceló, el mensaje para el Usuario, o que la lista de Turnos cambió. */
-export type CreateOutOfOfficeResult = { ok: true; cancelledBookings: number } | { ok: false; message: string } | LeftOutChangedResult;
+export type SaveOutOfOfficeResult = { ok: true; cancelledBookings: number } | { ok: false; message: string } | LeftOutChangedResult;
 
 /** Los Turnos que crear este período Fuera de la oficina dejaría afuera. No guarda ni refresca nada. */
 export async function previewOutOfOfficeAction(input: SaveOutOfOffice): Promise<PreviewOutOfOfficeResult> {
@@ -86,7 +86,7 @@ export async function previewOutOfOfficeAction(input: SaveOutOfOffice): Promise<
  * Crea un período Fuera de la oficina del Usuario y cancela los Turnos de `cancelBookingIds`. Con el 409 de
  * Turnos responde `leftOutChanged` y no refresca la página: nada se guardó.
  */
-export async function createOutOfOfficeAction(input: SaveOutOfOffice, cancelBookingIds?: number[]): Promise<CreateOutOfOfficeResult> {
+export async function createOutOfOfficeAction(input: SaveOutOfOffice, cancelBookingIds?: number[]): Promise<SaveOutOfOfficeResult> {
     const result = await settle(
         () => getInjection('ICreateOutOfOfficeController')({ ...input, cancelBookingIds }),
         'No pudimos crear el período. Intentá de nuevo.',
@@ -112,7 +112,7 @@ export async function updateOutOfOfficeAction(
     outOfOfficeId: number,
     input: SaveOutOfOffice,
     cancelBookingIds?: number[],
-): Promise<CreateOutOfOfficeResult> {
+): Promise<SaveOutOfOfficeResult> {
     const result = await settle(
         () => getInjection('IUpdateOutOfOfficeController')({ outOfOfficeId, ...input, cancelBookingIds }),
         'No pudimos guardar el período. Intentá de nuevo.',
