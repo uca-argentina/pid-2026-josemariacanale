@@ -26,7 +26,8 @@ function headerOf(b: Booking, past: boolean) {
                 ? { icon: Clock, tone: GRAY, title: 'Este turno quedó sin respuesta' }
                 : { icon: Clock, tone: AMBER, title: 'Este turno espera tu respuesta', subtitle: 'Aceptalo o rechazalo desde la lista de Turnos.' };
         case 'BOOKED':
-            if (b.noShowAt !== null) return { icon: X, tone: RED, title: `${b.clientName} no se presentó` };
+            if (b.noShowAt !== null) return { icon: X, tone: RED, title: `Ausencia del Invitado: ${b.clientName} no se presentó` };
+            if (b.employeeNoShowAt !== null) return { icon: X, tone: RED, title: 'Ausencia del Anfitrión: el Cliente avisó que no se presentó quien lo atiende' };
             return past
                 ? { icon: Check, tone: GRAY, title: 'Este turno ya pasó' }
                 : { icon: Check, tone: GREEN, title: 'Este turno está aceptado', subtitle: `Le enviamos la Confirmación de reserva a ${b.clientName}.` };
