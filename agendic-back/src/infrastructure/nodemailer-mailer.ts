@@ -119,6 +119,8 @@ export class NodemailerMailer implements Mailer {
   }
 
   /**
+   * Avisa en un solo mail las cancelaciones con Causa de un Cliente.
+   *
    * @throws el transporte SMTP rechazó el mail
    */
   async sendBookingCancellationWithCause(
