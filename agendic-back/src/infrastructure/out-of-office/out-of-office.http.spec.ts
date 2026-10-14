@@ -1,4 +1,5 @@
 import { Availability } from '../../domain/availabilities/availability';
+import { UpcomingBooking } from '../../domain/bookings/booking';
 import {
   OutOfOffice,
   OutOfOfficeReason,
@@ -60,6 +61,41 @@ const PRESENTED = {
 const DUPLICATE_MESSAGE =
   'Ya hay un período Fuera de la oficina con esas fechas';
 
+const LEFT_OUTSIDE_MESSAGE =
+  'Los Turnos que quedan fuera de tu horario cambiaron';
+
+/** A Turno of Ana's inside her default Availability (Monday to Friday, 9 to 17 in Buenos Aires), at `startsAt`. */
+const turno = (
+  id: number,
+  startsAt: string,
+  over: Partial<UpcomingBooking> = {},
+): UpcomingBooking => ({
+  id,
+  startsAt: new Date(startsAt),
+  prepStartsAt: new Date(startsAt),
+  endsAt: new Date(new Date(startsAt).getTime() + 30 * 60_000),
+  clientName: `Cliente ${id}`,
+  clientEmail: `cliente${id}@example.com`,
+  availabilityId: DEFAULT_AVAILABILITY.id,
+  timeZone: DEFAULT_AVAILABILITY.timeZone,
+  clientTimeZone: DEFAULT_AVAILABILITY.timeZone,
+  serviceName: 'Corte',
+  link: `link-${id}`,
+  business: null,
+  branch: null,
+  ...over,
+});
+
+// The default clock is 2026-01-01; the 15th is a Thursday, the 17th a Saturday.
+const JAN_15 = '2026-01-15T15:00:00.000Z';
+const JAN_PERIOD = {
+  startDate: '2026-01-13',
+  endDate: '2026-01-20',
+  reason: 'VACATION',
+  notes: 'Playa',
+  showNotePublicly: true,
+};
+
 describe('Fuera de la oficina', () => {
   let t: TestApp;
 
@@ -74,6 +110,15 @@ describe('Fuera de la oficina', () => {
     t.outOfOffice.findByUserAndDates.mockResolvedValue(null);
     t.outOfOffice.create.mockResolvedValue(PERIOD);
     t.outOfOffice.update.mockResolvedValue(PERIOD);
+    t.availabilities.findById.mockResolvedValue(DEFAULT_AVAILABILITY);
+    t.bookings.listUpcomingByUser.mockResolvedValue([]);
+    t.users.findById.mockResolvedValue(ANA);
+    t.outOfOffice.createCancelling.mockImplementation(
+      async (_userId, _data, cancellations) => ({
+        outOfOffice: PERIOD,
+        cancelledIds: cancellations.map(({ id }) => id),
+      }),
+    );
   });
   afterEach(() => t.app.close());
 
@@ -138,7 +183,7 @@ describe('Fuera de la oficina', () => {
         .send(BODY)
         .expect(201);
 
-      expect(res.body).toEqual(PRESENTED);
+      expect(res.body).toEqual({ ...PRESENTED, cancelledBookings: 0 });
       expect(t.outOfOffice.create).toHaveBeenCalledWith(ANA.id, BODY);
     });
 
@@ -223,6 +268,225 @@ describe('Fuera de la oficina', () => {
 
     it('answers 401 without a Sesión', async () => {
       await t.http.post('/users/me/out-of-office').send(BODY).expect(401);
+    });
+
+    describe('with Turnos left outside', () => {
+      const post = (body: object) =>
+        t.http.post('/users/me/out-of-office').set(bearer(CLERK_TOKEN)).send(body);
+
+      it('cancels the confirmed Turnos with the Causa and the public note, and mails the Cliente', async () => {
+        t.bookings.listUpcomingByUser.mockResolvedValue([turno(7, JAN_15)]);
+
+        const res = await post({ ...JAN_PERIOD, cancelBookingIds: [7] }).expect(201);
+
+        expect(res.body).toEqual({ ...PRESENTED, cancelledBookings: 1 });
+        expect(t.outOfOffice.create).not.toHaveBeenCalled();
+        expect(t.outOfOffice.createCancelling).toHaveBeenCalledWith(
+          ANA.id,
+          { ...JAN_PERIOD, reason: 'VACATION' },
+          [{ id: 7, cause: 'OUT_OF_OFFICE', reason: 'Playa. Podés reservar otro horario.' }],
+          t.clock.now(),
+        );
+        expect(t.mailer.sendBookingCancellationWithCause).toHaveBeenCalledWith(
+          'cliente7@example.com',
+          [
+            {
+              link: 'link-7',
+              serviceName: 'Corte',
+              startsAt: new Date(JAN_15),
+              timeZone: 'America/Argentina/Buenos_Aires',
+              reason: 'Playa. Podés reservar otro horario.',
+            },
+          ],
+        );
+      });
+
+      it('writes nothing and answers 409 when a Turno left outside is not in the list', async () => {
+        t.bookings.listUpcomingByUser.mockResolvedValue([
+          turno(7, JAN_15),
+          turno(8, '2026-01-16T15:00:00.000Z'),
+        ]);
+
+        for (const body of [JAN_PERIOD, { ...JAN_PERIOD, cancelBookingIds: [7] }]) {
+          const res = await post(body).expect(409);
+          expect(res.body.message).toBe(LEFT_OUTSIDE_MESSAGE);
+        }
+
+        expect(t.outOfOffice.create).not.toHaveBeenCalled();
+        expect(t.outOfOffice.createCancelling).not.toHaveBeenCalled();
+        expect(t.mailer.sendBookingCancellationWithCause).not.toHaveBeenCalled();
+      });
+
+      it('answers the duplicate 409 before the Turnos one', async () => {
+        t.bookings.listUpcomingByUser.mockResolvedValue([turno(7, JAN_15)]);
+        t.outOfOffice.findByUserAndDates.mockResolvedValue(PERIOD);
+
+        const res = await post(JAN_PERIOD).expect(409);
+
+        expect(res.body.message).toBe(DUPLICATE_MESSAGE);
+      });
+
+      it('ignores ids that no longer fall outside', async () => {
+        t.bookings.listUpcomingByUser.mockResolvedValue([turno(7, JAN_15)]);
+
+        await post({ ...JAN_PERIOD, cancelBookingIds: [7, 99, 100] }).expect(201);
+
+        expect(t.outOfOffice.createCancelling.mock.calls[0][2].map((c) => c.id)).toEqual([7]);
+      });
+
+      it('saves with no cancellation when the período falls on days the Usuario does not work', async () => {
+        // The 17th is a Saturday.
+        t.bookings.listUpcomingByUser.mockResolvedValue([turno(7, '2026-01-17T15:00:00.000Z')]);
+
+        const res = await post({ ...JAN_PERIOD, startDate: '2026-01-17', endDate: '2026-01-18' }).expect(201);
+
+        expect(res.body.cancelledBookings).toBe(0);
+        expect(t.outOfOffice.create).toHaveBeenCalled();
+      });
+
+      it('leaves alone a Turno that another período already blocked', async () => {
+        t.outOfOffice.listByUserEndingFrom.mockResolvedValue([
+          { ...PERIOD, startDate: '2026-01-14', endDate: '2026-01-16' },
+        ]);
+        t.bookings.listUpcomingByUser.mockResolvedValue([turno(7, JAN_15)]);
+
+        const res = await post(JAN_PERIOD).expect(201);
+
+        expect(res.body.cancelledBookings).toBe(0);
+      });
+
+      it('counts only the Turnos the repository really cancelled, and mails only those', async () => {
+        t.bookings.listUpcomingByUser.mockResolvedValue([
+          turno(7, JAN_15),
+          turno(8, '2026-01-16T15:00:00.000Z'),
+        ]);
+        t.outOfOffice.createCancelling.mockResolvedValue({ outOfOffice: PERIOD, cancelledIds: [8] });
+
+        const res = await post({ ...JAN_PERIOD, cancelBookingIds: [7, 8] }).expect(201);
+
+        expect(res.body.cancelledBookings).toBe(1);
+        expect(t.mailer.sendBookingCancellationWithCause).toHaveBeenCalledTimes(1);
+        expect(t.mailer.sendBookingCancellationWithCause.mock.calls[0][0]).toBe('cliente8@example.com');
+      });
+
+      it('keeps the write when a mail fails', async () => {
+        t.bookings.listUpcomingByUser.mockResolvedValue([turno(7, JAN_15)]);
+        t.mailer.sendBookingCancellationWithCause.mockRejectedValue(new Error('smtp down'));
+
+        const res = await post({ ...JAN_PERIOD, cancelBookingIds: [7] }).expect(201);
+
+        expect(res.body.cancelledBookings).toBe(1);
+      });
+
+      it('keeps the fixed text as the Motivo when the note is not public', async () => {
+        t.bookings.listUpcomingByUser.mockResolvedValue([turno(7, JAN_15)]);
+
+        await post({ ...JAN_PERIOD, showNotePublicly: false, cancelBookingIds: [7] }).expect(201);
+
+        expect(t.outOfOffice.createCancelling.mock.calls[0][2]).toEqual([
+          {
+            id: 7,
+            cause: 'OUT_OF_OFFICE',
+            reason: 'Ana Pérez no va a estar disponible en ese horario. Podés reservar otro horario.',
+          },
+        ]);
+      });
+
+      it.each([
+        ['not an array', 7],
+        ['not integers', ['7']],
+      ])('answers 400 when cancelBookingIds is %s', async (_name, cancelBookingIds) => {
+        await post({ ...JAN_PERIOD, cancelBookingIds }).expect(400);
+        expect(t.outOfOffice.createCancelling).not.toHaveBeenCalled();
+      });
+    });
+  });
+
+  describe('POST /users/me/out-of-office/preview', () => {
+    const preview = (body: object) =>
+      t.http.post('/users/me/out-of-office/preview').set(bearer(CLERK_TOKEN)).send(body);
+
+    it('answers 200 with the Turnos left outside, by start, and writes nothing', async () => {
+      t.bookings.listUpcomingByUser.mockResolvedValue([
+        turno(7, JAN_15, {
+          business: { id: 3, name: "Ana's Salon" },
+          branch: { id: 4, name: 'Downtown' },
+          clientTimeZone: 'America/Montevideo',
+        }),
+        turno(8, '2026-01-16T15:00:00.000Z'),
+      ]);
+
+      const res = await preview(JAN_PERIOD).expect(200);
+
+      expect(res.body).toEqual([
+        {
+          id: 7,
+          startsAt: JAN_15,
+          endsAt: '2026-01-15T15:30:00.000Z',
+          timeZone: 'America/Montevideo',
+          serviceName: 'Corte',
+          clientName: 'Cliente 7',
+          business: { id: 3, name: "Ana's Salon" },
+          branch: { id: 4, name: 'Downtown' },
+          cancellationCause: 'OUT_OF_OFFICE',
+          cancellationReason: 'Playa. Podés reservar otro horario.',
+        },
+        expect.objectContaining({ id: 8, business: null, branch: null }),
+      ]);
+      expect(res.body[0]).not.toHaveProperty('clientEmail');
+      expect(res.body[0]).not.toHaveProperty('link');
+      expect(t.outOfOffice.create).not.toHaveBeenCalled();
+      expect(t.outOfOffice.createCancelling).not.toHaveBeenCalled();
+      expect(t.mailer.sendBookingCancellationWithCause).not.toHaveBeenCalled();
+    });
+
+    it('asks only for the Turnos in a window of a day before the período to two days after it', async () => {
+      await preview(JAN_PERIOD).expect(200);
+
+      expect(t.bookings.listUpcomingByUser).toHaveBeenCalledWith(
+        ANA.id,
+        new Date('2026-01-12T00:00:00.000Z'),
+        new Date('2026-01-22T00:00:00.000Z'),
+      );
+    });
+
+    it('answers [] when nothing falls outside', async () => {
+      t.bookings.listUpcomingByUser.mockResolvedValue([turno(7, '2026-01-17T15:00:00.000Z')]);
+
+      const res = await preview(JAN_PERIOD).expect(200);
+
+      expect(res.body).toEqual([]);
+    });
+
+    it('does not return a Turno that already started', async () => {
+      t.clock.advance(14 * DAY_MS);
+
+      await preview(JAN_PERIOD).expect(200);
+
+      // The window opens at `now`, so nothing earlier is asked for.
+      expect(t.bookings.listUpcomingByUser.mock.calls[0][1]).toEqual(t.clock.now());
+    });
+
+    it.each([
+      ['a missing date', { endDate: undefined }, 400],
+      ['an unknown reason', { reason: 'HOLIDAYS' }, 400],
+      ['the end date before the start date', { startDate: '2026-01-20', endDate: '2026-01-13' }, 422],
+    ])('answers the same error as creating for %s', async (_name, change, status) => {
+      await preview({ ...JAN_PERIOD, ...change }).expect(status);
+      expect(t.bookings.listUpcomingByUser).not.toHaveBeenCalled();
+    });
+
+    it('answers 409 when another período has the same dates, before calculating anything', async () => {
+      t.outOfOffice.findByUserAndDates.mockResolvedValue(PERIOD);
+
+      const res = await preview(JAN_PERIOD).expect(409);
+
+      expect(res.body.message).toBe(DUPLICATE_MESSAGE);
+      expect(t.bookings.listUpcomingByUser).not.toHaveBeenCalled();
+    });
+
+    it('answers 401 without a Sesión', async () => {
+      await t.http.post('/users/me/out-of-office/preview').send(JAN_PERIOD).expect(401);
     });
   });
 
