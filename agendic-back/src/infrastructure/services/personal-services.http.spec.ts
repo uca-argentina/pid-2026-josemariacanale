@@ -383,6 +383,7 @@ describe('Servicio personal', () => {
       acceptedAt: null,
       cancelledBy: null,
       cancellationReason: null,
+      cancellationCause: null,
     };
 
     beforeEach(() => {

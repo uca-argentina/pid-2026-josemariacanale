@@ -11,6 +11,7 @@ const signedIn = authWith({ getCurrentUser: jest.fn().mockResolvedValue({}) });
 const signedOut = authWith({ getCurrentUser: jest.fn().mockRejectedValue(new UnauthenticatedError('no')) });
 const holiday = { id: 'h1', name: 'Navidad', date: '2026-12-25', enabled: true };
 const settings = { countryCode: 'ar', holidays: [holiday] };
+const saved = { ...settings, cancelledBookings: 2 };
 
 describe('getMyHolidaysController', () => {
     it('returns the settings, whitelisting the fields', async () => {
@@ -60,12 +61,18 @@ describe('listHolidayConflictsController', () => {
 
 describe('setHolidayCountryController', () => {
     it.each([['ar'], [null]])('passes countryCode %p to the use case', async (countryCode) => {
-        const set = jest.fn().mockResolvedValue(settings);
-        await expect(setHolidayCountryController(instrumentation, signedIn, set)({ countryCode })).resolves.toEqual(settings);
+        const set = jest.fn().mockResolvedValue(saved);
+        await expect(setHolidayCountryController(instrumentation, signedIn, set)({ countryCode })).resolves.toEqual(saved);
         expect(set).toHaveBeenCalledWith({ countryCode });
     });
 
-    it.each([[{}], [{ countryCode: '' }], [{ countryCode: 5 }]])('rejects %j without calling the use case', async (input) => {
+    it('passes the confirmed Turnos to the use case', async () => {
+        const set = jest.fn().mockResolvedValue(saved);
+        await setHolidayCountryController(instrumentation, signedIn, set)({ countryCode: 'ar', cancelBookingIds: [4, 5] });
+        expect(set).toHaveBeenCalledWith({ countryCode: 'ar', cancelBookingIds: [4, 5] });
+    });
+
+    it.each([[{}], [{ countryCode: '' }], [{ countryCode: 5 }], [{ countryCode: 'ar', cancelBookingIds: [0] }]])('rejects %j without calling the use case', async (input) => {
         const set = jest.fn();
         await expect(setHolidayCountryController(instrumentation, signedIn, set)(input)).rejects.toBeInstanceOf(InputParseError);
         expect(set).not.toHaveBeenCalled();
@@ -82,12 +89,23 @@ describe('setHolidayCountryController', () => {
 
 describe('toggleHolidayController', () => {
     it('passes the Día festivo and its state to the use case', async () => {
-        const toggle = jest.fn().mockResolvedValue(settings);
-        await expect(toggleHolidayController(instrumentation, signedIn, toggle)({ holidayId: 'h1', enabled: false })).resolves.toEqual(settings);
+        const toggle = jest.fn().mockResolvedValue(saved);
+        await expect(toggleHolidayController(instrumentation, signedIn, toggle)({ holidayId: 'h1', enabled: false })).resolves.toEqual(saved);
         expect(toggle).toHaveBeenCalledWith({ holidayId: 'h1', enabled: false });
     });
 
-    it.each([[{ enabled: true }], [{ holidayId: '', enabled: true }], [{ holidayId: 'h1', enabled: 'yes' }]])(
+    it('passes the confirmed Turnos to the use case', async () => {
+        const toggle = jest.fn().mockResolvedValue(saved);
+        await toggleHolidayController(instrumentation, signedIn, toggle)({ holidayId: 'h1', enabled: true, cancelBookingIds: [7] });
+        expect(toggle).toHaveBeenCalledWith({ holidayId: 'h1', enabled: true, cancelBookingIds: [7] });
+    });
+
+    it.each([
+        [{ enabled: true }],
+        [{ holidayId: '', enabled: true }],
+        [{ holidayId: 'h1', enabled: 'yes' }],
+        [{ holidayId: 'h1', enabled: true, cancelBookingIds: ['x'] }],
+    ])(
         'rejects %j without calling the use case',
         async (input) => {
             const toggle = jest.fn();

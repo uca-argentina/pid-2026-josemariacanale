@@ -1,5 +1,10 @@
 import { Availability } from '../../domain/availabilities/availability';
-import { Booking, BookingActor, BookingStatus } from '../../domain/bookings/booking';
+import {
+  Booking,
+  BookingActor,
+  BookingStatus,
+  CancellationCause,
+} from '../../domain/bookings/booking';
 import { HistoryBooking } from '../../domain/bookings/booking-history';
 import { ConflictError, NotFoundError } from '../../domain/errors';
 import {
@@ -43,6 +48,7 @@ const BOOKED: Booking = {
   acceptedAt: null,
   cancelledBy: null,
   cancellationReason: null,
+  cancellationCause: null,
 };
 
 const AVAILABILITY: Availability = {
@@ -109,6 +115,7 @@ describe('Mis turnos del Usuario', () => {
           acceptedAt: null,
           cancelledBy: null,
           cancellationReason: null,
+          cancellationCause: null,
           employeeChosen: false,
           fromRescheduleId: null,
           seriesId: null,
@@ -128,6 +135,29 @@ describe('Mis turnos del Usuario', () => {
           branch: null,
         }),
       ]);
+    });
+
+    it('lists the Causa de cancelación of a Turno that has one', async () => {
+      t.bookings.listByUser.mockResolvedValue([
+        {
+          ...BOOKED,
+          status: BookingStatus.CANCELLED,
+          cancelledBy: BookingActor.EMPLOYEE,
+          cancellationReason: 'Ana no atiende por Navidad. Podés reservar otro horario.',
+          cancellationCause: CancellationCause.PUBLIC_HOLIDAY,
+          cabin: null,
+          serviceName: 'Haircut',
+          business: null,
+          branch: null,
+        },
+      ]);
+
+      const res = await t.http
+        .get('/users/me/bookings')
+        .set(bearer(CLERK_TOKEN))
+        .expect(200);
+
+      expect(res.body[0].cancellationCause).toBe('PUBLIC_HOLIDAY');
     });
 
     it('lists the Seña of a Turno and when it was paid', async () => {
@@ -663,7 +693,7 @@ describe('Mis turnos del Usuario', () => {
       expect(t.bookings.markNoShow).not.toHaveBeenCalled();
     });
 
-    it('answers 422 when the Turno already has an Ausencia', async () => {
+    it('answers 422 when the Turno already has an Ausencia del Invitado', async () => {
       t.clock.advance(3 * 24 * HOUR_MS);
       t.bookings.findById.mockResolvedValue({
         ...BOOKED,

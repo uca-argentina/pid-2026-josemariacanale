@@ -19,6 +19,7 @@ export const presentBooking = (booking: Booking) => ({
   cancelledBy: booking.cancelledBy,
   cancellationReason: booking.cancellationReason,
   seriesId: booking.seriesId,
+  cancellationCause: booking.cancellationCause,
 });
 
 /** The Turno with the Cabina it occupies (ADR 0030), for the panel; the Cliente never gets it. */
@@ -34,7 +35,7 @@ export const presentBookingForOwner = (booking: PanelBooking) => ({
   clientEmail: booking.clientEmail,
 });
 
-/** Adds the Ausencia, which only the Empleado marks and sees. */
+/** Adds the Ausencia del Invitado, which only the Empleado marks and sees. */
 export const presentBookingWithNoShow = (booking: Booking) => ({
   ...presentBooking(booking),
   noShowAt: booking.noShowAt,
@@ -54,6 +55,7 @@ export const presentUserBooking = (booking: UserBooking) => ({
   acceptedAt: booking.acceptedAt,
   cancelledBy: booking.cancelledBy,
   cancellationReason: booking.cancellationReason,
+  cancellationCause: booking.cancellationCause,
   employeeChosen: booking.employeeChosen,
   fromRescheduleId: booking.fromRescheduleId,
   seriesId: booking.seriesId,
@@ -69,7 +71,7 @@ export const presentUserBooking = (booking: UserBooking) => ({
 /**
  * Enlace del Turno: el Turno con los datos de dónde pasa, para quien abre su Enlace.
  *
- * @param now decide `canMarkEmployeeNoShow` y `canRate`, que calcula el back porque el Cliente no ve la Ausencia
+ * @param now decide `canMarkEmployeeNoShow` y `canRate`, que calcula el back porque el Cliente no ve la Ausencia del Invitado
  */
 export const presentClientBooking = (booking: ClientBooking, now: Date) => ({
   id: booking.id,

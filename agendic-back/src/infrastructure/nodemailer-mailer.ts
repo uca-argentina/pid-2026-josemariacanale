@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { createTransport, Transporter } from 'nodemailer';
-import { Mailer, SeriesConfirmation, SeriesNotice } from '../domain/mailer';
+import {
+  CausedCancellation,
+  Mailer,
+  SeriesConfirmation,
+  SeriesNotice,
+} from '../domain/mailer';
 
 /**
  * Reads the front's base URL, where the Enlace del Turno of the Confirmación de reserva points. Throws when it is
@@ -17,6 +22,15 @@ export function readFrontendUrl(
 /** The Servicio name is typed by the Dueño; it goes into HTML. */
 const escapeHtml = (text: string) =>
   text.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+
+/** Day and hour of a Turno in the zone it is shown in; the same in the Invitación a calificar and the Aviso con Causa. */
+const formatWhen = (startsAt: Date, timeZone: string) =>
+  new Intl.DateTimeFormat('es-AR', {
+    dateStyle: 'full',
+    timeStyle: 'short',
+    hourCycle: 'h23',
+    timeZone,
+  }).format(startsAt);
 
 @Injectable()
 export class NodemailerMailer implements Mailer {
@@ -135,12 +149,7 @@ export class NodemailerMailer implements Mailer {
     startsAt: Date,
     timeZone: string,
   ) {
-    const when = new Intl.DateTimeFormat('es-AR', {
-      dateStyle: 'full',
-      timeStyle: 'short',
-      hourCycle: 'h23',
-      timeZone,
-    }).format(startsAt);
+    const when = formatWhen(startsAt, timeZone);
     const url = `${this.frontendUrl}/turnos/${link}`;
     await this.transporter.sendMail({
       from: process.env.SMTP_FROM,
@@ -178,6 +187,33 @@ export class NodemailerMailer implements Mailer {
       to: email,
       subject,
       html: `<p>${withReason(text, reason)}. See each one here:</p><ul>${this.seriesItems(series)}</ul>`,
+    });
+  }
+
+  /**
+   * Avisa en un solo mail las cancelaciones con Causa de un Cliente.
+   *
+   * @throws el transporte SMTP rechazó el mail
+   */
+  async sendBookingCancellationWithCause(
+    email: string,
+    bookings: CausedCancellation[],
+  ) {
+    const sameReason = bookings.every((b) => b.reason === bookings[0].reason);
+    const items = bookings.map((b) => {
+      const url = `${this.frontendUrl}/turnos/${b.link}`;
+      const reason = sameReason ? '' : ` ${escapeHtml(b.reason)}`;
+      return `<li>${escapeHtml(b.serviceName)} del ${formatWhen(b.startsAt, b.timeZone)}${reason}: <a href="${url}">${url}</a></li>`;
+    });
+    const intro = sameReason ? `<p>${escapeHtml(bookings[0].reason)}</p>` : '';
+    await this.transporter.sendMail({
+      from: process.env.SMTP_FROM,
+      to: email,
+      subject:
+        bookings.length === 1
+          ? 'Tu turno fue cancelado'
+          : 'Tus turnos fueron cancelados',
+      html: `${intro}<ul>${items.join('')}</ul>`,
     });
   }
 

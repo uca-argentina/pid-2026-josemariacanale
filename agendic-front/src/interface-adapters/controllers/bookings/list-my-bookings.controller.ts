@@ -24,6 +24,9 @@ function presenter(bookings: UserBooking[], instrumentationService: IInstrumenta
             branch: b.branch,
             cabin: b.cabin,
             fromRescheduleId: b.fromRescheduleId,
+            cancelledBy: b.cancelledBy,
+            cancellationReason: b.cancellationReason,
+            cancellationCause: b.cancellationCause,
         })),
     );
 }

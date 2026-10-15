@@ -106,7 +106,7 @@ Servicio de un Usuario, sin Negocio ni Sucursal. Lo atiende solo ese Usuario, co
 _Avoid_: servicio individual, servicio propio
 
 **Servicio del Negocio**:
-Servicio de una Sucursal de un Negocio, atendido por los Empleados que lo Ofrecen. Al Reservar, el Cliente elige con quién o deja "cualquiera". Con "cualquiera" se le asigna un Empleado libre en ese horario: el que hace más tiempo que no recibe un Turno de ese Servicio. Si elige a alguien, queda un Empleado elegido.
+Servicio de una Sucursal de un Negocio, atendido por los Empleados que lo Ofrecen. Al Reservar, el Cliente elige con quién entre quienes lo Ofrecen, o deja que se le asigne uno ("cualquiera"). Con "cualquiera" se le asigna un Empleado libre en ese horario: el que hace más tiempo que no recibe un Turno de ese Servicio. Si elige a alguien, queda un Empleado elegido.
 _Avoid_: servicio de equipo, servicio compartido
 
 **Intervalo**:
@@ -154,19 +154,19 @@ Tramo horario de una Availability, con hora de inicio y de fin, que se repite en
 _Avoid_: rango, bloque, slot
 
 **Anulación**:
-Reemplazo de las Franjas de una Availability para una fecha concreta, leído en la zona horaria de esa Availability. Sin horas, es un día libre: así se cargan, por ejemplo, unas vacaciones. Vale solo para esa Availability: para anular la misma fecha en otra, se carga otra Anulación.
+Reemplazo de las Franjas de una Availability para una fecha concreta, leído en la zona horaria de esa Availability. Sin horas, es un día libre: así se cargan, por ejemplo, unas vacaciones. Vale solo para esa Availability: para anular la misma fecha en otra, se carga otra Anulación. Al guardar la Availability, los Turnos pendientes o aceptados que la Anulación (o una Franja que se achica, o un cambio de zona horaria) deja afuera de las Franjas se Cancelan, previa confirmación y con una Causa de cancelación.
 _Avoid_: excepción, override, licencia, ausencia (eso es del Cliente)
 
 **Fuera de la oficina**:
-Período de uno o más días enteros en que un Usuario no atiende: en esos días ninguno de sus Servicios, personales o de cualquier Negocio, tiene Horarios reservables con él. Es del Usuario, no de una Availability: no es una Anulación. Sus días se leen en la zona horaria de cada Availability. Los Turnos que ya tenía en esos días siguen en pie. Lleva un Motivo y, opcionalmente, una nota que el Usuario puede mostrar en la página de reserva de sus Servicios personales. Solo lo gestiona el propio Usuario.
+Período de uno o más días enteros en que un Usuario no atiende: en esos días ninguno de sus Servicios, personales o de cualquier Negocio, tiene Horarios reservables con él. Es del Usuario, no de una Availability: no es una Anulación. Sus días se leen en la zona horaria de cada Availability. Al guardarlo, los Turnos pendientes o aceptados que ya tenía en esos días se Cancelan, previa confirmación y con una Causa de cancelación. Lleva un Motivo y, opcionalmente, una nota que el Usuario puede mostrar en la página de reserva de sus Servicios personales. Solo lo gestiona el propio Usuario.
 _Avoid_: ausencia (eso es el no-show), OOO, licencia, vacaciones
 
 **Motivo**:
 Por qué un Usuario está Fuera de la oficina, elegido de una lista fija: No especificado, Vacaciones, Viaje, Baja por enfermedad, Día festivo.
-_Avoid_: razón, causa
+_Avoid_: razón, causa (eso es la Causa de cancelación)
 
 **Día festivo**:
-Feriado de un país o de un calendario religioso que el Usuario elige. Todos los Días festivos de lo elegido quedan prendidos hasta que el Usuario apaga alguno, y cada uno prendido bloquea al Usuario como un día Fuera de la oficina, siempre que caiga en un día que trabaja. No toca los Turnos ya tomados.
+Feriado de un país o de un calendario religioso que el Usuario elige. Todos los Días festivos de lo elegido quedan prendidos hasta que el Usuario apaga alguno, y cada uno prendido bloquea al Usuario como un día Fuera de la oficina, siempre que caiga en un día que trabaja. Al prenderlo, los Turnos pendientes o aceptados que caen en ese día se Cancelan, previa confirmación y con una Causa de cancelación.
 _Avoid_: feriado, holiday
 
 **Horario reservable**:
@@ -226,11 +226,11 @@ Texto de la Ficha del Cliente que cualquier Empleado del Negocio escribe, y que 
 _Avoid_: preferencias del Usuario (es otra cosa), notas del cliente
 
 **Enlace de reserva**:
-Dirección pública que un Negocio comparte para que un Cliente entre a Reservar, sin prefijo: su primer tramo es el del Negocio. La elige el Dueño al Crear Negocio y puede cambiarla; al cambiarla, la anterior deja de funcionar. Si el Negocio tiene más de una Sucursal, cada una agrega su propio tramo a esa dirección para llegar directo a ella; con una sola Sucursal, el Enlace de reserva del Negocio ya lleva ahí. Cada Servicio agrega un tramo que abre la página de su Sucursal con ese Servicio ya elegido, y un Servicio del Negocio puede sumar un último tramo opcional con el Enlace de reserva de un Empleado que lo Ofrece. Un Usuario tiene además su propio Enlace de reserva, que elige él, para sus Servicios personales; cada uno agrega su propio último tramo. El primer tramo es de un Negocio o de un Usuario, nunca repetido entre los dos, y no puede ser una palabra reservada (`bookings`, `services`, `business`, `availability`, `analytics`, `turnos`, `sign-in`, `sign-up`, `api`, `trpc`, `u`): son pantallas de Agendic. Los tramos de Sucursal y de Servicio sí pueden usarlas.
+Dirección pública que un Negocio comparte para que un Cliente entre a Reservar, sin prefijo: su primer tramo es el del Negocio. La elige el Dueño al Crear Negocio y puede cambiarla; al cambiarla, la anterior deja de funcionar. Si el Negocio tiene más de una Sucursal, cada una agrega su propio tramo a esa dirección para llegar directo a ella; con una sola Sucursal, el Enlace de reserva del Negocio ya lleva ahí. Cada Servicio agrega un tramo que abre la página de su Sucursal con ese Servicio ya elegido, y un Servicio del Negocio puede sumar un último tramo opcional con el Enlace de reserva de un Empleado que lo Ofrece. Un Usuario tiene además su propio Enlace de reserva, que elige él, para sus Servicios personales; cada uno agrega su propio último tramo. El primer tramo es de un Negocio o de un Usuario, nunca repetido entre los dos, y no puede ser una palabra reservada (`bookings`, `services`, `business`, `availability`, `analytics`, `turnos`, `sign-in`, `sign-up`, `api`, `trpc`, `u`, `lista-de-espera`): son pantallas de Agendic. Los tramos de Sucursal y de Servicio sí pueden usarlas.
 _Avoid_: link del negocio, perfil público, página pública, slug (eso es el identificador en el código)
 
 **Empleado elegido**:
-Empleado que el Cliente eligió al Reservar un Servicio del Negocio, o en la página de la Sucursal o entrando por el Enlace de reserva de esa persona. El Turno queda con él y al Cliente solo se le ofrecen sus Horarios reservables; si el horario se ocupó, no se pasa a otro Empleado. Si el Cliente deja "cualquiera", el Turno no tiene Empleado elegido y se asigna como siempre.
+Empleado que el Cliente eligió al Reservar un Servicio del Negocio, por su Enlace de reserva o de la lista de la página de reserva. El Turno queda con él y al Cliente solo se le ofrecen sus Horarios reservables; si el horario se ocupó, no se pasa a otro Empleado. Si el Cliente deja "cualquiera", el Turno no tiene Empleado elegido y se asigna como siempre.
 _Avoid_: Empleado asignado, Empleado preferido
 
 **Reagendar**:
@@ -238,12 +238,16 @@ Mover un turno existente a otro horario del mismo Servicio. Conserva al Empleado
 _Avoid_: reprogramar, cambiar el turno
 
 **Cancelar**:
-Anular un Turno. Su horario queda libre. El Cliente puede Cancelar un Turno pendiente o aceptado hasta el Plazo de cambios del Servicio, o hasta que empieza si el Servicio no tiene uno.
+Anular un Turno. Su horario queda libre. El Cliente puede Cancelar un Turno pendiente o aceptado hasta el Plazo de cambios del Servicio, o hasta que empieza si el Servicio no tiene uno. También se Cancelan, previa confirmación, los Turnos pendientes o aceptados que un cambio en el horario de quien los atiende deja afuera: Fuera de la oficina, un Día festivo, o un cambio de Franjas, Anulaciones o zona horaria. Solo se Cancelan los que estaban dentro del horario antes del cambio; achicar o borrar el cambio no descancela nada.
 _Avoid_: eliminar, borrar (un turno)
 
 **Dar de baja**:
 Retirar un Servicio de la agenda de un Negocio, retirar a un Empleado de un Negocio, retirar una Cabina de una Sucursal (solo sin Turnos futuros), o retirar a un Usuario de Agendic. Sus Turnos futuros en ese Negocio quedan cancelados; los de un Usuario, en todos lados. Lo dado de baja no se borra: queda como historial. Un Usuario dado de baja deja de existir para el Proveedor de autenticación: si vuelve a registrarse con el mismo email, es un Usuario nuevo. Un Usuario solo se da de baja a sí mismo; si es Dueño, su Negocio queda dado de baja con él, y su Enlace de reserva no vuelve a quedar libre.
 _Avoid_: eliminar, borrar, desactivar, bajar (un usuario)
+
+**Causa de cancelación**:
+Por qué se Canceló un Turno cuando lo cancela un cambio en el horario de quien lo atiende: Fuera de la oficina, Día festivo o Cambio de horario (Franjas, Anulaciones o zona horaria). En esos Turnos, Agendic escribe el Motivo de cancelación, que el Cliente ve en el mail y en el Enlace del Turno, y ese Motivo queda fijo aunque después cambie o se borre el período.
+_Avoid_: motivo (eso es el Motivo de cancelación, o el Motivo de Fuera de la oficina), razón
 
 **Ausencia del Invitado**:
 Turno al que el Cliente no se presentó sin cancelarlo. La marca a mano quien lo atiende, solo en Turnos ya aceptados cuyo horario ya pasó. Excluye a Turno atendido y a Ausencia del Anfitrión: gana la primera que se marca.
@@ -280,16 +284,28 @@ Aviso automático que recibe el Cliente cuando su turno queda creado.
 _Avoid_: confirmación (a secas)
 
 **Aviso de cambio del Turno**:
-Aviso automático por mail que recibe el Cliente cuando su Turno se Cancela, se Reagenda, se Rechaza o queda cancelado por una baja, lo haga el Empleado o el propio Cliente. Lleva el Enlace del Turno. Si el mail falla, el cambio igual queda hecho.
+Aviso automático por mail que recibe el Cliente cuando su Turno se Cancela, se Reagenda, se Rechaza o queda cancelado por una baja, lo haga el Empleado o el propio Cliente. Cuando lo Cancela un cambio en el horario de quien lo atiende, lleva además la Causa de cancelación. Lleva el Enlace del Turno. Si el mail falla, el cambio igual queda hecho.
 _Avoid_: notificación (a secas), recordatorio
 
 **Lista de espera**:
-Clientes anotados para un Servicio en una fecha sin Horarios reservables, a la espera de que se libere uno. Para anotarse hay que Verificar email. Anotarse no retiene ningún horario ni elige Empleado. La anotación termina cuando pasa la fecha o cuando ese email Reserva el Servicio en esa fecha.
+Clientes anotados para un Servicio en una fecha con todos sus Horarios reservables tomados, a la espera de que se libere uno. Solo se ofrece en un día lleno: no en uno en que nadie trabaja, ni en uno Fuera de la oficina o Día festivo. Lleno es el Servicio entero, sumando a todos sus Empleados: si un Empleado elegido no tiene lugar pero otro sí, el día no está lleno. Vale igual para los Servicios personales y los del Negocio. Se compone de Anotaciones. El Negocio no ve quién está anotado.
 _Avoid_: waitlist, cola
 
+**Anotación**:
+Pedido de un Cliente, con nombre y email, de entrar en la Lista de espera de un Servicio para una fecha. Para anotarse hay que Verificar email. No retiene ningún horario ni elige Empleado. Hay una sola por email, Servicio y fecha; anotarse de nuevo no la duplica. Termina cuando pasa la fecha, cuando el Servicio se Da de baja o cuando el Cliente Sale de la Lista de espera. Mientras ese email tenga un Turno de ese Servicio en esa fecha, sin Cancelar ni Rechazar, no recibe Avisos de horario libre; si lo Cancela, vuelve a recibirlos.
+_Avoid_: inscripción, suscripción
+
+**Confirmación de anotación**:
+Mail que recibe el Cliente al anotarse en la Lista de espera, con el Servicio, la fecha y el enlace para Salir de la Lista de espera.
+_Avoid_: Confirmación de reserva (es otra), confirmación (a secas)
+
 **Aviso de horario libre**:
-Mail que reciben a la vez todos los anotados en la Lista de espera cuando aparece un Horario reservable de ese Servicio en esa fecha, porque un Turno se Canceló, se Rechazó, se Reagendó o quedó cancelado por una baja, o porque se sumó una Franja. Lleva al Enlace de reserva del Servicio, y el horario queda para el primero que Reserva.
+Mail que reciben a la vez todas las Anotaciones de un Servicio y una fecha cuando aparece un Horario reservable de ese Servicio en esa fecha, por la razón que sea. Dice el Servicio y la fecha, sin horarios, porque pueden estar tomados al leerlo. Lleva al Enlace de reserva del Servicio con esa fecha elegida, y el horario queda para el primero que Reserva. Lleva también el enlace para Salir de la Lista de espera. Si el día se vuelve a llenar y después se libera otro horario, llega otro Aviso; mientras el día siga con lugar, no se repite.
 _Avoid_: Aviso de cambio del Turno (es otro), notificación (a secas)
+
+**Salir de la Lista de espera**:
+Acción del Cliente de terminar su Anotación, desde el enlace que traen la Confirmación de anotación y cada Aviso de horario libre. No hace falta Verificar email de nuevo. Después puede volver a anotarse.
+_Avoid_: desanotarse, darse de baja (eso es otra cosa), cancelar la anotación
 
 **Invitación a calificar**:
 Mail que recibe el Cliente una hora después de que termina un Turno que se puede Calificar, con el Enlace del Turno. Se manda una sola vez por Turno, hasta 7 días después de que terminó.

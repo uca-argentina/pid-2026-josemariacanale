@@ -6,6 +6,10 @@ import { listMyOutOfOfficeController } from '@/src/interface-adapters/controller
 import { createOutOfOfficeUseCase } from '@/src/application/use-cases/out-of-office/create-out-of-office.use-case';
 import { updateOutOfOfficeUseCase } from '@/src/application/use-cases/out-of-office/update-out-of-office.use-case';
 import { deleteOutOfOfficeUseCase } from '@/src/application/use-cases/out-of-office/delete-out-of-office.use-case';
+import { previewOutOfOfficeUseCase } from '@/src/application/use-cases/out-of-office/preview-out-of-office.use-case';
+import { previewOutOfOfficeController } from '@/src/interface-adapters/controllers/out-of-office/preview-out-of-office.controller';
+import { previewUpdateOutOfOfficeUseCase } from '@/src/application/use-cases/out-of-office/preview-update-out-of-office.use-case';
+import { previewUpdateOutOfOfficeController } from '@/src/interface-adapters/controllers/out-of-office/preview-update-out-of-office.controller';
 import { createOutOfOfficeController } from '@/src/interface-adapters/controllers/out-of-office/create-out-of-office.controller';
 import { updateOutOfOfficeController } from '@/src/interface-adapters/controllers/out-of-office/update-out-of-office.controller';
 import { deleteOutOfOfficeController } from '@/src/interface-adapters/controllers/out-of-office/delete-out-of-office.controller';
@@ -64,6 +68,30 @@ export function createOutOfOfficeModule() {
             DI_SYMBOLS.IInstrumentationService,
             DI_SYMBOLS.IAuthenticationService,
             DI_SYMBOLS.IDeleteOutOfOfficeUseCase,
+        ]);
+
+    outOfOfficeModule
+        .bind(DI_SYMBOLS.IPreviewOutOfOfficeUseCase)
+        .toHigherOrderFunction(previewOutOfOfficeUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IOutOfOfficeRepository]);
+
+    outOfOfficeModule
+        .bind(DI_SYMBOLS.IPreviewOutOfOfficeController)
+        .toHigherOrderFunction(previewOutOfOfficeController, [
+            DI_SYMBOLS.IInstrumentationService,
+            DI_SYMBOLS.IAuthenticationService,
+            DI_SYMBOLS.IPreviewOutOfOfficeUseCase,
+        ]);
+
+    outOfOfficeModule
+        .bind(DI_SYMBOLS.IPreviewUpdateOutOfOfficeUseCase)
+        .toHigherOrderFunction(previewUpdateOutOfOfficeUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IOutOfOfficeRepository]);
+
+    outOfOfficeModule
+        .bind(DI_SYMBOLS.IPreviewUpdateOutOfOfficeController)
+        .toHigherOrderFunction(previewUpdateOutOfOfficeController, [
+            DI_SYMBOLS.IInstrumentationService,
+            DI_SYMBOLS.IAuthenticationService,
+            DI_SYMBOLS.IPreviewUpdateOutOfOfficeUseCase,
         ]);
 
     return outOfOfficeModule;

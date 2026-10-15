@@ -61,6 +61,7 @@ export const availabilitiesWith = (stubs: Partial<IAvailabilitiesRepository>): I
     listAvailabilities: jest.fn(notStubbed('listAvailabilities')),
     getAvailability: jest.fn(notStubbed('getAvailability')),
     createAvailability: jest.fn(notStubbed('createAvailability')),
+    previewUpdateAvailability: jest.fn(notStubbed('previewUpdateAvailability')),
     updateAvailability: jest.fn(notStubbed('updateAvailability')),
     makeDefault: jest.fn(notStubbed('makeDefault')),
     deleteAvailability: jest.fn(notStubbed('deleteAvailability')),
@@ -69,7 +70,9 @@ export const availabilitiesWith = (stubs: Partial<IAvailabilitiesRepository>): I
 
 export const outOfOfficeWith = (stubs: Partial<IOutOfOfficeRepository>): IOutOfOfficeRepository => ({
     listOutOfOffice: jest.fn(notStubbed('listOutOfOffice')),
+    previewOutOfOffice: jest.fn(notStubbed('previewOutOfOffice')),
     createOutOfOffice: jest.fn(notStubbed('createOutOfOffice')),
+    previewUpdateOutOfOffice: jest.fn(notStubbed('previewUpdateOutOfOffice')),
     updateOutOfOffice: jest.fn(notStubbed('updateOutOfOffice')),
     deleteOutOfOffice: jest.fn(notStubbed('deleteOutOfOffice')),
     ...stubs,
@@ -78,7 +81,9 @@ export const outOfOfficeWith = (stubs: Partial<IOutOfOfficeRepository>): IOutOfO
 export const holidaysWith = (stubs: Partial<IHolidaysRepository>): IHolidaysRepository => ({
     listCountries: jest.fn(notStubbed('listCountries')),
     getSettings: jest.fn(notStubbed('getSettings')),
+    previewSetCountry: jest.fn(notStubbed('previewSetCountry')),
     setCountry: jest.fn(notStubbed('setCountry')),
+    previewSetEnabled: jest.fn(notStubbed('previewSetEnabled')),
     setEnabled: jest.fn(notStubbed('setEnabled')),
     listConflicts: jest.fn(notStubbed('listConflicts')),
     ...stubs,

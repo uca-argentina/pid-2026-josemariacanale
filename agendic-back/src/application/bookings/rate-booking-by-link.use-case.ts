@@ -10,7 +10,7 @@ import { BusinessRuleError, ConflictError } from '../../domain/errors';
 
 /**
  * Califica un Turno por su Enlace del Turno: una sola vez, sin editarla, sobre un Turno aceptado que ya terminó sin
- * Ausencia ni Falta del Empleado. Un comentario vacío o de solo espacios se guarda como null.
+ * Ausencia del Invitado ni del Anfitrión. Un comentario vacío o de solo espacios se guarda como null.
  */
 @Injectable()
 export class RateBookingByLinkUseCase {

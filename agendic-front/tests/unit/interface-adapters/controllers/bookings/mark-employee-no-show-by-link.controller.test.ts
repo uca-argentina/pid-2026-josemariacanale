@@ -28,7 +28,7 @@ const booking = {
 };
 
 describe('markEmployeeNoShowByLinkController', () => {
-    it('marca la Falta del Empleado del Turno del Enlace', async () => {
+    it('marca la Ausencia del Anfitrión del Turno del Enlace', async () => {
         const useCase = jest.fn().mockResolvedValue(booking);
 
         const result = await markEmployeeNoShowByLinkController(instrumentation, useCase)({ link: 's3cr3t-l1nk' });

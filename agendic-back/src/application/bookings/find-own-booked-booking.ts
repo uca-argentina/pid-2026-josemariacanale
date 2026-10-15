@@ -5,7 +5,7 @@ import { EmployeesRepository } from '../../domain/employees/employees.repository
 import { BusinessRuleError } from '../../domain/errors';
 
 /**
- * Devuelve el Turno aceptado del Empleado asignado; lo comparten Cancelar, Reagendar y Ausencia.
+ * Devuelve el Turno aceptado del Empleado asignado; lo comparten Cancelar, Reagendar y Ausencia del Invitado.
  *
  * @throws {NotFoundError} el Turno no existe
  * @throws {ForbiddenError} el Usuario no es el Empleado asignado al Turno

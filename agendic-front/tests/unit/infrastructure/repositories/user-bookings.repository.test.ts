@@ -23,6 +23,9 @@ const booking = {
     branch: { id: 4, name: 'Centro' },
     cabin: { id: 6, name: 'Box 1' },
     fromRescheduleId: null,
+    cancelledBy: null,
+    cancellationReason: null,
+    cancellationCause: null,
 };
 
 const repo = (apiUrl: string | undefined = 'http://api') =>
@@ -57,6 +60,23 @@ describe('UserBookingsRepository.listMyBookings', () => {
 
     it('rejects a Turno that comes without the cabin field', async () => {
         const { cabin: _cabin, ...withoutField } = booking;
+        respond(200, [withoutField]);
+        await expect(repo().listMyBookings()).rejects.toBeInstanceOf(ApiRequestError);
+    });
+
+    it('parses the Causa de cancelación of a Turno cancelled by a schedule change', async () => {
+        const caused = { ...booking, status: 'CANCELLED', cancelledBy: 'EMPLOYEE', cancellationReason: 'Vacaciones', cancellationCause: 'OUT_OF_OFFICE' };
+        respond(200, [caused]);
+        await expect(repo().listMyBookings()).resolves.toEqual([caused]);
+    });
+
+    it('rejects an unknown Causa de cancelación', async () => {
+        respond(200, [{ ...booking, cancellationCause: 'OTHER' }]);
+        await expect(repo().listMyBookings()).rejects.toBeInstanceOf(ApiRequestError);
+    });
+
+    it('rejects a Turno that comes without the cancellationCause field', async () => {
+        const { cancellationCause: _cause, ...withoutField } = booking;
         respond(200, [withoutField]);
         await expect(repo().listMyBookings()).rejects.toBeInstanceOf(ApiRequestError);
     });

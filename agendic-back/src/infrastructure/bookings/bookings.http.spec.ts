@@ -1,5 +1,10 @@
 import { Availability } from '../../domain/availabilities/availability';
-import { Booking, BookingActor, BookingStatus } from '../../domain/bookings/booking';
+import {
+  Booking,
+  BookingActor,
+  BookingStatus,
+  CancellationCause,
+} from '../../domain/bookings/booking';
 import {
   BusinessRuleError,
   ConflictError,
@@ -71,6 +76,7 @@ const BOOKING: Booking = {
   acceptedAt: null,
   cancelledBy: null,
   cancellationReason: null,
+  cancellationCause: null,
 };
 
 describe('Turno', () => {
@@ -142,6 +148,7 @@ describe('Turno', () => {
         acceptedAt: null,
         cancelledBy: null,
         cancellationReason: null,
+        cancellationCause: null,
         employeeName: ANAS_EMPLOYEE.name,
         link: BOOKING.link,
       });
@@ -903,6 +910,7 @@ describe('Turno', () => {
           acceptedAt: null,
           cancelledBy: null,
           cancellationReason: null,
+          cancellationCause: null,
           cabin: null,
           clientName: BOOKING.clientName,
           clientEmail: BOOKING.clientEmail,
@@ -922,6 +930,26 @@ describe('Turno', () => {
 
       expect(res.body[0].cabin).toEqual({ id: 10, name: 'Box 1' });
       expect(res.body[0]).not.toHaveProperty('cabinId');
+    });
+
+    it('shows the Causa de cancelación of a Turno that has one', async () => {
+      t.bookings.listByBusiness.mockResolvedValue([
+        {
+          ...BOOKING,
+          status: BookingStatus.CANCELLED,
+          cancelledBy: BookingActor.EMPLOYEE,
+          cancellationReason: 'Ana cambió sus horarios y ya no atiende en ese horario. Podés reservar otro horario.',
+          cancellationCause: CancellationCause.SCHEDULE_CHANGE,
+          cabin: null,
+        },
+      ]);
+
+      const res = await t.http
+        .get(`/businesses/${ANAS_BUSINESS.id}/bookings`)
+        .set(bearer(CLERK_TOKEN))
+        .expect(200);
+
+      expect(res.body[0].cancellationCause).toBe('SCHEDULE_CHANGE');
     });
 
     it('shows a cascaded Turno as CANCELLED', async () => {

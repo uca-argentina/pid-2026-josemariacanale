@@ -4,6 +4,7 @@ import {
   Booking,
   BookingActor,
   BookingStatus,
+  CancellationCause,
   ClientBooking,
   SeriesBooking,
   DAILY_LIMIT_REACHED,
@@ -70,6 +71,7 @@ const BOOKING_SELECT = {
   acceptedAt: true,
   cancelledBy: true,
   cancellationReason: true,
+  cancellationCause: true,
   cancelledAt: true,
   rejectedAt: true,
   client: { select: { name: true, email: true } },
@@ -638,24 +640,41 @@ export class PrismaBookingsRepository implements BookingsRepository {
   async listUpcomingByUser(
     userId: number,
     from: Date,
+    to?: Date,
   ): Promise<UpcomingBooking[]> {
     const rows = await this.prisma.booking
       .findMany({
-        where: { userId, status: { in: OCCUPYING }, startsAt: { gte: from } },
+        where: {
+          userId,
+          status: { in: OCCUPYING },
+          startsAt: { gte: from, ...(to && { lt: to }) },
+        },
         select: {
           id: true,
           startsAt: true,
+          prepStartsAt: true,
+          endsAt: true,
+          link: true,
           employeeId: true,
-          client: { select: { name: true } },
+          client: { select: { name: true, email: true } },
           service: {
             select: {
-              availability: { select: { timeZone: true } },
+              name: true,
+              availability: { select: { id: true, timeZone: true } },
+              branch: {
+                select: {
+                  id: true,
+                  name: true,
+                  timeZone: true,
+                  business: { select: { id: true, name: true } },
+                },
+              },
               // Only the Usuario's own Empleado rows; this Turno's is picked by `employeeId` below.
               employees: {
                 where: { employee: { userId } },
                 select: {
                   employeeId: true,
-                  availability: { select: { timeZone: true } },
+                  availability: { select: { id: true, timeZone: true } },
                 },
               },
             },
@@ -664,16 +683,29 @@ export class PrismaBookingsRepository implements BookingsRepository {
         orderBy: { startsAt: 'asc' },
       })
       .catch(translateError);
-    return rows.map((row) => ({
-      id: row.id,
-      startsAt: row.startsAt,
-      clientName: row.client!.name,
-      timeZone: (
+    return rows.flatMap((row) => {
+      const { branch } = row.service;
+      const availability =
         row.service.availability ??
-        row.service.employees.find((e) => e.employeeId === row.employeeId)!
-          .availability
-      ).timeZone,
-    }));
+        row.service.employees.find((e) => e.employeeId === row.employeeId)
+          ?.availability;
+      if (!availability) return [];
+      return {
+        id: row.id,
+        startsAt: row.startsAt,
+        prepStartsAt: row.prepStartsAt,
+        endsAt: row.endsAt,
+        clientName: row.client!.name,
+        clientEmail: row.client!.email,
+        availabilityId: availability.id,
+        timeZone: availability.timeZone,
+        clientTimeZone: branch?.timeZone ?? availability.timeZone,
+        serviceName: row.service.name,
+        link: row.link,
+        business: branch && branch.business,
+        branch: branch && { id: branch.id, name: branch.name },
+      };
+    });
   }
 
   /**
@@ -804,7 +836,7 @@ export class PrismaBookingsRepository implements BookingsRepository {
   }
 
   /**
-   * @throws {BusinessRuleError} el Turno no está aceptado, su horario no terminó, ya tiene Ausencia o tiene Falta del Empleado
+   * @throws {BusinessRuleError} el Turno no está aceptado, su horario no terminó, ya tiene Ausencia del Invitado o tiene Ausencia del Anfitrión
    * @throws {NotFoundError} el Turno no existe
    */
   async markNoShow(id: number, now: Date) {
@@ -916,9 +948,9 @@ export class PrismaBookingsRepository implements BookingsRepository {
   }
 
   /**
-   * Marca la Falta del Empleado, solo si la guarda sigue valiendo en el momento de escribir.
+   * Marca la Ausencia del Anfitrión, solo si la guarda sigue valiendo en el momento de escribir.
    *
-   * @throws {BusinessRuleError} el Turno ya no está aceptado, no empezó, pasó la ventana, o ya tiene Ausencia o Falta del Empleado
+   * @throws {BusinessRuleError} el Turno ya no está aceptado, no empezó, pasó la ventana, o ya tiene Ausencia del Invitado o del Anfitrión
    * @throws {NotFoundError} el Turno no existe
    */
   async markEmployeeNoShow(id: number, now: Date) {
@@ -1028,6 +1060,7 @@ const toBooking = (row: BookingRow): Booking => ({
   acceptedAt: row.acceptedAt,
   cancelledBy: row.cancelledBy as BookingActor | null,
   cancellationReason: row.cancellationReason,
+  cancellationCause: row.cancellationCause as CancellationCause | null,
   cancelledAt: row.cancelledAt,
   rejectedAt: row.rejectedAt,
 });

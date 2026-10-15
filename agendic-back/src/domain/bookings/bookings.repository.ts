@@ -159,10 +159,15 @@ export interface BookingsRepository {
     excludeBookingId?: number,
   ): Promise<Pick<Booking, 'prepStartsAt' | 'endsAt'>[]>;
   /**
-   * PENDING and BOOKED Turnos of this Usuario starting at or after `from`, by `startsAt`, each with the zone of the
-   * Availability it is attended with: the Empleado's for the Servicio, or the Servicio personal's.
+   * PENDING and BOOKED Turnos of this Usuario starting at or after `from` (and before `to`, if given), by `startsAt`,
+   * each with the Availability it is attended with: the Empleado's for the Servicio, or the Servicio personal's. A Turno
+   * whose Availability can't be resolved is left out.
    */
-  listUpcomingByUser(userId: number, from: Date): Promise<UpcomingBooking[]>;
+  listUpcomingByUser(
+    userId: number,
+    from: Date,
+    to?: Date,
+  ): Promise<UpcomingBooking[]>;
   /**
    * Every Turno, in any status, the Usuario attends: of their Servicios personales and of the Negocios where
    * they are still an active Empleado.
@@ -188,7 +193,7 @@ export interface BookingsRepository {
   unmarkNoShow(id: number): Promise<Booking>;
   /** Sets depositPaidAt on a PENDING or BOOKED Booking that has a Seña, not yet paid, and has not started. Throws BusinessRuleError otherwise. */
   payDeposit(id: number, now: Date): Promise<ClientBooking>;
-  /** Sets employeeNoShowAt on a BOOKED Booking inside its window with no Ausencia or Falta del Empleado yet. Throws BusinessRuleError otherwise. */
+  /** Sets employeeNoShowAt on a BOOKED Booking inside its window with no Ausencia del Invitado or Ausencia del Anfitrión yet. Throws BusinessRuleError otherwise. */
   markEmployeeNoShow(id: number, now: Date): Promise<ClientBooking>;
   /** Saves the Calificación of the Turno. Throws ConflictError if it already has one, even if another request wins the race. */
   rate(id: number, score: number, comment: string | null): Promise<ClientBooking>;

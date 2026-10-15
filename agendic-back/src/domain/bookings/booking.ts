@@ -12,6 +12,13 @@ export enum BookingActor {
   RETIREMENT = 'RETIREMENT',
 }
 
+/** Por qué se Canceló un Turno cuando lo cancela un cambio en el horario de quien lo atiende (ADR 0034). */
+export enum CancellationCause {
+  OUT_OF_OFFICE = 'OUT_OF_OFFICE',
+  PUBLIC_HOLIDAY = 'PUBLIC_HOLIDAY',
+  SCHEDULE_CHANGE = 'SCHEDULE_CHANGE',
+}
+
 /** Calificación: the score the Cliente left on an attended Turno from its Enlace del Turno. */
 export interface BookingRating {
   /** From 1 to 5. */
@@ -38,9 +45,9 @@ export interface Booking {
   status: BookingStatus;
   /** Comentario del Turno. */
   notes: string | null;
-  /** Ausencia: when the Empleado marked it; null while not marked. */
+  /** Ausencia del Invitado: when the Empleado marked it; null while not marked. */
   noShowAt: Date | null;
-  /** Falta del Empleado: when the Cliente marked it from the Enlace del Turno; null while not marked. */
+  /** Ausencia del Anfitrión: when the Cliente marked it from the Enlace del Turno; null while not marked. */
   employeeNoShowAt: Date | null;
   /** Enlace del Turno (ADR 0022): identificador secreto, único y no adivinable que abre este Turno sin Código de verificación. Al Reagendar pasa al Turno nuevo y el original queda sin Enlace. */
   link: string | null;
@@ -62,6 +69,8 @@ export interface Booking {
   cancelledBy: BookingActor | null;
   /** Motivo de cancelación: free text of up to 500 characters; null without `cancelledBy` or when none was given. */
   cancellationReason: string | null;
+  /** Causa de cancelación (ADR 0034): set only in a Turno cancelled by a change in the horario of whoever attends it, together with a Motivo de cancelación Agendic wrote; null otherwise. */
+  cancellationCause: CancellationCause | null;
   /** Cancelar: when it was cancelled, from the clock; null unless CANCELLED. */
   cancelledAt: Date | null;
   /** Rechazar turno: when it was rejected, from the clock; null unless REJECTED. */
@@ -85,16 +94,38 @@ export const depositAmountFor = (
 export type ClientNotice = Pick<Booking, 'clientEmail' | 'link'> &
   Partial<Pick<Booking, 'cancellationReason'>>;
 
+/** Un Turno a Cancelar por un cambio en el horario de quien lo atiende (ADR 0034), con la Causa y el Motivo de cancelación que Agendic le escribió. */
+export interface CausedCancellationOrder {
+  id: number;
+  cause: CancellationCause;
+  reason: string;
+}
+
 /** A Turno as the panel shows it (ADR 0030): with the Cabina it occupies, which the Cliente never sees. */
 export interface PanelBooking extends Booking {
   /** Still named once dada de baja; null in a Turno without Cabina. */
   cabin: { id: number; name: string } | null;
 }
 
-/** A pending or accepted Turno still to come, with the zone of the Availability its Usuario attends it with. */
+/** A pending or accepted Turno still to come, with the Availability its Usuario attends it with. */
 export interface UpcomingBooking
-  extends Pick<Booking, 'id' | 'startsAt' | 'clientName'> {
+  extends Pick<
+    Booking,
+    'id' | 'startsAt' | 'prepStartsAt' | 'endsAt' | 'clientName' | 'clientEmail'
+  > {
+  /** The Availability the Turno is attended with: the Empleado's for the Servicio, or the Servicio personal's. */
+  availabilityId: number;
+  /** The zone of that Availability. */
   timeZone: string;
+  /** The zone the Cliente sees the Turno in: the Sucursal's, or the Availability's in a Servicio personal. */
+  clientTimeZone: string;
+  serviceName: string;
+  /** Enlace del Turno; null only in a Turno Reagendar replaced, which is never upcoming. */
+  link: string | null;
+  /** Null in a Servicio personal, together with `branch`. */
+  business: { id: number; name: string } | null;
+  /** Null in a Servicio personal, together with `business`. */
+  branch: { id: number; name: string } | null;
 }
 
 /** A Turno as the Usuario who attends it sees it in Mis turnos (ADR 0023): with the names of where it happens. */

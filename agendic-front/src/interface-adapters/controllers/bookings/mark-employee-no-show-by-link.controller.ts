@@ -35,13 +35,13 @@ const inputSchema = z.object({ link: z.string().trim().min(1) });
 export type IMarkEmployeeNoShowByLinkController = ReturnType<typeof markEmployeeNoShowByLinkController>;
 
 /**
- * Marca la Falta del Empleado en el Turno de un Enlace del Turno: el Cliente avisa que el Empleado no vino.
+ * Marca la Ausencia del Anfitrión en el Turno de un Enlace del Turno: el Cliente avisa que quien lo atiende no vino.
  *
  * Público: el Enlace, no una Sesión ni un acceso, prueba que se tiene el Turno (ADR 0022).
  *
  * @throws {InputParseError} `link` falta o está vacío
  * @throws {NotFoundError} el Enlace no es de ningún Turno
- * @throws {BookingStateError} el Turno no está aceptado, no empezó, venció el plazo, tiene Ausencia, ya tiene la Falta o no admite marcarla
+ * @throws {BookingStateError} el Turno no está aceptado, no empezó, venció el plazo, tiene Ausencia del Invitado, ya tiene la del Anfitrión o no admite marcarla
  */
 export const markEmployeeNoShowByLinkController =
     (instrumentationService: IInstrumentationService, markEmployeeNoShowByLinkUseCase: IMarkEmployeeNoShowByLinkUseCase) =>

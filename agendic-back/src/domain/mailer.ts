@@ -8,6 +8,17 @@ export type SeriesConfirmation = {
 
 /** The Turnos of a Serie an Aviso de cambio del Turno covers (#305): the same shape as its Confirmación de reserva. */
 export type SeriesNotice = SeriesConfirmation;
+/** A Turno cancelled with a Causa de cancelación, as the mail lists it. */
+export interface CausedCancellation {
+  /** Enlace del Turno. */
+  link: string;
+  serviceName: string;
+  startsAt: Date;
+  /** The zone `startsAt` is shown in. */
+  timeZone: string;
+  /** Motivo de cancelación Agendic wrote. */
+  reason: string;
+}
 
 export interface Mailer {
   /** Sends an email with a Código de verificación to Reservar. */
@@ -51,5 +62,13 @@ export interface Mailer {
     serviceName: string,
     startsAt: Date,
     timeZone: string,
+  ): Promise<void>;
+  /**
+   * Aviso de cambio del Turno con Causa: one mail for all the Turnos of one Cliente that a change in the horario of
+   * whoever attends them cancelled, each with its Enlace del Turno. Only these cancellations use it.
+   */
+  sendBookingCancellationWithCause(
+    email: string,
+    bookings: CausedCancellation[],
   ): Promise<void>;
 }
