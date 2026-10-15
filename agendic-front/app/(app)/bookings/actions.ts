@@ -11,7 +11,6 @@ import type { DI_RETURN_TYPES } from '@/di/types';
 import { TIME_ZONE } from '@/app/(app)/_components/booking-format';
 import { HISTORY_LOAD_ERROR } from './_components/booking-helpers';
 import type { Preferences } from '@/src/entities/models/user';
-import { BookingNotAllowedError, BookingStateError, SlotTakenError, SlotUnavailableError } from '@/src/entities/errors/booking';
 
 import { InputParseError, NotFoundError } from '@/src/entities/errors/common';
 

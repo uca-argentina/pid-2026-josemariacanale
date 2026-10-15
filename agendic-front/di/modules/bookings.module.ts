@@ -11,8 +11,6 @@ import { getBookingHistoryUseCase } from '@/src/application/use-cases/bookings/g
 import { getBookingHistoryController } from '@/src/interface-adapters/controllers/bookings/get-booking-history.controller';
 import { unmarkBookingNoShowUseCase } from '@/src/application/use-cases/bookings/unmark-booking-no-show.use-case';
 import { unmarkBookingNoShowController } from '@/src/interface-adapters/controllers/bookings/unmark-booking-no-show.controller';
-import { getBookingHistoryUseCase } from '@/src/application/use-cases/bookings/get-booking-history.use-case';
-import { getBookingHistoryController } from '@/src/interface-adapters/controllers/bookings/get-booking-history.controller';
 
 import { rescheduleBookingUseCase } from '@/src/application/use-cases/bookings/reschedule-booking.use-case';
 import { rescheduleBookingController } from '@/src/interface-adapters/controllers/bookings/reschedule-booking.controller';
