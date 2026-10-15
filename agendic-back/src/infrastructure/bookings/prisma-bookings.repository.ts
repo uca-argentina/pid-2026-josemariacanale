@@ -5,6 +5,7 @@ import {
   BookingActor,
   BookingStatus,
   ClientBooking,
+  SeriesBooking,
   DAILY_LIMIT_REACHED,
   PanelBooking,
   seriesDatesNotAvailable,
@@ -442,7 +443,7 @@ export class PrismaBookingsRepository implements BookingsRepository {
       .findUnique({ where: { link }, select: CLIENT_BOOKING_SELECT })
       .catch(translateError);
     if (!row) throw new NotFoundError('Turno not found');
-    return toClientBooking(row);
+    return this.withSeries(row);
   }
 
   /**
@@ -453,7 +454,38 @@ export class PrismaBookingsRepository implements BookingsRepository {
       .findUnique({ where: { id }, select: CLIENT_BOOKING_SELECT })
       .catch(translateError);
     if (!row) throw new NotFoundError('Booking not found');
-    return toClientBooking(row);
+    return this.withSeries(row);
+  }
+
+  /** Adds the Turnos vigentes of its Serie (#304): by date, without the originals replaced by Reagendar, which have no Enlace. */
+  private async withSeries(row: ClientBookingRow): Promise<ClientBooking> {
+    const [booking] = await this.withSeriesAll([row]);
+    return booking;
+  }
+
+  /** `withSeries` for many rows with one query for all their Series, not one per row. */
+  private async withSeriesAll(rows: ClientBookingRow[]): Promise<ClientBooking[]> {
+    const seriesIds = [
+      ...new Set(rows.flatMap(({ seriesId }) => (seriesId === null ? [] : [seriesId]))),
+    ];
+    const bySeries = new Map<string, SeriesBooking[]>();
+    if (seriesIds.length > 0) {
+      const turnos = await this.prisma.booking
+        .findMany({
+          where: { seriesId: { in: seriesIds }, link: { not: null } },
+          select: { seriesId: true, startsAt: true, status: true, link: true },
+          orderBy: [{ startsAt: 'asc' }, { id: 'asc' }],
+        })
+        .catch(translateError);
+      for (const { seriesId, startsAt, status, link } of turnos) {
+        const list = bySeries.get(seriesId!) ?? [];
+        list.push({ startsAt, status: status as BookingStatus, link: link! });
+        bySeries.set(seriesId!, list);
+      }
+    }
+    return rows.map((row) =>
+      toClientBooking(row, row.seriesId === null ? null : { bookings: bySeries.get(row.seriesId) ?? [] }),
+    );
   }
 
   /**
@@ -841,7 +873,7 @@ export class PrismaBookingsRepository implements BookingsRepository {
         orderBy: { endsAt: 'asc' },
       })
       .catch(translateError);
-    return rows.map(toClientBooking);
+    return this.withSeriesAll(rows);
   }
 
   /**
@@ -914,7 +946,10 @@ const toPanelBooking = (row: PanelBookingRow): PanelBooking => ({
 const generateBookingLink = (): string => randomBytes(32).toString('base64url');
 
 /** The Sucursal's data if the Servicio is del Negocio, with its cover (the first Imagen de Sucursal by order). */
-const toClientBooking = (row: ClientBookingRow): ClientBooking => {
+const toClientBooking = (
+  row: ClientBookingRow,
+  series: ClientBooking['series'],
+): ClientBooking => {
   const branch = row.service.branch;
   return {
     ...toBooking(row),
@@ -943,6 +978,7 @@ const toClientBooking = (row: ClientBookingRow): ClientBooking => {
         }
       : null,
     user: branch ? null : { slug: row.user.slug },
+    series,
   };
 };
 

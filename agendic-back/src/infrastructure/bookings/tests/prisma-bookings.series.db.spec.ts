@@ -165,4 +165,35 @@ describe('PrismaBookingsRepository, Serie (real database)', () => {
 
     expect(moved.seriesId).toBe(first.seriesId);
   }, 60_000);
+
+  it('findByLink lists the Turnos vigentes of the Serie by date, without the original replaced by Reagendar, and null in a Turno suelto', async () => {
+    const [first, second, third] = await repository.createSeries([
+      item(0, 14, [box]),
+      item(0, 15, [box]),
+      item(0, 22, [box]),
+    ]);
+    const moved = await repository.reschedule(
+      second.id,
+      {
+        employeeId: null,
+        userId: userIds[0],
+        cabinId: box,
+        prepStartsAt: at(23, 10),
+        startsAt: at(23, 10),
+        endsAt: at(23, 11),
+      },
+      new Date(),
+    );
+    const loose = await occupy(0, 24, null);
+
+    const { series } = await repository.findByLink(third.link!);
+
+    expect(series?.bookings.map(({ startsAt, link }) => ({ startsAt, link }))).toEqual([
+      { startsAt: at(14, 10), link: first.link },
+      { startsAt: at(22, 10), link: third.link },
+      { startsAt: at(23, 10), link: moved.link },
+    ]);
+    expect(series?.bookings.every(({ status }) => status === BookingStatus.BOOKED)).toBe(true);
+    expect((await repository.findByLink(loose.link!)).series).toBeNull();
+  }, 60_000);
 });

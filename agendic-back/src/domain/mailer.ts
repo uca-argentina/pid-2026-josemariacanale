@@ -1,13 +1,23 @@
 export const MAILER = Symbol('Mailer');
 
+/** The Turnos of a Serie to list in its Confirmación de reserva, with the zone their dates are shown in. */
+export type SeriesConfirmation = {
+  bookings: { startsAt: Date; link: string }[];
+  timeZone: string;
+};
+
 export interface Mailer {
   /** Sends an email with a Código de verificación to Reservar. */
   sendVerificationCode(email: string, code: string): Promise<void>;
-  /** Confirmación de reserva: the Turno was created, with its Enlace del Turno (ADR 0022) and, if it has one, the Seña to pay from there. */
+  /**
+   * Confirmación de reserva: the Turno was created, with its Enlace del Turno (ADR 0022) and, if it has one, the Seña to pay from there.
+   * For a Serie (#304), `series` lists every Turno with its own Enlace, the dates shown in `timeZone`, in this one mail.
+   */
   sendBookingConfirmation(
     email: string,
     link: string,
     depositAmount: number | null,
+    series?: SeriesConfirmation,
   ): Promise<void>;
   /** Aviso de cambio del Turno: the Turno was cancelled, by whoever did it or by a baja, with its Enlace del Turno and the Motivo de cancelación if it has one. */
   sendBookingCancellation(email: string, link: string, reason?: string | null): Promise<void>;

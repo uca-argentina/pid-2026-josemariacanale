@@ -94,4 +94,5 @@ export const presentClientBooking = (booking: ClientBooking, now: Date) => ({
   business: booking.business,
   branch: booking.branch,
   user: booking.user,
+  series: booking.series,
 });

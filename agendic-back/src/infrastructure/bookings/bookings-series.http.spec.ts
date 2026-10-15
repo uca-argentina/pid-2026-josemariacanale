@@ -97,7 +97,7 @@ describe('POST /bookings con repeat (Reservar una Serie)', () => {
     });
   });
 
-  it('manda una sola Confirmación de reserva, con el Enlace del primer Turno', async () => {
+  it('manda una sola Confirmación de reserva, con todas las fechas y el Enlace de cada Turno', async () => {
     await post().expect(201);
 
     expect(t.mailer.sendBookingConfirmation).toHaveBeenCalledTimes(1);
@@ -105,7 +105,19 @@ describe('POST /bookings con repeat (Reservar una Serie)', () => {
       REQUEST.clientEmail,
       'link-1',
       null,
+      {
+        bookings: MONDAYS.map((date, i) => ({ startsAt: new Date(at(date)), link: `link-${i + 1}` })),
+        timeZone: ANAS_BRANCH.timeZone,
+      },
     );
+  });
+
+  it('si el mail falla, la Serie igual queda creada', async () => {
+    t.mailer.sendBookingConfirmation.mockRejectedValue(new Error('SMTP down'));
+
+    const res = await post().expect(201);
+
+    expect(res.body.series.bookings).toHaveLength(4);
   });
 
   it('con skipDates crea los que quedan', async () => {
