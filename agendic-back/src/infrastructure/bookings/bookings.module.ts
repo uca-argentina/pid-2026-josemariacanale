@@ -3,6 +3,7 @@ import { CancelBookingUseCase } from '../../application/bookings/cancel-booking.
 import { CancelBookingByLinkUseCase } from '../../application/bookings/cancel-booking-by-link.use-case';
 import { GetBookingByLinkUseCase } from '../../application/bookings/get-booking-by-link.use-case';
 import { MarkNoShowUseCase } from '../../application/bookings/mark-no-show.use-case';
+import { UnmarkNoShowUseCase } from '../../application/bookings/unmark-no-show.use-case';
 import { RescheduleBookingUseCase } from '../../application/bookings/reschedule-booking.use-case';
 import { RescheduleBookingByLinkUseCase } from '../../application/bookings/reschedule-booking-by-link.use-case';
 import { MarkEmployeeNoShowByLinkUseCase } from '../../application/bookings/mark-employee-no-show-by-link.use-case';
@@ -34,6 +35,7 @@ import { BookingsController } from './bookings.controller';
     CancelBookingUseCase,
     RescheduleBookingUseCase,
     MarkNoShowUseCase,
+    UnmarkNoShowUseCase,
     ListSlotsUseCase,
     GetBookingByLinkUseCase,
     CancelBookingByLinkUseCase,

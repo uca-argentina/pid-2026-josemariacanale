@@ -11,7 +11,7 @@ export type BookingTab = 'upcoming' | 'pending' | 'past' | 'cancelled';
 /** La Cabina que ocupa el Turno, o null si no ocupa ninguna: en ese caso no se muestra nada. */
 export const cabinOf = (b: Booking) => b.cabin?.name ?? null;
 
-/** El Empleado puede marcar la Ausencia: el Turno no tiene ya una Ausencia ni una Falta del Empleado (se excluyen, ADR 0004). */
+/** El Empleado puede marcar la Ausencia del Invitado: el Turno no tiene ya una Ausencia del Invitado ni una del Anfitrión (se excluyen, ADR 0004). */
 export const canMarkNoShow = (b: Booking) => b.noShowAt === null && b.employeeNoShowAt === null;
 
 const CANCELLED_BY_LABELS = { EMPLOYEE: 'el Empleado', CLIENT: 'el Cliente', RETIREMENT: 'una baja' } as const;
@@ -130,8 +130,8 @@ export function badgesOf(b: Booking): { label: string; className: string }[] {
     return [
         b.status === 'PENDING' && { label: 'Pendiente', className: AMBER },
         hasPendingDeposit(b) && { label: 'Seña pendiente', className: AMBER },
-        b.status === 'BOOKED' && b.noShowAt !== null && { label: 'Ausencia', className: RED },
-        b.status === 'BOOKED' && b.employeeNoShowAt !== null && { label: 'Falta del Empleado', className: RED },
+        b.status === 'BOOKED' && b.noShowAt !== null && { label: 'Ausencia del Invitado', className: RED },
+        b.status === 'BOOKED' && b.employeeNoShowAt !== null && { label: 'Ausencia del Anfitrión', className: RED },
         b.fromRescheduleId !== null && { label: 'Reagendado', className: AMBER },
         b.status === 'REJECTED' && { label: 'Rechazado', className: RED },
         b.status === 'CANCELLED' && { label: 'Cancelado', className: RED },

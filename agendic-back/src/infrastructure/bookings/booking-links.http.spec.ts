@@ -687,7 +687,7 @@ describe('Enlace del Turno', () => {
       }));
     });
 
-    it('marks the Falta del Empleado from the start of the Turno', async () => {
+    it('marks the Ausencia del Anfitrión from the start of the Turno', async () => {
       t.clock.advance(untilStart());
 
       const res = await patch().expect(200);
@@ -737,7 +737,7 @@ describe('Enlace del Turno', () => {
       },
     );
 
-    it('answers 422 when the Turno has an Ausencia', async () => {
+    it('answers 422 when the Turno has an Ausencia del Invitado', async () => {
       t.clock.advance(untilEnd());
       t.bookings.findByLink.mockResolvedValue({
         ...CLIENT_BOOKED,
@@ -749,7 +749,7 @@ describe('Enlace del Turno', () => {
       expect(res.body.message).toBe('Turno has an Ausencia');
     });
 
-    it('answers 422 when the Falta del Empleado is already marked', async () => {
+    it('answers 422 when the Ausencia del Anfitrión is already marked', async () => {
       t.clock.advance(untilEnd());
       t.bookings.findByLink.mockResolvedValue({
         ...CLIENT_BOOKED,
@@ -822,7 +822,7 @@ describe('Enlace del Turno', () => {
       });
     });
 
-    it('is false when the Turno has an Ausencia, without exposing it', async () => {
+    it('is false when the Turno has an Ausencia del Invitado, without exposing it', async () => {
       t.clock.advance(BOOKED.endsAt.getTime() - t.clock.now().getTime());
       t.bookings.findByLink.mockResolvedValue({ ...CLIENT_BOOKED, noShowAt: t.clock.now() });
 

@@ -137,9 +137,11 @@ export interface BookingsRepository {
   ): Promise<ClientBooking>;
   /** Sets noShowAt on a BOOKED Booking whose endsAt has passed and has none yet. Throws BusinessRuleError otherwise. */
   markNoShow(id: number, now: Date): Promise<Booking>;
+  /** Clears noShowAt on a BOOKED Booking that still has it. Throws BusinessRuleError otherwise. */
+  unmarkNoShow(id: number): Promise<Booking>;
   /** Sets depositPaidAt on a PENDING or BOOKED Booking that has a Seña, not yet paid, and has not started. Throws BusinessRuleError otherwise. */
   payDeposit(id: number, now: Date): Promise<ClientBooking>;
-  /** Sets employeeNoShowAt on a BOOKED Booking inside its window with no Ausencia or Falta del Empleado yet. Throws BusinessRuleError otherwise. */
+  /** Sets employeeNoShowAt on a BOOKED Booking inside its window with no Ausencia del Invitado or Ausencia del Anfitrión yet. Throws BusinessRuleError otherwise. */
   markEmployeeNoShow(id: number, now: Date): Promise<ClientBooking>;
   /** Saves the Calificación of the Turno. Throws ConflictError if it already has one, even if another request wins the race. */
   rate(id: number, score: number, comment: string | null): Promise<ClientBooking>;

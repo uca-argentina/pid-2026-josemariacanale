@@ -1,5 +1,7 @@
 # Servicios del Usuario y del Negocio
 
+_Reabierta por la ADR 0029: el Cliente sí puede elegir Empleado en un Servicio del Negocio._
+
 _Ampliada por la ADR 0026: se va el prefijo `/u/` (y `/business/`) de las URLs del front, y el primer tramo es de un Negocio o de un Usuario, nunca de los dos; la ADR 0026 reabre además que el Cliente no elige Empleado._
 
 Reabre las ADR 0013 y 0017 (solo se atiende un Servicio siendo Empleado de un Negocio) y amplía las
@@ -17,7 +19,7 @@ Servicio, y chocaba con la ADR 0012 para quien además es Dueño de otro Negocio
 - La Availability es del Usuario, no del Empleado, y todo Usuario nace con una predeterminada (lunes
   a viernes de 9 a 17, `America/Argentina/Buenos_Aires`). La Anulación es de una Availability
   (ADR 0020).
-- En un Servicio del Negocio el Cliente no elige Empleado. Ve la unión de los Horarios reservables
+- **Reabierta (ADR 0029):** en un Servicio del Negocio el Cliente no elige Empleado. Ve la unión de los Horarios reservables
   de quienes lo Ofrecen, y al Reservar se le asigna el Empleado libre que hace más tiempo que no
   recibe un Turno de ese Servicio (ROUND_ROBIN de cal).
 - La Cobertura desaparece: con asignación automática, la Anulación de un Empleado ya deja que los

@@ -34,7 +34,7 @@ export const presentBookingForOwner = (booking: PanelBooking) => ({
   clientEmail: booking.clientEmail,
 });
 
-/** Adds the Ausencia, which only the Empleado marks and sees. */
+/** Adds the Ausencia del Invitado, which only the Empleado marks and sees. */
 export const presentBookingWithNoShow = (booking: Booking) => ({
   ...presentBooking(booking),
   noShowAt: booking.noShowAt,
@@ -69,7 +69,7 @@ export const presentUserBooking = (booking: UserBooking) => ({
 /**
  * Enlace del Turno: el Turno con los datos de dónde pasa, para quien abre su Enlace.
  *
- * @param now decide `canMarkEmployeeNoShow` y `canRate`, que calcula el back porque el Cliente no ve la Ausencia
+ * @param now decide `canMarkEmployeeNoShow` y `canRate`, que calcula el back porque el Cliente no ve la Ausencia del Invitado
  */
 export const presentClientBooking = (booking: ClientBooking, now: Date) => ({
   id: booking.id,

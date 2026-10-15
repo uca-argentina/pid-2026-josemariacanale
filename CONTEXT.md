@@ -106,7 +106,7 @@ Servicio de un Usuario, sin Negocio ni Sucursal. Lo atiende solo ese Usuario, co
 _Avoid_: servicio individual, servicio propio
 
 **Servicio del Negocio**:
-Servicio de una Sucursal de un Negocio, atendido por los Empleados que lo Ofrecen. Al Reservar, el Cliente elige con quién o deja "cualquiera". Con "cualquiera" se le asigna un Empleado libre en ese horario: el que hace más tiempo que no recibe un Turno de ese Servicio. Si elige a alguien, queda un Empleado elegido.
+Servicio de una Sucursal de un Negocio, atendido por los Empleados que lo Ofrecen. Al Reservar, el Cliente elige con quién entre quienes lo Ofrecen, o deja que se le asigne uno ("cualquiera"). Con "cualquiera" se le asigna un Empleado libre en ese horario: el que hace más tiempo que no recibe un Turno de ese Servicio. Si elige a alguien, queda un Empleado elegido.
 _Avoid_: servicio de equipo, servicio compartido
 
 **Intervalo**:
@@ -222,11 +222,11 @@ Texto de la Ficha del Cliente que cualquier Empleado del Negocio escribe, y que 
 _Avoid_: preferencias del Usuario (es otra cosa), notas del cliente
 
 **Enlace de reserva**:
-Dirección pública que un Negocio comparte para que un Cliente entre a Reservar, sin prefijo: su primer tramo es el del Negocio. La elige el Dueño al Crear Negocio y puede cambiarla; al cambiarla, la anterior deja de funcionar. Si el Negocio tiene más de una Sucursal, cada una agrega su propio tramo a esa dirección para llegar directo a ella; con una sola Sucursal, el Enlace de reserva del Negocio ya lleva ahí. Cada Servicio agrega un tramo que abre la página de su Sucursal con ese Servicio ya elegido, y un Servicio del Negocio puede sumar un último tramo opcional con el Enlace de reserva de un Empleado que lo Ofrece. Un Usuario tiene además su propio Enlace de reserva, que elige él, para sus Servicios personales; cada uno agrega su propio último tramo. El primer tramo es de un Negocio o de un Usuario, nunca repetido entre los dos, y no puede ser una palabra reservada (`bookings`, `services`, `business`, `availability`, `analytics`, `turnos`, `sign-in`, `sign-up`, `api`, `trpc`, `u`): son pantallas de Agendic. Los tramos de Sucursal y de Servicio sí pueden usarlas.
+Dirección pública que un Negocio comparte para que un Cliente entre a Reservar, sin prefijo: su primer tramo es el del Negocio. La elige el Dueño al Crear Negocio y puede cambiarla; al cambiarla, la anterior deja de funcionar. Si el Negocio tiene más de una Sucursal, cada una agrega su propio tramo a esa dirección para llegar directo a ella; con una sola Sucursal, el Enlace de reserva del Negocio ya lleva ahí. Cada Servicio agrega un tramo que abre la página de su Sucursal con ese Servicio ya elegido, y un Servicio del Negocio puede sumar un último tramo opcional con el Enlace de reserva de un Empleado que lo Ofrece. Un Usuario tiene además su propio Enlace de reserva, que elige él, para sus Servicios personales; cada uno agrega su propio último tramo. El primer tramo es de un Negocio o de un Usuario, nunca repetido entre los dos, y no puede ser una palabra reservada (`bookings`, `services`, `business`, `availability`, `analytics`, `turnos`, `sign-in`, `sign-up`, `api`, `trpc`, `u`, `lista-de-espera`): son pantallas de Agendic. Los tramos de Sucursal y de Servicio sí pueden usarlas.
 _Avoid_: link del negocio, perfil público, página pública, slug (eso es el identificador en el código)
 
 **Empleado elegido**:
-Empleado que el Cliente eligió al Reservar un Servicio del Negocio, o en la página de la Sucursal o entrando por el Enlace de reserva de esa persona. El Turno queda con él y al Cliente solo se le ofrecen sus Horarios reservables; si el horario se ocupó, no se pasa a otro Empleado. Si el Cliente deja "cualquiera", el Turno no tiene Empleado elegido y se asigna como siempre.
+Empleado que el Cliente eligió al Reservar un Servicio del Negocio, por su Enlace de reserva o de la lista de la página de reserva. El Turno queda con él y al Cliente solo se le ofrecen sus Horarios reservables; si el horario se ocupó, no se pasa a otro Empleado. Si el Cliente deja "cualquiera", el Turno no tiene Empleado elegido y se asigna como siempre.
 _Avoid_: Empleado asignado, Empleado preferido
 
 **Reagendar**:
@@ -284,12 +284,24 @@ Aviso automático por mail que recibe el Cliente cuando su Turno se Cancela, se 
 _Avoid_: notificación (a secas), recordatorio
 
 **Lista de espera**:
-Clientes anotados para un Servicio en una fecha sin Horarios reservables, a la espera de que se libere uno. Para anotarse hay que Verificar email. Anotarse no retiene ningún horario ni elige Empleado. La anotación termina cuando pasa la fecha o cuando ese email Reserva el Servicio en esa fecha.
+Clientes anotados para un Servicio en una fecha con todos sus Horarios reservables tomados, a la espera de que se libere uno. Solo se ofrece en un día lleno: no en uno en que nadie trabaja, ni en uno Fuera de la oficina o Día festivo. Lleno es el Servicio entero, sumando a todos sus Empleados: si un Empleado elegido no tiene lugar pero otro sí, el día no está lleno. Vale igual para los Servicios personales y los del Negocio. Se compone de Anotaciones. El Negocio no ve quién está anotado.
 _Avoid_: waitlist, cola
 
+**Anotación**:
+Pedido de un Cliente, con nombre y email, de entrar en la Lista de espera de un Servicio para una fecha. Para anotarse hay que Verificar email. No retiene ningún horario ni elige Empleado. Hay una sola por email, Servicio y fecha; anotarse de nuevo no la duplica. Termina cuando pasa la fecha, cuando el Servicio se Da de baja o cuando el Cliente Sale de la Lista de espera. Mientras ese email tenga un Turno de ese Servicio en esa fecha, sin Cancelar ni Rechazar, no recibe Avisos de horario libre; si lo Cancela, vuelve a recibirlos.
+_Avoid_: inscripción, suscripción
+
+**Confirmación de anotación**:
+Mail que recibe el Cliente al anotarse en la Lista de espera, con el Servicio, la fecha y el enlace para Salir de la Lista de espera.
+_Avoid_: Confirmación de reserva (es otra), confirmación (a secas)
+
 **Aviso de horario libre**:
-Mail que reciben a la vez todos los anotados en la Lista de espera cuando aparece un Horario reservable de ese Servicio en esa fecha, porque un Turno se Canceló, se Rechazó, se Reagendó o quedó cancelado por una baja, o porque se sumó una Franja. Lleva al Enlace de reserva del Servicio, y el horario queda para el primero que Reserva.
+Mail que reciben a la vez todas las Anotaciones de un Servicio y una fecha cuando aparece un Horario reservable de ese Servicio en esa fecha, por la razón que sea. Dice el Servicio y la fecha, sin horarios, porque pueden estar tomados al leerlo. Lleva al Enlace de reserva del Servicio con esa fecha elegida, y el horario queda para el primero que Reserva. Lleva también el enlace para Salir de la Lista de espera. Si el día se vuelve a llenar y después se libera otro horario, llega otro Aviso; mientras el día siga con lugar, no se repite.
 _Avoid_: Aviso de cambio del Turno (es otro), notificación (a secas)
+
+**Salir de la Lista de espera**:
+Acción del Cliente de terminar su Anotación, desde el enlace que traen la Confirmación de anotación y cada Aviso de horario libre. No hace falta Verificar email de nuevo. Después puede volver a anotarse.
+_Avoid_: desanotarse, darse de baja (eso es otra cosa), cancelar la anotación
 
 **Invitación a calificar**:
 Mail que recibe el Cliente una hora después de que termina un Turno que se puede Calificar, con el Enlace del Turno. Se manda una sola vez por Turno, hasta 7 días después de que terminó.

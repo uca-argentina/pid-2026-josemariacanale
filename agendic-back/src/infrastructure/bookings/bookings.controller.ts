@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   Param,
@@ -11,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { CancelBookingUseCase } from '../../application/bookings/cancel-booking.use-case';
 import { MarkNoShowUseCase } from '../../application/bookings/mark-no-show.use-case';
+import { UnmarkNoShowUseCase } from '../../application/bookings/unmark-no-show.use-case';
 import { RescheduleBookingUseCase } from '../../application/bookings/reschedule-booking.use-case';
 import { AcceptBookingUseCase } from '../../application/bookings/accept-booking.use-case';
 import { RejectBookingUseCase } from '../../application/bookings/reject-booking.use-case';
@@ -45,6 +47,7 @@ export class BookingsController {
     private readonly cancelBookingUseCase: CancelBookingUseCase,
     private readonly rescheduleBookingUseCase: RescheduleBookingUseCase,
     private readonly markNoShowUseCase: MarkNoShowUseCase,
+    private readonly unmarkNoShowUseCase: UnmarkNoShowUseCase,
     private readonly listMyBookingsUseCase: ListMyBookingsUseCase,
   ) {}
 
@@ -159,7 +162,7 @@ export class BookingsController {
   /**
    * @throws {NotFoundError} el Turno no existe
    * @throws {ForbiddenError} el Usuario no es el Empleado asignado
-   * @throws {BusinessRuleError} el Turno no está aceptado, no terminó, ya tiene Ausencia o tiene Falta del Empleado
+   * @throws {BusinessRuleError} el Turno no está aceptado, no terminó, ya tiene Ausencia del Invitado o tiene Ausencia del Anfitrión
    */
   @Patch('bookings/:id/no-show')
   @UseGuards(ClerkGuard)
@@ -169,6 +172,22 @@ export class BookingsController {
   ) {
     return presentBookingWithNoShow(
       await this.markNoShowUseCase.execute(userId, id),
+    );
+  }
+
+  /**
+   * @throws {NotFoundError} el Turno no existe
+   * @throws {ForbiddenError} el Usuario no es el Empleado asignado
+   * @throws {BusinessRuleError} el Turno no está aceptado o no tiene Ausencia
+   */
+  @Delete('bookings/:id/no-show')
+  @UseGuards(ClerkGuard)
+  async unmarkNoShow(
+    @CurrentUser() userId: number,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return presentBookingWithNoShow(
+      await this.unmarkNoShowUseCase.execute(userId, id),
     );
   }
 

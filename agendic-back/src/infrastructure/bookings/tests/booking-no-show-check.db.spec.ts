@@ -4,8 +4,8 @@ import { join } from 'node:path';
 import { Client } from 'pg';
 
 /**
- * Runs the migration of the Falta del Empleado against the real Postgres, on a temporary `Booking` that dies with the
- * session, so no real row is touched: Ausencia and Falta del Empleado exclude each other.
+ * Runs the migration of the Ausencia del Anfitrión against the real Postgres, on a temporary `Booking` that dies with the
+ * session, so no real row is touched: Ausencia del Invitado and Ausencia del Anfitrión exclude each other.
  */
 describe('Booking_no_show_exclusive (real database)', () => {
   const client = new Client({ connectionString: process.env.DATABASE_URL });

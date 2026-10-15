@@ -1,14 +1,14 @@
 import { Booking, BookingStatus } from './booking';
 
-/** Horas después de `endsAt` hasta las que el Cliente puede marcar la Falta del Empleado. */
+/** Horas después de `endsAt` hasta las que el Cliente puede marcar la Ausencia del Anfitrión. */
 export const EMPLOYEE_NO_SHOW_WINDOW_HOURS = 24;
 
-/** Hasta cuándo se puede marcar la Falta del Empleado de un Turno que termina en `endsAt`, inclusive. */
+/** Hasta cuándo se puede marcar la Ausencia del Anfitrión de un Turno que termina en `endsAt`, inclusive. */
 export const employeeNoShowWindowEnd = (endsAt: Date): Date =>
   new Date(endsAt.getTime() + EMPLOYEE_NO_SHOW_WINDOW_HOURS * 3_600_000);
 
 /**
- * Por qué hoy no se puede marcar la Falta del Empleado de un Turno, o null si se puede. Las razones van en el orden en
+ * Por qué hoy no se puede marcar la Ausencia del Anfitrión de un Turno, o null si se puede. Las razones van en el orden en
  * que las informa el 422 de `PATCH /booking-links/:secret/employee-no-show`.
  */
 export const employeeNoShowBlocker = (

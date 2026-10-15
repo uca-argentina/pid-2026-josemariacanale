@@ -406,7 +406,7 @@ describe('PrismaBookingsRepository', () => {
       await expect(repository.cancel(1, CANCEL_NOW, null)).rejects.toBeInstanceOf(BusinessRuleError);
     });
 
-    it('markNoShow requires an ended Turno without an Ausencia or a Falta del Empleado', async () => {
+    it('markNoShow requires an ended Turno without an Ausencia del Invitado or an Ausencia del Anfitrión', async () => {
       prisma.booking.updateMany.mockResolvedValue({ count: 1 });
 
       await repository.markNoShow(1, NOW);
@@ -420,6 +420,17 @@ describe('PrismaBookingsRepository', () => {
           employeeNoShowAt: null,
         },
         data: { noShowAt: NOW },
+      });
+    });
+
+    it('unmarkNoShow clears noShowAt only while the Turno still has it', async () => {
+      prisma.booking.updateMany.mockResolvedValue({ count: 1 });
+
+      await repository.unmarkNoShow(1);
+
+      expect(prisma.booking.updateMany).toHaveBeenCalledWith({
+        where: { id: 1, status: { in: [BookingStatus.BOOKED] }, noShowAt: { not: null } },
+        data: { noShowAt: null },
       });
     });
 

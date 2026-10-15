@@ -54,11 +54,11 @@ export interface IUserBookingsRepository {
     reschedule(bookingId: number, startsAt: string): Promise<{ id: number }>;
 
     /**
-     * Marca la Ausencia de un Turno aceptado cuyo horario ya pasó.
+     * Marca la Ausencia del Invitado de un Turno aceptado cuyo horario ya pasó.
      *
      * @throws {BookingNotAllowedError} no es su Turno (403)
      * @throws {NotFoundError} el Turno no existe (404)
-     * @throws {BookingStateError} no está aceptado, su horario no pasó o ya tiene Ausencia (422)
+     * @throws {BookingStateError} no está aceptado, su horario no pasó o ya tiene Ausencia del Invitado (422)
      */
     markNoShow(bookingId: number): Promise<void>;
 }
