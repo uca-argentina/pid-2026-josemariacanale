@@ -16,33 +16,35 @@ export interface IUserBookingsRepository {
     listMyBookings(): Promise<UserBooking[]>;
 
     /**
-     * Acepta un Turno pendiente.
+     * Acepta un Turno pendiente; con `series`, todos los pendientes por venir de su Serie (#305).
      *
      * @throws {BookingNotAllowedError} no es su Turno (403)
      * @throws {NotFoundError} el Turno no existe (404)
-     * @throws {BookingStateError} no está pendiente (422)
+     * @throws {BookingStateError} no está pendiente, o con `series` no es de una Serie (422)
      */
-    accept(bookingId: number): Promise<void>;
+    accept(bookingId: number, series?: boolean): Promise<void>;
 
     /**
-     * Rechaza un Turno pendiente, con un Motivo de cancelación opcional.
+     * Rechaza un Turno pendiente, con un Motivo de cancelación opcional; con `series`, todos los pendientes por venir de
+     * su Serie (#305).
      *
      * @throws {BookingNotAllowedError} no es su Turno (403)
      * @throws {NotFoundError} el Turno no existe (404)
-     * @throws {BookingStateError} no está pendiente (422)
+     * @throws {BookingStateError} no está pendiente, o con `series` no es de una Serie (422)
      * @throws {CancellationReasonTooLongError} el Motivo es demasiado largo (400)
      */
-    reject(bookingId: number, reason?: string): Promise<void>;
+    reject(bookingId: number, reason?: string, series?: boolean): Promise<void>;
 
     /**
-     * Cancela un Turno aceptado, con un Motivo de cancelación opcional.
+     * Cancela un Turno aceptado, con un Motivo de cancelación opcional; con `andFollowing`, también los siguientes de su
+     * Serie, pendientes o aceptados (#305).
      *
      * @throws {BookingNotAllowedError} no es su Turno (403)
      * @throws {NotFoundError} el Turno no existe (404)
-     * @throws {BookingStateError} no está aceptado (422)
+     * @throws {BookingStateError} no está aceptado, o con `andFollowing` no es de una Serie (422)
      * @throws {CancellationReasonTooLongError} el Motivo es demasiado largo (400)
      */
-    cancel(bookingId: number, reason?: string): Promise<void>;
+    cancel(bookingId: number, reason?: string, andFollowing?: boolean): Promise<void>;
 
     /**
      * Reagenda un Turno aceptado a otro Horario reservable del mismo Servicio y Empleado. El back lo

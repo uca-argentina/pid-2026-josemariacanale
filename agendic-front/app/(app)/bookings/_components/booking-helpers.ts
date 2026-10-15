@@ -8,8 +8,8 @@ export type Booking = Awaited<ReturnType<DI_RETURN_TYPES['IListMyBookingsControl
 /** Qué ve el Usuario en el panel cuando el Historial del Turno no se puede cargar. */
 export const HISTORY_LOAD_ERROR = 'No pudimos cargar el historial del turno.';
 
-/** Pestañas de la lista de Turnos. */
-export type BookingTab = 'upcoming' | 'pending' | 'past' | 'cancelled';
+/** Pestañas de la lista de Turnos; `series` agrupa por Serie en vez de listar Turnos, así que ningún Turno es de ella. */
+export type BookingTab = 'upcoming' | 'pending' | 'series' | 'past' | 'cancelled';
 
 /** La Cabina que ocupa el Turno, o null si no ocupa ninguna: en ese caso no se muestra nada. */
 export const cabinOf = (b: Booking) => b.cabin?.name ?? null;
@@ -41,7 +41,7 @@ export const hasPendingDeposit = (b: Booking) =>
     (b.status === 'PENDING' || b.status === 'BOOKED') && b.depositAmount !== null && b.depositPaidAt === null;
 
 /** La pestaña del Turno. */
-export function tabOf(b: Booking, now: number): BookingTab | null {
+export function tabOf(b: Booking, now: number): Exclude<BookingTab, 'series'> | null {
     if (isClosed(b)) return 'cancelled';
     if (b.status === 'PENDING') return 'pending';
     if (b.status !== 'BOOKED') return null;

@@ -17,6 +17,10 @@ import { userBookingSchema, type UserBooking } from '@/src/entities/models/user-
 /** El body de Cancelar o Rechazar: el Motivo de cancelación si hay, si no ninguno. */
 const reasonBody = (reason?: string) => (reason === undefined ? undefined : { reason });
 
+/** El body de una acción sobre la Serie (#305): `flag` (`series` o `andFollowing`) va solo cuando se pide. */
+const seriesBody = (flag: 'series' | 'andFollowing', on: boolean, reason?: string) =>
+    on ? { ...reasonBody(reason), [flag]: true } : reasonBody(reason);
+
 /**
  * Turnos que atiende el Usuario contra la API del back.
  *
@@ -51,8 +55,8 @@ export class UserBookingsRepository implements IUserBookingsRepository {
      * @throws {BookingStateError} la API respondió 422
      * @throws {ApiRequestError} falla de red u otro status no-OK
      */
-    async accept(bookingId: number): Promise<void> {
-        await this.request('PATCH', `/bookings/${bookingId}/accept`);
+    async accept(bookingId: number, series = false): Promise<void> {
+        await this.request('PATCH', `/bookings/${bookingId}/accept`, seriesBody('series', series));
     }
 
     /**
@@ -63,8 +67,8 @@ export class UserBookingsRepository implements IUserBookingsRepository {
      * @throws {CancellationReasonTooLongError} la API respondió 400 `reason is too long`
      * @throws {ApiRequestError} falla de red u otro status no-OK
      */
-    async reject(bookingId: number, reason?: string): Promise<void> {
-        await this.request('PATCH', `/bookings/${bookingId}/reject`, reasonBody(reason));
+    async reject(bookingId: number, reason?: string, series = false): Promise<void> {
+        await this.request('PATCH', `/bookings/${bookingId}/reject`, seriesBody('series', series, reason));
     }
 
     /**
@@ -75,8 +79,8 @@ export class UserBookingsRepository implements IUserBookingsRepository {
      * @throws {CancellationReasonTooLongError} la API respondió 400 `reason is too long`
      * @throws {ApiRequestError} falla de red u otro status no-OK
      */
-    async cancel(bookingId: number, reason?: string): Promise<void> {
-        await this.request('PATCH', `/bookings/${bookingId}/cancel`, reasonBody(reason));
+    async cancel(bookingId: number, reason?: string, andFollowing = false): Promise<void> {
+        await this.request('PATCH', `/bookings/${bookingId}/cancel`, seriesBody('andFollowing', andFollowing, reason));
     }
 
     /**

@@ -9,7 +9,13 @@ describe('acceptBookingController', () => {
     it('runs the use case with the id of the Turno', async () => {
         const useCase = jest.fn().mockResolvedValue(undefined);
         await acceptBookingController(instrumentation, signedIn, useCase)({ bookingId: 7 });
-        expect(useCase).toHaveBeenCalledWith(7);
+        expect(useCase).toHaveBeenCalledWith(7, undefined);
+    });
+
+    it('runs the use case for the whole Serie', async () => {
+        const useCase = jest.fn().mockResolvedValue(undefined);
+        await acceptBookingController(instrumentation, signedIn, useCase)({ bookingId: 7, series: true });
+        expect(useCase).toHaveBeenCalledWith(7, true);
     });
 
     it.each([{}, { bookingId: '7' }, { bookingId: 0 }])('throws InputParseError for %j without calling the use case', async (input) => {

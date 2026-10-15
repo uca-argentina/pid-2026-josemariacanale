@@ -22,6 +22,7 @@ const booking = {
     business: { id: 3, name: 'Spa' },
     branch: { id: 4, name: 'Centro' },
     cabin: { id: 6, name: 'Box 1' },
+    seriesId: null,
     fromRescheduleId: null,
     cancelledBy: null,
     cancellationReason: null,
@@ -180,6 +181,16 @@ describe('UserBookingsRepository actions', () => {
             `http://api/bookings/7/${route}`,
             expect.objectContaining({ method: 'PATCH', body: JSON.stringify({ reason: 'Estoy de viaje' }) }),
         );
+    });
+
+    it.each([
+        ['accept', () => repo().accept(7, true), { series: true }],
+        ['reject', () => repo().reject(7, 'Estoy de viaje', true), { reason: 'Estoy de viaje', series: true }],
+        ['cancel', () => repo().cancel(7, undefined, true), { andFollowing: true }],
+    ] as const)('%s sends the whole Serie in the body when asked', async (route, run, body) => {
+        const fetchSpy = respond(200, {});
+        await run();
+        expect(fetchSpy).toHaveBeenCalledWith(`http://api/bookings/7/${route}`, expect.objectContaining({ method: 'PATCH', body: JSON.stringify(body) }));
     });
 
     it.each([

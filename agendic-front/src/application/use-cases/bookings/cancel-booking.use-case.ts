@@ -5,7 +5,8 @@ import type { IInstrumentationService } from '@/src/application/services/instrum
 export type ICancelBookingUseCase = ReturnType<typeof cancelBookingUseCase>;
 
 /**
- * Cancela un Turno aceptado; su horario queda libre. `reason` es el Motivo de cancelación, opcional.
+ * Cancela un Turno aceptado; su horario queda libre. `reason` es el Motivo de cancelación, opcional. Con `andFollowing`,
+ * también los siguientes de su Serie.
  *
  * Que el Turno sea del Empleado lo valida el back.
  *
@@ -13,11 +14,11 @@ export type ICancelBookingUseCase = ReturnType<typeof cancelBookingUseCase>;
  * @throws {BookingNotAllowedError} el Turno no es del Empleado logueado
  * @throws {NotFoundError} el Turno no existe
  * @throws {CancellationReasonTooLongError} el Motivo de cancelación es demasiado largo
- * @throws {BookingStateError} el Turno no está aceptado
+ * @throws {BookingStateError} el Turno no está aceptado, o con `andFollowing` no es de una Serie
  */
 export const cancelBookingUseCase =
     (instrumentationService: IInstrumentationService, userBookingsRepository: IUserBookingsRepository) =>
-    (bookingId: number, reason?: string): Promise<void> =>
+    (bookingId: number, reason?: string, andFollowing?: boolean): Promise<void> =>
         instrumentationService.startSpan({ name: 'cancelBooking Use Case', op: 'function' }, () =>
-            userBookingsRepository.cancel(bookingId, reason),
+            userBookingsRepository.cancel(bookingId, reason, andFollowing),
         );

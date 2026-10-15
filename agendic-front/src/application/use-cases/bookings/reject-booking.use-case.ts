@@ -17,7 +17,7 @@ export type IRejectBookingUseCase = ReturnType<typeof rejectBookingUseCase>;
  */
 export const rejectBookingUseCase =
     (instrumentationService: IInstrumentationService, userBookingsRepository: IUserBookingsRepository) =>
-    (bookingId: number, reason?: string): Promise<void> =>
+    (bookingId: number, reason?: string, series?: boolean): Promise<void> =>
         instrumentationService.startSpan({ name: 'rejectBooking Use Case', op: 'function' }, () =>
-            userBookingsRepository.reject(bookingId, reason),
+            userBookingsRepository.reject(bookingId, reason, series),
         );

@@ -1,4 +1,4 @@
-import type { ClientBooking } from '@/src/entities/models/client-booking';
+import type { CancelledSeries, ClientBooking } from '@/src/entities/models/client-booking';
 
 /**
  * El Turno de un Enlace del Turno (ADR 0022), sin cookie ni Sesión: el Enlace alcanza por sí solo para verlo,
@@ -20,6 +20,14 @@ export interface IClientBookingsRepository {
      * @throws {CancellationReasonTooLongError} el Motivo es demasiado largo (400)
      */
     cancelBookingByLink(link: string, reason?: string): Promise<ClientBooking>;
+    /**
+     * Cancela el Turno de un Enlace del Turno y los siguientes de su Serie, con un Motivo de cancelación opcional (#305).
+     *
+     * @throws {NotFoundError} el Enlace no es de ningún Turno (404)
+     * @throws {BookingStateError} el Turno no se puede Cancelar, o no es de una Serie (422)
+     * @throws {CancellationReasonTooLongError} el Motivo es demasiado largo (400)
+     */
+    cancelBookingSeriesByLink(link: string, reason?: string): Promise<CancelledSeries>;
 
     /**
      * Paga la Seña del Turno de un Enlace del Turno (simulado: Agendic no cobra).

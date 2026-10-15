@@ -1,7 +1,7 @@
 'use client';
 
 import type { KeyboardEvent, ReactNode } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Repeat } from 'lucide-react';
 import { Button } from '@/app/_components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/app/_components/ui/sheet';
 import { cn } from '@/app/_components/utils';
@@ -12,6 +12,7 @@ import { BookingActions } from './BookingActions';
 import { BookingHistory } from './BookingHistory';
 import { formatLongDate, formatShortDay, formatTimeRange, placeOf, TIME_ZONE_LABEL } from '@/app/(app)/_components/booking-format';
 import { cabinOf, cancellationOf, isClosed, statusBadgesOf, type Booking } from './booking-helpers';
+import { hasFollowingInSeries, seriesMatesOf } from './series-helpers';
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
     return (
@@ -24,11 +25,13 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 
 /**
  * Panel lateral con el detalle de un Turno. `booking` null lo deja cerrado. `previous` y `next` son los
- * vecinos en lo que la pantalla muestra (null si no hay); ← y → los abren y Esc cierra. Abajo va el Historial del
- * Turno. La Calificación y el Comentario del Turno se suman cuando el Turno los traiga.
+ * vecinos en lo que la pantalla muestra (null si no hay); ← y → los abren y Esc cierra. En un Turno de una Serie, lista
+ * los demás Turnos de la Serie (de `bookings`, todos los de Mis turnos) y Cancelar ofrece "este y los siguientes". Abajo
+ * va el Historial del Turno. La Calificación y el Comentario del Turno se suman cuando el Turno los traiga.
  */
 export function BookingDetailsSheet({
     booking,
+    bookings,
     previous,
     next,
     now,
@@ -37,6 +40,7 @@ export function BookingDetailsSheet({
     onClose,
 }: {
     booking: Booking | null;
+    bookings: Booking[];
     previous: Booking | null;
     next: Booking | null;
     now: number;
@@ -55,6 +59,7 @@ export function BookingDetailsSheet({
     };
 
     const cancelled = booking && cancellationOf(booking);
+    const mates = booking ? seriesMatesOf(bookings, booking) : [];
 
     return (
         <Sheet open={booking !== null} onOpenChange={(open) => !open && onClose()}>
@@ -118,11 +123,38 @@ export function BookingDetailsSheet({
                                     {cancelled.reason && <span className="text-[#6b7280]">{cancelled.reason}</span>}
                                 </Section>
                             )}
+                            {mates.length > 0 && (
+                                <Section title="Serie">
+                                    <ul className="m-0 flex list-none flex-col gap-1 p-0">
+                                        {mates.map((mate) => (
+                                            <li key={mate.id}>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => onSelect(mate.id)}
+                                                    className="flex w-full cursor-pointer items-center justify-between gap-3 rounded-md bg-transparent p-0 text-left hover:underline"
+                                                >
+                                                    <span className={cn('flex items-center gap-1.5 first-letter:uppercase', isClosed(mate) && 'line-through')}>
+                                                        <Repeat className="size-3 shrink-0 text-[#6b7280]" />
+                                                        {formatShortDay(mate.startsAt)} · {formatTimeRange(mate, preferences.timeFormat)}
+                                                    </span>
+                                                    <span className="flex gap-1">
+                                                        {statusBadgesOf(mate).slice(0, 1).map((badge) => (
+                                                            <PanelBadge key={badge.label} className={badge.className}>
+                                                                {badge.label}
+                                                            </PanelBadge>
+                                                        ))}
+                                                    </span>
+                                                </button>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </Section>
+                            )}
                             <BookingHistory booking={booking} timeFormat={preferences.timeFormat} />
                         </div>
 
                         <SheetFooter className="flex-row justify-end border-t border-[#e5e7eb]">
-                            <BookingActions booking={booking} now={now} />
+                            <BookingActions booking={booking} now={now} canCancelFollowing={hasFollowingInSeries(bookings, booking)} />
                         </SheetFooter>
                     </>
                 )}

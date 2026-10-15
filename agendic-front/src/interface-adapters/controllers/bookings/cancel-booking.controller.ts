@@ -4,7 +4,7 @@ import type { IInstrumentationService } from '@/src/application/services/instrum
 import type { ICancelBookingUseCase } from '@/src/application/use-cases/bookings/cancel-booking.use-case';
 import { InputParseError } from '@/src/entities/errors/common';
 
-const inputSchema = z.object({ bookingId: z.number().int().positive(), reason: z.string().optional() });
+const inputSchema = z.object({ bookingId: z.number().int().positive(), reason: z.string().optional(), andFollowing: z.boolean().optional() });
 
 /** Tipo del controller ya compuesto, como lo consume `app/`. */
 export type ICancelBookingController = ReturnType<typeof cancelBookingController>;
@@ -30,5 +30,5 @@ export const cancelBookingController =
             await authenticationService.getCurrentUser();
             const { data, error } = inputSchema.safeParse(input);
             if (error) throw new InputParseError('Invalid data', { cause: error });
-            await cancelBookingUseCase(data.bookingId, data.reason);
+            await cancelBookingUseCase(data.bookingId, data.reason, data.andFollowing);
         });

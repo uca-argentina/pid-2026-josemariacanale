@@ -32,6 +32,8 @@ import { getBookingByLinkUseCase } from '@/src/application/use-cases/bookings/ge
 import { getBookingByLinkController } from '@/src/interface-adapters/controllers/bookings/get-booking-by-link.controller';
 import { cancelBookingByLinkUseCase } from '@/src/application/use-cases/bookings/cancel-booking-by-link.use-case';
 import { cancelBookingByLinkController } from '@/src/interface-adapters/controllers/bookings/cancel-booking-by-link.controller';
+import { cancelBookingSeriesByLinkUseCase } from '@/src/application/use-cases/bookings/cancel-booking-series-by-link.use-case';
+import { cancelBookingSeriesByLinkController } from '@/src/interface-adapters/controllers/bookings/cancel-booking-series-by-link.controller';
 import { rateBookingByLinkUseCase } from '@/src/application/use-cases/bookings/rate-booking-by-link.use-case';
 import { rateBookingByLinkController } from '@/src/interface-adapters/controllers/bookings/rate-booking-by-link.controller';
 import { markEmployeeNoShowByLinkUseCase } from '@/src/application/use-cases/bookings/mark-employee-no-show-by-link.use-case';
@@ -200,6 +202,14 @@ export function createBookingsModule() {
     bookingsModule
         .bind(DI_SYMBOLS.ICancelBookingByLinkController)
         .toHigherOrderFunction(cancelBookingByLinkController, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.ICancelBookingByLinkUseCase]);
+
+    bookingsModule
+        .bind(DI_SYMBOLS.ICancelBookingSeriesByLinkUseCase)
+        .toHigherOrderFunction(cancelBookingSeriesByLinkUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IClientBookingsRepository]);
+
+    bookingsModule
+        .bind(DI_SYMBOLS.ICancelBookingSeriesByLinkController)
+        .toHigherOrderFunction(cancelBookingSeriesByLinkController, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.ICancelBookingSeriesByLinkUseCase]);
 
     bookingsModule
         .bind(DI_SYMBOLS.IPayDepositByLinkUseCase)

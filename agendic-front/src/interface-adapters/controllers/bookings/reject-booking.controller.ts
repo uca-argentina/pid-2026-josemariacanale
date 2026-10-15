@@ -4,7 +4,7 @@ import type { IInstrumentationService } from '@/src/application/services/instrum
 import type { IRejectBookingUseCase } from '@/src/application/use-cases/bookings/reject-booking.use-case';
 import { InputParseError } from '@/src/entities/errors/common';
 
-const inputSchema = z.object({ bookingId: z.number().int().positive(), reason: z.string().optional() });
+const inputSchema = z.object({ bookingId: z.number().int().positive(), reason: z.string().optional(), series: z.boolean().optional() });
 
 /** Tipo del controller ya compuesto, como lo consume `app/`. */
 export type IRejectBookingController = ReturnType<typeof rejectBookingController>;
@@ -30,5 +30,5 @@ export const rejectBookingController =
             await authenticationService.getCurrentUser();
             const { data, error } = inputSchema.safeParse(input);
             if (error) throw new InputParseError('Invalid data', { cause: error });
-            await rejectBookingUseCase(data.bookingId, data.reason);
+            await rejectBookingUseCase(data.bookingId, data.reason, data.series);
         });

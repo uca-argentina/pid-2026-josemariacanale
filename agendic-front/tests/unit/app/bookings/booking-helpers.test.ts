@@ -20,6 +20,7 @@ const booking = (patch: Partial<Booking>): Booking => ({
     business: { id: 3, name: 'Spa' },
     branch: { id: 4, name: 'Centro' },
     cabin: null,
+    seriesId: null,
     fromRescheduleId: null,
     cancelledBy: null,
     cancellationReason: null,

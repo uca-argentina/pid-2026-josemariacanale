@@ -51,7 +51,8 @@ export function toCalendarEvent(b: Booking): CalendarEvent {
     const mark = b.noShowAt !== null ? ' · Ausencia del Invitado' : b.employeeNoShowAt !== null ? ' · Ausencia del Anfitrión' : '';
     return {
         id: b.id,
-        title: `${b.serviceName} con ${b.clientName}${mark}`,
+        // El calendario pinta el título como texto: la Serie va como un caracter, no como ícono.
+        title: `${b.seriesId ? '↻ ' : ''}${b.serviceName} con ${b.clientName}${mark}`,
         description: placeOf(b),
         start: new Date(b.startsAt),
         end: new Date(b.endsAt),

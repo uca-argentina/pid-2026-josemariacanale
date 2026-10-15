@@ -1,3 +1,4 @@
+import { formatLongDate, formatTime } from './format';
 import { Ban, CalendarCheck, Hourglass, type LucideIcon } from 'lucide-react';
 import type { ClientBooking } from './types';
 
@@ -43,4 +44,22 @@ export function seriesOf(b: ClientBooking): { startsAt: string; status: string; 
         link: s.link,
         current: s.startsAt === b.startsAt,
     }));
+}
+
+/**
+ * Si Cancelar ofrece "este y los siguientes": después del Turno vienen Turnos de su Serie todavía pendientes o
+ * aceptados. Sin ellos, Cancelar este alcanza.
+ */
+export function hasFollowingInSeries(b: ClientBooking): boolean {
+    return (b.series?.bookings ?? []).some((s) => s.startsAt > b.startsAt && (s.status === 'PENDING' || s.status === 'BOOKED'));
+}
+
+/** El aviso de Cancelar "este y los siguientes", con los Turnos que el Plazo de cambios dejó en pie, si hay. */
+export function keptNotice(kept: { startsAt: string }[], timeZone: string): string {
+    if (kept.length === 0) return 'Cancelamos este turno y los siguientes.';
+    const dates = kept.map((k) => `${formatLongDate(k.startsAt, timeZone)} a las ${formatTime(k.startsAt, timeZone)}`);
+    const list = dates.length === 1 ? dates[0] : `${dates.slice(0, -1).join(', ')} y ${dates.at(-1)}`;
+    return kept.length === 1
+        ? `Cancelamos este turno y los siguientes, salvo el del ${list}, que quedó en pie por el plazo de cambios.`
+        : `Cancelamos este turno y los siguientes, salvo los del ${list}, que quedaron en pie por el plazo de cambios.`;
 }
