@@ -3,6 +3,7 @@ import {
   AVAILABILITIES_REPOSITORY,
   AvailabilitiesRepository,
 } from '../../domain/availabilities/availabilities.repository';
+import { Availability, AvailabilityFields } from '../../domain/availabilities/availability';
 import { CancellationCause, UpcomingBooking } from '../../domain/bookings/booking';
 import {
   BOOKINGS_REPOSITORY,
@@ -32,10 +33,12 @@ export interface LeftOutsideBooking extends UpcomingBooking {
 
 const DAY_MS = 86_400_000;
 
+const isoDay = (date: Date) => date.toISOString().slice(0, 10);
+
 /**
  * Arma el horario de un Usuario antes y después de un cambio y devuelve los Turnos que el cambio deja afuera (ADR 0034),
  * cada uno con su Causa y su Motivo de cancelación. Es lo que usan la vista previa y la escritura de cada tipo de cambio;
- * acá está el período Fuera de la oficina nuevo.
+ * `forOutOfOffice` mira un período Fuera de la oficina nuevo o editado; `forAvailability`, una Availability que se guarda.
  *
  * La Causa sale de qué se está guardando, no del Motivo del período: un período con Motivo "Día festivo" sigue siendo
  * `OUT_OF_OFFICE`.
@@ -109,6 +112,58 @@ export class LeftOutsideBookingsService {
     return bookingsLeftOutside(upcoming, before, after).map(({ booking }) => ({
       ...booking,
       cancellationCause: CancellationCause.OUT_OF_OFFICE,
+      cancellationReason,
+    }));
+  }
+
+  /**
+   * Los Turnos pendientes o aceptados que el Usuario atiende con `current`, que todavía no empezaron, que guardarla como
+   * `replacement` deja afuera (cambio de Franjas, Anulaciones o zona horaria), por `startsAt`. Se miran todos los Turnos
+   * futuros. Los períodos Fuera de la oficina y los Días festivos cuentan igual antes y después, y los Turnos que ya
+   * estaban afuera no se devuelven.
+   *
+   * @throws {NotFoundError} el Usuario no existe
+   */
+  async forAvailability(
+    userId: number,
+    current: Availability,
+    replacement: AvailabilityFields,
+  ): Promise<LeftOutsideBooking[]> {
+    const now = this.clock.now();
+    const upcoming = (await this.bookings.listUpcomingByUser(userId, now)).filter(
+      ({ availabilityId }) => availabilityId === current.id,
+    );
+    if (upcoming.length === 0) return [];
+
+    // A day either side (wider than any UTC offset) keeps every local date of the Turnos inside the range.
+    const { first, last } = upcoming.reduce(
+      (range, { startsAt }) => ({
+        first: Math.min(range.first, startsAt.getTime()),
+        last: Math.max(range.last, startsAt.getTime()),
+      }),
+      { first: Infinity, last: -Infinity },
+    );
+    const firstDate = isoDay(new Date(first - DAY_MS));
+    const [user, existing, holidays] = await Promise.all([
+      this.users.findById(userId),
+      this.outOfOffice.listByUserEndingFrom(userId, firstDate),
+      this.holidayPeriods.execute(userId, firstDate, isoDay(new Date(last + 2 * DAY_MS))),
+    ]);
+    if (!user) throw new NotFoundError(`User ${userId} not found`);
+
+    const blocked = [...existing, ...holidays];
+    const before: UserSchedule = { availabilities: [current], blocked };
+    const after: UserSchedule = {
+      availabilities: [{ ...current, ...replacement }],
+      blocked,
+    };
+    const cancellationReason = cancellationReasonFor({
+      cause: CancellationCause.SCHEDULE_CHANGE,
+      userName: user.name,
+    });
+    return bookingsLeftOutside(upcoming, before, after).map(({ booking }) => ({
+      ...booking,
+      cancellationCause: CancellationCause.SCHEDULE_CHANGE,
       cancellationReason,
     }));
   }
