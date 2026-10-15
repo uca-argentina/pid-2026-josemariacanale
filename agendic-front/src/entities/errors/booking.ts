@@ -88,3 +88,6 @@ export class SeriesTooShortError extends Error {
         super(message, options);
     }
 }
+
+/** El mensaje exacto del 422 de una Serie que, sin las fechas salteadas, queda con menos de 2 Turnos (ADR 0007). */
+export const SERIES_TOO_SHORT_MESSAGE = 'A Serie needs at least 2 Turnos';

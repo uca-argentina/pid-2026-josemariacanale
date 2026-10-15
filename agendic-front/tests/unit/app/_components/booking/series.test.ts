@@ -1,4 +1,4 @@
-import { countOptions, seriesDatesView, skippedDates, stepsFor } from '@/app/_components/booking/series';
+import { countOptions, everyWeeksLabel, mergeConflicts, seriesDatesView, skippedDates, stepsFor } from '@/app/_components/booking/series';
 
 const dates = [
     { date: '2026-09-28', startsAt: '2026-09-28T12:00:00.000Z', available: true },
@@ -36,5 +36,25 @@ describe('skippedDates', () => {
 
     it('sin choques no saltea ninguna', () => {
         expect(skippedDates(seriesDatesView(dates.map((d) => ({ ...d, available: true })), []))).toEqual({ skip: [], remaining: 3 });
+    });
+});
+
+describe('mergeConflicts', () => {
+    it('suma las fechas de un segundo 409 a las del primero: el reintento las sigue salteando a todas', () => {
+        expect(mergeConflicts(['2026-10-05'], ['2026-10-12'])).toEqual(['2026-10-05', '2026-10-12']);
+    });
+
+    it('no repite una fecha que ya estaba', () => {
+        expect(mergeConflicts(['2026-10-05'], ['2026-10-05', '2026-10-12'])).toEqual(['2026-10-05', '2026-10-12']);
+    });
+});
+
+describe('everyWeeksLabel', () => {
+    it('dice "todas las semanas" cada 1 semana', () => {
+        expect(everyWeeksLabel(1)).toBe('todas las semanas');
+    });
+
+    it('dice cada cuántas semanas si son más', () => {
+        expect(everyWeeksLabel(2)).toBe('cada 2 semanas');
     });
 });

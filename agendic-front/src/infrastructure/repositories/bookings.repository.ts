@@ -3,6 +3,7 @@ import type { IInstrumentationService } from '@/src/application/services/instrum
 import {
     InvalidVerificationCodeError,
     SeriesDatesUnavailableError,
+    SERIES_TOO_SHORT_MESSAGE,
     SeriesTooShortError,
     SLOT_UNAVAILABLE_MESSAGE,
     SlotTakenError,
@@ -22,9 +23,6 @@ function parseOrFail<T>(parse: () => T, what: string): T {
         throw new ApiRequestError(`${what} responded with an unexpected body`, { cause });
     }
 }
-
-/** El 422 de una Serie que, sin las fechas salteadas, queda con menos de 2 Turnos (ADR 0007). */
-const SERIES_TOO_SHORT_MESSAGE = 'A Serie needs at least 2 Turnos';
 
 /** Los 400 de una Serie mal pedida (ADR 0007): bugs del front, no un Código de verificación inválido. */
 const SERIES_BAD_REQUEST = /^(count must be between|skipDates are not dates of the Serie)/;
@@ -51,7 +49,7 @@ export class BookingsRepository implements IBookingsRepository {
     }
 
     /**
-     * Las fechas de una Serie a partir de su primer horario (ADR 0032).
+     * Las fechas de una Serie a partir de su primer horario (ADR 0007).
      *
      * @throws {NotFoundError} el back respondió 404: el Servicio ya no existe, o el Empleado elegido no lo atiende
      * @throws {SlotUnavailableError} el back respondió 422: el primer horario ya no es un Horario reservable
@@ -89,7 +87,7 @@ export class BookingsRepository implements IBookingsRepository {
     }
 
     /**
-     * Reserva un Turno o, con `repeat`, una Serie (ADR 0032), que responde el primer Turno con todos los de la Serie.
+     * Reserva un Turno o, con `repeat`, una Serie (ADR 0007), que responde el primer Turno con todos los de la Serie.
      *
      * @throws {InvalidVerificationCodeError} el back respondió 400: el código no es válido para clientEmail, o venció
      * @throws {SeriesDatesUnavailableError} el back respondió el 409 de una Serie: esas fechas chocan

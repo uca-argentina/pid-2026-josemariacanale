@@ -2,10 +2,10 @@
 
 import { Switch } from '@/app/_components/ui/switch';
 import { cn } from '@/app/_components/utils';
-import { countOptions } from './series';
+import { countOptions, everyWeeksLabel, SERIES_MIN_BOOKINGS } from './series';
 
 /**
- * "Repetir cada N semanas" del paso Horario, en un Servicio con Repetición (ADR 0032): prendido, el Cliente elige
+ * "Repetir cada N semanas" del paso Horario, en un Servicio con Repetición (ADR 0007): prendido, el Cliente elige
  * cuántos Turnos tiene la Serie, de 2 al máximo del Servicio. `count` `null` es un Turno suelto.
  */
 export function RepeatControl({
@@ -19,7 +19,7 @@ export function RepeatControl({
     count: number | null;
     onChange: (count: number | null) => void;
 }) {
-    const every = everyWeeks === 1 ? 'todas las semanas' : `cada ${everyWeeks} semanas`;
+    const every = everyWeeksLabel(everyWeeks);
 
     return (
         <section aria-label="Repetir el turno" className="mt-8 flex max-w-[560px] flex-col gap-4 rounded-2xl border border-border p-4.5">
@@ -28,7 +28,7 @@ export function RepeatControl({
                     <span className="text-[15px] font-bold tracking-[-0.02em]">Repetir {every}</span>
                     <span className="text-[13px] text-muted-foreground">Reservá una Serie: el mismo horario, {every}.</span>
                 </span>
-                <Switch checked={count !== null} onCheckedChange={(on) => onChange(on ? 2 : null)} aria-label={`Repetir ${every}`} />
+                <Switch checked={count !== null} onCheckedChange={(on) => onChange(on ? SERIES_MIN_BOOKINGS : null)} aria-label={`Repetir ${every}`} />
             </label>
             {count !== null && (
                 <div className="flex flex-col gap-2">

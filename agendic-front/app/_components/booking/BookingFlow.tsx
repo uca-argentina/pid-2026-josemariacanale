@@ -19,7 +19,7 @@ import type { BookSlotResult } from './actions';
 import { TimeStep } from './TimeStep';
 import { DatesStep } from './DatesStep';
 import { RepeatControl } from './RepeatControl';
-import { stepsFor } from './series';
+import { everyWeeksLabel, mergeConflicts, stepsFor } from './series';
 import { WaitlistFlow } from './WaitlistFlow';
 import { depositFor, endTime, formatDate, formatDuration, formatPrice, initials } from './format';
 import type { BookingPrefill } from './booking-prefill';
@@ -359,7 +359,7 @@ function SummaryPanel({
                             <dt className="sr-only">Serie</dt>
                             <dd className="font-semibold">
                                 Serie de {draft.repeatCount - draft.skipDates.length} turnos,{' '}
-                                {service.repeatEveryWeeks === 1 ? 'todas las semanas' : `cada ${service.repeatEveryWeeks} semanas`}
+                                {everyWeeksLabel(service.repeatEveryWeeks)}
                             </dd>
                         </div>
                     )}
@@ -516,11 +516,21 @@ export function BookingFlow({
         (step === 'dates' && seriesReady) ||
         step === 'confirm';
 
+    /**
+     * Fechas vuelve a pedir las fechas cada vez que se entra: hasta que cargan no se avanza, y lo que se salteó antes
+     * se vuelve a elegir, para no saltear una fecha que ahora se muestra libre.
+     */
+    const enterDates = () => {
+        setSeriesReady(false);
+        setDraft((d) => ({ ...d, skipDates: [] }));
+    };
+
     // Los avisos son del paso en que aparecieron: al cambiar de paso ya no dicen nada.
     const goTo = (next: Step) => {
         setSlotNotice(null);
         setConfirmError(null);
         setCodeOpen(false);
+        if (next === 'dates') enterDates();
         setStep(next);
     };
 
@@ -599,9 +609,9 @@ export function BookingFlow({
             // De vuelta a Fechas con las que chocan marcadas; el mismo código sirve para reintentar sin ellas.
             const conflicts = result.seriesConflict;
             startTransition(() => {
-                setSeriesConflicts(conflicts);
+                setSeriesConflicts((previous) => mergeConflicts(previous, conflicts));
                 setRetryCode(code);
-                setSeriesReady(false);
+                enterDates();
                 setCodeOpen(false);
                 setStep('dates');
             });

@@ -32,7 +32,7 @@ export function cancellationReasonOf(b: ClientBooking): string | null {
 }
 
 /**
- * Los Turnos de la Serie del Turno (ADR 0032), por fecha, con la etiqueta de su estado y su Enlace del Turno; `current`
+ * Los Turnos de la Serie del Turno (ADR 0007), por fecha, con la etiqueta de su estado y su Enlace del Turno; `current`
  * es el que se está viendo. `null` en un Turno suelto.
  */
 export function seriesOf(b: ClientBooking): { startsAt: string; status: string; link: string; current: boolean }[] | null {

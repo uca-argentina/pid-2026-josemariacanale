@@ -39,7 +39,7 @@ export async function listSlotsAction(query: {
 }
 
 /**
- * El resultado de Reservar. `seriesConflict` son las fechas del 409 de una Serie (ADR 0032): el Cliente vuelve al paso
+ * El resultado de Reservar. `seriesConflict` son las fechas del 409 de una Serie (ADR 0007): el Cliente vuelve al paso
  * Fechas con ellas marcadas y reintenta con el mismo Código de verificación.
  */
 export type BookSlotResult =
@@ -88,7 +88,7 @@ export type ListSeriesSlotsResult =
     | ({ ok: true } & Awaited<ReturnType<DI_RETURN_TYPES['IListSeriesSlotsController']>>)
     | { ok: false; slotTaken: boolean; message: string };
 
-/** Las fechas de una Serie desde el horario elegido (ADR 0032). No pide Sesión (ADR 0005). */
+/** Las fechas de una Serie desde el horario elegido (ADR 0007). No pide Sesión (ADR 0005). */
 export async function listSeriesSlotsAction(
     query: Parameters<DI_RETURN_TYPES['IListSeriesSlotsController']>[0],
 ): Promise<ListSeriesSlotsResult> {

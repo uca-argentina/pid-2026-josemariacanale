@@ -6,12 +6,10 @@ import { Button } from '@/app/_components/ui/button';
 import { cn } from '@/app/_components/utils';
 import { listSeriesSlotsAction } from './actions';
 import { formatDate } from './format';
-import { seriesDatesView, skippedDates, type SeriesDate } from './series';
-
-const MIN_SERIES = 2;
+import { SERIES_MIN_BOOKINGS, seriesDatesView, skippedDates, type SeriesDate } from './series';
 
 /**
- * El paso Fechas de una Serie (ADR 0032): pide las fechas desde el horario elegido y las lista todas, marcando las que
+ * El paso Fechas de una Serie (ADR 0007): pide las fechas desde el horario elegido y las lista todas, marcando las que
  * chocan. Con choques, el Cliente sigue sin esas fechas o vuelve a elegir otro horario: nunca se saltea una fecha sin
  * mostrarla. `conflicts` son las fechas del 409 al Reservar, que también se marcan.
  */
@@ -120,7 +118,7 @@ export function DatesStep({
                 <div className="flex flex-wrap gap-3">
                     <Button
                         onClick={() => onSkip(skip)}
-                        disabled={remaining < MIN_SERIES || pending}
+                        disabled={remaining < SERIES_MIN_BOOKINGS || pending}
                         className="h-auto rounded-xl bg-foreground px-5 py-3 font-bold text-white hover:bg-foreground/90"
                     >
                         {pending ? 'Reservando…' : 'Seguir sin esas fechas'}
@@ -130,8 +128,8 @@ export function DatesStep({
                     </Button>
                 </div>
             )}
-            {skip.length > 0 && remaining < MIN_SERIES && (
-                <p className="text-[13px] text-muted-foreground">Sin esas fechas quedan menos de 2 Turnos: elegí otro horario.</p>
+            {skip.length > 0 && remaining < SERIES_MIN_BOOKINGS && (
+                <p className="text-[13px] text-muted-foreground">Sin esas fechas quedan menos de {SERIES_MIN_BOOKINGS} Turnos: elegí otro horario.</p>
             )}
         </div>
     );

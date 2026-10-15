@@ -4,7 +4,7 @@ import type { SeriesSlots, SeriesSlotsQuery } from '@/src/entities/models/slot';
 
 export type IListSeriesSlotsUseCase = ReturnType<typeof listSeriesSlotsUseCase>;
 /**
- * Las fechas de una Serie desde su primer horario (ADR 0032), cada una marcada si choca. El back las calcula con los
+ * Las fechas de una Serie desde su primer horario (ADR 0007), cada una marcada si choca. El back las calcula con los
  * mismos Horarios reservables que un Turno suelto, fijando a quien atiende toda la Serie.
  *
  * @throws {NotFoundError} el Servicio no existe, está dado de baja o el Empleado no lo atiende

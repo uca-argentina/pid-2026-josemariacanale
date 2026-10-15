@@ -38,7 +38,7 @@ export const createBookingSchema = bookingSchema.pick({ serviceId: true, startsA
     clientEmail: z.string(),
     notes: z.string().optional(),
     code: z.string(),
-    // Reservar una Serie (ADR 0032): how many Turnos, and the dates of the Serie that are not booked.
+    // Reservar una Serie (ADR 0007): how many Turnos, and the dates of the Serie that are not booked.
     repeat: z.object({ count: z.number(), skipDates: z.array(z.string()).optional() }).optional(),
 });
 export type CreateBooking = z.infer<typeof createBookingSchema>;

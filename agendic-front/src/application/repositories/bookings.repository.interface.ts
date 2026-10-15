@@ -8,7 +8,7 @@ export interface IBookingsRepository {
      */
     listSlots(query: SlotsQuery): Promise<Slots>;
     /**
-     * Las fechas de una Serie desde su primer horario, marcando las que chocan (ADR 0032).
+     * Las fechas de una Serie desde su primer horario, marcando las que chocan (ADR 0007).
      *
      * @throws {NotFoundError} el Servicio no existe, está dado de baja o el Empleado no lo atiende (404)
      * @throws {SlotUnavailableError} el primer horario ya no es un Horario reservable (422)

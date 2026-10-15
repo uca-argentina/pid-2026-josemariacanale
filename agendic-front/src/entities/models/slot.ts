@@ -41,7 +41,7 @@ export interface SlotsQuery {
 }
 
 /**
- * Las fechas de una Serie, como las devuelve `GET /services/:id/series-slots` (ADR 0032): a la misma hora local, cada
+ * Las fechas de una Serie, como las devuelve `GET /services/:id/series-slots` (ADR 0007): a la misma hora local, cada
  * `repeatEveryWeeks` semanas. `available: false` es un choque, no un error. `employeeId` es quien atiende toda la
  * Serie; `null` en un Servicio personal.
  */
