@@ -5,7 +5,8 @@ import type { IInstrumentationService } from '@/src/application/services/instrum
 export type IRejectBookingUseCase = ReturnType<typeof rejectBookingUseCase>;
 
 /**
- * Rechaza un Turno pendiente; su horario queda libre. `reason` es el Motivo de cancelación, opcional.
+ * Rechaza un Turno pendiente; su horario queda libre. `reason` es el Motivo de cancelación, opcional. Con `series`,
+ * todos los pendientes por venir de su Serie.
  *
  * Que el Turno sea del Empleado lo valida el back.
  *
@@ -13,7 +14,7 @@ export type IRejectBookingUseCase = ReturnType<typeof rejectBookingUseCase>;
  * @throws {BookingNotAllowedError} el Turno no es del Empleado logueado
  * @throws {NotFoundError} el Turno no existe
  * @throws {CancellationReasonTooLongError} el Motivo de cancelación es demasiado largo
- * @throws {BookingStateError} el Turno no está pendiente
+ * @throws {BookingStateError} el Turno no está pendiente, o con `series` no es de una Serie
  */
 export const rejectBookingUseCase =
     (instrumentationService: IInstrumentationService, userBookingsRepository: IUserBookingsRepository) =>

@@ -5,17 +5,22 @@ import type { Booking } from './booking-helpers';
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 const weekdayFormat = new Intl.DateTimeFormat('es-AR', { timeZone: TIME_ZONE, weekday: 'long' });
 
-/** Un Turno pendiente o aceptado que todavía no terminó: lo que "quedan N" cuenta. */
-const isUpcoming = (b: Booking, now: number) => (b.status === 'PENDING' || b.status === 'BOOKED') && Date.parse(b.endsAt) >= now;
+/** Un Turno vigente: pendiente o aceptado, ni Cancelado ni Rechazado. */
+const isActive = (b: Booking) => b.status === 'PENDING' || b.status === 'BOOKED';
+
+/** Un Turno vigente que todavía no terminó: lo que "quedan N" cuenta. */
+const isUpcoming = (b: Booking, now: number) => isActive(b) && Date.parse(b.endsAt) >= now;
 
 const byStart = (a: Booking, b: Booking) => Date.parse(a.startsAt) - Date.parse(b.startsAt);
 
 /**
  * Cada cuánto se repite una Serie, para la pestaña Series: "todos los martes 10:00" o "cada 2 semanas, martes 10:00".
- * El salto es el más corto entre dos Turnos: una fecha salteada al Reservar no cambia la Repetición.
+ * Se lee de los Turnos vigentes (si no queda ninguno, de todos), y el salto es el más corto entre dos: una fecha
+ * salteada al Reservar, o un Turno cancelado, no cambia cada cuánto se repite.
  */
 export function seriesFrequency(series: Booking[], timeFormat: Preferences['timeFormat'] = 24): string {
-    const sorted = [...series].sort(byStart);
+    const active = series.filter(isActive);
+    const sorted = [...(active.length > 0 ? active : series)].sort(byStart);
     const first = sorted[0];
     const gaps = sorted.slice(1).map((b, i) => Date.parse(b.startsAt) - Date.parse(sorted[i].startsAt)).filter((gap) => gap > 0);
     const weeks = gaps.length > 0 ? Math.max(1, Math.round(Math.min(...gaps) / WEEK_MS)) : 1;
@@ -67,15 +72,18 @@ export function seriesRowsOf(bookings: Booking[], now: number): SeriesRow[] {
 }
 
 /**
- * Pendientes muestra una Serie una sola vez: en su primer Turno pendiente, con `seriesPending`, cuántos tiene, para
- * "Aceptar la Serie (N Turnos)". Un Turno suelto queda igual, con `seriesPending` null. Respeta el orden de `list`.
+ * Pendientes muestra una Serie una sola vez: en su primer Turno pendiente de `list`, con `seriesPending`, para
+ * "Aceptar la Serie (N Turnos)". N son los pendientes por venir de toda la Serie en `all`, sin filtros, porque son los
+ * que el back acepta. Un Turno suelto, o una Serie con un solo pendiente por venir, queda igual, con `seriesPending`
+ * null. Respeta el orden de `list`.
  */
-export function collapsePendingSeries(list: Booking[]): { booking: Booking; seriesPending: number | null }[] {
+export function collapsePendingSeries(list: Booking[], all: Booking[], now: number): { booking: Booking; seriesPending: number | null }[] {
     const counts = new Map<string, number>();
-    for (const b of list) if (b.seriesId !== null) counts.set(b.seriesId, (counts.get(b.seriesId) ?? 0) + 1);
+    for (const b of all)
+        if (b.seriesId !== null && b.status === 'PENDING' && Date.parse(b.endsAt) >= now) counts.set(b.seriesId, (counts.get(b.seriesId) ?? 0) + 1);
     const seen = new Set<string>();
     return list.flatMap((b): { booking: Booking; seriesPending: number | null }[] => {
-        if (b.seriesId === null) return [{ booking: b, seriesPending: null }];
+        if (b.seriesId === null || (counts.get(b.seriesId) ?? 0) < 2) return [{ booking: b, seriesPending: null }];
         if (seen.has(b.seriesId)) return [];
         seen.add(b.seriesId);
         return [{ booking: b, seriesPending: counts.get(b.seriesId)! }];
@@ -91,6 +99,6 @@ export function seriesMatesOf(bookings: Booking[], booking: Booking): Booking[] 
 /** Si "Cancelar este y los siguientes" tiene sentido: después de `booking` vienen Turnos de su Serie pendientes o aceptados. */
 export function hasFollowingInSeries(bookings: Booking[], booking: Booking): boolean {
     return seriesMatesOf(bookings, booking).some(
-        (b) => Date.parse(b.startsAt) > Date.parse(booking.startsAt) && (b.status === 'PENDING' || b.status === 'BOOKED'),
+        (b) => Date.parse(b.startsAt) > Date.parse(booking.startsAt) && isActive(b),
     );
 }

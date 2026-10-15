@@ -172,13 +172,16 @@ export function BookingsView({ bookings, now, preferences }: { bookings: Booking
         branch: unique(bookings.map((b) => listValueOf('branch', b))),
     };
 
-    const pendingCount = collapsePendingSeries(bookings.filter((b) => tabOf(b, now) === 'pending')).length;
+    const pendingCount = collapsePendingSeries(bookings.filter((b) => tabOf(b, now) === 'pending'), bookings, now).length;
     const sorted = sortForTab(tab, bookings.filter((b) => tabOf(b, now) === tab && matches(b, filters) && matchesRange(b, range)));
     // Pendientes muestra cada Serie una sola vez, con "Aceptar la Serie (N Turnos)".
-    const collapsed = tab === 'pending' ? collapsePendingSeries(sorted) : sorted.map((b) => ({ booking: b, seriesPending: null }));
+    const collapsed = tab === 'pending' ? collapsePendingSeries(sorted, bookings, now) : sorted.map((b) => ({ booking: b, seriesPending: null }));
     const seriesPendingOf = new Map(collapsed.map((c) => [c.booking.id, c.seriesPending]));
     const inTab = collapsed.map((c) => c.booking);
-    const seriesRows = tab === 'series' ? seriesRowsOf(bookings.filter((b) => matches(b, filters) && matchesRange(b, range)), now) : [];
+    // Las filas se arman con toda la Serie, para que "quedan N de M" y la frecuencia no dependan de los filtros; los
+    // filtros solo eligen qué Series se ven.
+    const seriesRows =
+        tab === 'series' ? seriesRowsOf(bookings, now).filter((row) => row.bookings.some((b) => matches(b, filters) && matchesRange(b, range))) : [];
     const pageCount = Math.max(1, Math.ceil(inTab.length / pageSize));
     const current = Math.min(page, pageCount - 1);
     const from = current * pageSize;

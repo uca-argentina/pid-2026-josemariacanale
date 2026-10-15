@@ -10,14 +10,14 @@ const inputSchema = z.object({ bookingId: z.number().int().positive(), reason: z
 export type ICancelBookingController = ReturnType<typeof cancelBookingController>;
 
 /**
- * Cancela un Turno aceptado; su horario queda libre.
+ * Cancela un Turno aceptado; su horario queda libre. Con `andFollowing`, también los siguientes de su Serie.
  *
  * @throws {UnauthenticatedError} no hay Sesión válida
- * @throws {InputParseError} `bookingId` no es un id válido, o `reason` no es texto
+ * @throws {InputParseError} `bookingId` no es un id válido, `reason` no es texto o `andFollowing` no es booleano
  * @throws {CancellationReasonTooLongError} el Motivo de cancelación es demasiado largo
  * @throws {BookingNotAllowedError} el Turno no es del Empleado logueado
  * @throws {NotFoundError} el Turno no existe
- * @throws {BookingStateError} el Turno no está aceptado
+ * @throws {BookingStateError} el Turno no está aceptado, o con `andFollowing` no es de una Serie
  */
 export const cancelBookingController =
     (

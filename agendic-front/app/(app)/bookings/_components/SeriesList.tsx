@@ -60,7 +60,11 @@ function SeriesActions({ row }: { row: SeriesRow }) {
                     open={dialog === 'cancel'}
                     onOpenChange={(open) => setDialog(open ? 'cancel' : null)}
                     title="¿Cancelar los turnos restantes?"
-                    description={`Se cancelan los turnos de la Serie desde el ${formatShortDay(firstBooked.startsAt)}, los horarios quedan libres y le avisamos a ${clientName}.`}
+                    description={`Se cancelan los turnos de la Serie desde el ${formatShortDay(firstBooked.startsAt)}, los horarios quedan libres y le avisamos a ${clientName}.${
+                        firstPending && Date.parse(firstPending.startsAt) < Date.parse(firstBooked.startsAt)
+                            ? ' Los pendientes de antes no se cancelan: rechazalos con Rechazar la Serie.'
+                            : ''
+                    }`}
                     confirmLabel="Cancelar los turnos"
                     confirm={(reason) => cancelBookingAction(firstBooked.id, reason, true)}
                     success="Turnos cancelados"

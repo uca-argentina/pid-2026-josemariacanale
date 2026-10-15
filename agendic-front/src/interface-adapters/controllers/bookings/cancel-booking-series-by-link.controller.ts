@@ -15,6 +15,7 @@ function presenter({ cancelled, kept }: CancelledSeries, instrumentationService:
 
 const inputSchema = z.object({ link: z.string().trim().min(1), reason: z.string().optional() });
 
+/** Tipo del controller ya compuesto, como lo consume `app/`. */
 export type ICancelBookingSeriesByLinkController = ReturnType<typeof cancelBookingSeriesByLinkController>;
 
 /**

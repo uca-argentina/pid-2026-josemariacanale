@@ -36,6 +36,7 @@ describe('cancelBookingSeriesByLinkController', () => {
     it.each([
         ['a missing link', {}],
         ['a blank link', { link: '' }],
+        ['a reason that is not text', { link: 's3cr3t-l1nk', reason: 3 as unknown as string }],
     ])('throws InputParseError with %s, without calling the use case', async (_case, bad) => {
         const useCase = jest.fn();
         await expect(cancelBookingSeriesByLinkController(instrumentation, useCase)(bad)).rejects.toBeInstanceOf(InputParseError);

@@ -49,6 +49,15 @@ describe('seriesFrequency', () => {
         expect(seriesFrequency(series)).toBe('todos los martes 10:00');
     });
 
+    it('lee la frecuencia y el horario de los Turnos vigentes: uno cancelado no la cambia', () => {
+        const series = [
+            inSeries(1, '2026-09-14T10:00:00-03:00', { status: 'CANCELLED' }),
+            inSeries(2, '2026-09-15T10:00:00-03:00'),
+            inSeries(3, '2026-09-29T10:00:00-03:00'),
+        ];
+        expect(seriesFrequency(series)).toBe('cada 2 semanas, martes 10:00');
+    });
+
     it('pone en plural sábado y domingo', () => {
         const series = [inSeries(1, '2026-09-19T10:00:00-03:00'), inSeries(2, '2026-09-26T10:00:00-03:00')];
         expect(seriesFrequency(series)).toBe('todos los sábados 10:00');
@@ -96,16 +105,23 @@ describe('seriesRowsOf', () => {
 });
 
 describe('collapsePendingSeries', () => {
-    it('deja una sola vez cada Serie, en su primer Turno pendiente, con cuántos tiene', () => {
+    it('deja una sola vez cada Serie, en su primer Turno pendiente, con los pendientes por venir de toda la Serie', () => {
         const list = [
             inSeries(1, '2026-09-22T10:00:00-03:00', { status: 'PENDING' }),
             booking({ id: 9, status: 'PENDING' }),
             inSeries(2, '2026-09-29T10:00:00-03:00', { status: 'PENDING' }),
         ];
-        expect(collapsePendingSeries(list).map(({ booking: b, seriesPending }) => [b.id, seriesPending])).toEqual([
-            [1, 2],
+        // El tercero queda fuera de los filtros, pero Aceptar la Serie también lo acepta.
+        const all = [...list, inSeries(3, '2026-10-06T10:00:00-03:00', { status: 'PENDING' }), inSeries(4, '2026-09-08T10:00:00-03:00', { status: 'PENDING' })];
+        expect(collapsePendingSeries(list, all, NOW).map(({ booking: b, seriesPending }) => [b.id, seriesPending])).toEqual([
+            [1, 3],
             [9, null],
         ]);
+    });
+
+    it('una Serie con un solo pendiente por venir queda como un Turno suelto', () => {
+        const list = [inSeries(1, '2026-09-22T10:00:00-03:00', { status: 'PENDING' })];
+        expect(collapsePendingSeries(list, list, NOW)).toEqual([{ booking: list[0], seriesPending: null }]);
     });
 });
 

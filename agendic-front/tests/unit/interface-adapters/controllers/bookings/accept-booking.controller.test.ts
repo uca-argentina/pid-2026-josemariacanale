@@ -18,7 +18,7 @@ describe('acceptBookingController', () => {
         expect(useCase).toHaveBeenCalledWith(7, true);
     });
 
-    it.each([{}, { bookingId: '7' }, { bookingId: 0 }])('throws InputParseError for %j without calling the use case', async (input) => {
+    it.each([{}, { bookingId: '7' }, { bookingId: 0 }, { bookingId: 7, series: 'yes' }])('throws InputParseError for %j without calling the use case', async (input) => {
         const useCase = jest.fn();
         await expect(acceptBookingController(instrumentation, signedIn, useCase)(input)).rejects.toBeInstanceOf(InputParseError);
         expect(useCase).not.toHaveBeenCalled();
