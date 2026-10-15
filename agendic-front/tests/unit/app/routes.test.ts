@@ -1,4 +1,4 @@
-import { bookAgainPath, bookingLinkPath, bookingPath, sectionOf, userLinkPath } from '@/app/routes';
+import { bookAgainPath, bookOtherDayPath, bookingLinkPath, bookingPath, sectionOf, userLinkPath, waitlistPath } from '@/app/routes';
 
 describe('sectionOf', () => {
     const sections = [
@@ -77,5 +77,29 @@ describe('bookAgainPath', () => {
 
     it('no lleva a ningún lado sin Sucursal ni Usuario', () => {
         expect(bookAgainPath({ business: { slug: 'peluqueria-luna' }, branch: null, user: null })).toBeNull();
+    });
+});
+
+describe('waitlistPath', () => {
+    it('es la ruta del enlace de Salir de la Lista de espera', () => {
+        expect(waitlistPath('s3cr3t')).toBe('/lista-de-espera/s3cr3t');
+    });
+});
+
+describe('bookOtherDayPath', () => {
+    const service = { slug: 'masaje' };
+
+    it('en un Servicio del Negocio va a la Sucursal con ese Servicio elegido', () => {
+        expect(bookOtherDayPath({ service, business: { slug: 'luna' }, branch: { slug: 'centro' }, user: null })).toBe(
+            '/luna/centro/masaje',
+        );
+    });
+
+    it('en un Servicio personal va a la página del Usuario con ese Servicio', () => {
+        expect(bookOtherDayPath({ service, business: null, branch: null, user: { slug: 'juana' } })).toBe('/juana/masaje');
+    });
+
+    it('es null si no trae ni Negocio ni Usuario', () => {
+        expect(bookOtherDayPath({ service, business: null, branch: null, user: null })).toBeNull();
     });
 });

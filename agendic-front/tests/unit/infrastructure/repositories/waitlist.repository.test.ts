@@ -2,7 +2,7 @@ import { InvalidVerificationCodeError } from '@/src/entities/errors/booking';
 import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
 import { WaitlistDateInPastError, WaitlistDayNotFullError } from '@/src/entities/errors/waitlist';
 import { WaitlistRepository } from '@/src/infrastructure/repositories/waitlist.repository';
-import { instrumentation } from '@/tests/unit/stubs';
+import { instrumentation, waitlistEntryView } from '@/tests/unit/stubs';
 
 const repo = (apiUrl: string | undefined = 'http://api') => new WaitlistRepository(instrumentation, apiUrl);
 const respond = (status: number, body: unknown) =>
@@ -69,5 +69,74 @@ describe('WaitlistRepository.join', () => {
         const fetchSpy = jest.spyOn(global, 'fetch');
         await expect(repo('').join(input)).rejects.toBeInstanceOf(ApiRequestError);
         expect(fetchSpy).not.toHaveBeenCalled();
+    });
+});
+
+const view = waitlistEntryView;
+
+describe('WaitlistRepository.getByLink', () => {
+    it('GETs the Anotación without a Sesión and returns it', async () => {
+        const fetchSpy = respond(200, view);
+
+        await expect(repo().getByLink('abc')).resolves.toEqual(view);
+        expect(fetchSpy).toHaveBeenCalledWith('http://api/waitlist-links/abc', { method: 'GET' });
+    });
+
+    it('accepts a Servicio personal, with business and branch null', async () => {
+        const personal = { ...view, business: null, branch: null, user: { slug: 'juana' } };
+        respond(200, personal);
+        await expect(repo().getByLink('abc')).resolves.toEqual(personal);
+    });
+
+    it('translates a 404 to NotFoundError', async () => {
+        respond(404, { statusCode: 404, message: 'Anotación not found' });
+        await expect(repo().getByLink('abc')).rejects.toBeInstanceOf(NotFoundError);
+    });
+
+    it('translates a 500 to ApiRequestError carrying the status', async () => {
+        respond(500, { statusCode: 500, message: 'boom' });
+        const error = await repo().getByLink('abc').catch((e) => e);
+        expect(error).toBeInstanceOf(ApiRequestError);
+        expect(error.status).toBe(500);
+    });
+
+    it('translates an unexpected body to ApiRequestError', async () => {
+        respond(200, { ok: true });
+        await expect(repo().getByLink('abc')).rejects.toBeInstanceOf(ApiRequestError);
+    });
+
+    it('translates a network failure to ApiRequestError, keeping the cause', async () => {
+        const cause = new TypeError('fetch failed');
+        jest.spyOn(global, 'fetch').mockRejectedValue(cause);
+        const error = await repo().getByLink('abc').catch((e) => e);
+        expect(error).toBeInstanceOf(ApiRequestError);
+        expect(error.cause).toBe(cause);
+    });
+
+    it('fails with ApiRequestError when API_URL is not set', async () => {
+        const fetchSpy = jest.spyOn(global, 'fetch');
+        await expect(repo('').getByLink('abc')).rejects.toBeInstanceOf(ApiRequestError);
+        expect(fetchSpy).not.toHaveBeenCalled();
+    });
+});
+
+describe('WaitlistRepository.leave', () => {
+    it('POSTs the leave without a Sesión or body and resolves on a 204', async () => {
+        const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue(new Response(null, { status: 204 }));
+
+        await expect(repo().leave('abc')).resolves.toBeUndefined();
+        expect(fetchSpy).toHaveBeenCalledWith('http://api/waitlist-links/abc/leave', { method: 'POST' });
+    });
+
+    it('translates a 404 to NotFoundError', async () => {
+        respond(404, { statusCode: 404, message: 'Anotación not found' });
+        await expect(repo().leave('abc')).rejects.toBeInstanceOf(NotFoundError);
+    });
+
+    it('translates a 500 to ApiRequestError carrying the status', async () => {
+        respond(500, { statusCode: 500, message: 'boom' });
+        const error = await repo().leave('abc').catch((e) => e);
+        expect(error).toBeInstanceOf(ApiRequestError);
+        expect(error.status).toBe(500);
     });
 });
