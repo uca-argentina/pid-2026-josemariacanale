@@ -30,6 +30,7 @@ const BOOKED: Booking = {
   employeeNoShowAt: null,
   link: LINK,
   fromRescheduleId: null,
+  seriesId: null,
   employeeChosen: false,
   depositAmount: null,
   depositPaidAt: null,

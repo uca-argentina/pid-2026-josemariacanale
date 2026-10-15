@@ -299,6 +299,7 @@ model Booking {
   rescheduled      Boolean? // Reagendar (ADR 0031): true only in the original, which stays CANCELLED; null otherwise
   fromRescheduleId Int?          @unique // the original Turno this one replaced; null if it was not born from a Reagendar
   ratingRequestSentAt DateTime? @db.Timestamptz(3) // Invitación a calificar: when the mail was sent; null while not sent, so each Turno gets one
+  seriesId         String?       @db.Uuid // Serie (#303): shared by the Turnos booked together with Repetición; null in a Turno suelto. Reagendar copies it to the new Turno
   createdAt        DateTime      @default(now()) @db.Timestamptz(3)
 
   service        Service   @relation(fields: [serviceId], references: [id])
@@ -309,6 +310,8 @@ model Booking {
   fromReschedule Booking?  @relation("Reschedule", fields: [fromRescheduleId], references: [id])
   rescheduledTo  Booking?  @relation("Reschedule")
   rating         BookingRating?
+
+  @@index([seriesId])
 }
 
 /// Calificación: el puntaje de 1 a 5 (CHECK, ADR 0004) que el Cliente deja sobre un Turno atendido desde el Enlace del Turno. Una por Turno (índice único) y no se edita.

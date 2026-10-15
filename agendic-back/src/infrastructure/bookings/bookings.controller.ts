@@ -17,6 +17,7 @@ import { UnmarkNoShowUseCase } from '../../application/bookings/unmark-no-show.u
 import { RescheduleBookingUseCase } from '../../application/bookings/reschedule-booking.use-case';
 import { AcceptBookingUseCase } from '../../application/bookings/accept-booking.use-case';
 import { RejectBookingUseCase } from '../../application/bookings/reject-booking.use-case';
+import { CreateBookingSeriesUseCase } from '../../application/bookings/create-booking-series.use-case';
 import { CreateBookingUseCase } from '../../application/bookings/create-booking.use-case';
 import { ListMyBookingsUseCase } from '../../application/bookings/list-my-bookings.use-case';
 import { ListBookingsByBusinessUseCase } from '../../application/bookings/list-bookings-by-business.use-case';
@@ -41,6 +42,7 @@ import {
 export class BookingsController {
   constructor(
     private readonly createBookingUseCase: CreateBookingUseCase,
+    private readonly createBookingSeriesUseCase: CreateBookingSeriesUseCase,
     private readonly requestBookingCodeUseCase: RequestBookingCodeUseCase,
     private readonly listBookingsByBusinessUseCase: ListBookingsByBusinessUseCase,
     private readonly acceptBookingUseCase: AcceptBookingUseCase,
@@ -71,11 +73,13 @@ export class BookingsController {
    * @throws {BusinessRuleError} el Servicio no existe o está dado de baja, el horario ya pasó o no es un Horario reservable (del Empleado elegido, si hay)
    * @throws {NotFoundError} el Empleado elegido no Ofrece el Servicio
    * @throws {BadRequestError} se eligió un Empleado en un Servicio personal
-   * @throws {ConflictError} el horario ya lo ocupa otro Turno, o el Servicio alcanzó su Límite diario ese día
+   * @throws {ConflictError} el horario ya lo ocupa otro Turno, o el Servicio alcanzó su Límite diario ese día; con `repeat`, `Series dates not available: <fechas>`
+   * @throws {BadRequestError} con `repeat`, `count` fuera de rango o una fecha de `skipDates` que no es de la Serie
+   * @throws {BusinessRuleError} con `repeat`, el Servicio no tiene Repetición o quedan menos de 2 Turnos
    */
   @Post('bookings')
   async create(@Body() dto: CreateBookingDto) {
-    const booking = await this.createBookingUseCase.execute({
+    const input = {
       serviceId: dto.serviceId,
       startsAt: new Date(dto.startsAt),
       employeeId: dto.employeeId,
@@ -83,7 +87,22 @@ export class BookingsController {
       clientEmail: dto.clientEmail,
       notes: dto.notes,
       code: dto.code,
-    });
+    };
+    if (dto.repeat) {
+      const { count, skipDates } = dto.repeat;
+      const booked = await this.createBookingSeriesUseCase.execute({
+        ...input,
+        // A missing or non-numeric count is NaN, which the use case rejects with the contract message.
+        repeat: { count: typeof count === 'number' ? count : NaN, skipDates },
+      });
+      return {
+        ...presentBooking(booked),
+        employeeName: booked.employeeName,
+        link: booked.link,
+        series: booked.series,
+      };
+    }
+    const booking = await this.createBookingUseCase.execute(input);
     return {
       ...presentBooking(booking),
       employeeName: booking.employeeName,

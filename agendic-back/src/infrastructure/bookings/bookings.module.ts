@@ -11,6 +11,8 @@ import { MarkEmployeeNoShowByLinkUseCase } from '../../application/bookings/mark
 import { RateBookingByLinkUseCase } from '../../application/bookings/rate-booking-by-link.use-case';
 import { PayDepositByLinkUseCase } from '../../application/bookings/pay-deposit-by-link.use-case';
 import { ListSlotsUseCase } from '../../application/slots/list-slots.use-case';
+import { CreateBookingSeriesUseCase } from '../../application/bookings/create-booking-series.use-case';
+import { ListSeriesSlotsUseCase } from '../../application/slots/list-series-slots.use-case';
 import { CreateBookingUseCase } from '../../application/bookings/create-booking.use-case';
 import { ListMyBookingsUseCase } from '../../application/bookings/list-my-bookings.use-case';
 import { ListBookingsByBusinessUseCase } from '../../application/bookings/list-bookings-by-business.use-case';
@@ -29,6 +31,8 @@ import { BookingsController } from './bookings.controller';
   controllers: [BookingsController, BookingLinksController],
   providers: [
     CreateBookingUseCase,
+    CreateBookingSeriesUseCase,
+    ListSeriesSlotsUseCase,
     RequestBookingCodeUseCase,
     AcceptBookingUseCase,
     RejectBookingUseCase,
