@@ -241,6 +241,7 @@ export async function createTestApp() {
     findByLinkIncludeService: jest.fn(),
     leave: jest.fn(),
     listAliveIncludeService: jest.fn(),
+    listWithLiveBooking: jest.fn().mockResolvedValue(new Set()),
     markNotified: jest.fn(),
     rearm: jest.fn(),
   };

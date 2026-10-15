@@ -36,7 +36,8 @@ function bookingPath(entry: AliveWaitlistEntry): string {
 /**
  * Avisa a cada Anotación viva cuando su día vuelve a tener un Horario reservable, y rearma las de los días que se
  * llenaron de nuevo (ADR 0034). Cada Anotación recibe un solo Aviso mientras el día siga con lugar: `notifiedAt`
- * se guarda solo si el mail salió bien.
+ * se guarda solo si el mail salió bien. Una Anotación cuyo email ya tiene un Turno vivo ese día se saltea: no se
+ * avisa ni se marca, pero sí se rearma si el día se llena, así que vuelve a avisarse sola si el Cliente Cancela.
  *
  * Un Servicio o un mail que fallan se loguean y se reintentan en la próxima pasada, sin frenar a los demás.
  */
@@ -57,8 +58,14 @@ export class SendFreeSlotNoticesUseCase {
   async execute(): Promise<void> {
     const now = this.clock.now();
     const byService = new Map<number, AliveWaitlistEntry[]>();
-    for (const entry of await this.waitlist.listAliveIncludeService(now)) {
-      if (entry.date < localDate(now, entry.timeZone)) continue;
+    const upcoming = (await this.waitlist.listAliveIncludeService(now)).filter(
+      (entry) => entry.date >= localDate(now, entry.timeZone),
+    );
+    const booked =
+      upcoming.length > 0
+        ? await this.waitlist.listWithLiveBooking(upcoming)
+        : new Set<number>();
+    for (const entry of upcoming) {
       byService.set(entry.serviceId, [
         ...(byService.get(entry.serviceId) ?? []),
         entry,
@@ -66,7 +73,7 @@ export class SendFreeSlotNoticesUseCase {
     }
     for (const [serviceId, entries] of byService) {
       try {
-        await this.processService(serviceId, entries, now);
+        await this.processService(serviceId, entries, now, booked);
       } catch (error) {
         logger.error(
           `Avisos de horario libre del Servicio ${serviceId} fallaron`,
@@ -80,6 +87,7 @@ export class SendFreeSlotNoticesUseCase {
     serviceId: number,
     entries: AliveWaitlistEntry[],
     now: Date,
+    booked: Set<number>,
   ) {
     const days = await this.daysOf(serviceId, entries);
     for (const entry of entries) {
@@ -87,7 +95,7 @@ export class SendFreeSlotNoticesUseCase {
       if (!day) continue;
       if (day.slots.length === 0) {
         if (entry.notifiedAt) await this.waitlist.rearm(entry.id);
-      } else if (!entry.notifiedAt) {
+      } else if (!entry.notifiedAt && !booked.has(entry.id)) {
         await this.notify(entry, now);
       }
     }

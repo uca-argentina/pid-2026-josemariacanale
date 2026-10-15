@@ -111,6 +111,30 @@ export class PrismaWaitlistRepository implements WaitlistRepository {
     }));
   }
 
+  /** @throws {DatabaseOperationError} the query failed */
+  async listWithLiveBooking(entries: AliveWaitlistEntry[]) {
+    if (entries.length === 0) return new Set<number>();
+    const rows = await this.prisma.$queryRaw<{ id: number }[]>`
+        SELECT e."id"
+        FROM unnest(
+          ${entries.map((e) => e.id)}::int[],
+          ${entries.map((e) => e.serviceId)}::int[],
+          ${entries.map((e) => e.date)}::date[],
+          ${entries.map((e) => e.email)}::text[],
+          ${entries.map((e) => e.timeZone)}::text[]
+        ) AS e("id", "serviceId", "date", "email", "zone")
+        WHERE EXISTS (
+          SELECT 1
+          FROM "Booking" b
+          JOIN "Client" c ON c."bookingId" = b."id"
+          WHERE b."serviceId" = e."serviceId"
+            AND b."status" IN ('PENDING', 'BOOKED')
+            AND lower(c."email") = lower(e."email")
+            AND (b."startsAt" AT TIME ZONE e."zone")::date = e."date"
+        )`.catch((error) => translateLinkError(error, 'listed'));
+    return new Set(rows.map((row) => row.id));
+  }
+
   /** @throws {DatabaseOperationError} the update failed */
   async markNotified(id: number, now: Date) {
     await this.prisma.waitlistEntry

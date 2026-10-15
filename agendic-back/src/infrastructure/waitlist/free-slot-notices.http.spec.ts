@@ -248,4 +248,42 @@ describe('SendFreeSlotNoticesUseCase', () => {
 
     expect(t.mailer.sendFreeSlotNotice).toHaveBeenCalledTimes(2);
   });
+
+  it('no avisa a quien ya tiene un Turno vivo ese día, pero sí a las demás del mismo día', async () => {
+    const carla = entry();
+    const dani = entry({ id: 2, email: 'dani@example.com', link: 'secreto-2' });
+    t.waitlist.listAliveIncludeService.mockResolvedValue([carla, dani]);
+    t.waitlist.listWithLiveBooking.mockResolvedValue(new Set([1]));
+    freeTheDay();
+
+    await run();
+
+    expect(t.waitlist.listWithLiveBooking).toHaveBeenCalledTimes(1);
+    expect(t.waitlist.listWithLiveBooking).toHaveBeenCalledWith([carla, dani]);
+    expect(t.mailer.sendFreeSlotNotice).toHaveBeenCalledTimes(1);
+    expect(t.waitlist.markNotified).toHaveBeenCalledTimes(1);
+    expect(t.waitlist.markNotified).toHaveBeenCalledWith(2, t.clock.now());
+  });
+
+  it('con Turno vivo y el día lleno rearma la Anotación, para avisarle si el Cliente Cancela', async () => {
+    t.waitlist.listAliveIncludeService.mockResolvedValue([entry({ notifiedAt: t.clock.now() })]);
+    t.waitlist.listWithLiveBooking.mockResolvedValue(new Set([1]));
+
+    await run();
+
+    expect(t.waitlist.rearm).toHaveBeenCalledWith(1);
+    expect(t.mailer.sendFreeSlotNotice).not.toHaveBeenCalled();
+  });
+
+  it('si el Cliente Cancela su Turno, la vuelta siguiente le avisa si el día tiene lugar', async () => {
+    t.waitlist.listWithLiveBooking.mockResolvedValueOnce(new Set([1]));
+    freeTheDay();
+
+    await run();
+    expect(t.mailer.sendFreeSlotNotice).not.toHaveBeenCalled();
+
+    await run();
+    expect(t.mailer.sendFreeSlotNotice).toHaveBeenCalledTimes(1);
+    expect(t.waitlist.markNotified).toHaveBeenCalledWith(1, t.clock.now());
+  });
 });
