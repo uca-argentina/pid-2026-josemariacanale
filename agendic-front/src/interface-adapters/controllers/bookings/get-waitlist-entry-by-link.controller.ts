@@ -29,6 +29,6 @@ export const getWaitlistEntryByLinkController =
     async (input: Partial<z.input<typeof inputSchema>>): Promise<ReturnType<typeof presenter>> =>
         instrumentationService.startSpan({ name: 'getWaitlistEntryByLink Controller' }, async () => {
             const { data, error } = inputSchema.safeParse(input);
-            if (error) throw new InputParseError('Invalid Anotación link', { cause: error });
+            if (error) throw new InputParseError(`Invalid Anotación link "${input.link}"`, { cause: error });
             return presenter(await getWaitlistEntryByLinkUseCase(data), instrumentationService);
         });

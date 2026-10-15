@@ -13,6 +13,6 @@ export const leaveWaitlistController =
     async (input: Partial<z.input<typeof inputSchema>>): Promise<void> =>
         instrumentationService.startSpan({ name: 'leaveWaitlist Controller' }, async () => {
             const { data, error } = inputSchema.safeParse(input);
-            if (error) throw new InputParseError('Invalid Anotación link', { cause: error });
+            if (error) throw new InputParseError(`Invalid Anotación link "${input.link}"`, { cause: error });
             await leaveWaitlistUseCase(data);
         });

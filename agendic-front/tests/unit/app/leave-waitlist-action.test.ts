@@ -23,7 +23,7 @@ describe('leaveWaitlistAction', () => {
         ['un InputParseError', new InputParseError('Invalid Anotación link')],
     ])('dice que la anotación no existe ante %s, sin reportarlo', async (_case, error) => {
         mockLeave.mockRejectedValue(error);
-        await expect(leaveWaitlistAction('abc')).resolves.toEqual({ ok: false, message: 'Esta anotación ya no existe.' });
+        await expect(leaveWaitlistAction('abc')).resolves.toEqual({ ok: false, message: 'Esta Anotación ya no existe.' });
         expect(mockReport).not.toHaveBeenCalled();
     });
 
