@@ -44,6 +44,7 @@ const turno = (n: number, status = BookingStatus.PENDING, seriesId: string | nul
   acceptedAt: null,
   cancelledBy: null,
   cancellationReason: null,
+  cancellationCause: null,
 });
 
 const asClient = (booking: Booking): ClientBooking => ({
