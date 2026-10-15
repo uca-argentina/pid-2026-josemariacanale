@@ -3,34 +3,13 @@ import type { IInstrumentationService } from '@/src/application/services/instrum
 import type { ICancelBookingByLinkUseCase } from '@/src/application/use-cases/bookings/cancel-booking-by-link.use-case';
 import { InputParseError } from '@/src/entities/errors/common';
 import type { ClientBooking } from '@/src/entities/models/client-booking';
+import { presentClientBooking } from '@/src/interface-adapters/presenters/client-booking.presenter';
 
 function presenter(booking: ClientBooking, instrumentationService: IInstrumentationService) {
-    return instrumentationService.startSpan({ name: 'cancelBookingByLink Presenter', op: 'serialize' }, () => ({
-        id: booking.id,
-        status: booking.status,
-        startsAt: booking.startsAt,
-        endsAt: booking.endsAt,
-        timeZone: booking.timeZone,
-        notes: booking.notes,
-        clientName: booking.clientName,
-        serviceId: booking.serviceId,
-        employeeId: booking.employeeId,
-        employeeChosen: booking.employeeChosen,
-        depositAmount: booking.depositAmount,
-        depositPaidAt: booking.depositPaidAt,
-        employeeNoShowAt: booking.employeeNoShowAt,
-        canMarkEmployeeNoShow: booking.canMarkEmployeeNoShow,
-        rating: booking.rating,
-        canRate: booking.canRate,
-        service: booking.service,
-        employeeName: booking.employeeName,
-        business: booking.business,
-        branch: booking.branch,
-        user: booking.user,
-    }));
+    return instrumentationService.startSpan({ name: 'cancelBookingByLink Presenter', op: 'serialize' }, () => presentClientBooking(booking));
 }
 
-const inputSchema = z.object({ link: z.string().trim().min(1) });
+const inputSchema = z.object({ link: z.string().trim().min(1), reason: z.string().optional() });
 
 export type ICancelBookingByLinkController = ReturnType<typeof cancelBookingByLinkController>;
 
@@ -39,7 +18,8 @@ export type ICancelBookingByLinkController = ReturnType<typeof cancelBookingByLi
  *
  * Público: el Enlace, no una Sesión ni un acceso, prueba que se tiene el Turno (ADR 0022).
  *
- * @throws {InputParseError} `link` falta o está vacío
+ * @throws {InputParseError} `link` falta o está vacío, o `reason` no es texto
+ * @throws {CancellationReasonTooLongError} el Motivo de cancelación es demasiado largo
  * @throws {NotFoundError} el Enlace no es de ningún Turno
  * @throws {BookingStateError} el Turno no está pendiente ni aceptado, o ya empezó
  */

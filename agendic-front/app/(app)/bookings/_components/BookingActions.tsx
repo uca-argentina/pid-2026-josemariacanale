@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { PanelButton, PanelConfirm, PanelMenu, type PanelMenuItem } from '@/app/(app)/_components/panel-ui';
 import { acceptBookingAction, cancelBookingAction, markBookingNoShowAction, rejectBookingAction, type BookingActionResult } from '../actions';
 import { actionsOf, type Booking } from './booking-helpers';
+import { ReasonConfirmDialog } from './ReasonConfirmDialog';
 import { RescheduleDialog } from './RescheduleDialog';
 
 type Dialog = 'reschedule' | 'reject' | 'cancel' | 'no-show' | null;
@@ -13,7 +14,8 @@ type Dialog = 'reschedule' | 'reject' | 'cancel' | 'no-show' | null;
 /**
  * Las acciones de un Turno según su estado (`actionsOf`), en la fila de la lista y en el panel lateral:
  * los botones principales (Aceptar y Rechazar en uno pendiente) y el menú "…" con el resto (Cancelar,
- * Reagendar, Marcar ausencia). Cada una pega contra el back y la página se refresca.
+ * Reagendar, Marcar ausencia). Rechazar y Cancelar piden un Motivo de cancelación opcional. Cada una pega contra el back
+ * y la página se refresca.
  */
 export function BookingActions({ booking, now }: { booking: Booking; now: number }) {
     const [dialog, setDialog] = useState<Dialog>(null);
@@ -56,24 +58,23 @@ export function BookingActions({ booking, now }: { booking: Booking; now: number
                     items={menu.map((id) => menuItems[id as keyof typeof menuItems])}
                 />
             )}
-            <PanelConfirm
+            <ReasonConfirmDialog
                 open={dialog === 'reject'}
                 onOpenChange={setOpen('reject')}
                 title="¿Rechazar el turno?"
                 description={`El horario queda libre y le avisamos a ${booking.clientName}.`}
                 confirmLabel="Rechazar turno"
-                destructive
-                onConfirm={() => run(rejectBookingAction, `Turno de ${booking.clientName} rechazado`)}
+                confirm={(reason) => rejectBookingAction(booking.id, reason)}
+                success={`Turno de ${booking.clientName} rechazado`}
             />
-            <PanelConfirm
+            <ReasonConfirmDialog
                 open={dialog === 'cancel'}
                 onOpenChange={setOpen('cancel')}
                 title="¿Cancelar el turno?"
                 description={`El horario queda libre y le avisamos a ${booking.clientName}.`}
                 confirmLabel="Cancelar turno"
-                cancelLabel="Volver"
-                destructive
-                onConfirm={() => run(cancelBookingAction, 'Turno cancelado')}
+                confirm={(reason) => cancelBookingAction(booking.id, reason)}
+                success="Turno cancelado"
             />
             <PanelConfirm
                 open={dialog === 'no-show'}

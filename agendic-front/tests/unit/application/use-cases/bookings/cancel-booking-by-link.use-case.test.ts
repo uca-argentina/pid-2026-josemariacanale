@@ -8,8 +8,14 @@ describe('cancelBookingByLinkUseCase', () => {
         const cancelled = { id: 7 };
         const cancelBookingByLink = jest.fn().mockResolvedValue(cancelled);
         const result = await cancelBookingByLinkUseCase(instrumentation, clientBookingsWith({ cancelBookingByLink }))({ link: 's3cr3t-l1nk' });
-        expect(cancelBookingByLink).toHaveBeenCalledWith('s3cr3t-l1nk');
+        expect(cancelBookingByLink).toHaveBeenCalledWith('s3cr3t-l1nk', undefined);
         expect(result).toBe(cancelled);
+    });
+
+    it('passes the Motivo de cancelación to the repository', async () => {
+        const cancelBookingByLink = jest.fn().mockResolvedValue({ id: 7 });
+        await cancelBookingByLinkUseCase(instrumentation, clientBookingsWith({ cancelBookingByLink }))({ link: 's3cr3t-l1nk', reason: 'Me surgió algo' });
+        expect(cancelBookingByLink).toHaveBeenCalledWith('s3cr3t-l1nk', 'Me surgió algo');
     });
 
     it('lets NotFoundError through', async () => {

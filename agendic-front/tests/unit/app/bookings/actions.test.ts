@@ -6,7 +6,7 @@ import {
     rescheduleBookingAction,
 } from '@/app/(app)/bookings/actions';
 import { UnauthenticatedError } from '@/src/entities/errors/auth';
-import { BookingNotAllowedError, BookingStateError, SlotTakenError, SlotUnavailableError } from '@/src/entities/errors/booking';
+import { BookingNotAllowedError, BookingStateError, CancellationReasonTooLongError, SlotTakenError, SlotUnavailableError } from '@/src/entities/errors/booking';
 import { InputParseError, NotFoundError } from '@/src/entities/errors/common';
 
 const mockControllers: Record<string, jest.Mock> = {
@@ -75,6 +75,28 @@ describe.each([
         const result = await run();
         expect(result.ok).toBe(false);
         expect(mockReport).toHaveBeenCalledWith(boom);
+    });
+});
+
+describe.each([
+    ['rejectBookingAction', 'IRejectBookingController', (reason?: string) => rejectBookingAction(7, reason)],
+    ['cancelBookingAction', 'ICancelBookingController', (reason?: string) => cancelBookingAction(7, reason)],
+])('%s with a Motivo de cancelación', (_name, controller, run) => {
+    it('sends the Motivo to its controller', async () => {
+        await expect(run('Estoy de viaje')).resolves.toEqual({ ok: true });
+        expect(mockControllers[controller]).toHaveBeenCalledWith({ bookingId: 7, reason: 'Estoy de viaje' });
+    });
+
+    it('shows the 400 of a too long Motivo under the field, without reporting it', async () => {
+        mockControllers[controller].mockRejectedValue(new CancellationReasonTooLongError('reason is too long'));
+
+        await expect(run('x'.repeat(501))).resolves.toEqual({
+            ok: false,
+            field: 'reason',
+            message: 'El motivo puede tener hasta 500 caracteres.',
+        });
+        expect(mockReport).not.toHaveBeenCalled();
+        expect(mockRefresh).not.toHaveBeenCalled();
     });
 });
 

@@ -4,6 +4,8 @@ import { UnauthenticatedError } from '@/src/entities/errors/auth';
 import {
     BookingNotAllowedError,
     BookingStateError,
+    CANCELLATION_REASON_TOO_LONG_MESSAGE,
+    CancellationReasonTooLongError,
     SLOT_UNAVAILABLE_MESSAGE,
     SlotTakenError,
     SlotUnavailableError,
@@ -11,10 +13,14 @@ import {
 import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
 import { userBookingSchema, type UserBooking } from '@/src/entities/models/user-booking';
 
+/** El body de Cancelar o Rechazar: el Motivo de cancelación si hay, si no ninguno. */
+const reasonBody = (reason?: string) => (reason === undefined ? undefined : { reason });
+
 /**
  * Turnos que atiende el Usuario contra la API del back.
  *
- * Cada método traduce el status del back así: 401 a `UnauthenticatedError`, 403 a
+ * Cada método traduce el status del back así: el 400 de un Motivo de cancelación muy largo a
+ * `CancellationReasonTooLongError`, 401 a `UnauthenticatedError`, 403 a
  * `BookingNotAllowedError`, 404 a `NotFoundError`, 409 a `SlotTakenError`, 422 a `BookingStateError`;
  * cualquier otro no-OK, o una falla de red, a `ApiRequestError`.
  */
@@ -53,10 +59,11 @@ export class UserBookingsRepository implements IUserBookingsRepository {
      * @throws {BookingNotAllowedError} la API respondió 403
      * @throws {NotFoundError} la API respondió 404
      * @throws {BookingStateError} la API respondió 422
+     * @throws {CancellationReasonTooLongError} la API respondió 400 `reason is too long`
      * @throws {ApiRequestError} falla de red u otro status no-OK
      */
-    async reject(bookingId: number): Promise<void> {
-        await this.request('PATCH', `/bookings/${bookingId}/reject`);
+    async reject(bookingId: number, reason?: string): Promise<void> {
+        await this.request('PATCH', `/bookings/${bookingId}/reject`, reasonBody(reason));
     }
 
     /**
@@ -64,10 +71,11 @@ export class UserBookingsRepository implements IUserBookingsRepository {
      * @throws {BookingNotAllowedError} la API respondió 403
      * @throws {NotFoundError} la API respondió 404
      * @throws {BookingStateError} la API respondió 422
+     * @throws {CancellationReasonTooLongError} la API respondió 400 `reason is too long`
      * @throws {ApiRequestError} falla de red u otro status no-OK
      */
-    async cancel(bookingId: number): Promise<void> {
-        await this.request('PATCH', `/bookings/${bookingId}/cancel`);
+    async cancel(bookingId: number, reason?: string): Promise<void> {
+        await this.request('PATCH', `/bookings/${bookingId}/cancel`, reasonBody(reason));
     }
 
     /**
@@ -117,6 +125,7 @@ export class UserBookingsRepository implements IUserBookingsRepository {
 
         const json = await response.json().catch(() => undefined);
         const message = String(json?.message ?? `${what} responded ${response.status}`);
+        if (response.status === 400 && message === CANCELLATION_REASON_TOO_LONG_MESSAGE) throw new CancellationReasonTooLongError(message);
         if (response.status === 401) throw new UnauthenticatedError(message);
         if (response.status === 403) throw new BookingNotAllowedError(message);
         if (response.status === 404) throw new NotFoundError(message);

@@ -24,22 +24,24 @@ export interface IUserBookingsRepository {
     accept(bookingId: number): Promise<void>;
 
     /**
-     * Rechaza un Turno pendiente.
+     * Rechaza un Turno pendiente, con un Motivo de cancelación opcional.
      *
      * @throws {BookingNotAllowedError} no es su Turno (403)
      * @throws {NotFoundError} el Turno no existe (404)
      * @throws {BookingStateError} no está pendiente (422)
+     * @throws {CancellationReasonTooLongError} el Motivo es demasiado largo (400)
      */
-    reject(bookingId: number): Promise<void>;
+    reject(bookingId: number, reason?: string): Promise<void>;
 
     /**
-     * Cancela un Turno aceptado.
+     * Cancela un Turno aceptado, con un Motivo de cancelación opcional.
      *
      * @throws {BookingNotAllowedError} no es su Turno (403)
      * @throws {NotFoundError} el Turno no existe (404)
      * @throws {BookingStateError} no está aceptado (422)
+     * @throws {CancellationReasonTooLongError} el Motivo es demasiado largo (400)
      */
-    cancel(bookingId: number): Promise<void>;
+    cancel(bookingId: number, reason?: string): Promise<void>;
 
     /**
      * Reagenda un Turno aceptado a otro Horario reservable del mismo Servicio y Empleado. El back lo

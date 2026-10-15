@@ -14,7 +14,8 @@ export const cabinOf = (b: Booking) => b.cabin?.name ?? null;
 /** El Empleado puede marcar la Ausencia del Invitado: el Turno no tiene ya una Ausencia del Invitado ni una del Anfitrión (se excluyen, ADR 0004). */
 export const canMarkNoShow = (b: Booking) => b.noShowAt === null && b.employeeNoShowAt === null;
 
-const CANCELLED_BY_LABELS = { EMPLOYEE: 'el Empleado', CLIENT: 'el Cliente', RETIREMENT: 'una baja' } as const;
+/** Quién Canceló o Rechazó, como sigue a "Cancelado por": en Mis turnos el Empleado es el propio Usuario. */
+const CANCELLED_BY_LABELS = { EMPLOYEE: 'vos', CLIENT: 'el Cliente', RETIREMENT: 'una baja' } as const;
 const CAUSE_LABELS = { OUT_OF_OFFICE: 'Fuera de la oficina', PUBLIC_HOLIDAY: 'Día festivo', SCHEDULE_CHANGE: 'Cambio de horario' } as const;
 
 /**
