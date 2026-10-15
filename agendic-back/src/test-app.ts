@@ -258,6 +258,7 @@ export async function createTestApp() {
   const userHolidaySettings: jest.Mocked<UserHolidaySettingsRepository> = {
     findByUserId: jest.fn(),
     save: jest.fn(),
+    saveCancelling: jest.fn(),
   };
   const googleCalendar: jest.Mocked<GoogleCalendarClient> = {
     assertConfigured: jest.fn(),
