@@ -46,7 +46,7 @@ describe('cancellationOf', () => {
             reason: 'No llego',
             cause: null,
         });
-        expect(cancellationOf(booking({ status: 'REJECTED', cancelledBy: 'EMPLOYEE' }))).toEqual({ by: 'el Empleado', reason: null, cause: null });
+        expect(cancellationOf(booking({ status: 'REJECTED', cancelledBy: 'EMPLOYEE' }))).toEqual({ by: 'vos', reason: null, cause: null });
         expect(cancellationOf(booking({ status: 'CANCELLED', cancelledBy: 'RETIREMENT' }))?.by).toBe('una baja');
     });
 
@@ -58,7 +58,7 @@ describe('cancellationOf', () => {
         const shown = cancellationOf(
             booking({ status: 'CANCELLED', cancelledBy: 'EMPLOYEE', cancellationReason: 'Estoy de viaje', cancellationCause: cause }),
         );
-        expect(shown).toEqual({ by: 'el Empleado', reason: 'Estoy de viaje', cause: label });
+        expect(shown).toEqual({ by: 'vos', reason: 'Estoy de viaje', cause: label });
     });
 });
 

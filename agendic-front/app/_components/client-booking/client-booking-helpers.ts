@@ -25,3 +25,8 @@ export const hostName = (b: ClientBooking) => b.business?.name ?? b.employeeName
 
 /** Qué muestra el Turno de la Calificación: el formulario si todavía puede calificar, la suya en solo lectura si ya calificó. */
 export const ratingSection = (b: ClientBooking): 'form' | 'readonly' | null => (b.canRate ? 'form' : b.rating ? 'readonly' : null);
+
+/** El Motivo de cancelación que ve el Cliente: solo en un Turno Cancelado o Rechazado que lo tiene. */
+export function cancellationReasonOf(b: ClientBooking): string | null {
+    return b.status === 'CANCELLED' || b.status === 'REJECTED' ? b.cancellationReason : null;
+}

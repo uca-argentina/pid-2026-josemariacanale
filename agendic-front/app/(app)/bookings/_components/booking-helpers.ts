@@ -5,6 +5,9 @@ import { dayKey, dayLabel, placeOf } from '@/app/(app)/_components/booking-forma
 /** Un Turno de Mis turnos del Usuario, como lo arma el controller. */
 export type Booking = Awaited<ReturnType<DI_RETURN_TYPES['IListMyBookingsController']>>[number];
 
+/** Qué ve el Usuario en el panel cuando el Historial del Turno no se puede cargar. */
+export const HISTORY_LOAD_ERROR = 'No pudimos cargar el historial del turno.';
+
 /** Pestañas de la lista de Turnos. */
 export type BookingTab = 'upcoming' | 'pending' | 'past' | 'cancelled';
 
@@ -14,7 +17,8 @@ export const cabinOf = (b: Booking) => b.cabin?.name ?? null;
 /** El Empleado puede marcar la Ausencia del Invitado: el Turno no tiene ya una Ausencia del Invitado ni una del Anfitrión (se excluyen, ADR 0004). */
 export const canMarkNoShow = (b: Booking) => b.noShowAt === null && b.employeeNoShowAt === null;
 
-const CANCELLED_BY_LABELS = { EMPLOYEE: 'el Empleado', CLIENT: 'el Cliente', RETIREMENT: 'una baja' } as const;
+/** Quién Canceló o Rechazó, como sigue a "Cancelado por": en Mis turnos el Empleado es el propio Usuario. */
+const CANCELLED_BY_LABELS = { EMPLOYEE: 'vos', CLIENT: 'el Cliente', RETIREMENT: 'una baja' } as const;
 const CAUSE_LABELS = { OUT_OF_OFFICE: 'Fuera de la oficina', PUBLIC_HOLIDAY: 'Día festivo', SCHEDULE_CHANGE: 'Cambio de horario' } as const;
 
 /**

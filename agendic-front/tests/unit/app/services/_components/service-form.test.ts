@@ -117,6 +117,8 @@ const service = {
     dailyLimit: null,
     slotInterval: null,
     minimumNoticeMinutes: 0,
+    repeatEveryWeeks: null,
+    repeatMaxBookings: null,
 };
 
 describe('editFormOf', () => {
@@ -136,6 +138,17 @@ describe('editFormOf', () => {
             dailyLimit: '',
             slotInterval: '',
             minimumNoticeMinutes: '0',
+            repeatEnabled: false,
+            repeatEveryWeeks: '1',
+            repeatMaxBookings: '4',
+        });
+    });
+
+    it('prende la Repetición con cada cuántas semanas y hasta cuántos Turnos', () => {
+        expect(editFormOf({ ...service, repeatEveryWeeks: 2, repeatMaxBookings: 6 })).toMatchObject({
+            repeatEnabled: true,
+            repeatEveryWeeks: '2',
+            repeatMaxBookings: '6',
         });
     });
 
@@ -202,6 +215,45 @@ describe('serviceChanges', () => {
             ok: true,
             changes: { dailyLimit: 6 },
         });
+    });
+
+    it('activa la Repetición mandando los dos campos juntos', () => {
+        expect(serviceChanges(saved, { ...saved, repeatEnabled: true, repeatEveryWeeks: '2', repeatMaxBookings: '5' })).toEqual({
+            ok: true,
+            changes: { repeatEveryWeeks: 2, repeatMaxBookings: 5 },
+        });
+    });
+
+    it('edita la Repetición mandando los dos campos, aunque cambie uno solo', () => {
+        const repeating = editFormOf({ ...service, repeatEveryWeeks: 1, repeatMaxBookings: 4 });
+        expect(serviceChanges(repeating, { ...repeating, repeatMaxBookings: '8' })).toEqual({
+            ok: true,
+            changes: { repeatEveryWeeks: 1, repeatMaxBookings: 8 },
+        });
+    });
+
+    it('saca la Repetición mandando los dos campos en null', () => {
+        const repeating = editFormOf({ ...service, repeatEveryWeeks: 1, repeatMaxBookings: 4 });
+        expect(serviceChanges(repeating, { ...repeating, repeatEnabled: false })).toEqual({
+            ok: true,
+            changes: { repeatEveryWeeks: null, repeatMaxBookings: null },
+        });
+    });
+
+    it.each([
+        ['más de 10 Turnos', { repeatMaxBookings: '11' }, 'repeatMaxBookings'],
+        ['menos de 2 Turnos', { repeatMaxBookings: '1' }, 'repeatMaxBookings'],
+        ['Turnos sin número', { repeatMaxBookings: '' }, 'repeatMaxBookings'],
+        ['cada 0 semanas', { repeatEveryWeeks: '0' }, 'repeatEveryWeeks'],
+        ['semanas con decimales', { repeatEveryWeeks: '1.5' }, 'repeatEveryWeeks'],
+    ])('no deja guardar una Repetición con %s', (_case, patch, field) => {
+        const result = serviceChanges(saved, { ...saved, repeatEnabled: true, ...patch });
+        expect(result.ok).toBe(false);
+        expect(result.ok === false && result.errors[field]).toBeTruthy();
+    });
+
+    it('ignora la Repetición escrita si sigue apagada', () => {
+        expect(serviceChanges(saved, { ...saved, repeatMaxBookings: '20' })).toEqual({ ok: true, changes: {} });
     });
 
     it('saca el Límite diario mandando null', () => {

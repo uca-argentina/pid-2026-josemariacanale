@@ -57,3 +57,13 @@ export class BookingAlreadyRatedError extends Error {
         super(message, options);
     }
 }
+
+/** 400 al Cancelar o Rechazar: el Motivo de cancelación pasa del largo máximo (`CANCELLATION_REASON_MAX_LENGTH`). */
+export class CancellationReasonTooLongError extends Error {
+    constructor(message: string, options?: ErrorOptions) {
+        super(message, options);
+    }
+}
+
+/** El mensaje exacto del 400 de un Motivo de cancelación demasiado largo (ADR 0007). */
+export const CANCELLATION_REASON_TOO_LONG_MESSAGE = 'reason is too long';

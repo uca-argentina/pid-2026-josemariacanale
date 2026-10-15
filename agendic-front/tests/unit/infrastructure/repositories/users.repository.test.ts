@@ -19,6 +19,8 @@ const personal = {
     dailyLimit: null,
     slotInterval: null,
     minimumNoticeMinutes: 0,
+    repeatEveryWeeks: null,
+    repeatMaxBookings: null,
     availabilityId: 7,
 };
 /** The back sends the fields of any Servicio: the personal one drops the ones it does not have. */

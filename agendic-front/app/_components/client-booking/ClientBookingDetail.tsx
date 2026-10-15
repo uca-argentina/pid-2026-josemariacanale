@@ -3,7 +3,9 @@
 import { useState, useTransition } from 'react';
 import { formatPrice as formatPriceWithCents } from '@/app/_components/booking/format';
 import { Button } from '@/app/_components/ui/button';
-import { STATUS_BADGE, canPayDeposit, hasPendingDeposit, hostName, isActionable } from './client-booking-helpers';
+import { Textarea } from '@/app/_components/ui/textarea';
+import { CANCELLATION_REASON_MAX_LENGTH } from '@/src/entities/models/booking';
+import { STATUS_BADGE, canPayDeposit, cancellationReasonOf, hasPendingDeposit, hostName, isActionable } from './client-booking-helpers';
 import { formatDuration, formatLongDate, formatPrice, formatTime } from './format';
 import { RatingSection } from './RatingSection';
 import { RescheduleOverlay } from './RescheduleOverlay';
@@ -27,7 +29,8 @@ export function ClientBookingDetail({
     booking: ClientBooking;
     now: number;
     payDeposit: () => Promise<ClientBookingActionResult>;
-    cancel: () => Promise<ClientBookingActionResult>;
+    /** Cancela con el Motivo de cancelación que escribió el Cliente (`undefined` si lo dejó vacío). */
+    cancel: (reason: string | undefined) => Promise<ClientBookingActionResult>;
     reschedule: (startsAt: string) => Promise<ClientBookingActionResult>;
     markEmployeeNoShow: () => Promise<ClientBookingActionResult>;
     rate: (score: number, comment?: string) => Promise<ClientBookingActionResult>;
@@ -39,6 +42,7 @@ export function ClientBookingDetail({
     const [markingNoShow, setMarkingNoShow] = useState(false);
     const [notice, setNotice] = useState<string | null>(null);
     const status = STATUS_BADGE[booking.status];
+    const cancellationReason = cancellationReasonOf(booking);
 
     return (
         <section aria-label="Detalle del turno" className="rounded-2xl border border-border p-6">
@@ -59,6 +63,13 @@ export function ClientBookingDetail({
             <p className="mt-1 text-[14px] text-muted-foreground">
                 {hostName(booking)} · {formatDuration(booking.service.durationMinutes)}
             </p>
+
+            {cancellationReason && (
+                <div className="mt-5 rounded-xl bg-muted p-4">
+                    <p className="text-[13px] font-bold">Motivo</p>
+                    <p className="mt-1 max-w-[62ch] text-[13.5px] leading-relaxed">{cancellationReason}</p>
+                </div>
+            )}
 
             <h3 className="mt-7 text-[19px] font-extrabold tracking-[-0.02em]">Resumen</h3>
             <div className="mt-3 flex items-start justify-between gap-4 text-[14px]">
@@ -250,28 +261,54 @@ function MarkEmployeeNoShowConfirm({
     );
 }
 
+/** Confirma Cancelar con un Motivo de cancelación opcional; un Motivo demasiado largo queda marcado bajo el campo. */
 function CancelConfirm({
     cancel,
     onClose,
     onCancelled,
 }: {
-    cancel: () => Promise<ClientBookingActionResult>;
+    cancel: (reason: string | undefined) => Promise<ClientBookingActionResult>;
     onClose: () => void;
     onCancelled: (booking: ClientBooking) => void;
 }) {
     const [pending, startTransition] = useTransition();
+    const [reason, setReason] = useState('');
     const [error, setError] = useState<string | null>(null);
+    const [reasonError, setReasonError] = useState<string | null>(null);
 
     const confirm = () =>
         startTransition(async () => {
-            const result = await cancel();
+            setError(null);
+            const result = await cancel(reason.trim() || undefined);
             if (result.ok) return onCancelled(result.booking);
+            if (result.field === 'reason') return setReasonError(result.message);
             setError(result.message);
         });
 
     return (
         <div role="alertdialog" aria-label="Cancelar turno" className="mt-6 rounded-xl border border-border p-4">
             <p className="text-[14px] font-semibold">¿Cancelar este turno? El horario queda libre.</p>
+            <label htmlFor="cancel-reason" className="mt-4 block text-[13px] font-bold">
+                Motivo <span className="font-medium text-muted-foreground">(opcional)</span>
+            </label>
+            <Textarea
+                id="cancel-reason"
+                value={reason}
+                maxLength={CANCELLATION_REASON_MAX_LENGTH}
+                disabled={pending}
+                onChange={(event) => {
+                    setReason(event.target.value);
+                    setReasonError(null);
+                }}
+                aria-invalid={reasonError ? true : undefined}
+                aria-describedby={reasonError ? 'cancel-reason-error' : undefined}
+                className="mt-1.5"
+            />
+            {reasonError && (
+                <p id="cancel-reason-error" role="alert" className="mt-1.5 text-[13px] font-semibold text-destructive">
+                    {reasonError}
+                </p>
+            )}
             {error && (
                 <p role="alert" className="mt-2 text-[13px] text-muted-foreground">
                     {error}

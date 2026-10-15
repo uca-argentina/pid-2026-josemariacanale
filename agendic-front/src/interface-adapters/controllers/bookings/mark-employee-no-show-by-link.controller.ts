@@ -3,31 +3,10 @@ import type { IInstrumentationService } from '@/src/application/services/instrum
 import type { IMarkEmployeeNoShowByLinkUseCase } from '@/src/application/use-cases/bookings/mark-employee-no-show-by-link.use-case';
 import { InputParseError } from '@/src/entities/errors/common';
 import type { ClientBooking } from '@/src/entities/models/client-booking';
+import { presentClientBooking } from '@/src/interface-adapters/presenters/client-booking.presenter';
 
 function presenter(booking: ClientBooking, instrumentationService: IInstrumentationService) {
-    return instrumentationService.startSpan({ name: 'markEmployeeNoShowByLink Presenter', op: 'serialize' }, () => ({
-        id: booking.id,
-        status: booking.status,
-        startsAt: booking.startsAt,
-        endsAt: booking.endsAt,
-        timeZone: booking.timeZone,
-        notes: booking.notes,
-        clientName: booking.clientName,
-        serviceId: booking.serviceId,
-        employeeId: booking.employeeId,
-        employeeChosen: booking.employeeChosen,
-        depositAmount: booking.depositAmount,
-        depositPaidAt: booking.depositPaidAt,
-        employeeNoShowAt: booking.employeeNoShowAt,
-        canMarkEmployeeNoShow: booking.canMarkEmployeeNoShow,
-        rating: booking.rating,
-        canRate: booking.canRate,
-        service: booking.service,
-        employeeName: booking.employeeName,
-        business: booking.business,
-        branch: booking.branch,
-        user: booking.user,
-    }));
+    return instrumentationService.startSpan({ name: 'markEmployeeNoShowByLink Presenter', op: 'serialize' }, () => presentClientBooking(booking));
 }
 
 const inputSchema = z.object({ link: z.string().trim().min(1) });

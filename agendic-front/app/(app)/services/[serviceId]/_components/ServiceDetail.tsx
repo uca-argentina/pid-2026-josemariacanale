@@ -46,12 +46,12 @@ import {
     type ServiceEditForm,
 } from '../../_components/service-form';
 import type { ServiceDetailData } from '../../_components/types';
-import { PREP_MINUTES } from '@/src/entities/models/service';
+import { PREP_MINUTES, REPEAT_EVERY_WEEKS_MIN, REPEAT_MAX_BOOKINGS } from '@/src/entities/models/service';
 
 type TabId = 'setup' | 'employees' | 'availability' | 'limits' | 'cabins';
 
 // Los campos de la pestaña Límites: si solo fallan estos, guardar abre esa pestaña.
-const LIMITS_FIELDS = ['dailyLimit', 'slotInterval', 'minimumNoticeMinutes'];
+const LIMITS_FIELDS = ['dailyLimit', 'slotInterval', 'minimumNoticeMinutes', 'repeatEveryWeeks', 'repeatMaxBookings'];
 
 const NAMES = new Intl.ListFormat('es', { type: 'conjunction' });
 
@@ -408,6 +408,54 @@ function LimitsTab({
                     </div>
                 )}
             </PanelCard>
+
+            <PanelCard className="flex flex-col gap-5">
+                <PanelToggleRow
+                    id="service-repeat"
+                    title="Repetición"
+                    description="El Cliente puede Reservar una Serie: el mismo horario, cada tantas semanas, con hasta tantos Turnos."
+                    checked={draft.repeatEnabled}
+                    disabled={readOnly}
+                    onCheckedChange={(repeatEnabled) => set({ repeatEnabled })}
+                />
+                {draft.repeatEnabled && (
+                    <div className="flex flex-col gap-3 pl-14">
+                        <div className="flex flex-col gap-2">
+                            <PanelNumberField
+                                id="service-repeat-every"
+                                aria-label="Cada cuántas semanas"
+                                min={REPEAT_EVERY_WEEKS_MIN}
+                                step={1}
+                                prefix="cada"
+                                suffix="semanas"
+                                className="w-[220px]"
+                                value={draft.repeatEveryWeeks}
+                                disabled={readOnly}
+                                aria-describedby={errors.repeatEveryWeeks ? 'service-repeat-every-error' : undefined}
+                                onValueChange={(repeatEveryWeeks) => set({ repeatEveryWeeks })}
+                            />
+                            <InlineFieldError id="service-repeat-every" error={errors.repeatEveryWeeks} />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            <PanelNumberField
+                                id="service-repeat-max"
+                                aria-label="Hasta cuántos Turnos"
+                                min={REPEAT_MAX_BOOKINGS.min}
+                                max={REPEAT_MAX_BOOKINGS.max}
+                                step={1}
+                                prefix="hasta"
+                                suffix="Turnos"
+                                className="w-[220px]"
+                                value={draft.repeatMaxBookings}
+                                disabled={readOnly}
+                                aria-describedby={errors.repeatMaxBookings ? 'service-repeat-max-error' : undefined}
+                                onValueChange={(repeatMaxBookings) => set({ repeatMaxBookings })}
+                            />
+                            <InlineFieldError id="service-repeat-max" error={errors.repeatMaxBookings} />
+                        </div>
+                    </div>
+                )}
+            </PanelCard>
         </>
     );
 }
@@ -544,6 +592,10 @@ export function ServiceDetail({ detail }: { detail: ServiceDetailData }) {
             for (const field of Object.keys(patch)) delete next[field];
             if ('depositEnabled' in patch) delete next.depositPercent;
             if ('dailyLimitEnabled' in patch) delete next.dailyLimit;
+            if ('repeatEnabled' in patch) {
+                delete next.repeatEveryWeeks;
+                delete next.repeatMaxBookings;
+            }
             return next;
         });
         setFormError(null);
@@ -558,7 +610,10 @@ export function ServiceDetail({ detail }: { detail: ServiceDetailData }) {
         startSaving(async () => {
             const saveResult = await updateServiceAction({ id: service.id, ...edit.changes });
             if (saveResult.ok) toast.success(`${saveResult.name}: servicio actualizado`);
-            else if (saveResult.field) setErrors((prev) => ({ ...prev, [saveResult.field!]: saveResult.message }));
+            else if (saveResult.field) {
+                setErrors((prev) => ({ ...prev, [saveResult.field!]: saveResult.message }));
+                if (LIMITS_FIELDS.includes(saveResult.field)) setTab('limits');
+            }
             else setFormError(saveResult.message);
         });
     };
@@ -568,6 +623,8 @@ export function ServiceDetail({ detail }: { detail: ServiceDetailData }) {
     const limitsSummary = [
         service.prepMinutes ? `Preparación ${service.prepMinutes} min` : 'Sin preparación',
         service.dailyLimit !== null && `máx. ${service.dailyLimit}/día`,
+        service.repeatEveryWeeks !== null &&
+            `se repite cada ${service.repeatEveryWeeks === 1 ? 'semana' : `${service.repeatEveryWeeks} semanas`}, hasta ${service.repeatMaxBookings} Turnos`,
     ]
         .filter(Boolean)
         .join(' · ');

@@ -1,4 +1,4 @@
-import { canPayDeposit, hasPendingDeposit, ratingSection } from '@/app/_components/client-booking/client-booking-helpers';
+import { canPayDeposit, cancellationReasonOf, hasPendingDeposit, ratingSection } from '@/app/_components/client-booking/client-booking-helpers';
 import type { ClientBooking } from '@/app/_components/client-booking/types';
 
 const NOW = Date.parse('2026-10-10T10:00:00.000Z');
@@ -48,5 +48,17 @@ describe('ratingSection', () => {
 
     it('muestra la Calificación en solo lectura cuando hay rating', () => {
         expect(ratingSection(booking({ canRate: false, rating }))).toBe('readonly');
+    });
+});
+
+describe('cancellationReasonOf', () => {
+    it('es el Motivo de un Turno Cancelado o Rechazado', () => {
+        expect(cancellationReasonOf(booking({ status: 'CANCELLED', cancellationReason: 'Me surgió algo' }))).toBe('Me surgió algo');
+        expect(cancellationReasonOf(booking({ status: 'REJECTED', cancellationReason: 'No atiendo ese día' }))).toBe('No atiendo ese día');
+    });
+
+    it('no hay Motivo que mostrar sin Motivo, ni en un Turno que sigue en pie', () => {
+        expect(cancellationReasonOf(booking({ status: 'CANCELLED', cancellationReason: null }))).toBeNull();
+        expect(cancellationReasonOf(booking({ status: 'BOOKED', cancellationReason: 'viejo' }))).toBeNull();
     });
 });

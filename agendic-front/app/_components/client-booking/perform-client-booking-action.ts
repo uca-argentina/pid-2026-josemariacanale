@@ -1,6 +1,7 @@
 import { unstable_rethrow } from 'next/navigation';
 import { getInjection } from '@/di/container';
-import { BookingStateError, SlotTakenError, SlotUnavailableError } from '@/src/entities/errors/booking';
+import { CANCELLATION_REASON_TOO_LONG } from '@/app/_components/cancellation-reason';
+import { BookingStateError, CancellationReasonTooLongError, SlotTakenError, SlotUnavailableError } from '@/src/entities/errors/booking';
 import { InputParseError, NotFoundError } from '@/src/entities/errors/common';
 import type { ClientBooking, ClientBookingActionResult } from './types';
 
@@ -18,6 +19,7 @@ export async function performClientBookingAction(
         return { ok: true, booking: await run() };
     } catch (error) {
         unstable_rethrow(error);
+        if (error instanceof CancellationReasonTooLongError) return { ok: false, field: 'reason', message: CANCELLATION_REASON_TOO_LONG };
         if (error instanceof SlotTakenError) return { ok: false, slotTaken: true, message: 'Ese horario se acaba de ocupar. Elegí otro.' };
         if (error instanceof SlotUnavailableError) return { ok: false, slotTaken: true, message: 'Ese horario ya no está disponible. Elegí otro.' };
         if (error instanceof NotFoundError) return { ok: false, message: 'Este turno ya no existe.' };
