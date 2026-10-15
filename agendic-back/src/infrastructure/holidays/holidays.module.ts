@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { LeftOutsideBookingsService } from '../../application/bookings/left-outside-bookings.service';
 import { GetHolidaysForCountryUseCase } from '../../application/holidays/get-holidays-for-country.use-case';
 import { GetUserHolidaysUseCase } from '../../application/holidays/get-user-holidays.use-case';
 import { ListHolidayConflictsUseCase } from '../../application/holidays/list-holiday-conflicts.use-case';
@@ -21,6 +22,7 @@ import { UserHolidaysController } from './user-holidays.controller';
     ToggleUserHolidayUseCase,
     ListHolidayConflictsUseCase,
     ListUserHolidayPeriodsUseCase,
+    LeftOutsideBookingsService,
   ],
   exports: [ListUserHolidayPeriodsUseCase],
 })

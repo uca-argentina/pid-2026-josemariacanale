@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { cancelBookingIdsSchema, cancelledBookingsSchema } from './left-outside-booking';
 
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
@@ -30,3 +31,15 @@ export type SetHolidayCountry = z.infer<typeof setHolidayCountrySchema>;
 /** Prender o apagar un Día festivo: el `id` va en la ruta y `enabled` en el cuerpo de `PATCH`. */
 export const toggleHolidaySchema = z.object({ holidayId: z.string().min(1), enabled: z.boolean() });
 export type ToggleHoliday = z.infer<typeof toggleHolidaySchema>;
+
+/** Cambiar el país con los Turnos que el Usuario confirmó cancelar por quedar afuera: el cuerpo de `PUT /users/me/holidays`. */
+export const confirmedSetHolidayCountrySchema = setHolidayCountrySchema.extend({ cancelBookingIds: cancelBookingIdsSchema.optional() });
+export type ConfirmedSetHolidayCountry = z.infer<typeof confirmedSetHolidayCountrySchema>;
+
+/** Prender o apagar un Día festivo con los Turnos que el Usuario confirmó cancelar: el `id` va en la ruta y el resto en el cuerpo de `PATCH`. */
+export const confirmedToggleHolidaySchema = toggleHolidaySchema.extend({ cancelBookingIds: cancelBookingIdsSchema.optional() });
+export type ConfirmedToggleHoliday = z.infer<typeof confirmedToggleHolidaySchema>;
+
+/** Lo que responden `PUT` y `PATCH /users/me/holidays`: los ajustes de siempre y cuántos Turnos canceló la escritura. */
+export const savedHolidaySettingsSchema = holidaySettingsSchema.extend(cancelledBookingsSchema.shape);
+export type SavedHolidaySettings = z.infer<typeof savedHolidaySettingsSchema>;

@@ -3,12 +3,14 @@ import { DI_SYMBOLS } from '@/di/types';
 import { listAvailabilitiesUseCase } from '@/src/application/use-cases/availabilities/list-availabilities.use-case';
 import { getAvailabilityUseCase } from '@/src/application/use-cases/availabilities/get-availability.use-case';
 import { createAvailabilityUseCase } from '@/src/application/use-cases/availabilities/create-availability.use-case';
+import { previewUpdateAvailabilityUseCase } from '@/src/application/use-cases/availabilities/preview-update-availability.use-case';
 import { updateAvailabilityUseCase } from '@/src/application/use-cases/availabilities/update-availability.use-case';
 import { makeAvailabilityDefaultUseCase } from '@/src/application/use-cases/availabilities/make-availability-default.use-case';
 import { deleteAvailabilityUseCase } from '@/src/application/use-cases/availabilities/delete-availability.use-case';
 import { AvailabilitiesRepository } from '@/src/infrastructure/repositories/availabilities.repository';
 import { listMyAvailabilitiesController } from '@/src/interface-adapters/controllers/availabilities/list-my-availabilities.controller';
 import { createAvailabilityController } from '@/src/interface-adapters/controllers/availabilities/create-availability.controller';
+import { previewUpdateAvailabilityController } from '@/src/interface-adapters/controllers/availabilities/preview-update-availability.controller';
 import { updateAvailabilityController } from '@/src/interface-adapters/controllers/availabilities/update-availability.controller';
 import { makeAvailabilityDefaultController } from '@/src/interface-adapters/controllers/availabilities/make-availability-default.controller';
 import { deleteAvailabilityController } from '@/src/interface-adapters/controllers/availabilities/delete-availability.controller';
@@ -29,6 +31,10 @@ export function createAvailabilitiesModule() {
     availabilitiesModule
         .bind(DI_SYMBOLS.ICreateAvailabilityUseCase)
         .toHigherOrderFunction(createAvailabilityUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IAvailabilitiesRepository]);
+
+    availabilitiesModule
+        .bind(DI_SYMBOLS.IPreviewUpdateAvailabilityUseCase)
+        .toHigherOrderFunction(previewUpdateAvailabilityUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IAvailabilitiesRepository]);
 
     availabilitiesModule
         .bind(DI_SYMBOLS.IUpdateAvailabilityUseCase)
@@ -57,6 +63,14 @@ export function createAvailabilitiesModule() {
             DI_SYMBOLS.IInstrumentationService,
             DI_SYMBOLS.IAuthenticationService,
             DI_SYMBOLS.ICreateAvailabilityUseCase,
+        ]);
+
+    availabilitiesModule
+        .bind(DI_SYMBOLS.IPreviewUpdateAvailabilityController)
+        .toHigherOrderFunction(previewUpdateAvailabilityController, [
+            DI_SYMBOLS.IInstrumentationService,
+            DI_SYMBOLS.IAuthenticationService,
+            DI_SYMBOLS.IPreviewUpdateAvailabilityUseCase,
         ]);
 
     availabilitiesModule

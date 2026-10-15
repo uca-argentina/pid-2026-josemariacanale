@@ -8,7 +8,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/app/_components/ui/po
 import { Calendar as WeeklyCalendar } from '@/app/_components/weekly-view';
 import { toIsoDay, toLocalDay } from '@/app/_components/day-range';
 import type { Preferences } from '@/src/entities/models/user';
-import { localInstant, TIME_ZONE, type Booking } from './booking-helpers';
+import { localInstant, TIME_ZONE } from '@/app/(app)/_components/booking-format';
+import type { Booking } from './booking-helpers';
 import { addDays, bookingsOfWeek, toCalendarEvent, weekStartOf, weekTitle } from './calendar-week';
 
 /**

@@ -1,6 +1,8 @@
 import {
+  IsArray,
   IsBoolean,
   IsEnum,
+  IsInt,
   IsISO8601,
   IsOptional,
   IsString,
@@ -35,4 +37,12 @@ export class OutOfOfficeDto {
   @IsOptional()
   @IsBoolean()
   showNotePublicly?: boolean;
+}
+
+/** Body of POST and PUT: the período, plus the Turnos the Usuario confirmed to cancel after seeing the vista previa. */
+export class ConfirmedOutOfOfficeDto extends OutOfOfficeDto {
+  @IsOptional()
+  @IsArray()
+  @IsInt({ each: true })
+  cancelBookingIds?: number[];
 }

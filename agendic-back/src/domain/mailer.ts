@@ -1,5 +1,17 @@
 export const MAILER = Symbol('Mailer');
 
+/** A Turno cancelled with a Causa de cancelación, as the mail lists it. */
+export interface CausedCancellation {
+  /** Enlace del Turno. */
+  link: string;
+  serviceName: string;
+  startsAt: Date;
+  /** The zone `startsAt` is shown in. */
+  timeZone: string;
+  /** Motivo de cancelación Agendic wrote. */
+  reason: string;
+}
+
 export interface Mailer {
   /** Sends an email with a Código de verificación to Reservar. */
   sendVerificationCode(email: string, code: string): Promise<void>;
@@ -22,5 +34,13 @@ export interface Mailer {
     serviceName: string,
     startsAt: Date,
     timeZone: string,
+  ): Promise<void>;
+  /**
+   * Aviso de cambio del Turno con Causa: one mail for all the Turnos of one Cliente that a change in the horario of
+   * whoever attends them cancelled, each with its Enlace del Turno. Only these cancellations use it.
+   */
+  sendBookingCancellationWithCause(
+    email: string,
+    bookings: CausedCancellation[],
   ): Promise<void>;
 }

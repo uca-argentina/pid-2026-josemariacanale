@@ -4,6 +4,7 @@ import {
   Booking,
   BookingActor,
   BookingStatus,
+  CancellationCause,
   ClientBooking,
   DAILY_LIMIT_REACHED,
   PanelBooking,
@@ -65,6 +66,7 @@ const BOOKING_SELECT = {
   acceptedAt: true,
   cancelledBy: true,
   cancellationReason: true,
+  cancellationCause: true,
   cancelledAt: true,
   rejectedAt: true,
   client: { select: { name: true, email: true } },
@@ -817,6 +819,7 @@ const toBooking = (row: BookingRow): Booking => ({
   acceptedAt: row.acceptedAt,
   cancelledBy: row.cancelledBy as BookingActor | null,
   cancellationReason: row.cancellationReason,
+  cancellationCause: row.cancellationCause as CancellationCause | null,
   cancelledAt: row.cancelledAt,
   rejectedAt: row.rejectedAt,
 });

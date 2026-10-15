@@ -9,9 +9,11 @@ import {
     createAvailabilityAction,
     deleteAvailabilityAction,
     makeAvailabilityDefaultAction,
+    previewAvailabilityAction,
     saveAvailabilityAction,
     type AvailabilityActionResult,
 } from '../actions';
+import { savedToast } from '@/app/(app)/_components/left-outside-bookings';
 import { AvailabilityEditor } from './AvailabilityEditor';
 import { AvailabilityList } from './AvailabilityList';
 
@@ -23,6 +25,15 @@ export interface AvailabilityDraft {
     overrides: AvailabilityOverride[];
     isDefault: boolean;
 }
+
+/** El contenido que se manda al back, sin si pasan a ser las predeterminadas (eso es otra llamada). */
+const contentOf = (availabilityId: number, draft: AvailabilityDraft) => ({
+    availabilityId,
+    name: draft.name,
+    timeZone: draft.timeZone,
+    schedule: draft.schedule,
+    overrides: draft.overrides,
+});
 
 /**
  * Horas laborables del Usuario: la lista y, con `open`, el editor de una. Todo sale de las props que trae
@@ -61,20 +72,12 @@ export function AvailabilityView({
             preferences={preferences}
             busy={busy}
             onBack={() => router.push('/availability')}
-            onSave={(draft) =>
-                run(
-                    () =>
-                        saveAvailabilityAction({
-                            availabilityId: open.id,
-                            name: draft.name,
-                            timeZone: draft.timeZone,
-                            schedule: draft.schedule,
-                            overrides: draft.overrides,
-                            makeDefault: draft.isDefault && !open.isDefault,
-                        }),
-                    `${draft.name}: horas laborables actualizadas`,
-                )
+            onPreview={(draft) => previewAvailabilityAction(contentOf(open.id, draft))}
+            onSave={(draft, cancelBookingIds) =>
+                saveAvailabilityAction({ ...contentOf(open.id, draft), makeDefault: draft.isDefault && !open.isDefault }, cancelBookingIds)
             }
+            onSaved={(name, cancelledBookings) => toast.success(savedToast(`${name}: horas laborables actualizadas`, cancelledBookings))}
+            onError={(message) => toast.error(message)}
             onDelete={() => remove(open)}
         />
     ) : (

@@ -8,7 +8,8 @@ import { PanelButton, PanelDialog, PanelDialogClose } from '@/app/(app)/_compone
 import { chosenEmployeeId, formatDate, shortWeekday } from '@/app/_components/booking/format';
 import { useSlotWeek } from '@/app/_components/booking/use-slot-week';
 import { rescheduleBookingAction } from '../actions';
-import { TIME_ZONE_LABEL, type Booking } from './booking-helpers';
+import { TIME_ZONE_LABEL } from '@/app/(app)/_components/booking-format';
+import type { Booking } from './booking-helpers';
 
 const NO_SLOTS_REASON = {
     NOT_WORKING: 'No atendés ese día.',

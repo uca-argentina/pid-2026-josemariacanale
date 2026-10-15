@@ -75,6 +75,76 @@ describe('NodemailerMailer.sendRatingRequest', () => {
   });
 });
 
+describe('NodemailerMailer.sendBookingCancellationWithCause', () => {
+  const sendMail = jest.fn().mockResolvedValue(undefined);
+  const turno = (over = {}) => ({
+    link: 'secret',
+    serviceName: 'Corte',
+    startsAt: new Date('2026-10-20T01:30:00Z'),
+    timeZone: 'America/Argentina/Buenos_Aires',
+    reason: 'Ana cambió sus horarios y ya no atiende en ese horario. Podés reservar otro horario.',
+    ...over,
+  });
+
+  beforeEach(() => {
+    process.env.FRONTEND_URL = 'http://localhost:3000';
+    (createTransport as jest.Mock).mockReturnValue({ sendMail });
+    sendMail.mockClear();
+  });
+
+  it('is in Spanish, with the day and hour in the Turno zone and its Enlace del Turno', async () => {
+    await new NodemailerMailer().sendBookingCancellationWithCause('a@b.com', [
+      turno(),
+    ]);
+
+    const { to, subject, html } = sendMail.mock.calls[0][0];
+    expect(to).toBe('a@b.com');
+    expect(subject).toBe('Tu turno fue cancelado');
+    expect(html).toContain('Corte del lunes, 19 de octubre de 2026');
+    expect(html).toContain('22:30');
+    expect(html).toContain('http://localhost:3000/turnos/secret');
+    expect(html).toContain('Ana cambió sus horarios');
+  });
+
+  it('escapes the HTML of the Servicio and of the Motivo', async () => {
+    await new NodemailerMailer().sendBookingCancellationWithCause('a@b.com', [
+      turno({ serviceName: 'Corte <b>', reason: 'Vuelvo <i>pronto</i>' }),
+    ]);
+
+    const { html } = sendMail.mock.calls[0][0];
+    expect(html).toContain('Corte &#60;b&#62;');
+    expect(html).toContain('Vuelvo &#60;i&#62;pronto&#60;/i&#62;');
+    expect(html).not.toContain('<b>');
+    expect(html).not.toContain('<i>');
+  });
+
+  it('lists every Turno with its Enlace and says the Motivo once when they share it', async () => {
+    await new NodemailerMailer().sendBookingCancellationWithCause('a@b.com', [
+      turno({ link: 'uno' }),
+      turno({ link: 'dos', startsAt: new Date('2026-10-21T13:00:00Z') }),
+    ]);
+
+    const { subject, html } = sendMail.mock.calls[0][0];
+    expect(subject).toBe('Tus turnos fueron cancelados');
+    expect(html).toContain('http://localhost:3000/turnos/uno');
+    expect(html).toContain('http://localhost:3000/turnos/dos');
+    expect(html).toContain('lunes, 19 de octubre de 2026');
+    expect(html).toContain('miércoles, 21 de octubre de 2026');
+    expect(html.split('Ana cambió sus horarios')).toHaveLength(2);
+  });
+
+  it('says the Motivo of each Turno when they differ', async () => {
+    await new NodemailerMailer().sendBookingCancellationWithCause('a@b.com', [
+      turno({ link: 'uno', reason: 'Ana no atiende por Navidad.' }),
+      turno({ link: 'dos', reason: 'Ana no atiende por Año Nuevo.' }),
+    ]);
+
+    const { html } = sendMail.mock.calls[0][0];
+    expect(html).toContain('Ana no atiende por Navidad.');
+    expect(html).toContain('Ana no atiende por Año Nuevo.');
+  });
+});
+
 describe.each([
   ['sendBookingCancellation', 'was cancelled'],
   ['sendBookingRejection', 'was rejected'],

@@ -73,7 +73,7 @@ function OutOfOfficeRow({
 /**
  * La pantalla Fuera de la oficina: los períodos del Usuario que llegan del server, paginados acá sobre la
  * lista completa (10 por página al principio). "Añadir" abre el modal de período nuevo, y con `openNew`
- * (`?nuevo`) arranca abierto. `weekStart` es el primer día de la semana del Usuario, para el Calendar del modal.
+ * (`?nuevo`) arranca abierto. `weekStart` es el primer día de la semana del Usuario, para el Calendar del modal, y `timeFormat` su formato de hora.
  * Con `holidays` (`?type=holidays`) muestra la pestaña Días festivos en lugar de los períodos.
  *
  * Los filtros (buscador y Rango de Fechas) se filtran acá sobre la lista completa y se copian a la URL con
@@ -84,11 +84,13 @@ export function OutOfOfficeView({
     periods,
     openNew,
     weekStart,
+    timeFormat,
     holidays,
 }: {
     periods: OutOfOffice[];
     openNew: boolean;
     weekStart: Preferences['weekStart'];
+    timeFormat: Preferences['timeFormat'];
     holidays?: HolidaysTabData;
 }) {
     const router = useRouter();
@@ -166,7 +168,7 @@ export function OutOfOfficeView({
             {!holidays && periods.length > 0 && <OutOfOfficeFilters filters={filters} weekStart={weekStart} onChange={changeFilters} />}
 
             {holidays ? (
-                <HolidaysTab data={holidays} />
+                <HolidaysTab data={holidays} timeFormat={timeFormat} />
             ) : matching.length > 0 ? (
                 <>
                     <ul className="m-0 mt-4 list-none divide-y overflow-hidden rounded-md border p-0">
@@ -216,7 +218,7 @@ export function OutOfOfficeView({
                 </Empty>
             )}
 
-            {dialog && <OutOfOfficeDialog key={dialog.period?.id ?? 'new'} period={dialog.period} weekStart={weekStart} onClose={closeDialog} />}
+            {dialog && <OutOfOfficeDialog key={dialog.period?.id ?? 'new'} period={dialog.period} weekStart={weekStart} timeFormat={timeFormat} onClose={closeDialog} />}
         </div>
     );
 }

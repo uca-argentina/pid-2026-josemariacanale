@@ -1,9 +1,11 @@
 import type {
     Availability,
     AvailabilityDetail,
+    ConfirmedUpdateAvailability,
     CreateAvailability,
     UpdateAvailability,
 } from '@/src/entities/models/availability';
+import type { CancelledBookings, LeftOutsideBooking } from '@/src/entities/models/left-outside-booking';
 
 /**
  * Availability del Usuario con Sesión contra la API del back.
@@ -35,13 +37,23 @@ export interface IAvailabilitiesRepository {
     createAvailability(input: CreateAvailability): Promise<void>;
 
     /**
-     * Reemplaza nombre, zona horaria, Franjas y Anulaciones.
+     * Los Turnos que reemplazar nombre, zona horaria, Franjas y Anulaciones dejaría afuera. No guarda nada.
      *
      * @throws {UnauthenticatedError} no hay Sesión válida (401)
      * @throws {NotFoundError} la Availability no existe o no es del Usuario (404)
      * @throws {AvailabilityRuleError} Franjas inválidas o solapadas, o zona horaria inválida (422)
      */
-    updateAvailability(input: UpdateAvailability): Promise<void>;
+    previewUpdateAvailability(input: UpdateAvailability): Promise<LeftOutsideBooking[]>;
+
+    /**
+     * Reemplaza nombre, zona horaria, Franjas y Anulaciones y cancela los Turnos de `cancelBookingIds`.
+     *
+     * @throws {UnauthenticatedError} no hay Sesión válida (401)
+     * @throws {NotFoundError} la Availability no existe o no es del Usuario (404)
+     * @throws {AvailabilityRuleError} Franjas inválidas o solapadas, o zona horaria inválida (422)
+     * @throws {LeftOutsideBookingsChangedError} cambió la lista de Turnos que quedan afuera (409)
+     */
+    updateAvailability(input: ConfirmedUpdateAvailability): Promise<CancelledBookings>;
 
     /**
      * La marca predeterminada; la anterior se desmarca sola.

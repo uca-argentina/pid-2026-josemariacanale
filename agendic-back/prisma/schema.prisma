@@ -36,6 +36,13 @@ enum BookingActor {
   RETIREMENT
 }
 
+/// Por qué se Canceló un Turno cuando lo cancela un cambio en el horario de quien lo atiende (ADR 0034).
+enum CancellationCause {
+  OUT_OF_OFFICE
+  PUBLIC_HOLIDAY
+  SCHEDULE_CHANGE
+}
+
 enum ServiceCategory {
   CLINICA
   SPA
@@ -294,6 +301,7 @@ model Booking {
   acceptedAt       DateTime?     @db.Timestamptz(3) // Aceptar turno: when it was accepted, or created already BOOKED; null while PENDING (ADR 0033)
   cancelledBy      BookingActor? // who cancelled or rejected it, or Reagendó it in the original; only with status CANCELLED or REJECTED (CHECK, ADR 0004); null in Turnos cancelled before it existed
   cancellationReason String? // Motivo de cancelación, up to 500 characters (checked by the API); only with cancelledBy (CHECK, ADR 0004)
+  cancellationCause CancellationCause? // Causa de cancelación; only CANCELLED by EMPLOYEE with a cancellationReason (CHECK, ADR 0004)
   rescheduled      Boolean? // Reagendar (ADR 0031): true only in the original, which stays CANCELLED; null otherwise
   fromRescheduleId Int?          @unique // the original Turno this one replaced; null if it was not born from a Reagendar
   ratingRequestSentAt DateTime? @db.Timestamptz(3) // Invitación a calificar: when the mail was sent; null while not sent, so each Turno gets one

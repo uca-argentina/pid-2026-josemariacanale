@@ -1,7 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { DatabaseOperationError } from '../../domain/errors';
+import { CausedCancellationOrder } from '../../domain/bookings/booking';
 import { UserHolidaySettings } from '../../domain/holidays/user-holiday-settings';
 import { UserHolidaySettingsRepository } from '../../domain/holidays/user-holiday-settings.repository';
+import { cancelCaused } from '../bookings/cancel-caused';
 import { PrismaService } from '../prisma.service';
 
 /** Acceso a los Días festivos elegidos por el Usuario (`UserHolidaySettings`). */
@@ -26,6 +28,25 @@ export class PrismaUserHolidaySettingsRepository implements UserHolidaySettingsR
         where: { userId },
         create: { userId, ...settings },
         update: settings,
+      })
+      .catch(translateError);
+  }
+
+  /** @throws {DatabaseOperationError} la base falló */
+  async saveCancelling(
+    userId: number,
+    settings: UserHolidaySettings,
+    cancellations: CausedCancellationOrder[],
+    now: Date,
+  ) {
+    return this.prisma
+      .$transaction(async (tx) => {
+        await tx.userHolidaySettings.upsert({
+          where: { userId },
+          create: { userId, ...settings },
+          update: settings,
+        });
+        return cancelCaused(tx, cancellations, now);
       })
       .catch(translateError);
   }

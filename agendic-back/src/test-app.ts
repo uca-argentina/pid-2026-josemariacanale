@@ -124,6 +124,7 @@ export async function createTestApp() {
     sendBookingReschedule: jest.fn(),
     sendBookingRejection: jest.fn(),
     sendRatingRequest: jest.fn(),
+    sendBookingCancellationWithCause: jest.fn(),
   };
   const bookingCodes: jest.Mocked<BookingVerificationCodes> = {
     request: jest.fn(),
@@ -235,6 +236,7 @@ export async function createTestApp() {
     findById: jest.fn(),
     create: jest.fn(),
     replace: jest.fn(),
+    replaceCancelling: jest.fn(),
     makeDefault: jest.fn(),
     countServices: jest.fn(),
     delete: jest.fn(),
@@ -244,6 +246,8 @@ export async function createTestApp() {
     findById: jest.fn(),
     findByUserAndDates: jest.fn(),
     create: jest.fn(),
+    createCancelling: jest.fn(),
+    updateCancelling: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
   };
@@ -255,6 +259,7 @@ export async function createTestApp() {
   const userHolidaySettings: jest.Mocked<UserHolidaySettingsRepository> = {
     findByUserId: jest.fn(),
     save: jest.fn(),
+    saveCancelling: jest.fn(),
   };
   const googleCalendar: jest.Mocked<GoogleCalendarClient> = {
     assertConfigured: jest.fn(),

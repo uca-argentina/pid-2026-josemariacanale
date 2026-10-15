@@ -12,6 +12,13 @@ export enum BookingActor {
   RETIREMENT = 'RETIREMENT',
 }
 
+/** Por qué se Canceló un Turno cuando lo cancela un cambio en el horario de quien lo atiende (ADR 0034). */
+export enum CancellationCause {
+  OUT_OF_OFFICE = 'OUT_OF_OFFICE',
+  PUBLIC_HOLIDAY = 'PUBLIC_HOLIDAY',
+  SCHEDULE_CHANGE = 'SCHEDULE_CHANGE',
+}
+
 /** Calificación: the score the Cliente left on an attended Turno from its Enlace del Turno. */
 export interface BookingRating {
   /** From 1 to 5. */
@@ -60,6 +67,8 @@ export interface Booking {
   cancelledBy: BookingActor | null;
   /** Motivo de cancelación: free text of up to 500 characters; null without `cancelledBy` or when none was given. */
   cancellationReason: string | null;
+  /** Causa de cancelación (ADR 0034): set only in a Turno cancelled by a change in the horario of whoever attends it, together with a Motivo de cancelación Agendic wrote; null otherwise. */
+  cancellationCause: CancellationCause | null;
   /** Cancelar: when it was cancelled, from the clock; null unless CANCELLED. */
   cancelledAt: Date | null;
   /** Rechazar turno: when it was rejected, from the clock; null unless REJECTED. */
@@ -82,6 +91,13 @@ export const depositAmountFor = (
 /** Who to send an Aviso de cambio del Turno to: the Cliente's email, the Turno's Enlace del Turno and, if it was cancelled or rejected with one, the Motivo de cancelación. */
 export type ClientNotice = Pick<Booking, 'clientEmail' | 'link'> &
   Partial<Pick<Booking, 'cancellationReason'>>;
+
+/** Un Turno a Cancelar por un cambio en el horario de quien lo atiende (ADR 0034), con la Causa y el Motivo de cancelación que Agendic le escribió. */
+export interface CausedCancellationOrder {
+  id: number;
+  cause: CancellationCause;
+  reason: string;
+}
 
 /** A Turno as the panel shows it (ADR 0030): with the Cabina it occupies, which the Cliente never sees. */
 export interface PanelBooking extends Booking {

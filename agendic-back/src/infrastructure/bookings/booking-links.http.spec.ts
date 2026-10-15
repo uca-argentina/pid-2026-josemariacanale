@@ -39,6 +39,7 @@ const BOOKED: Booking = {
   acceptedAt: null,
   cancelledBy: null,
   cancellationReason: null,
+  cancellationCause: null,
 };
 
 const CLIENT_BOOKED: ClientBooking = {
