@@ -1,6 +1,7 @@
 import type { IAvailabilitiesRepository } from '@/src/application/repositories/availabilities.repository.interface';
 import type { IHolidaysRepository } from '@/src/application/repositories/holidays.repository.interface';
 import type { IOutOfOfficeRepository } from '@/src/application/repositories/out-of-office.repository.interface';
+import type { IWaitlistRepository } from '@/src/application/repositories/waitlist.repository.interface';
 import type { IBookingsRepository } from '@/src/application/repositories/bookings.repository.interface';
 import type { IClientBookingsRepository } from '@/src/application/repositories/client-bookings.repository.interface';
 import type { IUserBookingsRepository } from '@/src/application/repositories/user-bookings.repository.interface';
@@ -34,6 +35,11 @@ export const bookingsWith = (stubs: Partial<IBookingsRepository>): IBookingsRepo
     listSlots: jest.fn(notStubbed('listSlots')),
     book: jest.fn(notStubbed('book')),
     requestVerificationCode: jest.fn(notStubbed('requestVerificationCode')),
+    ...stubs,
+});
+
+export const waitlistWith = (stubs: Partial<IWaitlistRepository>): IWaitlistRepository => ({
+    join: jest.fn(notStubbed('join')),
     ...stubs,
 });
 

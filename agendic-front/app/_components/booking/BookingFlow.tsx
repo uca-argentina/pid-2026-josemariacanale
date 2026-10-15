@@ -17,6 +17,7 @@ import { CodeStep } from './CodeStep';
 import { bookSlotAction, requestVerificationCodeAction } from './actions';
 import type { BookSlotResult } from './actions';
 import { TimeStep } from './TimeStep';
+import { WaitlistFlow } from './WaitlistFlow';
 import { depositFor, endTime, formatDate, formatDuration, formatPrice, initials } from './format';
 import { STEPS } from './types';
 import type { BookingDraft, ChosenEmployee, ClientData, Host, Service, Step } from './types';
@@ -414,7 +415,7 @@ export function BookingFlow({
     categories,
     coverUrl,
     initialService,
-    employee,
+    employee: initialEmployee,
     onClose,
 }: {
     host: Host;
@@ -427,6 +428,12 @@ export function BookingFlow({
     onClose: () => void;
 }) {
     const router = useRouter();
+    /** El Empleado elegido; "Reservar con cualquiera" (sugerido en un día lleno suyo) lo suelta sin salir del flujo. */
+    const [employee, setEmployee] = useState<ChosenEmployee | null>(initialEmployee);
+    /** El día lleno en el que el Cliente se está anotando en la Lista de espera; null, el flujo de Reservar. */
+    const [waitlistDate, setWaitlistDate] = useState<string | null>(null);
+    /** Cada cambio remonta el paso Horario, que así vuelve a pedir los horarios (un día que dejó de estar lleno). */
+    const [slotsVersion, setSlotsVersion] = useState(0);
     const [step, setStep] = useState<Step>(initialService ? 'time' : 'service');
     const [draft, setDraft] = useState<BookingDraft>({
         service: initialService,
@@ -490,6 +497,7 @@ export function BookingFlow({
 
     const back = () => {
         if (codeOpen) return closeCode();
+        if (waitlistDate) return setWaitlistDate(null);
         const previous = STEPS[STEPS.indexOf(step) - 1];
         if (previous) goTo(previous);
         else onClose();
@@ -562,6 +570,18 @@ export function BookingFlow({
         return result.ok ? null : result.message;
     };
 
+    /** El 409 de la Lista de espera: el día ya tiene lugar. Vuelve a los horarios, ya refrescados, con el aviso. */
+    const waitlistDayChanged = (message: string) => {
+        setWaitlistDate(null);
+        setSlotNotice(message);
+        setSlotsVersion((v) => v + 1);
+    };
+
+    const bookWithAnyone = () => {
+        setEmployee(null);
+        setDraft((d) => ({ ...d, slot: null }));
+    };
+
     return (
         <div
             role="dialog"
@@ -596,7 +616,7 @@ export function BookingFlow({
             <div className="mx-auto w-full max-w-[1400px] px-4 pb-32 sm:px-8 lg:px-16 lg:pb-24">
                 <div className="grid items-start gap-10 lg:grid-cols-[1fr_400px]">
                     <div>
-                        <Breadcrumb step={step} locked={locked} onGo={goTo} />
+                        {!waitlistDate && <Breadcrumb step={step} locked={locked} onGo={goTo} />}
                         {employee && (
                             <p className="mt-4 flex items-center gap-2.5 text-[14px] font-semibold">
                                 <Avatar>
@@ -609,7 +629,15 @@ export function BookingFlow({
                             </p>
                         )}
                         {/* La key cruza el formulario con el paso del código: uno sale y el otro entra. */}
-                        <ViewTransition key={codeOpen ? 'code' : 'steps'} enter="step-in" exit="step-out" default="none">
+                        <ViewTransition key={waitlistDate ? 'waitlist' : codeOpen ? 'code' : 'steps'} enter="step-in" exit="step-out" default="none">
+                            {waitlistDate && service ? (
+                                <WaitlistFlow
+                                    service={service}
+                                    date={waitlistDate}
+                                    onDayChanged={waitlistDayChanged}
+                                    onClose={onClose}
+                                />
+                            ) : (
                             <div>
                                 <h1 className="mt-4 mb-6 text-[34px] leading-none font-extrabold tracking-[-0.03em] sm:text-[44px]">
                                     {codeOpen ? 'Verificá tu email' : TITLES[step]}
@@ -636,13 +664,16 @@ export function BookingFlow({
 
                                         {step === 'time' && service && (
                                             <TimeStep
-                                                key={service.id}
+                                                key={`${service.id}-${employee?.id ?? ''}-${slotsVersion}`}
                                                 service={service}
                                                 date={date}
                                                 slot={slot}
                                                 notice={slotNotice}
                                                 employeeId={employee?.id}
+                                                employeeName={employee?.name}
                                                 hostName={host.name}
+                                                onJoinWaitlist={setWaitlistDate}
+                                                onBookWithAnyone={bookWithAnyone}
                                                 onSelect={(nextDate, nextSlot) =>
                                                     setDraft((d) => ({ ...d, date: nextDate, slot: nextSlot }))
                                                 }
@@ -661,6 +692,7 @@ export function BookingFlow({
                                     </>
                                 )}
                             </div>
+                            )}
                         </ViewTransition>
                     </div>
 
@@ -670,7 +702,7 @@ export function BookingFlow({
                             coverUrl={coverUrl}
                             draft={draft}
                             step={step}
-                            codeOpen={codeOpen}
+                            codeOpen={codeOpen || waitlistDate !== null}
                             canAdvance={canAdvance}
                             pending={pending}
                             onAdvance={advance}
@@ -681,7 +713,7 @@ export function BookingFlow({
 
             {/* Abajo de lg el panel no entra al lado, así que el resumen queda en una barra fija. Con el paso del
                 código no hace falta: no hay botón que tocar. */}
-            {!codeOpen && (
+            {!codeOpen && !waitlistDate && (
                 <div className="fixed inset-x-0 bottom-0 border-t border-border bg-background px-4 py-3 shadow-[0_-1px_2px_rgba(15,27,45,0.06)] sm:px-8 lg:hidden">
                     <div className="mb-2 flex items-baseline justify-between gap-4">
                         <span className="min-w-0 truncate text-[13px] font-medium text-muted-foreground">

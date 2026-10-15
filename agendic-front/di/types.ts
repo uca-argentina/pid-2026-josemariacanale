@@ -66,6 +66,9 @@ import type { IListSlotsController } from '@/src/interface-adapters/controllers/
 import type { IRequestVerificationCodeUseCase } from '@/src/application/use-cases/bookings/request-verification-code.use-case';
 import type { IRequestVerificationCodeController } from '@/src/interface-adapters/controllers/bookings/request-verification-code.controller';
 import type { IBookSlotController } from '@/src/interface-adapters/controllers/bookings/book-slot.controller';
+import type { IWaitlistRepository } from '@/src/application/repositories/waitlist.repository.interface';
+import type { IJoinWaitlistUseCase } from '@/src/application/use-cases/bookings/join-waitlist.use-case';
+import type { IJoinWaitlistController } from '@/src/interface-adapters/controllers/bookings/join-waitlist.controller';
 import type { IRetireEmployeeController } from '@/src/interface-adapters/controllers/employees/retire-employee.controller';
 import type { IServicesRepository } from '@/src/application/repositories/services.repository.interface';
 import type { IListMyServicesUseCase } from '@/src/application/use-cases/services/list-my-services.use-case';
@@ -182,6 +185,7 @@ export const DI_SYMBOLS = {
     IBookingsRepository: Symbol.for('IBookingsRepository'),
     IUserBookingsRepository: Symbol.for('IUserBookingsRepository'),
     IClientBookingsRepository: Symbol.for('IClientBookingsRepository'),
+    IWaitlistRepository: Symbol.for('IWaitlistRepository'),
     IAvailabilitiesRepository: Symbol.for('IAvailabilitiesRepository'),
     IOutOfOfficeRepository: Symbol.for('IOutOfOfficeRepository'),
     IAnalyticsRepository: Symbol.for('IAnalyticsRepository'),
@@ -238,6 +242,7 @@ export const DI_SYMBOLS = {
     IMarkEmployeeNoShowByLinkUseCase: Symbol.for('IMarkEmployeeNoShowByLinkUseCase'),
     IRateBookingByLinkUseCase: Symbol.for('IRateBookingByLinkUseCase'),
     IRescheduleBookingByLinkUseCase: Symbol.for('IRescheduleBookingByLinkUseCase'),
+    IJoinWaitlistUseCase: Symbol.for('IJoinWaitlistUseCase'),
     IListAvailabilitiesUseCase: Symbol.for('IListAvailabilitiesUseCase'),
     IGetAvailabilityUseCase: Symbol.for('IGetAvailabilityUseCase'),
     ICreateAvailabilityUseCase: Symbol.for('ICreateAvailabilityUseCase'),
@@ -324,6 +329,7 @@ export const DI_SYMBOLS = {
     IMarkEmployeeNoShowByLinkController: Symbol.for('IMarkEmployeeNoShowByLinkController'),
     IRateBookingByLinkController: Symbol.for('IRateBookingByLinkController'),
     IRescheduleBookingByLinkController: Symbol.for('IRescheduleBookingByLinkController'),
+    IJoinWaitlistController: Symbol.for('IJoinWaitlistController'),
     IListMyAvailabilitiesController: Symbol.for('IListMyAvailabilitiesController'),
     ICreateAvailabilityController: Symbol.for('ICreateAvailabilityController'),
     IUpdateAvailabilityController: Symbol.for('IUpdateAvailabilityController'),
@@ -358,6 +364,7 @@ export interface DI_RETURN_TYPES {
     IBookingsRepository: IBookingsRepository;
     IUserBookingsRepository: IUserBookingsRepository;
     IClientBookingsRepository: IClientBookingsRepository;
+    IWaitlistRepository: IWaitlistRepository;
     IAvailabilitiesRepository: IAvailabilitiesRepository;
     IOutOfOfficeRepository: IOutOfOfficeRepository;
     IAnalyticsRepository: IAnalyticsRepository;
@@ -414,6 +421,7 @@ export interface DI_RETURN_TYPES {
     IMarkEmployeeNoShowByLinkUseCase: IMarkEmployeeNoShowByLinkUseCase;
     IRateBookingByLinkUseCase: IRateBookingByLinkUseCase;
     IRescheduleBookingByLinkUseCase: IRescheduleBookingByLinkUseCase;
+    IJoinWaitlistUseCase: IJoinWaitlistUseCase;
     IListAvailabilitiesUseCase: IListAvailabilitiesUseCase;
     IGetAvailabilityUseCase: IGetAvailabilityUseCase;
     ICreateAvailabilityUseCase: ICreateAvailabilityUseCase;
@@ -500,6 +508,7 @@ export interface DI_RETURN_TYPES {
     IMarkEmployeeNoShowByLinkController: IMarkEmployeeNoShowByLinkController;
     IRateBookingByLinkController: IRateBookingByLinkController;
     IRescheduleBookingByLinkController: IRescheduleBookingByLinkController;
+    IJoinWaitlistController: IJoinWaitlistController;
     IListMyAvailabilitiesController: IListMyAvailabilitiesController;
     ICreateAvailabilityController: ICreateAvailabilityController;
     IUpdateAvailabilityController: IUpdateAvailabilityController;
