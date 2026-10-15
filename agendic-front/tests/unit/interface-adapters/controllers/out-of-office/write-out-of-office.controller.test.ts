@@ -49,12 +49,19 @@ describe('createOutOfOfficeController', () => {
 
 describe('updateOutOfOfficeController', () => {
     it('runs the use case with the id and the body', async () => {
-        const useCase = jest.fn().mockResolvedValue(undefined);
-        await updateOutOfOfficeController(instrumentation, signedIn, useCase)({ outOfOfficeId: 4, ...body });
-        expect(useCase).toHaveBeenCalledWith({ outOfOfficeId: 4, ...body });
+        const useCase = jest.fn().mockResolvedValue({ cancelledBookings: 2 });
+        const confirmed = { outOfOfficeId: 4, ...body, cancelBookingIds: [7, 8] };
+        await expect(updateOutOfOfficeController(instrumentation, signedIn, useCase)(confirmed)).resolves.toEqual({ cancelledBookings: 2 });
+        expect(useCase).toHaveBeenCalledWith(confirmed);
     });
 
-    it.each([...invalidBodies.map((invalid) => ({ outOfOfficeId: 4, ...invalid })), { ...body }, { outOfOfficeId: 0, ...body }])(
+    it.each([
+        ...invalidBodies.map((invalid) => ({ outOfOfficeId: 4, ...invalid })),
+        { ...body },
+        { outOfOfficeId: 0, ...body },
+        { outOfOfficeId: 4, ...body, cancelBookingIds: [0] },
+        { outOfOfficeId: 4, ...body, cancelBookingIds: 3 },
+    ])(
         'throws InputParseError for %j without calling the use case',
         async (input) => {
             const useCase = jest.fn();

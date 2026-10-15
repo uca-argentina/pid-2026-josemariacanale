@@ -71,6 +71,7 @@ export const outOfOfficeWith = (stubs: Partial<IOutOfOfficeRepository>): IOutOfO
     listOutOfOffice: jest.fn(notStubbed('listOutOfOffice')),
     previewOutOfOffice: jest.fn(notStubbed('previewOutOfOffice')),
     createOutOfOffice: jest.fn(notStubbed('createOutOfOffice')),
+    previewUpdateOutOfOffice: jest.fn(notStubbed('previewUpdateOutOfOffice')),
     updateOutOfOffice: jest.fn(notStubbed('updateOutOfOffice')),
     deleteOutOfOffice: jest.fn(notStubbed('deleteOutOfOffice')),
     ...stubs,

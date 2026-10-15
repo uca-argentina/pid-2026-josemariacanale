@@ -114,6 +114,47 @@ describe('OutOfOfficeRepository.previewOutOfOffice', () => {
     });
 });
 
+describe('OutOfOfficeRepository.previewUpdateOutOfOffice', () => {
+    const body = { startDate: '2026-10-11', endDate: '2026-10-13', reason: 'VACATION' as const };
+
+    it('POSTs the body to the período’s preview without the id in it and parses the Turnos', async () => {
+        const fetchSpy = respond(200, [leftOutside]);
+        await expect(repo().previewUpdateOutOfOffice({ outOfOfficeId: 7, ...body })).resolves.toEqual([leftOutside]);
+        expect(fetchSpy).toHaveBeenCalledWith(
+            'http://api/users/me/out-of-office/7/preview',
+            expect.objectContaining({ method: 'POST', body: JSON.stringify(body) }),
+        );
+    });
+
+    it('returns an empty list when nothing is left outside', async () => {
+        respond(200, []);
+        await expect(repo().previewUpdateOutOfOffice({ outOfOfficeId: 7, ...body })).resolves.toEqual([]);
+    });
+
+    it('translates 404, 422 and the duplicate 409', async () => {
+        respond(404, { message: 'Out of office 7 not found' });
+        await expect(repo().previewUpdateOutOfOffice({ outOfOfficeId: 7, ...body })).rejects.toBeInstanceOf(NotFoundError);
+        jest.restoreAllMocks();
+        respond(422, { message: 'fin antes que inicio' });
+        await expect(repo().previewUpdateOutOfOffice({ outOfOfficeId: 7, ...body })).rejects.toBeInstanceOf(OutOfOfficeRuleError);
+        jest.restoreAllMocks();
+        respond(409, { message: 'Ya hay un período Fuera de la oficina con esas fechas' });
+        await expect(repo().previewUpdateOutOfOffice({ outOfOfficeId: 7, ...body })).rejects.toBeInstanceOf(OutOfOfficeConflictError);
+    });
+
+    it('translates a 401 to UnauthenticatedError', async () => {
+        respond(401, { message: 'no' });
+        await expect(repo().previewUpdateOutOfOffice({ outOfOfficeId: 7, ...body })).rejects.toBeInstanceOf(UnauthenticatedError);
+    });
+
+    it('fails with ApiRequestError keeping the cause on an unexpected body', async () => {
+        respond(200, [{ id: 'x' }]);
+        const error = await repo().previewUpdateOutOfOffice({ outOfOfficeId: 7, ...body }).catch((e) => e);
+        expect(error).toBeInstanceOf(ApiRequestError);
+        expect(error.cause).toBeDefined();
+    });
+});
+
 describe('OutOfOfficeRepository writes', () => {
     const body = { startDate: '2026-10-11', endDate: '2026-10-13', reason: 'VACATION' as const, notes: 'Playa', showNotePublicly: true };
 
@@ -146,13 +187,33 @@ describe('OutOfOfficeRepository writes', () => {
         expect(duplicate).not.toBeInstanceOf(LeftOutsideBookingsChangedError);
     });
 
-    it('PUTs the body to the período without the id in it', async () => {
-        const fetchSpy = respond(200, periodo);
-        await repo().updateOutOfOffice({ outOfOfficeId: 7, ...body });
+    it('PUTs the body to the período without the id in it and parses how many Turnos it cancelled', async () => {
+        const fetchSpy = respond(200, { ...periodo, cancelledBookings: 3 });
+        const confirmed = { ...body, cancelBookingIds: [4, 5, 6] };
+        await expect(repo().updateOutOfOffice({ outOfOfficeId: 7, ...confirmed })).resolves.toEqual({ cancelledBookings: 3 });
         expect(fetchSpy).toHaveBeenCalledWith(
             'http://api/users/me/out-of-office/7',
-            expect.objectContaining({ method: 'PUT', body: JSON.stringify(body) }),
+            expect.objectContaining({ method: 'PUT', body: JSON.stringify(confirmed) }),
         );
+    });
+
+    it('fails with ApiRequestError when the update response has no cancelledBookings', async () => {
+        respond(200, periodo);
+        const error = await repo().updateOutOfOffice({ outOfOfficeId: 7, ...body }).catch((e) => e);
+        expect(error).toBeInstanceOf(ApiRequestError);
+        expect(error.cause).toBeDefined();
+    });
+
+    it('tells the Turnos 409 of update apart from the duplicate 409 by its exact message', async () => {
+        respond(409, { message: 'Los Turnos que quedan fuera de tu horario cambiaron' });
+        const changed = await repo().updateOutOfOffice({ outOfOfficeId: 7, ...body }).catch((e) => e);
+        expect(changed).toBeInstanceOf(LeftOutsideBookingsChangedError);
+        expect(changed).not.toBeInstanceOf(OutOfOfficeConflictError);
+        jest.restoreAllMocks();
+        respond(409, { message: 'Ya hay un período Fuera de la oficina con esas fechas' });
+        const duplicate = await repo().updateOutOfOffice({ outOfOfficeId: 7, ...body }).catch((e) => e);
+        expect(duplicate).toBeInstanceOf(OutOfOfficeConflictError);
+        expect(duplicate).not.toBeInstanceOf(LeftOutsideBookingsChangedError);
     });
 
     it('DELETEs the período', async () => {

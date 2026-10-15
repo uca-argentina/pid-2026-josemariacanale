@@ -28,12 +28,20 @@ describe('createOutOfOfficeUseCase', () => {
 
 describe('updateOutOfOfficeUseCase', () => {
     it('delegates to the repository', async () => {
-        const updateOutOfOffice = jest.fn().mockResolvedValue(undefined);
-        await updateOutOfOfficeUseCase(instrumentation, outOfOfficeWith({ updateOutOfOffice }))({ outOfOfficeId: 3, ...input });
-        expect(updateOutOfOffice).toHaveBeenCalledWith({ outOfOfficeId: 3, ...input });
+        const updateOutOfOffice = jest.fn().mockResolvedValue({ cancelledBookings: 1 });
+        const body = { outOfOfficeId: 3, ...input, cancelBookingIds: [4] };
+        await expect(updateOutOfOfficeUseCase(instrumentation, outOfOfficeWith({ updateOutOfOffice }))(body)).resolves.toEqual({
+            cancelledBookings: 1,
+        });
+        expect(updateOutOfOffice).toHaveBeenCalledWith(body);
     });
 
-    it.each([new NotFoundError('Out of office 3 not found'), new OutOfOfficeRuleError('x'), new OutOfOfficeConflictError('y')])(
+    it.each([
+        new NotFoundError('Out of office 3 not found'),
+        new OutOfOfficeRuleError('x'),
+        new OutOfOfficeConflictError('y'),
+        new LeftOutsideBookingsChangedError('cambiaron'),
+    ])(
         'lets %p through',
         async (error) => {
             const updateOutOfOffice = jest.fn().mockRejectedValue(error);
