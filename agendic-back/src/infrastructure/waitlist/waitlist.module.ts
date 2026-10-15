@@ -4,6 +4,7 @@ import { ListSlotsUseCase } from '../../application/slots/list-slots.use-case';
 import { HolidaysModule } from '../holidays/holidays.module';
 import { WaitlistController } from './waitlist.controller';
 
+/** Anotarse en la Lista de espera (ADR 0034). */
 @Module({
   imports: [HolidaysModule],
   controllers: [WaitlistController],

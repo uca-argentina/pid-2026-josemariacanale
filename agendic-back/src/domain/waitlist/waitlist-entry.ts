@@ -16,6 +16,7 @@ export interface WaitlistEntry {
   createdAt: Date;
 }
 
+/** Lo que hace falta para crear una Anotación; el Enlace secreto lo genera el repositorio. */
 export interface CreateWaitlistEntryInput {
   serviceId: number;
   date: string;

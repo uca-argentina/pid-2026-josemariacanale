@@ -11,6 +11,7 @@ import type { Response } from 'express';
 import { JoinWaitlistUseCase } from '../../application/waitlist/join-waitlist.use-case';
 import { JoinWaitlistDto } from './waitlist.dto';
 
+/** Lista de espera de un Servicio. */
 @Controller()
 export class WaitlistController {
   constructor(private readonly joinWaitlistUseCase: JoinWaitlistUseCase) {}

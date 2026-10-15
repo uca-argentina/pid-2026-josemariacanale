@@ -1,5 +1,7 @@
 import { Availability } from '../../domain/availabilities/availability';
+import { Logger } from '@nestjs/common';
 import { ConflictError } from '../../domain/errors';
+import { OutOfOfficeReason } from '../../domain/out-of-office/out-of-office';
 import { Service } from '../../domain/services/service';
 import { WaitlistEntry } from '../../domain/waitlist/waitlist-entry';
 import {
@@ -131,12 +133,18 @@ describe('POST /services/:id/waitlist', () => {
     expect(t.mailer.sendWaitlistConfirmation).toHaveBeenCalledTimes(2);
   });
 
-  it('si el mail falla, igual responde 201', async () => {
+  it('si el mail falla, lo loguea y igual responde 201', async () => {
+    const logged = jest.spyOn(Logger.prototype, 'error').mockImplementation();
     t.mailer.sendWaitlistConfirmation.mockRejectedValue(new Error('SMTP caído'));
 
     await join().expect(201);
 
     expect(t.waitlist.create).toHaveBeenCalled();
+    expect(logged).toHaveBeenCalledWith(
+      expect.stringContaining(BODY.clientEmail),
+      expect.stringContaining('SMTP caído'),
+    );
+    logged.mockRestore();
   });
 
   it('409 en un día con horarios', async () => {
@@ -152,6 +160,23 @@ describe('POST /services/:id/waitlist', () => {
 
   it('409 en un día que nadie trabaja', async () => {
     await join({ ...BODY, date: '2026-01-03' }).expect(409);
+  });
+
+  it('409 en un día Fuera de la oficina de un Servicio personal', async () => {
+    t.bookings.listOccupiedByUser.mockResolvedValue([]);
+    t.outOfOffice.listByUserEndingFrom.mockResolvedValue([
+      {
+        id: 1,
+        userId: ANA.id,
+        startDate: BODY.date,
+        endDate: BODY.date,
+        reason: OutOfOfficeReason.VACATION,
+        notes: null,
+        showNotePublicly: false,
+      },
+    ]);
+
+    await join(BODY, PERSONAL.id).expect(409);
   });
 
   it('422 en una fecha anterior a hoy en la zona del Servicio', async () => {

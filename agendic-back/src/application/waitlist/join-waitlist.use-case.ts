@@ -34,6 +34,7 @@ import { ListSlotsUseCase } from '../slots/list-slots.use-case';
 
 const logger = new Logger('JoinWaitlist');
 
+/** Lo que el Cliente manda al anotarse; `date` es `YYYY-MM-DD` en la zona del Servicio. */
 export interface JoinWaitlistInput {
   serviceId: number;
   /** `YYYY-MM-DD`, en la zona horaria del Servicio. */
@@ -128,7 +129,7 @@ export class JoinWaitlistUseCase {
       )
       .catch((error) =>
         logger.error(
-          `Confirmación de anotación ${entry.id} to ${entry.email} failed`,
+          `Confirmación de anotación ${entry.id} para ${entry.email} falló`,
           error instanceof Error ? error.stack : String(error),
         ),
       );

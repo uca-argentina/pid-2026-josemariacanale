@@ -1,4 +1,3 @@
-import { randomBytes } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 import { ConflictError, DatabaseOperationError } from '../../domain/errors';
 import {
@@ -12,8 +11,9 @@ import {
 } from '../../generated/prisma/client';
 import { violatedIndex } from '../prisma-errors';
 import { PrismaService } from '../prisma.service';
+import { generateSecretLink } from '../secret-link';
 
-const ALIVE_UNIQUE = 'WaitlistEntry_email_service_date_key';
+const ALIVE_ENTRY_UNIQUE = 'WaitlistEntry_email_service_date_key';
 
 /** Acceso a Anotaciones contra Postgres. */
 @Injectable()
@@ -48,7 +48,7 @@ export class PrismaWaitlistRepository implements WaitlistRepository {
             date: new Date(input.date),
             clientName: input.clientName,
             email: input.email,
-            link: generateWaitlistLink(),
+            link: generateSecretLink(),
           },
         })
         .catch((error) =>
@@ -57,8 +57,6 @@ export class PrismaWaitlistRepository implements WaitlistRepository {
     );
   }
 }
-
-const generateWaitlistLink = (): string => randomBytes(32).toString('base64url');
 
 const toEntry = (row: WaitlistEntryRow): WaitlistEntry => ({
   id: row.id,
@@ -81,13 +79,16 @@ const translateError = (
   if (
     error instanceof Prisma.PrismaClientKnownRequestError &&
     error.code === 'P2002' &&
-    violatedIndex(error) === ALIVE_UNIQUE
+    violatedIndex(error) === ALIVE_ENTRY_UNIQUE
   )
     throw new ConflictError(
       `Waitlist entry for ${email} on ${date} in Service ${serviceId} already exists`,
       { cause: error },
     );
-  throw new DatabaseOperationError('Database operation failed', {
+  throw new DatabaseOperationError(
+    `Waitlist entry for ${email} on ${date} in Service ${serviceId} not saved or read`,
+    {
     cause: error,
-  });
+  },
+  );
 };

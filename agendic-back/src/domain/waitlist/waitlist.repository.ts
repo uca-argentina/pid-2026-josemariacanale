@@ -5,7 +5,11 @@ export const WAITLIST_REPOSITORY = Symbol('WaitlistRepository');
 
 /** Anotaciones de la Lista de espera. */
 export interface WaitlistRepository {
-  /** La Anotación viva (`leftAt` nulo) de ese email, ignorando mayúsculas, para ese Servicio y fecha. */
+  /**
+   * La Anotación viva (`leftAt` nulo) de ese email, ignorando mayúsculas, para ese Servicio y fecha.
+   *
+   * @throws {DatabaseOperationError} la consulta falló
+   */
   findAlive(
     serviceId: number,
     date: string,

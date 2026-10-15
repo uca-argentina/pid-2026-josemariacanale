@@ -8,12 +8,15 @@ export class JoinWaitlistDto {
   @IsISO8601({ strict: true })
   date!: string;
 
+  /** Nombre con el que se anota el Cliente. */
   @IsName()
   clientName!: string;
 
+  /** Email del Cliente, ya Verificado con `code`. */
   @IsNormalizedEmail()
   clientEmail!: string;
 
+  /** El Código de verificación pedido para `clientEmail`. */
   @IsString()
   code!: string;
 }

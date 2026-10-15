@@ -117,7 +117,7 @@ export class NodemailerMailer implements Mailer {
   /**
    * Confirmación de anotación.
    *
-   * @throws el transporte SMTP rechazó el mail
+   * @throws {Error} el transporte SMTP rechazó el mail
    */
   async sendWaitlistConfirmation(
     email: string,
