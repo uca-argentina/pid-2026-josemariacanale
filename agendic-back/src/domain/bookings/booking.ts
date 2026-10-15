@@ -92,6 +92,13 @@ export const depositAmountFor = (
 export type ClientNotice = Pick<Booking, 'clientEmail' | 'link'> &
   Partial<Pick<Booking, 'cancellationReason'>>;
 
+/** Un Turno a Cancelar por un cambio en el horario de quien lo atiende (ADR 0034), con la Causa y el Motivo de cancelación que Agendic le escribió. */
+export interface CausedCancellationOrder {
+  id: number;
+  cause: CancellationCause;
+  reason: string;
+}
+
 /** A Turno as the panel shows it (ADR 0030): with the Cabina it occupies, which the Cliente never sees. */
 export interface PanelBooking extends Booking {
   /** Still named once dada de baja; null in a Turno without Cabina. */

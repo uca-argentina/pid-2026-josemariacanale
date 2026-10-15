@@ -367,6 +367,7 @@ describe('PrismaAnalyticsRepository (real database)', () => {
           timeZone: BUENOS_AIRES,
           slug: 'sucursal',
         },
+        branchImageUrls: [],
         employee: { userId: user.id },
       })
     ).business;

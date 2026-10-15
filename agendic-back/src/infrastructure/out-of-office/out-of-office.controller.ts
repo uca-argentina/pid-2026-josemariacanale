@@ -13,10 +13,11 @@ import {
 import { CreateOutOfOfficeUseCase } from '../../application/out-of-office/create-out-of-office.use-case';
 import { DeleteOutOfOfficeUseCase } from '../../application/out-of-office/delete-out-of-office.use-case';
 import { ListOutOfOfficeUseCase } from '../../application/out-of-office/list-out-of-office.use-case';
+import { PreviewOutOfOfficeUseCase } from '../../application/out-of-office/preview-out-of-office.use-case';
 import { UpdateOutOfOfficeUseCase } from '../../application/out-of-office/update-out-of-office.use-case';
 import { ClerkGuard, CurrentUser } from '../users/clerk.guard';
-import { OutOfOfficeDto } from './out-of-office.dto';
-import { presentOutOfOffice } from './out-of-office.presenter';
+import { CreateOutOfOfficeDto, OutOfOfficeDto } from './out-of-office.dto';
+import { presentLeftOutside, presentOutOfOffice } from './out-of-office.presenter';
 
 /** Períodos Fuera de la oficina del propio Usuario (ADR 0027). */
 @Controller('users/me/out-of-office')
@@ -25,6 +26,7 @@ export class OutOfOfficeController {
   constructor(
     private readonly listOutOfOfficeUseCase: ListOutOfOfficeUseCase,
     private readonly createOutOfOfficeUseCase: CreateOutOfOfficeUseCase,
+    private readonly previewOutOfOfficeUseCase: PreviewOutOfOfficeUseCase,
     private readonly updateOutOfOfficeUseCase: UpdateOutOfOfficeUseCase,
     private readonly deleteOutOfOfficeUseCase: DeleteOutOfOfficeUseCase,
   ) {}
@@ -36,11 +38,27 @@ export class OutOfOfficeController {
     );
   }
 
+  /** Los Turnos que un período nuevo dejaría afuera; no guarda nada. */
+  @Post('preview')
+  @HttpCode(200)
+  async preview(@CurrentUser() userId: number, @Body() dto: OutOfOfficeDto) {
+    return (
+      await this.previewOutOfOfficeUseCase.execute(userId, toFields(dto))
+    ).map(presentLeftOutside);
+  }
+
   @Post()
-  async create(@CurrentUser() userId: number, @Body() dto: OutOfOfficeDto) {
-    return presentOutOfOffice(
-      await this.createOutOfOfficeUseCase.execute(userId, toFields(dto)),
-    );
+  async create(
+    @CurrentUser() userId: number,
+    @Body() dto: CreateOutOfOfficeDto,
+  ) {
+    const { outOfOffice, cancelledBookings } =
+      await this.createOutOfOfficeUseCase.execute(
+        userId,
+        toFields(dto),
+        dto.cancelBookingIds,
+      );
+    return { ...presentOutOfOffice(outOfOffice), cancelledBookings };
   }
 
   @Put(':id')
