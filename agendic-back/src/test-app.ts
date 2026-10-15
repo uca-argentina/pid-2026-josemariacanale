@@ -44,6 +44,10 @@ import {
   USER_HOLIDAY_SETTINGS_REPOSITORY,
   UserHolidaySettingsRepository,
 } from './domain/holidays/user-holiday-settings.repository';
+import {
+  WAITLIST_REPOSITORY,
+  WaitlistRepository,
+} from './domain/waitlist/waitlist.repository';
 import { Business } from './domain/businesses/business';
 import {
   BUSINESSES_REPOSITORY,
@@ -124,6 +128,7 @@ export async function createTestApp() {
     sendBookingReschedule: jest.fn(),
     sendBookingRejection: jest.fn(),
     sendRatingRequest: jest.fn(),
+    sendWaitlistConfirmation: jest.fn(),
   };
   const bookingCodes: jest.Mocked<BookingVerificationCodes> = {
     request: jest.fn(),
@@ -229,6 +234,10 @@ export async function createTestApp() {
     listUnrequestedByEndsAtBetween: jest.fn(),
     markRatingRequestSent: jest.fn(),
   };
+  const waitlist: jest.Mocked<WaitlistRepository> = {
+    findAlive: jest.fn(),
+    create: jest.fn(),
+  };
   const availabilities: jest.Mocked<AvailabilitiesRepository> = {
     listByUser: jest.fn(),
     findById: jest.fn(),
@@ -295,6 +304,8 @@ export async function createTestApp() {
     .useValue(invitations)
     .overrideProvider(BOOKINGS_REPOSITORY)
     .useValue(bookings)
+    .overrideProvider(WAITLIST_REPOSITORY)
+    .useValue(waitlist)
     .overrideProvider(BOOKING_VERIFICATION_CODES)
     .useValue(bookingCodes)
     .overrideProvider(AVAILABILITIES_REPOSITORY)
@@ -328,6 +339,7 @@ export async function createTestApp() {
     invitations,
     bookings,
     bookingCodes,
+    waitlist,
     availabilities,
     outOfOffice,
     holidays,

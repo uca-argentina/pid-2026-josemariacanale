@@ -17,6 +17,7 @@ import { INVITATIONS_REPOSITORY } from '../domain/invitations/invitations.reposi
 import { OUT_OF_OFFICE_REPOSITORY } from '../domain/out-of-office/out-of-office.repository';
 import { SERVICES_REPOSITORY } from '../domain/services/services.repository';
 import { CLERK_AUTH } from '../domain/users/clerk-auth';
+import { WAITLIST_REPOSITORY } from '../domain/waitlist/waitlist.repository';
 import { USERS_REPOSITORY } from '../domain/users/users.repository';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { PrismaAnalyticsRepository } from './analytics/prisma-analytics.repository';
@@ -53,6 +54,8 @@ import { SystemClock } from './system-clock';
 import { ClerkBackendAuth } from './users/clerk-backend-auth';
 import { PrismaUsersRepository } from './users/prisma-users.repository';
 import { UsersModule } from './users/users.module';
+import { PrismaWaitlistRepository } from './waitlist/prisma-waitlist.repository';
+import { WaitlistModule } from './waitlist/waitlist.module';
 
 /** Binds every port to its adapter, globally, and wires the REST feature modules. */
 @Global()
@@ -71,6 +74,7 @@ import { UsersModule } from './users/users.module';
     SlugsModule,
     HolidaysModule,
     AnalyticsModule,
+    WaitlistModule,
   ],
   providers: [
     PrismaService,
@@ -117,6 +121,7 @@ import { UsersModule } from './users/users.module';
     },
     { provide: GOOGLE_CALENDAR_CLIENT, useClass: GoogleCalendarApiClient },
     { provide: ANALYTICS_REPOSITORY, useClass: PrismaAnalyticsRepository },
+    { provide: WAITLIST_REPOSITORY, useClass: PrismaWaitlistRepository },
   ],
   exports: [
     CLOCK,
@@ -139,6 +144,7 @@ import { UsersModule } from './users/users.module';
     USER_HOLIDAY_SETTINGS_REPOSITORY,
     GOOGLE_CALENDAR_CLIENT,
     ANALYTICS_REPOSITORY,
+    WAITLIST_REPOSITORY,
   ],
 })
 export class InfrastructureModule {}
