@@ -610,6 +610,23 @@ export class PrismaBookingsRepository implements BookingsRepository {
   }
 
   /**
+   * Borra la Ausencia, solo si el Turno la sigue teniendo en el momento de escribir.
+   *
+   * @throws {BusinessRuleError} el Turno ya no está aceptado o ya no tiene Ausencia
+   * @throws {NotFoundError} el Turno no existe
+   */
+  async unmarkNoShow(id: number) {
+    await this.updateStatus(
+      id,
+      [BookingStatus.BOOKED],
+      { noShowAt: null },
+      'Turno is not booked or has no Ausencia',
+      { noShowAt: { not: null } },
+    );
+    return this.findById(id);
+  }
+
+  /**
    * Marca la Seña del Turno como pagada, solo si la guarda sigue valiendo en el momento de escribir.
    *
    * @throws {BusinessRuleError} el Turno ya no está pendiente ni aceptado, ya empezó, no tiene Seña o ya la tiene pagada

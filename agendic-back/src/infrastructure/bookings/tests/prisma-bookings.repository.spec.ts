@@ -423,6 +423,17 @@ describe('PrismaBookingsRepository', () => {
       });
     });
 
+    it('unmarkNoShow clears noShowAt only while the Turno still has it', async () => {
+      prisma.booking.updateMany.mockResolvedValue({ count: 1 });
+
+      await repository.unmarkNoShow(1);
+
+      expect(prisma.booking.updateMany).toHaveBeenCalledWith({
+        where: { id: 1, status: { in: [BookingStatus.BOOKED] }, noShowAt: { not: null } },
+        data: { noShowAt: null },
+      });
+    });
+
     it('markEmployeeNoShow requires an accepted Turno inside its window, with neither mark', async () => {
       jest.spyOn(repository as never, 'findEnriched').mockResolvedValue({} as never);
       prisma.booking.updateMany.mockResolvedValue({ count: 1 });
