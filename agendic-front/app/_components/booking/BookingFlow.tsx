@@ -19,6 +19,7 @@ import type { BookSlotResult } from './actions';
 import { TimeStep } from './TimeStep';
 import { WaitlistFlow } from './WaitlistFlow';
 import { depositFor, endTime, formatDate, formatDuration, formatPrice, initials } from './format';
+import type { BookingPrefill } from './booking-prefill';
 import { STEPS } from './types';
 import type { BookingDraft, ChosenEmployee, ClientData, Host, Service, Step } from './types';
 
@@ -416,6 +417,7 @@ export function BookingFlow({
     coverUrl,
     initialService,
     employee: initialEmployee,
+    prefill,
     onClose,
 }: {
     host: Host;
@@ -425,6 +427,8 @@ export function BookingFlow({
     initialService: Service | null;
     /** El Empleado elegido (ADR 0026): el Turno es con él y el paso Horario solo muestra sus horarios; null, como siempre. */
     employee: ChosenEmployee | null;
+    /** Lo que trae el Aviso de horario libre: el día elegido y el nombre y email del formulario; el Cliente los puede cambiar. */
+    prefill: BookingPrefill;
     onClose: () => void;
 }) {
     const router = useRouter();
@@ -437,10 +441,10 @@ export function BookingFlow({
     const [step, setStep] = useState<Step>(initialService ? 'time' : 'service');
     const [draft, setDraft] = useState<BookingDraft>({
         service: initialService,
-        date: null,
+        date: prefill.date,
         slot: null,
     });
-    const [client, setClient] = useState<ClientData>({ name: '', email: '', notes: '' });
+    const [client, setClient] = useState<ClientData>({ name: prefill.name, email: prefill.email, notes: '' });
     /** El 409 de horario ocupado: se muestra en el paso Horario, que es donde se resuelve. */
     const [slotNotice, setSlotNotice] = useState<string | null>(null);
     const [confirmError, setConfirmError] = useState<string | null>(null);

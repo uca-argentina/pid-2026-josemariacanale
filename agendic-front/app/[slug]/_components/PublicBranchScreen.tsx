@@ -5,6 +5,7 @@ import { AppToaster } from '@/app/_components/AppToaster';
 import { BackendErrorNotice } from '@/app/_components/BackendErrorNotice';
 import { Footer } from '@/app/_components/Footer';
 import { Header } from '@/app/_components/Header';
+import type { BookingPrefill } from '@/app/_components/booking/booking-prefill';
 import { getInjection } from '@/di/container';
 import { InputParseError, NotFoundError } from '@/src/entities/errors/common';
 import { BranchPublicPage } from './BranchPublicPage';
@@ -37,7 +38,8 @@ export async function publicBranchMetadata({ businessSlug, branchSlug, serviceSl
  * la reserva es con él (Empleado elegido); si no Ofrece el Servicio, o no es Empleado, también es 404.
  * Sin Sesión a propósito: la página del Enlace de reserva no depende de quién la abre.
  */
-export async function PublicBranchScreen({ businessSlug, branchSlug, serviceSlug, employeeSlug }: PublicBranchSlugs) {
+export async function PublicBranchScreen({ prefill, ...slugs }: PublicBranchSlugs & { prefill: BookingPrefill }) {
+    const { businessSlug, branchSlug, serviceSlug, employeeSlug } = slugs;
     let page;
     try {
         page = await getPublicBranch(businessSlug, branchSlug, serviceSlug, employeeSlug);
@@ -61,6 +63,7 @@ export async function PublicBranchScreen({ businessSlug, branchSlug, serviceSlug
                         images={page.images}
                         selectedService={page.selectedService}
                         selectedEmployee={page.selectedEmployee}
+                        prefill={prefill}
                     />
                 ) : (
                     <BackendErrorNotice />
