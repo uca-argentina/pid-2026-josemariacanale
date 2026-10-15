@@ -61,6 +61,7 @@ export const availabilitiesWith = (stubs: Partial<IAvailabilitiesRepository>): I
     listAvailabilities: jest.fn(notStubbed('listAvailabilities')),
     getAvailability: jest.fn(notStubbed('getAvailability')),
     createAvailability: jest.fn(notStubbed('createAvailability')),
+    previewUpdateAvailability: jest.fn(notStubbed('previewUpdateAvailability')),
     updateAvailability: jest.fn(notStubbed('updateAvailability')),
     makeDefault: jest.fn(notStubbed('makeDefault')),
     deleteAvailability: jest.fn(notStubbed('deleteAvailability')),

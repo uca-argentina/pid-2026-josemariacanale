@@ -129,6 +129,7 @@ import type { IAvailabilitiesRepository } from '@/src/application/repositories/a
 import type { IListAvailabilitiesUseCase } from '@/src/application/use-cases/availabilities/list-availabilities.use-case';
 import type { IGetAvailabilityUseCase } from '@/src/application/use-cases/availabilities/get-availability.use-case';
 import type { ICreateAvailabilityUseCase } from '@/src/application/use-cases/availabilities/create-availability.use-case';
+import type { IPreviewUpdateAvailabilityUseCase } from '@/src/application/use-cases/availabilities/preview-update-availability.use-case';
 import type { IUpdateAvailabilityUseCase } from '@/src/application/use-cases/availabilities/update-availability.use-case';
 import type { IMakeAvailabilityDefaultUseCase } from '@/src/application/use-cases/availabilities/make-availability-default.use-case';
 import type { IDeleteAvailabilityUseCase } from '@/src/application/use-cases/availabilities/delete-availability.use-case';
@@ -169,6 +170,7 @@ import type { IListHolidayConflictsUseCase } from '@/src/application/use-cases/h
 import type { IListHolidayConflictsController } from '@/src/interface-adapters/controllers/holidays/list-holiday-conflicts.controller';
 import type { IListMyAvailabilitiesController } from '@/src/interface-adapters/controllers/availabilities/list-my-availabilities.controller';
 import type { ICreateAvailabilityController } from '@/src/interface-adapters/controllers/availabilities/create-availability.controller';
+import type { IPreviewUpdateAvailabilityController } from '@/src/interface-adapters/controllers/availabilities/preview-update-availability.controller';
 import type { IUpdateAvailabilityController } from '@/src/interface-adapters/controllers/availabilities/update-availability.controller';
 import type { IMakeAvailabilityDefaultController } from '@/src/interface-adapters/controllers/availabilities/make-availability-default.controller';
 import type { IDeleteAvailabilityController } from '@/src/interface-adapters/controllers/availabilities/delete-availability.controller';
@@ -245,6 +247,7 @@ export const DI_SYMBOLS = {
     IListAvailabilitiesUseCase: Symbol.for('IListAvailabilitiesUseCase'),
     IGetAvailabilityUseCase: Symbol.for('IGetAvailabilityUseCase'),
     ICreateAvailabilityUseCase: Symbol.for('ICreateAvailabilityUseCase'),
+    IPreviewUpdateAvailabilityUseCase: Symbol.for('IPreviewUpdateAvailabilityUseCase'),
     IUpdateAvailabilityUseCase: Symbol.for('IUpdateAvailabilityUseCase'),
     IMakeAvailabilityDefaultUseCase: Symbol.for('IMakeAvailabilityDefaultUseCase'),
     IDeleteAvailabilityUseCase: Symbol.for('IDeleteAvailabilityUseCase'),
@@ -332,6 +335,7 @@ export const DI_SYMBOLS = {
     IRescheduleBookingByLinkController: Symbol.for('IRescheduleBookingByLinkController'),
     IListMyAvailabilitiesController: Symbol.for('IListMyAvailabilitiesController'),
     ICreateAvailabilityController: Symbol.for('ICreateAvailabilityController'),
+    IPreviewUpdateAvailabilityController: Symbol.for('IPreviewUpdateAvailabilityController'),
     IUpdateAvailabilityController: Symbol.for('IUpdateAvailabilityController'),
     IMakeAvailabilityDefaultController: Symbol.for('IMakeAvailabilityDefaultController'),
     IDeleteAvailabilityController: Symbol.for('IDeleteAvailabilityController'),
@@ -425,6 +429,7 @@ export interface DI_RETURN_TYPES {
     IListAvailabilitiesUseCase: IListAvailabilitiesUseCase;
     IGetAvailabilityUseCase: IGetAvailabilityUseCase;
     ICreateAvailabilityUseCase: ICreateAvailabilityUseCase;
+    IPreviewUpdateAvailabilityUseCase: IPreviewUpdateAvailabilityUseCase;
     IUpdateAvailabilityUseCase: IUpdateAvailabilityUseCase;
     IMakeAvailabilityDefaultUseCase: IMakeAvailabilityDefaultUseCase;
     IDeleteAvailabilityUseCase: IDeleteAvailabilityUseCase;
@@ -512,6 +517,7 @@ export interface DI_RETURN_TYPES {
     IRescheduleBookingByLinkController: IRescheduleBookingByLinkController;
     IListMyAvailabilitiesController: IListMyAvailabilitiesController;
     ICreateAvailabilityController: ICreateAvailabilityController;
+    IPreviewUpdateAvailabilityController: IPreviewUpdateAvailabilityController;
     IUpdateAvailabilityController: IUpdateAvailabilityController;
     IMakeAvailabilityDefaultController: IMakeAvailabilityDefaultController;
     IDeleteAvailabilityController: IDeleteAvailabilityController;
