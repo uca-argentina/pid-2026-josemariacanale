@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { DEFAULT_AVAILABILITY } from '../../domain/availabilities/availability';
 import { ConflictError, DatabaseOperationError } from '../../domain/errors';
 import {
+  AliveWaitlistEntry,
   CreateWaitlistEntryInput,
   WaitlistEntry,
   WaitlistEntryView,
@@ -73,6 +74,54 @@ export class PrismaWaitlistRepository implements WaitlistRepository {
   async leave(id: number, now: Date) {
     await this.prisma.waitlistEntry
       .updateMany({ where: { id, leftAt: null }, data: { leftAt: now } })
+      .catch((error) => translateLinkError(error, 'saved'));
+  }
+
+  /** @throws {DatabaseOperationError} the query failed */
+  async listAlive(now: Date): Promise<AliveWaitlistEntry[]> {
+    // The widest zone (UTC+14) is ahead of UTC, so a date from yesterday (UTC) may still be today somewhere.
+    const yesterday = new Date(now.getTime() - 24 * 3_600_000);
+    yesterday.setUTCHours(0, 0, 0, 0);
+    const rows = await this.prisma.waitlistEntry
+      .findMany({
+        where: {
+          leftAt: null,
+          date: { gte: yesterday },
+          service: { deletedAt: null },
+        },
+        select: {
+          ...VIEW_SELECT,
+          clientName: true,
+          email: true,
+          link: true,
+          notifiedAt: true,
+          createdAt: true,
+        },
+        orderBy: { id: 'asc' },
+      })
+      .catch((error) => translateLinkError(error, 'listed'));
+    return rows.map((row) => ({
+      ...toView(row),
+      clientName: row.clientName,
+      email: row.email,
+      link: row.link,
+      notifiedAt: row.notifiedAt,
+      leftAt: null,
+      createdAt: row.createdAt,
+    }));
+  }
+
+  /** @throws {DatabaseOperationError} the update failed */
+  async markNotified(id: number, now: Date) {
+    await this.prisma.waitlistEntry
+      .update({ where: { id }, data: { notifiedAt: now } })
+      .catch((error) => translateLinkError(error, 'saved'));
+  }
+
+  /** @throws {DatabaseOperationError} the update failed */
+  async rearm(id: number) {
+    await this.prisma.waitlistEntry
+      .update({ where: { id }, data: { notifiedAt: null } })
       .catch((error) => translateLinkError(error, 'saved'));
   }
 }

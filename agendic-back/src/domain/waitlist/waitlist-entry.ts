@@ -42,3 +42,10 @@ export interface WaitlistEntryView {
   branch: { name: string; slug: string } | null;
   user: { slug: string | null } | null;
 }
+
+/**
+ * Una Anotación viva con lo que hace falta para avisarle: la zona horaria y el Enlace de reserva del Servicio, con la
+ * misma convención nula que {@link WaitlistEntryView}.
+ */
+export type AliveWaitlistEntry = WaitlistEntry &
+  Pick<WaitlistEntryView, 'timeZone' | 'service' | 'business' | 'branch' | 'user'>;
