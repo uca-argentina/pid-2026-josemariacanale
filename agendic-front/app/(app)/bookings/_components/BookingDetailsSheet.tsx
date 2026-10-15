@@ -9,6 +9,7 @@ import { formatPrice } from '@/app/_components/booking/format';
 import { PanelBadge } from '@/app/(app)/_components/panel-ui';
 import type { Preferences } from '@/src/entities/models/user';
 import { BookingActions } from './BookingActions';
+import { BookingHistory } from './BookingHistory';
 import { formatLongDate, formatShortDay, formatTimeRange, placeOf, TIME_ZONE_LABEL } from '@/app/(app)/_components/booking-format';
 import { cabinOf, cancellationOf, isClosed, statusBadgesOf, type Booking } from './booking-helpers';
 
@@ -23,8 +24,8 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 
 /**
  * Panel lateral con el detalle de un Turno. `booking` null lo deja cerrado. `previous` y `next` son los
- * vecinos en lo que la pantalla muestra (null si no hay); ← y → los abren y Esc cierra. La Calificación y el
- * Comentario del Turno se suman cuando el Turno los traiga.
+ * vecinos en lo que la pantalla muestra (null si no hay); ← y → los abren y Esc cierra. Abajo va el Historial del
+ * Turno. La Calificación y el Comentario del Turno se suman cuando el Turno los traiga.
  */
 export function BookingDetailsSheet({
     booking,
@@ -117,6 +118,7 @@ export function BookingDetailsSheet({
                                     {cancelled.reason && <span className="text-[#6b7280]">{cancelled.reason}</span>}
                                 </Section>
                             )}
+                            <BookingHistory booking={booking} timeFormat={preferences.timeFormat} />
                         </div>
 
                         <SheetFooter className="flex-row justify-end border-t border-[#e5e7eb]">

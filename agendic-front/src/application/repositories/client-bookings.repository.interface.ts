@@ -13,12 +13,13 @@ export interface IClientBookingsRepository {
     getBookingByLink(link: string): Promise<ClientBooking>;
 
     /**
-     * Cancela el Turno de un Enlace del Turno.
+     * Cancela el Turno de un Enlace del Turno, con un Motivo de cancelación opcional.
      *
      * @throws {NotFoundError} el Enlace no es de ningún Turno (404)
      * @throws {BookingStateError} el Turno no está pendiente ni aceptado, o ya empezó (422)
+     * @throws {CancellationReasonTooLongError} el Motivo es demasiado largo (400)
      */
-    cancelBookingByLink(link: string): Promise<ClientBooking>;
+    cancelBookingByLink(link: string, reason?: string): Promise<ClientBooking>;
 
     /**
      * Paga la Seña del Turno de un Enlace del Turno (simulado: Agendic no cobra).

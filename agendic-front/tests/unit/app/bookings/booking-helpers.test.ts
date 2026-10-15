@@ -46,7 +46,7 @@ describe('cancellationOf', () => {
             reason: 'No llego',
             cause: null,
         });
-        expect(cancellationOf(booking({ status: 'REJECTED', cancelledBy: 'EMPLOYEE' }))).toEqual({ by: 'el Empleado', reason: null, cause: null });
+        expect(cancellationOf(booking({ status: 'REJECTED', cancelledBy: 'EMPLOYEE' }))).toEqual({ by: 'vos', reason: null, cause: null });
         expect(cancellationOf(booking({ status: 'CANCELLED', cancelledBy: 'RETIREMENT' }))?.by).toBe('una baja');
     });
 
@@ -58,7 +58,7 @@ describe('cancellationOf', () => {
         const shown = cancellationOf(
             booking({ status: 'CANCELLED', cancelledBy: 'EMPLOYEE', cancellationReason: 'Estoy de viaje', cancellationCause: cause }),
         );
-        expect(shown).toEqual({ by: 'el Empleado', reason: 'Estoy de viaje', cause: label });
+        expect(shown).toEqual({ by: 'vos', reason: 'Estoy de viaje', cause: label });
     });
 });
 
@@ -179,8 +179,11 @@ describe('actionsOf', () => {
 
     it('un Turno aceptado y pasado se marca con Ausencia, salvo que ya tenga una marca', () => {
         expect(actionsOf(booking({}), PAST)).toEqual({ main: [], menu: ['no-show'] });
-        expect(actionsOf(booking({ noShowAt: '2026-09-15T20:00:00.000Z' }), PAST)).toEqual({ main: [], menu: [] });
         expect(actionsOf(booking({ employeeNoShowAt: '2026-09-15T20:00:00.000Z' }), PAST)).toEqual({ main: [], menu: [] });
+    });
+
+    it('un Turno con Ausencia del Invitado se desmarca desde el menú', () => {
+        expect(actionsOf(booking({ noShowAt: '2026-09-15T20:00:00.000Z' }), PAST)).toEqual({ main: [], menu: ['unmark-no-show'] });
     });
 
     it('un Turno cancelado o rechazado no tiene acciones', () => {

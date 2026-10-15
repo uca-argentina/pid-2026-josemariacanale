@@ -31,6 +31,15 @@ describe('cancelBookingByLinkController', () => {
         expect(result).toEqual(booking);
     });
 
+    it('cancela el Turno del Enlace con el Motivo de cancelación', async () => {
+        const useCase = jest.fn().mockResolvedValue({ ...booking, status: 'CANCELLED', cancellationReason: 'Me surgió algo' });
+
+        const result = await cancelBookingByLinkController(instrumentation, useCase)({ link: 's3cr3t-l1nk', reason: 'Me surgió algo' });
+
+        expect(useCase).toHaveBeenCalledWith({ link: 's3cr3t-l1nk', reason: 'Me surgió algo' });
+        expect(result.cancellationReason).toBe('Me surgió algo');
+    });
+
     it.each([
         ['a missing link', {}],
         ['a blank link', { link: '' }],

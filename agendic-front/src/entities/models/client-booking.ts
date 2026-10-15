@@ -1,7 +1,10 @@
 import { z } from 'zod';
 import { BOOKING_STATUSES } from '@/src/entities/models/booking';
 
-/** Un Turno del Cliente, como lo devuelven `GET` y los `PATCH` de `/booking-links/:secret`. */
+/**
+ * Un Turno del Cliente, como lo devuelven `GET` y los `PATCH` de `/booking-links/:secret`. `cancellationReason` es el
+ * Motivo de cancelación de un Turno Cancelado o Rechazado, o `null` si no tiene.
+ */
 export const clientBookingSchema = z.object({
     id: z.number(),
     status: z.enum(BOOKING_STATUSES),
@@ -37,5 +40,6 @@ export const clientBookingSchema = z.object({
         .nullable(),
     // Al revés que `business` y `branch`: solo viene en un Servicio personal, con el Enlace de reserva del Usuario.
     user: z.object({ slug: z.string().nullable() }).nullable(),
+    cancellationReason: z.string().nullable(),
 });
 export type ClientBooking = z.infer<typeof clientBookingSchema>;
