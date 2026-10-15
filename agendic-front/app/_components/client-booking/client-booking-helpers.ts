@@ -30,3 +30,17 @@ export const ratingSection = (b: ClientBooking): 'form' | 'readonly' | null => (
 export function cancellationReasonOf(b: ClientBooking): string | null {
     return b.status === 'CANCELLED' || b.status === 'REJECTED' ? b.cancellationReason : null;
 }
+
+/**
+ * Los Turnos de la Serie del Turno (ADR 0032), por fecha, con la etiqueta de su estado y su Enlace del Turno; `current`
+ * es el que se está viendo. `null` en un Turno suelto.
+ */
+export function seriesOf(b: ClientBooking): { startsAt: string; status: string; link: string; current: boolean }[] | null {
+    if (!b.series) return null;
+    return b.series.bookings.map((s) => ({
+        startsAt: s.startsAt,
+        status: STATUS_BADGE[s.status].label,
+        link: s.link,
+        current: s.startsAt === b.startsAt,
+    }));
+}

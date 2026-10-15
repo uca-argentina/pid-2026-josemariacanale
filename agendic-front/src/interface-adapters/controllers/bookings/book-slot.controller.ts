@@ -14,6 +14,8 @@ function presenter(booking: Booking, instrumentationService: IInstrumentationSer
         employeeName: booking.employeeName ?? null,
         // El secreto del Enlace del Turno (ADR 0022): la pantalla de Reservar navega a ese Turno con él.
         link: booking.link ?? null,
+        // Only a Serie: every Turno created, by date, with its Enlace del Turno.
+        series: booking.series ?? null,
     }));
 }
 
@@ -28,6 +30,8 @@ const inputSchema = z.object({
     notes: z.string().trim().max(500).optional(),
     // El Código de verificación ya pedido para clientEmail (ADR 0022).
     code: z.string().trim().min(1),
+    // Reservar una Serie (ADR 0032): how many Turnos, and the dates of the Serie the Cliente skips.
+    repeat: z.object({ count: z.number().int().min(2), skipDates: z.array(z.iso.date()).optional() }).optional(),
 });
 
 export type IBookSlotController = ReturnType<typeof bookSlotController>;

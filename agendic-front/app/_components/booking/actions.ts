@@ -3,7 +3,14 @@
 import { unstable_rethrow } from 'next/navigation';
 import { getInjection } from '@/di/container';
 import type { DI_RETURN_TYPES } from '@/di/types';
-import { InvalidVerificationCodeError, SlotTakenError, SlotUnavailableError, TooManyVerificationCodeRequestsError } from '@/src/entities/errors/booking';
+import {
+    InvalidVerificationCodeError,
+    SeriesDatesUnavailableError,
+    SeriesTooShortError,
+    SlotTakenError,
+    SlotUnavailableError,
+    TooManyVerificationCodeRequestsError,
+} from '@/src/entities/errors/booking';
 import { InputParseError, NotFoundError } from '@/src/entities/errors/common';
 import { WaitlistDateInPastError, WaitlistDayNotFullError } from '@/src/entities/errors/waitlist';
 
@@ -31,9 +38,13 @@ export async function listSlotsAction(query: {
     }
 }
 
+/**
+ * El resultado de Reservar. `seriesConflict` son las fechas del 409 de una Serie (ADR 0032): el Cliente vuelve al paso
+ * Fechas con ellas marcadas y reintenta con el mismo Código de verificación.
+ */
 export type BookSlotResult =
     | { ok: true; booking: Awaited<ReturnType<DI_RETURN_TYPES['IBookSlotController']>> }
-    | { ok: false; slotTaken: boolean; invalidCode: boolean; message: string };
+    | { ok: false; slotTaken: boolean; invalidCode: boolean; seriesConflict?: string[]; message: string };
 
 export async function bookSlotAction(
     payload: Parameters<DI_RETURN_TYPES['IBookSlotController']>[0],
@@ -43,6 +54,17 @@ export async function bookSlotAction(
         return { ok: true, booking };
     } catch (error) {
         unstable_rethrow(error);
+        // Esperable: alguna fecha de la Serie se ocupó; el Cliente sigue sin ella con el mismo código. No se reporta.
+        if (error instanceof SeriesDatesUnavailableError)
+            return {
+                ok: false,
+                slotTaken: false,
+                invalidCode: false,
+                seriesConflict: error.dates,
+                message: 'Algunas fechas de la Serie ya no están disponibles.',
+            };
+        if (error instanceof SeriesTooShortError)
+            return { ok: false, slotTaken: true, invalidCode: false, message: 'Una Serie necesita al menos 2 Turnos. Elegí otro horario.' };
         // Esperable, no un bug: alguien tomó el horario mientras tanto. No se reporta.
         if (error instanceof SlotTakenError)
             return { ok: false, slotTaken: true, invalidCode: false, message: 'Ese horario se acaba de ocupar. Elegí otro.' };
@@ -58,6 +80,28 @@ export async function bookSlotAction(
             return { ok: false, slotTaken: false, invalidCode: false, message: 'Revisá tus datos e intentá de nuevo.' };
         getInjection('ICrashReporterService').report(error);
         return { ok: false, slotTaken: false, invalidCode: false, message: 'No pudimos reservar tu turno. Intentá de nuevo.' };
+    }
+}
+
+/** Las fechas de una Serie para el paso Fechas; `slotTaken` manda de vuelta a Horario porque el primer horario se ocupó. */
+export type ListSeriesSlotsResult =
+    | ({ ok: true } & Awaited<ReturnType<DI_RETURN_TYPES['IListSeriesSlotsController']>>)
+    | { ok: false; slotTaken: boolean; message: string };
+
+/** Las fechas de una Serie desde el horario elegido (ADR 0032). No pide Sesión (ADR 0005). */
+export async function listSeriesSlotsAction(
+    query: Parameters<DI_RETURN_TYPES['IListSeriesSlotsController']>[0],
+): Promise<ListSeriesSlotsResult> {
+    try {
+        return { ok: true, ...(await getInjection('IListSeriesSlotsController')(query)) };
+    } catch (error) {
+        unstable_rethrow(error);
+        if (error instanceof SlotUnavailableError || error instanceof SlotTakenError)
+            return { ok: false, slotTaken: true, message: 'Ese horario ya no está disponible. Elegí otro.' };
+        if (error instanceof NotFoundError)
+            return { ok: false, slotTaken: false, message: 'Este servicio ya no está disponible. Recargá la página.' };
+        getInjection('ICrashReporterService').report(error);
+        return { ok: false, slotTaken: false, message: 'No pudimos cargar las fechas de la Serie. Intentá de nuevo.' };
     }
 }
 

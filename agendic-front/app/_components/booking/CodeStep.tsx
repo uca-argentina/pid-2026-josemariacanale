@@ -19,6 +19,7 @@ export function CodeStep({
     onSubmit,
     onRequestNewCode,
     onChangeEmail,
+    initialError = null,
 }: {
     email: string;
     /** El Turno ya existe: muestra "¡Listo!" mientras quien lo muestra navega al Turno. */
@@ -27,9 +28,11 @@ export function CodeStep({
     onRequestNewCode: () => Promise<string | null>;
     /** Vuelve al formulario con los datos cargados. */
     onChangeEmail: () => void;
+    /** Lo que falló antes de abrir este paso, como el reintento de una Serie con un código que ya venció. */
+    initialError?: string | null;
 }) {
     const [chars, setChars] = useState<readonly string[]>(EMPTY_CODE);
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(initialError);
     // El código no sirvió: las casillas, ya vacías, quedan en rojo hasta que se tipee de nuevo.
     const [invalid, setInvalid] = useState(false);
     // Cada intento remonta las casillas, que es lo que le devuelve el foco a la primera con `autoFocus` y vuelve a

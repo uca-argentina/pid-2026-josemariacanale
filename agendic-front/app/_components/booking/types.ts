@@ -18,7 +18,10 @@ export interface Host {
 /** El Empleado elegido (ADR 0026) de una reserva: con quién es y de quién son los horarios. */
 export type ChosenEmployee = Pick<ServiceEmployee, 'id' | 'name' | 'imageUrl'>;
 
-/** Un Servicio que se puede Reservar. `depositPercent` es la Seña; `null`, sin Seña. */
+/**
+ * Un Servicio que se puede Reservar. `depositPercent` es la Seña; `null`, sin Seña. `repeatEveryWeeks` y
+ * `repeatMaxBookings` son la Repetición: con ella el Cliente puede Reservar una Serie; `null` los dos, sin Repetición.
+ */
 export interface Service {
     id: number;
     name: string;
@@ -27,6 +30,8 @@ export interface Service {
     durationMinutes: number;
     price: number;
     depositPercent: number | null;
+    repeatEveryWeeks: number | null;
+    repeatMaxBookings: number | null;
 }
 
 /** Un día de la tira del paso Horario, como lo devuelve listSlotsController. */
@@ -42,6 +47,10 @@ export interface BookingDraft {
     service: Service | null;
     date: string | null;
     slot: Slot | null;
+    /** Cuántos Turnos tiene la Serie; `null`, un Turno suelto. Solo con un Servicio con Repetición. */
+    repeatCount: number | null;
+    /** Las fechas de la Serie que el Cliente eligió no Reservar en el paso Fechas. */
+    skipDates: string[];
 }
 
 /** Los datos que el Cliente escribió en Revisá y confirmá, para no perderlos si vuelve atrás. */
@@ -52,5 +61,6 @@ export interface ClientData {
     notes: string;
 }
 
-export const STEPS = ['service', 'time', 'confirm'] as const;
+/** Los pasos de la reserva; `dates` (Fechas) solo aparece al Reservar una Serie (ver `stepsFor`). */
+export const STEPS = ['service', 'time', 'dates', 'confirm'] as const;
 export type Step = (typeof STEPS)[number];

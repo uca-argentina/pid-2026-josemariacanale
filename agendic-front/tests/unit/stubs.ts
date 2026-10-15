@@ -33,6 +33,7 @@ export const publicBusinessesWith = (stubs: Partial<IPublicBusinessesRepository>
 
 export const bookingsWith = (stubs: Partial<IBookingsRepository>): IBookingsRepository => ({
     listSlots: jest.fn(notStubbed('listSlots')),
+    listSeriesSlots: jest.fn(notStubbed('listSeriesSlots')),
     book: jest.fn(notStubbed('book')),
     requestVerificationCode: jest.fn(notStubbed('requestVerificationCode')),
     ...stubs,

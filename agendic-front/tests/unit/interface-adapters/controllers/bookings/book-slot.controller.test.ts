@@ -35,6 +35,7 @@ describe('bookSlotController', () => {
             notes: 'Llego 5 minutos tarde',
             employeeName: 'Ana',
             link: null,
+            series: null,
         });
         expect(useCase).toHaveBeenCalledWith({
             serviceId: 100,
@@ -44,6 +45,26 @@ describe('bookSlotController', () => {
             notes: 'Llego 5 minutos tarde',
             code: 'ABC123',
         });
+    });
+
+    it('books a Serie with its count and the dates to skip, and presents the Serie', async () => {
+        const series = { id: 'serie-1', bookings: [{ startsAt: '2026-09-28T12:00:00.000Z', link: 'l1nk-1' }] };
+        const useCase = jest.fn().mockResolvedValue({ ...booking, link: 'l1nk-1', series });
+
+        const presented = await bookSlotController(instrumentation, useCase)({ ...input, repeat: { count: 4, skipDates: ['2026-10-12'] } });
+
+        expect(useCase).toHaveBeenCalledWith(expect.objectContaining({ repeat: { count: 4, skipDates: ['2026-10-12'] } }));
+        expect(presented.series).toEqual(series);
+    });
+
+    it.each([
+        ['a count under 2', { count: 1 }],
+        ['a count that is not an integer', { count: 2.5 }],
+        ['a skipDate that is not YYYY-MM-DD', { count: 3, skipDates: ['12/10/2026'] }],
+    ])('throws InputParseError for a repeat with %s', async (_case, repeat) => {
+        const useCase = jest.fn();
+        await expect(bookSlotController(instrumentation, useCase)({ ...input, repeat })).rejects.toBeInstanceOf(InputParseError);
+        expect(useCase).not.toHaveBeenCalled();
     });
 
     it('books with the Empleado elegido (ADR 0026)', async () => {

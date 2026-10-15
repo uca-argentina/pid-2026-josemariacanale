@@ -2,6 +2,8 @@ import type { IBookingsRepository } from '@/src/application/repositories/booking
 import type { IInstrumentationService } from '@/src/application/services/instrumentation.service.interface';
 import {
     InvalidVerificationCodeError,
+    SeriesDatesUnavailableError,
+    SeriesTooShortError,
     SLOT_UNAVAILABLE_MESSAGE,
     SlotTakenError,
     SlotUnavailableError,
@@ -9,7 +11,8 @@ import {
 } from '@/src/entities/errors/booking';
 import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
 import { bookingSchema, type Booking, type CreateBooking } from '@/src/entities/models/booking';
-import { slotsSchema, type Slots, type SlotsQuery } from '@/src/entities/models/slot';
+import { seriesSlotsSchema, slotsSchema, type SeriesSlots, type SeriesSlotsQuery, type Slots, type SlotsQuery } from '@/src/entities/models/slot';
+import { seriesConflictDates } from './series-conflict';
 
 /** Igual que en BusinessesRepository: el lint de límites impide que los adaptadores se importen entre sí. */
 function parseOrFail<T>(parse: () => T, what: string): T {
@@ -19,6 +22,12 @@ function parseOrFail<T>(parse: () => T, what: string): T {
         throw new ApiRequestError(`${what} responded with an unexpected body`, { cause });
     }
 }
+
+/** El 422 de una Serie que, sin las fechas salteadas, queda con menos de 2 Turnos (ADR 0007). */
+const SERIES_TOO_SHORT_MESSAGE = 'A Serie needs at least 2 Turnos';
+
+/** Los 400 de una Serie mal pedida (ADR 0007): bugs del front, no un Código de verificación inválido. */
+const SERIES_BAD_REQUEST = /^(count must be between|skipDates are not dates of the Serie)/;
 
 /** Reservar desde la página del Enlace de reserva: endpoints públicos, sin Sesión ni token de acceso. */
 export class BookingsRepository implements IBookingsRepository {
@@ -38,6 +47,23 @@ export class BookingsRepository implements IBookingsRepository {
             const what = 'GET /services/:id/slots';
             const body = await this.request(`/services/${serviceId}/slots?${params}`, {}, what);
             return parseOrFail(() => slotsSchema.parse(body), what);
+        });
+    }
+
+    /**
+     * Las fechas de una Serie a partir de su primer horario (ADR 0032).
+     *
+     * @throws {NotFoundError} el back respondió 404: el Servicio ya no existe, o el Empleado elegido no lo atiende
+     * @throws {SlotUnavailableError} el back respondió 422: el primer horario ya no es un Horario reservable
+     * @throws {ApiRequestError} cualquier otra respuesta con error, un cuerpo inesperado o una falla de red
+     */
+    async listSeriesSlots({ serviceId, startsAt, count, employeeId }: SeriesSlotsQuery): Promise<SeriesSlots> {
+        return this.instrumentationService.startSpan({ name: 'BookingsRepository > listSeriesSlots', op: 'http.client' }, async () => {
+            const params = new URLSearchParams({ startsAt, count: String(count) });
+            if (employeeId !== undefined) params.set('employeeId', String(employeeId));
+            const what = 'GET /services/:id/series-slots';
+            const body = await this.request(`/services/${serviceId}/series-slots?${params}`, {}, what);
+            return parseOrFail(() => seriesSlotsSchema.parse(body), what);
         });
     }
 
@@ -63,7 +89,11 @@ export class BookingsRepository implements IBookingsRepository {
     }
 
     /**
+     * Reserva un Turno o, con `repeat`, una Serie (ADR 0032), que responde el primer Turno con todos los de la Serie.
+     *
      * @throws {InvalidVerificationCodeError} el back respondió 400: el código no es válido para clientEmail, o venció
+     * @throws {SeriesDatesUnavailableError} el back respondió el 409 de una Serie: esas fechas chocan
+     * @throws {SeriesTooShortError} el back respondió 422: sin las fechas salteadas quedan menos de 2 Turnos
      * @throws {SlotTakenError} el back respondió 409: el horario ya está ocupado
      * @throws {SlotUnavailableError} el back respondió 422: el horario ya no es un Horario reservable
      * @throws {NotFoundError} el back respondió 404: el Servicio ya no existe
@@ -77,7 +107,13 @@ export class BookingsRepository implements IBookingsRepository {
                 { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) },
                 what,
             ).catch((error) => {
-                if (error instanceof ApiRequestError && error.status === 400)
+                if (error instanceof SlotTakenError) {
+                    const dates = seriesConflictDates(error.message);
+                    if (dates) throw new SeriesDatesUnavailableError(error.message, { dates, cause: error });
+                }
+                if (error instanceof ApiRequestError && error.status === 422 && error.message === SERIES_TOO_SHORT_MESSAGE)
+                    throw new SeriesTooShortError(error.message, { cause: error });
+                if (error instanceof ApiRequestError && error.status === 400 && !SERIES_BAD_REQUEST.test(error.message))
                     throw new InvalidVerificationCodeError(error.message, { cause: error });
                 throw error;
             });

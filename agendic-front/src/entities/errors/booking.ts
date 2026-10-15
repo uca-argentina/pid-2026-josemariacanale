@@ -67,3 +67,24 @@ export class CancellationReasonTooLongError extends Error {
 
 /** El mensaje exacto del 400 de un Motivo de cancelación demasiado largo (ADR 0007). */
 export const CANCELLATION_REASON_TOO_LONG_MESSAGE = 'reason is too long';
+
+/**
+ * 409 al Reservar una Serie: alguna de sus fechas ya no se puede Reservar (Turno tomado, Fuera de la oficina, Día
+ * festivo, Límite diario, sin Cabina libre). `dates` son esas fechas, `YYYY-MM-DD`; no se creó ningún Turno y el
+ * Código de verificación sigue sirviendo para reintentar sin ellas.
+ */
+export class SeriesDatesUnavailableError extends Error {
+    readonly dates: string[];
+
+    constructor(message: string, options: ErrorOptions & { dates: string[] }) {
+        super(message, options);
+        this.dates = options.dates;
+    }
+}
+
+/** 422 al Reservar una Serie: sin las fechas que se saltean quedan menos de 2 Turnos. */
+export class SeriesTooShortError extends Error {
+    constructor(message: string, options?: ErrorOptions) {
+        super(message, options);
+    }
+}

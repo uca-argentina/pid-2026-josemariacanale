@@ -32,6 +32,7 @@ const booking = {
     branch: { name: 'Centro', slug: 'centro', address: 'Av. Siempreviva 742', coverUrl: null },
     user: null,
     cancellationReason: null,
+    series: null,
 };
 
 describe('ClientBookingsRepository.getBookingByLink', () => {

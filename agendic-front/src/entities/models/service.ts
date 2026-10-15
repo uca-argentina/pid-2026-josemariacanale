@@ -15,7 +15,8 @@ export type ServiceEmployee = z.infer<typeof serviceEmployeeSchema>;
 
 /**
  * An active Servicio as GET /branches/:id/services returns it. `depositPercent` is the Seña; null means the Servicio
- * asks for none.
+ * asks for none. `repeatEveryWeeks` and `repeatMaxBookings` are the Repetición (both null without one): with it, the
+ * Cliente can Reservar a Serie.
  */
 export const serviceSchema = z.object({
     id: z.number(),
@@ -26,6 +27,8 @@ export const serviceSchema = z.object({
     durationMinutes: z.number(),
     price: z.number(),
     depositPercent: z.number().nullable(),
+    repeatEveryWeeks: z.number().nullable(),
+    repeatMaxBookings: z.number().nullable(),
     employees: z.array(serviceEmployeeSchema),
 });
 export type Service = z.infer<typeof serviceSchema>;
@@ -62,8 +65,6 @@ export const catalogServiceSchema = serviceSchema.extend({
     dailyLimit: z.number().nullable(),
     slotInterval: z.number().nullable(),
     minimumNoticeMinutes: z.number(),
-    repeatEveryWeeks: z.number().nullable(),
-    repeatMaxBookings: z.number().nullable(),
     employees: z.array(catalogServiceEmployeeSchema),
     cabins: z.array(serviceCabinSchema),
 });
