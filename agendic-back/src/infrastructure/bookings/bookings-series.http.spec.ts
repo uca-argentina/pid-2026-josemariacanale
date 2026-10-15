@@ -54,6 +54,7 @@ const created = (items: SeriesBookingData[]): Booking[] =>
     depositPaidAt: null,
     cancelledBy: null,
     cancellationReason: null,
+    cancellationCause: null,
     cancelledAt: null,
     rejectedAt: null,
   }));
