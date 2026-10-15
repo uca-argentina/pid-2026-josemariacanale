@@ -17,17 +17,9 @@ export class GetWaitlistEntryByLinkUseCase {
   async execute(
     link: string,
   ): Promise<Omit<WaitlistEntryView, 'id' | 'serviceId'>> {
-    const { id, serviceId, ...view } = await findByLink(this.waitlist, link);
+    const entry = await this.waitlist.findByLinkIncludeService(link);
+    if (!entry) throw new NotFoundError('Anotación not found');
+    const { id, serviceId, ...view } = entry;
     return view;
   }
 }
-
-/** @throws {NotFoundError} el enlace no corresponde a ninguna Anotación */
-export const findByLink = async (
-  waitlist: WaitlistRepository,
-  link: string,
-): Promise<WaitlistEntryView> => {
-  const entry = await waitlist.findByLinkIncludeService(link);
-  if (!entry) throw new NotFoundError('Anotación not found');
-  return entry;
-};

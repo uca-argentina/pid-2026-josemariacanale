@@ -88,9 +88,17 @@ describe('/waitlist-links/:secret', () => {
       expect(t.waitlist.leave).toHaveBeenCalledWith(VIEW.id, t.clock.now());
     });
 
-    it('204 las dos veces al Salir dos veces', async () => {
+    it('204 las dos veces al Salir dos veces y guarda la salida una sola vez', async () => {
+      t.waitlist.leave.mockImplementation(async () => {
+        t.waitlist.findByLinkIncludeService.mockResolvedValue({
+          ...VIEW,
+          left: true,
+        });
+      });
       await t.http.post('/waitlist-links/secreto/leave').expect(204);
       await t.http.post('/waitlist-links/secreto/leave').expect(204);
+
+      expect(t.waitlist.leave).toHaveBeenCalledTimes(1);
     });
 
     it('204 sin guardar nada si ya había Salido', async () => {
