@@ -369,7 +369,6 @@ describe('PrismaAnalyticsRepository (real database)', () => {
         },
         branchImageUrls: ['https://example.com/sucursal.jpg'],
         employee: { userId: user.id },
-        branchImageUrls: ['https://files.example.com/sucursal'],
       })
     ).business;
     created.businessIds.push(business.id);
