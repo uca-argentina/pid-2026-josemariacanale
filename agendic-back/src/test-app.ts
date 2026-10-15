@@ -237,6 +237,8 @@ export async function createTestApp() {
   const waitlist: jest.Mocked<WaitlistRepository> = {
     findAlive: jest.fn(),
     create: jest.fn(),
+    findByLinkIncludeService: jest.fn(),
+    leave: jest.fn(),
   };
   const availabilities: jest.Mocked<AvailabilitiesRepository> = {
     listByUser: jest.fn(),
