@@ -8,11 +8,13 @@ import {
   OutOfOffice,
   OutOfOfficeFields,
 } from '../../domain/out-of-office/out-of-office';
+import { CausedCancellationOrder } from '../../domain/bookings/booking';
 import { OutOfOfficeRepository } from '../../domain/out-of-office/out-of-office.repository';
 import {
   OutOfOffice as OutOfOfficeRow,
   Prisma,
 } from '../../generated/prisma/client';
+import { cancelCaused } from '../bookings/cancel-caused';
 import { PrismaService } from '../prisma.service';
 
 const toDbDate = (date: string) => new Date(`${date}T00:00:00.000Z`);
@@ -88,6 +90,54 @@ export class PrismaOutOfOfficeRepository implements OutOfOfficeRepository {
         .create({ data: { userId, ...toData(data) } })
         .catch(translateError),
     );
+  }
+
+  /**
+   * @throws {ConflictError} el Usuario ya tiene un período con esas fechas
+   * @throws {DatabaseOperationError} la base falló
+   */
+  async createCancelling(
+    userId: number,
+    data: OutOfOfficeFields,
+    cancellations: CausedCancellationOrder[],
+    now: Date,
+  ) {
+    return this.prisma
+      .$transaction(async (tx) => {
+        const row = await tx.outOfOffice.create({
+          data: { userId, ...toData(data) },
+        });
+        return {
+          outOfOffice: toOutOfOffice(row),
+          cancelledIds: await cancelCaused(tx, cancellations, now),
+        };
+      })
+      .catch(translateError);
+  }
+
+  /**
+   * @throws {ConflictError} otro período del Usuario tiene esas fechas
+   * @throws {NotFoundError} el período no existe
+   * @throws {DatabaseOperationError} la base falló
+   */
+  async updateCancelling(
+    id: number,
+    data: OutOfOfficeFields,
+    cancellations: CausedCancellationOrder[],
+    now: Date,
+  ) {
+    return this.prisma
+      .$transaction(async (tx) => {
+        const row = await tx.outOfOffice.update({
+          where: { id },
+          data: toData(data),
+        });
+        return {
+          outOfOffice: toOutOfOffice(row),
+          cancelledIds: await cancelCaused(tx, cancellations, now),
+        };
+      })
+      .catch(translateError);
   }
 
   /**

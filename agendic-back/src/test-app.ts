@@ -130,6 +130,7 @@ export async function createTestApp() {
     sendRatingRequest: jest.fn(),
     sendWaitlistConfirmation: jest.fn(),
     sendFreeSlotNotice: jest.fn(),
+    sendBookingCancellationWithCause: jest.fn(),
   };
   const bookingCodes: jest.Mocked<BookingVerificationCodes> = {
     request: jest.fn(),
@@ -212,6 +213,10 @@ export async function createTestApp() {
   };
   const bookings: jest.Mocked<BookingsRepository> = {
     create: jest.fn(),
+    createSeries: jest.fn(),
+    resolvePendingSeries: jest.fn(),
+    cancelSeriesFrom: jest.fn(),
+    cancelSeriesFromByLink: jest.fn(),
     lastReceivedByEmployee: jest.fn(),
     lastReceivedByCabin: jest.fn(),
     listOccupiedByCabins: jest.fn(),
@@ -229,6 +234,8 @@ export async function createTestApp() {
     reschedule: jest.fn(),
     reschedulePendingOrBooked: jest.fn(),
     markNoShow: jest.fn(),
+    unmarkNoShow: jest.fn(),
+    findHistoryChain: jest.fn(),
     payDeposit: jest.fn(),
     markEmployeeNoShow: jest.fn(),
     rate: jest.fn(),
@@ -250,6 +257,7 @@ export async function createTestApp() {
     findById: jest.fn(),
     create: jest.fn(),
     replace: jest.fn(),
+    replaceCancelling: jest.fn(),
     makeDefault: jest.fn(),
     countServices: jest.fn(),
     delete: jest.fn(),
@@ -259,6 +267,8 @@ export async function createTestApp() {
     findById: jest.fn(),
     findByUserAndDates: jest.fn(),
     create: jest.fn(),
+    createCancelling: jest.fn(),
+    updateCancelling: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
   };
@@ -270,6 +280,7 @@ export async function createTestApp() {
   const userHolidaySettings: jest.Mocked<UserHolidaySettingsRepository> = {
     findByUserId: jest.fn(),
     save: jest.fn(),
+    saveCancelling: jest.fn(),
   };
   const googleCalendar: jest.Mocked<GoogleCalendarClient> = {
     assertConfigured: jest.fn(),
@@ -436,6 +447,8 @@ export const ANAS_SERVICE: Service = {
   dailyLimit: null,
   slotInterval: null,
   minimumNoticeMinutes: 0,
+  repeatEveryWeeks: null,
+  repeatMaxBookings: null,
   employees: [
     {
       id: ANAS_EMPLOYEE.id,

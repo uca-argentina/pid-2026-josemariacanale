@@ -12,7 +12,7 @@ import {
 import { BusinessRuleError } from '../../domain/errors';
 import { findOwnBookedBooking } from './find-own-booked-booking';
 
-/** Marca la Ausencia de un Turno aceptado cuyo horario ya pasó. */
+/** Marca la Ausencia del Invitado de un Turno aceptado cuyo horario ya pasó. */
 @Injectable()
 export class MarkNoShowUseCase {
   constructor(
@@ -25,7 +25,7 @@ export class MarkNoShowUseCase {
   /**
    * @throws {NotFoundError} el Turno no existe
    * @throws {ForbiddenError} el Usuario no es el Empleado asignado al Turno
-   * @throws {BusinessRuleError} el Turno no está aceptado, su horario todavía no pasó, ya tiene Ausencia o tiene Falta del Empleado
+   * @throws {BusinessRuleError} el Turno no está aceptado, su horario todavía no pasó, ya tiene Ausencia del Invitado o tiene Ausencia del Anfitrión
    */
   async execute(userId: number, bookingId: number): Promise<Booking> {
     const now = this.clock.now();

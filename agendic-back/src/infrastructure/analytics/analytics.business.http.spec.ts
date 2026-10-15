@@ -617,7 +617,7 @@ describe('GET /analytics/businesses/:businessId/bookings.csv', () => {
     );
     const lines = res.text.split('\r\n');
     expect(lines[0]).toBe(
-      '﻿Fecha y hora,Servicio,Sucursal,Empleado,Cliente,Email,Estado,Atendido,Ausencia,Falta del Empleado,Precio,Calificación',
+      '﻿Fecha y hora,Servicio,Sucursal,Empleado,Cliente,Email,Estado,Atendido,Ausencia del Invitado,Ausencia del Anfitrión,Precio,Calificación',
     );
     expect(lines.slice(1, 8).map((l) => l.split(',').slice(6, 10))).toEqual([
       ['Pendiente', 'No', 'No', 'No'],

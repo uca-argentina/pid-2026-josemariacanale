@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { cancelBookingIdsSchema } from './left-outside-booking';
 
 const timeSchema = z.string().regex(/^\d{2}:\d{2}$/);
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
@@ -50,3 +51,7 @@ export const updateAvailabilitySchema = createAvailabilitySchema.extend({
 });
 /** Cambios a una Availability: el cuerpo entero. */
 export type UpdateAvailability = z.infer<typeof updateAvailabilitySchema>;
+
+/** Guardar una Availability con los Turnos que el Usuario confirmó cancelar por quedar afuera: el `availabilityId` va en la ruta y el resto en el cuerpo de `PUT`. */
+export const confirmedUpdateAvailabilitySchema = updateAvailabilitySchema.extend({ cancelBookingIds: cancelBookingIdsSchema.optional() });
+export type ConfirmedUpdateAvailability = z.infer<typeof confirmedUpdateAvailabilitySchema>;

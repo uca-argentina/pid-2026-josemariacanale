@@ -151,7 +151,7 @@ describe('PrismaAnalyticsRepository (real database)', () => {
     expect((await kpis(scope)).booked).toBe(1);
   });
 
-  it('counts attended: BOOKED, already ended, without Ausencia nor Falta del Empleado, by startsAt', async () => {
+  it('counts attended: BOOKED, already ended, without Ausencia del Invitado nor Ausencia del Anfitrión, by startsAt', async () => {
     const { user, service, scope } = await makeScope();
     await book(service.id, user.id, '2031-03-05T13:00:00Z');
     await book(service.id, user.id, '2031-03-06T13:00:00Z', {
@@ -367,6 +367,7 @@ describe('PrismaAnalyticsRepository (real database)', () => {
           timeZone: BUENOS_AIRES,
           slug: 'sucursal',
         },
+        branchImageUrls: ['https://example.com/sucursal.jpg'],
         employee: { userId: user.id },
         branchImageUrls: ['https://files.example.com/sucursal'],
       })

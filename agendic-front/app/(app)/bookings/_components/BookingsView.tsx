@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Tabs } from '@base-ui/react/tabs';
 import { CalendarDays, DoorOpen, List, MapPin } from 'lucide-react';
@@ -9,29 +8,28 @@ import { useIsMobile } from '@/app/_components/hooks/use-mobile';
 import { ToggleGroup, ToggleGroupItem } from '@/app/_components/ui/toggle-group';
 import { PaginationControls } from '@/app/_components/PaginationControls';
 import { cn } from '@/app/_components/utils';
+import { dayKey, formatShortDay, formatTimeRange, placeOf } from '@/app/(app)/_components/booking-format';
 import { PanelBadge } from '@/app/(app)/_components/panel-ui';
 import {
-    dayKey,
-    formatShortDay,
-    formatTimeRange,
     groupByDay,
     badgesOf,
     isClosed,
     listValueOf,
     matches,
     matchesRange,
+    neighboursOf,
     sortForTab,
     tabOf,
-    placeOf,
     cabinOf,
     type Booking,
     type BookingTab,
     type ListField,
 } from './booking-helpers';
 import { BookingActions } from './BookingActions';
+import { BookingDetailsSheet } from './BookingDetailsSheet';
 import { BookingFilters } from './BookingFilters';
 import { BookingsCalendar, WeekNav } from './BookingsCalendar';
-import { weekOf } from './calendar-week';
+import { bookingsOfWeek, weekOf } from './calendar-week';
 import { parseBookingsUrl, writeBookingsUrl, type BookingsUrlState, type BookingsView as View } from './bookings-url';
 import type { Preferences } from '@/src/entities/models/user';
 
@@ -60,14 +58,15 @@ const TABS: { id: BookingTab; label: string; empty: { title: string; description
 
 const PAGE_SIZES = [10, 25, 50];
 
-function BookingRow({ booking, tab, timeFormat }: { booking: Booking; tab: BookingTab; timeFormat: Preferences['timeFormat'] }) {
+function BookingRow({ booking, now, timeFormat, onOpen }: { booking: Booking; now: number; timeFormat: Preferences['timeFormat']; onOpen: (id: number) => void }) {
     const badges = badgesOf(booking);
     const cabin = cabinOf(booking);
     return (
         <li className="flex flex-wrap items-start gap-4 px-6 py-5 transition-colors hover:bg-[#f9fafb]">
-            <Link
-                href={`/bookings/${booking.id}`}
-                className="flex min-w-0 flex-1 basis-[420px] flex-wrap gap-x-8 gap-y-2 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-[#0f1b2d] focus-visible:ring-offset-4"
+            <button
+                type="button"
+                onClick={() => onOpen(booking.id)}
+                className="flex min-w-0 flex-1 basis-[420px] cursor-pointer flex-wrap gap-x-8 gap-y-2 rounded-md bg-transparent p-0 text-left outline-none focus-visible:ring-2 focus-visible:ring-[#0f1b2d] focus-visible:ring-offset-4"
             >
                 <div className="flex w-[140px] shrink-0 flex-col gap-0.5">
                     <span className="text-[14px] font-bold text-[#0f1b2d] first-letter:uppercase">{formatShortDay(booking.startsAt)}</span>
@@ -98,9 +97,9 @@ function BookingRow({ booking, tab, timeFormat }: { booking: Booking; tab: Booki
                         </div>
                     )}
                 </div>
-            </Link>
+            </button>
             <div className="ml-auto flex items-center gap-2">
-                <BookingActions booking={booking} tab={tab} />
+                <BookingActions booking={booking} now={now} />
             </div>
         </li>
     );
@@ -115,14 +114,14 @@ const unique = (list: string[]) => [...new Set(list)].sort((a, b) => a.localeCom
  */
 export function BookingsView({ bookings, now, preferences }: { bookings: Booking[]; now: number; preferences: Preferences }) {
     const searchParams = useSearchParams();
-    const [{ tab, filters, range, view: chosenView, week }, setUrlState] = useState(() => parseBookingsUrl(searchParams));
+    const [{ tab, filters, range, view: chosenView, week, turno }, setUrlState] = useState(() => parseBookingsUrl(searchParams));
     const [pageSize, setPageSize] = useState(10);
     const [page, setPage] = useState(0);
 
     const update = (patch: Partial<BookingsUrlState>) => {
-        const next = { tab, filters, range, view: chosenView, week, ...patch };
+        const next = { tab, filters, range, view: chosenView, week, turno, ...patch };
         setUrlState(next);
-        setPage(0);
+        if (!('turno' in patch)) setPage(0);
         const params = writeBookingsUrl(next, new URLSearchParams(window.location.search));
         window.history.replaceState(null, '', params.size ? `${window.location.pathname}?${params}` : window.location.pathname);
     };
@@ -144,6 +143,12 @@ export function BookingsView({ bookings, now, preferences }: { bookings: Booking
     const filtered = filters.length > 0 || range !== null;
     const empty = TABS.find((t) => t.id === tab)!.empty;
     const matching = bookings.filter((b) => matches(b, filters) && matchesRange(b, range));
+
+    // Un ?turno= que no está en la lista se ignora; uno que sí está se abre aunque la pestaña o los filtros lo oculten, sin vecinos.
+    const open = bookings.find((b) => b.id === turno) ?? null;
+    const visible = view === 'calendar' ? sortForTab('upcoming', bookingsOfWeek(matching, currentWeek)) : inTab;
+    const { previous, next } = open ? neighboursOf(visible, open.id) : { previous: null, next: null };
+    const openBooking = (id: number) => update({ turno: id });
 
     return (
         <div className="flex-1 bg-white px-4 py-8 text-[#0f1b2d] sm:px-8">
@@ -210,6 +215,7 @@ export function BookingsView({ bookings, now, preferences }: { bookings: Booking
                     bookings={matching}
                     week={currentWeek}
                     preferences={preferences}
+                    onOpen={openBooking}
                 />
             ) : inTab.length > 0 ? (
                 <>
@@ -221,7 +227,7 @@ export function BookingsView({ bookings, now, preferences }: { bookings: Booking
                                 </h2>
                                 <ul className="m-0 list-none divide-y divide-[#e5e7eb] p-0">
                                     {group.items.map((b) => (
-                                        <BookingRow key={b.id} booking={b} tab={tab} timeFormat={preferences.timeFormat} />
+                                        <BookingRow key={b.id} booking={b} now={now} timeFormat={preferences.timeFormat} onOpen={openBooking} />
                                     ))}
                                 </ul>
                             </section>
@@ -254,6 +260,16 @@ export function BookingsView({ bookings, now, preferences }: { bookings: Booking
                     </p>
                 </div>
             )}
+
+            <BookingDetailsSheet
+                booking={open}
+                previous={previous}
+                next={next}
+                now={now}
+                preferences={preferences}
+                onSelect={openBooking}
+                onClose={() => update({ turno: null })}
+            />
         </div>
     );
 }

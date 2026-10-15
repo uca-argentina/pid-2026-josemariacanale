@@ -1,4 +1,4 @@
-import { badgesOf, cabinOf, canMarkNoShow, formatTime, formatTimeRange, groupByDay, hasPendingDeposit, matches, matchesRange, placeOf, sortForTab, tabOf, type Booking } from '@/app/(app)/bookings/_components/booking-helpers';
+import { actionsOf, badgesOf, cancellationOf, neighboursOf, statusBadgesOf, cabinOf, canMarkNoShow, groupByDay, hasPendingDeposit, matches, matchesRange, sortForTab, tabOf, type Booking } from '@/app/(app)/bookings/_components/booking-helpers';
 
 const NOW = Date.parse('2026-09-15T15:00:00-03:00');
 
@@ -21,20 +21,44 @@ const booking = (patch: Partial<Booking>): Booking => ({
     branch: { id: 4, name: 'Centro' },
     cabin: null,
     fromRescheduleId: null,
+    cancelledBy: null,
+    cancellationReason: null,
+    cancellationCause: null,
     ...patch,
-});
-
-describe('placeOf', () => {
-    it('muestra Negocio y Sucursal, o Servicio personal si el Turno no tiene Negocio', () => {
-        expect(placeOf(booking({}))).toBe('Spa · Centro');
-        expect(placeOf(booking({ employeeId: null, business: null, branch: null }))).toBe('Servicio personal');
-    });
 });
 
 describe('cabinOf', () => {
     it('da el nombre de la Cabina, o null si el Turno no ocupa ninguna', () => {
         expect(cabinOf(booking({ cabin: { id: 6, name: 'Box 1' } }))).toBe('Box 1');
         expect(cabinOf(booking({}))).toBeNull();
+    });
+});
+
+describe('cancellationOf', () => {
+    it('un Turno que no está cancelado ni rechazado no tiene nada que mostrar', () => {
+        expect(cancellationOf(booking({}))).toBeNull();
+        expect(cancellationOf(booking({ status: 'CANCELLED' }))).toBeNull();
+    });
+
+    it('dice quién Canceló y el Motivo', () => {
+        expect(cancellationOf(booking({ status: 'CANCELLED', cancelledBy: 'CLIENT', cancellationReason: 'No llego' }))).toEqual({
+            by: 'el Cliente',
+            reason: 'No llego',
+            cause: null,
+        });
+        expect(cancellationOf(booking({ status: 'REJECTED', cancelledBy: 'EMPLOYEE' }))).toEqual({ by: 'el Empleado', reason: null, cause: null });
+        expect(cancellationOf(booking({ status: 'CANCELLED', cancelledBy: 'RETIREMENT' }))?.by).toBe('una baja');
+    });
+
+    it.each([
+        ['OUT_OF_OFFICE', 'Fuera de la oficina'],
+        ['PUBLIC_HOLIDAY', 'Día festivo'],
+        ['SCHEDULE_CHANGE', 'Cambio de horario'],
+    ] as const)('la Causa %s se muestra como "%s"', (cause, label) => {
+        const shown = cancellationOf(
+            booking({ status: 'CANCELLED', cancelledBy: 'EMPLOYEE', cancellationReason: 'Estoy de viaje', cancellationCause: cause }),
+        );
+        expect(shown).toEqual({ by: 'el Empleado', reason: 'Estoy de viaje', cause: label });
     });
 });
 
@@ -105,32 +129,23 @@ describe('badgesOf', () => {
     });
 });
 
-describe('Falta del Empleado', () => {
-    it('lleva el badge rojo "Falta del Empleado"', () => {
+describe('Ausencia del Anfitrión y del Invitado', () => {
+    it('lleva el badge rojo "Ausencia del Anfitrión"', () => {
         expect(badgesOf(booking({ employeeNoShowAt: '2026-09-15T20:00:00.000Z' }))).toEqual([
-            { label: 'Falta del Empleado', className: expect.stringContaining('#b91c1c') },
+            { label: 'Ausencia del Anfitrión', className: expect.stringContaining('#b91c1c') },
         ]);
     });
 
-    it('no ofrece Marcar ausencia con Falta del Empleado ni con Ausencia', () => {
+    it('lleva el badge rojo "Ausencia del Invitado"', () => {
+        expect(badgesOf(booking({ noShowAt: '2026-09-15T20:00:00.000Z' }))).toEqual([
+            { label: 'Ausencia del Invitado', className: expect.stringContaining('#b91c1c') },
+        ]);
+    });
+
+    it('no ofrece Marcar Ausencia del Invitado con Ausencia del Anfitrión ni con Ausencia del Invitado', () => {
         expect(canMarkNoShow(booking({}))).toBe(true);
         expect(canMarkNoShow(booking({ employeeNoShowAt: '2026-09-15T20:00:00.000Z' }))).toBe(false);
         expect(canMarkNoShow(booking({ noShowAt: '2026-09-15T20:00:00.000Z' }))).toBe(false);
-    });
-});
-
-describe('formatTime / formatTimeRange', () => {
-    const at = '2026-09-15T14:30:00-03:00';
-
-    it('con timeFormat 24 da "14:30"; con 12, "2:30 p. m."', () => {
-        expect(formatTime(at, 24)).toBe('14:30');
-        expect(formatTime(at, 12)).toBe('2:30 p. m.');
-        expect(formatTime('2026-09-15T00:05:00-03:00', 12)).toBe('12:05 a. m.');
-    });
-
-    it('sin timeFormat usa 24 horas', () => {
-        expect(formatTimeRange(booking({ startsAt: at, endsAt: '2026-09-15T15:00:00-03:00' }))).toBe('14:30 – 15:00');
-        expect(formatTimeRange(booking({ startsAt: at, endsAt: '2026-09-15T15:00:00-03:00' }), 12)).toBe('2:30 p. m. – 3:00 p. m.');
     });
 });
 
@@ -147,5 +162,57 @@ describe('matchesRange', () => {
 
     it('sin rango deja pasar todo', () => {
         expect(matchesRange(booking({}), null)).toBe(true);
+    });
+});
+
+
+describe('actionsOf', () => {
+    const PAST = Date.parse('2026-09-16T15:00:00-03:00');
+
+    it('un Turno pendiente se acepta o se rechaza, y no tiene menú', () => {
+        expect(actionsOf(booking({ status: 'PENDING' }), NOW)).toEqual({ main: ['accept', 'reject'], menu: [] });
+    });
+
+    it('un Turno aceptado y futuro se cancela o se reagenda desde el menú', () => {
+        expect(actionsOf(booking({}), NOW)).toEqual({ main: [], menu: ['cancel', 'reschedule'] });
+    });
+
+    it('un Turno aceptado y pasado se marca con Ausencia, salvo que ya tenga una marca', () => {
+        expect(actionsOf(booking({}), PAST)).toEqual({ main: [], menu: ['no-show'] });
+        expect(actionsOf(booking({ noShowAt: '2026-09-15T20:00:00.000Z' }), PAST)).toEqual({ main: [], menu: [] });
+        expect(actionsOf(booking({ employeeNoShowAt: '2026-09-15T20:00:00.000Z' }), PAST)).toEqual({ main: [], menu: [] });
+    });
+
+    it('un Turno cancelado o rechazado no tiene acciones', () => {
+        expect(actionsOf(booking({ status: 'CANCELLED' }), NOW)).toEqual({ main: [], menu: [] });
+        expect(actionsOf(booking({ status: 'REJECTED' }), NOW)).toEqual({ main: [], menu: [] });
+    });
+});
+
+describe('neighboursOf', () => {
+    const list = [booking({ id: 1 }), booking({ id: 2 }), booking({ id: 3 })];
+
+    it('da el anterior y el siguiente en el orden de la lista', () => {
+        expect(neighboursOf(list, 2)).toEqual({ previous: list[0], next: list[2] });
+    });
+
+    it('en los extremos falta uno de los dos', () => {
+        expect(neighboursOf(list, 1)).toEqual({ previous: null, next: list[1] });
+        expect(neighboursOf(list, 3)).toEqual({ previous: list[1], next: null });
+    });
+
+    it('un Turno que no está en la lista no tiene vecinos', () => {
+        expect(neighboursOf(list, 9)).toEqual({ previous: null, next: null });
+    });
+});
+
+describe('statusBadgesOf', () => {
+    it('un Turno aceptado sin marcas es Aceptado', () => {
+        expect(statusBadgesOf(booking({})).map((b) => b.label)).toEqual(['Aceptado']);
+    });
+
+    it('suma los badges de la lista a los del estado', () => {
+        expect(statusBadgesOf(booking({ status: 'PENDING' })).map((b) => b.label)).toEqual(['Pendiente']);
+        expect(statusBadgesOf(booking({ noShowAt: '2026-09-15T20:00:00.000Z', fromRescheduleId: 4 })).map((b) => b.label)).toEqual(['Ausencia del Invitado', 'Reagendado']);
     });
 });

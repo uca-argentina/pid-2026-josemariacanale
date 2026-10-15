@@ -174,6 +174,8 @@ describe('PrismaCabinsRepository (real database)', () => {
         dailyLimit: null,
         slotInterval: null,
         minimumNoticeMinutes: 0,
+        repeatEveryWeeks: null,
+        repeatMaxBookings: null,
         employees: [{ employeeId: employee.id, availabilityId: availability.id }],
         cabinIds,
       });

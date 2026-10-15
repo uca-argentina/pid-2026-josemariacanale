@@ -5,6 +5,20 @@ export enum BookingStatus {
   CANCELLED = 'CANCELLED',
 }
 
+/** Quién cancela o rechaza un Turno, o Reagenda el original (ADR 0033); `RETIREMENT` es una baja. */
+export enum BookingActor {
+  EMPLOYEE = 'EMPLOYEE',
+  CLIENT = 'CLIENT',
+  RETIREMENT = 'RETIREMENT',
+}
+
+/** Por qué se Canceló un Turno cuando lo cancela un cambio en el horario de quien lo atiende (ADR 0034). */
+export enum CancellationCause {
+  OUT_OF_OFFICE = 'OUT_OF_OFFICE',
+  PUBLIC_HOLIDAY = 'PUBLIC_HOLIDAY',
+  SCHEDULE_CHANGE = 'SCHEDULE_CHANGE',
+}
+
 /** Calificación: the score the Cliente left on an attended Turno from its Enlace del Turno. */
 export interface BookingRating {
   /** From 1 to 5. */
@@ -31,14 +45,16 @@ export interface Booking {
   status: BookingStatus;
   /** Comentario del Turno. */
   notes: string | null;
-  /** Ausencia: when the Empleado marked it; null while not marked. */
+  /** Ausencia del Invitado: when the Empleado marked it; null while not marked. */
   noShowAt: Date | null;
-  /** Falta del Empleado: when the Cliente marked it from the Enlace del Turno; null while not marked. */
+  /** Ausencia del Anfitrión: when the Cliente marked it from the Enlace del Turno; null while not marked. */
   employeeNoShowAt: Date | null;
   /** Enlace del Turno (ADR 0022): identificador secreto, único y no adivinable que abre este Turno sin Código de verificación. Al Reagendar pasa al Turno nuevo y el original queda sin Enlace. */
   link: string | null;
   /** The original Turno this one replaced when Reagendar (ADR 0031); null if it was not born from one. */
   fromRescheduleId: number | null;
+  /** Serie (#303): shared by the Turnos booked together with Repetición; null in a Turno suelto. Reagendar keeps it. */
+  seriesId: string | null;
   /** Empleado elegido: the Cliente came in by this Empleado's Enlace de reserva, so the Turno stays with them. */
   employeeChosen: boolean;
   /** Seña del Turno, fixed at booking (see `depositAmountFor`); null if the Servicio asked for none. */
@@ -47,6 +63,14 @@ export interface Booking {
   depositPaidAt: Date | null;
   /** The Servicio's price fixed at booking: later changes to the Servicio don't touch it. */
   price: number;
+  /** Aceptar turno: when it was accepted, or created already BOOKED, from the clock; null while PENDING. */
+  acceptedAt: Date | null;
+  /** Who cancelled or rejected it, or Reagendó it in the original (ADR 0033); null unless CANCELLED or REJECTED, and in Turnos cancelled before it was recorded. */
+  cancelledBy: BookingActor | null;
+  /** Motivo de cancelación: free text of up to 500 characters; null without `cancelledBy` or when none was given. */
+  cancellationReason: string | null;
+  /** Causa de cancelación (ADR 0034): set only in a Turno cancelled by a change in the horario of whoever attends it, together with a Motivo de cancelación Agendic wrote; null otherwise. */
+  cancellationCause: CancellationCause | null;
   /** Cancelar: when it was cancelled, from the clock; null unless CANCELLED. */
   cancelledAt: Date | null;
   /** Rechazar turno: when it was rejected, from the clock; null unless REJECTED. */
@@ -66,8 +90,16 @@ export const depositAmountFor = (
   return Math.round(Number((price * depositPercent).toFixed(6))) / 100;
 };
 
-/** Who to send an Aviso de cambio del Turno to: the Cliente's email and the Turno's Enlace del Turno. */
-export type ClientNotice = Pick<Booking, 'clientEmail' | 'link'>;
+/** Who to send an Aviso de cambio del Turno to: the Cliente's email, the Turno's Enlace del Turno and, if it was cancelled or rejected with one, the Motivo de cancelación. */
+export type ClientNotice = Pick<Booking, 'clientEmail' | 'link'> &
+  Partial<Pick<Booking, 'cancellationReason'>>;
+
+/** Un Turno a Cancelar por un cambio en el horario de quien lo atiende (ADR 0034), con la Causa y el Motivo de cancelación que Agendic le escribió. */
+export interface CausedCancellationOrder {
+  id: number;
+  cause: CancellationCause;
+  reason: string;
+}
 
 /** A Turno as the panel shows it (ADR 0030): with the Cabina it occupies, which the Cliente never sees. */
 export interface PanelBooking extends Booking {
@@ -75,10 +107,25 @@ export interface PanelBooking extends Booking {
   cabin: { id: number; name: string } | null;
 }
 
-/** A pending or accepted Turno still to come, with the zone of the Availability its Usuario attends it with. */
+/** A pending or accepted Turno still to come, with the Availability its Usuario attends it with. */
 export interface UpcomingBooking
-  extends Pick<Booking, 'id' | 'startsAt' | 'clientName'> {
+  extends Pick<
+    Booking,
+    'id' | 'startsAt' | 'prepStartsAt' | 'endsAt' | 'clientName' | 'clientEmail'
+  > {
+  /** The Availability the Turno is attended with: the Empleado's for the Servicio, or the Servicio personal's. */
+  availabilityId: number;
+  /** The zone of that Availability. */
   timeZone: string;
+  /** The zone the Cliente sees the Turno in: the Sucursal's, or the Availability's in a Servicio personal. */
+  clientTimeZone: string;
+  serviceName: string;
+  /** Enlace del Turno; null only in a Turno Reagendar replaced, which is never upcoming. */
+  link: string | null;
+  /** Null in a Servicio personal, together with `branch`. */
+  business: { id: number; name: string } | null;
+  /** Null in a Servicio personal, together with `business`. */
+  branch: { id: number; name: string } | null;
 }
 
 /** A Turno as the Usuario who attends it sees it in Mis turnos (ADR 0023): with the names of where it happens. */
@@ -116,6 +163,15 @@ export interface ClientBooking extends Booking {
   } | null;
   /** The Enlace de reserva del Usuario that attends a Servicio personal. Null in a Servicio del Negocio. */
   user: { slug: string | null } | null;
+  /** The Turnos vigentes of its Serie (#304) by date, itself included, without the originals replaced by Reagendar. Null in a Turno suelto. */
+  series: { bookings: SeriesBooking[] } | null;
+}
+
+/** A Turno of a Serie as the Enlace del Turno lists it, with the Enlace del Turno to open it. */
+export interface SeriesBooking {
+  startsAt: Date;
+  status: BookingStatus;
+  link: string;
 }
 
 export interface CreateBookingInput {
@@ -128,7 +184,20 @@ export interface CreateBookingInput {
   employeeId?: number;
   /** El Código de verificación pedido para clientEmail (ADR 0022). */
   code: string;
+  /** Reservar una Serie (#303): `startsAt` es el primer Turno y `count` cuántas fechas tiene la Serie. */
+  repeat?: SeriesRepeat;
 }
+
+/** What Reservar a Serie asks for: how many dates the Serie has, and which of them the Cliente leaves out. */
+export interface SeriesRepeat {
+  count: number;
+  /** `YYYY-MM-DD` dates of the Serie not to book. */
+  skipDates?: string[];
+}
+
+/** Message of the 409 of a Serie whose dates can't all be booked; the front reads the dates after the colon. */
+export const seriesDatesNotAvailable = (dates: string[]) =>
+  `Series dates not available: ${dates.join(',')}`;
 
 /** The 409 of a Servicio whose Límite diario that day is already reached, wherever it is detected. */
 export const DAILY_LIMIT_REACHED = 'The Service reached its Límite diario that day';

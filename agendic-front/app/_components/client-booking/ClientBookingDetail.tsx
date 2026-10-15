@@ -11,7 +11,7 @@ import type { ClientBooking, ClientBookingActionResult } from './types';
 
 /**
  * Muestra el detalle de un Turno del Cliente, con Pagar seña, Reagendar y Cancelar abajo cuando todavía se puede, y el aviso de
- * que el Empleado no vino (Falta del Empleado) cuando el back lo permite, y la Calificación (formulario o solo lectura).
+ * que quien lo atiende no vino (Ausencia del Anfitrión) cuando el back lo permite, y la Calificación (formulario o solo lectura).
  * Quien lo usa pasa sus propias acciones en `payDeposit`, `cancel`, `reschedule`, `markEmployeeNoShow` y `rate`.
  */
 export function ClientBookingDetail({
@@ -76,7 +76,7 @@ export function ClientBookingDetail({
             )}
 
             {booking.employeeNoShowAt !== null && (
-                <p className="mt-3 text-[14px] font-semibold">Marcaste que {booking.employeeName} no vino</p>
+                <p className="mt-3 text-[14px] font-semibold">Ausencia del Anfitrión: marcaste que {booking.employeeName} no vino</p>
             )}
 
             {booking.branch && <p className="mt-4 text-[13.5px] text-muted-foreground">{booking.branch.address}</p>}
@@ -231,8 +231,8 @@ function MarkEmployeeNoShowConfirm({
         });
 
     return (
-        <div role="alertdialog" aria-label="Marcar que el Empleado no vino" className="mt-6 rounded-xl border border-border p-4">
-            <p className="text-[14px] font-semibold">¿Marcar que {employeeName} no vino? No se puede deshacer.</p>
+        <div role="alertdialog" aria-label="Marcar la Ausencia del Anfitrión" className="mt-6 rounded-xl border border-border p-4">
+            <p className="text-[14px] font-semibold">¿Marcar la Ausencia del Anfitrión de {employeeName}? No se puede deshacer.</p>
             {error && (
                 <p role="alert" className="mt-2 text-[13px] text-muted-foreground">
                     {error}
@@ -243,7 +243,7 @@ function MarkEmployeeNoShowConfirm({
                     Volver
                 </Button>
                 <Button onClick={confirm} disabled={pending} className="bg-foreground text-white hover:bg-foreground/90">
-                    {pending ? 'Marcando…' : 'Marcar que no vino'}
+                    {pending ? 'Marcando…' : 'Marcar la Ausencia del Anfitrión'}
                 </Button>
             </div>
         </div>

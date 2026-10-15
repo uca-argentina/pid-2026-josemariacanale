@@ -3,6 +3,36 @@ import { BusinessRuleError } from '../../domain/errors';
 import { Service } from '../../domain/services/service';
 
 /**
+ * Las Cabinas que admite el Servicio y están libres en `[prepStartsAt, endsAt)`, en el orden de la regla de la ADR 0030:
+ * la que hace más tiempo que no recibe un Turno de cualquier Servicio primero (sin Turnos previos, gana esa; si
+ * empatan, la de menor id). `excludeBookingId` deja libre el tramo del propio Turno al Reagendar.
+ */
+export async function freeCabinsInOrder(
+  bookings: BookingsRepository,
+  service: Pick<Service, 'cabins'>,
+  prepStartsAt: Date,
+  endsAt: Date,
+  excludeBookingId?: number,
+): Promise<number[]> {
+  const cabinIds = service.cabins.map(({ id }) => id);
+  if (cabinIds.length === 0) return [];
+  const taken = new Set(
+    (
+      await bookings.listOccupiedByCabins(cabinIds, prepStartsAt, endsAt, excludeBookingId)
+    ).map(({ cabinId }) => cabinId),
+  );
+  const free = cabinIds.filter((id) => !taken.has(id));
+  if (free.length === 0) return [];
+  const lastReceived = await bookings.lastReceivedByCabin(free, excludeBookingId);
+  // Never received sorts first (0); equal times fall back to the lower id.
+  return free.sort(
+    (a, b) =>
+      (lastReceived.get(a)?.getTime() ?? 0) -
+        (lastReceived.get(b)?.getTime() ?? 0) || a - b,
+  );
+}
+
+/**
  * Elige la Cabina de un Turno que ocupa `[prepStartsAt, endsAt)` (ADR 0030): entre las que admite el Servicio y están
  * libres en ese tramo, la que hace más tiempo que no recibe un Turno de cualquier Servicio (sin Turnos previos, gana
  * esa; si empatan, la de menor id). Un Servicio sin Cabinas no ocupa ninguna: devuelve `null`. Al Reagendar,
@@ -22,32 +52,18 @@ export async function pickCabin(
   }: { excludeBookingId?: number; keepCabinId?: number } = {},
 ): Promise<number | null> {
   if (service.cabins.length === 0) return null;
-  const cabinIds = service.cabins.map(({ id }) => id);
-  const taken = new Set(
-    (
-      await bookings.listOccupiedByCabins(
-        cabinIds,
-        prepStartsAt,
-        endsAt,
-        excludeBookingId,
-      )
-    ).map(({ cabinId }) => cabinId),
+  const free = await freeCabinsInOrder(
+    bookings,
+    service,
+    prepStartsAt,
+    endsAt,
+    excludeBookingId,
   );
-  const free = cabinIds.filter((id) => !taken.has(id));
   if (free.length === 0)
     throw new BusinessRuleError(
       `Slot ${startsAt.toISOString()} is not available for Service ${service.id}`,
     );
   if (keepCabinId !== undefined && free.includes(keepCabinId))
     return keepCabinId;
-  const lastReceived = await bookings.lastReceivedByCabin(
-    free,
-    excludeBookingId,
-  );
-  // Never received sorts first (0); equal times fall back to the lower id.
-  return free.sort(
-    (a, b) =>
-      (lastReceived.get(a)?.getTime() ?? 0) -
-        (lastReceived.get(b)?.getTime() ?? 0) || a - b,
-  )[0];
+  return free[0];
 }

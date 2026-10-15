@@ -1,6 +1,5 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { es } from '@daypicker/react/locale';
 import { CalendarRange, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/app/_components/ui/button';
@@ -9,7 +8,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/app/_components/ui/po
 import { Calendar as WeeklyCalendar } from '@/app/_components/weekly-view';
 import { toIsoDay, toLocalDay } from '@/app/_components/day-range';
 import type { Preferences } from '@/src/entities/models/user';
-import { localInstant, TIME_ZONE, type Booking } from './booking-helpers';
+import { localInstant, TIME_ZONE } from '@/app/(app)/_components/booking-format';
+import type { Booking } from './booking-helpers';
 import { addDays, bookingsOfWeek, toCalendarEvent, weekStartOf, weekTitle } from './calendar-week';
 
 /**
@@ -57,10 +57,18 @@ export function WeekNav({
     );
 }
 
-/** Grilla semanal de los Turnos aceptados y pendientes de la semana `week`. */
-export function BookingsCalendar({ bookings, week, preferences }: { bookings: Booking[]; week: string; preferences: Preferences }) {
-    const router = useRouter();
-
+/** Grilla semanal de los Turnos aceptados y pendientes de la semana `week`; un clic en uno llama a `onOpen` con su id. */
+export function BookingsCalendar({
+    bookings,
+    week,
+    preferences,
+    onOpen,
+}: {
+    bookings: Booking[];
+    week: string;
+    preferences: Preferences;
+    onOpen: (id: number) => void;
+}) {
     return (
         <div className="mt-4">
             <div className="flex h-[calc(100vh-16rem)] flex-col overflow-x-hidden overflow-y-auto rounded-md border">
@@ -78,7 +86,7 @@ export function BookingsCalendar({ bookings, week, preferences }: { bookings: Bo
                     showBackgroundPattern={false}
                     showBorder={false}
                     borderColor="subtle"
-                    onEventClick={(event) => router.push(`/bookings/${event.id}`)}
+                    onEventClick={(event) => onOpen(Number(event.id))}
                     showTimezone
                     hideHeader
                     updateCurrentTimeOnFocus

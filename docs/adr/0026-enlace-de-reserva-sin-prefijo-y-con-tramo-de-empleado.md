@@ -1,5 +1,7 @@
 # Enlace de reserva sin prefijo y con tramo de Empleado
 
+_Ampliada por la ADR 0029: el Empleado elegido sale también de la lista de la página de reserva, con la misma semántica._
+
 Reabre de la ADR 0021 dos cosas: el prefijo `/u/` del Enlace de reserva del Usuario, y que en un Servicio del Negocio el Cliente nunca elige con quién. Amplía la ADR 0014 (tramo de Sucursal) y la ADR 0018 (tramo de Servicio). Spec: #209.
 
 El Enlace de reserva pierde los prefijos del front. El primer tramo es el de un Negocio **o** el de un Usuario, y los dos comparten un solo espacio de nombres:
@@ -47,4 +49,4 @@ Un Turno reservado por el enlace de un Empleado guarda `Booking.employeeChosen`.
 
 ## Empleado elegido
 
-Entrar por `/<negocio>/<sucursal>/<servicio>/<empleado>` deja un Empleado elegido: el front busca al Empleado por `employees[].slug`, pide los Horarios reservables con `employeeId` y Reserva con `employeeId`. El Turno guarda `Booking.employeeChosen`. Con él no hay round robin y, si el Empleado no está libre, no se pasa a otro (422). Reagendar, por el Cliente o por el Empleado, solo acepta horarios de ese Empleado; si dejó de Ofrecer el Servicio el Turno sigue en pie pero no se puede Reagendar, solo Cancelar.
+Entrar por `/<negocio>/<sucursal>/<servicio>/<empleado>` deja un Empleado elegido: el front busca al Empleado por `employees[].slug`, pide los Horarios reservables con `employeeId` y Reserva con `employeeId`. El Turno guarda `Booking.employeeChosen`. Con él (o sin ese tramo, con el Empleado elegido en la lista, ADR 0029) no hay round robin y, si el Empleado no está libre, no se pasa a otro (422). Reagendar, por el Cliente o por el Empleado, solo acepta horarios de ese Empleado; si dejó de Ofrecer el Servicio el Turno sigue en pie pero no se puede Reagendar, solo Cancelar.

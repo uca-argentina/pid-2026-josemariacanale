@@ -16,9 +16,12 @@ import { DeleteAvailabilityUseCase } from '../../application/availabilities/dele
 import { GetAvailabilityUseCase } from '../../application/availabilities/get-availability.use-case';
 import { ListAvailabilitiesUseCase } from '../../application/availabilities/list-availabilities.use-case';
 import { MakeDefaultAvailabilityUseCase } from '../../application/availabilities/make-default-availability.use-case';
+import { PreviewAvailabilityUseCase } from '../../application/availabilities/preview-availability.use-case';
 import { UpdateAvailabilityUseCase } from '../../application/availabilities/update-availability.use-case';
 import { ClerkGuard, CurrentUser } from '../users/clerk.guard';
+import { presentLeftOutside } from '../out-of-office/out-of-office.presenter';
 import {
+  ConfirmedAvailabilityDto,
   CreateAvailabilityDto,
   UpdateAvailabilityDto,
 } from './availabilities.dto';
@@ -35,6 +38,7 @@ export class AvailabilitiesController {
     private readonly listAvailabilitiesUseCase: ListAvailabilitiesUseCase,
     private readonly getAvailabilityUseCase: GetAvailabilityUseCase,
     private readonly createAvailabilityUseCase: CreateAvailabilityUseCase,
+    private readonly previewAvailabilityUseCase: PreviewAvailabilityUseCase,
     private readonly updateAvailabilityUseCase: UpdateAvailabilityUseCase,
     private readonly makeDefaultAvailabilityUseCase: MakeDefaultAvailabilityUseCase,
     private readonly deleteAvailabilityUseCase: DeleteAvailabilityUseCase,
@@ -67,20 +71,34 @@ export class AvailabilitiesController {
     );
   }
 
+  /** Los Turnos que guardar la Availability dejaría afuera; no guarda nada. */
+  @Post(':id/preview')
+  @HttpCode(200)
+  async preview(
+    @CurrentUser() userId: number,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateAvailabilityDto,
+  ) {
+    return (
+      await this.previewAvailabilityUseCase.execute(userId, id, toFields(dto))
+    ).map(presentLeftOutside);
+  }
+
+  /** Reemplaza la Availability y cancela los Turnos que el cambio deja afuera, los que el Usuario confirmó. */
   @Put(':id')
   async update(
     @CurrentUser() userId: number,
     @Param('id', ParseIntPipe) id: number,
-    @Body() { name, timeZone, schedule, overrides }: UpdateAvailabilityDto,
+    @Body() dto: ConfirmedAvailabilityDto,
   ) {
-    return presentAvailability(
-      await this.updateAvailabilityUseCase.execute(userId, id, {
-        name,
-        timeZone,
-        schedule,
-        overrides,
-      }),
-    );
+    const { availability, cancelledBookings } =
+      await this.updateAvailabilityUseCase.execute(
+        userId,
+        id,
+        toFields(dto),
+        dto.cancelBookingIds,
+      );
+    return { ...presentAvailability(availability), cancelledBookings };
   }
 
   @Patch(':id/default')
@@ -102,3 +120,10 @@ export class AvailabilitiesController {
     await this.deleteAvailabilityUseCase.execute(userId, id);
   }
 }
+
+const toFields = ({
+  name,
+  timeZone,
+  schedule,
+  overrides,
+}: UpdateAvailabilityDto) => ({ name, timeZone, schedule, overrides });

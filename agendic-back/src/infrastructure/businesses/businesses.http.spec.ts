@@ -67,6 +67,8 @@ const ANAS_SERVICE = {
   dailyLimit: null,
   slotInterval: null,
   minimumNoticeMinutes: 0,
+  repeatEveryWeeks: null,
+  repeatMaxBookings: null,
   employees: [
     {
       id: ANAS_EMPLOYEE.id,
@@ -158,6 +160,8 @@ describe('Negocio', () => {
           dailyLimit: null,
           slotInterval: null,
           minimumNoticeMinutes: 0,
+          repeatEveryWeeks: null,
+          repeatMaxBookings: null,
         },
         employee: { userId: ANA.id },
         branchImageUrls: [URLS[0]],
@@ -183,6 +187,8 @@ describe('Negocio', () => {
           dailyLimit: null,
           slotInterval: null,
           minimumNoticeMinutes: 0,
+          repeatEveryWeeks: null,
+          repeatMaxBookings: null,
           employees: [
             {
               id: ANAS_EMPLOYEE.id,
@@ -270,6 +276,8 @@ describe('Negocio', () => {
             dailyLimit: null,
             slotInterval: null,
             minimumNoticeMinutes: 0,
+            repeatEveryWeeks: null,
+            repeatMaxBookings: null,
           },
         }),
       );
@@ -294,6 +302,8 @@ describe('Negocio', () => {
             dailyLimit: null,
             slotInterval: null,
             minimumNoticeMinutes: 0,
+            repeatEveryWeeks: null,
+            repeatMaxBookings: null,
           },
         }),
       );

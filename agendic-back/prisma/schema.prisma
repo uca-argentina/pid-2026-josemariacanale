@@ -29,6 +29,20 @@ enum BookingStatus {
   CANCELLED
 }
 
+/// Quién hizo que un Turno terminara CANCELLED o REJECTED (ADR 0033).
+enum BookingActor {
+  EMPLOYEE
+  CLIENT
+  RETIREMENT
+}
+
+/// Por qué se Canceló un Turno cuando lo cancela un cambio en el horario de quien lo atiende (ADR 0034).
+enum CancellationCause {
+  OUT_OF_OFFICE
+  PUBLIC_HOLIDAY
+  SCHEDULE_CHANGE
+}
+
 enum ServiceCategory {
   CLINICA
   SPA
@@ -170,6 +184,8 @@ model Service {
   dailyLimit           Int? // Límite diario: PENDING and BOOKED Turnos per local day of the Sucursal; null when there is none
   slotInterval         Int? // Intervalo: minutes between Horario reservable starts; null means the duration
   minimumNoticeMinutes Int             @default(0) // Anticipación mínima: minutes that must remain before a Turno starts to Reservar it
+  repeatEveryWeeks     Int? // Repetición: weeks between the Turnos of a Serie; null with repeatMaxBookings when there is none (CHECK: both or neither)
+  repeatMaxBookings    Int? // Repetición: most Turnos a Serie may have, 2 to 10
 
   branch       Branch?           @relation(fields: [branchId], references: [id], onDelete: Restrict)
   user         User?             @relation(fields: [userId], references: [id], onDelete: Restrict)
@@ -276,8 +292,8 @@ model Booking {
   endsAt           DateTime      @db.Timestamptz(3) // startsAt + Service.durationMinutes, fixed at booking
   status           BookingStatus // fijado al crear: BOOKED, o PENDING con Aprobación manual (ADR 0022)
   notes            String? // Comentario del Turno, up to 500 characters (checked by the API)
-  noShowAt         DateTime?     @db.Timestamptz(3) // Ausencia: when the Empleado marked it; never replaces status
-  employeeNoShowAt DateTime?     @db.Timestamptz(3) // Falta del Empleado: when the Cliente marked it from the Enlace del Turno; never replaces status, and excludes noShowAt (CHECK, ADR 0004)
+  noShowAt         DateTime?     @db.Timestamptz(3) // Ausencia del Invitado: when the Empleado marked it; never replaces status
+  employeeNoShowAt DateTime?     @db.Timestamptz(3) // Ausencia del Anfitrión: when the Cliente marked it from the Enlace del Turno; never replaces status, and excludes noShowAt (CHECK, ADR 0004)
   link             String?       @unique // Enlace del Turno (ADR 0022): secret, random, URL-safe, generated at creation; Reagendar moves it to the new Turno (ADR 0031), leaving null in the original
   employeeChosen   Boolean       @default(false) // Empleado elegido (ADR 0026): the Cliente came in by this Empleado's Enlace de reserva; Reagendar never moves it to another
   depositAmount    Decimal?      @db.Decimal(10, 2) // Seña pendiente: price × depositPercent / 100 at booking, rounded to the cent; null if the Servicio asked for none. Later changes to the Servicio don't touch it
@@ -285,9 +301,14 @@ model Booking {
   price            Decimal       @db.Decimal(10, 2) // the Servicio's price fixed at booking, like depositAmount; later changes to the Servicio don't touch it
   cancelledAt      DateTime?     @db.Timestamptz(3) // Cancelar: when it was cancelled; only with status CANCELLED (CHECK, ADR 0004)
   rejectedAt       DateTime?     @db.Timestamptz(3) // Rechazar turno: when it was rejected; only with status REJECTED (CHECK, ADR 0004)
+  acceptedAt       DateTime?     @db.Timestamptz(3) // Aceptar turno: when it was accepted, or created already BOOKED; null while PENDING (ADR 0033)
+  cancelledBy      BookingActor? // who cancelled or rejected it, or Reagendó it in the original; only with status CANCELLED or REJECTED (CHECK, ADR 0004); null in Turnos cancelled before it existed
+  cancellationReason String? // Motivo de cancelación, up to 500 characters (checked by the API); only with cancelledBy (CHECK, ADR 0004)
+  cancellationCause CancellationCause? // Causa de cancelación; only CANCELLED by EMPLOYEE with a cancellationReason (CHECK, ADR 0004)
   rescheduled      Boolean? // Reagendar (ADR 0031): true only in the original, which stays CANCELLED; null otherwise
   fromRescheduleId Int?          @unique // the original Turno this one replaced; null if it was not born from a Reagendar
   ratingRequestSentAt DateTime? @db.Timestamptz(3) // Invitación a calificar: when the mail was sent; null while not sent, so each Turno gets one
+  seriesId         String?       @db.Uuid // Serie (#303): shared by the Turnos booked together with Repetición; null in a Turno suelto. Reagendar copies it to the new Turno
   createdAt        DateTime      @default(now()) @db.Timestamptz(3)
 
   service        Service   @relation(fields: [serviceId], references: [id])
@@ -298,6 +319,8 @@ model Booking {
   fromReschedule Booking?  @relation("Reschedule", fields: [fromRescheduleId], references: [id])
   rescheduledTo  Booking?  @relation("Reschedule")
   rating         BookingRating?
+
+  @@index([seriesId])
 }
 
 /// Calificación: el puntaje de 1 a 5 (CHECK, ADR 0004) que el Cliente deja sobre un Turno atendido desde el Enlace del Turno. Una por Turno (índice único) y no se edita.

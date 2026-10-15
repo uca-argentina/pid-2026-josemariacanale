@@ -4,7 +4,7 @@ import { BookingsRepository } from '../../domain/bookings/bookings.repository';
 import { EmployeesRepository } from '../../domain/employees/employees.repository';
 import { BusinessRuleError } from '../../domain/errors';
 
-/** Shared by Aceptar and Rechazar turno: only the assigned Empleado, only on a PENDING Turno. */
+/** Shared by Aceptar and Rechazar turno: only the assigned Empleado, only on a PENDING Turno. `reason` is the Motivo de cancelación of a Rechazo. */
 export async function resolvePendingBooking(
   bookings: BookingsRepository,
   employees: EmployeesRepository,
@@ -12,6 +12,7 @@ export async function resolvePendingBooking(
   bookingId: number,
   status: BookingStatus.BOOKED | BookingStatus.REJECTED,
   now: Date,
+  reason: string | null = null,
 ): Promise<Booking> {
   const booking = await bookings.findById(bookingId);
   await assertAssignedAttendant(
@@ -22,5 +23,5 @@ export async function resolvePendingBooking(
   );
   if (booking.status !== BookingStatus.PENDING)
     throw new BusinessRuleError('Turno is not pending');
-  return bookings.resolvePending(bookingId, status, now);
+  return bookings.resolvePending(bookingId, status, now, reason);
 }

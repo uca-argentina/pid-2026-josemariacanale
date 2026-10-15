@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState } from 'react';
 import { CalendarIcon } from 'lucide-react';
 import { es } from '@daypicker/react/locale';
 import type { DateRange } from '@daypicker/react';
@@ -13,9 +13,17 @@ import { Label } from '@/app/_components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/app/_components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/_components/ui/select';
 import { Textarea } from '@/app/_components/ui/textarea';
-import type { OutOfOffice, OutOfOfficeReason } from '@/src/entities/models/out-of-office';
+import type { OutOfOffice, OutOfOfficeReason, SaveOutOfOffice } from '@/src/entities/models/out-of-office';
 import type { Preferences } from '@/src/entities/models/user';
-import { createOutOfOfficeAction, updateOutOfOfficeAction } from '../actions';
+import {
+    createOutOfOfficeAction,
+    previewOutOfOfficeAction,
+    previewUpdateOutOfOfficeAction,
+    updateOutOfOfficeAction,
+} from '../actions';
+import { LeftOutsideBookingsDialog } from '@/app/(app)/_components/LeftOutsideBookingsDialog';
+import { savedToast } from '@/app/(app)/_components/left-outside-bookings';
+import { useLeftOutsideSave } from '@/app/(app)/_components/use-left-outside-save';
 import { formatOutOfOfficeDate } from '@/app/_components/format-day';
 import { OUT_OF_OFFICE_REASONS } from '@/app/_components/out-of-office-reasons';
 import { fromCalendarRange, toCalendarRange } from '@/app/_components/day-range';
@@ -30,16 +38,22 @@ const todayAndTomorrow = (): DateRange => {
  * El modal "Fuera de la oficina": rango de fechas, Motivo, notas y si la nota es pública. Con `period` edita ese
  * período; sin él, crea uno. El 422 y el 409 del back se muestran dentro, sin cerrarlo.
  *
+ * Si guardar el período deja Turnos afuera (al editar, solo los de los días nuevos), abre encima el diálogo para
+ * confirmar su cancelación; si no, guarda directo.
+ *
  * @param weekStart primer día de la semana del Usuario (0 = domingo), para el Calendar
+ * @param timeFormat formato de hora del Usuario, para los Turnos que quedan afuera
  * @param onClose se llama al cancelar, al cerrar y tras guardar
  */
 export function OutOfOfficeDialog({
     period,
     weekStart,
+    timeFormat,
     onClose,
 }: {
     period: OutOfOffice | null;
     weekStart: Preferences['weekStart'];
+    timeFormat: Preferences['timeFormat'];
     onClose: () => void;
 }) {
     const [range, setRange] = useState<DateRange | undefined>(period ? toCalendarRange(period) : todayAndTomorrow());
@@ -47,23 +61,32 @@ export function OutOfOfficeDialog({
     const [notes, setNotes] = useState(period?.notes ?? '');
     const [showNotePublicly, setShowNotePublicly] = useState(period?.showNotePublicly ?? false);
     const [error, setError] = useState<string | null>(null);
-    const [isPending, startTransition] = useTransition();
 
     const days = fromCalendarRange(range);
     const hasNotes = notes.trim() !== '';
 
-    const save = () =>
-        startTransition(async () => {
-            if (!days) return;
-            const input = { ...days, reason, notes: notes.trim() || undefined, showNotePublicly: hasNotes && showNotePublicly };
-            const result = period ? await updateOutOfOfficeAction(period.id, input) : await createOutOfOfficeAction(input);
-            if (!result.ok) return setError(result.message);
-            toast.success(period ? 'Período actualizado' : 'Período creado');
+    const leftOutside = useLeftOutsideSave<SaveOutOfOffice>({
+        preview: (input) => (period ? previewUpdateOutOfOfficeAction(period.id, input) : previewOutOfOfficeAction(input)),
+        save: (input, cancelBookingIds) =>
+            period ? updateOutOfOfficeAction(period.id, input, cancelBookingIds) : createOutOfOfficeAction(input, cancelBookingIds),
+        onSaved: (cancelledBookings) => {
+            toast.success(savedToast(period ? 'Período actualizado' : 'Período creado', cancelledBookings));
             onClose();
-        });
+        },
+        onError: setError,
+    });
+    const busy = leftOutside.isPending;
+
+    const save = () => {
+        if (!days) return;
+        const input = { ...days, reason, notes: notes.trim() || undefined, showNotePublicly: hasNotes && showNotePublicly };
+        setError(null);
+        leftOutside.run(input);
+    };
 
     return (
-        <Dialog open onOpenChange={(open) => !open && !isPending && onClose()}>
+        <>
+        <Dialog open onOpenChange={(open) => !open && !busy && onClose()}>
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>{period ? 'Editar período fuera de la oficina' : 'Crear un período fuera de la oficina'}</DialogTitle>
@@ -148,14 +171,24 @@ export function OutOfOfficeDialog({
                     )}
                 </form>
                 <DialogFooter>
-                    <Button type="button" variant="outline" disabled={isPending} onClick={onClose}>
+                    <Button type="button" variant="outline" disabled={busy} onClick={onClose}>
                         Cancelar
                     </Button>
-                    <Button type="submit" form="out-of-office-form" disabled={!days || isPending}>
+                    <Button type="submit" form="out-of-office-form" disabled={!days || busy}>
                         {period ? 'Guardar' : 'Crear'}
                     </Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
+        {leftOutside.review && (
+            <LeftOutsideBookingsDialog
+                bookings={leftOutside.review}
+                timeFormat={timeFormat}
+                pending={leftOutside.isPending}
+                onBack={leftOutside.back}
+                onConfirm={leftOutside.confirm}
+            />
+        )}
+        </>
     );
 }

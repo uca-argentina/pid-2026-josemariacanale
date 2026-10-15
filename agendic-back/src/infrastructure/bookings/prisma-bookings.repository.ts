@@ -1,10 +1,15 @@
+import { randomUUID } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 import {
   Booking,
+  BookingActor,
   BookingStatus,
+  CancellationCause,
   ClientBooking,
+  SeriesBooking,
   DAILY_LIMIT_REACHED,
   PanelBooking,
+  seriesDatesNotAvailable,
   UpcomingBooking,
   UserBooking,
 } from '../../domain/bookings/booking';
@@ -14,6 +19,7 @@ import {
   CreateBookingData,
   DailyLimitGuard,
   RescheduleTimes,
+  SeriesBookingData,
 } from '../../domain/bookings/bookings.repository';
 import {
   BusinessRuleError,
@@ -29,6 +35,7 @@ import {
   BOOKING_NO_OVERLAP,
   isExclusionViolation,
 } from '../prisma-errors';
+import { HistoryBooking } from '../../domain/bookings/booking-history';
 import { PrismaService } from '../prisma.service';
 import { generateSecretLink } from '../secret-link';
 
@@ -57,10 +64,15 @@ const BOOKING_SELECT = {
   employeeNoShowAt: true,
   link: true,
   fromRescheduleId: true,
+  seriesId: true,
   employeeChosen: true,
   depositAmount: true,
   depositPaidAt: true,
   price: true,
+  acceptedAt: true,
+  cancelledBy: true,
+  cancellationReason: true,
+  cancellationCause: true,
   cancelledAt: true,
   rejectedAt: true,
   client: { select: { name: true, email: true } },
@@ -77,6 +89,15 @@ const PANEL_BOOKING_SELECT = {
 type PanelBookingRow = Prisma.BookingGetPayload<{
   select: typeof PANEL_BOOKING_SELECT;
 }>;
+
+/** `BOOKING_SELECT` plus when it was created and its Calificación, for the Historial del Turno. */
+const HISTORY_SELECT = {
+  ...BOOKING_SELECT,
+  createdAt: true,
+  rating: { select: { score: true, comment: true, createdAt: true } },
+} satisfies Prisma.BookingSelect;
+
+type HistoryRow = Prisma.BookingGetPayload<{ select: typeof HISTORY_SELECT }>;
 
 /** `BOOKING_SELECT` plus the Servicio, Negocio and Sucursal data the Enlace del Turno shows (ADR 0022). */
 const CLIENT_BOOKING_SELECT = {
@@ -167,6 +188,85 @@ export class PrismaBookingsRepository implements BookingsRepository {
             : translateError(error),
         ),
     );
+  }
+
+  /**
+   * Crea los Turnos de una Serie en una transacción. Cada intento va en un SAVEPOINT: Postgres anula la transacción al
+   * primer choque, y así se puede probar otra Cabina o seguir con la fecha siguiente para juntar todas las que fallan.
+   *
+   * @throws {ConflictError} `Series dates not available: <fechas>`
+   * @throws {DatabaseOperationError} falló la base
+   */
+  async createSeries(items: SeriesBookingData[]) {
+    const seriesId = randomUUID();
+    const rows = await this.prisma
+      .$transaction(async (tx) => {
+        const limited = [
+          ...new Set(items.flatMap(({ dailyLimit }) => (dailyLimit ? [dailyLimit.serviceId] : []))),
+        ].sort((a, b) => a - b);
+        for (const serviceId of limited)
+          await tx.$executeRaw`SELECT pg_advisory_xact_lock(${DAILY_LIMIT_LOCK}::int, ${serviceId}::int)`;
+
+        const created: BookingRow[] = [];
+        const failed: string[] = [];
+        let previousCabinId: number | null = null;
+        for (const { data: { clientName, clientEmail, ...booking }, date, cabinIds, dailyLimit } of items) {
+          if (dailyLimit) {
+            const { serviceId, limit, from, to } = dailyLimit;
+            const taken = await tx.booking.count({
+              where: { serviceId, status: { in: OCCUPYING }, startsAt: { gte: from, lt: to } },
+            });
+            if (taken >= limit) {
+              failed.push(date);
+              continue;
+            }
+          }
+          // The Cabina of the previous Turno of the Serie, if this one can take it, then the order of the rule.
+          const candidates: (number | null)[] =
+            cabinIds.length === 0
+              ? [null]
+              : previousCabinId !== null && cabinIds.includes(previousCabinId)
+                ? [previousCabinId, ...cabinIds.filter((id) => id !== previousCabinId)]
+                : cabinIds;
+          let row: BookingRow | null = null;
+          for (const cabinId of candidates) {
+            await tx.$executeRaw`SAVEPOINT series_booking`;
+            try {
+              row = await tx.booking.create({
+                select: BOOKING_SELECT,
+                data: {
+                  ...booking,
+                  cabinId,
+                  seriesId,
+                  link: generateSecretLink(),
+                  client: { create: { name: clientName, email: normalizeEmail(clientEmail) } },
+                },
+              });
+              await tx.$executeRaw`RELEASE SAVEPOINT series_booking`;
+              break;
+            } catch (error) {
+              await tx.$executeRaw`ROLLBACK TO SAVEPOINT series_booking`;
+              if (error instanceof Prisma.PrismaClientKnownRequestError) {
+                if (isExclusionViolation(error, BOOKING_CABIN_NO_OVERLAP)) continue;
+                // Another Cabina doesn't help if it is the Empleado who is taken.
+                if (isExclusionViolation(error, BOOKING_NO_OVERLAP)) break;
+              }
+              throw error;
+            }
+          }
+          if (!row) failed.push(date);
+          else {
+            created.push(row);
+            previousCabinId = row.cabinId;
+          }
+        }
+        if (failed.length > 0) throw new ConflictError(seriesDatesNotAvailable(failed));
+        return created;
+      })
+      .catch((error: unknown) =>
+        error instanceof ConflictError ? Promise.reject(error) : translateError(error),
+      );
+    return rows.map(toBooking);
   }
 
   /**
@@ -320,6 +420,25 @@ export class PrismaBookingsRepository implements BookingsRepository {
   }
 
   /**
+   * Recorre `fromRescheduleId` hacia atrás hasta el primer Turno de la cadena.
+   *
+   * @throws {NotFoundError} el Turno no existe
+   */
+  async findHistoryChain(id: number): Promise<HistoryBooking[]> {
+    const chain: HistoryBooking[] = [];
+    let nextId: number | null = id;
+    while (nextId !== null) {
+      const row: HistoryRow | null = await this.prisma.booking
+        .findUnique({ where: { id: nextId }, select: HISTORY_SELECT })
+        .catch(translateError);
+      if (!row) throw new NotFoundError('Booking not found');
+      chain.unshift({ ...toBooking(row), createdAt: row.createdAt, rating: row.rating });
+      nextId = row.fromRescheduleId;
+    }
+    return chain;
+  }
+
+  /**
    * @throws {NotFoundError} el Enlace no corresponde a ningún Turno
    */
   async findByLink(link: string): Promise<ClientBooking> {
@@ -327,7 +446,7 @@ export class PrismaBookingsRepository implements BookingsRepository {
       .findUnique({ where: { link }, select: CLIENT_BOOKING_SELECT })
       .catch(translateError);
     if (!row) throw new NotFoundError('Turno not found');
-    return toClientBooking(row);
+    return this.withSeries(row);
   }
 
   /**
@@ -338,7 +457,38 @@ export class PrismaBookingsRepository implements BookingsRepository {
       .findUnique({ where: { id }, select: CLIENT_BOOKING_SELECT })
       .catch(translateError);
     if (!row) throw new NotFoundError('Booking not found');
-    return toClientBooking(row);
+    return this.withSeries(row);
+  }
+
+  /** Adds the Turnos vigentes of its Serie (#304): by date, without the originals replaced by Reagendar, which have no Enlace. */
+  private async withSeries(row: ClientBookingRow): Promise<ClientBooking> {
+    const [booking] = await this.withSeriesAll([row]);
+    return booking;
+  }
+
+  /** `withSeries` for many rows with one query for all their Series, not one per row. */
+  private async withSeriesAll(rows: ClientBookingRow[]): Promise<ClientBooking[]> {
+    const seriesIds = [
+      ...new Set(rows.flatMap(({ seriesId }) => (seriesId === null ? [] : [seriesId]))),
+    ];
+    const bySeries = new Map<string, SeriesBooking[]>();
+    if (seriesIds.length > 0) {
+      const turnos = await this.prisma.booking
+        .findMany({
+          where: { seriesId: { in: seriesIds }, link: { not: null } },
+          select: { seriesId: true, startsAt: true, status: true, link: true },
+          orderBy: [{ startsAt: 'asc' }, { id: 'asc' }],
+        })
+        .catch(translateError);
+      for (const { seriesId, startsAt, status, link } of turnos) {
+        const list = bySeries.get(seriesId!) ?? [];
+        list.push({ startsAt, status: status as BookingStatus, link: link! });
+        bySeries.set(seriesId!, list);
+      }
+    }
+    return rows.map((row) =>
+      toClientBooking(row, row.seriesId === null ? null : { bookings: bySeries.get(row.seriesId) ?? [] }),
+    );
   }
 
   /**
@@ -349,18 +499,120 @@ export class PrismaBookingsRepository implements BookingsRepository {
     id: number,
     status: BookingStatus.BOOKED | BookingStatus.REJECTED,
     now: Date,
+    reason: string | null,
   ) {
     const { count } = await this.prisma.booking
       .updateMany({
         where: { id, status: BookingStatus.PENDING },
-        data: {
-          status,
-          ...(status === BookingStatus.REJECTED && { rejectedAt: now }),
-        },
+        data:
+          status === BookingStatus.REJECTED
+            ? {
+                status,
+                rejectedAt: now,
+                cancelledBy: BookingActor.EMPLOYEE,
+                cancellationReason: reason,
+              }
+            : { status, acceptedAt: now },
       })
       .catch(translateError);
     if (count === 0) throw new BusinessRuleError('Turno is not pending');
     return this.findById(id);
+  }
+
+  /**
+   * @throws {DatabaseOperationError} falló la base
+   */
+  async resolvePendingSeries(
+    seriesId: string,
+    userId: number,
+    status: BookingStatus.BOOKED | BookingStatus.REJECTED,
+    now: Date,
+    reason: string | null,
+  ) {
+    const ids = await this.updateSeries(
+      { seriesId, userId, status: BookingStatus.PENDING, endsAt: { gt: now } },
+      status === BookingStatus.REJECTED
+        ? {
+            status,
+            rejectedAt: now,
+            cancelledBy: BookingActor.EMPLOYEE,
+            cancellationReason: reason,
+          }
+        : { status, acceptedAt: now },
+    );
+    return this.findByIds(ids);
+  }
+
+  /**
+   * @throws {DatabaseOperationError} falló la base
+   */
+  async cancelSeriesFrom(
+    seriesId: string,
+    userId: number,
+    from: Date,
+    now: Date,
+    reason: string | null,
+  ) {
+    const ids = await this.updateSeries(
+      { seriesId, userId, status: { in: OCCUPYING }, startsAt: { gte: from } },
+      {
+        status: BookingStatus.CANCELLED,
+        cancelledAt: now,
+        cancelledBy: BookingActor.EMPLOYEE,
+        cancellationReason: reason,
+      },
+    );
+    return this.findByIds(ids);
+  }
+
+  /**
+   * @throws {DatabaseOperationError} falló la base
+   */
+  async cancelSeriesFromByLink(
+    seriesId: string,
+    from: Date,
+    now: Date,
+    reason: string | null,
+  ) {
+    const ids = await this.updateSeries(
+      { seriesId, status: { in: OCCUPYING }, startsAt: { gte: from } },
+      {
+        status: BookingStatus.CANCELLED,
+        cancelledAt: now,
+        cancelledBy: BookingActor.CLIENT,
+        cancellationReason: reason,
+      },
+    );
+    const rows = await this.prisma.booking
+      .findMany({
+        where: { id: { in: ids } },
+        select: CLIENT_BOOKING_SELECT,
+        orderBy: [{ startsAt: 'asc' }, { id: 'asc' }],
+      })
+      .catch(translateError);
+    return this.withSeriesAll(rows);
+  }
+
+  /** Applies `data` to the Turnos matching `where` in one statement, so the status guard in `where` holds even against a race; returns the ids it changed. */
+  private async updateSeries(
+    where: Prisma.BookingWhereInput,
+    data: Prisma.BookingUncheckedUpdateManyInput,
+  ): Promise<number[]> {
+    const rows = await this.prisma.booking
+      .updateManyAndReturn({ where, data, select: { id: true } })
+      .catch(translateError);
+    return rows.map(({ id }) => id);
+  }
+
+  private async findByIds(ids: number[]): Promise<Booking[]> {
+    const rows = await this.prisma.booking
+      .findMany({
+        where: { id: { in: ids } },
+        select: BOOKING_SELECT,
+        orderBy: [{ startsAt: 'asc' }, { id: 'asc' }],
+      })
+      .catch(translateError);
+    return rows.map(toBooking);
   }
 
   async listOccupiedByUser(
@@ -389,24 +641,41 @@ export class PrismaBookingsRepository implements BookingsRepository {
   async listUpcomingByUser(
     userId: number,
     from: Date,
+    to?: Date,
   ): Promise<UpcomingBooking[]> {
     const rows = await this.prisma.booking
       .findMany({
-        where: { userId, status: { in: OCCUPYING }, startsAt: { gte: from } },
+        where: {
+          userId,
+          status: { in: OCCUPYING },
+          startsAt: { gte: from, ...(to && { lt: to }) },
+        },
         select: {
           id: true,
           startsAt: true,
+          prepStartsAt: true,
+          endsAt: true,
+          link: true,
           employeeId: true,
-          client: { select: { name: true } },
+          client: { select: { name: true, email: true } },
           service: {
             select: {
-              availability: { select: { timeZone: true } },
+              name: true,
+              availability: { select: { id: true, timeZone: true } },
+              branch: {
+                select: {
+                  id: true,
+                  name: true,
+                  timeZone: true,
+                  business: { select: { id: true, name: true } },
+                },
+              },
               // Only the Usuario's own Empleado rows; this Turno's is picked by `employeeId` below.
               employees: {
                 where: { employee: { userId } },
                 select: {
                   employeeId: true,
-                  availability: { select: { timeZone: true } },
+                  availability: { select: { id: true, timeZone: true } },
                 },
               },
             },
@@ -415,16 +684,29 @@ export class PrismaBookingsRepository implements BookingsRepository {
         orderBy: { startsAt: 'asc' },
       })
       .catch(translateError);
-    return rows.map((row) => ({
-      id: row.id,
-      startsAt: row.startsAt,
-      clientName: row.client!.name,
-      timeZone: (
+    return rows.flatMap((row) => {
+      const { branch } = row.service;
+      const availability =
         row.service.availability ??
-        row.service.employees.find((e) => e.employeeId === row.employeeId)!
-          .availability
-      ).timeZone,
-    }));
+        row.service.employees.find((e) => e.employeeId === row.employeeId)
+          ?.availability;
+      if (!availability) return [];
+      return {
+        id: row.id,
+        startsAt: row.startsAt,
+        prepStartsAt: row.prepStartsAt,
+        endsAt: row.endsAt,
+        clientName: row.client!.name,
+        clientEmail: row.client!.email,
+        availabilityId: availability.id,
+        timeZone: availability.timeZone,
+        clientTimeZone: branch?.timeZone ?? availability.timeZone,
+        serviceName: row.service.name,
+        link: row.link,
+        business: branch && branch.business,
+        branch: branch && { id: branch.id, name: branch.name },
+      };
+    });
   }
 
   /**
@@ -472,11 +754,16 @@ export class PrismaBookingsRepository implements BookingsRepository {
    * @throws {BusinessRuleError} el Turno ya no está aceptado
    * @throws {NotFoundError} el Turno no existe
    */
-  async cancel(id: number, now: Date) {
+  async cancel(id: number, now: Date, reason: string | null) {
     await this.updateStatus(
       id,
       [BookingStatus.BOOKED],
-      { status: BookingStatus.CANCELLED, cancelledAt: now },
+      {
+        status: BookingStatus.CANCELLED,
+        cancelledAt: now,
+        cancelledBy: BookingActor.EMPLOYEE,
+        cancellationReason: reason,
+      },
       'Turno is not booked',
     );
     return this.findById(id);
@@ -486,11 +773,16 @@ export class PrismaBookingsRepository implements BookingsRepository {
    * @throws {BusinessRuleError} el Turno ya no está pendiente ni aceptado
    * @throws {NotFoundError} el Turno no existe
    */
-  async cancelPendingOrBooked(id: number, now: Date) {
+  async cancelPendingOrBooked(id: number, now: Date, reason: string | null) {
     await this.updateStatus(
       id,
       OCCUPYING,
-      { status: BookingStatus.CANCELLED, cancelledAt: now },
+      {
+        status: BookingStatus.CANCELLED,
+        cancelledAt: now,
+        cancelledBy: BookingActor.CLIENT,
+        cancellationReason: reason,
+      },
       'Turno is not pending or booked',
     );
     return this.findEnriched(id);
@@ -513,6 +805,7 @@ export class PrismaBookingsRepository implements BookingsRepository {
       [BookingStatus.BOOKED],
       { ...times, status: BookingStatus.BOOKED },
       now,
+      BookingActor.EMPLOYEE,
       'Turno is not booked',
     );
     const row = await this.prisma.booking
@@ -532,12 +825,19 @@ export class PrismaBookingsRepository implements BookingsRepository {
     now: Date,
   ) {
     return this.findEnriched(
-      await this.replace(id, OCCUPYING, times, now, 'Turno is not pending or booked'),
+      await this.replace(
+        id,
+        OCCUPYING,
+        times,
+        now,
+        BookingActor.CLIENT,
+        'Turno is not pending or booked',
+      ),
     );
   }
 
   /**
-   * @throws {BusinessRuleError} el Turno no está aceptado, su horario no terminó, ya tiene Ausencia o tiene Falta del Empleado
+   * @throws {BusinessRuleError} el Turno no está aceptado, su horario no terminó, ya tiene Ausencia del Invitado o tiene Ausencia del Anfitrión
    * @throws {NotFoundError} el Turno no existe
    */
   async markNoShow(id: number, now: Date) {
@@ -547,6 +847,23 @@ export class PrismaBookingsRepository implements BookingsRepository {
       { noShowAt: now },
       'Turno is not booked, has not ended yet, or already has an Ausencia or an Employee no-show',
       { endsAt: { lte: now }, noShowAt: null, employeeNoShowAt: null },
+    );
+    return this.findById(id);
+  }
+
+  /**
+   * Borra la Ausencia, solo si el Turno la sigue teniendo en el momento de escribir.
+   *
+   * @throws {BusinessRuleError} el Turno ya no está aceptado o ya no tiene Ausencia
+   * @throws {NotFoundError} el Turno no existe
+   */
+  async unmarkNoShow(id: number) {
+    await this.updateStatus(
+      id,
+      [BookingStatus.BOOKED],
+      { noShowAt: null },
+      'Turno is not booked or has no Ausencia',
+      { noShowAt: { not: null } },
     );
     return this.findById(id);
   }
@@ -571,13 +888,14 @@ export class PrismaBookingsRepository implements BookingsRepository {
   /**
    * Cancels the Turno as rescheduled and creates its replacement in one transaction, so a failed creation leaves the
    * original untouched. The new Turno takes over the Enlace del Turno (unique, so the original lets go of it first)
-   * and copies what the Cliente gave and paid. Returns the new id.
+   * and copies what the Cliente gave and paid. The original keeps who Reagendó it, with no Motivo de cancelación. Returns the new id.
    */
   private async replace(
     id: number,
     fromStatuses: BookingStatus[],
     times: RescheduleTimes & Pick<Booking, 'status'>,
     now: Date,
+    actor: BookingActor,
     message: string,
   ): Promise<number> {
     return this.prisma
@@ -589,6 +907,7 @@ export class PrismaBookingsRepository implements BookingsRepository {
             link: true,
             notes: true,
             employeeChosen: true,
+            seriesId: true,
             price: true,
             depositAmount: true,
             depositPaidAt: true,
@@ -603,6 +922,7 @@ export class PrismaBookingsRepository implements BookingsRepository {
           data: {
             status: BookingStatus.CANCELLED,
             cancelledAt: now,
+            cancelledBy: actor,
             rescheduled: true,
             link: null,
           },
@@ -614,6 +934,7 @@ export class PrismaBookingsRepository implements BookingsRepository {
           data: {
             ...copied,
             ...times,
+            acceptedAt: times.status === BookingStatus.BOOKED ? now : null,
             fromRescheduleId: id,
             client: { create: { name: client!.name, email: client!.email } },
           },
@@ -628,9 +949,9 @@ export class PrismaBookingsRepository implements BookingsRepository {
   }
 
   /**
-   * Marca la Falta del Empleado, solo si la guarda sigue valiendo en el momento de escribir.
+   * Marca la Ausencia del Anfitrión, solo si la guarda sigue valiendo en el momento de escribir.
    *
-   * @throws {BusinessRuleError} el Turno ya no está aceptado, no empezó, pasó la ventana, o ya tiene Ausencia o Falta del Empleado
+   * @throws {BusinessRuleError} el Turno ya no está aceptado, no empezó, pasó la ventana, o ya tiene Ausencia del Invitado o del Anfitrión
    * @throws {NotFoundError} el Turno no existe
    */
   async markEmployeeNoShow(id: number, now: Date) {
@@ -681,7 +1002,7 @@ export class PrismaBookingsRepository implements BookingsRepository {
         orderBy: { endsAt: 'asc' },
       })
       .catch(translateError);
-    return rows.map(toClientBooking);
+    return this.withSeriesAll(rows);
   }
 
   /**
@@ -732,10 +1053,15 @@ const toBooking = (row: BookingRow): Booking => ({
   employeeNoShowAt: row.employeeNoShowAt,
   link: row.link,
   fromRescheduleId: row.fromRescheduleId,
+  seriesId: row.seriesId,
   employeeChosen: row.employeeChosen,
   depositAmount: row.depositAmount === null ? null : Number(row.depositAmount),
   depositPaidAt: row.depositPaidAt,
   price: Number(row.price),
+  acceptedAt: row.acceptedAt,
+  cancelledBy: row.cancelledBy as BookingActor | null,
+  cancellationReason: row.cancellationReason,
+  cancellationCause: row.cancellationCause as CancellationCause | null,
   cancelledAt: row.cancelledAt,
   rejectedAt: row.rejectedAt,
 });
@@ -749,7 +1075,10 @@ const toPanelBooking = (row: PanelBookingRow): PanelBooking => ({
 /** 256 bits, URL-safe (ADR 0022 pide al menos 128). */
 
 /** The Sucursal's data if the Servicio is del Negocio, with its cover (the first Imagen de Sucursal by order). */
-const toClientBooking = (row: ClientBookingRow): ClientBooking => {
+const toClientBooking = (
+  row: ClientBookingRow,
+  series: ClientBooking['series'],
+): ClientBooking => {
   const branch = row.service.branch;
   return {
     ...toBooking(row),
@@ -778,6 +1107,7 @@ const toClientBooking = (row: ClientBookingRow): ClientBooking => {
         }
       : null,
     user: branch ? null : { slug: row.user.slug },
+    series,
   };
 };
 

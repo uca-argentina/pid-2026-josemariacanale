@@ -94,12 +94,13 @@ describe('PrismaBookingsRepository.listUpcomingByUser (real database)', () => {
         depositAmount: null,
         price: 50,
         status,
+        acceptedAt: status === BookingStatus.BOOKED ? new Date() : null,
       });
     const past = await book(personal.id, null, 1, BookingStatus.BOOKED);
     const first = await book(personal.id, null, 5, BookingStatus.BOOKED);
     const second = await book(shared.id, employeeId, 6, BookingStatus.PENDING);
     const cancelled = await book(personal.id, null, 7, BookingStatus.BOOKED);
-    await repository.cancel(cancelled.id, new Date());
+    await repository.cancel(cancelled.id, new Date(), null);
 
     const upcoming = await repository.listUpcomingByUser(
       userId,
@@ -110,16 +111,52 @@ describe('PrismaBookingsRepository.listUpcomingByUser (real database)', () => {
       {
         id: first.id,
         startsAt: first.startsAt,
+        prepStartsAt: first.prepStartsAt,
+        endsAt: first.endsAt,
         clientName: 'Cliente 5',
+        clientEmail: `${tag}@example.com`,
+        availabilityId: tokyo.id,
         timeZone: 'Asia/Tokyo',
+        clientTimeZone: 'Asia/Tokyo',
+        serviceName: 'p',
+        link: first.link,
+        business: null,
+        branch: null,
       },
       {
         id: second.id,
         startsAt: second.startsAt,
+        prepStartsAt: second.prepStartsAt,
+        endsAt: second.endsAt,
         clientName: 'Cliente 6',
+        clientEmail: `${tag}@example.com`,
+        availabilityId: buenosAires.id,
         timeZone: 'America/Argentina/Buenos_Aires',
+        clientTimeZone: 'Europe/Madrid',
+        serviceName: 's',
+        link: second.link,
+        business: { id: businessId, name: tag },
+        branch: { id: branchId, name: 'Downtown' },
       },
     ]);
+    expect(first.link).toEqual(expect.any(String));
     expect(upcoming.map((b) => b.id)).not.toContain(past.id);
+
+    const capped = await repository.listUpcomingByUser(
+      userId,
+      new Date(Date.UTC(2031, 0, 2)),
+      new Date(Date.UTC(2031, 0, 6)),
+    );
+    expect(capped.map((b) => b.id)).toEqual([first.id]);
+
+    // A Turno whose Empleado row for the Servicio is gone has no Availability: it is dropped.
+    await prisma.employeeService.deleteMany({
+      where: { employeeId, serviceId: shared.id },
+    });
+    const dropped = await repository.listUpcomingByUser(
+      userId,
+      new Date(Date.UTC(2031, 0, 2)),
+    );
+    expect(dropped.map((b) => b.id)).toEqual([first.id]);
   }, 60_000);
 });

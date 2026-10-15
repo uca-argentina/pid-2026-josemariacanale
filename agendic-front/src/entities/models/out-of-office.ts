@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { cancelBookingIdsSchema } from './left-outside-booking';
 
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
@@ -28,6 +29,14 @@ export const saveOutOfOfficeSchema = z.object({
 });
 export type SaveOutOfOffice = z.infer<typeof saveOutOfOfficeSchema>;
 
+/** Crear un período con los Turnos que el Usuario confirmó cancelar por quedar afuera: el cuerpo de `POST /users/me/out-of-office`. */
+export const confirmedOutOfOfficeSchema = saveOutOfOfficeSchema.extend({ cancelBookingIds: cancelBookingIdsSchema.optional() });
+export type ConfirmedOutOfOffice = z.infer<typeof confirmedOutOfOfficeSchema>;
+
 /** Un período existente con lo que el Usuario le cambia: el `id` va en la ruta y el resto en el cuerpo. */
 export const updateOutOfOfficeSchema = saveOutOfOfficeSchema.extend({ outOfOfficeId: z.number().int().positive() });
 export type UpdateOutOfOffice = z.infer<typeof updateOutOfOfficeSchema>;
+
+/** Editar un período con los Turnos que el Usuario confirmó cancelar por quedar afuera: el `id` va en la ruta y el resto en el cuerpo de `PUT`. */
+export const confirmedUpdateOutOfOfficeSchema = updateOutOfOfficeSchema.extend({ cancelBookingIds: cancelBookingIdsSchema.optional() });
+export type ConfirmedUpdateOutOfOffice = z.infer<typeof confirmedUpdateOutOfOfficeSchema>;

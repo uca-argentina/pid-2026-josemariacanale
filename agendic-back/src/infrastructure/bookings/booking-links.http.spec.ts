@@ -30,12 +30,17 @@ const BOOKED: Booking = {
   employeeNoShowAt: null,
   link: LINK,
   fromRescheduleId: null,
+  seriesId: null,
   employeeChosen: false,
   depositAmount: null,
   depositPaidAt: null,
   price: 50,
   cancelledAt: null,
   rejectedAt: null,
+  acceptedAt: null,
+  cancelledBy: null,
+  cancellationReason: null,
+  cancellationCause: null,
 };
 
 const CLIENT_BOOKED: ClientBooking = {
@@ -57,6 +62,7 @@ const CLIENT_BOOKED: ClientBooking = {
     coverUrl: null,
   },
   user: null,
+  series: null,
 };
 
 const AVAILABILITY: Availability = {
@@ -85,6 +91,31 @@ describe('Enlace del Turno', () => {
 
       expect(t.bookings.findByLink).toHaveBeenCalledWith(LINK);
       expect(res.body).toMatchObject({ id: BOOKED.id, status: 'BOOKED' });
+    });
+
+    it('un Turno suelto trae series null', async () => {
+      t.bookings.findByLink.mockResolvedValue(CLIENT_BOOKED);
+
+      const res = await t.http.get(`/booking-links/${LINK}`).expect(200);
+
+      expect(res.body.series).toBeNull();
+    });
+
+    it('un Turno de una Serie trae los Turnos de la Serie con su estado y su Enlace', async () => {
+      const turnos = [
+        { startsAt: new Date('2026-01-05T12:00:00Z'), status: BookingStatus.BOOKED, link: LINK },
+        { startsAt: new Date('2026-01-12T12:00:00Z'), status: BookingStatus.CANCELLED, link: 'otro' },
+      ];
+      t.bookings.findByLink.mockResolvedValue({ ...CLIENT_BOOKED, series: { bookings: turnos } });
+
+      const res = await t.http.get(`/booking-links/${LINK}`).expect(200);
+
+      expect(res.body.series).toEqual({
+        bookings: [
+          { startsAt: '2026-01-05T12:00:00.000Z', status: 'BOOKED', link: LINK },
+          { startsAt: '2026-01-12T12:00:00.000Z', status: 'CANCELLED', link: 'otro' },
+        ],
+      });
     });
 
     it('no expone la Cabina del Turno', async () => {
@@ -182,12 +213,38 @@ describe('Enlace del Turno', () => {
     it('cancela un Turno BOOKED por su Enlace', async () => {
       const res = await patch().expect(200);
 
-      expect(t.bookings.cancelPendingOrBooked).toHaveBeenCalledWith(BOOKED.id, t.clock.now());
+      expect(t.bookings.cancelPendingOrBooked).toHaveBeenCalledWith(BOOKED.id, t.clock.now(), null);
       expect(res.body).toMatchObject({ id: BOOKED.id, status: 'CANCELLED' });
       expect(t.mailer.sendBookingCancellation).toHaveBeenCalledWith(
         BOOKED.clientEmail,
         BOOKED.link,
+        null,
       );
+    });
+
+    it('guarda el Motivo de cancelación y lo manda en el Aviso de cambio del Turno', async () => {
+      t.bookings.cancelPendingOrBooked.mockResolvedValue({
+        ...CLIENT_BOOKED,
+        status: BookingStatus.CANCELLED,
+        cancellationReason: 'Me mudé',
+      });
+
+      const res = await patch().send({ reason: 'Me mudé' }).expect(200);
+
+      expect(t.bookings.cancelPendingOrBooked).toHaveBeenCalledWith(BOOKED.id, t.clock.now(), 'Me mudé');
+      expect(t.mailer.sendBookingCancellation).toHaveBeenCalledWith(
+        BOOKED.clientEmail,
+        BOOKED.link,
+        'Me mudé',
+      );
+      expect(res.body.cancellationReason).toBe('Me mudé');
+    });
+
+    it('responde 400 reason is too long con más de 500 caracteres, sin cancelar', async () => {
+      const res = await patch().send({ reason: 'a'.repeat(501) }).expect(400);
+
+      expect(res.body.message).toContain('reason is too long');
+      expect(t.bookings.cancelPendingOrBooked).not.toHaveBeenCalled();
     });
 
     it('sigue respondiendo 200 si falla el mail al Cliente, porque el Turno ya quedó cancelado', async () => {
@@ -204,7 +261,7 @@ describe('Enlace del Turno', () => {
 
       await patch().expect(200);
 
-      expect(t.bookings.cancelPendingOrBooked).toHaveBeenCalledWith(BOOKED.id, t.clock.now());
+      expect(t.bookings.cancelPendingOrBooked).toHaveBeenCalledWith(BOOKED.id, t.clock.now(), null);
     });
 
     it.each([BookingStatus.REJECTED, BookingStatus.CANCELLED])(
@@ -657,7 +714,7 @@ describe('Enlace del Turno', () => {
       }));
     });
 
-    it('marks the Falta del Empleado from the start of the Turno', async () => {
+    it('marks the Ausencia del Anfitrión from the start of the Turno', async () => {
       t.clock.advance(untilStart());
 
       const res = await patch().expect(200);
@@ -707,7 +764,7 @@ describe('Enlace del Turno', () => {
       },
     );
 
-    it('answers 422 when the Turno has an Ausencia', async () => {
+    it('answers 422 when the Turno has an Ausencia del Invitado', async () => {
       t.clock.advance(untilEnd());
       t.bookings.findByLink.mockResolvedValue({
         ...CLIENT_BOOKED,
@@ -719,7 +776,7 @@ describe('Enlace del Turno', () => {
       expect(res.body.message).toBe('Turno has an Ausencia');
     });
 
-    it('answers 422 when the Falta del Empleado is already marked', async () => {
+    it('answers 422 when the Ausencia del Anfitrión is already marked', async () => {
       t.clock.advance(untilEnd());
       t.bookings.findByLink.mockResolvedValue({
         ...CLIENT_BOOKED,
@@ -792,7 +849,7 @@ describe('Enlace del Turno', () => {
       });
     });
 
-    it('is false when the Turno has an Ausencia, without exposing it', async () => {
+    it('is false when the Turno has an Ausencia del Invitado, without exposing it', async () => {
       t.clock.advance(BOOKED.endsAt.getTime() - t.clock.now().getTime());
       t.bookings.findByLink.mockResolvedValue({ ...CLIENT_BOOKED, noShowAt: t.clock.now() });
 

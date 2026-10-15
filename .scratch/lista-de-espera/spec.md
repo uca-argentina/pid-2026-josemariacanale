@@ -10,7 +10,7 @@ Cuando en ese día vuelve a aparecer un Horario reservable, por la razón que se
 
 La Confirmación de anotación y cada Aviso traen un enlace para **Salir de la Lista de espera**. La Anotación también termina sola cuando pasa la fecha o cuando el Servicio se Da de baja. Mientras el Cliente tenga un Turno de ese Servicio en esa fecha, no recibe Avisos.
 
-Glosario: Lista de espera, Anotación, Confirmación de anotación, Aviso de horario libre, Salir de la Lista de espera (`CONTEXT.md`). Decisión del job: ADR 0034.
+Glosario: Lista de espera, Anotación, Confirmación de anotación, Aviso de horario libre, Salir de la Lista de espera (`CONTEXT.md`). Decisión del job: ADR 0035.
 
 ## User Stories
 
@@ -51,7 +51,7 @@ Glosario: Lista de espera, Anotación, Confirmación de anotación, Aviso de hor
 
 ## Implementation Decisions
 
-- **Glosario y ADR.** Términos en `CONTEXT.md`: Lista de espera, Anotación, Confirmación de anotación, Aviso de horario libre, Salir de la Lista de espera; `lista-de-espera` se suma a las palabras reservadas del Enlace de reserva. Detección por job y aviso a todos a la vez: ADR 0034. La 0026 y la 0007 se actualizan con los tickets que tocan su contrato.
+- **Glosario y ADR.** Términos en `CONTEXT.md`: Lista de espera, Anotación, Confirmación de anotación, Aviso de horario libre, Salir de la Lista de espera; `lista-de-espera` se suma a las palabras reservadas del Enlace de reserva. Detección por job y aviso a todos a la vez: ADR 0035. La 0026 y la 0007 se actualizan con los tickets que tocan su contrato.
 - **Día lleno.** Es el que `GET /services/:id/slots` (sin `employeeId`) devuelve con `reason: FULLY_BOOKED`, en la zona del Servicio (la de la Sucursal, o la de la Availability en un Servicio personal). `NOT_WORKING` y `OUT_OF_OFFICE` no son llenos.
 - **Modelo `WaitlistEntry`** (Anotación): `serviceId`, `date` (fecha sin hora, en la zona del Servicio), `clientName`, `email` (recortado y en minúsculas, como el del Código de verificación), `link` (secreto único, como el Enlace del Turno), `notifiedAt` (nulo mientras no se avisó desde la última vez que el día estuvo lleno), `leftAt` (nulo mientras no Salió), `createdAt`. Unique parcial sobre `(lower(email), serviceId, date)` entre las que tienen `leftAt` nulo, en el SQL de la migración (ADR 0004).
 - **Anotación viva.** `leftAt` nulo, fecha de hoy en adelante en la zona del Servicio, y Servicio sin Dar de baja. Pasar la fecha o la baja del Servicio no escriben nada: la Anotación simplemente deja de considerarse.
@@ -69,7 +69,7 @@ Glosario: Lista de espera, Anotación, Confirmación de anotación, Aviso de hor
   - Confirmación de anotación: nombre, Servicio, fecha y el enlace `<FRONTEND_URL>/lista-de-espera/<secreto>`.
   - Aviso de horario libre: nombre, Servicio, fecha, el enlace a la página de reserva y el de Salir.
 - **Enlace del Aviso.** `<FRONTEND_URL>/<negocio>/<sucursal>/<servicio>?fecha=YYYY-MM-DD&nombre=<nombre>&email=<email>`, o `<FRONTEND_URL>/<usuario>/<servicio>?…` en un Servicio personal, con los valores codificados para URL. El front lo lee para elegir el día y precargar el formulario.
-- **Job** (ADR 0034). Un `@Cron` cada 5 minutos, como el de la Invitación a calificar, corre un use case que:
+- **Job** (ADR 0035). Un `@Cron` cada 5 minutos, como el de la Invitación a calificar, corre un use case que:
   1. toma las Anotaciones vivas, agrupadas por Servicio;
   2. calcula los días de cada Servicio con `ListSlotsUseCase` sin `employeeId`, en tramos de hasta 31 días entre la primera y la última fecha con Anotaciones;
   3. para cada Anotación, si su día tiene horarios, `notifiedAt` es nulo y el email no tiene un Turno vivo de ese Servicio en esa fecha, manda el Aviso y guarda `notifiedAt`, solo si el mail salió bien;
@@ -90,7 +90,7 @@ Glosario: Lista de espera, Anotación, Confirmación de anotación, Aviso de hor
 ## Out of Scope
 
 - Que el Negocio vea quién está anotado, o cuántos hay por día (posible ticket aparte; entraría en la Ficha del Cliente).
-- Orden de llegada o retener un horario para un anotado (descartado en la ADR 0034).
+- Orden de llegada o retener un horario para un anotado (descartado en la ADR 0035).
 - Anotarse a una Serie o a varias fechas de una vez.
 - Anotarse para un Empleado en particular.
 - Avisar en el momento en que se libera el horario, sin la demora del job.
@@ -98,6 +98,6 @@ Glosario: Lista de espera, Anotación, Confirmación de anotación, Aviso de hor
 
 ## Further Notes
 
-- Un horario que se libera y se vuelve a tomar dentro del mismo ciclo del job no avisa a nadie (ADR 0034).
+- Un horario que se libera y se vuelve a tomar dentro del mismo ciclo del job no avisa a nadie (ADR 0035).
 - La Anticipación mínima también llena un día (`FULLY_BOOKED`): una Anotación para hoy puede no recibir nunca un Aviso, y está bien.
 - Si un día con Anotaciones pasa a no trabajarse (por ejemplo, se carga un período Fuera de la oficina), la Anotación se rearma y queda viva; avisa solo si ese día vuelve a tener lugar.

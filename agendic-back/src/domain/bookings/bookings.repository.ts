@@ -1,3 +1,4 @@
+import { HistoryBooking } from './booking-history';
 import {
   Booking,
   BookingStatus,
@@ -27,6 +28,8 @@ export interface CreateBookingData {
   price: number;
   /** BOOKED, o PENDING si el Servicio tiene Aprobación manual. */
   status: BookingStatus.PENDING | BookingStatus.BOOKED;
+  /** The clock's now if it is born BOOKED; null if PENDING. */
+  acceptedAt: Date | null;
 }
 
 /** The Límite diario a verification must respect: at most `limit` PENDING or BOOKED Turnos of the Servicio starting in [from, to). */
@@ -50,6 +53,16 @@ export type RescheduleTimes = Pick<
   'employeeId' | 'userId' | 'cabinId' | 'prepStartsAt' | 'startsAt' | 'endsAt'
 >;
 
+/** A Turno of a Serie to create: its data, the day it falls on and the Cabinas it may take. */
+export interface SeriesBookingData {
+  data: Omit<CreateBookingData, 'cabinId'>;
+  /** `YYYY-MM-DD`, for the 409 that names the dates that failed. */
+  date: string;
+  /** Free Cabinas for its tramo, in the order of the ADR 0030 rule; empty in a Servicio without Cabinas. */
+  cabinIds: number[];
+  dailyLimit?: DailyLimitGuard;
+}
+
 export interface BookingsRepository {
   /**
    * Crea el Turno ya BOOKED o PENDING. Con `dailyLimit`, cuenta y crea serializado por Servicio (advisory lock), así
@@ -58,6 +71,14 @@ export interface BookingsRepository {
    * @throws {ConflictError} el horario ya lo ocupa otro Turno pendiente o aceptado del Empleado o de la Cabina, o el Servicio ya alcanzó su Límite diario ese día
    */
   create(data: CreateBookingData, dailyLimit?: DailyLimitGuard): Promise<Booking>;
+  /**
+   * Crea los Turnos de una Serie (#303) en una transacción, con un `seriesId` nuevo: todos o ninguno. Cada Turno toma
+   * la Cabina del anterior de la Serie si está entre las suyas y si no la primera; si una Cabina choca prueba la
+   * siguiente. Con `dailyLimit` cuenta serializado por Servicio, como `create`. Devuelve los Turnos en el orden dado.
+   *
+   * @throws {ConflictError} `Series dates not available: <fechas>`: en esas fechas el Empleado, el Límite diario o todas las Cabinas lo impiden
+   */
+  createSeries(items: SeriesBookingData[]): Promise<Booking[]>;
   /** When each of these Empleados last received a PENDING or BOOKED Turno of the Servicio (its `createdAt`); an Empleado with none is absent. Leaves out `excludeBookingId`. */
   lastReceivedByEmployee(
     serviceId: number,
@@ -87,12 +108,46 @@ export interface BookingsRepository {
   ): Promise<Date[]>;
   /** Throws NotFoundError for an unknown id. */
   findById(id: number): Promise<Booking>;
-  /** Moves a PENDING Booking to BOOKED or REJECTED (setting `rejectedAt` to `now`). Throws BusinessRuleError if it is no longer PENDING. */
+  /** Moves a PENDING Booking to BOOKED (setting `acceptedAt` to `now`) or REJECTED (setting `rejectedAt` to `now`, `cancelledBy` EMPLOYEE and `reason`). Throws BusinessRuleError if it is no longer PENDING. */
   resolvePending(
     id: number,
     status: BookingStatus.BOOKED | BookingStatus.REJECTED,
     now: Date,
+    reason: string | null,
   ): Promise<Booking>;
+  /**
+   * Aceptar o Rechazar la Serie (#305): moves to BOOKED (`acceptedAt` = `now`) or REJECTED (`rejectedAt` = `now`,
+   * `cancelledBy` EMPLOYEE and `reason`) every PENDING Turno of the Serie attended by `userId` that has not ended,
+   * in one statement guarded on that status. Returns the Turnos it changed, by `startsAt`; none if none was left.
+   */
+  resolvePendingSeries(
+    seriesId: string,
+    userId: number,
+    status: BookingStatus.BOOKED | BookingStatus.REJECTED,
+    now: Date,
+    reason: string | null,
+  ): Promise<Booking[]>;
+  /**
+   * Cancelar este y los siguientes (#305): moves to CANCELLED (`cancelledAt` = `now`, `cancelledBy` EMPLOYEE and `reason`)
+   * every PENDING or BOOKED Turno of the Serie attended by `userId` starting at or after `from`, in one statement
+   * guarded on that status. Returns the Turnos it changed, by `startsAt`.
+   */
+  cancelSeriesFrom(
+    seriesId: string,
+    userId: number,
+    from: Date,
+    now: Date,
+    reason: string | null,
+  ): Promise<Booking[]>;
+  /** As `cancelSeriesFrom`, by Enlace del Turno (ADR 0022): of any attendant, with `cancelledBy` CLIENT. */
+  cancelSeriesFromByLink(
+    seriesId: string,
+    from: Date,
+    now: Date,
+    reason: string | null,
+  ): Promise<ClientBooking[]>;
+  /** The Turno and the originals it replaced by Reagendar (ADR 0031), oldest first, the Turno last. Throws NotFoundError for an unknown id. */
+  findHistoryChain(id: number): Promise<HistoryBooking[]>;
   /** The Turno for its Enlace del Turno, in any status, with the data to show it (ADR 0022). Throws NotFoundError for an unknown link. */
   findByLink(link: string): Promise<ClientBooking>;
   listByBusiness(businessId: number): Promise<PanelBooking[]>;
@@ -104,24 +159,29 @@ export interface BookingsRepository {
     excludeBookingId?: number,
   ): Promise<Pick<Booking, 'prepStartsAt' | 'endsAt'>[]>;
   /**
-   * PENDING and BOOKED Turnos of this Usuario starting at or after `from`, by `startsAt`, each with the zone of the
-   * Availability it is attended with: the Empleado's for the Servicio, or the Servicio personal's.
+   * PENDING and BOOKED Turnos of this Usuario starting at or after `from` (and before `to`, if given), by `startsAt`,
+   * each with the Availability it is attended with: the Empleado's for the Servicio, or the Servicio personal's. A Turno
+   * whose Availability can't be resolved is left out.
    */
-  listUpcomingByUser(userId: number, from: Date): Promise<UpcomingBooking[]>;
+  listUpcomingByUser(
+    userId: number,
+    from: Date,
+    to?: Date,
+  ): Promise<UpcomingBooking[]>;
   /**
    * Every Turno, in any status, the Usuario attends: of their Servicios personales and of the Negocios where
    * they are still an active Empleado.
    */
   listByUser(userId: number): Promise<UserBooking[]>;
-  /** Moves a BOOKED Booking to CANCELLED, with `cancelledAt` = `now`. Throws BusinessRuleError if it is no longer BOOKED. */
-  cancel(id: number, now: Date): Promise<Booking>;
-  /** As `cancel`, by Enlace del Turno (ADR 0022): also from PENDING. Throws BusinessRuleError if it is no longer pending or booked. */
-  cancelPendingOrBooked(id: number, now: Date): Promise<ClientBooking>;
+  /** Moves a BOOKED Booking to CANCELLED, with `cancelledAt` = `now`, `cancelledBy` EMPLOYEE and `reason`. Throws BusinessRuleError if it is no longer BOOKED. */
+  cancel(id: number, now: Date, reason: string | null): Promise<Booking>;
+  /** As `cancel`, by Enlace del Turno (ADR 0022): also from PENDING, with `cancelledBy` CLIENT. Throws BusinessRuleError if it is no longer pending or booked. */
+  cancelPendingOrBooked(id: number, now: Date, reason: string | null): Promise<ClientBooking>;
   /**
-   * Reagendar (ADR 0031): cancels the BOOKED Turno as rescheduled (`cancelledAt` = `now`) and creates the one at the new times, with the given Empleado, Usuario and Cabina, in one transaction. The new Turno takes the Enlace del Turno and copies the Cliente, Comentario, Empleado elegido, price and Seña. Returns the new Turno. Throws BusinessRuleError if it is no longer BOOKED, ConflictError if it now overlaps another.
+   * Reagendar (ADR 0031): cancels the BOOKED Turno as rescheduled (`cancelledAt` = `now`, `cancelledBy` EMPLOYEE, no reason) and creates the one at the new times, with the given Empleado, Usuario and Cabina, in one transaction. The new Turno takes the Enlace del Turno and copies the Cliente, Comentario, Empleado elegido, price and Seña. Returns the new Turno. Throws BusinessRuleError if it is no longer BOOKED, ConflictError if it now overlaps another.
    */
   reschedule(id: number, times: RescheduleTimes, now: Date): Promise<PanelBooking>;
-  /** As `reschedule`, by Enlace del Turno (ADR 0022): also from PENDING, and sets the new status (PENDING again with Aprobación manual). Throws BusinessRuleError if it is no longer pending or booked, ConflictError if it now overlaps another. */
+  /** As `reschedule`, by Enlace del Turno (ADR 0022): the original gets `cancelledBy` CLIENT, also from PENDING, and sets the new status (PENDING again with Aprobación manual). Throws BusinessRuleError if it is no longer pending or booked, ConflictError if it now overlaps another. */
   reschedulePendingOrBooked(
     id: number,
     times: RescheduleTimes & Pick<Booking, 'status'>,
@@ -129,9 +189,11 @@ export interface BookingsRepository {
   ): Promise<ClientBooking>;
   /** Sets noShowAt on a BOOKED Booking whose endsAt has passed and has none yet. Throws BusinessRuleError otherwise. */
   markNoShow(id: number, now: Date): Promise<Booking>;
+  /** Clears noShowAt on a BOOKED Booking that still has it. Throws BusinessRuleError otherwise. */
+  unmarkNoShow(id: number): Promise<Booking>;
   /** Sets depositPaidAt on a PENDING or BOOKED Booking that has a Seña, not yet paid, and has not started. Throws BusinessRuleError otherwise. */
   payDeposit(id: number, now: Date): Promise<ClientBooking>;
-  /** Sets employeeNoShowAt on a BOOKED Booking inside its window with no Ausencia or Falta del Empleado yet. Throws BusinessRuleError otherwise. */
+  /** Sets employeeNoShowAt on a BOOKED Booking inside its window with no Ausencia del Invitado or Ausencia del Anfitrión yet. Throws BusinessRuleError otherwise. */
   markEmployeeNoShow(id: number, now: Date): Promise<ClientBooking>;
   /** Saves the Calificación of the Turno. Throws ConflictError if it already has one, even if another request wins the race. */
   rate(id: number, score: number, comment: string | null): Promise<ClientBooking>;

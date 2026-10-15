@@ -11,6 +11,8 @@ import {
   IsOptional,
   Max,
   Min,
+  ValidationArguments,
+  registerDecorator,
 } from 'class-validator';
 import { PREP_MINUTES, ServiceCategory } from '../../domain/services/service';
 import { IfPresent, IsName, IsSlug, IsText } from '../users/users.dto';
@@ -29,6 +31,65 @@ const IsSlotInterval = () => applyDecorators(IsInt(), Min(1));
 
 /** Anticipación mínima: whole minutes, zero or more. */
 const IsMinimumNotice = () => applyDecorators(IsInt(), Min(0));
+
+/**
+ * Repetición: the two fields travel together. Both given (a number each, or `null` in both to drop it) or neither;
+ * validated on repeatEveryWeeks, so it runs even when only the other one is sent.
+ */
+const IsRepetitionPair = () => (object: object, propertyName: string) =>
+  registerDecorator({
+    name: 'isRepetitionPair',
+    target: object.constructor,
+    propertyName,
+    validator: {
+      validate: (_: unknown, { object }: ValidationArguments) => {
+        const { repeatEveryWeeks, repeatMaxBookings } = object as {
+          repeatEveryWeeks?: number | null;
+          repeatMaxBookings?: number | null;
+        };
+        const given = (value?: number | null) => value !== undefined;
+        const set = (value?: number | null) => value != null;
+        return (
+          given(repeatEveryWeeks) === given(repeatMaxBookings) &&
+          set(repeatEveryWeeks) === set(repeatMaxBookings)
+        );
+      },
+      defaultMessage: () =>
+        'Repetición needs both repeatEveryWeeks and repeatMaxBookings',
+    },
+  });
+
+/** Repetición: a whole number within `min` and `max`; absent or `null` pass (the pair rule covers them). */
+const IsRepetitionCount =
+  (min: number, max: number, message: string) =>
+  (object: object, propertyName: string) =>
+    registerDecorator({
+      name: 'isRepetitionCount',
+      target: object.constructor,
+      propertyName,
+      validator: {
+        validate: (value: unknown) =>
+          value == null ||
+          (Number.isInteger(value) &&
+            (value as number) >= min &&
+            (value as number) <= max),
+        defaultMessage: () => message,
+      },
+    });
+
+/** Repetición: weeks between the Turnos of a Serie, one or more. */
+const IsRepeatEveryWeeks = () => (object: object, propertyName: string) => {
+  IsRepetitionPair()(object, propertyName);
+  IsRepetitionCount(
+    1,
+    Number.MAX_SAFE_INTEGER,
+    'repeatEveryWeeks must be at least 1',
+  )(object, propertyName);
+};
+
+/** Repetición: most Turnos a Serie may have, 2 to 10. */
+const IsRepeatMaxBookings = () =>
+  IsRepetitionCount(2, 10, 'repeatMaxBookings must be between 2 and 10');
 
 /** Cabinas a Servicio admits: whole ids, none repeated. */
 const IsCabinIds = () =>
@@ -84,6 +145,12 @@ export class ServiceFieldsDto {
   @IfPresent()
   @IsMinimumNotice()
   minimumNoticeMinutes?: number;
+
+  @IsRepeatEveryWeeks()
+  repeatEveryWeeks?: number | null;
+
+  @IsRepeatMaxBookings()
+  repeatMaxBookings?: number | null;
 }
 
 export class CreateServiceDto extends ServiceFieldsDto {
@@ -182,6 +249,13 @@ export class UpdateServiceDto {
   @IfPresent()
   @IsMinimumNotice()
   minimumNoticeMinutes?: number;
+
+  /** Both `null` drops the Repetición; they travel together. */
+  @IsRepeatEveryWeeks()
+  repeatEveryWeeks?: number | null;
+
+  @IsRepeatMaxBookings()
+  repeatMaxBookings?: number | null;
 
   /** Servicio personal only: one of the Usuario's own. */
   @IfPresent()

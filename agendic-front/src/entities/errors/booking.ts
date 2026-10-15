@@ -42,7 +42,7 @@ export class BookingNotAllowedError extends Error {
 
 /**
  * 422: el Turno no está en el estado que la acción pide (Aceptar y Rechazar piden pendiente; Cancelar,
- * Reagendar y Ausencia, aceptado) o, para Ausencia, su horario todavía no pasó o ya la tiene marcada.
+ * Reagendar y las Ausencias, aceptado) o, para las Ausencias, su horario todavía no pasó o ya tiene una marcada.
  * Del Cliente: no está pendiente ni aceptado, o ya empezó.
  */
 export class BookingStateError extends Error {

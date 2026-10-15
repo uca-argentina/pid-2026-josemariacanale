@@ -440,6 +440,8 @@ describe('Empleado', () => {
           dailyLimit: null,
           slotInterval: null,
           minimumNoticeMinutes: 0,
+          repeatEveryWeeks: null,
+          repeatMaxBookings: null,
           employees: [
             {
               id: OTHER_EMPLOYEE.id,
@@ -483,6 +485,8 @@ describe('Empleado', () => {
           dailyLimit: null,
           slotInterval: null,
           minimumNoticeMinutes: 0,
+          repeatEveryWeeks: null,
+          repeatMaxBookings: null,
           employees: [
             {
               id: OTHER_EMPLOYEE.id,
