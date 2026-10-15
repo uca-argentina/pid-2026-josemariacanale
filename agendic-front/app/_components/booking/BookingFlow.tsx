@@ -428,7 +428,7 @@ export function BookingFlow({
     onClose: () => void;
 }) {
     const router = useRouter();
-    // "Reservar con cualquiera" (sugerido en un día lleno del Empleado elegido) lo suelta sin salir del flujo.
+    /** El Empleado elegido; "Reservar con cualquiera" (sugerido en un día lleno suyo) lo suelta sin salir del flujo. */
     const [employee, setEmployee] = useState<ChosenEmployee | null>(initialEmployee);
     /** El día lleno en el que el Cliente se está anotando en la Lista de espera; null, el flujo de Reservar. */
     const [waitlistDate, setWaitlistDate] = useState<string | null>(null);
