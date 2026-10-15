@@ -141,6 +141,20 @@ describe('UserBookingsRepository actions', () => {
         );
     });
 
+    it('unmarkNoShow DELETEs /bookings/:id/no-show with the bearer token and no body', async () => {
+        const fetchSpy = respond(200, {});
+        await repo().unmarkNoShow(7);
+        expect(fetchSpy).toHaveBeenCalledWith(
+            'http://api/bookings/7/no-show',
+            expect.objectContaining({ method: 'DELETE', headers: { Authorization: 'Bearer tok' }, body: undefined }),
+        );
+    });
+
+    it('unmarkNoShow translates the 422 of a Turno without Ausencia del Invitado to BookingStateError', async () => {
+        respond(422, { statusCode: 422, message: 'Turno has no Ausencia' });
+        await expect(repo().unmarkNoShow(7)).rejects.toBeInstanceOf(BookingStateError);
+    });
+
     it('reschedule PATCHes /bookings/:id/reschedule with the chosen startsAt', async () => {
         const fetchSpy = respond(200, { id: 9 });
         await expect(repo().reschedule(7, '2026-10-02T15:00:00.000Z')).resolves.toEqual({ id: 9 });

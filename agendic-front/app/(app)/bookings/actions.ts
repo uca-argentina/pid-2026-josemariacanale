@@ -70,3 +70,11 @@ export async function markBookingNoShowAction(bookingId: number) {
         'No pudimos marcar la Ausencia del Invitado. Intentá de nuevo.',
     );
 }
+
+/** Desmarca la Ausencia del Invitado de un Turno; vale en cualquier momento. */
+export async function unmarkBookingNoShowAction(bookingId: number) {
+    return perform(
+        () => getInjection('IUnmarkBookingNoShowController')({ bookingId }),
+        'No pudimos desmarcar la Ausencia del Invitado. Intentá de nuevo.',
+    );
+}

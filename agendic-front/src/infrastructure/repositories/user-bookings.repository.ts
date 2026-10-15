@@ -96,6 +96,17 @@ export class UserBookingsRepository implements IUserBookingsRepository {
         await this.request('PATCH', `/bookings/${bookingId}/no-show`);
     }
 
+    /**
+     * @throws {UnauthenticatedError} la API respondió 401
+     * @throws {BookingNotAllowedError} la API respondió 403
+     * @throws {NotFoundError} la API respondió 404
+     * @throws {BookingStateError} la API respondió 422
+     * @throws {ApiRequestError} falla de red u otro status no-OK
+     */
+    async unmarkNoShow(bookingId: number): Promise<void> {
+        await this.request('DELETE', `/bookings/${bookingId}/no-show`);
+    }
+
     private async request(method: string, path: string, body?: unknown) {
         const what = `${method} ${path}`;
         if (!this.apiUrl) throw new ApiRequestError(`${what} failed: API_URL is not set`);

@@ -111,6 +111,8 @@ import type { IListMyBookingsUseCase } from '@/src/application/use-cases/booking
 import type { IListMyBookingsController } from '@/src/interface-adapters/controllers/bookings/list-my-bookings.controller';
 import type { IMarkBookingNoShowUseCase } from '@/src/application/use-cases/bookings/mark-booking-no-show.use-case';
 import type { IMarkBookingNoShowController } from '@/src/interface-adapters/controllers/bookings/mark-booking-no-show.controller';
+import type { IUnmarkBookingNoShowUseCase } from '@/src/application/use-cases/bookings/unmark-booking-no-show.use-case';
+import type { IUnmarkBookingNoShowController } from '@/src/interface-adapters/controllers/bookings/unmark-booking-no-show.controller';
 import type { IRescheduleBookingUseCase } from '@/src/application/use-cases/bookings/reschedule-booking.use-case';
 import type { IRescheduleBookingController } from '@/src/interface-adapters/controllers/bookings/reschedule-booking.controller';
 import type { ICancelBookingUseCase } from '@/src/application/use-cases/bookings/cancel-booking.use-case';
@@ -246,6 +248,7 @@ export const DI_SYMBOLS = {
     IRequestVerificationCodeUseCase: Symbol.for('IRequestVerificationCodeUseCase'),
     IListMyBookingsUseCase: Symbol.for('IListMyBookingsUseCase'),
     IMarkBookingNoShowUseCase: Symbol.for('IMarkBookingNoShowUseCase'),
+    IUnmarkBookingNoShowUseCase: Symbol.for('IUnmarkBookingNoShowUseCase'),
     IRescheduleBookingUseCase: Symbol.for('IRescheduleBookingUseCase'),
     ICancelBookingUseCase: Symbol.for('ICancelBookingUseCase'),
     IRejectBookingUseCase: Symbol.for('IRejectBookingUseCase'),
@@ -340,6 +343,7 @@ export const DI_SYMBOLS = {
     IRequestVerificationCodeController: Symbol.for('IRequestVerificationCodeController'),
     IListMyBookingsController: Symbol.for('IListMyBookingsController'),
     IMarkBookingNoShowController: Symbol.for('IMarkBookingNoShowController'),
+    IUnmarkBookingNoShowController: Symbol.for('IUnmarkBookingNoShowController'),
     IRescheduleBookingController: Symbol.for('IRescheduleBookingController'),
     ICancelBookingController: Symbol.for('ICancelBookingController'),
     IRejectBookingController: Symbol.for('IRejectBookingController'),
@@ -439,6 +443,7 @@ export interface DI_RETURN_TYPES {
     IRequestVerificationCodeUseCase: IRequestVerificationCodeUseCase;
     IListMyBookingsUseCase: IListMyBookingsUseCase;
     IMarkBookingNoShowUseCase: IMarkBookingNoShowUseCase;
+    IUnmarkBookingNoShowUseCase: IUnmarkBookingNoShowUseCase;
     IRescheduleBookingUseCase: IRescheduleBookingUseCase;
     ICancelBookingUseCase: ICancelBookingUseCase;
     IRejectBookingUseCase: IRejectBookingUseCase;
@@ -533,6 +538,7 @@ export interface DI_RETURN_TYPES {
     IRequestVerificationCodeController: IRequestVerificationCodeController;
     IListMyBookingsController: IListMyBookingsController;
     IMarkBookingNoShowController: IMarkBookingNoShowController;
+    IUnmarkBookingNoShowController: IUnmarkBookingNoShowController;
     IRescheduleBookingController: IRescheduleBookingController;
     ICancelBookingController: ICancelBookingController;
     IRejectBookingController: IRejectBookingController;

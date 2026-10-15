@@ -3,6 +3,7 @@ import {
     cancelBookingAction,
     markBookingNoShowAction,
     rejectBookingAction,
+    unmarkBookingNoShowAction,
     rescheduleBookingAction,
 } from '@/app/(app)/bookings/actions';
 import { UnauthenticatedError } from '@/src/entities/errors/auth';
@@ -15,6 +16,7 @@ const mockControllers: Record<string, jest.Mock> = {
     ICancelBookingController: jest.fn(),
     IRescheduleBookingController: jest.fn(),
     IMarkBookingNoShowController: jest.fn(),
+    IUnmarkBookingNoShowController: jest.fn(),
 };
 const mockReport = jest.fn();
 const mockRefresh = jest.fn();
@@ -42,6 +44,7 @@ describe.each([
     ['rejectBookingAction', 'IRejectBookingController', () => rejectBookingAction(7)],
     ['cancelBookingAction', 'ICancelBookingController', () => cancelBookingAction(7)],
     ['markBookingNoShowAction', 'IMarkBookingNoShowController', () => markBookingNoShowAction(7)],
+    ['unmarkBookingNoShowAction', 'IUnmarkBookingNoShowController', () => unmarkBookingNoShowAction(7)],
     ['rescheduleBookingAction', 'IRescheduleBookingController', () => rescheduleBookingAction(7, '2026-10-02T15:00:00.000Z')],
 ])('%s', (_name, controller, run) => {
     it('calls its controller and refreshes the page', async () => {

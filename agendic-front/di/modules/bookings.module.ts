@@ -7,6 +7,8 @@ import { UserBookingsRepository } from '@/src/infrastructure/repositories/user-b
 import { listMyBookingsController } from '@/src/interface-adapters/controllers/bookings/list-my-bookings.controller';
 import { markBookingNoShowUseCase } from '@/src/application/use-cases/bookings/mark-booking-no-show.use-case';
 import { markBookingNoShowController } from '@/src/interface-adapters/controllers/bookings/mark-booking-no-show.controller';
+import { unmarkBookingNoShowUseCase } from '@/src/application/use-cases/bookings/unmark-booking-no-show.use-case';
+import { unmarkBookingNoShowController } from '@/src/interface-adapters/controllers/bookings/unmark-booking-no-show.controller';
 import { rescheduleBookingUseCase } from '@/src/application/use-cases/bookings/reschedule-booking.use-case';
 import { rescheduleBookingController } from '@/src/interface-adapters/controllers/bookings/reschedule-booking.controller';
 import { cancelBookingUseCase } from '@/src/application/use-cases/bookings/cancel-booking.use-case';
@@ -141,6 +143,18 @@ export function createBookingsModule() {
             DI_SYMBOLS.IInstrumentationService,
             DI_SYMBOLS.IAuthenticationService,
             DI_SYMBOLS.IMarkBookingNoShowUseCase,
+        ]);
+
+    bookingsModule
+        .bind(DI_SYMBOLS.IUnmarkBookingNoShowUseCase)
+        .toHigherOrderFunction(unmarkBookingNoShowUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IUserBookingsRepository]);
+
+    bookingsModule
+        .bind(DI_SYMBOLS.IUnmarkBookingNoShowController)
+        .toHigherOrderFunction(unmarkBookingNoShowController, [
+            DI_SYMBOLS.IInstrumentationService,
+            DI_SYMBOLS.IAuthenticationService,
+            DI_SYMBOLS.IUnmarkBookingNoShowUseCase,
         ]);
 
     bookingsModule.bind(DI_SYMBOLS.IClientBookingsRepository).toClass(ClientBookingsRepository, [DI_SYMBOLS.IInstrumentationService]);
