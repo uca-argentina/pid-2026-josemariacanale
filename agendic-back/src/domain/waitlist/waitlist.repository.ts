@@ -1,4 +1,5 @@
 import {
+  AliveWaitlistEntry,
   CreateWaitlistEntryInput,
   WaitlistEntry,
   WaitlistEntryView,
@@ -37,4 +38,23 @@ export interface WaitlistRepository {
    * @throws {DatabaseOperationError} la escritura falló
    */
   leave(id: number, now: Date): Promise<void>;
+  /**
+   * Las Anotaciones que no Salieron, de un Servicio sin Dar de baja y de una fecha que todavía puede ser hoy en alguna
+   * zona horaria. Quien llama descarta las que ya pasaron en la zona de su Servicio.
+   *
+   * @throws {DatabaseOperationError} la consulta falló
+   */
+  listAliveIncludeService(now: Date): Promise<AliveWaitlistEntry[]>;
+  /**
+   * Guarda que el Aviso de horario libre salió.
+   *
+   * @throws {DatabaseOperationError} la escritura falló
+   */
+  markNotified(id: number, now: Date): Promise<void>;
+  /**
+   * Vuelve `notifiedAt` a nulo: el día se llenó de nuevo y el próximo horario libre vuelve a avisar.
+   *
+   * @throws {DatabaseOperationError} la escritura falló
+   */
+  rearm(id: number): Promise<void>;
 }

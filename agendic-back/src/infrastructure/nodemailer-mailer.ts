@@ -139,6 +139,33 @@ export class NodemailerMailer implements Mailer {
     });
   }
 
+  /**
+   * Aviso de horario libre.
+   *
+   * @throws {Error} el transporte SMTP rechazó el mail
+   */
+  async sendFreeSlotNotice(
+    email: string,
+    clientName: string,
+    serviceName: string,
+    date: string,
+    bookingPath: string,
+    link: string,
+  ) {
+    const day = new Intl.DateTimeFormat('es-AR', {
+      dateStyle: 'full',
+      timeZone: 'UTC', // `date` is a calendar day, not an instant
+    }).format(new Date(`${date}T00:00:00.000Z`));
+    const bookingUrl = `${this.frontendUrl}${bookingPath}`;
+    const leaveUrl = `${this.frontendUrl}/lista-de-espera/${link}`;
+    await this.transporter.sendMail({
+      from: process.env.SMTP_FROM,
+      to: email,
+      subject: 'Se liberó un horario',
+      html: `<p>Hola ${escapeHtml(clientName)}, se liberó un horario de ${escapeHtml(serviceName)} para el ${day}. Se lo lleva quien reserve primero: <a href="${escapeHtml(bookingUrl)}">${escapeHtml(bookingUrl)}</a></p><p>Si ya no lo necesitás, podés salir de la lista de espera: <a href="${leaveUrl}">${leaveUrl}</a></p>`,
+    });
+  }
+
   private async sendBookingMail(
     email: string,
     link: string,
