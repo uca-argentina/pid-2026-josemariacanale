@@ -32,8 +32,8 @@ export interface Mailer {
     link: string,
   ): Promise<void>;
   /**
-   * Aviso de horario libre: a Horario reservable appeared in `serviceName` on `date` (`YYYY-MM-DD`), without saying which.
-   * `bookingPath` is the path and query of the page to Reservar, and `link` the secret to Salir de la Lista de espera.
+   * Aviso de horario libre: apareció un Horario reservable de `serviceName` el `date` (`YYYY-MM-DD`), sin decir cuál.
+   * `bookingPath` es el path con query de la página de reserva, y `link` el secreto para Salir de la Lista de espera.
    */
   sendFreeSlotNotice(
     email: string,

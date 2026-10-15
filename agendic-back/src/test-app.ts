@@ -240,7 +240,7 @@ export async function createTestApp() {
     create: jest.fn(),
     findByLinkIncludeService: jest.fn(),
     leave: jest.fn(),
-    listAlive: jest.fn(),
+    listAliveIncludeService: jest.fn(),
     markNotified: jest.fn(),
     rearm: jest.fn(),
   };

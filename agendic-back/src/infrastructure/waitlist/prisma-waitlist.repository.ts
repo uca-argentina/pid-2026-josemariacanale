@@ -78,7 +78,7 @@ export class PrismaWaitlistRepository implements WaitlistRepository {
   }
 
   /** @throws {DatabaseOperationError} the query failed */
-  async listAlive(now: Date): Promise<AliveWaitlistEntry[]> {
+  async listAliveIncludeService(now: Date): Promise<AliveWaitlistEntry[]> {
     // The widest zone (UTC+14) is ahead of UTC, so a date from yesterday (UTC) may still be today somewhere.
     const yesterday = new Date(now.getTime() - 24 * 3_600_000);
     yesterday.setUTCHours(0, 0, 0, 0);

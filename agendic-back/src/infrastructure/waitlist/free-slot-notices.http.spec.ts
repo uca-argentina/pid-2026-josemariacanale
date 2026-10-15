@@ -73,7 +73,7 @@ describe('SendFreeSlotNoticesUseCase', () => {
     t.branches.findById.mockResolvedValue(ANAS_BRANCH);
     t.availabilities.findById.mockResolvedValue(AVAILABILITY);
     t.bookings.listOccupiedByUser.mockResolvedValue([FULL_DAY]);
-    t.waitlist.listAlive.mockResolvedValue([entry()]);
+    t.waitlist.listAliveIncludeService.mockResolvedValue([entry()]);
     t.waitlist.markNotified.mockResolvedValue();
     t.waitlist.rearm.mockResolvedValue();
     t.mailer.sendFreeSlotNotice.mockResolvedValue();
@@ -84,7 +84,7 @@ describe('SendFreeSlotNoticesUseCase', () => {
   const fillTheDay = () => t.bookings.listOccupiedByUser.mockResolvedValue([FULL_DAY]);
 
   it('avisa a todos los anotados cuando se libera un horario, con los enlaces de un Servicio del Negocio', async () => {
-    t.waitlist.listAlive.mockResolvedValue([
+    t.waitlist.listAliveIncludeService.mockResolvedValue([
       entry(),
       entry({ id: 2, email: 'dani@example.com', clientName: 'Dani Ñ', link: 'secreto-2' }),
     ]);
@@ -114,7 +114,7 @@ describe('SendFreeSlotNoticesUseCase', () => {
   });
 
   it('arma el enlace con el Enlace de reserva del Usuario en un Servicio personal', async () => {
-    t.waitlist.listAlive.mockResolvedValue([
+    t.waitlist.listAliveIncludeService.mockResolvedValue([
       entry({
         serviceId: PERSONAL.id,
         service: { name: 'Consulta', slug: 'consulta' },
@@ -146,7 +146,7 @@ describe('SendFreeSlotNoticesUseCase', () => {
   });
 
   it('no repite el Aviso mientras el día siga con lugar', async () => {
-    t.waitlist.listAlive.mockResolvedValue([entry({ notifiedAt: new Date('2026-01-01T11:00:00.000Z') })]);
+    t.waitlist.listAliveIncludeService.mockResolvedValue([entry({ notifiedAt: new Date('2026-01-01T11:00:00.000Z') })]);
     freeTheDay();
 
     await run();
@@ -160,12 +160,12 @@ describe('SendFreeSlotNoticesUseCase', () => {
     await run();
     expect(t.mailer.sendFreeSlotNotice).toHaveBeenCalledTimes(1);
 
-    t.waitlist.listAlive.mockResolvedValue([entry({ notifiedAt: t.clock.now() })]);
+    t.waitlist.listAliveIncludeService.mockResolvedValue([entry({ notifiedAt: t.clock.now() })]);
     fillTheDay();
     await run();
     expect(t.waitlist.rearm).toHaveBeenCalledWith(1);
 
-    t.waitlist.listAlive.mockResolvedValue([entry()]);
+    t.waitlist.listAliveIncludeService.mockResolvedValue([entry()]);
     freeTheDay();
     await run();
     expect(t.mailer.sendFreeSlotNotice).toHaveBeenCalledTimes(2);
@@ -173,7 +173,7 @@ describe('SendFreeSlotNoticesUseCase', () => {
 
   it('rearma también cuando el día deja de trabajarse', async () => {
     // 2026-01-03 is a Saturday: nobody works.
-    t.waitlist.listAlive.mockResolvedValue([entry({ date: '2026-01-03', notifiedAt: t.clock.now() })]);
+    t.waitlist.listAliveIncludeService.mockResolvedValue([entry({ date: '2026-01-03', notifiedAt: t.clock.now() })]);
     freeTheDay();
 
     await run();
@@ -199,7 +199,7 @@ describe('SendFreeSlotNoticesUseCase', () => {
 
   it('un mail que falla no frena a los demás anotados', async () => {
     jest.spyOn(Logger.prototype, 'error').mockImplementation();
-    t.waitlist.listAlive.mockResolvedValue([entry(), entry({ id: 2, email: 'dani@example.com' })]);
+    t.waitlist.listAliveIncludeService.mockResolvedValue([entry(), entry({ id: 2, email: 'dani@example.com' })]);
     freeTheDay();
     t.mailer.sendFreeSlotNotice.mockRejectedValueOnce(new Error('SMTP caído'));
 
@@ -211,7 +211,7 @@ describe('SendFreeSlotNoticesUseCase', () => {
 
   it('un Servicio que falla se loguea y no frena a los demás', async () => {
     const logged = jest.spyOn(Logger.prototype, 'error').mockImplementation();
-    t.waitlist.listAlive.mockResolvedValue([entry({ serviceId: 99 }), entry({ id: 2 })]);
+    t.waitlist.listAliveIncludeService.mockResolvedValue([entry({ serviceId: 99 }), entry({ id: 2 })]);
     freeTheDay();
 
     await run();
@@ -222,7 +222,7 @@ describe('SendFreeSlotNoticesUseCase', () => {
   });
 
   it('ignora las Anotaciones de fechas pasadas en la zona del Servicio', async () => {
-    t.waitlist.listAlive.mockResolvedValue([entry({ date: '2025-12-31', notifiedAt: t.clock.now() })]);
+    t.waitlist.listAliveIncludeService.mockResolvedValue([entry({ date: '2025-12-31', notifiedAt: t.clock.now() })]);
     freeTheDay();
 
     await run();
@@ -232,7 +232,7 @@ describe('SendFreeSlotNoticesUseCase', () => {
   });
 
   it('no avisa si no hay Anotaciones vivas (las que Salieron o de un Servicio dado de baja no llegan)', async () => {
-    t.waitlist.listAlive.mockResolvedValue([]);
+    t.waitlist.listAliveIncludeService.mockResolvedValue([]);
     freeTheDay();
 
     await run();
@@ -241,7 +241,7 @@ describe('SendFreeSlotNoticesUseCase', () => {
   });
 
   it('cubre Anotaciones separadas por más de 31 días con más de un tramo', async () => {
-    t.waitlist.listAlive.mockResolvedValue([entry(), entry({ id: 2, date: '2026-03-06' })]);
+    t.waitlist.listAliveIncludeService.mockResolvedValue([entry(), entry({ id: 2, date: '2026-03-06' })]);
     freeTheDay();
 
     await run();

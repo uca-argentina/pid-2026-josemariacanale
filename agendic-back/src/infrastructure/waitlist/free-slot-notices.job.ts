@@ -7,7 +7,11 @@ import { SendFreeSlotNoticesUseCase } from '../../application/waitlist/send-free
 export class FreeSlotNoticesJob {
   constructor(private readonly sendFreeSlotNotices: SendFreeSlotNoticesUseCase) {}
 
-  /** Corre una pasada del caso de uso. */
+  /**
+   * Corre una pasada del caso de uso.
+   *
+   * @throws {DatabaseOperationError} falló la base al buscar las Anotaciones
+   */
   @Cron('*/5 * * * *')
   run() {
     return this.sendFreeSlotNotices.execute();

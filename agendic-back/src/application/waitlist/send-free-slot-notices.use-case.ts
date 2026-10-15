@@ -15,10 +15,14 @@ const logger = new Logger('SendFreeSlotNotices');
 
 /** Path y query de la página de reserva del Servicio con el día elegido y el formulario precargado. */
 function bookingPath(entry: AliveWaitlistEntry): string {
-  const base =
-    entry.business && entry.branch
-      ? `/${entry.business.slug}/${entry.branch.slug}/${entry.service.slug}`
-      : `/${entry.user?.slug}/${entry.service.slug}`;
+  let base: string;
+  if (entry.business && entry.branch)
+    base = `/${entry.business.slug}/${entry.branch.slug}/${entry.service.slug}`;
+  else if (entry.user?.slug) base = `/${entry.user.slug}/${entry.service.slug}`;
+  else
+    throw new Error(
+      `Anotación ${entry.id} has no Enlace de reserva to build the Aviso link`,
+    );
   const query = [
     ['fecha', entry.date],
     ['nombre', entry.clientName],
@@ -53,7 +57,7 @@ export class SendFreeSlotNoticesUseCase {
   async execute(): Promise<void> {
     const now = this.clock.now();
     const byService = new Map<number, AliveWaitlistEntry[]>();
-    for (const entry of await this.waitlist.listAlive(now)) {
+    for (const entry of await this.waitlist.listAliveIncludeService(now)) {
       if (entry.date < localDate(now, entry.timeZone)) continue;
       byService.set(entry.serviceId, [
         ...(byService.get(entry.serviceId) ?? []),
@@ -65,7 +69,7 @@ export class SendFreeSlotNoticesUseCase {
         await this.processService(serviceId, entries, now);
       } catch (error) {
         logger.error(
-          `Free slot notices for Servicio ${serviceId} failed`,
+          `Avisos de horario libre del Servicio ${serviceId} fallaron`,
           error instanceof Error ? error.stack : String(error),
         );
       }

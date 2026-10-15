@@ -44,7 +44,7 @@ export interface WaitlistRepository {
    *
    * @throws {DatabaseOperationError} la consulta falló
    */
-  listAlive(now: Date): Promise<AliveWaitlistEntry[]>;
+  listAliveIncludeService(now: Date): Promise<AliveWaitlistEntry[]>;
   /**
    * Guarda que el Aviso de horario libre salió.
    *
