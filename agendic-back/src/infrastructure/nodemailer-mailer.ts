@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { createTransport, Transporter } from 'nodemailer';
-import { CausedCancellation, Mailer } from '../domain/mailer';
+import {
+  CausedCancellation,
+  Mailer,
+  SeriesConfirmation,
+  SeriesNotice,
+} from '../domain/mailer';
 
 /**
  * Reads the front's base URL, where the Enlace del Turno of the Confirmación de reserva points. Throws when it is
@@ -49,16 +54,34 @@ export class NodemailerMailer implements Mailer {
     });
   }
 
-  /** Avisa que el Turno quedó creado; con Seña, suma el monto y dice que se paga desde el Enlace del Turno. */
+  /**
+   * Avisa que el Turno quedó creado; con Seña, suma el monto y dice que se paga desde el Enlace del Turno. De una Serie
+   * lista cada fecha, en la zona del Turno, con su Enlace.
+   */
   async sendBookingConfirmation(
     email: string,
     link: string,
     depositAmount: number | null,
+    series?: SeriesConfirmation,
   ) {
     const deposit =
       depositAmount === null
         ? ''
         : ` Seña: ${depositAmount.toFixed(2)}. You can pay it from the same link.`;
+    if (series) {
+      const seriesDeposit =
+        depositAmount === null
+          ? ''
+          : ` Seña per Turno: ${depositAmount.toFixed(2)}. You can pay each from its own link.`;
+      const items = this.seriesItems(series);
+      await this.transporter.sendMail({
+        from: process.env.SMTP_FROM,
+        to: email,
+        subject: 'Your bookings are confirmed',
+        html: `<p>Your Turnos are confirmed.${seriesDeposit} Manage each one from its link:</p><ul>${items}</ul>`,
+      });
+      return;
+    }
     await this.sendBookingMail(
       email,
       link,
@@ -67,8 +90,17 @@ export class NodemailerMailer implements Mailer {
     );
   }
 
-  /** Avisa que el Turno quedó cancelado. */
-  async sendBookingCancellation(email: string, link: string, reason?: string | null) {
+  /** Avisa que el Turno quedó cancelado; de varios Turnos de una Serie, los lista en un solo mail. */
+  async sendBookingCancellation(
+    email: string,
+    link: string,
+    reason?: string | null,
+    series?: SeriesNotice,
+  ) {
+    if (series) {
+      await this.sendSeriesMail(email, 'Your bookings were cancelled', 'Your Turnos were cancelled', reason, series);
+      return;
+    }
     await this.sendBookingMail(
       email,
       link,
@@ -87,8 +119,17 @@ export class NodemailerMailer implements Mailer {
     );
   }
 
-  /** Avisa que el Negocio rechazó el Turno pendiente. */
-  async sendBookingRejection(email: string, link: string, reason?: string | null) {
+  /** Avisa que el Negocio rechazó el Turno pendiente; de varios Turnos de una Serie, los lista en un solo mail. */
+  async sendBookingRejection(
+    email: string,
+    link: string,
+    reason?: string | null,
+    series?: SeriesNotice,
+  ) {
+    if (series) {
+      await this.sendSeriesMail(email, 'Your bookings were rejected', 'Your Turnos were rejected', reason, series);
+      return;
+    }
     await this.sendBookingMail(
       email,
       link,
@@ -115,6 +156,37 @@ export class NodemailerMailer implements Mailer {
       to: email,
       subject: '¿Cómo te fue en tu turno?',
       html: `<p>Tu turno de ${escapeHtml(serviceName)} del ${when} ya terminó. Contanos cómo te fue: <a href="${url}">${url}</a></p>`,
+    });
+  }
+
+  /** One `<li>` per Turno of the Serie: its date, in the zone of the Turno, and its Enlace del Turno. */
+  private seriesItems(series: SeriesConfirmation) {
+    const when = new Intl.DateTimeFormat('es-AR', {
+      dateStyle: 'full',
+      timeStyle: 'short',
+      hourCycle: 'h23',
+      timeZone: series.timeZone,
+    });
+    return series.bookings
+      .map(({ startsAt, link }) => {
+        const url = `${this.frontendUrl}/turnos/${link}`;
+        return `<li>${when.format(startsAt)}: <a href="${url}">${url}</a></li>`;
+      })
+      .join('');
+  }
+
+  private async sendSeriesMail(
+    email: string,
+    subject: string,
+    text: string,
+    reason: string | null | undefined,
+    series: SeriesNotice,
+  ) {
+    await this.transporter.sendMail({
+      from: process.env.SMTP_FROM,
+      to: email,
+      subject,
+      html: `<p>${withReason(text, reason)}. See each one here:</p><ul>${this.seriesItems(series)}</ul>`,
     });
   }
 

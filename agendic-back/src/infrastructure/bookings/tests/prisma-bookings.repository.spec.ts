@@ -434,6 +434,25 @@ describe('PrismaBookingsRepository', () => {
       });
     });
 
+    it('findHistoryChain walks fromRescheduleId back and answers oldest first', async () => {
+      const rating = { score: 5, comment: null, createdAt: CANCEL_NOW };
+      prisma.booking.findUnique
+        .mockResolvedValueOnce({ ...BOOKING_ROW, id: 3, fromRescheduleId: 2, createdAt: CANCEL_NOW, rating })
+        .mockResolvedValueOnce({ ...BOOKING_ROW, id: 2, fromRescheduleId: 1, createdAt: CANCEL_NOW, rating: null })
+        .mockResolvedValueOnce({ ...BOOKING_ROW, id: 1, fromRescheduleId: null, createdAt: CANCEL_NOW, rating: null });
+
+      const chain = await repository.findHistoryChain(3);
+
+      expect(chain.map((booking) => booking.id)).toEqual([1, 2, 3]);
+      expect(chain[2]).toMatchObject({ createdAt: CANCEL_NOW, rating });
+    });
+
+    it('findHistoryChain throws NotFoundError for an unknown id', async () => {
+      prisma.booking.findUnique.mockResolvedValue(null);
+
+      await expect(repository.findHistoryChain(9)).rejects.toThrow(NotFoundError);
+    });
+
     it('markEmployeeNoShow requires an accepted Turno inside its window, with neither mark', async () => {
       jest.spyOn(repository as never, 'findEnriched').mockResolvedValue({} as never);
       prisma.booking.updateMany.mockResolvedValue({ count: 1 });

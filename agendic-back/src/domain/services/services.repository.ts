@@ -22,6 +22,8 @@ export interface ServicesRepository {
       | 'dailyLimit'
       | 'slotInterval'
       | 'minimumNoticeMinutes'
+      | 'repeatEveryWeeks'
+      | 'repeatMaxBookings'
     > & {
       employees: Omit<EmployeeService, 'serviceId'>[];
       cabinIds: number[];
@@ -46,6 +48,8 @@ export interface ServicesRepository {
       | 'dailyLimit'
       | 'slotInterval'
       | 'minimumNoticeMinutes'
+      | 'repeatEveryWeeks'
+      | 'repeatMaxBookings'
     >,
   ): Promise<Service>;
   findById(id: number): Promise<Service | null>;
@@ -75,6 +79,8 @@ export interface ServicesRepository {
         | 'dailyLimit'
         | 'slotInterval'
         | 'minimumNoticeMinutes'
+        | 'repeatEveryWeeks'
+        | 'repeatMaxBookings'
         | 'availabilityId'
       >
     > & { cabinIds?: number[] },

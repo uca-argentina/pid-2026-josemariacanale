@@ -213,6 +213,10 @@ _Avoid_: repetir turno, volver a reservar
 Texto libre que el Cliente puede dejar al Reservar, para contarle algo al Negocio sobre ese Turno.
 _Avoid_: notas, observaciones, comment
 
+**Historial del Turno**:
+Lista cronológica de lo que le pasó a un Turno: cuándo se reservó, se aceptó o rechazó, se pagó la Seña, se Reagendó (con el horario de antes), se Canceló (con quién y el Motivo de cancelación), tuvo Ausencia del Invitado o del Anfitrión y se Calificó. Se deduce de los campos del Turno y de los originales que reemplazó al Reagendar, sin guardarse aparte. Lo ven quien atiende el Turno y no el Cliente.
+_Avoid_: log, auditoría, bitácora
+
 **Nota interna**:
 Texto que el Empleado deja en un Turno. Lo ven solo el Empleado que lo atiende y el Dueño, nunca el Cliente.
 _Avoid_: comentario (es el del Cliente), observación

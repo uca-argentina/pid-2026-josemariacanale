@@ -30,6 +30,8 @@ const SERVICE_ROW = {
   dailyLimit: null,
   slotInterval: null,
   minimumNoticeMinutes: 0,
+  repeatEveryWeeks: null,
+  repeatMaxBookings: null,
   employees: [
     {
       availabilityId: 10,
@@ -58,6 +60,8 @@ const SERVICE: Service = {
   dailyLimit: null,
   slotInterval: null,
   minimumNoticeMinutes: 0,
+  repeatEveryWeeks: null,
+  repeatMaxBookings: null,
   employees: [
     { id: 7, name: 'Ana Pérez', availabilityId: 10, userId: 1, imageUrl: null, slug: null },
   ],
@@ -167,6 +171,8 @@ describe('PrismaServicesRepository', () => {
         dailyLimit: null,
         slotInterval: null,
         minimumNoticeMinutes: 0,
+        repeatEveryWeeks: null,
+        repeatMaxBookings: null,
         employees: [
           { employeeId: 7, availabilityId: 70 },
           { employeeId: 8, availabilityId: 80 },
@@ -190,6 +196,8 @@ describe('PrismaServicesRepository', () => {
         dailyLimit: null,
         slotInterval: null,
         minimumNoticeMinutes: 0,
+        repeatEveryWeeks: null,
+        repeatMaxBookings: null,
         employees: {
           create: [
             { employeeId: 7, availabilityId: 70 },
@@ -463,6 +471,8 @@ describe('PrismaServicesRepository', () => {
                 dailyLimit: null,
                 slotInterval: null,
                 minimumNoticeMinutes: 0,
+                repeatEveryWeeks: null,
+                repeatMaxBookings: null,
                 employees: [],
                 cabinIds: [],
               })
@@ -496,6 +506,8 @@ describe('PrismaServicesRepository', () => {
           dailyLimit: null,
           slotInterval: null,
           minimumNoticeMinutes: 0,
+          repeatEveryWeeks: null,
+          repeatMaxBookings: null,
           employees: [],
           cabinIds: [],
         }),
@@ -566,6 +578,8 @@ describe('PrismaServicesRepository', () => {
           dailyLimit: null,
           slotInterval: null,
           minimumNoticeMinutes: 0,
+          repeatEveryWeeks: null,
+          repeatMaxBookings: null,
           employees: [{ employeeId: 7, availabilityId: 70 }],
           cabinIds: [],
         }),

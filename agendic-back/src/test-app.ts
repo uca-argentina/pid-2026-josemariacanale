@@ -207,6 +207,10 @@ export async function createTestApp() {
   };
   const bookings: jest.Mocked<BookingsRepository> = {
     create: jest.fn(),
+    createSeries: jest.fn(),
+    resolvePendingSeries: jest.fn(),
+    cancelSeriesFrom: jest.fn(),
+    cancelSeriesFromByLink: jest.fn(),
     lastReceivedByEmployee: jest.fn(),
     lastReceivedByCabin: jest.fn(),
     listOccupiedByCabins: jest.fn(),
@@ -225,6 +229,7 @@ export async function createTestApp() {
     reschedulePendingOrBooked: jest.fn(),
     markNoShow: jest.fn(),
     unmarkNoShow: jest.fn(),
+    findHistoryChain: jest.fn(),
     payDeposit: jest.fn(),
     markEmployeeNoShow: jest.fn(),
     rate: jest.fn(),
@@ -423,6 +428,8 @@ export const ANAS_SERVICE: Service = {
   dailyLimit: null,
   slotInterval: null,
   minimumNoticeMinutes: 0,
+  repeatEveryWeeks: null,
+  repeatMaxBookings: null,
   employees: [
     {
       id: ANAS_EMPLOYEE.id,

@@ -52,6 +52,8 @@ export class CreatePersonalServiceUseCase {
       dailyLimit: input.dailyLimit ?? null,
       slotInterval: input.slotInterval ?? null,
       minimumNoticeMinutes: input.minimumNoticeMinutes ?? 0,
+      repeatEveryWeeks: input.repeatEveryWeeks ?? null,
+      repeatMaxBookings: input.repeatMaxBookings ?? null,
     });
   }
 }

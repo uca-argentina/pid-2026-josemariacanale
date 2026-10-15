@@ -24,7 +24,9 @@ import { RemoveEmployeeUseCase } from '../../application/services/remove-employe
 import { RetireServiceUseCase } from '../../application/services/retire-service.use-case';
 import { UpdateServiceUseCase } from '../../application/services/update-service.use-case';
 import { GetUserPageUseCase } from '../../application/users/get-user-page.use-case';
+import { ListSeriesSlotsUseCase } from '../../application/slots/list-series-slots.use-case';
 import { ListSlotsUseCase } from '../../application/slots/list-slots.use-case';
+import { BadRequestError } from '../../domain/errors';
 import { ParseDatePipe } from '../parse-date.pipe';
 import { ClerkGuard, CurrentUser } from '../users/clerk.guard';
 import {
@@ -52,6 +54,7 @@ export class ServicesController {
     private readonly changeEmployeeAvailabilityUseCase: ChangeEmployeeAvailabilityUseCase,
     private readonly removeEmployeeUseCase: RemoveEmployeeUseCase,
     private readonly listSlotsUseCase: ListSlotsUseCase,
+    private readonly listSeriesSlotsUseCase: ListSeriesSlotsUseCase,
     private readonly listMyServicesUseCase: ListMyServicesUseCase,
     private readonly createPersonalServiceUseCase: CreatePersonalServiceUseCase,
     private readonly listPersonalServicesUseCase: ListPersonalServicesUseCase,
@@ -247,5 +250,32 @@ export class ServicesController {
     employeeId?: number,
   ) {
     return this.listSlotsUseCase.execute(serviceId, from, to, undefined, employeeId);
+  }
+
+  /**
+   * Las fechas de una Serie y quién la atiende, sin Sesión.
+   *
+   * @throws {NotFoundError} el Servicio está dado de baja, o `employeeId` no lo Ofrece
+   * @throws {BusinessRuleError} el Servicio no tiene Repetición, o el primer horario no es reservable
+   * @throws {BadRequestError} `startsAt` inválido, `count` fuera de rango o `employeeId` en un Servicio personal
+   */
+  @Get('services/:id/series-slots')
+  async seriesSlots(
+    @Param('id', ParseIntPipe) serviceId: number,
+    @Query('startsAt') startsAt: string,
+    @Query('count') count: string,
+    @Query('employeeId', new ParseIntPipe({ optional: true }))
+    employeeId?: number,
+  ) {
+    const first = new Date(startsAt);
+    if (Number.isNaN(first.getTime()))
+      throw new BadRequestError('startsAt must be an ISO date-string');
+    return this.listSeriesSlotsUseCase.execute(
+      serviceId,
+      first,
+      // A missing or non-numeric count is NaN, which the use case rejects with the contract message.
+      count === undefined || count === '' ? NaN : Number(count),
+      employeeId,
+    );
   }
 }

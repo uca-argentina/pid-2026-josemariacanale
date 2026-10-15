@@ -27,6 +27,8 @@ export interface CreateBusinessData {
     | 'dailyLimit'
     | 'slotInterval'
     | 'minimumNoticeMinutes'
+    | 'repeatEveryWeeks'
+    | 'repeatMaxBookings'
   >;
   /** The Dueño, in charge of that first Servicio with their default Availability. */
   employee: Pick<Employee, 'userId'>;

@@ -53,6 +53,8 @@ export interface Booking {
   link: string | null;
   /** The original Turno this one replaced when Reagendar (ADR 0031); null if it was not born from one. */
   fromRescheduleId: number | null;
+  /** Serie (#303): shared by the Turnos booked together with Repetición; null in a Turno suelto. Reagendar keeps it. */
+  seriesId: string | null;
   /** Empleado elegido: the Cliente came in by this Empleado's Enlace de reserva, so the Turno stays with them. */
   employeeChosen: boolean;
   /** Seña del Turno, fixed at booking (see `depositAmountFor`); null if the Servicio asked for none. */
@@ -161,6 +163,15 @@ export interface ClientBooking extends Booking {
   } | null;
   /** The Enlace de reserva del Usuario that attends a Servicio personal. Null in a Servicio del Negocio. */
   user: { slug: string | null } | null;
+  /** The Turnos vigentes of its Serie (#304) by date, itself included, without the originals replaced by Reagendar. Null in a Turno suelto. */
+  series: { bookings: SeriesBooking[] } | null;
+}
+
+/** A Turno of a Serie as the Enlace del Turno lists it, with the Enlace del Turno to open it. */
+export interface SeriesBooking {
+  startsAt: Date;
+  status: BookingStatus;
+  link: string;
 }
 
 export interface CreateBookingInput {
@@ -173,7 +184,20 @@ export interface CreateBookingInput {
   employeeId?: number;
   /** El Código de verificación pedido para clientEmail (ADR 0022). */
   code: string;
+  /** Reservar una Serie (#303): `startsAt` es el primer Turno y `count` cuántas fechas tiene la Serie. */
+  repeat?: SeriesRepeat;
 }
+
+/** What Reservar a Serie asks for: how many dates the Serie has, and which of them the Cliente leaves out. */
+export interface SeriesRepeat {
+  count: number;
+  /** `YYYY-MM-DD` dates of the Serie not to book. */
+  skipDates?: string[];
+}
+
+/** Message of the 409 of a Serie whose dates can't all be booked; the front reads the dates after the colon. */
+export const seriesDatesNotAvailable = (dates: string[]) =>
+  `Series dates not available: ${dates.join(',')}`;
 
 /** The 409 of a Servicio whose Límite diario that day is already reached, wherever it is detected. */
 export const DAILY_LIMIT_REACHED = 'The Service reached its Límite diario that day';

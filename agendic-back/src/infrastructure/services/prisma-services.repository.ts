@@ -73,6 +73,8 @@ export class PrismaServicesRepository implements ServicesRepository {
       | 'dailyLimit'
       | 'slotInterval'
       | 'minimumNoticeMinutes'
+      | 'repeatEveryWeeks'
+      | 'repeatMaxBookings'
     > & {
       employees: Omit<EmployeeService, 'serviceId'>[];
       cabinIds: number[];
@@ -111,6 +113,8 @@ export class PrismaServicesRepository implements ServicesRepository {
       | 'dailyLimit'
       | 'slotInterval'
       | 'minimumNoticeMinutes'
+      | 'repeatEveryWeeks'
+      | 'repeatMaxBookings'
     >,
   ) {
     return toService(
@@ -197,6 +201,8 @@ export class PrismaServicesRepository implements ServicesRepository {
         | 'dailyLimit'
         | 'slotInterval'
         | 'minimumNoticeMinutes'
+        | 'repeatEveryWeeks'
+        | 'repeatMaxBookings'
         | 'availabilityId'
       >
     > & { cabinIds?: number[] },
@@ -359,6 +365,8 @@ export const toService = (row: ServiceRowWithEmployees): Service => ({
   dailyLimit: row.dailyLimit,
   slotInterval: row.slotInterval,
   minimumNoticeMinutes: row.minimumNoticeMinutes,
+  repeatEveryWeeks: row.repeatEveryWeeks,
+  repeatMaxBookings: row.repeatMaxBookings,
   employees: row.employees.map(({ employee, availabilityId }) => ({
     id: employee.id,
     name: employee.user.name,

@@ -18,6 +18,7 @@ export const presentBooking = (booking: Booking) => ({
   acceptedAt: booking.acceptedAt,
   cancelledBy: booking.cancelledBy,
   cancellationReason: booking.cancellationReason,
+  seriesId: booking.seriesId,
   cancellationCause: booking.cancellationCause,
 });
 
@@ -57,6 +58,7 @@ export const presentUserBooking = (booking: UserBooking) => ({
   cancellationCause: booking.cancellationCause,
   employeeChosen: booking.employeeChosen,
   fromRescheduleId: booking.fromRescheduleId,
+  seriesId: booking.seriesId,
   depositAmount: booking.depositAmount,
   depositPaidAt: booking.depositPaidAt,
   cabin: booking.cabin,
@@ -94,4 +96,5 @@ export const presentClientBooking = (booking: ClientBooking, now: Date) => ({
   business: booking.business,
   branch: booking.branch,
   user: booking.user,
+  series: booking.series,
 });

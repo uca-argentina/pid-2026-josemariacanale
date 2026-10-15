@@ -1,8 +1,12 @@
 import { Module } from '@nestjs/common';
 import { CancelBookingUseCase } from '../../application/bookings/cancel-booking.use-case';
+import { CancelBookingSeriesUseCase } from '../../application/bookings/cancel-booking-series.use-case';
+import { CancelBookingSeriesByLinkUseCase } from '../../application/bookings/cancel-booking-series-by-link.use-case';
+import { ResolvePendingSeriesUseCase } from '../../application/bookings/resolve-pending-series.use-case';
 import { CancelBookingByLinkUseCase } from '../../application/bookings/cancel-booking-by-link.use-case';
 import { GetBookingByLinkUseCase } from '../../application/bookings/get-booking-by-link.use-case';
 import { MarkNoShowUseCase } from '../../application/bookings/mark-no-show.use-case';
+import { GetBookingHistoryUseCase } from '../../application/bookings/get-booking-history.use-case';
 import { UnmarkNoShowUseCase } from '../../application/bookings/unmark-no-show.use-case';
 import { RescheduleBookingUseCase } from '../../application/bookings/reschedule-booking.use-case';
 import { RescheduleBookingByLinkUseCase } from '../../application/bookings/reschedule-booking-by-link.use-case';
@@ -10,6 +14,8 @@ import { MarkEmployeeNoShowByLinkUseCase } from '../../application/bookings/mark
 import { RateBookingByLinkUseCase } from '../../application/bookings/rate-booking-by-link.use-case';
 import { PayDepositByLinkUseCase } from '../../application/bookings/pay-deposit-by-link.use-case';
 import { ListSlotsUseCase } from '../../application/slots/list-slots.use-case';
+import { CreateBookingSeriesUseCase } from '../../application/bookings/create-booking-series.use-case';
+import { ListSeriesSlotsUseCase } from '../../application/slots/list-series-slots.use-case';
 import { CreateBookingUseCase } from '../../application/bookings/create-booking.use-case';
 import { ListMyBookingsUseCase } from '../../application/bookings/list-my-bookings.use-case';
 import { ListBookingsByBusinessUseCase } from '../../application/bookings/list-bookings-by-business.use-case';
@@ -28,14 +34,20 @@ import { BookingsController } from './bookings.controller';
   controllers: [BookingsController, BookingLinksController],
   providers: [
     CreateBookingUseCase,
+    CreateBookingSeriesUseCase,
+    ListSeriesSlotsUseCase,
     RequestBookingCodeUseCase,
     AcceptBookingUseCase,
     RejectBookingUseCase,
     ListBookingsByBusinessUseCase,
     CancelBookingUseCase,
+    CancelBookingSeriesUseCase,
+    CancelBookingSeriesByLinkUseCase,
+    ResolvePendingSeriesUseCase,
     RescheduleBookingUseCase,
     MarkNoShowUseCase,
     UnmarkNoShowUseCase,
+    GetBookingHistoryUseCase,
     ListSlotsUseCase,
     GetBookingByLinkUseCase,
     CancelBookingByLinkUseCase,

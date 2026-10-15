@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Inject, Param, Patch, Post } from '@nestjs/common';
+import { CancelBookingSeriesByLinkUseCase } from '../../application/bookings/cancel-booking-series-by-link.use-case';
 import { CancelBookingByLinkUseCase } from '../../application/bookings/cancel-booking-by-link.use-case';
 import { GetBookingByLinkUseCase } from '../../application/bookings/get-booking-by-link.use-case';
 import { RescheduleBookingByLinkUseCase } from '../../application/bookings/reschedule-booking-by-link.use-case';
@@ -15,6 +16,7 @@ export class BookingLinksController {
   constructor(
     private readonly getBookingByLinkUseCase: GetBookingByLinkUseCase,
     private readonly cancelBookingByLinkUseCase: CancelBookingByLinkUseCase,
+    private readonly cancelBookingSeriesByLinkUseCase: CancelBookingSeriesByLinkUseCase,
     private readonly rescheduleBookingByLinkUseCase: RescheduleBookingByLinkUseCase,
     private readonly payDepositByLinkUseCase: PayDepositByLinkUseCase,
     private readonly markEmployeeNoShowByLinkUseCase: MarkEmployeeNoShowByLinkUseCase,
@@ -29,11 +31,24 @@ export class BookingLinksController {
   }
 
   /**
+   * Con `andFollowing`, cancela también los siguientes de la Serie (#305) y responde `{ cancelled, kept }`.
+   *
    * @throws {NotFoundError} el Enlace no corresponde a ningún Turno
-   * @throws {BusinessRuleError} el Turno no está pendiente ni aceptado, o ya empezó
+   * @throws {BusinessRuleError} el Turno no está pendiente ni aceptado, o ya empezó, o con `andFollowing` no es de una Serie
    */
   @Patch(':secret/cancel')
   async cancel(@Param('secret') secret: string, @Body() dto: CancelBookingDto) {
+    if (dto.andFollowing) {
+      const { cancelled, kept } = await this.cancelBookingSeriesByLinkUseCase.execute(
+        secret,
+        reasonOf(dto),
+      );
+      const now = this.clock.now();
+      return {
+        cancelled: cancelled.map((b) => presentClientBooking(b, now)),
+        kept: kept.map((b) => presentClientBooking(b, now)),
+      };
+    }
     return presentClientBooking(
       await this.cancelBookingByLinkUseCase.execute(secret, reasonOf(dto)),
       this.clock.now(),

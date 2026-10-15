@@ -373,6 +373,7 @@ describe('Servicio personal', () => {
       employeeNoShowAt: null,
       link: 'booking-link-secret',
       fromRescheduleId: null,
+      seriesId: null,
       employeeChosen: false,
       depositAmount: null,
       depositPaidAt: null,
