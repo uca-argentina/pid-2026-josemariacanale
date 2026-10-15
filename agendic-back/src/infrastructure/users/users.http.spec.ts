@@ -428,7 +428,7 @@ describe('Usuario', () => {
       expect(res.body.message).toBe('Booking link already in use');
     });
 
-    it.each(['bookings', 'services', 'business', 'availability', 'analytics', 'turnos', 'sign-in', 'sign-up', 'api', 'trpc'])(
+    it.each(['bookings', 'services', 'business', 'availability', 'analytics', 'turnos', 'sign-in', 'sign-up', 'api', 'trpc', 'lista-de-espera'])(
       'answers 409 and changes nothing when the slug is the reserved word %j',
       async (slug) => {
         const res = await t.http

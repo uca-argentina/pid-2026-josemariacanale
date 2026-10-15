@@ -1,4 +1,8 @@
-import { CreateWaitlistEntryInput, WaitlistEntry } from './waitlist-entry';
+import {
+  CreateWaitlistEntryInput,
+  WaitlistEntry,
+  WaitlistEntryView,
+} from './waitlist-entry';
 
 /** Injection token for the {@link WaitlistRepository} port. */
 export const WAITLIST_REPOSITORY = Symbol('WaitlistRepository');
@@ -21,4 +25,16 @@ export interface WaitlistRepository {
    * @throws {ConflictError} ya hay una viva de ese email, Servicio y fecha
    */
   create(input: CreateWaitlistEntryInput): Promise<WaitlistEntry>;
+  /**
+   * La Anotación de ese Enlace con su Servicio, viva o no, aunque la fecha haya pasado o el Servicio esté dado de baja.
+   *
+   * @throws {DatabaseOperationError} la consulta falló
+   */
+  findByLinkIncludeService(link: string): Promise<WaitlistEntryView | null>;
+  /**
+   * Guarda que el Cliente Salió. No toca una Anotación que ya había salido.
+   *
+   * @throws {DatabaseOperationError} la escritura falló
+   */
+  leave(id: number, now: Date): Promise<void>;
 }

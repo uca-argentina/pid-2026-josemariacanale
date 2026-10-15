@@ -1,13 +1,20 @@
 import { Module } from '@nestjs/common';
+import { GetWaitlistEntryByLinkUseCase } from '../../application/waitlist/get-waitlist-entry-by-link.use-case';
+import { LeaveWaitlistUseCase } from '../../application/waitlist/leave-waitlist.use-case';
 import { JoinWaitlistUseCase } from '../../application/waitlist/join-waitlist.use-case';
 import { ListSlotsUseCase } from '../../application/slots/list-slots.use-case';
 import { HolidaysModule } from '../holidays/holidays.module';
 import { WaitlistController } from './waitlist.controller';
 
-/** Anotarse en la Lista de espera (ADR 0034). */
+/** Anotarse en la Lista de espera, abrir su enlace y Salir (ADR 0034). */
 @Module({
   imports: [HolidaysModule],
   controllers: [WaitlistController],
-  providers: [JoinWaitlistUseCase, ListSlotsUseCase],
+  providers: [
+    JoinWaitlistUseCase,
+    GetWaitlistEntryByLinkUseCase,
+    LeaveWaitlistUseCase,
+    ListSlotsUseCase,
+  ],
 })
 export class WaitlistModule {}
