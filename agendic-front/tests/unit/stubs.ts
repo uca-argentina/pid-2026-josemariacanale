@@ -81,7 +81,9 @@ export const outOfOfficeWith = (stubs: Partial<IOutOfOfficeRepository>): IOutOfO
 export const holidaysWith = (stubs: Partial<IHolidaysRepository>): IHolidaysRepository => ({
     listCountries: jest.fn(notStubbed('listCountries')),
     getSettings: jest.fn(notStubbed('getSettings')),
+    previewSetCountry: jest.fn(notStubbed('previewSetCountry')),
     setCountry: jest.fn(notStubbed('setCountry')),
+    previewSetEnabled: jest.fn(notStubbed('previewSetEnabled')),
     setEnabled: jest.fn(notStubbed('setEnabled')),
     listConflicts: jest.fn(notStubbed('listConflicts')),
     ...stubs,

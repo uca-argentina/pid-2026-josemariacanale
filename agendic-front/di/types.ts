@@ -168,6 +168,10 @@ import type { IToggleHolidayUseCase } from '@/src/application/use-cases/holidays
 import type { IToggleHolidayController } from '@/src/interface-adapters/controllers/holidays/toggle-holiday.controller';
 import type { IListHolidayConflictsUseCase } from '@/src/application/use-cases/holidays/list-holiday-conflicts.use-case';
 import type { IListHolidayConflictsController } from '@/src/interface-adapters/controllers/holidays/list-holiday-conflicts.controller';
+import type { IPreviewSetHolidayCountryUseCase } from '@/src/application/use-cases/holidays/preview-set-holiday-country.use-case';
+import type { IPreviewSetHolidayCountryController } from '@/src/interface-adapters/controllers/holidays/preview-set-holiday-country.controller';
+import type { IPreviewToggleHolidayUseCase } from '@/src/application/use-cases/holidays/preview-toggle-holiday.use-case';
+import type { IPreviewToggleHolidayController } from '@/src/interface-adapters/controllers/holidays/preview-toggle-holiday.controller';
 import type { IListMyAvailabilitiesController } from '@/src/interface-adapters/controllers/availabilities/list-my-availabilities.controller';
 import type { ICreateAvailabilityController } from '@/src/interface-adapters/controllers/availabilities/create-availability.controller';
 import type { IPreviewUpdateAvailabilityController } from '@/src/interface-adapters/controllers/availabilities/preview-update-availability.controller';
@@ -267,6 +271,8 @@ export const DI_SYMBOLS = {
     ISetHolidayCountryUseCase: Symbol.for('ISetHolidayCountryUseCase'),
     IToggleHolidayUseCase: Symbol.for('IToggleHolidayUseCase'),
     IListHolidayConflictsUseCase: Symbol.for('IListHolidayConflictsUseCase'),
+    IPreviewSetHolidayCountryUseCase: Symbol.for('IPreviewSetHolidayCountryUseCase'),
+    IPreviewToggleHolidayUseCase: Symbol.for('IPreviewToggleHolidayUseCase'),
 
     IGetCurrentUserController: Symbol.for('IGetCurrentUserController'),
     ICreateBranchController: Symbol.for('ICreateBranchController'),
@@ -355,6 +361,8 @@ export const DI_SYMBOLS = {
     ISetHolidayCountryController: Symbol.for('ISetHolidayCountryController'),
     IToggleHolidayController: Symbol.for('IToggleHolidayController'),
     IListHolidayConflictsController: Symbol.for('IListHolidayConflictsController'),
+    IPreviewSetHolidayCountryController: Symbol.for('IPreviewSetHolidayCountryController'),
+    IPreviewToggleHolidayController: Symbol.for('IPreviewToggleHolidayController'),
 };
 
 export interface DI_RETURN_TYPES {
@@ -449,6 +457,8 @@ export interface DI_RETURN_TYPES {
     ISetHolidayCountryUseCase: ISetHolidayCountryUseCase;
     IToggleHolidayUseCase: IToggleHolidayUseCase;
     IListHolidayConflictsUseCase: IListHolidayConflictsUseCase;
+    IPreviewSetHolidayCountryUseCase: IPreviewSetHolidayCountryUseCase;
+    IPreviewToggleHolidayUseCase: IPreviewToggleHolidayUseCase;
 
     IGetCurrentUserController: IGetCurrentUserController;
     ICreateBranchController: ICreateBranchController;
@@ -537,4 +547,6 @@ export interface DI_RETURN_TYPES {
     ISetHolidayCountryController: ISetHolidayCountryController;
     IToggleHolidayController: IToggleHolidayController;
     IListHolidayConflictsController: IListHolidayConflictsController;
+    IPreviewSetHolidayCountryController: IPreviewSetHolidayCountryController;
+    IPreviewToggleHolidayController: IPreviewToggleHolidayController;
 }

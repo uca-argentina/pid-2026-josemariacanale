@@ -168,7 +168,7 @@ export function OutOfOfficeView({
             {!holidays && periods.length > 0 && <OutOfOfficeFilters filters={filters} weekStart={weekStart} onChange={changeFilters} />}
 
             {holidays ? (
-                <HolidaysTab data={holidays} />
+                <HolidaysTab data={holidays} timeFormat={timeFormat} />
             ) : matching.length > 0 ? (
                 <>
                     <ul className="m-0 mt-4 list-none divide-y overflow-hidden rounded-md border p-0">

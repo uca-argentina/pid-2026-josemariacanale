@@ -9,6 +9,10 @@ import { setHolidayCountryUseCase } from '@/src/application/use-cases/holidays/s
 import { setHolidayCountryController } from '@/src/interface-adapters/controllers/holidays/set-holiday-country.controller';
 import { toggleHolidayUseCase } from '@/src/application/use-cases/holidays/toggle-holiday.use-case';
 import { toggleHolidayController } from '@/src/interface-adapters/controllers/holidays/toggle-holiday.controller';
+import { previewSetHolidayCountryUseCase } from '@/src/application/use-cases/holidays/preview-set-holiday-country.use-case';
+import { previewSetHolidayCountryController } from '@/src/interface-adapters/controllers/holidays/preview-set-holiday-country.controller';
+import { previewToggleHolidayUseCase } from '@/src/application/use-cases/holidays/preview-toggle-holiday.use-case';
+import { previewToggleHolidayController } from '@/src/interface-adapters/controllers/holidays/preview-toggle-holiday.controller';
 import { listHolidayConflictsUseCase } from '@/src/application/use-cases/holidays/list-holiday-conflicts.use-case';
 import { listHolidayConflictsController } from '@/src/interface-adapters/controllers/holidays/list-holiday-conflicts.controller';
 
@@ -78,6 +82,30 @@ export function createHolidaysModule() {
             DI_SYMBOLS.IInstrumentationService,
             DI_SYMBOLS.IAuthenticationService,
             DI_SYMBOLS.IListHolidayConflictsUseCase,
+        ]);
+
+    holidaysModule
+        .bind(DI_SYMBOLS.IPreviewSetHolidayCountryUseCase)
+        .toHigherOrderFunction(previewSetHolidayCountryUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IHolidaysRepository]);
+
+    holidaysModule
+        .bind(DI_SYMBOLS.IPreviewSetHolidayCountryController)
+        .toHigherOrderFunction(previewSetHolidayCountryController, [
+            DI_SYMBOLS.IInstrumentationService,
+            DI_SYMBOLS.IAuthenticationService,
+            DI_SYMBOLS.IPreviewSetHolidayCountryUseCase,
+        ]);
+
+    holidaysModule
+        .bind(DI_SYMBOLS.IPreviewToggleHolidayUseCase)
+        .toHigherOrderFunction(previewToggleHolidayUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IHolidaysRepository]);
+
+    holidaysModule
+        .bind(DI_SYMBOLS.IPreviewToggleHolidayController)
+        .toHigherOrderFunction(previewToggleHolidayController, [
+            DI_SYMBOLS.IInstrumentationService,
+            DI_SYMBOLS.IAuthenticationService,
+            DI_SYMBOLS.IPreviewToggleHolidayUseCase,
         ]);
 
     return holidaysModule;
