@@ -1,7 +1,8 @@
 import { isDay, toIsoDay, toLocalDay } from '@/app/_components/day-range';
 import type { CalendarEvent } from '@/app/_components/weekly-view/types/events';
 import type { Preferences } from '@/src/entities/models/user';
-import { dayKey, isClosed, placeOf, type Booking } from './booking-helpers';
+import { dayKey, placeOf } from '@/app/(app)/_components/booking-format';
+import { isClosed, type Booking } from './booking-helpers';
 
 const DAYS_IN_WEEK = 7;
 const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];

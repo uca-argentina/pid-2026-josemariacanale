@@ -9,7 +9,8 @@ import { formatPrice } from '@/app/_components/booking/format';
 import { PanelBadge } from '@/app/(app)/_components/panel-ui';
 import type { Preferences } from '@/src/entities/models/user';
 import { BookingActions } from './BookingActions';
-import { cabinOf, formatLongDate, formatShortDay, formatTimeRange, isClosed, placeOf, statusBadgesOf, TIME_ZONE_LABEL, type Booking } from './booking-helpers';
+import { formatLongDate, formatShortDay, formatTimeRange, placeOf, TIME_ZONE_LABEL } from '@/app/(app)/_components/booking-format';
+import { cabinOf, isClosed, statusBadgesOf, type Booking } from './booking-helpers';
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
     return (

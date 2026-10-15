@@ -8,11 +8,9 @@ import { useIsMobile } from '@/app/_components/hooks/use-mobile';
 import { ToggleGroup, ToggleGroupItem } from '@/app/_components/ui/toggle-group';
 import { PaginationControls } from '@/app/_components/PaginationControls';
 import { cn } from '@/app/_components/utils';
+import { dayKey, formatShortDay, formatTimeRange, placeOf } from '@/app/(app)/_components/booking-format';
 import { PanelBadge } from '@/app/(app)/_components/panel-ui';
 import {
-    dayKey,
-    formatShortDay,
-    formatTimeRange,
     groupByDay,
     badgesOf,
     isClosed,
@@ -22,7 +20,6 @@ import {
     neighboursOf,
     sortForTab,
     tabOf,
-    placeOf,
     cabinOf,
     type Booking,
     type BookingTab,
