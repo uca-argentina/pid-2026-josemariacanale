@@ -53,6 +53,7 @@ export const userBookingsWith = (stubs: Partial<IUserBookingsRepository>): IUser
     cancel: jest.fn(notStubbed('cancel')),
     reschedule: jest.fn(notStubbed('reschedule')),
     markNoShow: jest.fn(notStubbed('markNoShow')),
+    getHistory: jest.fn(notStubbed('getHistory')),
     unmarkNoShow: jest.fn(notStubbed('unmarkNoShow')),
     getHistory: jest.fn(notStubbed('getHistory')),
 

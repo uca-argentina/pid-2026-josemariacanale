@@ -24,7 +24,7 @@ type Dialog = 'reschedule' | 'reject' | 'cancel' | 'cancel-following' | 'no-show
  * Reagendar, Marcar y Desmarcar la Ausencia del Invitado. Rechazar y Cancelar piden un Motivo de cancelación opcional. Cada acción pega contra el back y la página se refresca.
  *
  * Con `seriesPending` (un Turno pendiente que representa a su Serie en Pendientes), Aceptar y Rechazar van sobre los
- * N Turnos pendientes de la Serie. Con `canCancelFollowing`, el menú suma "Cancelar este y los siguientes".
+ * N Turnos pendientes de la Serie. Con `canCancelFollowing`, el menú suma «Cancelar este y los siguientes».
  */
 export function BookingActions({
     booking,
