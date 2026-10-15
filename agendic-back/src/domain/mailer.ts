@@ -6,6 +6,9 @@ export type SeriesConfirmation = {
   timeZone: string;
 };
 
+/** The Turnos of a Serie an Aviso de cambio del Turno covers (#305): the same shape as its Confirmación de reserva. */
+export type SeriesNotice = SeriesConfirmation;
+
 export interface Mailer {
   /** Sends an email with a Código de verificación to Reservar. */
   sendVerificationCode(email: string, code: string): Promise<void>;
@@ -19,12 +22,28 @@ export interface Mailer {
     depositAmount: number | null,
     series?: SeriesConfirmation,
   ): Promise<void>;
-  /** Aviso de cambio del Turno: the Turno was cancelled, by whoever did it or by a baja, with its Enlace del Turno and the Motivo de cancelación if it has one. */
-  sendBookingCancellation(email: string, link: string, reason?: string | null): Promise<void>;
+  /**
+   * Aviso de cambio del Turno: the Turno was cancelled, by whoever did it or by a baja, with its Enlace del Turno and the Motivo de cancelación if it has one.
+   * Cancelling several Turnos of a Serie at once (#305), `series` lists them all, with their dates, in this one mail.
+   */
+  sendBookingCancellation(
+    email: string,
+    link: string,
+    reason?: string | null,
+    series?: SeriesNotice,
+  ): Promise<void>;
   /** Aviso de cambio del Turno: the Turno moved to another horario, with its Enlace del Turno. */
   sendBookingReschedule(email: string, link: string): Promise<void>;
-  /** Aviso de cambio del Turno: the Negocio rejected the pending Turno, with its Enlace del Turno and the Motivo de cancelación if it has one. */
-  sendBookingRejection(email: string, link: string, reason?: string | null): Promise<void>;
+  /**
+   * Aviso de cambio del Turno: the Negocio rejected the pending Turno, with its Enlace del Turno and the Motivo de cancelación if it has one.
+   * Rejecting a Serie (#305), `series` lists every Turno rejected, with their dates, in this one mail.
+   */
+  sendBookingRejection(
+    email: string,
+    link: string,
+    reason?: string | null,
+    series?: SeriesNotice,
+  ): Promise<void>;
   /** Invitación a Calificar: asks the Cliente to rate the Turno of `serviceName` that started at `startsAt`, shown in `timeZone`, with its Enlace del Turno. */
   sendRatingRequest(
     email: string,
