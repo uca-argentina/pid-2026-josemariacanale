@@ -6,6 +6,7 @@ import {
     type FieldErrors,
     type ServiceCategoryValue,
 } from '@/app/_components/business-schemas';
+import { REPEAT_EVERY_WEEKS_MIN, REPEAT_MAX_BOOKINGS } from '@/src/entities/models/service';
 
 /** Las Categorías de Servicio como opciones de un `PanelSelect`. */
 export const CATEGORY_OPTIONS = SERVICE_CATEGORIES.map((c) => ({ value: c.value, label: c.label }));
@@ -114,6 +115,12 @@ export interface ServiceEditForm {
     slotInterval: string;
     /** La Anticipación mínima, en minutos; vacío es 0. */
     minimumNoticeMinutes: string;
+    /** Si el Servicio tiene Repetición: se puede Reservar una Serie de Turnos. */
+    repeatEnabled: boolean;
+    /** Cada cuántas semanas se repite la Serie; solo cuenta con `repeatEnabled`. */
+    repeatEveryWeeks: string;
+    /** Hasta cuántos Turnos puede tener la Serie, de 2 a 10; solo cuenta con `repeatEnabled`. */
+    repeatMaxBookings: string;
 }
 
 /** El Servicio como lo deja editar el detalle. */
@@ -130,6 +137,8 @@ export const editFormOf = (service: {
     dailyLimit: number | null;
     slotInterval: number | null;
     minimumNoticeMinutes: number;
+    repeatEveryWeeks: number | null;
+    repeatMaxBookings: number | null;
 }): ServiceEditForm => ({
     name: service.name,
     slug: service.slug,
@@ -145,7 +154,19 @@ export const editFormOf = (service: {
     dailyLimit: service.dailyLimit === null ? '' : String(service.dailyLimit),
     slotInterval: service.slotInterval === null ? '' : String(service.slotInterval),
     minimumNoticeMinutes: String(service.minimumNoticeMinutes),
+    repeatEnabled: service.repeatEveryWeeks !== null && service.repeatMaxBookings !== null,
+    repeatEveryWeeks: String(service.repeatEveryWeeks ?? DEFAULT_REPEAT.everyWeeks),
+    repeatMaxBookings: String(service.repeatMaxBookings ?? DEFAULT_REPEAT.maxBookings),
 });
+
+/** Lo que propone la Repetición al prenderla: todas las semanas, hasta 4 Turnos. */
+const DEFAULT_REPEAT = { everyWeeks: 1, maxBookings: 4 };
+
+/** Los mensajes de una Repetición inválida, por campo; los usa también el 400 del back. */
+export const REPETITION_MESSAGES = {
+    repeatEveryWeeks: `La Repetición es cada ${REPEAT_EVERY_WEEKS_MIN} semana o más.`,
+    repeatMaxBookings: `La Repetición va de ${REPEAT_MAX_BOOKINGS.min} a ${REPEAT_MAX_BOOKINGS.max} Turnos.`,
+} as const;
 
 const DEPOSIT_MESSAGE = 'La Seña va de 1 a 100%, en enteros.';
 const DAILY_LIMIT_MESSAGE = 'El Límite diario es de al menos 1 Turno, en enteros.';
@@ -166,6 +187,9 @@ const serviceEditSchema = serviceFormSchema
         dailyLimit: z.string(),
         slotInterval: z.string(),
         minimumNoticeMinutes: z.string(),
+        repeatEnabled: z.boolean(),
+        repeatEveryWeeks: z.string(),
+        repeatMaxBookings: z.string(),
     })
     .superRefine((form, ctx) => {
         const percent = toNumber(form.depositPercent);
@@ -180,21 +204,44 @@ const serviceEditSchema = serviceFormSchema
         const notice = toOptionalNumber(form.minimumNoticeMinutes) ?? 0;
         if (!Number.isInteger(notice) || notice < 0)
             ctx.addIssue({ code: 'custom', path: ['minimumNoticeMinutes'], message: MINIMUM_NOTICE_MESSAGE });
+        if (!form.repeatEnabled) return;
+        const everyWeeks = toNumber(form.repeatEveryWeeks);
+        if (!Number.isInteger(everyWeeks) || everyWeeks < REPEAT_EVERY_WEEKS_MIN)
+            ctx.addIssue({ code: 'custom', path: ['repeatEveryWeeks'], message: REPETITION_MESSAGES.repeatEveryWeeks });
+        const maxBookings = toNumber(form.repeatMaxBookings);
+        if (!Number.isInteger(maxBookings) || maxBookings < REPEAT_MAX_BOOKINGS.min || maxBookings > REPEAT_MAX_BOOKINGS.max)
+            ctx.addIssue({ code: 'custom', path: ['repeatMaxBookings'], message: REPETITION_MESSAGES.repeatMaxBookings });
     })
-    .transform(({ depositEnabled, depositPercent, dailyLimitEnabled, dailyLimit, slotInterval, minimumNoticeMinutes, ...form }) => ({
-        ...form,
-        depositPercent: depositEnabled ? Number(depositPercent) : null,
-        dailyLimit: dailyLimitEnabled ? Number(dailyLimit) : null,
-        slotInterval: toOptionalNumber(slotInterval),
-        minimumNoticeMinutes: toOptionalNumber(minimumNoticeMinutes) ?? 0,
-    }));
+    .transform(
+        ({
+            depositEnabled,
+            depositPercent,
+            dailyLimitEnabled,
+            dailyLimit,
+            slotInterval,
+            minimumNoticeMinutes,
+            repeatEnabled,
+            repeatEveryWeeks,
+            repeatMaxBookings,
+            ...form
+        }) => ({
+            ...form,
+            depositPercent: depositEnabled ? Number(depositPercent) : null,
+            dailyLimit: dailyLimitEnabled ? Number(dailyLimit) : null,
+            slotInterval: toOptionalNumber(slotInterval),
+            minimumNoticeMinutes: toOptionalNumber(minimumNoticeMinutes) ?? 0,
+            repeatEveryWeeks: repeatEnabled ? Number(repeatEveryWeeks) : null,
+            repeatMaxBookings: repeatEnabled ? Number(repeatMaxBookings) : null,
+        }),
+    );
 
 type ServiceChanges = Partial<z.output<typeof serviceEditSchema>>;
 
 /**
  * Valida el borrador y arma el cuerpo de `PATCH /services/:id` con solo lo que cambió respecto de lo guardado. La
  * Seña apagada viaja como `depositPercent: null`, el Límite diario apagado como `dailyLimit: null` y el Intervalo
- * vacío como `slotInterval: null`. Una descripción que ya tenía texto no se puede vaciar: el back no acepta una
+ * vacío como `slotInterval: null`. La Repetición viaja siempre con sus dos campos, aunque cambie uno, y apagada los
+ * manda en `null`: el back los pide juntos. Una descripción que ya tenía texto no se puede vaciar: el back no acepta una
  * descripción vacía.
  */
 export function serviceChanges(
@@ -208,6 +255,10 @@ export function serviceChanges(
     const changes: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(parsed.data)) {
         if (value !== before[key as keyof ServiceChanges]) changes[key] = value;
+    }
+    if ('repeatEveryWeeks' in changes || 'repeatMaxBookings' in changes) {
+        changes.repeatEveryWeeks = parsed.data.repeatEveryWeeks;
+        changes.repeatMaxBookings = parsed.data.repeatMaxBookings;
     }
     if ('description' in changes && changes.description === undefined)
         return { ok: false, errors: { description: 'La descripción no se puede borrar: escribí una nueva.' } };

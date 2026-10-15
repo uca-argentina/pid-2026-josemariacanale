@@ -25,3 +25,21 @@ export class AvailabilityNotOfEmployeeError extends Error {
         super(message, options);
     }
 }
+
+/** Qué campo de la Repetición rechazó el back. */
+export type ServiceRepetitionField = 'repeatEveryWeeks' | 'repeatMaxBookings';
+
+/** Por qué el back rechazó la Repetición: falta uno de los dos campos, o uno está fuera de su rango. */
+export type ServiceRepetitionReason = 'incomplete' | 'out-of-range';
+
+/** 400: la Repetición del Servicio no es válida; `field` dice cuál de sus dos campos y `reason` por qué. */
+export class ServiceRepetitionError extends Error {
+    readonly field: ServiceRepetitionField;
+    readonly reason: ServiceRepetitionReason;
+
+    constructor(message: string, options: ErrorOptions & { field: ServiceRepetitionField; reason: ServiceRepetitionReason }) {
+        super(message, options);
+        this.field = options.field;
+        this.reason = options.reason;
+    }
+}

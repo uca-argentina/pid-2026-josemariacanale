@@ -29,6 +29,8 @@ const presentService = (service: CatalogService | PersonalService, offeredByMe: 
     dailyLimit: service.dailyLimit,
     slotInterval: service.slotInterval,
     minimumNoticeMinutes: service.minimumNoticeMinutes,
+    repeatEveryWeeks: service.repeatEveryWeeks,
+    repeatMaxBookings: service.repeatMaxBookings,
     offeredByMe,
     cabins: 'cabins' in service ? service.cabins.map((c) => ({ id: c.id, name: c.name })) : [],
     employees: 'employees' in service ? service.employees.map((e) => ({ id: e.id, name: e.name, imageUrl: e.imageUrl, slug: e.slug })) : [],
