@@ -42,6 +42,10 @@ export interface Service {
   slotInterval: number | null;
   /** Anticipación mínima: minutes that must remain before a Turno starts to Reservar it. 0 means none. */
   minimumNoticeMinutes: number;
+  /** Repetición: weeks between the Turnos of a Serie. Null, together with repeatMaxBookings, when the Servicio offers none. */
+  repeatEveryWeeks: number | null;
+  /** Repetición: most Turnos a Serie may have, 2 to 10. Null exactly when repeatEveryWeeks is. */
+  repeatMaxBookings: number | null;
   /** In charge of it: verified and not dados de baja. Always empty in a Servicio personal. */
   employees: ServiceEmployee[];
   /** Cabinas it admits (ADR 0030): the active ones, ascending by name. Always empty in a Servicio personal. */
@@ -85,6 +89,8 @@ export interface CreateServiceInput {
   dailyLimit?: number;
   slotInterval?: number;
   minimumNoticeMinutes?: number;
+  repeatEveryWeeks?: number | null;
+  repeatMaxBookings?: number | null;
   employeeIds: number[];
   /** Cabinas of the Sucursal it admits. */
   cabinIds?: number[];
@@ -115,6 +121,9 @@ export interface UpdateServiceInput {
   /** Null drops the Intervalo. */
   slotInterval?: number | null;
   minimumNoticeMinutes?: number;
+  /** Null, together with repeatMaxBookings, drops the Repetición. */
+  repeatEveryWeeks?: number | null;
+  repeatMaxBookings?: number | null;
   /** Servicio personal only: another of the Usuario's own Availabilities. */
   availabilityId?: number;
   /** Servicio del Negocio only: replaces the whole set of Cabinas it admits; empty leaves it with none. */

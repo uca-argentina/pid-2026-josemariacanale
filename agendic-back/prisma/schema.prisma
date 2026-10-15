@@ -177,6 +177,8 @@ model Service {
   dailyLimit           Int? // Límite diario: PENDING and BOOKED Turnos per local day of the Sucursal; null when there is none
   slotInterval         Int? // Intervalo: minutes between Horario reservable starts; null means the duration
   minimumNoticeMinutes Int             @default(0) // Anticipación mínima: minutes that must remain before a Turno starts to Reservar it
+  repeatEveryWeeks     Int? // Repetición: weeks between the Turnos of a Serie; null with repeatMaxBookings when there is none (CHECK: both or neither)
+  repeatMaxBookings    Int? // Repetición: most Turnos a Serie may have, 2 to 10
 
   branch       Branch?           @relation(fields: [branchId], references: [id], onDelete: Restrict)
   user         User?             @relation(fields: [userId], references: [id], onDelete: Restrict)

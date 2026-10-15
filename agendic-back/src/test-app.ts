@@ -419,6 +419,8 @@ export const ANAS_SERVICE: Service = {
   dailyLimit: null,
   slotInterval: null,
   minimumNoticeMinutes: 0,
+  repeatEveryWeeks: null,
+  repeatMaxBookings: null,
   employees: [
     {
       id: ANAS_EMPLOYEE.id,

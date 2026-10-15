@@ -60,6 +60,8 @@ export class CreateBusinessUseCase {
           dailyLimit: input.service.dailyLimit ?? null,
           slotInterval: input.service.slotInterval ?? null,
           minimumNoticeMinutes: input.service.minimumNoticeMinutes ?? 0,
+          repeatEveryWeeks: input.service.repeatEveryWeeks ?? null,
+          repeatMaxBookings: input.service.repeatMaxBookings ?? null,
         },
         employee: { userId: owner.id },
         branchImageUrls,

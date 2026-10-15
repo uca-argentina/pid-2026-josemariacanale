@@ -59,6 +59,7 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | Tiempo de preparación | `Service.prepMinutes` (0 = sin preparación); en el Turno, `Booking.prepStartsAt` (desde cuándo ocupa al Empleado) |
 | Límite diario | `Service.dailyLimit` (opcional) |
 | Intervalo | `Service.slotInterval` (minutos, opcional; sin él, `durationMinutes`) |
+| Repetición (#301) | `Service.repeatEveryWeeks` (semanas entre Turnos, ≥ 1) y `Service.repeatMaxBookings` (Turnos máximos de una Serie, 2 a 10); los dos con valor o los dos `null`, con los CHECK `Service_repeat_both_or_neither`, `Service_repeatEveryWeeks_min` y `Service_repeatMaxBookings_range`; `PATCH /services/:id` con los dos en `null` la saca |
 | Anticipación mínima | `Service.minimumNoticeMinutes` (minutos, 0 = sin anticipación) |
 | Ofrecer un Servicio / dejar de ofrecerlo | `assignEmployee` / `removeEmployee` (`EmployeeService`) |
 | Turno | `Booking` (inicio/fin → `startsAt`/`endsAt`; estado → `BookingStatus.PENDING \| BOOKED \| REJECTED \| CANCELLED`) |
