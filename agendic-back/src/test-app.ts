@@ -224,6 +224,7 @@ export async function createTestApp() {
     reschedulePendingOrBooked: jest.fn(),
     markNoShow: jest.fn(),
     unmarkNoShow: jest.fn(),
+    findHistoryChain: jest.fn(),
     payDeposit: jest.fn(),
     markEmployeeNoShow: jest.fn(),
     rate: jest.fn(),

@@ -1,5 +1,6 @@
 import { Availability } from '../../domain/availabilities/availability';
 import { Booking, BookingActor, BookingStatus } from '../../domain/bookings/booking';
+import { HistoryBooking } from '../../domain/bookings/booking-history';
 import { ConflictError, NotFoundError } from '../../domain/errors';
 import {
   ANAS_BRANCH,
@@ -733,6 +734,132 @@ describe('Mis turnos del Usuario', () => {
 
     it('answers 401 without a Sesión', async () => {
       await del('').expect(401);
+    });
+  });
+
+  describe('GET /bookings/:id/history', () => {
+    const get = (token: string | undefined = CLERK_TOKEN) => {
+      const req = t.http.get(`/bookings/${BOOKED.id}/history`);
+      return token ? req.set(bearer(token)) : req;
+    };
+    const at = (iso: string) => new Date(`2026-01-0${iso}Z`);
+    const link = (over: Partial<HistoryBooking>): HistoryBooking => ({
+      ...BOOKED,
+      createdAt: at('1T10:00:00.000'),
+      rating: null,
+      ...over,
+    });
+
+    it('lists a Turno booked, accepted, rescheduled twice and cancelled with a reason in order', async () => {
+      t.bookings.findHistoryChain.mockResolvedValue([
+        link({
+          id: 1,
+          status: BookingStatus.CANCELLED,
+          startsAt: at('2T14:00:00.000'),
+          endsAt: at('2T14:30:00.000'),
+          acceptedAt: at('1T11:00:00.000'),
+          cancelledAt: at('1T12:00:00.000'),
+          cancelledBy: BookingActor.CLIENT,
+        }),
+        link({
+          id: 2,
+          fromRescheduleId: 1,
+          createdAt: at('1T12:00:00.000'),
+          status: BookingStatus.CANCELLED,
+          startsAt: at('3T14:00:00.000'),
+          endsAt: at('3T14:30:00.000'),
+          acceptedAt: at('1T12:00:00.000'),
+          cancelledAt: at('1T13:00:00.000'),
+          cancelledBy: BookingActor.EMPLOYEE,
+        }),
+        link({
+          id: BOOKED.id,
+          fromRescheduleId: 2,
+          createdAt: at('1T13:00:00.000'),
+          status: BookingStatus.CANCELLED,
+          acceptedAt: at('1T13:00:00.000'),
+          cancelledAt: at('1T14:00:00.000'),
+          cancelledBy: BookingActor.EMPLOYEE,
+          cancellationReason: 'Me enfermé',
+        }),
+      ]);
+
+      const res = await get().expect(200);
+
+      expect(t.bookings.findHistoryChain).toHaveBeenCalledWith(BOOKED.id);
+      expect(res.body.entries).toEqual([
+        { type: 'booked', at: '2026-01-01T10:00:00.000Z', actor: 'client', reason: null, from: null },
+        { type: 'accepted', at: '2026-01-01T11:00:00.000Z', actor: 'employee', reason: null, from: null },
+        {
+          type: 'rescheduled',
+          at: '2026-01-01T12:00:00.000Z',
+          actor: 'client',
+          reason: null,
+          from: { startsAt: '2026-01-02T14:00:00.000Z', endsAt: '2026-01-02T14:30:00.000Z' },
+        },
+        {
+          type: 'rescheduled',
+          at: '2026-01-01T13:00:00.000Z',
+          actor: 'employee',
+          reason: null,
+          from: { startsAt: '2026-01-03T14:00:00.000Z', endsAt: '2026-01-03T14:30:00.000Z' },
+        },
+        { type: 'cancelled', at: '2026-01-01T14:00:00.000Z', actor: 'employee', reason: 'Me enfermé', from: null },
+      ]);
+    });
+
+    it('lists the Seña paid, the Ausencia, the Falta del Empleado and the Calificación', async () => {
+      t.bookings.findHistoryChain.mockResolvedValue([
+        link({
+          id: BOOKED.id,
+          depositPaidAt: at('1T11:00:00.000'),
+          noShowAt: at('2T15:00:00.000'),
+          employeeNoShowAt: at('2T16:00:00.000'),
+          rating: { score: 4, comment: null, createdAt: at('2T17:00:00.000') },
+        }),
+      ]);
+
+      const res = await get().expect(200);
+
+      expect(res.body.entries.map((e: { type: string; actor: string }) => [e.type, e.actor])).toEqual([
+        ['booked', 'client'],
+        ['depositPaid', 'client'],
+        ['noShow', 'employee'],
+        ['employeeNoShow', 'client'],
+        ['rated', 'client'],
+      ]);
+    });
+
+    it('lists a rejection with its reason', async () => {
+      t.bookings.findHistoryChain.mockResolvedValue([
+        link({
+          id: BOOKED.id,
+          status: BookingStatus.REJECTED,
+          rejectedAt: at('1T11:00:00.000'),
+          cancelledBy: BookingActor.EMPLOYEE,
+          cancellationReason: 'Sin cupo',
+        }),
+      ]);
+
+      const res = await get().expect(200);
+
+      expect(res.body.entries[1]).toMatchObject({ type: 'rejected', actor: 'employee', reason: 'Sin cupo' });
+    });
+
+    it('answers 404 when the Turno does not exist', async () => {
+      t.bookings.findHistoryChain.mockRejectedValue(new NotFoundError('Booking not found'));
+
+      await get().expect(404);
+    });
+
+    it('answers 403 for a Usuario who is not the assigned Empleado', async () => {
+      t.bookings.findHistoryChain.mockResolvedValue([link({ id: BOOKED.id })]);
+
+      await get(OTHER_CLERK_TOKEN).expect(403);
+    });
+
+    it('answers 401 without a Sesión', async () => {
+      await get('').expect(401);
     });
   });
 });

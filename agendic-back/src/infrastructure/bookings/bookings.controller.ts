@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { CancelBookingUseCase } from '../../application/bookings/cancel-booking.use-case';
 import { MarkNoShowUseCase } from '../../application/bookings/mark-no-show.use-case';
+import { GetBookingHistoryUseCase } from '../../application/bookings/get-booking-history.use-case';
 import { UnmarkNoShowUseCase } from '../../application/bookings/unmark-no-show.use-case';
 import { RescheduleBookingUseCase } from '../../application/bookings/reschedule-booking.use-case';
 import { AcceptBookingUseCase } from '../../application/bookings/accept-booking.use-case';
@@ -48,6 +49,7 @@ export class BookingsController {
     private readonly rescheduleBookingUseCase: RescheduleBookingUseCase,
     private readonly markNoShowUseCase: MarkNoShowUseCase,
     private readonly unmarkNoShowUseCase: UnmarkNoShowUseCase,
+    private readonly getBookingHistoryUseCase: GetBookingHistoryUseCase,
     private readonly listMyBookingsUseCase: ListMyBookingsUseCase,
   ) {}
 
@@ -189,6 +191,23 @@ export class BookingsController {
     return presentBookingWithNoShow(
       await this.unmarkNoShowUseCase.execute(userId, id),
     );
+  }
+
+  /**
+   * Historial del Turno (ADR 0033), en orden cronológico.
+   *
+   * @throws {NotFoundError} el Turno no existe
+   * @throws {ForbiddenError} el Usuario no es el Empleado asignado
+   */
+  @Get('bookings/:id/history')
+  @UseGuards(ClerkGuard)
+  async history(
+    @CurrentUser() userId: number,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return {
+      entries: await this.getBookingHistoryUseCase.execute(userId, id),
+    };
   }
 
   /**

@@ -1,3 +1,4 @@
+import { HistoryBooking } from './booking-history';
 import {
   Booking,
   BookingStatus,
@@ -96,6 +97,8 @@ export interface BookingsRepository {
     now: Date,
     reason: string | null,
   ): Promise<Booking>;
+  /** The Turno and the originals it replaced by Reagendar (ADR 0031), oldest first, the Turno last. Throws NotFoundError for an unknown id. */
+  findHistoryChain(id: number): Promise<HistoryBooking[]>;
   /** The Turno for its Enlace del Turno, in any status, with the data to show it (ADR 0022). Throws NotFoundError for an unknown link. */
   findByLink(link: string): Promise<ClientBooking>;
   listByBusiness(businessId: number): Promise<PanelBooking[]>;
