@@ -35,6 +35,6 @@ export class PreviewOutOfOfficeUseCase {
   ): Promise<LeftOutsideBooking[]> {
     assertValidOutOfOffice(input);
     await assertNoDuplicateOutOfOffice(this.outOfOffice, userId, input);
-    return this.leftOutside.forNewOutOfOffice(userId, input);
+    return this.leftOutside.forOutOfOffice(userId, input);
   }
 }

@@ -29,6 +29,18 @@ export interface OutOfOfficeRepository {
     cancellations: CausedCancellationOrder[],
     now: Date,
   ): Promise<{ outOfOffice: OutOfOffice; cancelledIds: number[] }>;
+  /**
+   * Igual que `update`, y en la misma transacción cancela los Turnos de `cancellations` como `createCancelling`.
+   *
+   * @throws {ConflictError} otro período del Usuario tiene esas fechas
+   * @throws {NotFoundError} el período no existe
+   */
+  updateCancelling(
+    id: number,
+    data: OutOfOfficeFields,
+    cancellations: CausedCancellationOrder[],
+    now: Date,
+  ): Promise<{ outOfOffice: OutOfOffice; cancelledIds: number[] }>;
   /** Throws ConflictError when another período of the Usuario has those dates. */
   update(id: number, data: OutOfOfficeFields): Promise<OutOfOffice>;
   delete(id: number): Promise<void>;
