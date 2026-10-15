@@ -124,6 +124,35 @@ describe('UserBookingsRepository.listMyBookings', () => {
     });
 });
 
+describe('UserBookingsRepository.getHistory', () => {
+    const entries = [
+        { type: 'booked', at: '2026-10-12T13:03:00.000Z', actor: 'client', reason: null, from: null },
+        {
+            type: 'rescheduled',
+            at: '2026-10-13T13:00:00.000Z',
+            actor: 'client',
+            reason: null,
+            from: { startsAt: '2026-10-14T13:00:00.000Z', endsAt: '2026-10-14T14:00:00.000Z' },
+        },
+    ];
+
+    it('GETs /bookings/:id/history with the bearer token and returns its entries', async () => {
+        const fetchSpy = respond(200, { entries });
+        await expect(repo().getHistory(7)).resolves.toEqual(entries);
+        expect(fetchSpy).toHaveBeenCalledWith('http://api/bookings/7/history', expect.objectContaining({ method: 'GET', headers: { Authorization: 'Bearer tok' } }));
+    });
+
+    it('rejects an entry of an unknown type', async () => {
+        respond(200, { entries: [{ ...entries[0], type: 'archived' }] });
+        await expect(repo().getHistory(7)).rejects.toBeInstanceOf(ApiRequestError);
+    });
+
+    it('translates a 404 to NotFoundError', async () => {
+        respond(404, { statusCode: 404, message: 'Booking not found' });
+        await expect(repo().getHistory(7)).rejects.toBeInstanceOf(NotFoundError);
+    });
+});
+
 describe('UserBookingsRepository actions', () => {
     const actions = [
         ['accept', 'accept', () => repo().accept(7)],

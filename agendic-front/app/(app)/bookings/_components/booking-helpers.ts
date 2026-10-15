@@ -5,6 +5,9 @@ import { dayKey, dayLabel, placeOf } from '@/app/(app)/_components/booking-forma
 /** Un Turno de Mis turnos del Usuario, como lo arma el controller. */
 export type Booking = Awaited<ReturnType<DI_RETURN_TYPES['IListMyBookingsController']>>[number];
 
+/** Qué ve el Usuario en el panel cuando el Historial del Turno no se puede cargar. */
+export const HISTORY_LOAD_ERROR = 'No pudimos cargar el historial del turno.';
+
 /** Pestañas de la lista de Turnos. */
 export type BookingTab = 'upcoming' | 'pending' | 'past' | 'cancelled';
 

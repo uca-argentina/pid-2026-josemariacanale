@@ -1,6 +1,7 @@
 import {
     acceptBookingAction,
     cancelBookingAction,
+    getBookingHistoryAction,
     markBookingNoShowAction,
     rejectBookingAction,
     rescheduleBookingAction,
@@ -15,6 +16,7 @@ const mockControllers: Record<string, jest.Mock> = {
     ICancelBookingController: jest.fn(),
     IRescheduleBookingController: jest.fn(),
     IMarkBookingNoShowController: jest.fn(),
+    IGetBookingHistoryController: jest.fn(),
 };
 const mockReport = jest.fn();
 const mockRefresh = jest.fn();
@@ -75,6 +77,37 @@ describe.each([
         const result = await run();
         expect(result.ok).toBe(false);
         expect(mockReport).toHaveBeenCalledWith(boom);
+    });
+});
+
+describe('getBookingHistoryAction', () => {
+    it('returns the Historial del Turno, dated in the zone of the panel, without refreshing the page', async () => {
+        const entries = [{ text: 'Reservado por el Cliente', at: '12 oct 10:03', reason: null }];
+        mockControllers.IGetBookingHistoryController.mockResolvedValue(entries);
+
+        await expect(getBookingHistoryAction(7, 24)).resolves.toEqual({ ok: true, entries });
+        expect(mockControllers.IGetBookingHistoryController).toHaveBeenCalledWith({ bookingId: 7, timeZone: 'America/Argentina/Buenos_Aires', timeFormat: 24 });
+        expect(mockRefresh).not.toHaveBeenCalled();
+    });
+
+    it('sends the Usuario to sign-in when the Sesión expired', async () => {
+        mockControllers.IGetBookingHistoryController.mockRejectedValue(new UnauthenticatedError('no'));
+        await expect(getBookingHistoryAction(7, 24)).rejects.toThrow('REDIRECT:');
+    });
+
+    it('reports an unexpected error and returns a message for the panel', async () => {
+        const boom = new Error('boom');
+        mockControllers.IGetBookingHistoryController.mockRejectedValue(boom);
+
+        await expect(getBookingHistoryAction(7, 24)).resolves.toEqual({ ok: false, message: 'No pudimos cargar el historial del turno.' });
+        expect(mockReport).toHaveBeenCalledWith(boom);
+    });
+
+    it('does not report a Turno that is not the Usuario’s or no longer exists', async () => {
+        mockControllers.IGetBookingHistoryController.mockRejectedValue(new NotFoundError('404'));
+
+        await expect(getBookingHistoryAction(7, 24)).resolves.toEqual({ ok: false, message: 'No pudimos cargar el historial del turno.' });
+        expect(mockReport).not.toHaveBeenCalled();
     });
 });
 

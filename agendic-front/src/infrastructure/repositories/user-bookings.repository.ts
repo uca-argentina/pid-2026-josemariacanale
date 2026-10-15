@@ -9,6 +9,7 @@ import {
     SlotUnavailableError,
 } from '@/src/entities/errors/booking';
 import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
+import { bookingHistorySchema, type BookingHistoryEntry } from '@/src/entities/models/booking-history';
 import { userBookingSchema, type UserBooking } from '@/src/entities/models/user-booking';
 
 /**
@@ -83,6 +84,21 @@ export class UserBookingsRepository implements IUserBookingsRepository {
         const json = await this.request('PATCH', `/bookings/${bookingId}/reschedule`, { startsAt });
         if (typeof json?.id !== 'number') throw new ApiRequestError(`PATCH /bookings/${bookingId}/reschedule responded without a numeric Turno id: ${JSON.stringify(json)}`);
         return { id: json.id };
+    }
+
+    /**
+     * @throws {UnauthenticatedError} la API respondió 401
+     * @throws {BookingNotAllowedError} la API respondió 403
+     * @throws {NotFoundError} la API respondió 404
+     * @throws {ApiRequestError} falla de red, otro status no-OK o cuerpo inesperado
+     */
+    async getHistory(bookingId: number): Promise<BookingHistoryEntry[]> {
+        const json = await this.request('GET', `/bookings/${bookingId}/history`);
+        try {
+            return bookingHistorySchema.parse(json).entries;
+        } catch (cause) {
+            throw new ApiRequestError('GET /bookings/:id/history responded with an unexpected body', { cause });
+        }
     }
 
     /**
