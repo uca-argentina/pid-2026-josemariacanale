@@ -15,6 +15,8 @@ const presentService = (s: PersonalService) => ({
     durationMinutes: s.durationMinutes,
     price: s.price,
     depositPercent: s.depositPercent,
+    repeatEveryWeeks: s.repeatEveryWeeks,
+    repeatMaxBookings: s.repeatMaxBookings,
 });
 
 function presenter({ name, slug, imageUrl, services, selectedService }: PublicUserPage, instrumentationService: IInstrumentationService) {

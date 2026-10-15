@@ -2,17 +2,20 @@
 
 import { useState, useTransition } from 'react';
 import { formatPrice as formatPriceWithCents } from '@/app/_components/booking/format';
+import Link from 'next/link';
 import { Button } from '@/app/_components/ui/button';
+import { bookingPath } from '@/app/routes';
 import { Textarea } from '@/app/_components/ui/textarea';
 import { CANCELLATION_REASON_MAX_LENGTH } from '@/src/entities/models/booking';
-import { STATUS_BADGE, canPayDeposit, cancellationReasonOf, hasPendingDeposit, hostName, isActionable } from './client-booking-helpers';
+import { STATUS_BADGE, canPayDeposit, cancellationReasonOf, hasPendingDeposit, hostName, isActionable, seriesOf } from './client-booking-helpers';
 import { formatDuration, formatLongDate, formatPrice, formatTime } from './format';
 import { RatingSection } from './RatingSection';
 import { RescheduleOverlay } from './RescheduleOverlay';
 import type { ClientBooking, ClientBookingActionResult } from './types';
 
 /**
- * Muestra el detalle de un Turno del Cliente, con Pagar seña, Reagendar y Cancelar abajo cuando todavía se puede, y el aviso de
+ * Muestra el detalle de un Turno del Cliente, con Pagar seña, Reagendar y Cancelar abajo cuando todavía se puede, la lista
+ * de su Serie si es de una (cada Turno con su estado y su Enlace del Turno), y el aviso de
  * que quien lo atiende no vino (Ausencia del Anfitrión) cuando el back lo permite, y la Calificación (formulario o solo lectura).
  * Quien lo usa pasa sus propias acciones en `payDeposit`, `cancel`, `reschedule`, `markEmployeeNoShow` y `rate`.
  */
@@ -43,6 +46,7 @@ export function ClientBookingDetail({
     const [notice, setNotice] = useState<string | null>(null);
     const status = STATUS_BADGE[booking.status];
     const cancellationReason = cancellationReasonOf(booking);
+    const series = seriesOf(booking);
 
     return (
         <section aria-label="Detalle del turno" className="rounded-2xl border border-border p-6">
@@ -91,6 +95,31 @@ export function ClientBookingDetail({
             )}
 
             {booking.branch && <p className="mt-4 text-[13.5px] text-muted-foreground">{booking.branch.address}</p>}
+
+            {series && (
+                <section aria-label="Tu Serie de turnos">
+                    <h4 className="mt-7 text-[17px] font-extrabold tracking-[-0.02em]">Tu Serie ({series.length} turnos)</h4>
+                    <ol className="mt-3 flex flex-col gap-2">
+                        {series.map((s) => (
+                            <li key={s.link} className="flex items-center justify-between gap-4 rounded-xl border border-border px-4 py-3 text-[13.5px]">
+                                <span className="font-bold first-letter:uppercase">
+                                    {formatLongDate(s.startsAt, booking.timeZone)} a las {formatTime(s.startsAt, booking.timeZone)}
+                                </span>
+                                <span className="flex shrink-0 items-center gap-3">
+                                    <span className="text-muted-foreground">{s.status}</span>
+                                    {s.current ? (
+                                        <span className="font-semibold">Este turno</span>
+                                    ) : (
+                                        <Link href={bookingPath(s.link)} className="font-semibold underline underline-offset-2">
+                                            Ver turno
+                                        </Link>
+                                    )}
+                                </span>
+                            </li>
+                        ))}
+                    </ol>
+                </section>
+            )}
 
             {booking.notes && (
                 <>

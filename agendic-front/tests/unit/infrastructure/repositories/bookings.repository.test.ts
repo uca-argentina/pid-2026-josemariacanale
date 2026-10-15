@@ -1,4 +1,11 @@
-import { InvalidVerificationCodeError, SlotTakenError, SlotUnavailableError, TooManyVerificationCodeRequestsError } from '@/src/entities/errors/booking';
+import {
+    InvalidVerificationCodeError,
+    SeriesDatesUnavailableError,
+    SeriesTooShortError,
+    SlotTakenError,
+    SlotUnavailableError,
+    TooManyVerificationCodeRequestsError,
+} from '@/src/entities/errors/booking';
 import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
 import { BookingsRepository } from '@/src/infrastructure/repositories/bookings.repository';
 import { instrumentation } from '@/tests/unit/stubs';
@@ -152,6 +159,96 @@ describe('BookingsRepository.book', () => {
         expect(error).toBeInstanceOf(ApiRequestError);
         expect(error.status).toBeUndefined();
         expect(error.cause).toBe(cause);
+    });
+});
+
+describe('BookingsRepository.book of a Serie', () => {
+    const input = {
+        serviceId: 100,
+        startsAt: '2026-09-28T12:00:00.000Z',
+        clientName: 'Juana Pérez',
+        clientEmail: 'juana@example.com',
+        code: 'ABC123',
+        repeat: { count: 4, skipDates: ['2026-10-12'] },
+    };
+    const booking = {
+        id: 7,
+        serviceId: 100,
+        employeeId: 1,
+        startsAt: '2026-09-28T12:00:00.000Z',
+        endsAt: '2026-09-28T13:00:00.000Z',
+        status: 'BOOKED',
+        link: 'l1nk-1',
+        series: {
+            id: 'serie-1',
+            bookings: [
+                { startsAt: '2026-09-28T12:00:00.000Z', link: 'l1nk-1' },
+                { startsAt: '2026-10-05T12:00:00.000Z', link: 'l1nk-2' },
+            ],
+        },
+    };
+
+    it('POSTs the repeat and returns the first Turno with its Serie', async () => {
+        const fetchSpy = respond(201, booking);
+
+        await expect(repo().book(input)).resolves.toEqual(booking);
+        expect(fetchSpy).toHaveBeenCalledWith('http://api/bookings', expect.objectContaining({ body: JSON.stringify(input) }));
+    });
+
+    it('translates the 409 of the Serie to SeriesDatesUnavailableError with its dates', async () => {
+        respond(409, { statusCode: 409, message: 'Series dates not available: 2026-10-05,2026-10-19' });
+
+        const error = await repo().book(input).catch((e) => e);
+        expect(error).toBeInstanceOf(SeriesDatesUnavailableError);
+        expect(error.dates).toEqual(['2026-10-05', '2026-10-19']);
+    });
+
+    it('translates the 422 of a Serie left with less than 2 Turnos to SeriesTooShortError', async () => {
+        respond(422, { statusCode: 422, message: 'A Serie needs at least 2 Turnos' });
+        await expect(repo().book(input)).rejects.toBeInstanceOf(SeriesTooShortError);
+    });
+
+    it.each(['count must be between 2 and 4', 'skipDates are not dates of the Serie: 2026-10-13'])(
+        'keeps the 400 %j as ApiRequestError, not as an invalid code',
+        async (message) => {
+            respond(400, { statusCode: 400, message });
+            const error = await repo().book(input).catch((e) => e);
+            expect(error).toBeInstanceOf(ApiRequestError);
+            expect(error).not.toBeInstanceOf(InvalidVerificationCodeError);
+        },
+    );
+});
+
+describe('BookingsRepository.listSeriesSlots', () => {
+    const query = { serviceId: 100, startsAt: '2026-09-28T12:00:00.000Z', count: 3 };
+    const seriesSlots = {
+        employeeId: 1,
+        dates: [
+            { date: '2026-09-28', startsAt: '2026-09-28T12:00:00.000Z', available: true },
+            { date: '2026-10-05', startsAt: '2026-10-05T12:00:00.000Z', available: false },
+            { date: '2026-10-12', startsAt: '2026-10-12T12:00:00.000Z', available: true },
+        ],
+    };
+
+    it('GETs the dates of the Serie, without a Sesión', async () => {
+        const fetchSpy = respond(200, seriesSlots);
+
+        await expect(repo().listSeriesSlots(query)).resolves.toEqual(seriesSlots);
+        expect(fetchSpy).toHaveBeenCalledWith(
+            'http://api/services/100/series-slots?startsAt=2026-09-28T12%3A00%3A00.000Z&count=3',
+            expect.anything(),
+        );
+    });
+
+    it('asks for the dates with the Empleado elegido', async () => {
+        const fetchSpy = respond(200, seriesSlots);
+        await repo().listSeriesSlots({ ...query, employeeId: 5 });
+        expect(String(fetchSpy.mock.calls[0][0])).toContain('employeeId=5');
+    });
+
+    it('translates the 422 of a first horario no longer reservable to SlotUnavailableError', async () => {
+        respond(422, { statusCode: 422, message: 'Slot 2026-09-28T12:00:00.000Z is not available for Service 100' });
+        await expect(repo().listSeriesSlots(query)).rejects.toBeInstanceOf(SlotUnavailableError);
     });
 });
 

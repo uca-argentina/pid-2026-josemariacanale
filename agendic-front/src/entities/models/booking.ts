@@ -22,6 +22,10 @@ export const bookingSchema = z.object({
     employeeName: z.string().optional(),
     // Only POST /bookings returns it: the secreto del Enlace del Turno (ADR 0022).
     link: z.string().optional(),
+    // Only POST /bookings of a Serie returns it: every Turno created, by date, with its Enlace del Turno.
+    series: z
+        .object({ id: z.string(), bookings: z.array(z.object({ startsAt: z.iso.datetime(), link: z.string() })) })
+        .optional(),
 });
 export type Booking = z.infer<typeof bookingSchema>;
 
@@ -34,5 +38,7 @@ export const createBookingSchema = bookingSchema.pick({ serviceId: true, startsA
     clientEmail: z.string(),
     notes: z.string().optional(),
     code: z.string(),
+    // Reservar una Serie (ADR 0007): how many Turnos, and the dates of the Serie that are not booked.
+    repeat: z.object({ count: z.number(), skipDates: z.array(z.string()).optional() }).optional(),
 });
 export type CreateBooking = z.infer<typeof createBookingSchema>;

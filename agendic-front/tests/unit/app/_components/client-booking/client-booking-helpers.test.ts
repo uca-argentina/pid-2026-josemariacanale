@@ -1,4 +1,4 @@
-import { canPayDeposit, cancellationReasonOf, hasPendingDeposit, ratingSection } from '@/app/_components/client-booking/client-booking-helpers';
+import { canPayDeposit, cancellationReasonOf, hasPendingDeposit, ratingSection, seriesOf } from '@/app/_components/client-booking/client-booking-helpers';
 import type { ClientBooking } from '@/app/_components/client-booking/types';
 
 const NOW = Date.parse('2026-10-10T10:00:00.000Z');
@@ -60,5 +60,25 @@ describe('cancellationReasonOf', () => {
     it('no hay Motivo que mostrar sin Motivo, ni en un Turno que sigue en pie', () => {
         expect(cancellationReasonOf(booking({ status: 'CANCELLED', cancellationReason: null }))).toBeNull();
         expect(cancellationReasonOf(booking({ status: 'BOOKED', cancellationReason: 'viejo' }))).toBeNull();
+    });
+});
+
+describe('seriesOf', () => {
+    const series = {
+        bookings: [
+            { startsAt: '2026-10-10T12:00:00.000Z', status: 'BOOKED' as const, link: 'l1nk-1' },
+            { startsAt: '2026-10-17T12:00:00.000Z', status: 'CANCELLED' as const, link: 'l1nk-2' },
+        ],
+    };
+
+    it('lista los Turnos de la Serie con su estado, marcando el que se está viendo', () => {
+        expect(seriesOf(booking({ series }))).toEqual([
+            { startsAt: '2026-10-10T12:00:00.000Z', status: 'Turno reservado', link: 'l1nk-1', current: true },
+            { startsAt: '2026-10-17T12:00:00.000Z', status: 'Turno cancelado', link: 'l1nk-2', current: false },
+        ]);
+    });
+
+    it('no hay Serie que mostrar en un Turno suelto', () => {
+        expect(seriesOf(booking({ series: null }))).toBeNull();
     });
 });

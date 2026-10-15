@@ -39,3 +39,22 @@ export interface SlotsQuery {
     to: string;
     employeeId?: number;
 }
+
+/**
+ * Las fechas de una Serie, como las devuelve `GET /services/:id/series-slots` (ADR 0007): a la misma hora local, cada
+ * `repeatEveryWeeks` semanas. `available: false` es un choque, no un error. `employeeId` es quien atiende toda la
+ * Serie; `null` en un Servicio personal.
+ */
+export const seriesSlotsSchema = z.object({
+    employeeId: z.number().nullable(),
+    dates: z.array(z.object({ date: z.iso.date(), startsAt: z.iso.datetime(), available: z.boolean() })),
+});
+export type SeriesSlots = z.infer<typeof seriesSlotsSchema>;
+
+/** Lo que pide `GET /services/:id/series-slots`: el primer horario y cuántos Turnos; con `employeeId`, el Empleado elegido. */
+export interface SeriesSlotsQuery {
+    serviceId: number;
+    startsAt: string;
+    count: number;
+    employeeId?: number;
+}

@@ -27,6 +27,8 @@ import { bookSlotController } from '@/src/interface-adapters/controllers/booking
 import { requestVerificationCodeUseCase } from '@/src/application/use-cases/bookings/request-verification-code.use-case';
 import { requestVerificationCodeController } from '@/src/interface-adapters/controllers/bookings/request-verification-code.controller';
 import { listSlotsController } from '@/src/interface-adapters/controllers/bookings/list-slots.controller';
+import { listSeriesSlotsUseCase } from '@/src/application/use-cases/bookings/list-series-slots.use-case';
+import { listSeriesSlotsController } from '@/src/interface-adapters/controllers/bookings/list-series-slots.controller';
 import { ClientBookingsRepository } from '@/src/infrastructure/repositories/client-bookings.repository';
 import { getBookingByLinkUseCase } from '@/src/application/use-cases/bookings/get-booking-by-link.use-case';
 import { getBookingByLinkController } from '@/src/interface-adapters/controllers/bookings/get-booking-by-link.controller';
@@ -56,6 +58,14 @@ export function createBookingsModule() {
     bookingsModule
         .bind(DI_SYMBOLS.IListSlotsController)
         .toHigherOrderFunction(listSlotsController, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IListSlotsUseCase]);
+
+    bookingsModule
+        .bind(DI_SYMBOLS.IListSeriesSlotsUseCase)
+        .toHigherOrderFunction(listSeriesSlotsUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IBookingsRepository]);
+
+    bookingsModule
+        .bind(DI_SYMBOLS.IListSeriesSlotsController)
+        .toHigherOrderFunction(listSeriesSlotsController, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IListSeriesSlotsUseCase]);
 
     bookingsModule
         .bind(DI_SYMBOLS.IBookSlotUseCase)

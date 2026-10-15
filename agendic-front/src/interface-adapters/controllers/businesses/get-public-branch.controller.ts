@@ -15,6 +15,8 @@ const presentService = (s: Service) => ({
     durationMinutes: s.durationMinutes,
     price: s.price,
     depositPercent: s.depositPercent,
+    repeatEveryWeeks: s.repeatEveryWeeks,
+    repeatMaxBookings: s.repeatMaxBookings,
     employees: s.employees.map(presentEmployee),
 });
 

@@ -27,4 +27,7 @@ export const presentClientBooking = (booking: ClientBooking) => ({
     branch: booking.branch,
     user: booking.user,
     cancellationReason: booking.cancellationReason,
+    series: booking.series && {
+        bookings: booking.series.bookings.map((b) => ({ startsAt: b.startsAt, status: b.status, link: b.link })),
+    },
 });

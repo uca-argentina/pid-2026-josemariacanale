@@ -17,21 +17,25 @@ import { CodeStep } from './CodeStep';
 import { bookSlotAction, requestVerificationCodeAction } from './actions';
 import type { BookSlotResult } from './actions';
 import { TimeStep } from './TimeStep';
+import { DatesStep } from './DatesStep';
+import { RepeatControl } from './RepeatControl';
+import { everyWeeksLabel, mergeConflicts, stepsFor } from './series';
 import { WaitlistFlow } from './WaitlistFlow';
 import { depositFor, endTime, formatDate, formatDuration, formatPrice, initials } from './format';
 import type { BookingPrefill } from './booking-prefill';
-import { STEPS } from './types';
 import type { BookingDraft, ChosenEmployee, ClientData, Host, Service, Step } from './types';
 
 const TITLES: Record<Step, string> = {
     service: 'Elegí un servicio',
     time: 'Elegí día y horario',
+    dates: 'Revisá las fechas',
     confirm: 'Revisá y confirmá',
 };
 
 const LABELS: Record<Step, string> = {
     service: 'Servicio',
     time: 'Horario',
+    dates: 'Fechas',
     confirm: 'Confirmar',
 };
 
@@ -40,13 +44,13 @@ const CLIENT_FORM = 'datos-del-cliente';
 /** Cuánto se ve el "¡Listo!" antes de ir al Turno. */
 const BOOKED_PAUSE_MS = 800;
 
-function Breadcrumb({ step, locked, onGo }: { step: Step; locked: boolean; onGo: (s: Step) => void }) {
-    const current = STEPS.indexOf(step);
+function Breadcrumb({ steps, step, locked, onGo }: { steps: Step[]; step: Step; locked: boolean; onGo: (s: Step) => void }) {
+    const current = steps.indexOf(step);
 
     return (
         <nav aria-label="Pasos de la reserva">
             <ol className="flex flex-wrap items-center gap-1.5 text-[14px]">
-                {STEPS.map((s, i) => {
+                {steps.map((s, i) => {
                     const done = i < current;
                     return (
                         <li key={s} className="flex items-center gap-1.5">
@@ -350,6 +354,15 @@ function SummaryPanel({
                             {formatDuration(service.durationMinutes)})
                         </dd>
                     </div>
+                    {draft.repeatCount !== null && service.repeatEveryWeeks !== null && (
+                        <div className="flex gap-2">
+                            <dt className="sr-only">Serie</dt>
+                            <dd className="font-semibold">
+                                Serie de {draft.repeatCount - draft.skipDates.length} turnos,{' '}
+                                {everyWeeksLabel(service.repeatEveryWeeks)}
+                            </dd>
+                        </div>
+                    )}
                 </dl>
             )}
 
@@ -443,7 +456,20 @@ export function BookingFlow({
         service: initialService,
         date: prefill.date,
         slot: null,
+        repeatCount: null,
+        skipDates: [],
     });
+    /** Las fechas del 409 de la Serie: el paso Fechas las marca como no disponibles. */
+    const [seriesConflicts, setSeriesConflicts] = useState<string[]>([]);
+    /** Si el paso Fechas cargó y todas las fechas están libres: entonces se avanza con el botón de siempre. */
+    const [seriesReady, setSeriesReady] = useState(false);
+    /**
+     * El Código de verificación con el que el back respondió el 409 de la Serie: sigue sirviendo (ADR 0007), así que
+     * "Seguir sin esas fechas" reintenta con él sin pedir otro.
+     */
+    const [retryCode, setRetryCode] = useState<string | null>(null);
+    /** Por qué falló el reintento de la Serie con `retryCode`: el paso del código se abre ya mostrándolo. */
+    const [codeNotice, setCodeNotice] = useState<string | null>(null);
     const [client, setClient] = useState<ClientData>({ name: prefill.name, email: prefill.email, notes: '' });
     /** El 409 de horario ocupado: se muestra en el paso Horario, que es donde se resuelve. */
     const [slotNotice, setSlotNotice] = useState<string | null>(null);
@@ -467,31 +493,49 @@ export function BookingFlow({
     }, [onClose, locked]);
 
     const { service, date, slot } = draft;
+    const steps = stepsFor(draft.repeatCount);
+
+    /** Cambiar el horario o la Serie invalida lo que se resolvió en el paso Fechas. */
+    const resetSeries = () => {
+        setSeriesConflicts([]);
+        setRetryCode(null);
+        setSeriesReady(false);
+    };
 
     // Volver a elegir lo mismo no puede borrar lo que ya se eligió después: solo un cambio real
     // invalida los pasos siguientes.
-    const chooseService = (next: Service) =>
-        setDraft((d) =>
-            d.service?.id === next.id
-                ? d
-                : { service: next, date: null, slot: null },
-        );
+    const chooseService = (next: Service) => {
+        if (draft.service?.id === next.id) return;
+        resetSeries();
+        setDraft({ service: next, date: null, slot: null, repeatCount: null, skipDates: [] });
+    };
 
     const canAdvance =
         (step === 'service' && !!service) ||
         (step === 'time' && !!date && !!slot) ||
+        (step === 'dates' && seriesReady) ||
         step === 'confirm';
+
+    /**
+     * Fechas vuelve a pedir las fechas cada vez que se entra: hasta que cargan no se avanza, y lo que se salteó antes
+     * se vuelve a elegir, para no saltear una fecha que ahora se muestra libre.
+     */
+    const enterDates = () => {
+        setSeriesReady(false);
+        setDraft((d) => ({ ...d, skipDates: [] }));
+    };
 
     // Los avisos son del paso en que aparecieron: al cambiar de paso ya no dicen nada.
     const goTo = (next: Step) => {
         setSlotNotice(null);
         setConfirmError(null);
         setCodeOpen(false);
+        if (next === 'dates') enterDates();
         setStep(next);
     };
 
     const advance = () => {
-        const next = STEPS[STEPS.indexOf(step) + 1];
+        const next = steps[steps.indexOf(step) + 1];
         if (!next) return;
         goTo(next);
     };
@@ -502,7 +546,7 @@ export function BookingFlow({
     const back = () => {
         if (codeOpen) return closeCode();
         if (waitlistDate) return setWaitlistDate(null);
-        const previous = STEPS[STEPS.indexOf(step) - 1];
+        const previous = steps[steps.indexOf(step) - 1];
         if (previous) goTo(previous);
         else onClose();
     };
@@ -514,18 +558,22 @@ export function BookingFlow({
         startTransition(async () => {
             const result = await requestVerificationCodeAction(data.email);
             // Pasado el await, el set ya no es parte de la transición si no se lo vuelve a envolver.
-            if (result.ok) startTransition(() => setCodeOpen(true));
+            if (result.ok)
+                startTransition(() => {
+                    setCodeNotice(null);
+                    setCodeOpen(true);
+                });
             else setConfirmError(result.message);
         });
     };
 
     /**
-     * Crea el Turno con el código ya completo.
+     * Crea el Turno con el código ya completo; con una Serie, todos sus Turnos sin `skipDates`.
      *
      * @returns el mensaje a mostrar en el paso del código si el código no sirvió; `null` si reservó, o si lo que
      * falló se resuelve afuera de ese paso y por eso lo cierra.
      */
-    const book = async (code: string): Promise<string | null> => {
+    const bookWith = async (code: string, skipDates: string[]): Promise<string | null> => {
         if (!service || !date || !slot) return null;
         setCodePhase('verifying');
         const result = await bookSlotAction({
@@ -536,6 +584,9 @@ export function BookingFlow({
             clientEmail: client.email,
             notes: client.notes,
             code,
+            ...(draft.repeatCount !== null && {
+                repeat: { count: draft.repeatCount, ...(skipDates.length > 0 && { skipDates }) },
+            }),
         }).catch(
             // La acción no respondió (sin red): sin esto la reserva quedaría bloqueada, sin forma de salir.
             (): BookSlotResult => ({ ok: false, slotTaken: false, invalidCode: false, message: 'No pudimos reservar tu turno. Intentá de nuevo.' }),
@@ -550,7 +601,22 @@ export function BookingFlow({
             return null;
         }
         setCodePhase('idle');
-        if (result.invalidCode) return result.message;
+        if (result.invalidCode) {
+            setRetryCode(null);
+            return result.message;
+        }
+        if (result.seriesConflict) {
+            // De vuelta a Fechas con las que chocan marcadas; el mismo código sirve para reintentar sin ellas.
+            const conflicts = result.seriesConflict;
+            startTransition(() => {
+                setSeriesConflicts((previous) => mergeConflicts(previous, conflicts));
+                setRetryCode(code);
+                enterDates();
+                setCodeOpen(false);
+                setStep('dates');
+            });
+            return null;
+        }
         if (result.slotTaken) {
             // Recuperable: de vuelta a Horario, que vuelve a pedir los horarios libres.
             startTransition(() => {
@@ -566,6 +632,27 @@ export function BookingFlow({
             setCodeOpen(false);
         });
         return null;
+    };
+
+    /** Crea el Turno, o la Serie, con el código ya completo y las fechas a saltear que el Cliente eligió. */
+    const book = (code: string) => bookWith(code, draft.skipDates);
+
+    /**
+     * "Seguir sin esas fechas" del paso Fechas. Después de un 409 de la Serie el código ya está verificado y reintenta
+     * enseguida; si no, sigue a Confirmar como siempre.
+     */
+    const skipSeriesDates = (skip: string[]) => {
+        setDraft((d) => ({ ...d, skipDates: skip }));
+        if (!retryCode) return goTo('confirm');
+        const code = retryCode;
+        startTransition(async () => {
+            const message = await bookWith(code, skip);
+            if (message)
+                startTransition(() => {
+                    setCodeNotice(message);
+                    setCodeOpen(true);
+                });
+        });
     };
 
     // "Pedir un código nuevo", desde el paso del código: mismo pedido, con el email ya cargado.
@@ -620,7 +707,7 @@ export function BookingFlow({
             <div className="mx-auto w-full max-w-[1400px] px-4 pb-32 sm:px-8 lg:px-16 lg:pb-24">
                 <div className="grid items-start gap-10 lg:grid-cols-[1fr_400px]">
                     <div>
-                        {!waitlistDate && <Breadcrumb step={step} locked={locked} onGo={goTo} />}
+                        {!waitlistDate && <Breadcrumb steps={steps} step={step} locked={locked} onGo={goTo} />}
                         {employee && (
                             <p className="mt-4 flex items-center gap-2.5 text-[14px] font-semibold">
                                 <Avatar>
@@ -654,6 +741,7 @@ export function BookingFlow({
                                         onSubmit={book}
                                         onRequestNewCode={requestNewCode}
                                         onChangeEmail={closeCode}
+                                        initialError={codeNotice}
                                     />
                                 ) : (
                                     <>
@@ -678,9 +766,42 @@ export function BookingFlow({
                                                 hostName={host.name}
                                                 onJoinWaitlist={setWaitlistDate}
                                                 onBookWithAnyone={bookWithAnyone}
-                                                onSelect={(nextDate, nextSlot) =>
-                                                    setDraft((d) => ({ ...d, date: nextDate, slot: nextSlot }))
-                                                }
+                                                onSelect={(nextDate, nextSlot) => {
+                                                    if (nextSlot?.startsAt !== slot?.startsAt) resetSeries();
+                                                    setDraft((d) => ({ ...d, date: nextDate, slot: nextSlot, skipDates: [] }));
+                                                }}
+                                            />
+                                        )}
+
+                                        {step === 'time' && service && service.repeatEveryWeeks !== null && service.repeatMaxBookings !== null && (
+                                            <RepeatControl
+                                                everyWeeks={service.repeatEveryWeeks}
+                                                maxBookings={service.repeatMaxBookings}
+                                                count={draft.repeatCount}
+                                                onChange={(repeatCount) => {
+                                                    resetSeries();
+                                                    setDraft((d) => ({ ...d, repeatCount, skipDates: [] }));
+                                                }}
+                                            />
+                                        )}
+
+                                        {step === 'dates' && service && slot && draft.repeatCount !== null && (
+                                            <DatesStep
+                                                serviceId={service.id}
+                                                startsAt={slot.startsAt}
+                                                time={slot.time}
+                                                count={draft.repeatCount}
+                                                employeeId={employee?.id}
+                                                conflicts={seriesConflicts}
+                                                pending={pending || locked}
+                                                onReady={setSeriesReady}
+                                                onSkip={skipSeriesDates}
+                                                onChooseAnotherTime={(message) => {
+                                                    resetSeries();
+                                                    setDraft((d) => ({ ...d, slot: null, skipDates: [] }));
+                                                    goTo('time');
+                                                    if (message) setSlotNotice(message);
+                                                }}
                                             />
                                         )}
 
