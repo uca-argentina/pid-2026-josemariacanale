@@ -40,6 +40,8 @@ export const bookingsWith = (stubs: Partial<IBookingsRepository>): IBookingsRepo
 
 export const waitlistWith = (stubs: Partial<IWaitlistRepository>): IWaitlistRepository => ({
     join: jest.fn(notStubbed('join')),
+    getByLink: jest.fn(notStubbed('getByLink')),
+    leave: jest.fn(notStubbed('leave')),
     ...stubs,
 });
 

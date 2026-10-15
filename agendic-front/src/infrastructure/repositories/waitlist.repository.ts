@@ -3,7 +3,7 @@ import type { IInstrumentationService } from '@/src/application/services/instrum
 import { InvalidVerificationCodeError } from '@/src/entities/errors/booking';
 import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
 import { WaitlistDateInPastError, WaitlistDayNotFullError } from '@/src/entities/errors/waitlist';
-import { waitlistEntrySchema, type JoinWaitlist, type WaitlistEntry } from '@/src/entities/models/waitlist';
+import { waitlistEntrySchema, waitlistEntryViewSchema, type JoinWaitlist, type WaitlistEntry, type WaitlistEntryView } from '@/src/entities/models/waitlist';
 
 /** El mensaje del 400 que pasa a `InvalidVerificationCodeError`; los demás 400 son campos inválidos, un bug del front. */
 const INVALID_CODE_MESSAGE = /^Invalid or expired verification code/;
@@ -51,5 +51,47 @@ export class WaitlistRepository implements IWaitlistRepository {
             if (!parsed.success) throw new ApiRequestError(`${what} responded with an unexpected body`, { cause: parsed.error });
             return parsed.data;
         });
+    }
+
+    /**
+     * @throws {NotFoundError} el back respondió 404: el enlace no es de ninguna Anotación
+     * @throws {ApiRequestError} cualquier otra respuesta con error, un cuerpo inesperado o una falla de red
+     */
+    async getByLink(link: string): Promise<WaitlistEntryView> {
+        return this.instrumentationService.startSpan({ name: 'WaitlistRepository > getByLink', op: 'http.client' }, async () => {
+            const what = 'GET /waitlist-links/:secret';
+            const response = await this.request(what, `/waitlist-links/${encodeURIComponent(link)}`, { method: 'GET' });
+            const parsed = waitlistEntryViewSchema.safeParse(await response.json().catch(() => undefined));
+            if (!parsed.success) throw new ApiRequestError(`${what} responded with an unexpected body`, { cause: parsed.error });
+            return parsed.data;
+        });
+    }
+
+    /**
+     * @throws {NotFoundError} el back respondió 404: el enlace no es de ninguna Anotación
+     * @throws {ApiRequestError} cualquier otra respuesta con error o una falla de red
+     */
+    async leave(link: string): Promise<void> {
+        return this.instrumentationService.startSpan({ name: 'WaitlistRepository > leave', op: 'http.client' }, async () => {
+            await this.request('POST /waitlist-links/:secret/leave', `/waitlist-links/${encodeURIComponent(link)}/leave`, { method: 'POST' });
+        });
+    }
+
+    /** Pide `path` al back sin Sesión; traduce el 404 y los errores, y devuelve la respuesta si salió bien. */
+    private async request(what: string, path: string, init: RequestInit): Promise<Response> {
+        if (!this.apiUrl) throw new ApiRequestError(`${what} failed: API_URL is not set`);
+
+        let response: Response;
+        try {
+            response = await fetch(`${this.apiUrl}${path}`, init);
+        } catch (cause) {
+            throw new ApiRequestError(`${what} failed`, { cause });
+        }
+        if (response.ok) return response;
+
+        const json = await response.json().catch(() => undefined);
+        const message = String(json?.message ?? `${what} responded ${response.status}`);
+        if (response.status === 404) throw new NotFoundError(message);
+        throw new ApiRequestError(message, { status: response.status });
     }
 }

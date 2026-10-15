@@ -55,3 +55,24 @@ export const newOutOfOfficePath = `${OUT_OF_OFFICE_PATH}?nuevo`;
 
 /** Servicios con el modal de alta abierto, apuntado al Negocio `businessId` (la tarjeta "Crear servicio" de Mi Negocio). */
 export const newServicePath = (businessId: number) => `${SERVICES_PATH}?nuevo=${businessId}`;
+
+/** La ruta del enlace de Salir de la Lista de espera (ADR 0034): esa Anotación sola, sin Código de verificación. */
+export const waitlistPath = (link: string) => `/lista-de-espera/${link}`;
+
+/**
+ * "Reservar otro día" desde una Anotación: la Sucursal con ese Servicio ya elegido, o la página del Usuario con su
+ * Servicio personal. `null` si la Anotación no trae ninguno de los dos, o si el Usuario ya no tiene Enlace de reserva.
+ */
+export const bookOtherDayPath = (entry: {
+    service: { slug: string };
+    business: { slug: string } | null;
+    branch: { slug: string } | null;
+    user: { slug: string | null } | null;
+}) =>
+    entry.user
+        ? entry.user.slug
+            ? userLinkPath(entry.user.slug, entry.service.slug)
+            : null
+        : entry.business && entry.branch
+          ? bookingLinkPath(entry.business.slug, entry.branch.slug, entry.service.slug)
+          : null;

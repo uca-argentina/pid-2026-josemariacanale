@@ -17,3 +17,18 @@ export const joinWaitlistSchema = waitlistEntrySchema.extend({
     code: z.string(),
 });
 export type JoinWaitlist = z.infer<typeof joinWaitlistSchema>;
+
+/**
+ * Una Anotación como la devuelve GET /waitlist-links/:secret: lo que la página de Salir de la Lista de espera muestra.
+ * `business` y `branch` son `null` en un Servicio personal y `user` es `null` en uno del Negocio, como en `ClientBooking`.
+ */
+export const waitlistEntryViewSchema = z.object({
+    date: z.iso.date(),
+    timeZone: z.string(),
+    left: z.boolean(),
+    service: z.object({ name: z.string(), slug: z.string() }),
+    business: z.object({ name: z.string(), slug: z.string() }).nullable(),
+    branch: z.object({ name: z.string(), slug: z.string() }).nullable(),
+    user: z.object({ slug: z.string().nullable() }).nullable(),
+});
+export type WaitlistEntryView = z.infer<typeof waitlistEntryViewSchema>;

@@ -69,6 +69,10 @@ import type { IBookSlotController } from '@/src/interface-adapters/controllers/b
 import type { IWaitlistRepository } from '@/src/application/repositories/waitlist.repository.interface';
 import type { IJoinWaitlistUseCase } from '@/src/application/use-cases/bookings/join-waitlist.use-case';
 import type { IJoinWaitlistController } from '@/src/interface-adapters/controllers/bookings/join-waitlist.controller';
+import type { IGetWaitlistEntryByLinkUseCase } from '@/src/application/use-cases/bookings/get-waitlist-entry-by-link.use-case';
+import type { ILeaveWaitlistUseCase } from '@/src/application/use-cases/bookings/leave-waitlist.use-case';
+import type { IGetWaitlistEntryByLinkController } from '@/src/interface-adapters/controllers/bookings/get-waitlist-entry-by-link.controller';
+import type { ILeaveWaitlistController } from '@/src/interface-adapters/controllers/bookings/leave-waitlist.controller';
 import type { IRetireEmployeeController } from '@/src/interface-adapters/controllers/employees/retire-employee.controller';
 import type { IServicesRepository } from '@/src/application/repositories/services.repository.interface';
 import type { IListMyServicesUseCase } from '@/src/application/use-cases/services/list-my-services.use-case';
@@ -243,6 +247,8 @@ export const DI_SYMBOLS = {
     IRateBookingByLinkUseCase: Symbol.for('IRateBookingByLinkUseCase'),
     IRescheduleBookingByLinkUseCase: Symbol.for('IRescheduleBookingByLinkUseCase'),
     IJoinWaitlistUseCase: Symbol.for('IJoinWaitlistUseCase'),
+    IGetWaitlistEntryByLinkUseCase: Symbol.for('IGetWaitlistEntryByLinkUseCase'),
+    ILeaveWaitlistUseCase: Symbol.for('ILeaveWaitlistUseCase'),
     IListAvailabilitiesUseCase: Symbol.for('IListAvailabilitiesUseCase'),
     IGetAvailabilityUseCase: Symbol.for('IGetAvailabilityUseCase'),
     ICreateAvailabilityUseCase: Symbol.for('ICreateAvailabilityUseCase'),
@@ -330,6 +336,8 @@ export const DI_SYMBOLS = {
     IRateBookingByLinkController: Symbol.for('IRateBookingByLinkController'),
     IRescheduleBookingByLinkController: Symbol.for('IRescheduleBookingByLinkController'),
     IJoinWaitlistController: Symbol.for('IJoinWaitlistController'),
+    IGetWaitlistEntryByLinkController: Symbol.for('IGetWaitlistEntryByLinkController'),
+    ILeaveWaitlistController: Symbol.for('ILeaveWaitlistController'),
     IListMyAvailabilitiesController: Symbol.for('IListMyAvailabilitiesController'),
     ICreateAvailabilityController: Symbol.for('ICreateAvailabilityController'),
     IUpdateAvailabilityController: Symbol.for('IUpdateAvailabilityController'),
@@ -422,6 +430,8 @@ export interface DI_RETURN_TYPES {
     IRateBookingByLinkUseCase: IRateBookingByLinkUseCase;
     IRescheduleBookingByLinkUseCase: IRescheduleBookingByLinkUseCase;
     IJoinWaitlistUseCase: IJoinWaitlistUseCase;
+    IGetWaitlistEntryByLinkUseCase: IGetWaitlistEntryByLinkUseCase;
+    ILeaveWaitlistUseCase: ILeaveWaitlistUseCase;
     IListAvailabilitiesUseCase: IListAvailabilitiesUseCase;
     IGetAvailabilityUseCase: IGetAvailabilityUseCase;
     ICreateAvailabilityUseCase: ICreateAvailabilityUseCase;
@@ -509,6 +519,8 @@ export interface DI_RETURN_TYPES {
     IRateBookingByLinkController: IRateBookingByLinkController;
     IRescheduleBookingByLinkController: IRescheduleBookingByLinkController;
     IJoinWaitlistController: IJoinWaitlistController;
+    IGetWaitlistEntryByLinkController: IGetWaitlistEntryByLinkController;
+    ILeaveWaitlistController: ILeaveWaitlistController;
     IListMyAvailabilitiesController: IListMyAvailabilitiesController;
     ICreateAvailabilityController: ICreateAvailabilityController;
     IUpdateAvailabilityController: IUpdateAvailabilityController;

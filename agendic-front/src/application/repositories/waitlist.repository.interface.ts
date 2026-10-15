@@ -1,4 +1,4 @@
-import type { JoinWaitlist, WaitlistEntry } from '@/src/entities/models/waitlist';
+import type { JoinWaitlist, WaitlistEntry, WaitlistEntryView } from '@/src/entities/models/waitlist';
 
 /** Lista de espera de un Servicio. Es pública: no hay Sesión. */
 export interface IWaitlistRepository {
@@ -11,4 +11,18 @@ export interface IWaitlistRepository {
      * @throws {WaitlistDateInPastError} la fecha ya pasó (422)
      */
     join(input: JoinWaitlist): Promise<WaitlistEntry>;
+
+    /**
+     * Abre la Anotación de un enlace de Salir de la Lista de espera. No la modifica.
+     *
+     * @throws {NotFoundError} el enlace no es de ninguna Anotación (404)
+     */
+    getByLink(link: string): Promise<WaitlistEntryView>;
+
+    /**
+     * Saca al Cliente de la Lista de espera. Salir de nuevo (204) no es un error.
+     *
+     * @throws {NotFoundError} el enlace no es de ninguna Anotación (404)
+     */
+    leave(link: string): Promise<void>;
 }
