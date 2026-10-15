@@ -10,7 +10,7 @@ import {
     SlotUnavailableError,
 } from '@/src/entities/errors/booking';
 import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
-import { clientBookingSchema, type ClientBooking } from '@/src/entities/models/client-booking';
+import { cancelledSeriesSchema, clientBookingSchema, type CancelledSeries, type ClientBooking } from '@/src/entities/models/client-booking';
 
 function parseOrFail<T>(parse: () => T, what: string): T {
     try {
@@ -60,6 +60,25 @@ export class ClientBookingsRepository implements IClientBookingsRepository {
                 body: reason === undefined ? undefined : { reason },
             });
             return parseOrFail(() => clientBookingSchema.parse(body), what);
+        });
+    }
+
+    /**
+     * Cancela el Turno del Enlace y los siguientes de su Serie (#305).
+     *
+     * @throws {NotFoundError} la API respondió 404
+     * @throws {BookingStateError} la API respondió 422: no se puede Cancelar, o no es de una Serie
+     * @throws {CancellationReasonTooLongError} la API respondió 400 `reason is too long`
+     * @throws {ApiRequestError} otra respuesta con error, un cuerpo sin el Turno del Enlace o una falla de red
+     */
+    async cancelBookingSeriesByLink(link: string, reason?: string): Promise<CancelledSeries> {
+        return this.instrumentationService.startSpan({ name: 'ClientBookingsRepository > cancelBookingSeriesByLink', op: 'http.client' }, async () => {
+            const what = 'PATCH /booking-links/:link/cancel';
+            const body = await this.request(what, `/booking-links/${encodeURIComponent(link)}/cancel`, {
+                method: 'PATCH',
+                body: { ...(reason !== undefined && { reason }), andFollowing: true },
+            });
+            return parseOrFail(() => cancelledSeriesSchema.parse(body), what);
         });
     }
 

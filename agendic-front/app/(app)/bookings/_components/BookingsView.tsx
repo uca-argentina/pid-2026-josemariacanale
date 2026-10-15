@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Tabs } from '@base-ui/react/tabs';
-import { CalendarDays, DoorOpen, List, MapPin } from 'lucide-react';
+import { CalendarDays, DoorOpen, List, MapPin, Repeat } from 'lucide-react';
 import { useIsMobile } from '@/app/_components/hooks/use-mobile';
 import { ToggleGroup, ToggleGroupItem } from '@/app/_components/ui/toggle-group';
 import { PaginationControls } from '@/app/_components/PaginationControls';
@@ -29,6 +29,8 @@ import { BookingActions } from './BookingActions';
 import { BookingDetailsSheet } from './BookingDetailsSheet';
 import { BookingFilters } from './BookingFilters';
 import { BookingsCalendar, WeekNav } from './BookingsCalendar';
+import { SeriesList } from './SeriesList';
+import { collapsePendingSeries, hasFollowingInSeries, seriesRowsOf } from './series-helpers';
 import { bookingsOfWeek, weekOf } from './calendar-week';
 import { parseBookingsUrl, writeBookingsUrl, type BookingsUrlState, type BookingsView as View } from './bookings-url';
 import type { Preferences } from '@/src/entities/models/user';
@@ -45,6 +47,11 @@ const TABS: { id: BookingTab; label: string; empty: { title: string; description
         empty: { title: 'No hay turnos pendientes', description: 'Los turnos que tenés que aceptar o rechazar van a aparecer acá.' },
     },
     {
+        id: 'series',
+        label: 'Series',
+        empty: { title: 'No hay series', description: 'Las series de turnos que tus clientes reserven van a aparecer acá.' },
+    },
+    {
         id: 'past',
         label: 'Pasados',
         empty: { title: 'No hay turnos pasados', description: 'Los turnos que ya ocurrieron van a aparecer acá.' },
@@ -58,7 +65,25 @@ const TABS: { id: BookingTab; label: string; empty: { title: string; description
 
 const PAGE_SIZES = [10, 25, 50];
 
-function BookingRow({ booking, now, timeFormat, onOpen }: { booking: Booking; now: number; timeFormat: Preferences['timeFormat']; onOpen: (id: number) => void }) {
+/**
+ * Una fila de la lista. `seriesPending` es la de un Turno pendiente que representa a su Serie en Pendientes, y
+ * `canCancelFollowing` suma "Cancelar este y los siguientes" (ver `BookingActions`).
+ */
+function BookingRow({
+    booking,
+    now,
+    timeFormat,
+    seriesPending,
+    canCancelFollowing,
+    onOpen,
+}: {
+    booking: Booking;
+    now: number;
+    timeFormat: Preferences['timeFormat'];
+    seriesPending: number | null;
+    canCancelFollowing: boolean;
+    onOpen: (id: number) => void;
+}) {
     const badges = badgesOf(booking);
     const cabin = cabinOf(booking);
     return (
@@ -83,7 +108,8 @@ function BookingRow({ booking, now, timeFormat, onOpen }: { booking: Booking; no
                     )}
                 </div>
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
-                    <span className="text-[14.5px] font-bold tracking-[-0.02em] text-[#0f1b2d]">
+                    <span className="flex items-center gap-1.5 text-[14.5px] font-bold tracking-[-0.02em] text-[#0f1b2d]">
+                        {booking.seriesId !== null && <Repeat className="size-3.5 shrink-0" aria-label="Serie" />}
                         {booking.serviceName} con {booking.clientName}
                     </span>
                     <span className="text-[13px] font-medium text-[#374151]">{booking.clientEmail}</span>
@@ -99,9 +125,21 @@ function BookingRow({ booking, now, timeFormat, onOpen }: { booking: Booking; no
                 </div>
             </button>
             <div className="ml-auto flex items-center gap-2">
-                <BookingActions booking={booking} now={now} />
+                <BookingActions booking={booking} now={now} seriesPending={seriesPending} canCancelFollowing={canCancelFollowing} />
             </div>
         </li>
+    );
+}
+
+function EmptyTab({ title, description }: { title: string; description: string }) {
+    return (
+        <div className="mt-4 flex flex-col items-center gap-2 rounded-md border border-dashed border-[#d1d5db] px-5 py-16 text-center">
+            <div className="mb-2 flex size-14 items-center justify-center rounded-full bg-[#f3f4f6]">
+                <CalendarDays className="size-6 text-[#0f1b2d]" />
+            </div>
+            <p className="m-0 text-[17px] font-extrabold tracking-[-0.03em]">{title}</p>
+            <p className="m-0 max-w-[380px] text-[13px] font-medium leading-relaxed text-[#6b7280]">{description}</p>
+        </div>
     );
 }
 
@@ -134,8 +172,16 @@ export function BookingsView({ bookings, now, preferences }: { bookings: Booking
         branch: unique(bookings.map((b) => listValueOf('branch', b))),
     };
 
-    const pendingCount = bookings.filter((b) => tabOf(b, now) === 'pending').length;
-    const inTab = sortForTab(tab, bookings.filter((b) => tabOf(b, now) === tab && matches(b, filters) && matchesRange(b, range)));
+    const pendingCount = collapsePendingSeries(bookings.filter((b) => tabOf(b, now) === 'pending'), bookings, now).length;
+    const sorted = sortForTab(tab, bookings.filter((b) => tabOf(b, now) === tab && matches(b, filters) && matchesRange(b, range)));
+    // Pendientes muestra cada Serie una sola vez, con "Aceptar la Serie (N Turnos)".
+    const collapsed = tab === 'pending' ? collapsePendingSeries(sorted, bookings, now) : sorted.map((b) => ({ booking: b, seriesPending: null }));
+    const seriesPendingOf = new Map(collapsed.map((c) => [c.booking.id, c.seriesPending]));
+    const inTab = collapsed.map((c) => c.booking);
+    // Las filas se arman con toda la Serie, para que "quedan N de M" y la frecuencia no dependan de los filtros; los
+    // filtros solo eligen qué Series se ven.
+    const seriesRows =
+        tab === 'series' ? seriesRowsOf(bookings, now).filter((row) => row.bookings.some((b) => matches(b, filters) && matchesRange(b, range))) : [];
     const pageCount = Math.max(1, Math.ceil(inTab.length / pageSize));
     const current = Math.min(page, pageCount - 1);
     const from = current * pageSize;
@@ -146,7 +192,8 @@ export function BookingsView({ bookings, now, preferences }: { bookings: Booking
 
     // Un ?turno= que no está en la lista se ignora; uno que sí está se abre aunque la pestaña o los filtros lo oculten, sin vecinos.
     const open = bookings.find((b) => b.id === turno) ?? null;
-    const visible = view === 'calendar' ? sortForTab('upcoming', bookingsOfWeek(matching, currentWeek)) : inTab;
+    const listed = tab === 'series' ? seriesRows.map((row) => row.next) : inTab;
+    const visible = view === 'calendar' ? sortForTab('upcoming', bookingsOfWeek(matching, currentWeek)) : listed;
     const { previous, next } = open ? neighboursOf(visible, open.id) : { previous: null, next: null };
     const openBooking = (id: number) => update({ turno: id });
 
@@ -217,6 +264,12 @@ export function BookingsView({ bookings, now, preferences }: { bookings: Booking
                     preferences={preferences}
                     onOpen={openBooking}
                 />
+            ) : tab === 'series' ? (
+                seriesRows.length > 0 ? (
+                    <SeriesList rows={seriesRows} timeFormat={preferences.timeFormat} onOpen={openBooking} />
+                ) : (
+                    <EmptyTab title={filtered ? 'No hay series que coincidan' : empty.title} description={filtered ? 'Probá sacando algún filtro.' : empty.description} />
+                )
             ) : inTab.length > 0 ? (
                 <>
                     <div className="mt-4 divide-y divide-[#e5e7eb] overflow-hidden rounded-md border border-[#e5e7eb]">
@@ -227,7 +280,15 @@ export function BookingsView({ bookings, now, preferences }: { bookings: Booking
                                 </h2>
                                 <ul className="m-0 list-none divide-y divide-[#e5e7eb] p-0">
                                     {group.items.map((b) => (
-                                        <BookingRow key={b.id} booking={b} now={now} timeFormat={preferences.timeFormat} onOpen={openBooking} />
+                                        <BookingRow
+                                            key={b.id}
+                                            booking={b}
+                                            now={now}
+                                            timeFormat={preferences.timeFormat}
+                                            seriesPending={seriesPendingOf.get(b.id) ?? null}
+                                            canCancelFollowing={hasFollowingInSeries(bookings, b)}
+                                            onOpen={openBooking}
+                                        />
                                     ))}
                                 </ul>
                             </section>
@@ -248,21 +309,12 @@ export function BookingsView({ bookings, now, preferences }: { bookings: Booking
                     />
                 </>
             ) : (
-                <div className="mt-4 flex flex-col items-center gap-2 rounded-md border border-dashed border-[#d1d5db] px-5 py-16 text-center">
-                    <div className="mb-2 flex size-14 items-center justify-center rounded-full bg-[#f3f4f6]">
-                        <CalendarDays className="size-6 text-[#0f1b2d]" />
-                    </div>
-                    <p className="m-0 text-[17px] font-extrabold tracking-[-0.03em]">
-                        {filtered ? 'No hay turnos que coincidan' : empty.title}
-                    </p>
-                    <p className="m-0 max-w-[380px] text-[13px] font-medium leading-relaxed text-[#6b7280]">
-                        {filtered ? 'Probá sacando algún filtro.' : empty.description}
-                    </p>
-                </div>
+                <EmptyTab title={filtered ? 'No hay turnos que coincidan' : empty.title} description={filtered ? 'Probá sacando algún filtro.' : empty.description} />
             )}
 
             <BookingDetailsSheet
                 booking={open}
+                bookings={bookings}
                 previous={previous}
                 next={next}
                 now={now}

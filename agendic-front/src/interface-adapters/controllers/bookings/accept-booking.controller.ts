@@ -4,19 +4,19 @@ import type { IInstrumentationService } from '@/src/application/services/instrum
 import type { IAcceptBookingUseCase } from '@/src/application/use-cases/bookings/accept-booking.use-case';
 import { InputParseError } from '@/src/entities/errors/common';
 
-const inputSchema = z.object({ bookingId: z.number().int().positive() });
+const inputSchema = z.object({ bookingId: z.number().int().positive(), series: z.boolean().optional() });
 
 /** Tipo del controller ya compuesto, como lo consume `app/`. */
 export type IAcceptBookingController = ReturnType<typeof acceptBookingController>;
 
 /**
- * Acepta un Turno pendiente.
+ * Acepta un Turno pendiente; con `series`, todos los pendientes por venir de su Serie.
  *
  * @throws {UnauthenticatedError} no hay Sesión válida
- * @throws {InputParseError} `bookingId` no es un id válido
+ * @throws {InputParseError} `bookingId` no es un id válido, o `series` no es booleano
  * @throws {BookingNotAllowedError} el Turno no es del Empleado logueado
  * @throws {NotFoundError} el Turno no existe
- * @throws {BookingStateError} el Turno no está pendiente
+ * @throws {BookingStateError} el Turno no está pendiente, o con `series` no es de una Serie
  */
 export const acceptBookingController =
     (
@@ -29,5 +29,5 @@ export const acceptBookingController =
             await authenticationService.getCurrentUser();
             const { data, error } = inputSchema.safeParse(input);
             if (error) throw new InputParseError('Invalid data', { cause: error });
-            await acceptBookingUseCase(data.bookingId);
+            await acceptBookingUseCase(data.bookingId, data.series);
         });

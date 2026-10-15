@@ -6,13 +6,19 @@ describe('rejectBookingUseCase', () => {
     it('asks the repository to reject the Turno', async () => {
         const reject = jest.fn().mockResolvedValue(undefined);
         await rejectBookingUseCase(instrumentation, userBookingsWith({ reject }))(7);
-        expect(reject).toHaveBeenCalledWith(7, undefined);
+        expect(reject).toHaveBeenCalledWith(7, undefined, undefined);
     });
 
     it('passes the Motivo de cancelación to the repository', async () => {
         const reject = jest.fn().mockResolvedValue(undefined);
         await rejectBookingUseCase(instrumentation, userBookingsWith({ reject }))(7, 'Estoy de viaje');
-        expect(reject).toHaveBeenCalledWith(7, 'Estoy de viaje');
+        expect(reject).toHaveBeenCalledWith(7, 'Estoy de viaje', undefined);
+    });
+
+    it('asks the repository to reject the whole Serie', async () => {
+        const reject = jest.fn().mockResolvedValue(undefined);
+        await rejectBookingUseCase(instrumentation, userBookingsWith({ reject }))(7, 'Estoy de viaje', true);
+        expect(reject).toHaveBeenCalledWith(7, 'Estoy de viaje', true);
     });
 
     it('lets NotFoundError through', async () => {

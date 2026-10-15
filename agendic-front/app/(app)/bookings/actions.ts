@@ -53,19 +53,28 @@ async function perform(run: () => Promise<{ id: number } | void>, unexpected: st
     }
 }
 
-/** Acepta un Turno pendiente. */
-export async function acceptBookingAction(bookingId: number) {
-    return perform(() => getInjection('IAcceptBookingController')({ bookingId }), 'No pudimos aceptar el turno. Intentá de nuevo.');
+/** Acepta un Turno pendiente; con `series`, todos los pendientes por venir de su Serie. */
+export async function acceptBookingAction(bookingId: number, series = false) {
+    return perform(
+        () => getInjection('IAcceptBookingController')({ bookingId, ...(series && { series }) }),
+        'No pudimos aceptar el turno. Intentá de nuevo.',
+    );
 }
 
-/** Rechaza un Turno pendiente; `reason` es el Motivo de cancelación, opcional. */
-export async function rejectBookingAction(bookingId: number, reason?: string) {
-    return perform(() => getInjection('IRejectBookingController')({ bookingId, reason }), 'No pudimos rechazar el turno. Intentá de nuevo.');
+/** Rechaza un Turno pendiente; `reason` es el Motivo de cancelación, opcional. Con `series`, todos los pendientes de su Serie. */
+export async function rejectBookingAction(bookingId: number, reason?: string, series = false) {
+    return perform(
+        () => getInjection('IRejectBookingController')({ bookingId, reason, ...(series && { series }) }),
+        'No pudimos rechazar el turno. Intentá de nuevo.',
+    );
 }
 
-/** Cancela un Turno aceptado; `reason` es el Motivo de cancelación, opcional. */
-export async function cancelBookingAction(bookingId: number, reason?: string) {
-    return perform(() => getInjection('ICancelBookingController')({ bookingId, reason }), 'No pudimos cancelar el turno. Intentá de nuevo.');
+/** Cancela un Turno aceptado; `reason` es el Motivo de cancelación, opcional. Con `andFollowing`, también los siguientes de su Serie. */
+export async function cancelBookingAction(bookingId: number, reason?: string, andFollowing = false) {
+    return perform(
+        () => getInjection('ICancelBookingController')({ bookingId, reason, ...(andFollowing && { andFollowing }) }),
+        'No pudimos cancelar el turno. Intentá de nuevo.',
+    );
 }
 
 /** Reagenda un Turno aceptado al Horario reservable `startsAt` (instante ISO). Reagendar lo reemplaza (ADR 0031): `bookingId` es el `id` del Turno nuevo. */

@@ -261,3 +261,28 @@ describe('ClientBookingsRepository misc', () => {
         ]);
     });
 });
+
+describe('ClientBookingsRepository.cancelBookingSeriesByLink', () => {
+    it('PATCHes with andFollowing and returns the cancelled and the kept Turnos', async () => {
+        const cancelled = [{ ...booking, status: 'CANCELLED' }];
+        const kept = [{ ...booking, id: 8, startsAt: '2026-10-17T12:00:00.000Z', endsAt: '2026-10-17T13:00:00.000Z' }];
+        const fetchSpy = respond(200, { cancelled, kept });
+
+        await expect(repo().cancelBookingSeriesByLink('s3cr3t-l1nk', 'Me mudo')).resolves.toEqual({ cancelled, kept });
+        expect(fetchSpy).toHaveBeenCalledWith('http://api/booking-links/s3cr3t-l1nk/cancel', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reason: 'Me mudo', andFollowing: true }),
+        });
+    });
+
+    it('rejects a response without the Turno of the Enlace', async () => {
+        respond(200, { cancelled: [], kept: [] });
+        await expect(repo().cancelBookingSeriesByLink('s3cr3t-l1nk')).rejects.toBeInstanceOf(ApiRequestError);
+    });
+
+    it('translates the 422 of a Turno without Serie to BookingStateError', async () => {
+        respond(422, { statusCode: 422, message: 'Turno 7 is not part of a Serie' });
+        await expect(repo().cancelBookingSeriesByLink('s3cr3t-l1nk')).rejects.toBeInstanceOf(BookingStateError);
+    });
+});

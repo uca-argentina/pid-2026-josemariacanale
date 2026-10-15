@@ -7,7 +7,17 @@ import { Button } from '@/app/_components/ui/button';
 import { bookingPath } from '@/app/routes';
 import { Textarea } from '@/app/_components/ui/textarea';
 import { CANCELLATION_REASON_MAX_LENGTH } from '@/src/entities/models/booking';
-import { STATUS_BADGE, canPayDeposit, cancellationReasonOf, hasPendingDeposit, hostName, isActionable, seriesOf } from './client-booking-helpers';
+import {
+    STATUS_BADGE,
+    canPayDeposit,
+    cancellationReasonOf,
+    hasFollowingInSeries,
+    hasPendingDeposit,
+    hostName,
+    isActionable,
+    keptNotice,
+    seriesOf,
+} from './client-booking-helpers';
 import { formatDuration, formatLongDate, formatPrice, formatTime } from './format';
 import { RatingSection } from './RatingSection';
 import { RescheduleOverlay } from './RescheduleOverlay';
@@ -32,8 +42,11 @@ export function ClientBookingDetail({
     booking: ClientBooking;
     now: number;
     payDeposit: () => Promise<ClientBookingActionResult>;
-    /** Cancela con el Motivo de cancelación que escribió el Cliente (`undefined` si lo dejó vacío). */
-    cancel: (reason: string | undefined) => Promise<ClientBookingActionResult>;
+    /**
+     * Cancela con el Motivo de cancelación que escribió el Cliente (`undefined` si lo dejó vacío); con `andFollowing`,
+     * también los siguientes de la Serie.
+     */
+    cancel: (reason: string | undefined, andFollowing: boolean) => Promise<ClientBookingActionResult>;
     reschedule: (startsAt: string) => Promise<ClientBookingActionResult>;
     markEmployeeNoShow: () => Promise<ClientBookingActionResult>;
     rate: (score: number, comment?: string) => Promise<ClientBookingActionResult>;
@@ -181,11 +194,12 @@ export function ClientBookingDetail({
             {cancelling && (
                 <CancelConfirm
                     cancel={cancel}
+                    offerFollowing={hasFollowingInSeries(booking)}
                     onClose={() => setCancelling(false)}
-                    onCancelled={(updated) => {
+                    onCancelled={(updated, kept) => {
                         onUpdated(updated);
                         setCancelling(false);
-                        setNotice('Cancelamos tu turno.');
+                        setNotice(kept ? keptNotice(kept, booking.timeZone) : 'Cancelamos tu turno.');
                     }}
                 />
             )}
@@ -290,17 +304,24 @@ function MarkEmployeeNoShowConfirm({
     );
 }
 
-/** Confirma Cancelar con un Motivo de cancelación opcional; un Motivo demasiado largo queda marcado bajo el campo. */
+/**
+ * Confirma Cancelar con un Motivo de cancelación opcional; un Motivo demasiado largo queda marcado bajo el campo. Con
+ * `offerFollowing`, el Cliente elige entre Cancelar solo este Turno o "este y los siguientes" de su Serie; `kept` son
+ * los que en ese caso quedaron en pie.
+ */
 function CancelConfirm({
     cancel,
+    offerFollowing,
     onClose,
     onCancelled,
 }: {
-    cancel: (reason: string | undefined) => Promise<ClientBookingActionResult>;
+    cancel: (reason: string | undefined, andFollowing: boolean) => Promise<ClientBookingActionResult>;
+    offerFollowing: boolean;
     onClose: () => void;
-    onCancelled: (booking: ClientBooking) => void;
+    onCancelled: (booking: ClientBooking, kept?: { startsAt: string }[]) => void;
 }) {
     const [pending, startTransition] = useTransition();
+    const [andFollowing, setAndFollowing] = useState(false);
     const [reason, setReason] = useState('');
     const [error, setError] = useState<string | null>(null);
     const [reasonError, setReasonError] = useState<string | null>(null);
@@ -308,8 +329,8 @@ function CancelConfirm({
     const confirm = () =>
         startTransition(async () => {
             setError(null);
-            const result = await cancel(reason.trim() || undefined);
-            if (result.ok) return onCancelled(result.booking);
+            const result = await cancel(reason.trim() || undefined, andFollowing);
+            if (result.ok) return onCancelled(result.booking, result.kept);
             if (result.field === 'reason') return setReasonError(result.message);
             setError(result.message);
         });
@@ -317,6 +338,19 @@ function CancelConfirm({
     return (
         <div role="alertdialog" aria-label="Cancelar turno" className="mt-6 rounded-xl border border-border p-4">
             <p className="text-[14px] font-semibold">¿Cancelar este turno? El horario queda libre.</p>
+            {offerFollowing && (
+                <fieldset className="mt-4 flex flex-col gap-2 text-[13.5px]">
+                    <legend className="sr-only">Qué turnos de la Serie cancelar</legend>
+                    <label className="flex items-center gap-2">
+                        <input type="radio" name="cancel-scope" checked={!andFollowing} onChange={() => setAndFollowing(false)} disabled={pending} />
+                        Solo este turno
+                    </label>
+                    <label className="flex items-center gap-2">
+                        <input type="radio" name="cancel-scope" checked={andFollowing} onChange={() => setAndFollowing(true)} disabled={pending} />
+                        Este y los siguientes de la Serie
+                    </label>
+                </fieldset>
+            )}
             <label htmlFor="cancel-reason" className="mt-4 block text-[13px] font-bold">
                 Motivo <span className="font-medium text-muted-foreground">(opcional)</span>
             </label>

@@ -6,7 +6,13 @@ describe('acceptBookingUseCase', () => {
     it('asks the repository to accept the Turno', async () => {
         const accept = jest.fn().mockResolvedValue(undefined);
         await acceptBookingUseCase(instrumentation, userBookingsWith({ accept }))(7);
-        expect(accept).toHaveBeenCalledWith(7);
+        expect(accept).toHaveBeenCalledWith(7, undefined);
+    });
+
+    it('asks the repository to accept the whole Serie', async () => {
+        const accept = jest.fn().mockResolvedValue(undefined);
+        await acceptBookingUseCase(instrumentation, userBookingsWith({ accept }))(7, true);
+        expect(accept).toHaveBeenCalledWith(7, true);
     });
 
     it('lets NotFoundError through', async () => {

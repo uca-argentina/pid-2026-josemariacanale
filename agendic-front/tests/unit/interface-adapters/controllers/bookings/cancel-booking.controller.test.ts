@@ -9,16 +9,22 @@ describe('cancelBookingController', () => {
     it('runs the use case with the id of the Turno', async () => {
         const useCase = jest.fn().mockResolvedValue(undefined);
         await cancelBookingController(instrumentation, signedIn, useCase)({ bookingId: 7 });
-        expect(useCase).toHaveBeenCalledWith(7, undefined);
+        expect(useCase).toHaveBeenCalledWith(7, undefined, undefined);
     });
 
     it('runs the use case with the Motivo de cancelación', async () => {
         const useCase = jest.fn().mockResolvedValue(undefined);
         await cancelBookingController(instrumentation, signedIn, useCase)({ bookingId: 7, reason: 'Estoy de viaje' });
-        expect(useCase).toHaveBeenCalledWith(7, 'Estoy de viaje');
+        expect(useCase).toHaveBeenCalledWith(7, 'Estoy de viaje', undefined);
     });
 
-    it.each([{}, { bookingId: '7' }, { bookingId: 0 }, { bookingId: 7, reason: 3 }])('throws InputParseError for %j without calling the use case', async (input) => {
+    it('runs the use case with `andFollowing`', async () => {
+        const useCase = jest.fn().mockResolvedValue(undefined);
+        await cancelBookingController(instrumentation, signedIn, useCase)({ bookingId: 7, andFollowing: true });
+        expect(useCase).toHaveBeenCalledWith(7, undefined, true);
+    });
+
+    it.each([{}, { bookingId: '7' }, { bookingId: 0 }, { bookingId: 7, reason: 3 }, { bookingId: 7, andFollowing: 'yes' }])('throws InputParseError for %j without calling the use case', async (input) => {
         const useCase = jest.fn();
         await expect(cancelBookingController(instrumentation, signedIn, useCase)(input)).rejects.toBeInstanceOf(InputParseError);
         expect(useCase).not.toHaveBeenCalled();

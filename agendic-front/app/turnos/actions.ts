@@ -2,7 +2,7 @@
 
 import { getInjection } from '@/di/container';
 import { BookingAlreadyRatedError } from '@/src/entities/errors/booking';
-import type { ClientBooking } from '@/app/_components/client-booking/types';
+import type { ClientBooking, ClientBookingActionResult } from '@/app/_components/client-booking/types';
 import { performClientBookingAction } from '@/app/_components/client-booking/perform-client-booking-action';
 
 // El Enlace del Turno es la credencial (ADR 0022): sin Sesión ni acceso, viaja como parámetro en cada acción.
@@ -13,6 +13,20 @@ export async function cancelBookingByLinkAction(link: string, reason?: string) {
         () => getInjection('ICancelBookingByLinkController')({ link, reason }),
         'No pudimos cancelar el turno. Intentá de nuevo.',
     );
+}
+
+/**
+ * Cancela el Turno del Enlace y los siguientes de su Serie: "este y los siguientes". `kept` son los siguientes que el
+ * Plazo de cambios dejó en pie, para avisarle al Cliente cuáles.
+ */
+export async function cancelBookingSeriesByLinkAction(link: string, reason?: string): Promise<ClientBookingActionResult> {
+    let kept: { startsAt: string }[] = [];
+    const result = await performClientBookingAction(async () => {
+        const cancelled = await getInjection('ICancelBookingSeriesByLinkController')({ link, reason });
+        kept = cancelled.kept;
+        return cancelled.booking;
+    }, 'No pudimos cancelar los turnos. Intentá de nuevo.');
+    return result.ok ? { ...result, kept } : result;
 }
 
 /** Paga la Seña del Turno pendiente o aceptado del Enlace (simulado: Agendic no cobra). */

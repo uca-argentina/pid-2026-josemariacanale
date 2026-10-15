@@ -1,4 +1,4 @@
-import { canPayDeposit, cancellationReasonOf, hasPendingDeposit, ratingSection, seriesOf } from '@/app/_components/client-booking/client-booking-helpers';
+import { canPayDeposit, cancellationReasonOf, hasFollowingInSeries, hasPendingDeposit, keptNotice, ratingSection, seriesOf } from '@/app/_components/client-booking/client-booking-helpers';
 import type { ClientBooking } from '@/app/_components/client-booking/types';
 
 const NOW = Date.parse('2026-10-10T10:00:00.000Z');
@@ -80,5 +80,45 @@ describe('seriesOf', () => {
 
     it('no hay Serie que mostrar en un Turno suelto', () => {
         expect(seriesOf(booking({ series: null }))).toBeNull();
+    });
+});
+
+describe('hasFollowingInSeries', () => {
+    const series = (later: 'BOOKED' | 'PENDING' | 'CANCELLED') => ({
+        bookings: [
+            { startsAt: '2026-10-03T12:00:00.000Z', status: 'BOOKED' as const, link: 'l1nk-0' },
+            { startsAt: '2026-10-10T12:00:00.000Z', status: 'BOOKED' as const, link: 'l1nk-1' },
+            { startsAt: '2026-10-17T12:00:00.000Z', status: later, link: 'l1nk-2' },
+        ],
+    });
+
+    it('ofrece "este y los siguientes" si después vienen Turnos pendientes o aceptados de la Serie', () => {
+        expect(hasFollowingInSeries(booking({ series: series('BOOKED') }))).toBe(true);
+        expect(hasFollowingInSeries(booking({ series: series('PENDING') }))).toBe(true);
+    });
+
+    it('no lo ofrece si los siguientes ya están cancelados, ni en un Turno suelto', () => {
+        expect(hasFollowingInSeries(booking({ series: series('CANCELLED') }))).toBe(false);
+        expect(hasFollowingInSeries(booking({ series: null }))).toBe(false);
+    });
+});
+
+describe('keptNotice', () => {
+    const TZ = 'America/Argentina/Buenos_Aires';
+
+    it('sin Turnos en pie, solo dice que se cancelaron', () => {
+        expect(keptNotice([], TZ)).toBe('Cancelamos este turno y los siguientes.');
+    });
+
+    it('avisa cuáles quedaron en pie por el Plazo de cambios', () => {
+        expect(keptNotice([{ startsAt: '2026-10-24T12:00:00.000Z' }], TZ)).toBe(
+            'Cancelamos este turno y los siguientes, salvo el del sábado, 24 de octubre de 2026 a las 09:00, que quedó en pie por el plazo de cambios.',
+        );
+    });
+
+    it('lista varios Turnos en pie', () => {
+        expect(keptNotice([{ startsAt: '2026-10-24T12:00:00.000Z' }, { startsAt: '2026-10-31T12:00:00.000Z' }], TZ)).toMatch(
+            /^Cancelamos este turno y los siguientes, salvo los del sábado, 24 de octubre de 2026 a las 09:00 y sábado, 31 de octubre de 2026 a las 09:00, que quedaron en pie/,
+        );
     });
 });

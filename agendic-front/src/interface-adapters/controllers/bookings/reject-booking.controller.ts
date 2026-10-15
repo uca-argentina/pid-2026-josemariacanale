@@ -4,20 +4,20 @@ import type { IInstrumentationService } from '@/src/application/services/instrum
 import type { IRejectBookingUseCase } from '@/src/application/use-cases/bookings/reject-booking.use-case';
 import { InputParseError } from '@/src/entities/errors/common';
 
-const inputSchema = z.object({ bookingId: z.number().int().positive(), reason: z.string().optional() });
+const inputSchema = z.object({ bookingId: z.number().int().positive(), reason: z.string().optional(), series: z.boolean().optional() });
 
 /** Tipo del controller ya compuesto, como lo consume `app/`. */
 export type IRejectBookingController = ReturnType<typeof rejectBookingController>;
 
 /**
- * Rechaza un Turno pendiente; su horario queda libre.
+ * Rechaza un Turno pendiente; su horario queda libre. Con `series`, todos los pendientes por venir de su Serie.
  *
  * @throws {UnauthenticatedError} no hay Sesión válida
- * @throws {InputParseError} `bookingId` no es un id válido, o `reason` no es texto
+ * @throws {InputParseError} `bookingId` no es un id válido, `reason` no es texto o `series` no es booleano
  * @throws {CancellationReasonTooLongError} el Motivo de cancelación es demasiado largo
  * @throws {BookingNotAllowedError} el Turno no es del Empleado logueado
  * @throws {NotFoundError} el Turno no existe
- * @throws {BookingStateError} el Turno no está pendiente
+ * @throws {BookingStateError} el Turno no está pendiente, o con `series` no es de una Serie
  */
 export const rejectBookingController =
     (
@@ -30,5 +30,5 @@ export const rejectBookingController =
             await authenticationService.getCurrentUser();
             const { data, error } = inputSchema.safeParse(input);
             if (error) throw new InputParseError('Invalid data', { cause: error });
-            await rejectBookingUseCase(data.bookingId, data.reason);
+            await rejectBookingUseCase(data.bookingId, data.reason, data.series);
         });

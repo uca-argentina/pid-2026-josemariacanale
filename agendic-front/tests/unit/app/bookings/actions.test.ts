@@ -85,6 +85,17 @@ describe.each([
     });
 });
 
+describe('the actions on a whole Serie', () => {
+    it.each([
+        ['IAcceptBookingController', () => acceptBookingAction(7, true), { bookingId: 7, series: true }],
+        ['IRejectBookingController', () => rejectBookingAction(7, 'Estoy de viaje', true), { bookingId: 7, reason: 'Estoy de viaje', series: true }],
+        ['ICancelBookingController', () => cancelBookingAction(7, undefined, true), { bookingId: 7, reason: undefined, andFollowing: true }],
+    ] as const)('%s gets the Serie flag', async (controller, run, input) => {
+        await expect(run()).resolves.toEqual({ ok: true });
+        expect(mockControllers[controller]).toHaveBeenCalledWith(input);
+    });
+});
+
 describe.each([
     ['rejectBookingAction', 'IRejectBookingController', (reason?: string) => rejectBookingAction(7, reason)],
     ['cancelBookingAction', 'ICancelBookingController', (reason?: string) => cancelBookingAction(7, reason)],

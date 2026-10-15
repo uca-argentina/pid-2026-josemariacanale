@@ -44,6 +44,8 @@ export const userBookingSchema = z.object({
     branch: z.object({ id: z.number(), name: z.string() }).nullable(),
     /** La Cabina que ocupa el Turno (ADR 0030), aunque esté dada de baja; null si no ocupa ninguna. */
     cabin: z.object({ id: z.number(), name: z.string() }).nullable(),
+    /** La Serie del Turno: la comparten todos sus Turnos; null en un Turno suelto. */
+    seriesId: z.string().nullable(),
 });
 /** Turno de Mis turnos del Usuario. */
 export type UserBooking = z.infer<typeof userBookingSchema>;

@@ -23,6 +23,7 @@ function presenter(bookings: UserBooking[], instrumentationService: IInstrumenta
             business: b.business,
             branch: b.branch,
             cabin: b.cabin,
+            seriesId: b.seriesId,
             fromRescheduleId: b.fromRescheduleId,
             cancelledBy: b.cancelledBy,
             cancellationReason: b.cancellationReason,

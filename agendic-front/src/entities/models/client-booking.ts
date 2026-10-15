@@ -47,3 +47,10 @@ export const clientBookingSchema = z.object({
         .nullable(),
 });
 export type ClientBooking = z.infer<typeof clientBookingSchema>;
+
+/**
+ * Lo que responde Cancelar "este y los siguientes" desde el Enlace del Turno (#305): `cancelled` empieza por el Turno
+ * del Enlace, que es el primero de los que se cancelan; `kept` son los siguientes que el Plazo de cambios dejó en pie.
+ */
+export const cancelledSeriesSchema = z.object({ cancelled: z.array(clientBookingSchema).min(1), kept: z.array(clientBookingSchema) });
+export type CancelledSeries = z.infer<typeof cancelledSeriesSchema>;

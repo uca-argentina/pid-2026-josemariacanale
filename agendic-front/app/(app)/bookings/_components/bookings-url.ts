@@ -10,7 +10,7 @@ export type BookingsView = 'list' | 'calendar';
  */
 export type BookingsUrlState = { tab: BookingTab; filters: BookingFilter[]; range: DayRange | null; view: BookingsView; week: string | null; turno: number | null };
 
-const TABS: BookingTab[] = ['upcoming', 'pending', 'past', 'cancelled'];
+const TABS: BookingTab[] = ['upcoming', 'pending', 'series', 'past', 'cancelled'];
 const LIST_FIELDS = ['service', 'branch'] as const;
 const TEXT_FIELDS: TextField[] = ['clientName', 'clientEmail'];
 
