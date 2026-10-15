@@ -21,6 +21,7 @@ type Dialog = 'reschedule' | 'reject' | 'cancel' | 'no-show' | 'unmark-no-show' 
 /**
  * Las acciones de un Turno según su estado (`actionsOf`), en la fila de la lista y en el panel lateral:
  * los botones principales (Aceptar y Rechazar en uno pendiente) y el menú "…" con el resto (Cancelar,
+ * Reagendar, Marcar y Desmarcar la Ausencia del Invitado). Cada una pega contra el back y la página se refresca.
  * Reagendar, Marcar y Desmarcar la Ausencia del Invitado. Rechazar y Cancelar piden un Motivo de cancelaci?n opcional. Cada acci?n pega contra el back y la p?gina se refresca.
  */
 export function BookingActions({ booking, now }: { booking: Booking; now: number }) {
