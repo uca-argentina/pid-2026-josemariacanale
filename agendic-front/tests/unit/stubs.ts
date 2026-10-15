@@ -113,3 +113,14 @@ export const imagesStub = {
     uploadBusinessLogo: jest.fn(),
     deleteBusinessLogo: jest.fn(),
 };
+
+/** Una Anotación como la devuelve GET /waitlist-links/:secret, de un Servicio del Negocio. */
+export const waitlistEntryView = {
+    date: '2026-10-20',
+    timeZone: 'America/Argentina/Buenos_Aires',
+    left: false,
+    service: { name: 'Masaje', slug: 'masaje' },
+    business: { name: 'Spa Sol', slug: 'spa-sol' },
+    branch: { name: 'Centro', slug: 'centro' },
+    user: null,
+};

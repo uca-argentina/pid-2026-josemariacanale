@@ -99,10 +99,6 @@ describe('bookOtherDayPath', () => {
         expect(bookOtherDayPath({ service, business: null, branch: null, user: { slug: 'juana' } })).toBe('/juana/masaje');
     });
 
-    it('es null si el Usuario ya no tiene Enlace de reserva', () => {
-        expect(bookOtherDayPath({ service, business: null, branch: null, user: { slug: null } })).toBeNull();
-    });
-
     it('es null si no trae ni Negocio ni Usuario', () => {
         expect(bookOtherDayPath({ service, business: null, branch: null, user: null })).toBeNull();
     });

@@ -2,7 +2,7 @@ import { InvalidVerificationCodeError } from '@/src/entities/errors/booking';
 import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
 import { WaitlistDateInPastError, WaitlistDayNotFullError } from '@/src/entities/errors/waitlist';
 import { WaitlistRepository } from '@/src/infrastructure/repositories/waitlist.repository';
-import { instrumentation } from '@/tests/unit/stubs';
+import { instrumentation, waitlistEntryView } from '@/tests/unit/stubs';
 
 const repo = (apiUrl: string | undefined = 'http://api') => new WaitlistRepository(instrumentation, apiUrl);
 const respond = (status: number, body: unknown) =>
@@ -72,15 +72,7 @@ describe('WaitlistRepository.join', () => {
     });
 });
 
-const view = {
-    date: '2026-10-20',
-    timeZone: 'America/Argentina/Buenos_Aires',
-    left: false,
-    service: { name: 'Masaje', slug: 'masaje' },
-    business: { name: 'Spa Sol', slug: 'spa-sol' },
-    branch: { name: 'Centro', slug: 'centro' },
-    user: null,
-};
+const view = waitlistEntryView;
 
 describe('WaitlistRepository.getByLink', () => {
     it('GETs the Anotación without a Sesión and returns it', async () => {

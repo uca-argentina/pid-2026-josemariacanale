@@ -61,18 +61,16 @@ export const waitlistPath = (link: string) => `/lista-de-espera/${link}`;
 
 /**
  * "Reservar otro día" desde una Anotación: la Sucursal con ese Servicio ya elegido, o la página del Usuario con su
- * Servicio personal. `null` si la Anotación no trae ninguno de los dos, o si el Usuario ya no tiene Enlace de reserva.
+ * Servicio personal. `null` si la Anotación no trae ninguno de los dos.
  */
 export const bookOtherDayPath = (entry: {
     service: { slug: string };
     business: { slug: string } | null;
     branch: { slug: string } | null;
-    user: { slug: string | null } | null;
+    user: { slug: string } | null;
 }) =>
     entry.user
-        ? entry.user.slug
-            ? userLinkPath(entry.user.slug, entry.service.slug)
-            : null
+        ? userLinkPath(entry.user.slug, entry.service.slug)
         : entry.business && entry.branch
           ? bookingLinkPath(entry.business.slug, entry.branch.slug, entry.service.slug)
           : null;

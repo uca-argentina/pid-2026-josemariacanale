@@ -29,6 +29,6 @@ export const waitlistEntryViewSchema = z.object({
     service: z.object({ name: z.string(), slug: z.string() }),
     business: z.object({ name: z.string(), slug: z.string() }).nullable(),
     branch: z.object({ name: z.string(), slug: z.string() }).nullable(),
-    user: z.object({ slug: z.string().nullable() }).nullable(),
+    user: z.object({ slug: z.string() }).nullable(),
 });
 export type WaitlistEntryView = z.infer<typeof waitlistEntryViewSchema>;

@@ -1,16 +1,8 @@
 import { getWaitlistEntryByLinkUseCase } from '@/src/application/use-cases/bookings/get-waitlist-entry-by-link.use-case';
 import { NotFoundError } from '@/src/entities/errors/common';
-import { instrumentation, waitlistWith } from '@/tests/unit/stubs';
+import { instrumentation, waitlistWith, waitlistEntryView } from '@/tests/unit/stubs';
 
-const view = {
-    date: '2026-10-20',
-    timeZone: 'America/Argentina/Buenos_Aires',
-    left: false,
-    service: { name: 'Masaje', slug: 'masaje' },
-    business: { name: 'Spa Sol', slug: 'spa-sol' },
-    branch: { name: 'Centro', slug: 'centro' },
-    user: null,
-};
+const view = waitlistEntryView;
 
 describe('getWaitlistEntryByLinkUseCase', () => {
     it('devuelve la Anotación del enlace', async () => {

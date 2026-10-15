@@ -1,16 +1,8 @@
 import { InputParseError, NotFoundError } from '@/src/entities/errors/common';
 import { getWaitlistEntryByLinkController } from '@/src/interface-adapters/controllers/bookings/get-waitlist-entry-by-link.controller';
-import { instrumentation } from '@/tests/unit/stubs';
+import { instrumentation, waitlistEntryView } from '@/tests/unit/stubs';
 
-const view = {
-    date: '2026-10-20',
-    timeZone: 'America/Argentina/Buenos_Aires',
-    left: false,
-    service: { name: 'Masaje', slug: 'masaje' },
-    business: { name: 'Spa Sol', slug: 'spa-sol' },
-    branch: { name: 'Centro', slug: 'centro' },
-    user: null,
-};
+const view = waitlistEntryView;
 
 describe('getWaitlistEntryByLinkController', () => {
     it('presenta la Anotación del enlace recortado', async () => {
