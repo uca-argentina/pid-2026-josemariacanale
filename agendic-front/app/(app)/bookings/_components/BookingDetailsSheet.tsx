@@ -10,7 +10,7 @@ import { PanelBadge } from '@/app/(app)/_components/panel-ui';
 import type { Preferences } from '@/src/entities/models/user';
 import { BookingActions } from './BookingActions';
 import { formatLongDate, formatShortDay, formatTimeRange, placeOf, TIME_ZONE_LABEL } from '@/app/(app)/_components/booking-format';
-import { cabinOf, isClosed, statusBadgesOf, type Booking } from './booking-helpers';
+import { cabinOf, cancellationOf, isClosed, statusBadgesOf, type Booking } from './booking-helpers';
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
     return (
@@ -52,6 +52,8 @@ export function BookingDetailsSheet({
         event.preventDefault();
         onSelect(neighbour.id);
     };
+
+    const cancelled = booking && cancellationOf(booking);
 
     return (
         <Sheet open={booking !== null} onOpenChange={(open) => !open && onClose()}>
@@ -100,6 +102,19 @@ export function BookingDetailsSheet({
                                     {booking.depositPaidAt === null
                                         ? `${formatPrice(booking.depositAmount)} · pendiente`
                                         : `${formatPrice(booking.depositAmount)} · pagada el ${formatShortDay(booking.depositPaidAt)}`}
+                                </Section>
+                            )}
+                            {cancelled && (
+                                <Section title={booking.status === 'REJECTED' ? 'Rechazo' : 'Cancelación'}>
+                                    <span>
+                                        {booking.status === 'REJECTED' ? 'Rechazado' : 'Cancelado'} por {cancelled.by}
+                                    </span>
+                                    {cancelled.cause && (
+                                        <span>
+                                            <PanelBadge className="bg-[#fff4e5] text-[#b45309]">{cancelled.cause}</PanelBadge>
+                                        </span>
+                                    )}
+                                    {cancelled.reason && <span className="text-[#6b7280]">{cancelled.reason}</span>}
                                 </Section>
                             )}
                         </div>

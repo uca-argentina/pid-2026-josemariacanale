@@ -20,6 +20,9 @@ const booking = {
     business: { id: 3, name: 'Spa' },
     branch: { id: 4, name: 'Centro' },
     fromRescheduleId: 4,
+    cancelledBy: 'EMPLOYEE' as const,
+    cancellationReason: 'Estoy de viaje',
+    cancellationCause: 'OUT_OF_OFFICE' as const,
 };
 
 describe('listMyBookingsController', () => {
@@ -44,6 +47,9 @@ describe('listMyBookingsController', () => {
             business: { id: 3, name: 'Spa' },
             branch: { id: 4, name: 'Centro' },
             fromRescheduleId: 4,
+            cancelledBy: 'EMPLOYEE',
+            cancellationReason: 'Estoy de viaje',
+            cancellationCause: 'OUT_OF_OFFICE',
         });
     });
 

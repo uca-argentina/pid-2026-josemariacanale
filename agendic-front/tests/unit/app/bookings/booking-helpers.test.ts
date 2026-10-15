@@ -1,4 +1,4 @@
-import { actionsOf, badgesOf, neighboursOf, statusBadgesOf, cabinOf, canMarkNoShow, groupByDay, hasPendingDeposit, matches, matchesRange, sortForTab, tabOf, type Booking } from '@/app/(app)/bookings/_components/booking-helpers';
+import { actionsOf, badgesOf, cancellationOf, neighboursOf, statusBadgesOf, cabinOf, canMarkNoShow, groupByDay, hasPendingDeposit, matches, matchesRange, sortForTab, tabOf, type Booking } from '@/app/(app)/bookings/_components/booking-helpers';
 
 const NOW = Date.parse('2026-09-15T15:00:00-03:00');
 
@@ -21,6 +21,9 @@ const booking = (patch: Partial<Booking>): Booking => ({
     branch: { id: 4, name: 'Centro' },
     cabin: null,
     fromRescheduleId: null,
+    cancelledBy: null,
+    cancellationReason: null,
+    cancellationCause: null,
     ...patch,
 });
 
@@ -28,6 +31,34 @@ describe('cabinOf', () => {
     it('da el nombre de la Cabina, o null si el Turno no ocupa ninguna', () => {
         expect(cabinOf(booking({ cabin: { id: 6, name: 'Box 1' } }))).toBe('Box 1');
         expect(cabinOf(booking({}))).toBeNull();
+    });
+});
+
+describe('cancellationOf', () => {
+    it('un Turno que no está cancelado ni rechazado no tiene nada que mostrar', () => {
+        expect(cancellationOf(booking({}))).toBeNull();
+        expect(cancellationOf(booking({ status: 'CANCELLED' }))).toBeNull();
+    });
+
+    it('dice quién Canceló y el Motivo', () => {
+        expect(cancellationOf(booking({ status: 'CANCELLED', cancelledBy: 'CLIENT', cancellationReason: 'No llego' }))).toEqual({
+            by: 'el Cliente',
+            reason: 'No llego',
+            cause: null,
+        });
+        expect(cancellationOf(booking({ status: 'REJECTED', cancelledBy: 'EMPLOYEE' }))).toEqual({ by: 'el Empleado', reason: null, cause: null });
+        expect(cancellationOf(booking({ status: 'CANCELLED', cancelledBy: 'RETIREMENT' }))?.by).toBe('una baja');
+    });
+
+    it.each([
+        ['OUT_OF_OFFICE', 'Fuera de la oficina'],
+        ['PUBLIC_HOLIDAY', 'Día festivo'],
+        ['SCHEDULE_CHANGE', 'Cambio de horario'],
+    ] as const)('la Causa %s se muestra como "%s"', (cause, label) => {
+        const shown = cancellationOf(
+            booking({ status: 'CANCELLED', cancelledBy: 'EMPLOYEE', cancellationReason: 'Estoy de viaje', cancellationCause: cause }),
+        );
+        expect(shown).toEqual({ by: 'el Empleado', reason: 'Estoy de viaje', cause: label });
     });
 });
 

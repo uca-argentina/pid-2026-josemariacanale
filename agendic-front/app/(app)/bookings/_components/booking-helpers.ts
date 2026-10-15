@@ -14,6 +14,22 @@ export const cabinOf = (b: Booking) => b.cabin?.name ?? null;
 /** El Empleado puede marcar la Ausencia: el Turno no tiene ya una Ausencia ni una Falta del Empleado (se excluyen, ADR 0004). */
 export const canMarkNoShow = (b: Booking) => b.noShowAt === null && b.employeeNoShowAt === null;
 
+const CANCELLED_BY_LABELS = { EMPLOYEE: 'el Empleado', CLIENT: 'el Cliente', RETIREMENT: 'una baja' } as const;
+const CAUSE_LABELS = { OUT_OF_OFFICE: 'Fuera de la oficina', PUBLIC_HOLIDAY: 'Día festivo', SCHEDULE_CHANGE: 'Cambio de horario' } as const;
+
+/**
+ * Lo que el detalle muestra de la cancelación: quién Canceló o Rechazó, el Motivo y la etiqueta de la Causa
+ * (ADR 0034). Null si el Turno no está cerrado o se cerró antes de que se guardara quién.
+ */
+export function cancellationOf(b: Booking): { by: string; reason: string | null; cause: string | null } | null {
+    if (!isClosed(b) || b.cancelledBy === null) return null;
+    return {
+        by: CANCELLED_BY_LABELS[b.cancelledBy],
+        reason: b.cancellationReason,
+        cause: b.cancellationCause === null ? null : CAUSE_LABELS[b.cancellationCause],
+    };
+}
+
 export const isClosed = (b: Booking) => b.status === 'CANCELLED' || b.status === 'REJECTED';
 
 /** Un Turno pendiente o aceptado cuya Seña todavía no se pagó. */
