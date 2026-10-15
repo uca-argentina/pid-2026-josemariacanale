@@ -169,8 +169,17 @@ describe('/users/me/holidays', () => {
     const turno = (id: number, startsAt: string, timeZone: string) => ({
       id,
       startsAt: new Date(startsAt),
+      prepStartsAt: new Date(startsAt),
+      endsAt: new Date(startsAt),
       clientName: `Cliente ${id}`,
+      clientEmail: `cliente${id}@example.com`,
+      availabilityId: 1,
       timeZone,
+      clientTimeZone: timeZone,
+      serviceName: 'Servicio',
+      link: `link-${id}`,
+      business: null,
+      branch: null,
     });
 
     it('answers [] without a country', async () => {

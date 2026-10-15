@@ -89,10 +89,25 @@ export interface PanelBooking extends Booking {
   cabin: { id: number; name: string } | null;
 }
 
-/** A pending or accepted Turno still to come, with the zone of the Availability its Usuario attends it with. */
+/** A pending or accepted Turno still to come, with the Availability its Usuario attends it with. */
 export interface UpcomingBooking
-  extends Pick<Booking, 'id' | 'startsAt' | 'clientName'> {
+  extends Pick<
+    Booking,
+    'id' | 'startsAt' | 'prepStartsAt' | 'endsAt' | 'clientName' | 'clientEmail'
+  > {
+  /** The Availability the Turno is attended with: the Empleado's for the Servicio, or the Servicio personal's. */
+  availabilityId: number;
+  /** The zone of that Availability. */
   timeZone: string;
+  /** The zone the Cliente sees the Turno in: the Sucursal's, or the Availability's in a Servicio personal. */
+  clientTimeZone: string;
+  serviceName: string;
+  /** Enlace del Turno; null only in a Turno Reagendar replaced, which is never upcoming. */
+  link: string | null;
+  /** Null in a Servicio personal, together with `branch`. */
+  business: { id: number; name: string } | null;
+  /** Null in a Servicio personal, together with `business`. */
+  branch: { id: number; name: string } | null;
 }
 
 /** A Turno as the Usuario who attends it sees it in Mis turnos (ADR 0023): with the names of where it happens. */

@@ -399,24 +399,41 @@ export class PrismaBookingsRepository implements BookingsRepository {
   async listUpcomingByUser(
     userId: number,
     from: Date,
+    to?: Date,
   ): Promise<UpcomingBooking[]> {
     const rows = await this.prisma.booking
       .findMany({
-        where: { userId, status: { in: OCCUPYING }, startsAt: { gte: from } },
+        where: {
+          userId,
+          status: { in: OCCUPYING },
+          startsAt: { gte: from, ...(to && { lt: to }) },
+        },
         select: {
           id: true,
           startsAt: true,
+          prepStartsAt: true,
+          endsAt: true,
+          link: true,
           employeeId: true,
-          client: { select: { name: true } },
+          client: { select: { name: true, email: true } },
           service: {
             select: {
-              availability: { select: { timeZone: true } },
+              name: true,
+              availability: { select: { id: true, timeZone: true } },
+              branch: {
+                select: {
+                  id: true,
+                  name: true,
+                  timeZone: true,
+                  business: { select: { id: true, name: true } },
+                },
+              },
               // Only the Usuario's own Empleado rows; this Turno's is picked by `employeeId` below.
               employees: {
                 where: { employee: { userId } },
                 select: {
                   employeeId: true,
-                  availability: { select: { timeZone: true } },
+                  availability: { select: { id: true, timeZone: true } },
                 },
               },
             },
@@ -425,16 +442,29 @@ export class PrismaBookingsRepository implements BookingsRepository {
         orderBy: { startsAt: 'asc' },
       })
       .catch(translateError);
-    return rows.map((row) => ({
-      id: row.id,
-      startsAt: row.startsAt,
-      clientName: row.client!.name,
-      timeZone: (
+    return rows.flatMap((row) => {
+      const { branch } = row.service;
+      const availability =
         row.service.availability ??
-        row.service.employees.find((e) => e.employeeId === row.employeeId)!
-          .availability
-      ).timeZone,
-    }));
+        row.service.employees.find((e) => e.employeeId === row.employeeId)
+          ?.availability;
+      if (!availability) return [];
+      return {
+        id: row.id,
+        startsAt: row.startsAt,
+        prepStartsAt: row.prepStartsAt,
+        endsAt: row.endsAt,
+        clientName: row.client!.name,
+        clientEmail: row.client!.email,
+        availabilityId: availability.id,
+        timeZone: availability.timeZone,
+        clientTimeZone: branch?.timeZone ?? availability.timeZone,
+        serviceName: row.service.name,
+        link: row.link,
+        business: branch && branch.business,
+        branch: branch && { id: branch.id, name: branch.name },
+      };
+    });
   }
 
   /**
