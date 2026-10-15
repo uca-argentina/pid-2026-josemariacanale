@@ -1,4 +1,4 @@
-import { BookingAlreadyRatedError, BookingStateError, SlotTakenError, SlotUnavailableError } from '@/src/entities/errors/booking';
+import { BookingAlreadyRatedError, BookingStateError, CancellationReasonTooLongError, SlotTakenError, SlotUnavailableError } from '@/src/entities/errors/booking';
 import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
 import { ClientBookingsRepository } from '@/src/infrastructure/repositories/client-bookings.repository';
 import { instrumentation } from '@/tests/unit/stubs';
@@ -31,6 +31,7 @@ const booking = {
     business: { name: 'Peluquería Luna', slug: 'peluqueria-luna' },
     branch: { name: 'Centro', slug: 'centro', address: 'Av. Siempreviva 742', coverUrl: null },
     user: null,
+    cancellationReason: null,
 };
 
 describe('ClientBookingsRepository.getBookingByLink', () => {
@@ -69,6 +70,23 @@ describe('ClientBookingsRepository.cancelBookingByLink', () => {
 
         await expect(repo().cancelBookingByLink('s3cr3t-l1nk')).resolves.toEqual(cancelled);
         expect(fetchSpy).toHaveBeenCalledWith('http://api/booking-links/s3cr3t-l1nk/cancel', { method: 'PATCH', headers: {} });
+    });
+
+    it('sends the Motivo de cancelación in the body, and returns it in the Turno', async () => {
+        const cancelled = { ...booking, status: 'CANCELLED', cancellationReason: 'Me surgió algo' };
+        const fetchSpy = respond(200, cancelled);
+
+        await expect(repo().cancelBookingByLink('s3cr3t-l1nk', 'Me surgió algo')).resolves.toEqual(cancelled);
+        expect(fetchSpy).toHaveBeenCalledWith('http://api/booking-links/s3cr3t-l1nk/cancel', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reason: 'Me surgió algo' }),
+        });
+    });
+
+    it('translates the 400 of a too long Motivo to CancellationReasonTooLongError', async () => {
+        respond(400, { statusCode: 400, message: 'reason is too long' });
+        await expect(repo().cancelBookingByLink('s3cr3t-l1nk', 'x'.repeat(501))).rejects.toBeInstanceOf(CancellationReasonTooLongError);
     });
 
     it('translates a 404 to NotFoundError', async () => {

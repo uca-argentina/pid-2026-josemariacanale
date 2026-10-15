@@ -41,10 +41,17 @@ export type ServiceCabin = z.infer<typeof serviceCabinSchema>;
 export const catalogServiceEmployeeSchema = serviceEmployeeSchema.extend({ availabilityId: z.number() });
 export type CatalogServiceEmployee = z.infer<typeof catalogServiceEmployeeSchema>;
 
+/** The Repetición: a Serie repeats every this many weeks or more. */
+export const REPEAT_EVERY_WEEKS_MIN = 1;
+
+/** The Repetición: how many Turnos a Serie may have at most, from 2 to 10. */
+export const REPEAT_MAX_BOOKINGS = { min: 2, max: 10 } as const;
+
 /**
  * A Servicio as the panel's catalog and POST /branches/:id/services return it. `hidden` is the Servicio oculto,
  * `prepMinutes` the Tiempo de preparación, `dailyLimit` the Límite diario (null: no limit), `slotInterval` the
- * Intervalo (null: the duration) and `minimumNoticeMinutes` the Anticipación mínima (0: none). `cabins` are the active
+ * Intervalo (null: the duration) and `minimumNoticeMinutes` the Anticipación mínima (0: none). `repeatEveryWeeks` and
+ * `repeatMaxBookings` are the Repetición: both set or both null (no Repetición). `cabins` are the active
  * Cabinas it admits, by name; empty when it uses none, and always empty in a Servicio personal.
  */
 export const catalogServiceSchema = serviceSchema.extend({
@@ -55,6 +62,8 @@ export const catalogServiceSchema = serviceSchema.extend({
     dailyLimit: z.number().nullable(),
     slotInterval: z.number().nullable(),
     minimumNoticeMinutes: z.number(),
+    repeatEveryWeeks: z.number().nullable(),
+    repeatMaxBookings: z.number().nullable(),
     employees: z.array(catalogServiceEmployeeSchema),
     cabins: z.array(serviceCabinSchema),
 });
@@ -116,7 +125,7 @@ export type MyService = ServiceInCatalog | { group: null; branch: null; service:
 /**
  * What PATCH /services/:id accepts, plus the Servicio that goes in the path. Every field is optional: only the ones
  * sent change, on a Servicio del Negocio or a personal one. `depositPercent: null` drops the Seña, `dailyLimit: null` the Límite diario and `slotInterval: null`
- * the Intervalo.
+ * the Intervalo. The Repetición goes with both `repeatEveryWeeks` and `repeatMaxBookings`, or both `null` to drop it.
  * `cabinIds` replaces the whole set of Cabinas the Servicio admits; `[]` leaves it with none.
  */
 export const updateServiceSchema = z.object({
@@ -137,6 +146,8 @@ export const updateServiceSchema = z.object({
     dailyLimit: z.number().int().min(1).nullable().optional(),
     slotInterval: z.number().int().min(1).nullable().optional(),
     minimumNoticeMinutes: z.number().int().min(0).optional(),
+    repeatEveryWeeks: z.number().int().min(REPEAT_EVERY_WEEKS_MIN).nullable().optional(),
+    repeatMaxBookings: z.number().int().min(REPEAT_MAX_BOOKINGS.min).max(REPEAT_MAX_BOOKINGS.max).nullable().optional(),
     /** Only a Servicio personal: one of the Usuario's own Availability. */
     availabilityId: z.number().int().positive().optional(),
     cabinIds: z.array(z.number().int().positive()).optional(),

@@ -21,7 +21,7 @@ export function BookingLinkScreen({ link, booking: initial, now }: { link: strin
                 booking={booking}
                 now={now}
                 payDeposit={() => payDepositByLinkAction(link)}
-                cancel={() => cancelBookingByLinkAction(link)}
+                cancel={(reason) => cancelBookingByLinkAction(link, reason)}
                 reschedule={(startsAt) => rescheduleBookingByLinkAction(link, startsAt)}
                 markEmployeeNoShow={() => markEmployeeNoShowByLinkAction(link)}
                 rate={(score, comment) => rateBookingByLinkAction(link, score, comment)}
