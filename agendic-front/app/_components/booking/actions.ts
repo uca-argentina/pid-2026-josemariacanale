@@ -5,6 +5,7 @@ import { getInjection } from '@/di/container';
 import type { DI_RETURN_TYPES } from '@/di/types';
 import { InvalidVerificationCodeError, SlotTakenError, SlotUnavailableError, TooManyVerificationCodeRequestsError } from '@/src/entities/errors/booking';
 import { InputParseError, NotFoundError } from '@/src/entities/errors/common';
+import { WaitlistDateInPastError, WaitlistDayNotFullError } from '@/src/entities/errors/waitlist';
 
 // Reservar no pide Sesión (ADR 0005): ninguna de las dos acciones manda a Iniciar sesión.
 
@@ -74,5 +75,33 @@ export async function requestVerificationCodeAction(email: string): Promise<Requ
         if (error instanceof InputParseError) return { ok: false, message: 'Revisá tu email e intentá de nuevo.' };
         getInjection('ICrashReporterService').report(error);
         return { ok: false, message: 'No pudimos enviar el código. Intentá de nuevo.' };
+    }
+}
+
+export type JoinWaitlistResult =
+    | { ok: true; entry: Awaited<ReturnType<DI_RETURN_TYPES['IJoinWaitlistController']>> }
+    | { ok: false; invalidCode: boolean; dayChanged: boolean; message: string };
+
+/** Anotarse en la Lista de espera. No pide Sesión (ADR 0005). */
+export async function joinWaitlistAction(payload: Parameters<DI_RETURN_TYPES['IJoinWaitlistController']>[0]): Promise<JoinWaitlistResult> {
+    try {
+        const entry = await getInjection('IJoinWaitlistController')(payload);
+        return { ok: true, entry };
+    } catch (error) {
+        unstable_rethrow(error);
+        // El Código de verificación no es válido o venció: se pide uno nuevo, sin perder la fecha.
+        if (error instanceof InvalidVerificationCodeError)
+            return { ok: false, invalidCode: true, dayChanged: false, message: 'El código no es válido o venció.' };
+        // Esperable, no un bug: el día se liberó mientras tanto, y se vuelve a los horarios para Reservar.
+        if (error instanceof WaitlistDayNotFullError)
+            return { ok: false, invalidCode: false, dayChanged: true, message: 'Ya hay horarios este día. Elegí uno para reservar.' };
+        if (error instanceof WaitlistDateInPastError)
+            return { ok: false, invalidCode: false, dayChanged: true, message: 'Esa fecha ya pasó. Elegí otro día.' };
+        if (error instanceof NotFoundError)
+            return { ok: false, invalidCode: false, dayChanged: false, message: 'Este servicio ya no está disponible. Recargá la página.' };
+        if (error instanceof InputParseError)
+            return { ok: false, invalidCode: false, dayChanged: false, message: 'Revisá tus datos e intentá de nuevo.' };
+        getInjection('ICrashReporterService').report(error);
+        return { ok: false, invalidCode: false, dayChanged: false, message: 'No pudimos anotarte. Intentá de nuevo.' };
     }
 }

@@ -193,6 +193,7 @@ model Service {
   employees    EmployeeService[]
   cabins       ServiceCabin[]
   bookings     Booking[]
+  waitlist     WaitlistEntry[]
 }
 
 model Employee {
@@ -384,4 +385,19 @@ model UserHolidaySettings {
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
 
   user User @relation(fields: [userId], references: [id])
+}
+
+/// Anotación (ADR 0034): pedido de un Cliente de entrar en la Lista de espera de un Servicio para una fecha. Una sola viva por email (sin mayúsculas), Servicio y fecha (índice único parcial en el SQL de la migración, ADR 0004).
+model WaitlistEntry {
+  id         Int       @id @default(autoincrement())
+  serviceId  Int
+  date       DateTime  @db.Date // local day in the Servicio's time zone
+  clientName String
+  email      String // trimmed and lowercase
+  link       String    @unique // secret of the link to Salir de la Lista de espera
+  notifiedAt DateTime? @db.Timestamptz(3) // when the Aviso de horario libre went out; null while the day is full
+  leftAt     DateTime? @db.Timestamptz(3) // when the Cliente Salió; null while the Anotación is alive
+  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
 }

@@ -4,6 +4,7 @@ import { cache } from 'react';
 import { BackendErrorNotice } from '@/app/_components/BackendErrorNotice';
 import { Footer } from '@/app/_components/Footer';
 import { Header } from '@/app/_components/Header';
+import { NO_PREFILL, type BookingPrefill } from '@/app/_components/booking/booking-prefill';
 import { getInjection } from '@/di/container';
 import { InputParseError, NotFoundError } from '@/src/entities/errors/common';
 import { UserPublicPage } from './UserPublicPage';
@@ -35,7 +36,7 @@ export async function publicUserMetadata({ userSlug, serviceSlug }: PublicUserSl
  * ese Servicio ya elegido, aunque sea oculto; un tramo que no es de ningún Servicio suyo es 404. Sin Sesión a
  * propósito, como la de la Sucursal.
  */
-export async function PublicUserScreen({ userSlug, serviceSlug }: PublicUserSlugs) {
+export async function PublicUserScreen({ userSlug, serviceSlug, prefill = NO_PREFILL }: PublicUserSlugs & { prefill?: BookingPrefill }) {
     let page;
     try {
         page = await getUserPage(userSlug, serviceSlug);
@@ -50,7 +51,7 @@ export async function PublicUserScreen({ userSlug, serviceSlug }: PublicUserSlug
             <Header user={null} nav={false} />
             <div className="flex flex-1 flex-col">
                 {page ? (
-                    <UserPublicPage user={page.user} services={page.services} selectedService={page.selectedService} />
+                    <UserPublicPage user={page.user} services={page.services} selectedService={page.selectedService} prefill={prefill} />
                 ) : (
                     <BackendErrorNotice />
                 )}

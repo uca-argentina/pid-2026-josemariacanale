@@ -23,7 +23,7 @@ Las direcciones con `/business/` y `/u/` dejan de existir, sin redirigir. Los en
 
 ## Palabras reservadas
 
-`bookings, services, business, availability, analytics, turnos, sign-in, sign-up, api, trpc, u` no valen como slug de Negocio ni de Usuario: 409 `Booking link already in use`. Es una lista fija en el dominio (`RESERVED_SLUGS`), validada por los casos de uso de Crear Negocio, editar el Negocio y editar el Usuario. La Sucursal y el Servicio pueden usarlas: no ocupan el primer tramo.
+`bookings, services, business, availability, analytics, turnos, sign-in, sign-up, api, trpc, u, lista-de-espera` no valen como slug de Negocio ni de Usuario: 409 `Booking link already in use`. Es una lista fija en el dominio (`RESERVED_SLUGS`), validada por los casos de uso de Crear Negocio, editar el Negocio y editar el Usuario. La Sucursal y el Servicio pueden usarlas: no ocupan el primer tramo.
 
 **Regla: toda ruta nueva de primer nivel del front se suma a esa lista**, en el mismo cambio que crea la ruta. Si no, un Negocio o un Usuario podría tapar la pantalla.
 

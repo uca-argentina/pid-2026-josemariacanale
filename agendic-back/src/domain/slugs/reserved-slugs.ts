@@ -15,6 +15,7 @@ export const RESERVED_SLUGS: readonly string[] = [
   'api',
   'trpc',
   'u',
+  'lista-de-espera',
 ];
 
 /** `slug` ya viene en minúsculas, como lo deja el DTO. */

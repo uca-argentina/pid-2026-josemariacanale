@@ -5,6 +5,7 @@ import { CalendarX2, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { Button } from '@/app/_components/ui/button';
 import { cn } from '@/app/_components/utils';
 import { OUT_OF_OFFICE_REASONS } from '@/app/_components/out-of-office-reasons';
+import { FullDayPanel } from './FullDayPanel';
 import { endTime, formatDate, shortWeekday } from './format';
 import type { Service, Slot } from './types';
 import { useSlotWeek } from './use-slot-week';
@@ -23,8 +24,11 @@ export function TimeStep({
     slot,
     notice,
     employeeId,
+    employeeName,
     hostName,
     onSelect,
+    onJoinWaitlist,
+    onBookWithAnyone,
 }: {
     service: Service;
     date: string | null;
@@ -32,9 +36,14 @@ export function TimeStep({
     /** Un aviso que el paso muestra arriba, por ejemplo que el horario elegido se ocupó. */
     notice: string | null;
     employeeId?: number;
+    employeeName?: string;
     /** Quién atiende, para el aviso de Fuera de la oficina de un Servicio personal. */
     hostName: string;
     onSelect: (date: string, slot: Slot | null) => void;
+    /** Anotarse en la Lista de espera del día lleno que se ve. Sin él (al Reagendar), un día lleno no ofrece anotarse. */
+    onJoinWaitlist?: (date: string) => void;
+    /** Con Empleado elegido y el Servicio con lugar ese día: seguir sin elegir Empleado. */
+    onBookWithAnyone?: () => void;
 }) {
     const { status, message, week, days, label, canGoBack, goToWeek, retry } = useSlotWeek(service.id, date, employeeId);
 
@@ -195,7 +204,7 @@ export function TimeStep({
                 </>
             )}
 
-            {chosenDay?.reason === 'FULLY_BOOKED' && (
+            {chosenDay?.reason === 'FULLY_BOOKED' && !(onJoinWaitlist && onBookWithAnyone) && (
                 <div className="mt-8 flex flex-col items-center gap-2 rounded-2xl border border-border px-5 py-14 text-center">
                     <p className="text-[17px] font-extrabold tracking-[-0.02em]">La agenda está completa ese día</p>
                     {nextWithSlots && (
@@ -205,6 +214,25 @@ export function TimeStep({
                     )}
                     {goToNext && <div className="mt-4">{goToNext}</div>}
                 </div>
+            )}
+
+            {chosenDay?.reason === 'FULLY_BOOKED' && onJoinWaitlist && onBookWithAnyone && (
+                <FullDayPanel
+                    key={`${chosenDay.date}-${employeeId ?? ''}`}
+                    serviceId={service.id}
+                    date={chosenDay.date}
+                    employeeId={employeeId}
+                    employeeName={employeeName}
+                    onJoinWaitlist={() => onJoinWaitlist(chosenDay.date)}
+                    onBookWithAnyone={onBookWithAnyone}
+                >
+                    {nextWithSlots && (
+                        <p className="mb-3 text-[13.5px] text-muted-foreground first-letter:uppercase">
+                            Hay lugar el {formatDate(nextWithSlots.date)}
+                        </p>
+                    )}
+                    {goToNext}
+                </FullDayPanel>
             )}
 
             {chosenDay?.reason === 'OUT_OF_OFFICE' && chosenDay.outOfOffice && (

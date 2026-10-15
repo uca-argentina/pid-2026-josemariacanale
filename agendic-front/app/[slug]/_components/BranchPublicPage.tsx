@@ -12,6 +12,7 @@ import { ChipTabs } from '@/app/_components/booking/ChipTabs';
 import { BookingFlow } from '@/app/_components/booking/BookingFlow';
 import { ServiceCard } from '@/app/_components/booking/ServiceCard';
 import { initials } from '@/app/_components/booking/format';
+import type { BookingPrefill } from '@/app/_components/booking/booking-prefill';
 import type { Service } from '@/app/_components/booking/types';
 import { BranchGalleryModal } from './BranchGalleryModal';
 import { galleryLayout } from './gallery-layout';
@@ -34,6 +35,7 @@ export function BranchPublicPage({
     images,
     selectedService,
     selectedEmployee,
+    prefill,
 }: {
     business: Business;
     branch: Branch;
@@ -45,6 +47,7 @@ export function BranchPublicPage({
     selectedService: Service | null;
     /** El Empleado del Enlace de reserva (Empleado elegido, ADR 0026): la reserva es con él y solo ve sus horarios. */
     selectedEmployee: Employee | null;
+    prefill: BookingPrefill;
 }) {
     const categories = SERVICE_CATEGORIES.filter((c) => services.some((s) => s.category === c.value));
     const [category, setCategory] = useState<ServiceCategoryValue | undefined>(categories[0]?.value);
@@ -291,6 +294,7 @@ export function BranchPublicPage({
                     coverUrl={cover}
                     initialService={initialService}
                     employee={selectedEmployee}
+                    prefill={prefill}
                     onClose={() => setFlowOpen(false)}
                 />
             )}

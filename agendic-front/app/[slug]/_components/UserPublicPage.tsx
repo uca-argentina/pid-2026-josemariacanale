@@ -6,6 +6,7 @@ import { initials } from '@/app/_components/booking/format';
 import { SERVICE_CATEGORIES } from '@/app/_components/business-schemas';
 import { BookingFlow } from '@/app/_components/booking/BookingFlow';
 import { ServiceCard } from '@/app/_components/booking/ServiceCard';
+import type { BookingPrefill } from '@/app/_components/booking/booking-prefill';
 import type { Service } from '@/app/_components/booking/types';
 
 /**
@@ -16,10 +17,12 @@ export function UserPublicPage({
     user,
     services,
     selectedService,
+    prefill,
 }: {
     user: { name: string; imageUrl: string | null };
     services: Service[];
     selectedService: Service | null;
+    prefill: BookingPrefill;
 }) {
     const [initialService, setInitialService] = useState<Service | null>(selectedService);
     const [flowOpen, setFlowOpen] = useState(selectedService !== null);
@@ -75,6 +78,7 @@ export function UserPublicPage({
                     coverUrl={undefined}
                     initialService={initialService}
                     employee={null}
+                    prefill={prefill}
                     onClose={() => setFlowOpen(false)}
                 />
             )}

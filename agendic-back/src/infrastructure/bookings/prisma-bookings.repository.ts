@@ -1,4 +1,4 @@
-import { randomBytes, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 import {
   Booking,
@@ -37,6 +37,7 @@ import {
 } from '../prisma-errors';
 import { HistoryBooking } from '../../domain/bookings/booking-history';
 import { PrismaService } from '../prisma.service';
+import { generateSecretLink } from '../secret-link';
 
 /** Statuses that hold a Usuario's horario, as the Booking_no_overlap constraint does. */
 const OCCUPYING = [BookingStatus.PENDING, BookingStatus.BOOKED];
@@ -159,7 +160,7 @@ export class PrismaBookingsRepository implements BookingsRepository {
         select: BOOKING_SELECT,
         data: {
           ...booking,
-          link: generateBookingLink(),
+          link: generateSecretLink(),
           client: {
             create: { name: clientName, email: normalizeEmail(clientEmail) },
           },
@@ -237,7 +238,7 @@ export class PrismaBookingsRepository implements BookingsRepository {
                   ...booking,
                   cabinId,
                   seriesId,
-                  link: generateBookingLink(),
+                  link: generateSecretLink(),
                   client: { create: { name: clientName, email: normalizeEmail(clientEmail) } },
                 },
               });
@@ -1072,7 +1073,6 @@ const toPanelBooking = (row: PanelBookingRow): PanelBooking => ({
 });
 
 /** 256 bits, URL-safe (ADR 0022 pide al menos 128). */
-const generateBookingLink = (): string => randomBytes(32).toString('base64url');
 
 /** The Sucursal's data if the Servicio is del Negocio, with its cover (the first Imagen de Sucursal by order). */
 const toClientBooking = (

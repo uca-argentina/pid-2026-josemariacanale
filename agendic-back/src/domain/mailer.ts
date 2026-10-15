@@ -63,6 +63,26 @@ export interface Mailer {
     startsAt: Date,
     timeZone: string,
   ): Promise<void>;
+  /** Confirmación de anotación: the Cliente joined the Lista de espera of `serviceName` for `date` (`YYYY-MM-DD`), with the link to Salir. */
+  sendWaitlistConfirmation(
+    email: string,
+    clientName: string,
+    serviceName: string,
+    date: string,
+    link: string,
+  ): Promise<void>;
+  /**
+   * Aviso de horario libre: apareció un Horario reservable de `serviceName` el `date` (`YYYY-MM-DD`), sin decir cuál.
+   * `bookingPath` es el path con query de la página de reserva, y `link` el secreto para Salir de la Lista de espera.
+   */
+  sendFreeSlotNotice(
+    email: string,
+    clientName: string,
+    serviceName: string,
+    date: string,
+    bookingPath: string,
+    link: string,
+  ): Promise<void>;
   /**
    * Aviso de cambio del Turno con Causa: one mail for all the Turnos of one Cliente that a change in the horario of
    * whoever attends them cancelled, each with its Enlace del Turno. Only these cancellations use it.
