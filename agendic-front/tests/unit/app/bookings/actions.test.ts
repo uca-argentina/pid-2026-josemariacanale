@@ -4,10 +4,11 @@ import {
     getBookingHistoryAction,
     markBookingNoShowAction,
     rejectBookingAction,
+    unmarkBookingNoShowAction,
     rescheduleBookingAction,
 } from '@/app/(app)/bookings/actions';
 import { UnauthenticatedError } from '@/src/entities/errors/auth';
-import { BookingNotAllowedError, BookingStateError, SlotTakenError, SlotUnavailableError } from '@/src/entities/errors/booking';
+import { BookingNotAllowedError, BookingStateError, CancellationReasonTooLongError, SlotTakenError, SlotUnavailableError } from '@/src/entities/errors/booking';
 import { InputParseError, NotFoundError } from '@/src/entities/errors/common';
 
 const mockControllers: Record<string, jest.Mock> = {
@@ -17,6 +18,9 @@ const mockControllers: Record<string, jest.Mock> = {
     IRescheduleBookingController: jest.fn(),
     IMarkBookingNoShowController: jest.fn(),
     IGetBookingHistoryController: jest.fn(),
+    IUnmarkBookingNoShowController: jest.fn(),
+    IGetBookingHistoryController: jest.fn(),
+
 };
 const mockReport = jest.fn();
 const mockRefresh = jest.fn();
@@ -44,6 +48,7 @@ describe.each([
     ['rejectBookingAction', 'IRejectBookingController', () => rejectBookingAction(7)],
     ['cancelBookingAction', 'ICancelBookingController', () => cancelBookingAction(7)],
     ['markBookingNoShowAction', 'IMarkBookingNoShowController', () => markBookingNoShowAction(7)],
+    ['unmarkBookingNoShowAction', 'IUnmarkBookingNoShowController', () => unmarkBookingNoShowAction(7)],
     ['rescheduleBookingAction', 'IRescheduleBookingController', () => rescheduleBookingAction(7, '2026-10-02T15:00:00.000Z')],
 ])('%s', (_name, controller, run) => {
     it('calls its controller and refreshes the page', async () => {
@@ -80,6 +85,28 @@ describe.each([
     });
 });
 
+describe.each([
+    ['rejectBookingAction', 'IRejectBookingController', (reason?: string) => rejectBookingAction(7, reason)],
+    ['cancelBookingAction', 'ICancelBookingController', (reason?: string) => cancelBookingAction(7, reason)],
+])('%s with a Motivo de cancelación', (_name, controller, run) => {
+    it('sends the Motivo to its controller', async () => {
+        await expect(run('Estoy de viaje')).resolves.toEqual({ ok: true });
+        expect(mockControllers[controller]).toHaveBeenCalledWith({ bookingId: 7, reason: 'Estoy de viaje' });
+    });
+
+    it('shows the 400 of a too long Motivo under the field, without reporting it', async () => {
+        mockControllers[controller].mockRejectedValue(new CancellationReasonTooLongError('reason is too long'));
+
+        await expect(run('x'.repeat(501))).resolves.toEqual({
+            ok: false,
+            field: 'reason',
+            message: 'El motivo puede tener hasta 500 caracteres.',
+        });
+        expect(mockReport).not.toHaveBeenCalled();
+        expect(mockRefresh).not.toHaveBeenCalled();
+    });
+});
+
 describe('getBookingHistoryAction', () => {
     it('returns the Historial del Turno, dated in the zone of the panel, without refreshing the page', async () => {
         const entries = [{ text: 'Reservado por el Cliente', at: '12 oct 10:03', reason: null }];
@@ -108,6 +135,7 @@ describe('getBookingHistoryAction', () => {
 
         await expect(getBookingHistoryAction(7, 24)).resolves.toEqual({ ok: false, message: 'No pudimos cargar el historial del turno.' });
         expect(mockReport).not.toHaveBeenCalled();
+
     });
 });
 

@@ -8,6 +8,9 @@ import {
     EmployeeNotAssignableError,
     ServiceNameTakenError,
     ServiceSlugTakenError,
+    ServiceRepetitionError,
+    type ServiceRepetitionField,
+    type ServiceRepetitionReason,
 } from '@/src/entities/errors/service';
 import {
     catalogServiceSchema,
@@ -109,6 +112,7 @@ export class ServicesRepository implements IServicesRepository {
      * @throws {ServiceNameTakenError} the name is taken in that Sucursal, or among the Usuario's (409)
      * @throws {NotFoundError} the Servicio, or the Availability sent, does not exist (404)
      * @throws {CabinNotOfBranchError} a Cabina sent is not an active one of the Sucursal (422)
+     * @throws {ServiceRepetitionError} the Repetición is not valid (400)
      * @throws {ApiRequestError} any other failure, or a body that is not a Servicio
      */
     async updateService({ id, ...changes }: UpdateService): Promise<CatalogService | PersonalService> {
@@ -117,6 +121,8 @@ export class ServicesRepository implements IServicesRepository {
         if (status === 409) throw takenError(json, what, status);
         if (status === 404) throw new NotFoundError(messageOf(json, what, status));
         if (status === 422) throw new CabinNotOfBranchError(messageOf(json, what, status));
+        const repetition = status === 400 ? repetitionError(messageOf(json, what, status)) : null;
+        if (repetition) throw repetition;
         if (status >= 400) throw apiError(what, status, json);
         return parseOrFail(() => catalogServiceSchema.or(personalServiceSchema).parse(json), what);
     }
@@ -212,6 +218,18 @@ const messageOf = (json: { message?: unknown } | undefined, what: string, status
 
 const apiError = (what: string, status: number, json: { message?: unknown } | undefined) =>
     new ApiRequestError(messageOf(json, what, status), { status });
+
+/** The 400s of an invalid Repetición (ADR 0007), by the field they are about and why; any other 400 is not one. */
+const REPETITION_ERRORS: Record<string, { field: ServiceRepetitionField; reason: ServiceRepetitionReason }> = {
+    'Repetición needs both repeatEveryWeeks and repeatMaxBookings': { field: 'repeatEveryWeeks', reason: 'incomplete' },
+    'repeatEveryWeeks must be at least 1': { field: 'repeatEveryWeeks', reason: 'out-of-range' },
+    'repeatMaxBookings must be between 2 and 10': { field: 'repeatMaxBookings', reason: 'out-of-range' },
+};
+
+const repetitionError = (message: string) => {
+    const known = REPETITION_ERRORS[message];
+    return known ? new ServiceRepetitionError(message, known) : null;
+};
 
 const takenError = (json: { message?: unknown } | undefined, what: string, status: number) => {
     const message = messageOf(json, what, status);

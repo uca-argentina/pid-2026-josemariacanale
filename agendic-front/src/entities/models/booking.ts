@@ -5,6 +5,9 @@ import { z } from 'zod';
 export const BOOKING_STATUSES = ['PENDING', 'BOOKED', 'REJECTED', 'CANCELLED'] as const;
 export type BookingStatus = (typeof BOOKING_STATUSES)[number];
 
+/** Cuántos caracteres puede tener el Motivo de cancelación; más es un 400 del back. */
+export const CANCELLATION_REASON_MAX_LENGTH = 500;
+
 // A Turno as POST /bookings returns it. `notes` is the Comentario del Turno: null when the Cliente
 // left none, absent while the back does not return it yet.
 export const bookingSchema = z.object({

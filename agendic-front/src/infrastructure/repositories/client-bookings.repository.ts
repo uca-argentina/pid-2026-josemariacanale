@@ -1,6 +1,14 @@
 import type { IClientBookingsRepository } from '@/src/application/repositories/client-bookings.repository.interface';
 import type { IInstrumentationService } from '@/src/application/services/instrumentation.service.interface';
-import { BookingAlreadyRatedError, SLOT_UNAVAILABLE_MESSAGE, SlotTakenError, SlotUnavailableError, BookingStateError } from '@/src/entities/errors/booking';
+import {
+    BookingAlreadyRatedError,
+    BookingStateError,
+    CANCELLATION_REASON_TOO_LONG_MESSAGE,
+    CancellationReasonTooLongError,
+    SLOT_UNAVAILABLE_MESSAGE,
+    SlotTakenError,
+    SlotUnavailableError,
+} from '@/src/entities/errors/booking';
 import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
 import { clientBookingSchema, type ClientBooking } from '@/src/entities/models/client-booking';
 
@@ -41,12 +49,16 @@ export class ClientBookingsRepository implements IClientBookingsRepository {
     /**
      * @throws {NotFoundError} el back respondió 404
      * @throws {BookingStateError} el back respondió 422
+     * @throws {CancellationReasonTooLongError} el back respondió 400 `reason is too long`
      * @throws {ApiRequestError} cualquier otra respuesta con error, un cuerpo inesperado o una falla de red
      */
-    async cancelBookingByLink(link: string): Promise<ClientBooking> {
+    async cancelBookingByLink(link: string, reason?: string): Promise<ClientBooking> {
         return this.instrumentationService.startSpan({ name: 'ClientBookingsRepository > cancelBookingByLink', op: 'http.client' }, async () => {
             const what = 'PATCH /booking-links/:link/cancel';
-            const body = await this.request(what, `/booking-links/${encodeURIComponent(link)}/cancel`, { method: 'PATCH' });
+            const body = await this.request(what, `/booking-links/${encodeURIComponent(link)}/cancel`, {
+                method: 'PATCH',
+                body: reason === undefined ? undefined : { reason },
+            });
             return parseOrFail(() => clientBookingSchema.parse(body), what);
         });
     }
@@ -136,6 +148,7 @@ export class ClientBookingsRepository implements IClientBookingsRepository {
 
         const json = await response.json().catch(() => undefined);
         const message = String(json?.message ?? `${what} responded ${response.status}`);
+        if (response.status === 400 && message === CANCELLATION_REASON_TOO_LONG_MESSAGE) throw new CancellationReasonTooLongError(message);
         if (response.status === 404) throw new NotFoundError(message);
         if (response.status === 409) throw new SlotTakenError(message);
         if (response.status === 422 && SLOT_UNAVAILABLE_MESSAGE.test(message)) throw new SlotUnavailableError(message);

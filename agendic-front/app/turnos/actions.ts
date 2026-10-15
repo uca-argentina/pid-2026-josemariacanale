@@ -7,10 +7,10 @@ import { performClientBookingAction } from '@/app/_components/client-booking/per
 
 // El Enlace del Turno es la credencial (ADR 0022): sin Sesión ni acceso, viaja como parámetro en cada acción.
 
-/** Cancela el Turno pendiente o aceptado del Enlace; su horario queda libre. */
-export async function cancelBookingByLinkAction(link: string) {
+/** Cancela el Turno pendiente o aceptado del Enlace; su horario queda libre. `reason` es el Motivo de cancelación, opcional. */
+export async function cancelBookingByLinkAction(link: string, reason?: string) {
     return performClientBookingAction(
-        () => getInjection('ICancelBookingByLinkController')({ link }),
+        () => getInjection('ICancelBookingByLinkController')({ link, reason }),
         'No pudimos cancelar el turno. Intentá de nuevo.',
     );
 }

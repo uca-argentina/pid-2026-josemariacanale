@@ -5,6 +5,7 @@ import {
     AvailabilityNotOfEmployeeError,
     EmployeeNotAssignableError,
     ServiceNameTakenError,
+    ServiceRepetitionError,
     ServiceSlugTakenError,
 } from '@/src/entities/errors/service';
 import { ServicesRepository } from '@/src/infrastructure/repositories/services.repository';
@@ -26,6 +27,8 @@ const parsedService = {
     dailyLimit: null,
     slotInterval: null,
     minimumNoticeMinutes: 0,
+    repeatEveryWeeks: null,
+    repeatMaxBookings: null,
     employees: [{ id: 1, name: 'Ana', availabilityId: 7, imageUrl: 'https://img.example/ana.png', slug: 'ana' }],
     cabins: [{ id: 3, name: 'Box 1' }],
 };
@@ -143,6 +146,33 @@ describe('ServicesRepository.createService', () => {
     it('translates a body that is not JSON to ApiRequestError', async () => {
         jest.spyOn(global, 'fetch').mockResolvedValue(new Response('<html>', { status: 201 }));
         await expect(repo().createService(input)).rejects.toBeInstanceOf(ApiRequestError);
+    });
+});
+
+describe('ServicesRepository.updateService Repetición', () => {
+    it('PATCHes the Repetición and returns it', async () => {
+        const fetchSpy = respond(200, { ...service, repeatEveryWeeks: 2, repeatMaxBookings: 6 });
+
+        await expect(repo().updateService({ id: 100, repeatEveryWeeks: 2, repeatMaxBookings: 6 })).resolves.toMatchObject({
+            repeatEveryWeeks: 2,
+            repeatMaxBookings: 6,
+        });
+        expect(fetchSpy).toHaveBeenCalledWith(
+            'http://api/services/100',
+            expect.objectContaining({ body: JSON.stringify({ repeatEveryWeeks: 2, repeatMaxBookings: 6 }) }),
+        );
+    });
+
+    it.each([
+        ['Repetición needs both repeatEveryWeeks and repeatMaxBookings', 'repeatEveryWeeks', 'incomplete'],
+        ['repeatMaxBookings must be between 2 and 10', 'repeatMaxBookings', 'out-of-range'],
+        ['repeatEveryWeeks must be at least 1', 'repeatEveryWeeks', 'out-of-range'],
+    ])('translates the 400 %j to ServiceRepetitionError on its field', async (message, field, reason) => {
+        respond(400, { statusCode: 400, message });
+
+        const error = await repo().updateService({ id: 100, repeatEveryWeeks: 1, repeatMaxBookings: 11 }).catch((e) => e);
+        expect(error).toBeInstanceOf(ServiceRepetitionError);
+        expect(error).toMatchObject({ field, reason, message });
     });
 });
 
@@ -405,6 +435,8 @@ const parsedPersonal = {
     dailyLimit: null,
     slotInterval: null,
     minimumNoticeMinutes: 0,
+    repeatEveryWeeks: null,
+    repeatMaxBookings: null,
     availabilityId: 7,
 };
 /** The back sends a Servicio personal with the fields of any Servicio, empty. */

@@ -5,16 +5,12 @@ import { redirect, unstable_rethrow } from 'next/navigation';
 import { isSessionExpired } from '@/app/api-error';
 import { SIGN_IN_PATH } from '@/app/routes';
 import { getInjection } from '@/di/container';
+import { REPETITION_MESSAGES } from './_components/service-form';
 import { InvalidSlugError, SlugTakenError } from '@/src/entities/errors/business';
 import { CabinNotOfBranchError } from '@/src/entities/errors/cabin';
 import { ApiRequestError, InputParseError, NotFoundError } from '@/src/entities/errors/common';
 import { LastEmployeeError } from '@/src/entities/errors/employee';
-import {
-    AvailabilityNotOfEmployeeError,
-    EmployeeNotAssignableError,
-    ServiceNameTakenError,
-    ServiceSlugTakenError,
-} from '@/src/entities/errors/service';
+import { AvailabilityNotOfEmployeeError, EmployeeNotAssignableError, ServiceNameTakenError, ServiceSlugTakenError, ServiceRepetitionError } from '@/src/entities/errors/service';
 
 /** Lo que el diálogo de alta necesita para cerrar, o para mostrar el error bajo su campo o al pie. */
 export type CreateServiceResult = { ok: true; name: string } | { ok: false; message: string; field?: 'name' | 'slug' };
@@ -90,11 +86,17 @@ export async function updateMySlugAction(payload: unknown): Promise<UpdateMySlug
 /** Lo que Guardar y el switch de ocultar necesitan para confirmar, o para mostrar el error bajo su campo o al pie. */
 export type UpdateServiceResult =
     | { ok: true; name: string; hidden: boolean }
-    | { ok: false; message: string; field?: 'name' | 'slug' };
+    | { ok: false; message: string; field?: 'name' | 'slug' | 'repeatEveryWeeks' | 'repeatMaxBookings' };
+
+/** El 400 de la Repetición como lo ve el Usuario: si falta un campo, uno propio; si está fuera de rango, el del campo. */
+const repetitionMessage = (error: ServiceRepetitionError) =>
+    error.reason === 'incomplete'
+        ? 'La Repetición necesita cada cuántas semanas y hasta cuántos Turnos.'
+        : REPETITION_MESSAGES[error.field];
 
 /**
  * Guardar del detalle y el switch de ocultar de la lista y del detalle: cambia solo los campos que llegan y refresca la
- * página. Los 409 vuelven con el `message` del back, para mostrarlo bajo su campo.
+ * página. Los 409 vuelven con el `message` del back y los 400 de la Repetición con su texto, para mostrarlos bajo su campo.
  */
 export async function updateServiceAction(payload: unknown): Promise<UpdateServiceResult> {
     try {
@@ -105,6 +107,7 @@ export async function updateServiceAction(payload: unknown): Promise<UpdateServi
         unstable_rethrow(error);
         if (error instanceof ServiceSlugTakenError) return { ok: false, field: 'slug', message: error.message };
         if (error instanceof ServiceNameTakenError) return { ok: false, field: 'name', message: error.message };
+        if (error instanceof ServiceRepetitionError) return { ok: false, field: error.field, message: repetitionMessage(error) };
         if (error instanceof NotFoundError) return { ok: false, message: 'Este Servicio ya no existe.' };
         if (error instanceof CabinNotOfBranchError) {
             // The Cabina was dada de baja elsewhere: reload the page so the list of Cabinas is asked for again.

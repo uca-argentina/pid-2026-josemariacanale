@@ -1,5 +1,5 @@
 import { UnauthenticatedError } from '@/src/entities/errors/auth';
-import { BookingNotAllowedError, BookingStateError, SlotTakenError, SlotUnavailableError } from '@/src/entities/errors/booking';
+import { BookingNotAllowedError, BookingStateError, CancellationReasonTooLongError, SlotTakenError, SlotUnavailableError } from '@/src/entities/errors/booking';
 import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
 import { UserBookingsRepository } from '@/src/infrastructure/repositories/user-bookings.repository';
 import { authWith } from '@/tests/unit/stubs';
@@ -168,6 +168,45 @@ describe('UserBookingsRepository actions', () => {
             `http://api/bookings/7/${route}`,
             expect.objectContaining({ method: 'PATCH', headers: { Authorization: 'Bearer tok' }, body: undefined }),
         );
+    });
+
+    it.each([
+        ['reject', () => repo().reject(7, 'Estoy de viaje')],
+        ['cancel', () => repo().cancel(7, 'Estoy de viaje')],
+    ] as const)('%s sends the Motivo de cancelación in the body', async (route, run) => {
+        const fetchSpy = respond(200, {});
+        await run();
+        expect(fetchSpy).toHaveBeenCalledWith(
+            `http://api/bookings/7/${route}`,
+            expect.objectContaining({ method: 'PATCH', body: JSON.stringify({ reason: 'Estoy de viaje' }) }),
+        );
+    });
+
+    it.each([
+        ['reject', () => repo().reject(7, 'x'.repeat(501))],
+        ['cancel', () => repo().cancel(7, 'x'.repeat(501))],
+    ] as const)('%s translates the 400 of a too long Motivo to CancellationReasonTooLongError', async (_route, run) => {
+        respond(400, { statusCode: 400, message: 'reason is too long' });
+        await expect(run()).rejects.toBeInstanceOf(CancellationReasonTooLongError);
+    });
+
+    it('keeps any other 400 as ApiRequestError', async () => {
+        respond(400, { statusCode: 400, message: 'reason must be a string' });
+        await expect(repo().cancel(7, 'x')).rejects.toMatchObject({ constructor: ApiRequestError, status: 400 });
+    });
+
+    it('unmarkNoShow DELETEs /bookings/:id/no-show with the bearer token and no body', async () => {
+        const fetchSpy = respond(200, {});
+        await repo().unmarkNoShow(7);
+        expect(fetchSpy).toHaveBeenCalledWith(
+            'http://api/bookings/7/no-show',
+            expect.objectContaining({ method: 'DELETE', headers: { Authorization: 'Bearer tok' }, body: undefined }),
+        );
+    });
+
+    it('unmarkNoShow translates the 422 of a Turno without Ausencia del Invitado to BookingStateError', async () => {
+        respond(422, { statusCode: 422, message: 'Turno has no Ausencia' });
+        await expect(repo().unmarkNoShow(7)).rejects.toBeInstanceOf(BookingStateError);
     });
 
     it('reschedule PATCHes /bookings/:id/reschedule with the chosen startsAt', async () => {

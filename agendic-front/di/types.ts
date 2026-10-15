@@ -113,6 +113,11 @@ import type { IMarkBookingNoShowUseCase } from '@/src/application/use-cases/book
 import type { IMarkBookingNoShowController } from '@/src/interface-adapters/controllers/bookings/mark-booking-no-show.controller';
 import type { IGetBookingHistoryUseCase } from '@/src/application/use-cases/bookings/get-booking-history.use-case';
 import type { IGetBookingHistoryController } from '@/src/interface-adapters/controllers/bookings/get-booking-history.controller';
+import type { IUnmarkBookingNoShowUseCase } from '@/src/application/use-cases/bookings/unmark-booking-no-show.use-case';
+import type { IUnmarkBookingNoShowController } from '@/src/interface-adapters/controllers/bookings/unmark-booking-no-show.controller';
+import type { IGetBookingHistoryUseCase } from '@/src/application/use-cases/bookings/get-booking-history.use-case';
+import type { IGetBookingHistoryController } from '@/src/interface-adapters/controllers/bookings/get-booking-history.controller';
+
 import type { IRescheduleBookingUseCase } from '@/src/application/use-cases/bookings/reschedule-booking.use-case';
 import type { IRescheduleBookingController } from '@/src/interface-adapters/controllers/bookings/reschedule-booking.controller';
 import type { ICancelBookingUseCase } from '@/src/application/use-cases/bookings/cancel-booking.use-case';
@@ -249,6 +254,9 @@ export const DI_SYMBOLS = {
     IListMyBookingsUseCase: Symbol.for('IListMyBookingsUseCase'),
     IMarkBookingNoShowUseCase: Symbol.for('IMarkBookingNoShowUseCase'),
     IGetBookingHistoryUseCase: Symbol.for('IGetBookingHistoryUseCase'),
+    IUnmarkBookingNoShowUseCase: Symbol.for('IUnmarkBookingNoShowUseCase'),
+    IGetBookingHistoryUseCase: Symbol.for('IGetBookingHistoryUseCase'),
+
     IRescheduleBookingUseCase: Symbol.for('IRescheduleBookingUseCase'),
     ICancelBookingUseCase: Symbol.for('ICancelBookingUseCase'),
     IRejectBookingUseCase: Symbol.for('IRejectBookingUseCase'),
@@ -344,6 +352,9 @@ export const DI_SYMBOLS = {
     IListMyBookingsController: Symbol.for('IListMyBookingsController'),
     IMarkBookingNoShowController: Symbol.for('IMarkBookingNoShowController'),
     IGetBookingHistoryController: Symbol.for('IGetBookingHistoryController'),
+    IUnmarkBookingNoShowController: Symbol.for('IUnmarkBookingNoShowController'),
+    IGetBookingHistoryController: Symbol.for('IGetBookingHistoryController'),
+
     IRescheduleBookingController: Symbol.for('IRescheduleBookingController'),
     ICancelBookingController: Symbol.for('ICancelBookingController'),
     IRejectBookingController: Symbol.for('IRejectBookingController'),
@@ -444,6 +455,9 @@ export interface DI_RETURN_TYPES {
     IListMyBookingsUseCase: IListMyBookingsUseCase;
     IMarkBookingNoShowUseCase: IMarkBookingNoShowUseCase;
     IGetBookingHistoryUseCase: IGetBookingHistoryUseCase;
+    IUnmarkBookingNoShowUseCase: IUnmarkBookingNoShowUseCase;
+    IGetBookingHistoryUseCase: IGetBookingHistoryUseCase;
+
     IRescheduleBookingUseCase: IRescheduleBookingUseCase;
     ICancelBookingUseCase: ICancelBookingUseCase;
     IRejectBookingUseCase: IRejectBookingUseCase;
@@ -539,6 +553,9 @@ export interface DI_RETURN_TYPES {
     IListMyBookingsController: IListMyBookingsController;
     IMarkBookingNoShowController: IMarkBookingNoShowController;
     IGetBookingHistoryController: IGetBookingHistoryController;
+    IUnmarkBookingNoShowController: IUnmarkBookingNoShowController;
+    IGetBookingHistoryController: IGetBookingHistoryController;
+
     IRescheduleBookingController: IRescheduleBookingController;
     ICancelBookingController: ICancelBookingController;
     IRejectBookingController: IRejectBookingController;

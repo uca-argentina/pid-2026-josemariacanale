@@ -12,10 +12,11 @@ export type ICancelBookingByLinkUseCase = ReturnType<typeof cancelBookingByLinkU
  *
  * @throws {NotFoundError} el Enlace no es de ningún Turno
  * @throws {BookingStateError} el Turno no está pendiente ni aceptado, o ya empezó
+ * @throws {CancellationReasonTooLongError} el Motivo de cancelación es demasiado largo
  */
 export const cancelBookingByLinkUseCase =
     (instrumentationService: IInstrumentationService, clientBookingsRepository: IClientBookingsRepository) =>
-    (input: { link: string }): Promise<ClientBooking> =>
+    (input: { link: string; reason?: string }): Promise<ClientBooking> =>
         instrumentationService.startSpan({ name: 'cancelBookingByLink Use Case', op: 'function' }, () =>
-            clientBookingsRepository.cancelBookingByLink(input.link),
+            clientBookingsRepository.cancelBookingByLink(input.link, input.reason),
         );
