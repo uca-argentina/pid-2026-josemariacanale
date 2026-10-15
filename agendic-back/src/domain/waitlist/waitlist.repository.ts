@@ -46,6 +46,13 @@ export interface WaitlistRepository {
    */
   listAliveIncludeService(now: Date): Promise<AliveWaitlistEntry[]>;
   /**
+   * Los ids de las Anotaciones cuyo email tiene un Turno vivo (`PENDING` o `BOOKED`) de ese Servicio que empieza en
+   * esa fecha, en la zona horaria del Servicio. Compara el email sin mayúsculas y resuelve todas en una sola consulta.
+   *
+   * @throws {DatabaseOperationError} la consulta falló
+   */
+  listWithLiveBooking(entries: AliveWaitlistEntry[]): Promise<Set<number>>;
+  /**
    * Guarda que el Aviso de horario libre salió.
    *
    * @throws {DatabaseOperationError} la escritura falló

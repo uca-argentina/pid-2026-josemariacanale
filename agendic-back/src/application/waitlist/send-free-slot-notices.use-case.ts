@@ -36,7 +36,8 @@ function bookingPath(entry: AliveWaitlistEntry): string {
 /**
  * Avisa a cada Anotación viva cuando su día vuelve a tener un Horario reservable, y rearma las de los días que se
  * llenaron de nuevo (ADR 0034). Cada Anotación recibe un solo Aviso mientras el día siga con lugar: `notifiedAt`
- * se guarda solo si el mail salió bien.
+ * se guarda solo si el mail salió bien. Una Anotación cuyo email ya tiene un Turno vivo ese día se saltea: no se
+ * avisa, no se marca ni se rearma, y vuelve a avisarse sola si el Cliente Cancela.
  *
  * Un Servicio o un mail que fallan se loguean y se reintentan en la próxima pasada, sin frenar a los demás.
  */
@@ -57,8 +58,15 @@ export class SendFreeSlotNoticesUseCase {
   async execute(): Promise<void> {
     const now = this.clock.now();
     const byService = new Map<number, AliveWaitlistEntry[]>();
-    for (const entry of await this.waitlist.listAliveIncludeService(now)) {
-      if (entry.date < localDate(now, entry.timeZone)) continue;
+    const upcoming = (await this.waitlist.listAliveIncludeService(now)).filter(
+      (entry) => entry.date >= localDate(now, entry.timeZone),
+    );
+    const booked =
+      upcoming.length > 0
+        ? await this.waitlist.listWithLiveBooking(upcoming)
+        : new Set<number>();
+    for (const entry of upcoming) {
+      if (booked.has(entry.id)) continue;
       byService.set(entry.serviceId, [
         ...(byService.get(entry.serviceId) ?? []),
         entry,
