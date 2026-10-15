@@ -2,19 +2,22 @@ import { createOutOfOfficeUseCase } from '@/src/application/use-cases/out-of-off
 import { deleteOutOfOfficeUseCase } from '@/src/application/use-cases/out-of-office/delete-out-of-office.use-case';
 import { updateOutOfOfficeUseCase } from '@/src/application/use-cases/out-of-office/update-out-of-office.use-case';
 import { NotFoundError } from '@/src/entities/errors/common';
-import { OutOfOfficeConflictError, OutOfOfficeRuleError } from '@/src/entities/errors/out-of-office';
+import { LeftOutsideBookingsChangedError, OutOfOfficeConflictError, OutOfOfficeRuleError } from '@/src/entities/errors/out-of-office';
 import { instrumentation, outOfOfficeWith } from '@/tests/unit/stubs';
 
 const input = { startDate: '2026-10-11', endDate: '2026-10-13', reason: 'TRAVEL' as const };
 
 describe('createOutOfOfficeUseCase', () => {
     it('delegates to the repository', async () => {
-        const createOutOfOffice = jest.fn().mockResolvedValue(undefined);
-        await createOutOfOfficeUseCase(instrumentation, outOfOfficeWith({ createOutOfOffice }))(input);
-        expect(createOutOfOffice).toHaveBeenCalledWith(input);
+        const createOutOfOffice = jest.fn().mockResolvedValue({ cancelledBookings: 2 });
+        const body = { ...input, cancelBookingIds: [4, 5] };
+        await expect(createOutOfOfficeUseCase(instrumentation, outOfOfficeWith({ createOutOfOffice }))(body)).resolves.toEqual({
+            cancelledBookings: 2,
+        });
+        expect(createOutOfOffice).toHaveBeenCalledWith(body);
     });
 
-    it.each([new OutOfOfficeRuleError('fin antes que inicio'), new OutOfOfficeConflictError('repetido')])(
+    it.each([new OutOfOfficeRuleError('fin antes que inicio'), new OutOfOfficeConflictError('repetido'), new LeftOutsideBookingsChangedError('cambiaron')])(
         'lets %p through',
         async (error) => {
             const createOutOfOffice = jest.fn().mockRejectedValue(error);

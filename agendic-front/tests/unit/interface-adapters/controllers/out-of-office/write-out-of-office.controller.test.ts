@@ -18,23 +18,27 @@ const invalidBodies = [
 
 describe('createOutOfOfficeController', () => {
     it('runs the use case with the body', async () => {
-        const useCase = jest.fn().mockResolvedValue(undefined);
-        await createOutOfOfficeController(instrumentation, signedIn, useCase)(body);
-        expect(useCase).toHaveBeenCalledWith(body);
+        const useCase = jest.fn().mockResolvedValue({ cancelledBookings: 1 });
+        const confirmed = { ...body, cancelBookingIds: [4, 5] };
+        await expect(createOutOfOfficeController(instrumentation, signedIn, useCase)(confirmed)).resolves.toEqual({ cancelledBookings: 1 });
+        expect(useCase).toHaveBeenCalledWith(confirmed);
     });
 
     it('accepts a body without notes', async () => {
-        const useCase = jest.fn().mockResolvedValue(undefined);
+        const useCase = jest.fn().mockResolvedValue({ cancelledBookings: 0 });
         const minimal = { startDate: body.startDate, endDate: body.endDate, reason: body.reason };
         await createOutOfOfficeController(instrumentation, signedIn, useCase)(minimal);
         expect(useCase).toHaveBeenCalledWith(minimal);
     });
 
-    it.each(invalidBodies)('throws InputParseError for %j without calling the use case', async (input) => {
-        const useCase = jest.fn();
-        await expect(createOutOfOfficeController(instrumentation, signedIn, useCase)(input)).rejects.toBeInstanceOf(InputParseError);
-        expect(useCase).not.toHaveBeenCalled();
-    });
+    it.each([...invalidBodies, { ...body, cancelBookingIds: [0] }, { ...body, cancelBookingIds: ['a'] }, { ...body, cancelBookingIds: 3 }])(
+        'throws InputParseError for %j without calling the use case',
+        async (input) => {
+            const useCase = jest.fn();
+            await expect(createOutOfOfficeController(instrumentation, signedIn, useCase)(input)).rejects.toBeInstanceOf(InputParseError);
+            expect(useCase).not.toHaveBeenCalled();
+        },
+    );
 
     it('throws UnauthenticatedError without calling the use case', async () => {
         const useCase = jest.fn();

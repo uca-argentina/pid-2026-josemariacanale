@@ -32,6 +32,7 @@ async function loadHolidays(): Promise<HolidaysTabData> {
 export default async function OutOfOfficePage({ searchParams }: { searchParams: Promise<{ nuevo?: string; type?: string }> }) {
     const { nuevo, type } = await searchParams;
     const showHolidays = type === 'holidays';
+    const preferences = await myPreferences();
     let periods;
     let holidays;
     try {
@@ -49,7 +50,8 @@ export default async function OutOfOfficePage({ searchParams }: { searchParams: 
             key={showHolidays ? 'holidays' : 'mine'}
             periods={periods ?? []}
             openNew={nuevo !== undefined && !showHolidays}
-            weekStart={(await myPreferences()).weekStart}
+            weekStart={preferences.weekStart}
+            timeFormat={preferences.timeFormat}
             holidays={holidays}
         />
     );
