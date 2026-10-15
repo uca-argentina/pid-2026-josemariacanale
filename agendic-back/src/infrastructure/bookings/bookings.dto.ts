@@ -60,3 +60,15 @@ export class RescheduleBookingDto {
   @IsDateString()
   startsAt!: string;
 }
+
+/** The Motivo de cancelación of a body, trimmed; a blank one is none. */
+export const reasonOf = ({ reason }: CancelBookingDto): string | null =>
+  reason?.trim() || null;
+
+/** Body opcional de Cancelar y Rechazar turno: el Motivo de cancelación. */
+export class CancelBookingDto {
+  @IfPresent()
+  @IsString()
+  @MaxLength(500, { message: 'reason is too long' })
+  reason?: string;
+}

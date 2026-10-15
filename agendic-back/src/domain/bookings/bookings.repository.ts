@@ -27,6 +27,8 @@ export interface CreateBookingData {
   price: number;
   /** BOOKED, o PENDING si el Servicio tiene Aprobación manual. */
   status: BookingStatus.PENDING | BookingStatus.BOOKED;
+  /** The clock's now if it is born BOOKED; null if PENDING. */
+  acceptedAt: Date | null;
 }
 
 /** The Límite diario a verification must respect: at most `limit` PENDING or BOOKED Turnos of the Servicio starting in [from, to). */
@@ -87,11 +89,12 @@ export interface BookingsRepository {
   ): Promise<Date[]>;
   /** Throws NotFoundError for an unknown id. */
   findById(id: number): Promise<Booking>;
-  /** Moves a PENDING Booking to BOOKED or REJECTED (setting `rejectedAt` to `now`). Throws BusinessRuleError if it is no longer PENDING. */
+  /** Moves a PENDING Booking to BOOKED (setting `acceptedAt` to `now`) or REJECTED (setting `rejectedAt` to `now`, `cancelledBy` EMPLOYEE and `reason`). Throws BusinessRuleError if it is no longer PENDING. */
   resolvePending(
     id: number,
     status: BookingStatus.BOOKED | BookingStatus.REJECTED,
     now: Date,
+    reason: string | null,
   ): Promise<Booking>;
   /** The Turno for its Enlace del Turno, in any status, with the data to show it (ADR 0022). Throws NotFoundError for an unknown link. */
   findByLink(link: string): Promise<ClientBooking>;
@@ -118,15 +121,15 @@ export interface BookingsRepository {
    * they are still an active Empleado.
    */
   listByUser(userId: number): Promise<UserBooking[]>;
-  /** Moves a BOOKED Booking to CANCELLED, with `cancelledAt` = `now`. Throws BusinessRuleError if it is no longer BOOKED. */
-  cancel(id: number, now: Date): Promise<Booking>;
-  /** As `cancel`, by Enlace del Turno (ADR 0022): also from PENDING. Throws BusinessRuleError if it is no longer pending or booked. */
-  cancelPendingOrBooked(id: number, now: Date): Promise<ClientBooking>;
+  /** Moves a BOOKED Booking to CANCELLED, with `cancelledAt` = `now`, `cancelledBy` EMPLOYEE and `reason`. Throws BusinessRuleError if it is no longer BOOKED. */
+  cancel(id: number, now: Date, reason: string | null): Promise<Booking>;
+  /** As `cancel`, by Enlace del Turno (ADR 0022): also from PENDING, with `cancelledBy` CLIENT. Throws BusinessRuleError if it is no longer pending or booked. */
+  cancelPendingOrBooked(id: number, now: Date, reason: string | null): Promise<ClientBooking>;
   /**
-   * Reagendar (ADR 0031): cancels the BOOKED Turno as rescheduled (`cancelledAt` = `now`) and creates the one at the new times, with the given Empleado, Usuario and Cabina, in one transaction. The new Turno takes the Enlace del Turno and copies the Cliente, Comentario, Empleado elegido, price and Seña. Returns the new Turno. Throws BusinessRuleError if it is no longer BOOKED, ConflictError if it now overlaps another.
+   * Reagendar (ADR 0031): cancels the BOOKED Turno as rescheduled (`cancelledAt` = `now`, `cancelledBy` EMPLOYEE, no reason) and creates the one at the new times, with the given Empleado, Usuario and Cabina, in one transaction. The new Turno takes the Enlace del Turno and copies the Cliente, Comentario, Empleado elegido, price and Seña. Returns the new Turno. Throws BusinessRuleError if it is no longer BOOKED, ConflictError if it now overlaps another.
    */
   reschedule(id: number, times: RescheduleTimes, now: Date): Promise<PanelBooking>;
-  /** As `reschedule`, by Enlace del Turno (ADR 0022): also from PENDING, and sets the new status (PENDING again with Aprobación manual). Throws BusinessRuleError if it is no longer pending or booked, ConflictError if it now overlaps another. */
+  /** As `reschedule`, by Enlace del Turno (ADR 0022): the original gets `cancelledBy` CLIENT, also from PENDING, and sets the new status (PENDING again with Aprobación manual). Throws BusinessRuleError if it is no longer pending or booked, ConflictError if it now overlaps another. */
   reschedulePendingOrBooked(
     id: number,
     times: RescheduleTimes & Pick<Booking, 'status'>,

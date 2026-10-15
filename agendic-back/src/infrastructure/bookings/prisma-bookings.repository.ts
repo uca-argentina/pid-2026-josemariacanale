@@ -2,7 +2,9 @@ import { randomBytes } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 import {
   Booking,
+  BookingActor,
   BookingStatus,
+  CancellationCause,
   ClientBooking,
   DAILY_LIMIT_REACHED,
   PanelBooking,
@@ -61,6 +63,10 @@ const BOOKING_SELECT = {
   depositAmount: true,
   depositPaidAt: true,
   price: true,
+  acceptedAt: true,
+  cancelledBy: true,
+  cancellationReason: true,
+  cancellationCause: true,
   cancelledAt: true,
   rejectedAt: true,
   client: { select: { name: true, email: true } },
@@ -349,14 +355,20 @@ export class PrismaBookingsRepository implements BookingsRepository {
     id: number,
     status: BookingStatus.BOOKED | BookingStatus.REJECTED,
     now: Date,
+    reason: string | null,
   ) {
     const { count } = await this.prisma.booking
       .updateMany({
         where: { id, status: BookingStatus.PENDING },
-        data: {
-          status,
-          ...(status === BookingStatus.REJECTED && { rejectedAt: now }),
-        },
+        data:
+          status === BookingStatus.REJECTED
+            ? {
+                status,
+                rejectedAt: now,
+                cancelledBy: BookingActor.EMPLOYEE,
+                cancellationReason: reason,
+              }
+            : { status, acceptedAt: now },
       })
       .catch(translateError);
     if (count === 0) throw new BusinessRuleError('Turno is not pending');
@@ -502,11 +514,16 @@ export class PrismaBookingsRepository implements BookingsRepository {
    * @throws {BusinessRuleError} el Turno ya no está aceptado
    * @throws {NotFoundError} el Turno no existe
    */
-  async cancel(id: number, now: Date) {
+  async cancel(id: number, now: Date, reason: string | null) {
     await this.updateStatus(
       id,
       [BookingStatus.BOOKED],
-      { status: BookingStatus.CANCELLED, cancelledAt: now },
+      {
+        status: BookingStatus.CANCELLED,
+        cancelledAt: now,
+        cancelledBy: BookingActor.EMPLOYEE,
+        cancellationReason: reason,
+      },
       'Turno is not booked',
     );
     return this.findById(id);
@@ -516,11 +533,16 @@ export class PrismaBookingsRepository implements BookingsRepository {
    * @throws {BusinessRuleError} el Turno ya no está pendiente ni aceptado
    * @throws {NotFoundError} el Turno no existe
    */
-  async cancelPendingOrBooked(id: number, now: Date) {
+  async cancelPendingOrBooked(id: number, now: Date, reason: string | null) {
     await this.updateStatus(
       id,
       OCCUPYING,
-      { status: BookingStatus.CANCELLED, cancelledAt: now },
+      {
+        status: BookingStatus.CANCELLED,
+        cancelledAt: now,
+        cancelledBy: BookingActor.CLIENT,
+        cancellationReason: reason,
+      },
       'Turno is not pending or booked',
     );
     return this.findEnriched(id);
@@ -543,6 +565,7 @@ export class PrismaBookingsRepository implements BookingsRepository {
       [BookingStatus.BOOKED],
       { ...times, status: BookingStatus.BOOKED },
       now,
+      BookingActor.EMPLOYEE,
       'Turno is not booked',
     );
     const row = await this.prisma.booking
@@ -562,7 +585,14 @@ export class PrismaBookingsRepository implements BookingsRepository {
     now: Date,
   ) {
     return this.findEnriched(
-      await this.replace(id, OCCUPYING, times, now, 'Turno is not pending or booked'),
+      await this.replace(
+        id,
+        OCCUPYING,
+        times,
+        now,
+        BookingActor.CLIENT,
+        'Turno is not pending or booked',
+      ),
     );
   }
 
@@ -601,13 +631,14 @@ export class PrismaBookingsRepository implements BookingsRepository {
   /**
    * Cancels the Turno as rescheduled and creates its replacement in one transaction, so a failed creation leaves the
    * original untouched. The new Turno takes over the Enlace del Turno (unique, so the original lets go of it first)
-   * and copies what the Cliente gave and paid. Returns the new id.
+   * and copies what the Cliente gave and paid. The original keeps who Reagendó it, with no Motivo de cancelación. Returns the new id.
    */
   private async replace(
     id: number,
     fromStatuses: BookingStatus[],
     times: RescheduleTimes & Pick<Booking, 'status'>,
     now: Date,
+    actor: BookingActor,
     message: string,
   ): Promise<number> {
     return this.prisma
@@ -633,6 +664,7 @@ export class PrismaBookingsRepository implements BookingsRepository {
           data: {
             status: BookingStatus.CANCELLED,
             cancelledAt: now,
+            cancelledBy: actor,
             rescheduled: true,
             link: null,
           },
@@ -644,6 +676,7 @@ export class PrismaBookingsRepository implements BookingsRepository {
           data: {
             ...copied,
             ...times,
+            acceptedAt: times.status === BookingStatus.BOOKED ? now : null,
             fromRescheduleId: id,
             client: { create: { name: client!.name, email: client!.email } },
           },
@@ -766,6 +799,10 @@ const toBooking = (row: BookingRow): Booking => ({
   depositAmount: row.depositAmount === null ? null : Number(row.depositAmount),
   depositPaidAt: row.depositPaidAt,
   price: Number(row.price),
+  acceptedAt: row.acceptedAt,
+  cancelledBy: row.cancelledBy as BookingActor | null,
+  cancellationReason: row.cancellationReason,
+  cancellationCause: row.cancellationCause as CancellationCause | null,
   cancelledAt: row.cancelledAt,
   rejectedAt: row.rejectedAt,
 });

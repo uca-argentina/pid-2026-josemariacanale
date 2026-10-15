@@ -36,6 +36,10 @@ const BOOKED: Booking = {
   price: 50,
   cancelledAt: null,
   rejectedAt: null,
+  acceptedAt: null,
+  cancelledBy: null,
+  cancellationReason: null,
+  cancellationCause: null,
 };
 
 const CLIENT_BOOKED: ClientBooking = {
@@ -182,12 +186,38 @@ describe('Enlace del Turno', () => {
     it('cancela un Turno BOOKED por su Enlace', async () => {
       const res = await patch().expect(200);
 
-      expect(t.bookings.cancelPendingOrBooked).toHaveBeenCalledWith(BOOKED.id, t.clock.now());
+      expect(t.bookings.cancelPendingOrBooked).toHaveBeenCalledWith(BOOKED.id, t.clock.now(), null);
       expect(res.body).toMatchObject({ id: BOOKED.id, status: 'CANCELLED' });
       expect(t.mailer.sendBookingCancellation).toHaveBeenCalledWith(
         BOOKED.clientEmail,
         BOOKED.link,
+        null,
       );
+    });
+
+    it('guarda el Motivo de cancelación y lo manda en el Aviso de cambio del Turno', async () => {
+      t.bookings.cancelPendingOrBooked.mockResolvedValue({
+        ...CLIENT_BOOKED,
+        status: BookingStatus.CANCELLED,
+        cancellationReason: 'Me mudé',
+      });
+
+      const res = await patch().send({ reason: 'Me mudé' }).expect(200);
+
+      expect(t.bookings.cancelPendingOrBooked).toHaveBeenCalledWith(BOOKED.id, t.clock.now(), 'Me mudé');
+      expect(t.mailer.sendBookingCancellation).toHaveBeenCalledWith(
+        BOOKED.clientEmail,
+        BOOKED.link,
+        'Me mudé',
+      );
+      expect(res.body.cancellationReason).toBe('Me mudé');
+    });
+
+    it('responde 400 reason is too long con más de 500 caracteres, sin cancelar', async () => {
+      const res = await patch().send({ reason: 'a'.repeat(501) }).expect(400);
+
+      expect(res.body.message).toContain('reason is too long');
+      expect(t.bookings.cancelPendingOrBooked).not.toHaveBeenCalled();
     });
 
     it('sigue respondiendo 200 si falla el mail al Cliente, porque el Turno ya quedó cancelado', async () => {
@@ -204,7 +234,7 @@ describe('Enlace del Turno', () => {
 
       await patch().expect(200);
 
-      expect(t.bookings.cancelPendingOrBooked).toHaveBeenCalledWith(BOOKED.id, t.clock.now());
+      expect(t.bookings.cancelPendingOrBooked).toHaveBeenCalledWith(BOOKED.id, t.clock.now(), null);
     });
 
     it.each([BookingStatus.REJECTED, BookingStatus.CANCELLED])(

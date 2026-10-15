@@ -29,7 +29,11 @@ export class RejectBookingUseCase {
    * @throws {ForbiddenError} el Usuario no es el Empleado asignado al Turno
    * @throws {BusinessRuleError} el Turno no está pendiente
    */
-  async execute(userId: number, bookingId: number): Promise<Booking> {
+  async execute(
+    userId: number,
+    bookingId: number,
+    reason: string | null = null,
+  ): Promise<Booking> {
     const rejected = await resolvePendingBooking(
       this.bookings,
       this.employees,
@@ -37,9 +41,10 @@ export class RejectBookingUseCase {
       bookingId,
       BookingStatus.REJECTED,
       this.clock.now(),
+      reason,
     );
-    await notifyClients([rejected], (email, link) =>
-      this.mailer.sendBookingRejection(email, link),
+    await notifyClients([rejected], (email, link, noticeReason) =>
+      this.mailer.sendBookingRejection(email, link, noticeReason),
     );
     return rejected;
   }
