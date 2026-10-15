@@ -17,6 +17,7 @@ const mockControllers: Record<string, jest.Mock> = {
     ICancelBookingController: jest.fn(),
     IRescheduleBookingController: jest.fn(),
     IMarkBookingNoShowController: jest.fn(),
+    IGetBookingHistoryController: jest.fn(),
     IUnmarkBookingNoShowController: jest.fn(),
     IGetBookingHistoryController: jest.fn(),
 
