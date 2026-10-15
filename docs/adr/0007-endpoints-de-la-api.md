@@ -411,3 +411,15 @@ como uno que no existe.
 - **Columnas** (encabezado en castellano): `Fecha y hora` (local, `YYYY-MM-DD HH:mm`), `Servicio`, `Sucursal` (vacía en personal), `Empleado` (vacío en personal), `Cliente`, `Email`, `Estado` (`Pendiente`, `Aceptado`, `Rechazado`, `Cancelado` o `Reagendado`: un original reagendado es `Reagendado`, no `Cancelado`), `Atendido` (`Sí`/`No`, la regla del KPI `attended`), `Ausencia` (`Sí`/`No`), `Falta del Empleado` (`Sí`/`No`), `Precio` (el del Turno, con punto decimal) y `Calificación` (el `score`, vacío si no tiene).
 - El front arma el nombre `turnos-<from>-<to>.csv` él mismo y no lee el header.
 - El front baja el archivo por una acción de servidor que reenvía el token; no es un link directo a la API.
+
+### Lista de espera (#354, #355)
+
+| Método | Ruta | Auth | Qué hace |
+|---|---|---|---|
+| POST | `/services/:id/waitlist` | no | Anota a un Cliente en la Lista de espera de un Servicio para un día lleno (ADR 0034) |
+
+- `JoinWaitlistDto`: `{ date: "YYYY-MM-DD", clientName, clientEmail, code }`. `clientName` se recorta; `clientEmail` se recorta y pasa a minúsculas; `code` es el Código de verificación que pide `POST /bookings/code` (ADR 0022). `date` es un día del calendario en la zona del Servicio (la de la Sucursal, o la de la Availability en un Servicio personal).
+- **201** `{ serviceId, date }` y Confirmación de anotación por mail si la Anotación es nueva. **200** con el mismo body y sin mail si ya había una viva (`leftAt` nulo) de ese email, Servicio y fecha; una que ya Salió no cuenta y se crea otra. No devuelve el secreto del enlace. Si el mail falla se loguea y igual responde 201.
+- **400** si falta un campo o `date` no es una fecha `YYYY-MM-DD` válida; **400** `Invalid or expired verification code for <email>`, sin crear nada. **404** `Service not found or retired`. **422** `Date <date> is in the past` si la fecha es anterior a hoy en la zona del Servicio. **409** `Date <date> is not fully booked for Service <id>` si ese día, calculado como `GET /services/:id/slots` sin `employeeId`, no es `reason: FULLY_BOOKED` (tiene horarios, o es `NOT_WORKING` / `OUT_OF_OFFICE`).
+- La Confirmación de anotación lleva el enlace `<FRONTEND_URL>/lista-de-espera/<secreto>` para Salir de la Lista de espera.
+- El front muestra el 409 como «ya hay horarios» y refresca el día; el 422 y el 400 de código, bajo el formulario.

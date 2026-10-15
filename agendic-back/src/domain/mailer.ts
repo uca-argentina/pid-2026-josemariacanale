@@ -23,4 +23,12 @@ export interface Mailer {
     startsAt: Date,
     timeZone: string,
   ): Promise<void>;
+  /** Confirmación de anotación: the Cliente joined the Lista de espera of `serviceName` for `date` (`YYYY-MM-DD`), with the link to Salir. */
+  sendWaitlistConfirmation(
+    email: string,
+    clientName: string,
+    serviceName: string,
+    date: string,
+    link: string,
+  ): Promise<void>;
 }

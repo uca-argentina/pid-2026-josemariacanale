@@ -114,6 +114,31 @@ export class NodemailerMailer implements Mailer {
     });
   }
 
+  /**
+   * Confirmación de anotación.
+   *
+   * @throws el transporte SMTP rechazó el mail
+   */
+  async sendWaitlistConfirmation(
+    email: string,
+    clientName: string,
+    serviceName: string,
+    date: string,
+    link: string,
+  ) {
+    const day = new Intl.DateTimeFormat('es-AR', {
+      dateStyle: 'full',
+      timeZone: 'UTC', // `date` is a calendar day, not an instant
+    }).format(new Date(`${date}T00:00:00.000Z`));
+    const url = `${this.frontendUrl}/lista-de-espera/${link}`;
+    await this.transporter.sendMail({
+      from: process.env.SMTP_FROM,
+      to: email,
+      subject: 'Te anotaste en la lista de espera',
+      html: `<p>Hola ${escapeHtml(clientName)}, te anotaste en la lista de espera de ${escapeHtml(serviceName)} para el ${day}. Si se libera un horario, te avisamos por mail. Si ya no lo necesitás, podés salir de la lista: <a href="${url}">${url}</a></p>`,
+    });
+  }
+
   private async sendBookingMail(
     email: string,
     link: string,
