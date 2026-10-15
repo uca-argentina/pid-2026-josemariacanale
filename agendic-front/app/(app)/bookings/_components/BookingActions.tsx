@@ -1,21 +1,27 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { CalendarClock, Ellipsis, UserX, X } from 'lucide-react';
+import { CalendarClock, Ellipsis, UserCheck, UserX, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { PanelButton, PanelConfirm, PanelMenu, type PanelMenuItem } from '@/app/(app)/_components/panel-ui';
-import { acceptBookingAction, cancelBookingAction, markBookingNoShowAction, rejectBookingAction, type BookingActionResult } from '../actions';
+import {
+    acceptBookingAction,
+    cancelBookingAction,
+    markBookingNoShowAction,
+    rejectBookingAction,
+    unmarkBookingNoShowAction,
+    type BookingActionResult,
+} from '../actions';
 import { actionsOf, type Booking } from './booking-helpers';
 import { ReasonConfirmDialog } from './ReasonConfirmDialog';
 import { RescheduleDialog } from './RescheduleDialog';
 
-type Dialog = 'reschedule' | 'reject' | 'cancel' | 'no-show' | null;
+type Dialog = 'reschedule' | 'reject' | 'cancel' | 'no-show' | 'unmark-no-show' | null;
 
 /**
  * Las acciones de un Turno según su estado (`actionsOf`), en la fila de la lista y en el panel lateral:
  * los botones principales (Aceptar y Rechazar en uno pendiente) y el menú "…" con el resto (Cancelar,
- * Reagendar, Marcar ausencia). Rechazar y Cancelar piden un Motivo de cancelación opcional. Cada una pega contra el back
- * y la página se refresca.
+ * Reagendar, Marcar y Desmarcar la Ausencia del Invitado. Rechazar y Cancelar piden un Motivo de cancelaci?n opcional. Cada acci?n pega contra el back y la p?gina se refresca.
  */
 export function BookingActions({ booking, now }: { booking: Booking; now: number }) {
     const [dialog, setDialog] = useState<Dialog>(null);
@@ -30,10 +36,11 @@ export function BookingActions({ booking, now }: { booking: Booking; now: number
             else toast.error(result.message);
         });
 
-    const menuItems: Record<'cancel' | 'reschedule' | 'no-show', PanelMenuItem> = {
+    const menuItems: Record<'cancel' | 'reschedule' | 'no-show' | 'unmark-no-show', PanelMenuItem> = {
         cancel: { label: 'Cancelar', icon: <X />, destructive: true, onSelect: () => setDialog('cancel') },
         reschedule: { label: 'Reagendar', icon: <CalendarClock />, onSelect: () => setDialog('reschedule') },
         'no-show': { label: 'Marcar Ausencia del Invitado', icon: <UserX />, onSelect: () => setDialog('no-show') },
+        'unmark-no-show': { label: 'Desmarcar Ausencia del Invitado', icon: <UserCheck />, onSelect: () => setDialog('unmark-no-show') },
     };
 
     return (
@@ -80,10 +87,18 @@ export function BookingActions({ booking, now }: { booking: Booking; now: number
                 open={dialog === 'no-show'}
                 onOpenChange={setOpen('no-show')}
                 title="¿Marcar la Ausencia del Invitado?"
-                description={`${booking.clientName} no se presentó al turno. No se puede deshacer.`}
+                description={`${booking.clientName} no se presentó al turno. Si te equivocás, después la podés desmarcar.`}
                 confirmLabel="Marcar Ausencia del Invitado"
                 destructive
                 onConfirm={() => run(markBookingNoShowAction, `Ausencia del Invitado de ${booking.clientName} marcada`)}
+            />
+            <PanelConfirm
+                open={dialog === 'unmark-no-show'}
+                onOpenChange={setOpen('unmark-no-show')}
+                title="¿Desmarcar la Ausencia del Invitado?"
+                description={`Se borra la marca del turno de ${booking.clientName}. La podés volver a marcar después.`}
+                confirmLabel="Desmarcar Ausencia del Invitado"
+                onConfirm={() => run(unmarkBookingNoShowAction, `Ausencia del Invitado de ${booking.clientName} desmarcada`)}
             />
             {dialog === 'reschedule' && <RescheduleDialog booking={booking} onOpenChange={setOpen('reschedule')} />}
         </>

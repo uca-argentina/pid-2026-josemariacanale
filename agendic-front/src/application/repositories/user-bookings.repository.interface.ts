@@ -1,3 +1,4 @@
+import type { BookingHistoryEntry } from '@/src/entities/models/booking-history';
 import type { UserBooking } from '@/src/entities/models/user-booking';
 
 /**
@@ -63,4 +64,22 @@ export interface IUserBookingsRepository {
      * @throws {BookingStateError} no está aceptado, su horario no pasó o ya tiene Ausencia del Invitado (422)
      */
     markNoShow(bookingId: number): Promise<void>;
+
+    /**
+     * Desmarca la Ausencia del Invitado de un Turno aceptado, en cualquier momento.
+     *
+     * @throws {BookingNotAllowedError} no es su Turno (403)
+     * @throws {NotFoundError} el Turno no existe (404)
+     * @throws {BookingStateError} no está aceptado o no tiene Ausencia del Invitado (422)
+     */
+    unmarkNoShow(bookingId: number): Promise<void>;
+
+    /**
+     * El Historial del Turno, en orden (ADR 0033).
+     *
+     * @throws {BookingNotAllowedError} no es su Turno (403)
+     * @throws {NotFoundError} el Turno no existe (404)
+     */
+    getHistory(bookingId: number): Promise<BookingHistoryEntry[]>;
+
 }

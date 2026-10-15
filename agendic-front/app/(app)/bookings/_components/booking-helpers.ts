@@ -5,6 +5,9 @@ import { dayKey, dayLabel, placeOf } from '@/app/(app)/_components/booking-forma
 /** Un Turno de Mis turnos del Usuario, como lo arma el controller. */
 export type Booking = Awaited<ReturnType<DI_RETURN_TYPES['IListMyBookingsController']>>[number];
 
+/** Qué ve el Usuario en el panel cuando el Historial del Turno no se puede cargar. */
+export const HISTORY_LOAD_ERROR = 'No pudimos cargar el historial del turno.';
+
 /** Pestañas de la lista de Turnos. */
 export type BookingTab = 'upcoming' | 'pending' | 'past' | 'cancelled';
 
@@ -102,16 +105,18 @@ export const matchesRange = (b: Booking, range: DayRange | null) => {
 };
 
 /** Lo que se puede hacer con un Turno: `main` son los botones y `menu` lo que va en el menú "…". */
-export type BookingActionId = 'accept' | 'reject' | 'cancel' | 'reschedule' | 'no-show';
+export type BookingActionId = 'accept' | 'reject' | 'cancel' | 'reschedule' | 'no-show' | 'unmark-no-show';
 
 /**
  * Las acciones del Turno según su estado: Aceptar y Rechazar en uno pendiente; Cancelar y Reagendar en
- * uno aceptado y futuro; Marcar ausencia en uno aceptado y pasado que todavía no tiene una marca.
+ * uno aceptado y futuro; Marcar la Ausencia del Invitado en uno aceptado y pasado que todavía no tiene una marca, y
+ * desmarcarla en uno que la tiene, en cualquier momento.
  */
 export function actionsOf(b: Booking, now: number): { main: BookingActionId[]; menu: BookingActionId[] } {
     if (b.status === 'PENDING') return { main: ['accept', 'reject'], menu: [] };
     if (b.status !== 'BOOKED') return { main: [], menu: [] };
-    if (Date.parse(b.endsAt) >= now) return b.noShowAt === null ? { main: [], menu: ['cancel', 'reschedule'] } : { main: [], menu: [] };
+    if (b.noShowAt !== null) return { main: [], menu: ['unmark-no-show'] };
+    if (Date.parse(b.endsAt) >= now) return { main: [], menu: ['cancel', 'reschedule'] };
     return { main: [], menu: canMarkNoShow(b) ? ['no-show'] : [] };
 }
 

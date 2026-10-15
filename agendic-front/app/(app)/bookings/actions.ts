@@ -7,6 +7,11 @@ import { CANCELLATION_REASON_TOO_LONG } from '@/app/_components/cancellation-rea
 import { SIGN_IN_PATH } from '@/app/routes';
 import { getInjection } from '@/di/container';
 import { BookingNotAllowedError, BookingStateError, CancellationReasonTooLongError, SlotTakenError, SlotUnavailableError } from '@/src/entities/errors/booking';
+import type { DI_RETURN_TYPES } from '@/di/types';
+import { TIME_ZONE } from '@/app/(app)/_components/booking-format';
+import { HISTORY_LOAD_ERROR } from './_components/booking-helpers';
+import type { Preferences } from '@/src/entities/models/user';
+
 import { InputParseError, NotFoundError } from '@/src/entities/errors/common';
 
 /**
@@ -76,4 +81,32 @@ export async function markBookingNoShowAction(bookingId: number) {
         () => getInjection('IMarkBookingNoShowController')({ bookingId }),
         'No pudimos marcar la Ausencia del Invitado. Intentá de nuevo.',
     );
+}
+
+/** Desmarca la Ausencia del Invitado de un Turno; vale en cualquier momento. */
+export async function unmarkBookingNoShowAction(bookingId: number) {
+    return perform(
+        () => getInjection('IUnmarkBookingNoShowController')({ bookingId }),
+        'No pudimos desmarcar la Ausencia del Invitado. Intentá de nuevo.',
+    );
+}
+
+/** El Historial del Turno ya armado para el panel lateral, o el mensaje de por qué no se pudo cargar. */
+export type BookingHistoryResult =
+    | { ok: true; entries: Awaited<ReturnType<DI_RETURN_TYPES['IGetBookingHistoryController']>> }
+    | { ok: false; message: string };
+
+/**
+ * El Historial del Turno, con las fechas en la zona del panel y la hora en el formato de las Preferencias. No refresca la página: es una lectura. Un Turno que ya no
+ * es del Usuario o no existe no se reporta; cualquier otro error sí.
+ */
+export async function getBookingHistoryAction(bookingId: number, timeFormat: Preferences['timeFormat']): Promise<BookingHistoryResult> {
+    try {
+        return { ok: true, entries: await getInjection('IGetBookingHistoryController')({ bookingId, timeZone: TIME_ZONE, timeFormat }) };
+    } catch (error) {
+        unstable_rethrow(error);
+        if (isSessionExpired(error)) redirect(SIGN_IN_PATH);
+        if (!(error instanceof NotFoundError || error instanceof BookingNotAllowedError)) getInjection('ICrashReporterService').report(error);
+        return { ok: false, message: HISTORY_LOAD_ERROR };
+    }
 }

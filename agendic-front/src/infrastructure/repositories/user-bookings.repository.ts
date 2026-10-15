@@ -11,6 +11,7 @@ import {
     SlotUnavailableError,
 } from '@/src/entities/errors/booking';
 import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
+import { bookingHistorySchema, type BookingHistoryEntry } from '@/src/entities/models/booking-history';
 import { userBookingSchema, type UserBooking } from '@/src/entities/models/user-booking';
 
 /** El body de Cancelar o Rechazar: el Motivo de cancelación si hay, si no ninguno. */
@@ -97,11 +98,37 @@ export class UserBookingsRepository implements IUserBookingsRepository {
      * @throws {UnauthenticatedError} la API respondió 401
      * @throws {BookingNotAllowedError} la API respondió 403
      * @throws {NotFoundError} la API respondió 404
+     * @throws {ApiRequestError} falla de red, otro status no-OK o cuerpo inesperado
+     */
+    async getHistory(bookingId: number): Promise<BookingHistoryEntry[]> {
+        const json = await this.request('GET', `/bookings/${bookingId}/history`);
+        try {
+            return bookingHistorySchema.parse(json).entries;
+        } catch (cause) {
+            throw new ApiRequestError('GET /bookings/:id/history responded with an unexpected body', { cause });
+        }
+    }
+
+    /**
+     * @throws {UnauthenticatedError} la API respondió 401
+     * @throws {BookingNotAllowedError} la API respondió 403
+     * @throws {NotFoundError} la API respondió 404
      * @throws {BookingStateError} la API respondió 422
      * @throws {ApiRequestError} falla de red u otro status no-OK
      */
     async markNoShow(bookingId: number): Promise<void> {
         await this.request('PATCH', `/bookings/${bookingId}/no-show`);
+    }
+
+    /**
+     * @throws {UnauthenticatedError} la API respondió 401
+     * @throws {BookingNotAllowedError} la API respondió 403
+     * @throws {NotFoundError} la API respondió 404
+     * @throws {BookingStateError} la API respondió 422
+     * @throws {ApiRequestError} falla de red u otro status no-OK
+     */
+    async unmarkNoShow(bookingId: number): Promise<void> {
+        await this.request('DELETE', `/bookings/${bookingId}/no-show`);
     }
 
     private async request(method: string, path: string, body?: unknown) {

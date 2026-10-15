@@ -179,8 +179,11 @@ describe('actionsOf', () => {
 
     it('un Turno aceptado y pasado se marca con Ausencia, salvo que ya tenga una marca', () => {
         expect(actionsOf(booking({}), PAST)).toEqual({ main: [], menu: ['no-show'] });
-        expect(actionsOf(booking({ noShowAt: '2026-09-15T20:00:00.000Z' }), PAST)).toEqual({ main: [], menu: [] });
         expect(actionsOf(booking({ employeeNoShowAt: '2026-09-15T20:00:00.000Z' }), PAST)).toEqual({ main: [], menu: [] });
+    });
+
+    it('un Turno con Ausencia del Invitado se desmarca desde el menú', () => {
+        expect(actionsOf(booking({ noShowAt: '2026-09-15T20:00:00.000Z' }), PAST)).toEqual({ main: [], menu: ['unmark-no-show'] });
     });
 
     it('un Turno cancelado o rechazado no tiene acciones', () => {
