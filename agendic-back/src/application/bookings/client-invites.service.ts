@@ -41,9 +41,15 @@ export class ClientInvites {
     return this.build('CANCEL', links);
   }
 
+  /** Aceptar turno: el evento tentativo de cada Turno pasa a confirmado, con un `SEQUENCE` por encima del último `REQUEST`. */
+  accept(links: string[]): Promise<ClientInvite | undefined> {
+    return this.build('REQUEST', links, true);
+  }
+
   private async build(
     method: InviteMethod,
     links: string[],
+    outranksLast = method === 'CANCEL',
   ): Promise<ClientInvite | undefined> {
     try {
       if (links.length === 0) return undefined;
@@ -55,10 +61,10 @@ export class ClientInvites {
           const moves = booking.fromRescheduleId
             ? (await this.bookings.findHistoryChain(booking.id)).length - 1
             : 0;
-          // The CANCEL must outrank the last REQUEST the Cliente's calendar applied.
+          // The CANCEL and the acceptance must outrank the last REQUEST the Cliente's calendar applied.
           return {
             booking,
-            event: inviteEventOf(booking, frontendUrl, method === 'CANCEL' ? moves + 1 : moves),
+            event: inviteEventOf(booking, frontendUrl, outranksLast ? moves + 1 : moves),
           };
         }),
       );

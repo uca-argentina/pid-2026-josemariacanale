@@ -69,6 +69,17 @@ describe('ClientInvites', () => {
     expect(invite?.ics).toContain('SEQUENCE:1');
   });
 
+  it('confirms the Turno on Aceptar turno with the same UID and a SEQUENCE above its REQUEST', async () => {
+    findByLink.mockResolvedValue(booking());
+
+    const invite = await invites.accept(['abc123']);
+
+    expect(invite?.method).toBe('REQUEST');
+    expect(invite?.ics).toContain('UID:abc123@agendic');
+    expect(invite?.ics).toContain('STATUS:CONFIRMED');
+    expect(invite?.ics).toContain('SEQUENCE:1');
+  });
+
   it('returns nothing, without failing, when the file cannot be built', async () => {
     findByLink.mockRejectedValue(new Error('db down'));
 

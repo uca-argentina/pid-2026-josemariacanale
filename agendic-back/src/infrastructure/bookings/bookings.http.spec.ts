@@ -858,19 +858,28 @@ describe('Turno', () => {
     it(
       action === 'reject'
         ? 'mails the Cliente the Aviso de cambio del Turno, and a mail failure does not undo the Rechazo'
-        : 'sends the Cliente no Aviso de cambio del Turno',
+        : 'mails the Cliente the Aviso de cambio del Turno, and a mail failure does not undo the Aceptación',
       async () => {
         t.mailer.sendBookingRejection.mockRejectedValue(new Error('SMTP down'));
+        t.mailer.sendBookingAcceptance.mockRejectedValue(new Error('SMTP down'));
 
-        await patch(CLERK_TOKEN).expect(200);
+        const res = await patch(CLERK_TOKEN).expect(200);
 
-        if (action === 'reject')
+        expect(res.body).toMatchObject({ id: BOOKING.id, status });
+        if (action === 'reject') {
           expect(t.mailer.sendBookingRejection).toHaveBeenCalledWith(
             BOOKING.clientEmail,
             BOOKING.link,
             null,
           );
-        else expect(t.mailer.sendBookingRejection).not.toHaveBeenCalled();
+          expect(t.mailer.sendBookingAcceptance).not.toHaveBeenCalled();
+        } else {
+          expect(t.mailer.sendBookingAcceptance).toHaveBeenCalledWith(
+            BOOKING.clientEmail,
+            BOOKING.link,
+          );
+          expect(t.mailer.sendBookingRejection).not.toHaveBeenCalled();
+        }
         expect(t.mailer.sendBookingCancellation).not.toHaveBeenCalled();
       },
     );

@@ -143,6 +143,7 @@ export async function createTestApp() {
     sendBookingCancellation: jest.fn(),
     sendBookingReschedule: jest.fn(),
     sendBookingRejection: jest.fn(),
+    sendBookingAcceptance: jest.fn(),
     sendRatingRequest: jest.fn(),
     sendWaitlistConfirmation: jest.fn(),
     sendFreeSlotNotice: jest.fn(),

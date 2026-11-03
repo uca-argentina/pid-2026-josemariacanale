@@ -100,6 +100,32 @@ describe('Acciones sobre la Serie (#305)', () => {
       expect(t.mailer.sendBookingRejection).not.toHaveBeenCalled();
     });
 
+    it('manda un solo Aviso con todas las fechas aceptadas, y si el mail falla la Serie queda aceptada', async () => {
+      t.bookings.findById.mockResolvedValue(turno(1));
+      t.bookings.findByLink.mockResolvedValue({ ...turno(1), timeZone: 'America/Argentina/Buenos_Aires' } as never);
+      t.bookings.resolvePendingSeries.mockResolvedValue([
+        turno(1, BookingStatus.BOOKED),
+        turno(2, BookingStatus.BOOKED),
+      ]);
+      t.mailer.sendBookingAcceptance.mockRejectedValue(new Error('SMTP down'));
+
+      await patch().expect(200);
+
+      expect(t.mailer.sendBookingAcceptance).toHaveBeenCalledTimes(1);
+      expect(t.mailer.sendBookingAcceptance).toHaveBeenCalledWith(
+        turno(1).clientEmail,
+        turno(1).link,
+        {
+          bookings: [
+            { startsAt: turno(1).startsAt, link: turno(1).link },
+            { startsAt: turno(2).startsAt, link: turno(2).link },
+          ],
+          timeZone: 'America/Argentina/Buenos_Aires',
+        },
+        undefined,
+      );
+    });
+
     it('sigue aceptando un solo Turno sin series', async () => {
       t.bookings.findById.mockResolvedValue(turno(1));
       t.bookings.resolvePending.mockResolvedValue(turno(1, BookingStatus.BOOKED));
