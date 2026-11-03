@@ -1,7 +1,7 @@
 import { BranchImage } from '../branch-images/branch-image';
 
-/** Punto en el mapa de la Ubicación de una Sucursal, en grados (ADR 0037). */
-export interface BranchLocation {
+/** Punto en el mapa de la Ubicación de una Sucursal, en grados (ADR 0037); la dirección es aparte, `Branch.address`. */
+export interface MapPoint {
   /** -90 a 90. */
   lat: number;
   /** -180 a 180. */
@@ -22,7 +22,7 @@ export interface Branch {
    * The Ubicación's point; its address is `address`, chosen by the Dueño and never recomputed from it. `null` only
    * on a Sucursal from before Ubicación existed that has not been geocoded or edited since.
    */
-  location: BranchLocation | null;
+  location: MapPoint | null;
 }
 
 export interface CreateBranchInput {
@@ -33,7 +33,7 @@ export interface CreateBranchInput {
   /** Opcional; sin ella, la Sucursal queda sin descripción propia (`null`). */
   description?: string | null;
   /** Obligatoria: toda Sucursal nueva nace con su punto en el mapa. */
-  location: BranchLocation;
+  location: MapPoint;
 }
 
 export interface UpdateBranchInput {
@@ -44,7 +44,7 @@ export interface UpdateBranchInput {
   /** `null` removes it. */
   description?: string | null;
   /** Can be changed, never removed. */
-  location?: BranchLocation;
+  location?: MapPoint;
 }
 
 /** A Sucursal together with its images, ascending by order. */

@@ -318,7 +318,7 @@ describe('Sucursal', () => {
       expect(res.body.message).toContain('location is required');
     });
 
-    it('accepts the limits of the coordinates', async () => {
+    it('accepts a point on the limits of latitude and longitude', async () => {
       const location = { lat: -90, lng: 180 };
 
       const res = await post({ ...VALID_BRANCH, location }).expect(201);

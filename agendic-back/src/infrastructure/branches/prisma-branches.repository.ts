@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import {
   Branch,
   CreateBranchInput,
+  MapPoint,
   UpdateBranchInput,
 } from '../../domain/branches/branch';
 import { BranchesRepository } from '../../domain/branches/branches.repository';
@@ -32,8 +33,7 @@ export class PrismaBranchesRepository implements BranchesRepository {
           timeZone: data.timeZone,
           slug: data.slug,
           description: data.description,
-          latitude: data.location.lat,
-          longitude: data.location.lng,
+          ...toPointColumns(data.location),
           images: {
             create: imageUrls.map((url, order) => ({ url, order })),
           },
@@ -75,8 +75,7 @@ export class PrismaBranchesRepository implements BranchesRepository {
             timeZone: data.timeZone,
             slug: data.slug,
             description: data.description,
-            latitude: data.location?.lat,
-            longitude: data.location?.lng,
+            ...toPointColumns(data.location),
           },
         })
         .catch(translateError),
@@ -86,6 +85,12 @@ export class PrismaBranchesRepository implements BranchesRepository {
 
 export const toTime = (hhmm: string) => new Date(`1970-01-01T${hhmm}:00.000Z`);
 export const fromTime = (date: Date) => date.toISOString().slice(11, 16);
+
+/** The two columns that store a Sucursal's point; no point leaves both `undefined`, so an update keeps them. */
+export const toPointColumns = (point: MapPoint | undefined) => ({
+  latitude: point?.lat,
+  longitude: point?.lng,
+});
 
 export const toBranch = (row: BranchRow): Branch => ({
   id: row.id,

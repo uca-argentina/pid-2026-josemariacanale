@@ -8,6 +8,8 @@ import { Prisma } from '../../../generated/prisma/client';
 import { PrismaService } from '../../prisma.service';
 import { PrismaBranchesRepository } from '../prisma-branches.repository';
 
+const POINT = { lat: -34.6037, lng: -58.3816 };
+
 const BRANCH: Branch = {
   id: 1,
   businessId: 1,
@@ -16,7 +18,7 @@ const BRANCH: Branch = {
   timeZone: 'America/Argentina/Buenos_Aires',
   slug: 'downtown',
   description: null,
-  location: { lat: -34.6037, lng: -58.3816 },
+  location: POINT,
 };
 
 const BRANCH_ROW = {
@@ -174,7 +176,7 @@ describe('PrismaBranchesRepository', () => {
   describe('translates Prisma errors, keeping the original as cause', () => {
     const calls = {
       createWithImages: () =>
-        repository.createWithImages({ ...BRANCH, location: BRANCH.location! }, [
+        repository.createWithImages({ ...BRANCH, location: POINT }, [
           'https://files.example.com/a',
         ]),
       findById: () => repository.findById(1),

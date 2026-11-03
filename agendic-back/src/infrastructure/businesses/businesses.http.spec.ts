@@ -760,10 +760,7 @@ describe('Negocio', () => {
     const put = (id: number = ANAS_BUSINESS.id) =>
       t.http.put(`/businesses/${id}/logo`);
     const withPng = (req: ReturnType<typeof put>) =>
-      req.attach('file', PNG, {
-        filename: 'logo.png',
-        contentType: 'image/png',
-      });
+      req.attach('file', PNG, { filename: 'logo.png', contentType: 'image/png' });
 
     beforeEach(() => {
       scriptSession(t);
