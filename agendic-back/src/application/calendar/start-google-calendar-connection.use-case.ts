@@ -33,6 +33,7 @@ export class StartGoogleCalendarConnectionUseCase {
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
+  /** Devuelve la dirección de Google con un `state` firmado que vence a los 10 minutos. */
   async execute(userId: number): Promise<{ authorizationUrl: string }> {
     this.google.assertConfigured();
     const current = await this.connections.findByUserId(userId);

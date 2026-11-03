@@ -21,17 +21,23 @@ export class CalendarController {
     private readonly disconnect: DisconnectCalendarUseCase,
   ) {}
 
+  /** El Calendario conectado, o `{ connection: null }`. */
   @Get()
   async get(@CurrentUser() userId: number) {
     return { connection: await this.getConnection.execute(userId) };
   }
 
+  /**
+   * @throws {ConflictError} ya tiene un Calendario conectado `CONNECTED` (409)
+   * @throws {NotConfiguredError} faltan las credenciales OAuth de Google (503)
+   */
   @Post('google')
   @HttpCode(200)
   start(@CurrentUser() userId: number) {
     return this.startGoogle.execute(userId);
   }
 
+  /** @throws {NotFoundError} no tiene un Calendario conectado (404) */
   @Delete()
   @HttpCode(204)
   async remove(@CurrentUser() userId: number) {

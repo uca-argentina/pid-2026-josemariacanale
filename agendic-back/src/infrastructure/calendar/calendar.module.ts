@@ -7,6 +7,7 @@ import { UsersModule } from '../users/users.module';
 import { CalendarOauthController } from './calendar-oauth.controller';
 import { CalendarController } from './calendar.controller';
 
+/** El Calendario conectado del Usuario (ADR 0036). */
 @Module({
   imports: [UsersModule],
   controllers: [CalendarController, CalendarOauthController],

@@ -14,8 +14,8 @@ const logger = new Logger('DisconnectCalendar');
 /**
  * Desconecta el Calendario conectado del Usuario y revoca el token en Google.
  *
- * Si la revocación falla se loguea y la conexión se borra igual: dejarla viva sería peor que dejar un token
- * sin revocar que ya nadie guarda.
+ * Si la revocación falla, o el token guardado no se puede descifrar (clave rotada), se loguea y la conexión se
+ * borra igual: dejarla viva, o trabar la baja del Usuario, sería peor que dejar un token sin revocar que ya nadie guarda.
  */
 @Injectable()
 export class DisconnectCalendarUseCase {
@@ -32,13 +32,17 @@ export class DisconnectCalendarUseCase {
       throw new NotFoundError(`User ${userId} has no Calendario conectado`);
   }
 
-  /** Lo mismo sin fallar cuando no hay nada que desconectar; devuelve si había una conexión. */
+  /**
+   * Lo mismo sin fallar cuando no hay nada que desconectar; devuelve si había una conexión.
+   *
+   * @throws {DatabaseOperationError} la base falló
+   */
   async disconnectIfAny(userId: number): Promise<boolean> {
-    const refreshToken =
-      await this.connections.findRefreshTokenByUserId(userId);
-    if (refreshToken === null) return false;
+    if (!(await this.connections.findByUserId(userId))) return false;
     try {
-      await this.google.revoke(refreshToken);
+      const refreshToken =
+        await this.connections.findRefreshTokenByUserId(userId);
+      if (refreshToken !== null) await this.google.revoke(refreshToken);
     } catch (error) {
       logger.error(
         `Google token of User ${userId} not revoked`,

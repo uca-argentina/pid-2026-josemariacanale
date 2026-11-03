@@ -48,6 +48,7 @@ export class CompleteGoogleCalendarConnectionUseCase {
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
+  /** Devuelve cómo terminó; el `state` inválido o vencido es `error` y no consulta a Google. */
   async execute(query: GoogleCallbackQuery): Promise<CalendarCallbackResult> {
     this.google.assertConfigured();
     const now = this.clock.now();

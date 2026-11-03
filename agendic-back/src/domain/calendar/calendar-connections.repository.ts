@@ -14,14 +14,30 @@ export interface NewCalendarConnection {
 
 /** Acceso al Calendario conectado de cada Usuario; a lo sumo uno (ADR 0036, ADR 0004). */
 export interface CalendarConnectionsRepository {
+  /** @throws {DatabaseOperationError} la base falló */
   findByUserId(userId: number): Promise<CalendarConnection | null>;
 
-  /** El refresh token ya descifrado, solo para hablar con Google; `null` sin conexión. */
+  /**
+   * El refresh token ya descifrado, solo para hablar con Google; `null` sin conexión.
+   *
+   * @throws {DatabaseOperationError} la base falló
+   * @throws {NotConfiguredError} falta `CALENDAR_TOKEN_KEY`
+   * @throws {Error} la clave no es la que cifró, o el dato fue alterado
+   */
   findRefreshTokenByUserId(userId: number): Promise<string | null>;
 
-  /** Guarda la conexión como `CONNECTED`; si el Usuario ya tenía una, la reemplaza. */
+  /**
+   * Guarda la conexión como `CONNECTED`; si el Usuario ya tenía una, la reemplaza.
+   *
+   * @throws {DatabaseOperationError} la base falló
+   * @throws {NotConfiguredError} falta `CALENDAR_TOKEN_KEY`
+   */
   save(userId: number, connection: NewCalendarConnection): Promise<void>;
 
-  /** Borra la conexión del Usuario; sin conexión no hace nada. */
+  /**
+   * Borra la conexión del Usuario; sin conexión no hace nada.
+   *
+   * @throws {DatabaseOperationError} la base falló
+   */
   deleteByUserId(userId: number): Promise<void>;
 }

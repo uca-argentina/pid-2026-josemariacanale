@@ -13,6 +13,7 @@ export class GetCalendarConnectionUseCase {
     private readonly connections: CalendarConnectionsRepository,
   ) {}
 
+  /** @throws {DatabaseOperationError} la base falló */
   async execute(userId: number): Promise<CalendarConnection | null> {
     return this.connections.findByUserId(userId);
   }

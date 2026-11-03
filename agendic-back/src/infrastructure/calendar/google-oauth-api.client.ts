@@ -110,6 +110,7 @@ export class GoogleOauthApiClient implements GoogleCalendarOauth {
       throw new ExternalServiceError(`Google token revocation failed: ${status}`);
   }
 
+  /** Si `scopes` incluye los tres permisos de calendario que se piden. */
   hasRequiredScopes(scopes: string[]) {
     return REQUIRED_SCOPES.every((scope) => scopes.includes(scope));
   }

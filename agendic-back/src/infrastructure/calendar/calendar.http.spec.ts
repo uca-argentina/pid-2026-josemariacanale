@@ -235,6 +235,7 @@ describe('Calendario conectado', () => {
 
   describe('DELETE /users/me/calendar', () => {
     it('revokes the token in Google, deletes the connection and answers 204', async () => {
+      t.calendarConnections.findByUserId.mockResolvedValue(CONNECTION);
       t.calendarConnections.findRefreshTokenByUserId.mockResolvedValue('refresh-secret');
 
       await remove().expect(204);
@@ -244,11 +245,24 @@ describe('Calendario conectado', () => {
     });
 
     it('deletes the connection even when Google fails to revoke the token', async () => {
+      t.calendarConnections.findByUserId.mockResolvedValue(CONNECTION);
       t.calendarConnections.findRefreshTokenByUserId.mockResolvedValue('refresh-secret');
       t.googleOauth.revoke.mockRejectedValue(new ExternalServiceError('down'));
 
       await remove().expect(204);
 
+      expect(t.calendarConnections.deleteByUserId).toHaveBeenCalledWith(ANA.id);
+    });
+
+    it('deletes the connection even when the stored token cannot be decrypted', async () => {
+      t.calendarConnections.findByUserId.mockResolvedValue(CONNECTION);
+      t.calendarConnections.findRefreshTokenByUserId.mockRejectedValue(
+        new Error('Unsupported state or unable to authenticate data'),
+      );
+
+      await remove().expect(204);
+
+      expect(t.googleOauth.revoke).not.toHaveBeenCalled();
       expect(t.calendarConnections.deleteByUserId).toHaveBeenCalledWith(ANA.id);
     });
 
@@ -268,6 +282,7 @@ describe('Calendario conectado', () => {
     it('disconnects the Calendario conectado of the Usuario dado de baja', async () => {
       t.users.findById.mockResolvedValue(ANA);
       t.users.retire.mockResolvedValue({ cancelledBookings: [] });
+      t.calendarConnections.findByUserId.mockResolvedValue(CONNECTION);
       t.calendarConnections.findRefreshTokenByUserId.mockResolvedValue('refresh-secret');
 
       await t.http.delete('/users/me').set(bearer(CLERK_TOKEN)).expect(204);

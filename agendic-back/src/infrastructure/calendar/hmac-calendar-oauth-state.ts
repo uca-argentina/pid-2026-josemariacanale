@@ -17,6 +17,7 @@ export class HmacCalendarOauthState implements CalendarOauthState {
     return `${payload}.${this.signature(payload)}`;
   }
 
+  /** @throws {NotConfiguredError} faltan las variables de {@link readCalendarOauthConfig} */
   verify(state: string, now: Date): number | null {
     const [payload, signature, ...rest] = state.split('.');
     if (!payload || !signature || rest.length > 0) return null;
