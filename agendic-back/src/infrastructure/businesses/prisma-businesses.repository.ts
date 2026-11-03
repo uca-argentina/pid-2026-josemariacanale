@@ -46,6 +46,8 @@ export class PrismaBusinessesRepository implements BusinessesRepository {
             timeZone: data.branch.timeZone,
             slug: data.branch.slug,
             description: data.branch.description,
+            latitude: data.branch.location.lat,
+            longitude: data.branch.location.lng,
             images: {
               create: data.branchImageUrls.map((url, order) => ({
                 url,

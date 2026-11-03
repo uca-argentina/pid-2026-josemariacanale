@@ -1,3 +1,4 @@
+import { Branch } from '../../domain/branches/branch';
 import { ConflictError } from '../../domain/errors';
 import {
   ANAS_BUSINESS,
@@ -16,6 +17,7 @@ const VALID_BRANCH = {
   address: '123 Main St',
   timeZone: 'America/Argentina/Buenos_Aires',
   slug: 'downtown',
+  location: { lat: -34.6037, lng: -58.3816 },
 };
 
 /** Bruno's Negocio, for checking that a Sucursal's slug is only unique within its own Negocio. */
@@ -32,7 +34,7 @@ const BRUNOS_BUSINESS = {
 const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
 const IMAGE = { content: PNG, contentType: 'image/png' };
 
-const BRANCH = {
+const BRANCH: Branch = {
   id: 1,
   businessId: ANAS_BUSINESS.id,
   description: null,
@@ -278,6 +280,52 @@ describe('Sucursal', () => {
       expect(t.branches.createWithImages).not.toHaveBeenCalled();
     });
 
+    it('answers 400 without a location, creating nothing nor uploading images', async () => {
+      const { location: _, ...withoutLocation } = VALID_BRANCH;
+
+      const res = await post(withoutLocation).expect(400);
+
+      expect(res.body.message).toContain('location is required');
+      expect(t.fileStorage.upload).not.toHaveBeenCalled();
+      expect(t.branches.createWithImages).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      [{ lat: 90.1, lng: 0 }, 'location.lat must be between -90 and 90'],
+      [{ lat: -91, lng: 0 }, 'location.lat must be between -90 and 90'],
+      [{ lat: '10', lng: 0 }, 'location.lat must be between -90 and 90'],
+      [{ lng: 0 }, 'location.lat must be between -90 and 90'],
+      [{ lat: 0, lng: 180.5 }, 'location.lng must be between -180 and 180'],
+      [{ lat: 0, lng: -181 }, 'location.lng must be between -180 and 180'],
+      [{ lat: 0, lng: null }, 'location.lng must be between -180 and 180'],
+    ])(
+      'answers 400 for the location %j, creating nothing',
+      async (location, message) => {
+        const res = await post({ ...VALID_BRANCH, location }).expect(400);
+
+        expect(res.body.message).toContain(message);
+        expect(t.fileStorage.upload).not.toHaveBeenCalled();
+        expect(t.branches.createWithImages).not.toHaveBeenCalled();
+      },
+    );
+
+    it('answers 400 for a location that is not an object', async () => {
+      const res = await post({
+        ...VALID_BRANCH,
+        location: 'Buenos Aires',
+      }).expect(400);
+
+      expect(res.body.message).toContain('location is required');
+    });
+
+    it('accepts the limits of the coordinates', async () => {
+      const location = { lat: -90, lng: 180 };
+
+      const res = await post({ ...VALID_BRANCH, location }).expect(201);
+
+      expect(res.body.location).toEqual(location);
+    });
+
     it('answers 400 for a field data does not allow', async () => {
       await post({ ...VALID_BRANCH, ownerId: 7 }).expect(400);
 
@@ -357,6 +405,45 @@ describe('Sucursal', () => {
         .set(bearer(CLERK_TOKEN))
         .send({ name: 'New name' })
         .expect(404);
+    });
+
+    it('changes the point of its Ubicación', async () => {
+      const location = { lat: -31.4201, lng: -64.1888 };
+      t.branches.update.mockResolvedValue({ ...BRANCH, location });
+
+      const res = await t.http
+        .patch(`/branches/${BRANCH.id}`)
+        .set(bearer(CLERK_TOKEN))
+        .send({ location })
+        .expect(200);
+
+      expect(t.branches.update).toHaveBeenCalledWith(BRANCH.id, { location });
+      expect(res.body.location).toEqual(location);
+    });
+
+    it('answers 400 when removing the location with null', async () => {
+      const res = await t.http
+        .patch(`/branches/${BRANCH.id}`)
+        .set(bearer(CLERK_TOKEN))
+        .send({ location: null })
+        .expect(400);
+
+      expect(res.body.message).toContain('location cannot be removed');
+      expect(t.branches.update).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      [{ lat: 100, lng: 0 }, 'location.lat must be between -90 and 90'],
+      [{ lat: 0, lng: '-58' }, 'location.lng must be between -180 and 180'],
+    ])('answers 400 for the location %j', async (location, message) => {
+      const res = await t.http
+        .patch(`/branches/${BRANCH.id}`)
+        .set(bearer(CLERK_TOKEN))
+        .send({ location })
+        .expect(400);
+
+      expect(res.body.message).toContain(message);
+      expect(t.branches.update).not.toHaveBeenCalled();
     });
 
     it('edits the description and removes it with null', async () => {
@@ -457,6 +544,19 @@ describe('Sucursal', () => {
   });
 
   describe('GET /businesses/:id/branches', () => {
+    it('presents a Sucursal from before Ubicación existed with a null location', async () => {
+      t.businesses.findById.mockResolvedValue(ANAS_BUSINESS);
+      t.branches.listByBusiness.mockResolvedValue([
+        { ...BRANCH, location: null },
+      ]);
+
+      const res = await t.http
+        .get(`/businesses/${ANAS_BUSINESS.id}/branches`)
+        .expect(200);
+
+      expect(res.body[0].location).toBeNull();
+    });
+
     it("lists a Negocio's Sucursales without a Sesión", async () => {
       t.businesses.findById.mockResolvedValue(ANAS_BUSINESS);
       t.branches.listByBusiness.mockResolvedValue([BRANCH]);

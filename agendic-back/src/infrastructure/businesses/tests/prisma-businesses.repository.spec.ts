@@ -32,6 +32,8 @@ const BRANCH_ROW = {
   address: '123 Main St',
   timeZone: 'America/Argentina/Buenos_Aires',
   slug: ANAS_BUSINESS.slug,
+  latitude: -34.6037,
+  longitude: -58.3816,
   images: [
     { id: 30, branchId: 10, url: 'https://files.example.com/a', order: 0 },
   ],
@@ -87,6 +89,7 @@ const CREATE_DATA = {
     address: '123 Main St',
     timeZone: 'America/Argentina/Buenos_Aires',
     slug: ANAS_BUSINESS.slug,
+    location: { lat: -34.6037, lng: -58.3816 },
   },
   service: {
     name: 'Haircut',
@@ -197,6 +200,7 @@ describe('PrismaBusinessesRepository', () => {
       address: '123 Main St',
       timeZone: 'America/Argentina/Buenos_Aires',
       slug: ANAS_BUSINESS.slug,
+      location: { lat: -34.6037, lng: -58.3816 },
     });
     expect(created.employee).toEqual({
       id: EMPLOYEE_ROW.id,
@@ -240,6 +244,8 @@ describe('PrismaBusinessesRepository', () => {
     expect(tx.branch.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
+          latitude: -34.6037,
+          longitude: -58.3816,
           images: {
             create: [{ url: 'https://files.example.com/a', order: 0 }],
           },

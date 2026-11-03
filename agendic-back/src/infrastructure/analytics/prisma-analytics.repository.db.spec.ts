@@ -366,6 +366,7 @@ describe('PrismaAnalyticsRepository (real database)', () => {
           address: 'Calle 1',
           timeZone: BUENOS_AIRES,
           slug: 'sucursal',
+          location: { lat: -34.6, lng: -58.4 },
         },
         branchImageUrls: ['https://example.com/sucursal.jpg'],
         employee: { userId: user.id },

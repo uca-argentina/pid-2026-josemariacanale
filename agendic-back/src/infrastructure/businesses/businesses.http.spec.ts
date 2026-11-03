@@ -26,6 +26,7 @@ const BRANCH_PART = {
   address: ANAS_BRANCH.address,
   timeZone: ANAS_BRANCH.timeZone,
   slug: ANAS_BRANCH.slug,
+  location: ANAS_BRANCH.location,
 };
 
 const SERVICE_PART = {
@@ -431,6 +432,36 @@ describe('Negocio', () => {
       );
     });
 
+    it('answers 400 when the first Sucursal has no location, creating nothing nor uploading images', async () => {
+      const { location: _, ...branch } = BRANCH_PART;
+
+      const res = await post({ ...VALID_BODY, branch }).expect(400);
+
+      expect(res.body.message).toContain('branch.location is required');
+      expect(t.fileStorage.upload).not.toHaveBeenCalled();
+      expect(t.businesses.create).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      [{ lat: 91, lng: 0 }, 'branch.location.lat must be between -90 and 90'],
+      [
+        { lat: 0, lng: 181 },
+        'branch.location.lng must be between -180 and 180',
+      ],
+    ])(
+      'answers 400 for the first Sucursal at %j, creating nothing',
+      async (location, message) => {
+        const res = await post({
+          ...VALID_BODY,
+          branch: { ...BRANCH_PART, location },
+        }).expect(400);
+
+        expect(res.body.message).toContain(message);
+        expect(t.fileStorage.upload).not.toHaveBeenCalled();
+        expect(t.businesses.create).not.toHaveBeenCalled();
+      },
+    );
+
     it('answers 400 without images, creating nothing', async () => {
       const res = await post(VALID_BODY, []).expect(400);
 
@@ -729,7 +760,10 @@ describe('Negocio', () => {
     const put = (id: number = ANAS_BUSINESS.id) =>
       t.http.put(`/businesses/${id}/logo`);
     const withPng = (req: ReturnType<typeof put>) =>
-      req.attach('file', PNG, { filename: 'logo.png', contentType: 'image/png' });
+      req.attach('file', PNG, {
+        filename: 'logo.png',
+        contentType: 'image/png',
+      });
 
     beforeEach(() => {
       scriptSession(t);

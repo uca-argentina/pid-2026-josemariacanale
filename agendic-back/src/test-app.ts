@@ -414,6 +414,7 @@ export const ANAS_BRANCH: Branch = {
   timeZone: 'America/Argentina/Buenos_Aires',
   slug: 'downtown',
   description: null,
+  location: { lat: -34.6037, lng: -58.3816 },
 };
 
 /** Ana as the Empleado of her own Negocio. */
