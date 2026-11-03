@@ -22,7 +22,11 @@ export class PrismaBookingCalendarEventsRepository
 {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** @throws {DatabaseOperationError} la base falló */
+  /**
+   * Lista los Turnos vivos de Usuarios conectados con su evento.
+   *
+   * @throws {DatabaseOperationError} la base falló
+   */
   async listLiveOfConnectedUsers(now: Date): Promise<LiveBookingWithEvent[]> {
     const rows = await this.prisma.booking
       .findMany({
@@ -76,7 +80,11 @@ export class PrismaBookingCalendarEventsRepository
     }));
   }
 
-  /** @throws {DatabaseOperationError} la base falló */
+  /**
+   * Lista los eventos de Turnos Cancelados o Rechazados.
+   *
+   * @throws {DatabaseOperationError} la base falló
+   */
   async listOfEndedBookingsOfConnectedUsers(): Promise<StoredBookingEvent[]> {
     return this.prisma.bookingCalendarEvent
       .findMany({
@@ -90,7 +98,11 @@ export class PrismaBookingCalendarEventsRepository
       .catch(translateError);
   }
 
-  /** @throws {DatabaseOperationError} la base falló */
+  /**
+   * Busca el evento en la cadena de Reagendamientos anteriores.
+   *
+   * @throws {DatabaseOperationError} la base falló
+   */
   async findEventOfPreviousBooking(bookingId: number) {
     try {
       const seen = new Set<number>([bookingId]);
@@ -118,7 +130,11 @@ export class PrismaBookingCalendarEventsRepository
     }
   }
 
-  /** @throws {DatabaseOperationError} la base falló */
+  /**
+   * Guarda o reemplaza el evento del Turno.
+   *
+   * @throws {DatabaseOperationError} la base falló
+   */
   async save(event: StoredBookingEvent, now: Date) {
     const data = {
       userId: event.userId,
@@ -135,7 +151,11 @@ export class PrismaBookingCalendarEventsRepository
       .catch(translateError);
   }
 
-  /** @throws {DatabaseOperationError} la base falló */
+  /**
+   * Pasa el evento al Turno que reemplazó al original.
+   *
+   * @throws {DatabaseOperationError} la base falló
+   */
   async moveToBooking(fromBookingId: number, toBookingId: number) {
     await this.prisma.bookingCalendarEvent
       .update({
@@ -145,14 +165,22 @@ export class PrismaBookingCalendarEventsRepository
       .catch(translateError);
   }
 
-  /** @throws {DatabaseOperationError} la base falló */
+  /**
+   * Olvida el evento del Turno.
+   *
+   * @throws {DatabaseOperationError} la base falló
+   */
   async deleteByBookingId(bookingId: number) {
     await this.prisma.bookingCalendarEvent
       .deleteMany({ where: { bookingId } })
       .catch(translateError);
   }
 
-  /** @throws {DatabaseOperationError} la base falló */
+  /**
+   * Lista los eventos de Turnos que no terminaron.
+   *
+   * @throws {DatabaseOperationError} la base falló
+   */
   async listFutureByUserId(userId: number, now: Date) {
     return this.prisma.bookingCalendarEvent
       .findMany({
@@ -163,7 +191,11 @@ export class PrismaBookingCalendarEventsRepository
       .catch(translateError);
   }
 
-  /** @throws {DatabaseOperationError} la base falló */
+  /**
+   * Olvida todos los eventos del Usuario.
+   *
+   * @throws {DatabaseOperationError} la base falló
+   */
   async deleteByUserId(userId: number) {
     await this.prisma.bookingCalendarEvent
       .deleteMany({ where: { userId } })
