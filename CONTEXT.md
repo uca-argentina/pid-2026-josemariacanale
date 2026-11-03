@@ -161,6 +161,10 @@ _Avoid_: excepción, override, licencia, ausencia (eso es del Cliente)
 Período de uno o más días enteros en que un Usuario no atiende: en esos días ninguno de sus Servicios, personales o de cualquier Negocio, tiene Horarios reservables con él. Es del Usuario, no de una Availability: no es una Anulación. Sus días se leen en la zona horaria de cada Availability. Al guardarlo, los Turnos pendientes o aceptados que ya tenía en esos días se Cancelan, previa confirmación y con una Causa de cancelación. Lleva un Motivo y, opcionalmente, una nota que el Usuario puede mostrar en la página de reserva de sus Servicios personales. Solo lo gestiona el propio Usuario.
 _Avoid_: ausencia (eso es el no-show), OOO, licencia, vacaciones
 
+**Calendario conectado**:
+Cuenta de Google de un Usuario que Agendic usa como su calendario. Es del Usuario, no de su vínculo con un Negocio: una conexión cubre todos los Turnos que atiende. Es una sola por Usuario. El Usuario la conecta y la desconecta él mismo, con un OAuth propio de Agendic, no el de Clerk. Está `CONNECTED`, o `DISCONNECTED` cuando Google dejó de aceptar su permiso: en ese caso se puede reconectar. Dar de baja al Usuario la desconecta.
+_Avoid_: integración, sincronización, cuenta de Google (a secas), calendario externo
+
 **Motivo**:
 Por qué un Usuario está Fuera de la oficina, elegido de una lista fija: No especificado, Vacaciones, Viaje, Baja por enfermedad, Día festivo.
 _Avoid_: razón, causa (eso es la Causa de cancelación)

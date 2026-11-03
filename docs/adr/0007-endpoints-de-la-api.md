@@ -264,6 +264,10 @@ como uno que no existe.
 | POST | `/users/me/holidays/:holidayId/preview` | sí | Body como el del `PATCH`. Los Turnos que prender el Día festivo dejaría afuera (ADR 0034); solo lectura, 200 |
 | PATCH | `/users/me/holidays/:holidayId` | sí | Body `{ enabled: boolean, cancelBookingIds?: number[] }`. Apaga o vuelve a prender el Día festivo; al prenderlo cancela los Turnos de ese día que deja afuera, en una transacción. Responde como el `GET` más `cancelledBookings: number` |
 | GET | `/users/me/holidays/conflicts` | sí | `200 [{ holidayId, holidayName, date, bookings: [{ id, startsAt, clientName }] }]`: los Turnos pendientes o aceptados, futuros, que atiende el Usuario y que caen en Días festivos prendidos, por fecha del Día festivo. El día de cada Turno se lee en la zona de la Availability con la que se atiende. Sin país, `[]` |
+| GET | `/users/me/calendar` | sí | `200 { connection: { provider: 'GOOGLE', email, status: 'CONNECTED' \| 'DISCONNECTED', connectedAt } \| null }`: el Calendario conectado del Usuario (ADR 0036). Nunca trae el token |
+| POST | `/users/me/calendar/google` | sí | `200 { authorizationUrl }`: la dirección de Google a la que el front lleva al navegador para dar el permiso. El `state` va firmado y vence a los 10 minutos |
+| GET | `/calendar-oauth/google/callback` | no | Lo llama Google. Identifica al Usuario por el `state`. Responde 302 a `CALENDAR_RETURN_URL` con `?calendar=connected \| denied \| missing-scope \| error` |
+| DELETE | `/users/me/calendar` | sí | Desconecta y revoca el token en Google. 204 sin body |
 
 - Sin `GOOGLE_CALENDAR_API_KEY` → 503 `Días festivos no configurados`. Todos los endpoints de Días festivos que vengan después responden igual
 - `PUT /users/me/holidays`: `countryCode` ausente o que no es texto → 400; un código que no está en `GET /holidays/countries` → 400 `Unknown holiday country <código>`
@@ -271,6 +275,13 @@ como uno que no existe.
 - `POST /users/me/holidays/preview` y `POST /users/me/holidays/:holidayId/preview` (ADR 0034): fallan igual que el `PUT` y el `PATCH` (400, 404 `Holiday <id> not found`, 503). Devuelven, por `startsAt`, los Turnos pendientes o aceptados que todavía no empezaron, que estaban dentro del horario y los Días festivos nuevos dejan afuera, con la misma forma que `POST /users/me/out-of-office/preview`. La Causa es `PUBLIC_HOLIDAY` y `cancellationReason` es `<Nombre> no atiende por <nombre del Día festivo de ese día>. Podés reservar otro horario.`, distinto en cada día. Elegir un país prende de nuevo todos sus Días festivos, así que la lista puede ser larga; se miran todos los Turnos futuros. Prender un Día festivo mira solo los Turnos de ese día. Un Día festivo que cae en un día que el Usuario no trabaja no deja afuera nada. `countryCode: null` y `enabled: false` responden `[]` sin consultar a Google, y apagar un Día festivo o sacar el país no cancela ni descancela nada. El horario de después se calcula con la configuración nueva, con todos los años del rango de los Turnos y en modo estricto: si Google falla, el error se propaga (502) y no se guarda nada; el de antes usa la lectura tolerante de siempre
 - `PUT` y `PATCH` suman `cancelBookingIds?: number[]` (por defecto `[]`; si no es un arreglo de enteros, 400), con las mismas reglas que en `POST /users/me/out-of-office`: si queda afuera algún Turno que no está en la lista, 409 `Los Turnos que quedan fuera de tu horario cambiaron` sin escribir nada (la configuración queda como estaba); los ids que ya no quedan afuera se ignoran; la configuración y las cancelaciones van en una sola transacción. Después de guardar, cada Cliente recibe el Aviso de cambio del Turno con Causa; si un mail falla se loguea y la escritura sigue en pie. `GET /users/me/holidays/conflicts` queda como está. El front pasa por la vista previa y el diálogo al elegir un país o prender un Día festivo, y guarda directo al sacar el país o apagar uno
 - Los Días festivos llegan de Google Calendar con IDs `es.*` y se cachean en Postgres (`HolidayCache`); se piden de nuevo cuando la caché tiene más de 7 días
+
+Calendario conectado (ADR 0036):
+
+- `POST /users/me/calendar/google`: 409 `Calendar already connected for User <id>` si ya tiene uno `CONNECTED`; uno `DISCONNECTED` se puede reconectar y la conexión nueva lo reemplaza. Sin credenciales OAuth de Google en el entorno → 503 `Calendario conectado no configurado`
+- `GET /calendar-oauth/google/callback`: `?calendar=denied` si el Usuario rechazó el permiso, `missing-scope` si destildó el de calendario, `error` si el `state` es inválido o venció, o si falla el intercambio del código. Sin credenciales → 503
+- `DELETE /users/me/calendar`: 404 `User <id> has no Calendario conectado` si no tiene uno. Si Google no revoca el token, se loguea y la conexión se borra igual
+- `DELETE /users/me` (ADR 0024) también desconecta el Calendario conectado
 
 ## Slots (Horario reservable)
 

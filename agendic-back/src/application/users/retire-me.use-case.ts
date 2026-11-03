@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { DisconnectCalendarUseCase } from '../calendar/disconnect-calendar.use-case';
 import { CLOCK, Clock } from '../../domain/clock';
 import { NotFoundError } from '../../domain/errors';
 import { MAILER, Mailer } from '../../domain/mailer';
@@ -15,7 +16,8 @@ import {
  * Si es Dueño, su Negocio cae con él. Primero en Postgres y después en Clerk, que no comparten
  * transacción. Repetir la baja salta el primer paso y solo reintenta el borrado en Clerk.
  *
- * Entre los dos pasos le avisa por mail al Cliente de cada Turno futuro que se canceló.
+ * Entre los dos pasos le avisa por mail al Cliente de cada Turno futuro que se canceló, y desconecta su Calendario
+ * conectado (ADR 0036), que también se reintenta al repetir la baja.
  *
  * @throws {NotFoundError} el Usuario no existe
  * @throws {ExternalServiceError} Clerk falló; la fila ya quedó dada de baja
@@ -27,6 +29,7 @@ export class RetireMeUseCase {
     @Inject(CLERK_AUTH) private readonly clerkAuth: ClerkAuth,
     @Inject(CLOCK) private readonly clock: Clock,
     @Inject(MAILER) private readonly mailer: Mailer,
+    private readonly disconnectCalendar: DisconnectCalendarUseCase,
   ) {}
 
   /** Repetir la baja de un Usuario ya dado de baja solo reintenta el borrado en Clerk. */
@@ -42,6 +45,7 @@ export class RetireMeUseCase {
         this.mailer.sendBookingCancellation(email, link),
       );
     }
+    await this.disconnectCalendar.disconnectIfAny(userId);
     await this.clerkAuth.deleteUser(user.clerkId);
   }
 }

@@ -43,6 +43,17 @@ enum CancellationCause {
   SCHEDULE_CHANGE
 }
 
+/// Proveedor del Calendario conectado (ADR 0036).
+enum CalendarProvider {
+  GOOGLE
+}
+
+/// Estado del Calendario conectado (ADR 0036): DISCONNECTED es una conexión que Google dejó de aceptar.
+enum CalendarConnectionStatus {
+  CONNECTED
+  DISCONNECTED
+}
+
 enum ServiceCategory {
   CLINICA
   SPA
@@ -79,6 +90,7 @@ model User {
   bookingSlug     BookingSlug?
   outOfOffices    OutOfOffice[]
   holidaySettings UserHolidaySettings?
+  calendar        CalendarConnection?
 }
 
 model Business {
@@ -400,4 +412,17 @@ model WaitlistEntry {
   createdAt  DateTime  @default(now()) @db.Timestamptz(3)
 
   service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+}
+
+/// Calendario conectado (ADR 0036): la cuenta de Google de un Usuario. Una sola por Usuario (unique, ADR 0004).
+model CalendarConnection {
+  id                    Int                      @id @default(autoincrement())
+  userId                Int                      @unique
+  provider              CalendarProvider
+  email                 String // la cuenta de Google conectada
+  status                CalendarConnectionStatus @default(CONNECTED)
+  encryptedRefreshToken String // AES-256-GCM con CALENDAR_TOKEN_KEY; nunca sale en una respuesta ni en un log
+  connectedAt           DateTime                 @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id])
 }

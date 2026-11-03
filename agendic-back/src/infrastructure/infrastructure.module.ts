@@ -1,6 +1,9 @@
 import { Global, Module } from '@nestjs/common';
 import { ANALYTICS_REPOSITORY } from '../domain/analytics/analytics.repository';
 import { AVAILABILITIES_REPOSITORY } from '../domain/availabilities/availabilities.repository';
+import { CALENDAR_CONNECTIONS_REPOSITORY } from '../domain/calendar/calendar-connections.repository';
+import { CALENDAR_OAUTH_STATE } from '../domain/calendar/calendar-oauth-state';
+import { GOOGLE_CALENDAR_OAUTH } from '../domain/calendar/google-calendar-oauth';
 import { CLOCK, Clock } from '../domain/clock';
 import { FILE_STORAGE } from '../domain/file-storage';
 import { MAILER } from '../domain/mailer';
@@ -25,6 +28,10 @@ import { AvailabilitiesModule } from './availabilities/availabilities.module';
 import { PrismaAvailabilitiesRepository } from './availabilities/prisma-availabilities.repository';
 import { PrismaBookingsRepository } from './bookings/prisma-bookings.repository';
 import { readBookingCodeSecret, TotpBookingVerificationCodes } from './bookings/totp-booking-verification-codes';
+import { CalendarModule } from './calendar/calendar.module';
+import { HmacCalendarOauthState } from './calendar/hmac-calendar-oauth-state';
+import { GoogleOauthApiClient } from './calendar/google-oauth-api.client';
+import { PrismaCalendarConnectionsRepository } from './calendar/prisma-calendar-connections.repository';
 import { BookingsModule } from './bookings/bookings.module';
 import { CABINS_REPOSITORY } from '../domain/cabins/cabins.repository';
 import { CabinsModule } from './cabins/cabins.module';
@@ -75,6 +82,7 @@ import { WaitlistModule } from './waitlist/waitlist.module';
     HolidaysModule,
     AnalyticsModule,
     WaitlistModule,
+    CalendarModule,
   ],
   providers: [
     PrismaService,
@@ -122,6 +130,12 @@ import { WaitlistModule } from './waitlist/waitlist.module';
     { provide: GOOGLE_CALENDAR_CLIENT, useClass: GoogleCalendarApiClient },
     { provide: ANALYTICS_REPOSITORY, useClass: PrismaAnalyticsRepository },
     { provide: WAITLIST_REPOSITORY, useClass: PrismaWaitlistRepository },
+    {
+      provide: CALENDAR_CONNECTIONS_REPOSITORY,
+      useClass: PrismaCalendarConnectionsRepository,
+    },
+    { provide: GOOGLE_CALENDAR_OAUTH, useClass: GoogleOauthApiClient },
+    { provide: CALENDAR_OAUTH_STATE, useClass: HmacCalendarOauthState },
   ],
   exports: [
     CLOCK,
@@ -145,6 +159,9 @@ import { WaitlistModule } from './waitlist/waitlist.module';
     GOOGLE_CALENDAR_CLIENT,
     ANALYTICS_REPOSITORY,
     WAITLIST_REPOSITORY,
+    CALENDAR_CONNECTIONS_REPOSITORY,
+    GOOGLE_CALENDAR_OAUTH,
+    CALENDAR_OAUTH_STATE,
   ],
 })
 export class InfrastructureModule {}

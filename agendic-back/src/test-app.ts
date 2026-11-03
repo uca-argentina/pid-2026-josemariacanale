@@ -48,6 +48,14 @@ import {
   WAITLIST_REPOSITORY,
   WaitlistRepository,
 } from './domain/waitlist/waitlist.repository';
+import {
+  CALENDAR_CONNECTIONS_REPOSITORY,
+  CalendarConnectionsRepository,
+} from './domain/calendar/calendar-connections.repository';
+import {
+  GOOGLE_CALENDAR_OAUTH,
+  GoogleCalendarOauth,
+} from './domain/calendar/google-calendar-oauth';
 import { Business } from './domain/businesses/business';
 import {
   BUSINESSES_REPOSITORY,
@@ -286,6 +294,19 @@ export async function createTestApp() {
     assertConfigured: jest.fn(),
     fetchHolidays: jest.fn(),
   };
+  const calendarConnections: jest.Mocked<CalendarConnectionsRepository> = {
+    findByUserId: jest.fn(),
+    findRefreshTokenByUserId: jest.fn().mockResolvedValue(null),
+    save: jest.fn(),
+    deleteByUserId: jest.fn(),
+  };
+  const googleOauth: jest.Mocked<GoogleCalendarOauth> = {
+    assertConfigured: jest.fn(),
+    authorizationUrl: jest.fn(),
+    exchangeCode: jest.fn(),
+    revoke: jest.fn(),
+    hasRequiredScopes: jest.fn().mockReturnValue(true),
+  };
   const analytics: jest.Mocked<AnalyticsRepository> = {
     kpis: jest.fn(),
     breakdown: jest.fn(),
@@ -336,6 +357,10 @@ export async function createTestApp() {
     .useValue(userHolidaySettings)
     .overrideProvider(GOOGLE_CALENDAR_CLIENT)
     .useValue(googleCalendar)
+    .overrideProvider(CALENDAR_CONNECTIONS_REPOSITORY)
+    .useValue(calendarConnections)
+    .overrideProvider(GOOGLE_CALENDAR_OAUTH)
+    .useValue(googleOauth)
     .overrideProvider(ANALYTICS_REPOSITORY)
     .useValue(analytics)
     .compile();
@@ -363,6 +388,8 @@ export async function createTestApp() {
     holidays,
     userHolidaySettings,
     googleCalendar,
+    calendarConnections,
+    googleOauth,
     analytics,
     http: request(app.getHttpServer()),
   };
