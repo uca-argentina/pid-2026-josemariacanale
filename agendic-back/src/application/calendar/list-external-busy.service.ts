@@ -44,20 +44,30 @@ export class ListExternalBusyService {
     const key = `${userId}|${from.getTime()}|${to.getTime()}`;
     let entry = this.cache.get(key);
     if (!entry) {
-      entry = { at: now, busy: this.read(userId, from, to) };
+      const read = this.read(userId, from, to);
+      entry = { at: now, busy: read.then(({ busy }) => busy) };
       this.cache.set(key, entry);
+      // A failed read isn't cached: the next calculation (the re-check on Reservar included) asks Google again.
+      void read.then(({ failed }) => failed && this.cache.delete(key));
     }
     return entry.busy;
   }
 
-  private async read(userId: number, from: Date, to: Date) {
+  private async read(
+    userId: number,
+    from: Date,
+    to: Date,
+  ): Promise<{ busy: ExternalBusy[]; failed: boolean }> {
     try {
       const connection = await this.connections.findByUserId(userId);
-      if (connection?.status !== 'CONNECTED') return [];
+      if (connection?.status !== 'CONNECTED') return { busy: [], failed: false };
       const refreshToken =
         await this.connections.findRefreshTokenByUserId(userId);
-      if (!refreshToken) return [];
-      return await this.events.listBusy(refreshToken, from, to);
+      if (!refreshToken) return { busy: [], failed: false };
+      return {
+        busy: await this.events.listBusy(refreshToken, from, to),
+        failed: false,
+      };
     } catch (error) {
       if (error instanceof CalendarAccessRevokedError)
         await this.disconnect(userId);
@@ -66,7 +76,7 @@ export class ListExternalBusyService {
           `Ocupados externos del Usuario ${userId} no leídos; se calcula sin ellos`,
           error instanceof Error ? error.stack : String(error),
         );
-      return [];
+      return { busy: [], failed: true };
     }
   }
 

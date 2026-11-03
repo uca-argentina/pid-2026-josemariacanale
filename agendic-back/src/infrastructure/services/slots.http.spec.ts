@@ -168,6 +168,17 @@ describe('GET /services/:id/slots', () => {
       expect(res.body.days[0].slots).toHaveLength(18);
     });
 
+    it('una lectura que falló no queda en la caché', async () => {
+      t.googleCalendarEvents.listBusy
+        .mockRejectedValueOnce(new ExternalServiceError('Google Calendar not reachable'))
+        .mockResolvedValue([]);
+
+      await query(t, {}).expect(200);
+      await query(t, {}).expect(200);
+
+      expect(t.googleCalendarEvents.listBusy).toHaveBeenCalledTimes(2);
+    });
+
     it('si Google rechaza el refresh token, la conexión pasa a DISCONNECTED y se calcula sin ella', async () => {
       t.googleCalendarEvents.listBusy.mockRejectedValue(
         new CalendarAccessRevokedError('Google rejected the refresh token'),

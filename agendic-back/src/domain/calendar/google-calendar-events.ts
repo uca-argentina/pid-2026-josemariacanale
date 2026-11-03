@@ -1,5 +1,6 @@
 import { DomainError } from '../errors';
 
+/** Token de inyección del puerto `GoogleCalendarEvents`. */
 export const GOOGLE_CALENDAR_EVENTS = Symbol('GoogleCalendarEvents');
 
 /**
