@@ -80,7 +80,7 @@ export function CalendarView({
             return;
         }
         setBusy(false);
-        if (result.notConfigured) setNotConfigured((current) => [...current, provider]);
+        if (result.notConfigured) setNotConfigured((current) => (current.includes(provider) ? current : [...current, provider]));
         else toast.error(result.message);
     };
 

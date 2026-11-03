@@ -10,8 +10,11 @@ export function parseCalendarReturn(value: string | undefined): CalendarReturn |
 /** El mensaje para el Usuario de cada forma de volver del proveedor; el `?calendar=` no dice cuál, así que no lo nombran. */
 export const CALENDAR_RETURN_MESSAGES: Record<CalendarReturn, { kind: 'success' | 'error'; message: string }> = {
     connected: { kind: 'success', message: 'Conectamos tu calendario.' },
-    denied: { kind: 'error', message:
-            'No diste permiso, así que no conectamos tu calendario. Si es una cuenta de empresa, puede necesitar la aprobación de su administrador.', },
+    denied: {
+        kind: 'error',
+        message:
+            'No diste permiso, así que no conectamos tu calendario. Si es una cuenta de empresa, puede necesitar la aprobación de su administrador.',
+    },
     'missing-scope': {
         kind: 'error',
         message: 'No nos diste el permiso para escribir en tu calendario. Volvé a conectar y aceptá todos los permisos.',
