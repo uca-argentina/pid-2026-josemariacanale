@@ -423,6 +423,7 @@ model CalendarConnection {
   status                CalendarConnectionStatus @default(CONNECTED)
   encryptedRefreshToken String // AES-256-GCM con CALENDAR_TOKEN_KEY; nunca sale en una respuesta ni en un log
   connectedAt           DateTime                 @db.Timestamptz(3)
+  checkedCalendarIds    String[]                 @default(["primary"]) // los calendarios que cuentan como Ocupado externo; "primary" es el principal, y [] no lee ninguno (ADR 0038)
 
   user User @relation(fields: [userId], references: [id])
 }

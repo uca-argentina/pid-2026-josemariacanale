@@ -46,7 +46,7 @@ describe('GoogleCalendarEventsClient', () => {
       },
     ]);
 
-    await expect(client.listBusy('refresh', from, to)).resolves.toEqual([
+    await expect(client.listBusy('refresh', ['primary'], from, to)).resolves.toEqual([
       {
         start: new Date('2026-01-02T16:00:00.000Z'),
         end: new Date('2026-01-02T17:00:00.000Z'),
@@ -57,7 +57,7 @@ describe('GoogleCalendarEventsClient', () => {
   it('un evento de día entero ocupa ese día en la zona del calendario', async () => {
     answerWith([{ start: { date: '2026-01-02' }, end: { date: '2026-01-03' } }]);
 
-    await expect(client.listBusy('refresh', from, to)).resolves.toEqual([
+    await expect(client.listBusy('refresh', ['primary'], from, to)).resolves.toEqual([
       {
         start: new Date('2026-01-02T03:00:00.000Z'),
         end: new Date('2026-01-03T03:00:00.000Z'),
@@ -68,7 +68,7 @@ describe('GoogleCalendarEventsClient', () => {
   it('pide el rango y los eventos ya expandidos, con el access token', async () => {
     answerWith([]);
 
-    await client.listBusy('refresh', from, to);
+    await client.listBusy('refresh', ['primary'], from, to);
 
     const [url, init] = fetchMock.mock.calls[1];
     expect(String(url)).toContain('singleEvents=true');
@@ -81,7 +81,7 @@ describe('GoogleCalendarEventsClient', () => {
   it('un invalid_grant es CalendarAccessRevokedError', async () => {
     fetchMock.mockResolvedValueOnce(json({ error: 'invalid_grant' }, 400));
 
-    await expect(client.listBusy('refresh', from, to)).rejects.toThrow(
+    await expect(client.listBusy('refresh', ['primary'], from, to)).rejects.toThrow(
       CalendarAccessRevokedError,
     );
   });
@@ -91,8 +91,51 @@ describe('GoogleCalendarEventsClient', () => {
       .mockResolvedValueOnce(json({ access_token: 'token' }))
       .mockResolvedValueOnce(json({}, 500));
 
-    await expect(client.listBusy('refresh', from, to)).rejects.toThrow(
+    await expect(client.listBusy('refresh', ['primary'], from, to)).rejects.toThrow(
       ExternalServiceError,
     );
+  });
+
+  it('lista los calendarios con el principal primero y el nombre que el Usuario les puso', async () => {
+    fetchMock
+      .mockResolvedValueOnce(json({ access_token: 'token' }))
+      .mockResolvedValueOnce(
+        json({
+          items: [
+            { id: 'trabajo', summary: 'Trabajo' },
+            { id: 'ana@gmail.com', summary: 'ana@gmail.com', summaryOverride: 'Ana', primary: true },
+          ],
+        }),
+      );
+
+    await expect(client.listCalendars('refresh')).resolves.toEqual([
+      { id: 'ana@gmail.com', name: 'Ana', primary: true },
+      { id: 'trabajo', name: 'Trabajo', primary: false },
+    ]);
+    expect(String(fetchMock.mock.calls[1][0])).toContain('/users/me/calendarList');
+  });
+
+  it('lee los eventos de cada calendario tildado, con su id en la dirección', async () => {
+    fetchMock
+      .mockResolvedValueOnce(json({ access_token: 'token' }))
+      .mockResolvedValueOnce(json({ items: [{ start: at(13), end: at(14) }] }))
+      .mockResolvedValueOnce(json({ items: [{ start: at(15), end: at(16) }] }));
+
+    const busy = await client.listBusy('refresh', ['a@x.com', 'trabajo#1'], from, to);
+
+    expect(busy).toHaveLength(2);
+    expect(String(fetchMock.mock.calls[1][0])).toContain('/calendars/a%40x.com/events');
+    expect(String(fetchMock.mock.calls[2][0])).toContain('/calendars/trabajo%231/events');
+  });
+
+  it('ignora un calendario tildado que ya no existe', async () => {
+    fetchMock
+      .mockResolvedValueOnce(json({ access_token: 'token' }))
+      .mockResolvedValueOnce(json({}, 404))
+      .mockResolvedValueOnce(json({ items: [{ start: at(15), end: at(16) }] }));
+
+    await expect(
+      client.listBusy('refresh', ['borrado', 'primary'], from, to),
+    ).resolves.toHaveLength(1);
   });
 });

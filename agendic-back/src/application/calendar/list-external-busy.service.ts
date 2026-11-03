@@ -53,6 +53,12 @@ export class ListExternalBusyService {
     return entry.busy;
   }
 
+  /** Olvida lo cacheado de `userId`, para que una selección de calendarios nueva se note enseguida. */
+  forget(userId: number): void {
+    for (const key of this.cache.keys())
+      if (key.startsWith(`${userId}|`)) this.cache.delete(key);
+  }
+
   private async read(
     userId: number,
     from: Date,
@@ -64,8 +70,12 @@ export class ListExternalBusyService {
       const refreshToken =
         await this.connections.findRefreshTokenByUserId(userId);
       if (!refreshToken) return { busy: [], failed: false };
+      const calendarIds =
+        await this.connections.findCheckedCalendarIdsByUserId(userId);
+      // Nothing checked is a valid choice: Google isn't asked at all.
+      if (calendarIds.length === 0) return { busy: [], failed: false };
       return {
-        busy: await this.events.listBusy(refreshToken, from, to),
+        busy: await this.events.listBusy(refreshToken, calendarIds, from, to),
         failed: false,
       };
     } catch (error) {

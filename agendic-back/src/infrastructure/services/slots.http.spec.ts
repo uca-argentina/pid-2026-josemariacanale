@@ -123,9 +123,32 @@ describe('GET /services/:id/slots', () => {
       );
       expect(t.googleCalendarEvents.listBusy).toHaveBeenCalledWith(
         'refresh',
+        ['primary'],
         expect.any(Date),
         expect.any(Date),
       );
+    });
+
+    it('lee los calendarios tildados', async () => {
+      t.calendarConnections.findCheckedCalendarIdsByUserId.mockResolvedValue(['trabajo', 'familia']);
+
+      await query(t, {}).expect(200);
+
+      expect(t.googleCalendarEvents.listBusy).toHaveBeenCalledWith(
+        'refresh',
+        ['trabajo', 'familia'],
+        expect.any(Date),
+        expect.any(Date),
+      );
+    });
+
+    it('sin calendarios tildados no consulta a Google', async () => {
+      t.calendarConnections.findCheckedCalendarIdsByUserId.mockResolvedValue([]);
+
+      const res = await query(t, {}).expect(200);
+
+      expect(t.googleCalendarEvents.listBusy).not.toHaveBeenCalled();
+      expect(res.body.days[0].slots).toHaveLength(18);
     });
 
     it('guarda en caché un minuto lo que contestó Google', async () => {

@@ -3,6 +3,7 @@ import {
   CalendarConnectionsRepository,
   NewCalendarConnection,
 } from '../../domain/calendar/calendar-connections.repository';
+import { PRIMARY_CALENDAR_ID } from '../../domain/calendar/google-calendar-events';
 import { DatabaseOperationError } from '../../domain/errors';
 import { PrismaService } from '../prisma.service';
 import { readCalendarOauthConfig } from './calendar-oauth-config';
@@ -49,8 +50,19 @@ export class PrismaCalendarConnectionsRepository implements CalendarConnectionsR
    */
   async save(userId: number, connection: NewCalendarConnection) {
     const { refreshToken, ...rest } = connection;
+    const previous = await this.prisma.calendarConnection
+      .findUnique({
+        where: { userId },
+        select: { email: true, checkedCalendarIds: true },
+      })
+      .catch(translateError);
+    const sameAccount =
+      previous?.email.toLowerCase() === connection.email.toLowerCase();
     const data = {
       ...rest,
+      checkedCalendarIds: sameAccount
+        ? previous.checkedCalendarIds
+        : [PRIMARY_CALENDAR_ID],
       status: 'CONNECTED' as const,
       encryptedRefreshToken: encryptRefreshToken(
         refreshToken,
@@ -63,6 +75,21 @@ export class PrismaCalendarConnectionsRepository implements CalendarConnectionsR
         create: { userId, ...data },
         update: data,
       })
+      .catch(translateError);
+  }
+
+  /** @throws {DatabaseOperationError} la base falló */
+  async findCheckedCalendarIdsByUserId(userId: number) {
+    const row = await this.prisma.calendarConnection
+      .findUnique({ where: { userId }, select: { checkedCalendarIds: true } })
+      .catch(translateError);
+    return row?.checkedCalendarIds ?? [];
+  }
+
+  /** @throws {DatabaseOperationError} la base falló */
+  async saveCheckedCalendarIds(userId: number, ids: string[]) {
+    await this.prisma.calendarConnection
+      .updateMany({ where: { userId }, data: { checkedCalendarIds: ids } })
       .catch(translateError);
   }
 

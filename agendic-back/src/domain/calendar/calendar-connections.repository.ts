@@ -27,7 +27,22 @@ export interface CalendarConnectionsRepository {
   findRefreshTokenByUserId(userId: number): Promise<string | null>;
 
   /**
-   * Guarda la conexión como `CONNECTED`; si el Usuario ya tenía una, la reemplaza.
+   * Los calendarios que cuentan como Ocupado externo (`'primary'` es el principal); `[]` si no hay conexión.
+   *
+   * @throws {DatabaseOperationError} la base falló
+   */
+  findCheckedCalendarIdsByUserId(userId: number): Promise<string[]>;
+
+  /**
+   * Guarda qué calendarios cuentan como Ocupado externo; sin conexión no hace nada.
+   *
+   * @throws {DatabaseOperationError} la base falló
+   */
+  saveCheckedCalendarIds(userId: number, ids: string[]): Promise<void>;
+
+  /**
+   * Guarda la conexión como `CONNECTED`; si el Usuario ya tenía una, la reemplaza. Reconectar la misma cuenta
+   * conserva los calendarios tildados; otra cuenta vuelve al principal.
    *
    * @throws {DatabaseOperationError} la base falló
    * @throws {NotConfiguredError} falta `CALENDAR_TOKEN_KEY`

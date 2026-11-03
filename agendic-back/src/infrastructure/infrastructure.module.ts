@@ -168,6 +168,7 @@ import { WaitlistModule } from './waitlist/waitlist.module';
     CALENDAR_CONNECTIONS_REPOSITORY,
     GOOGLE_CALENDAR_OAUTH,
     CALENDAR_OAUTH_STATE,
+    GOOGLE_CALENDAR_EVENTS,
   ],
 })
 export class InfrastructureModule {}

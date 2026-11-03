@@ -7,6 +7,7 @@ import {
   CalendarAccessRevokedError,
   ExternalBusy,
   GoogleCalendarEvents,
+  GoogleCalendarSummary,
 } from '../../domain/calendar/google-calendar-events';
 import { ExternalServiceError } from '../../domain/errors';
 import { readCalendarOauthConfig } from './calendar-oauth-config';
@@ -15,8 +16,7 @@ dayjs.extend(utc);
 dayjs.extend(timezone);
 
 const TOKEN_ENDPOINT = 'https://oauth2.googleapis.com/token';
-const EVENTS_ENDPOINT =
-  'https://www.googleapis.com/calendar/v3/calendars/primary/events';
+const CALENDAR_API = 'https://www.googleapis.com/calendar/v3';
 
 interface GoogleEvent {
   status?: string;
@@ -26,6 +26,16 @@ interface GoogleEvent {
   extendedProperties?: { private?: Record<string, string> };
 }
 
+interface GoogleCalendarListPage {
+  items?: {
+    id: string;
+    summary?: string;
+    summaryOverride?: string;
+    primary?: boolean;
+  }[];
+  nextPageToken?: string;
+}
+
 interface GoogleEventsPage {
   items?: GoogleEvent[];
   nextPageToken?: string;
@@ -33,7 +43,7 @@ interface GoogleEventsPage {
 }
 
 /**
- * Lee los eventos del calendario principal del Calendario conectado (ADR 0038). No usa la API de solo ocupado/libre
+ * Lee los calendarios del Calendario conectado y los eventos de los que el Usuario tildó (ADR 0038). No usa la API de solo ocupado/libre
  * porque no deja distinguir los Eventos del Turno que escribe Agendic.
  */
 @Injectable()
@@ -43,19 +53,81 @@ export class GoogleCalendarEventsClient implements GoogleCalendarEvents {
    * @throws {NotConfiguredError} faltan las credenciales OAuth de Google
    * @throws {ExternalServiceError} Google respondió con error o no respondió
    */
-  async listBusy(refreshToken: string, from: Date, to: Date) {
+  async listCalendars(refreshToken: string) {
     const accessToken = await this.refreshAccessToken(refreshToken);
-    const busy: ExternalBusy[] = [];
+    const calendars: GoogleCalendarSummary[] = [];
     let pageToken: string | undefined;
     do {
-      const page = await this.fetchPage(accessToken, from, to, pageToken);
-      for (const event of page.items ?? []) {
-        const range = busyRange(event, page.timeZone ?? 'UTC');
-        if (range) busy.push(range);
-      }
+      const query = new URLSearchParams({
+        minAccessRole: 'reader',
+        fields: 'nextPageToken,items(id,summary,summaryOverride,primary)',
+      });
+      if (pageToken) query.set('pageToken', pageToken);
+      const res = await this.get(
+        `${CALENDAR_API}/users/me/calendarList?${query}`,
+        accessToken,
+      );
+      if (!res.ok)
+        throw new ExternalServiceError(
+          `Google calendar list request failed: ${res.status}`,
+        );
+      const page = (await res.json()) as GoogleCalendarListPage;
+      for (const item of page.items ?? [])
+        calendars.push({
+          id: item.id,
+          name: item.summaryOverride ?? item.summary ?? item.id,
+          primary: item.primary === true,
+        });
       pageToken = page.nextPageToken;
     } while (pageToken);
+    return calendars.sort((a, b) => Number(b.primary) - Number(a.primary));
+  }
+
+  /**
+   * @throws {CalendarAccessRevokedError} Google rechazó el refresh token
+   * @throws {NotConfiguredError} faltan las credenciales OAuth de Google
+   * @throws {ExternalServiceError} Google respondió con error o no respondió
+   */
+  async listBusy(
+    refreshToken: string,
+    calendarIds: string[],
+    from: Date,
+    to: Date,
+  ) {
+    const accessToken = await this.refreshAccessToken(refreshToken);
+    const busy: ExternalBusy[] = [];
+    for (const calendarId of calendarIds) {
+      let pageToken: string | undefined;
+      do {
+        const page = await this.fetchPage(
+          accessToken,
+          calendarId,
+          from,
+          to,
+          pageToken,
+        );
+        // A checked calendar that left the account is ignored, not an error.
+        if (!page) break;
+        for (const event of page.items ?? []) {
+          const range = busyRange(event, page.timeZone ?? 'UTC');
+          if (range) busy.push(range);
+        }
+        pageToken = page.nextPageToken;
+      } while (pageToken);
+    }
     return busy;
+  }
+
+  private async get(url: string, accessToken: string): Promise<Response> {
+    try {
+      return await fetch(url, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+    } catch (error) {
+      throw new ExternalServiceError('Google Calendar not reachable', {
+        cause: error,
+      });
+    }
   }
 
   private async refreshAccessToken(refreshToken: string): Promise<string> {
@@ -91,10 +163,11 @@ export class GoogleCalendarEventsClient implements GoogleCalendarEvents {
 
   private async fetchPage(
     accessToken: string,
+    calendarId: string,
     from: Date,
     to: Date,
     pageToken?: string,
-  ): Promise<GoogleEventsPage> {
+  ): Promise<GoogleEventsPage | null> {
     const query = new URLSearchParams({
       timeMin: from.toISOString(),
       timeMax: to.toISOString(),
@@ -104,16 +177,11 @@ export class GoogleCalendarEventsClient implements GoogleCalendarEvents {
         'timeZone,nextPageToken,items(status,transparency,start,end,extendedProperties/private)',
     });
     if (pageToken) query.set('pageToken', pageToken);
-    let res: Response;
-    try {
-      res = await fetch(`${EVENTS_ENDPOINT}?${query}`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-    } catch (error) {
-      throw new ExternalServiceError('Google Calendar not reachable', {
-        cause: error,
-      });
-    }
+    const res = await this.get(
+      `${CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events?${query}`,
+      accessToken,
+    );
+    if (res.status === 404 || res.status === 410) return null;
     if (!res.ok)
       throw new ExternalServiceError(
         `Google Calendar events request failed: ${res.status}`,

@@ -267,6 +267,8 @@ como uno que no existe.
 | GET | `/users/me/calendar` | sí | `200 { connection: { provider: 'GOOGLE', email, status: 'CONNECTED' \| 'DISCONNECTED', connectedAt } \| null }`: el Calendario conectado del Usuario (ADR 0036). Nunca trae el token |
 | POST | `/users/me/calendar/google` | sí | `200 { authorizationUrl }`: la dirección de Google a la que el front lleva al navegador para dar el permiso. El `state` va firmado y vence a los 10 minutos |
 | GET | `/calendar-oauth/google/callback` | no | Lo llama Google. Identifica al Usuario por el `state`. Responde 302 a `CALENDAR_RETURN_URL` con `?calendar=connected \| denied \| missing-scope \| error` |
+| GET | `/users/me/calendar/calendars` | sí | `200 { calendars: [{ id, name, primary, checked }] }`: los calendarios de la cuenta de Google conectada, leídos de Google en el momento, el principal primero. `checked` es si cuenta como Ocupado externo. Una conexión nueva arranca con solo el principal tildado |
+| PUT | `/users/me/calendar/calendars` | sí | Body `{ checkedIds: string[] }`. Guarda cuáles calendarios cuentan como Ocupado externo y responde `200` con la misma forma que el `GET`. Una lista vacía vale: no se lee ninguno |
 | DELETE | `/users/me/calendar` | sí | Desconecta y revoca el token en Google. 204 sin body |
 
 - Sin `GOOGLE_CALENDAR_API_KEY` → 503 `Días festivos no configurados`. Todos los endpoints de Días festivos que vengan después responden igual
@@ -281,6 +283,8 @@ Calendario conectado (ADR 0036):
 - `POST /users/me/calendar/google`: 409 `Calendar already connected for User <id>` si ya tiene uno `CONNECTED`; uno `DISCONNECTED` se puede reconectar y la conexión nueva lo reemplaza. Sin credenciales OAuth de Google en el entorno → 503 `Calendario conectado no configurado`
 - `GET /calendar-oauth/google/callback`: `?calendar=denied` si el Usuario rechazó el permiso, `missing-scope` si destildó el de calendario, `error` si el `state` es inválido o venció, o si falla el intercambio del código. Sin credenciales → 503
 - `DELETE /users/me/calendar`: 404 `User <id> has no Calendario conectado` si no tiene uno. Si Google no revoca el token, se loguea y la conexión se borra igual
+- `GET` y `PUT /users/me/calendar/calendars`: 404 `User <id> has no Calendario conectado`; 409 `Calendario conectado of User <id> is disconnected` (también cuando Google rechaza el token al leer: la conexión pasa a `DISCONNECTED`); 502 si Google no responde (el mismo código que el resto de las fallas de servicios externos, `ExternalServiceError`; el ticket decía 503, que en la API es solo "sin configuración"); `PUT`: 400 si `checkedIds` no es un arreglo de textos, 422 `Calendar <id> is not in the connected account` si trae un id que no es de la cuenta (no se guarda nada)
+- Los Ocupados externos se leen de los calendarios tildados; los Eventos del Turno se siguen escribiendo solo en el principal. Un calendario tildado que desaparece de la cuenta se ignora sin error y sale de la lista en el próximo `GET`. Reconectar la misma cuenta (mismo email, sin importar mayúsculas) conserva la selección; conectar otra vuelve al principal. Guardar la selección descarta la caché de un minuto de los Ocupados externos del Usuario
 - `DELETE /users/me` (ADR 0024) también desconecta el Calendario conectado
 
 ## Slots (Horario reservable)

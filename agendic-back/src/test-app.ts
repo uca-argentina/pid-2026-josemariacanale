@@ -301,11 +301,14 @@ export async function createTestApp() {
   const calendarConnections: jest.Mocked<CalendarConnectionsRepository> = {
     findByUserId: jest.fn(),
     findRefreshTokenByUserId: jest.fn().mockResolvedValue(null),
+    findCheckedCalendarIdsByUserId: jest.fn().mockResolvedValue(['primary']),
+    saveCheckedCalendarIds: jest.fn(),
     save: jest.fn(),
     markDisconnected: jest.fn(),
     deleteByUserId: jest.fn(),
   };
   const googleCalendarEvents: jest.Mocked<GoogleCalendarEvents> = {
+    listCalendars: jest.fn().mockResolvedValue([]),
     listBusy: jest.fn().mockResolvedValue([]),
   };
   const googleOauth: jest.Mocked<GoogleCalendarOauth> = {

@@ -1,3 +1,4 @@
+import { CalendarAccessRevokedError } from '../../domain/calendar/google-calendar-events';
 import { ExternalServiceError, NotConfiguredError } from '../../domain/errors';
 import {
   ANA,
@@ -230,6 +231,145 @@ describe('Calendario conectado', () => {
       });
 
       await callback({ code: 'abc', state: 'x' }).expect(503);
+    });
+  });
+
+  describe('calendarios que cuentan como ocupado', () => {
+    const CALENDARS = [
+      { id: 'ana@gmail.com', name: 'Ana', primary: true },
+      { id: 'trabajo@group.calendar.google.com', name: 'Trabajo', primary: false },
+      { id: 'familia@group.calendar.google.com', name: 'Familia', primary: false },
+    ];
+    const ticks = (res: { body: { calendars: { checked: boolean }[] } }) =>
+      res.body.calendars.map((calendar) => calendar.checked);
+    const list = () =>
+      t.http.get('/users/me/calendar/calendars').set(bearer(CLERK_TOKEN));
+    const save = (body: object) =>
+      t.http.put('/users/me/calendar/calendars').set(bearer(CLERK_TOKEN)).send(body);
+
+    beforeEach(() => {
+      t.calendarConnections.findByUserId.mockResolvedValue(CONNECTION);
+      t.calendarConnections.findRefreshTokenByUserId.mockResolvedValue('refresh');
+      t.calendarConnections.findCheckedCalendarIdsByUserId.mockResolvedValue(['primary']);
+      t.googleCalendarEvents.listCalendars.mockResolvedValue(CALENDARS);
+    });
+
+    describe('GET /users/me/calendar/calendars', () => {
+      it('ticks only the primary calendar of a new connection', async () => {
+        const res = await list().expect(200);
+
+        expect(t.googleCalendarEvents.listCalendars).toHaveBeenCalledWith('refresh');
+        expect(res.body).toEqual({
+          calendars: [
+            { ...CALENDARS[0], checked: true },
+            { ...CALENDARS[1], checked: false },
+            { ...CALENDARS[2], checked: false },
+          ],
+        });
+      });
+
+      it('ticks the calendars the Usuario chose', async () => {
+        t.calendarConnections.findCheckedCalendarIdsByUserId.mockResolvedValue([CALENDARS[1].id]);
+
+        expect(ticks(await list().expect(200))).toEqual([false, true, false]);
+      });
+
+      it('leaves out a ticked calendar that left the account, without an error', async () => {
+        t.calendarConnections.findCheckedCalendarIdsByUserId.mockResolvedValue(['borrado@group.calendar.google.com']);
+
+        const res = await list().expect(200);
+
+        expect(res.body.calendars).toHaveLength(3);
+        expect(ticks(res)).toEqual([false, false, false]);
+      });
+
+      it('is 404 without a Calendario conectado', async () => {
+        t.calendarConnections.findByUserId.mockResolvedValue(null);
+
+        const res = await list().expect(404);
+
+        expect(res.body.message).toBe(`User ${ANA.id} has no Calendario conectado`);
+      });
+
+      it('is 409 when the Calendario conectado is DISCONNECTED', async () => {
+        t.calendarConnections.findByUserId.mockResolvedValue({ ...CONNECTION, status: 'DISCONNECTED' });
+
+        const res = await list().expect(409);
+
+        expect(res.body.message).toBe(`Calendario conectado of User ${ANA.id} is disconnected`);
+        expect(t.googleCalendarEvents.listCalendars).not.toHaveBeenCalled();
+      });
+
+      it('is 409 and marks it DISCONNECTED when Google rejects the token', async () => {
+        t.googleCalendarEvents.listCalendars.mockRejectedValue(new CalendarAccessRevokedError('revoked'));
+
+        await list().expect(409);
+
+        expect(t.calendarConnections.markDisconnected).toHaveBeenCalledWith(ANA.id);
+      });
+
+      it('is 502 when Google does not answer', async () => {
+        t.googleCalendarEvents.listCalendars.mockRejectedValue(new ExternalServiceError('Google Calendar not reachable'));
+
+        await list().expect(502);
+      });
+
+      it('is 401 without a Sesión', async () => {
+        await t.http.get('/users/me/calendar/calendars').expect(401);
+      });
+    });
+
+    describe('PUT /users/me/calendar/calendars', () => {
+      it('saves the ticked calendars and answers like the GET', async () => {
+        const res = await save({ checkedIds: [CALENDARS[0].id, CALENDARS[2].id] }).expect(200);
+
+        expect(t.calendarConnections.saveCheckedCalendarIds).toHaveBeenCalledWith(ANA.id, [CALENDARS[0].id, CALENDARS[2].id]);
+        expect(ticks(res)).toEqual([true, false, true]);
+      });
+
+      it('accepts an empty list: no calendar is read', async () => {
+        const res = await save({ checkedIds: [] }).expect(200);
+
+        expect(t.calendarConnections.saveCheckedCalendarIds).toHaveBeenCalledWith(ANA.id, []);
+        expect(ticks(res)).toEqual([false, false, false]);
+      });
+
+      it('is 422 with an id that is not in the connected account', async () => {
+        const res = await save({ checkedIds: [CALENDARS[0].id, 'ajeno@group.calendar.google.com'] }).expect(422);
+
+        expect(res.body.message).toBe('Calendar ajeno@group.calendar.google.com is not in the connected account');
+        expect(t.calendarConnections.saveCheckedCalendarIds).not.toHaveBeenCalled();
+      });
+
+      it('is 400 without a list of ids', async () => {
+        await save({}).expect(400);
+        await save({ checkedIds: 'x' }).expect(400);
+        await save({ checkedIds: [1] }).expect(400);
+      });
+
+      it('is 404 without a Calendario conectado', async () => {
+        t.calendarConnections.findByUserId.mockResolvedValue(null);
+
+        await save({ checkedIds: [] }).expect(404);
+      });
+
+      it('is 409 when the Calendario conectado is DISCONNECTED', async () => {
+        t.calendarConnections.findByUserId.mockResolvedValue({ ...CONNECTION, status: 'DISCONNECTED' });
+
+        await save({ checkedIds: [] }).expect(409);
+        expect(t.calendarConnections.saveCheckedCalendarIds).not.toHaveBeenCalled();
+      });
+
+      it('is 502 when Google does not answer', async () => {
+        t.googleCalendarEvents.listCalendars.mockRejectedValue(new ExternalServiceError('Google Calendar not reachable'));
+
+        await save({ checkedIds: [] }).expect(502);
+        expect(t.calendarConnections.saveCheckedCalendarIds).not.toHaveBeenCalled();
+      });
+
+      it('is 401 without a Sesión', async () => {
+        await t.http.put('/users/me/calendar/calendars').send({ checkedIds: [] }).expect(401);
+      });
     });
   });
 
