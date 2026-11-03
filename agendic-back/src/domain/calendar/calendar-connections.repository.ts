@@ -35,6 +35,13 @@ export interface CalendarConnectionsRepository {
   save(userId: number, connection: NewCalendarConnection): Promise<void>;
 
   /**
+   * Pasa la conexión a `DISCONNECTED`; sin conexión no hace nada.
+   *
+   * @throws {DatabaseOperationError} la base falló
+   */
+  markDisconnected(userId: number): Promise<void>;
+
+  /**
    * Borra la conexión del Usuario; sin conexión no hace nada.
    *
    * @throws {DatabaseOperationError} la base falló

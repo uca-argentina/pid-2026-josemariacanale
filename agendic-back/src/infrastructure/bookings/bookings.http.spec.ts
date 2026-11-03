@@ -387,6 +387,29 @@ describe('Turno', () => {
       expect(t.bookings.create).not.toHaveBeenCalled();
     });
 
+    it('answers 422 when an Ocupado externo appeared on the Calendario conectado since the slot was offered', async () => {
+      t.calendarConnections.findByUserId.mockResolvedValue({
+        provider: 'GOOGLE',
+        email: 'ana@gmail.com',
+        status: 'CONNECTED',
+        connectedAt: new Date('2025-12-01T00:00:00.000Z'),
+      });
+      t.calendarConnections.findRefreshTokenByUserId.mockResolvedValue('refresh');
+      t.googleCalendarEvents.listBusy.mockResolvedValue([
+        {
+          start: new Date('2026-01-01T12:00:00.000Z'),
+          end: new Date('2026-01-01T13:00:00.000Z'),
+        },
+      ]);
+
+      const res = await t.http.post('/bookings').send(VALID_BOOKING).expect(422);
+
+      expect(res.body.message).toBe(
+        `Slot ${VALID_BOOKING.startsAt} is not available for Service ${SERVICE.id}`,
+      );
+      expect(t.bookings.create).not.toHaveBeenCalled();
+    });
+
     it('answers 422 for a Turno that is not a Horario reservable', async () => {
       const res = await t.http
         .post('/bookings')

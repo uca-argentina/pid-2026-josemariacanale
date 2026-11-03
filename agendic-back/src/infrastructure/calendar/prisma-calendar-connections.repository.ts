@@ -67,6 +67,13 @@ export class PrismaCalendarConnectionsRepository implements CalendarConnectionsR
   }
 
   /** @throws {DatabaseOperationError} la base falló */
+  async markDisconnected(userId: number) {
+    await this.prisma.calendarConnection
+      .updateMany({ where: { userId }, data: { status: 'DISCONNECTED' } })
+      .catch(translateError);
+  }
+
+  /** @throws {DatabaseOperationError} la base falló */
   async deleteByUserId(userId: number) {
     await this.prisma.calendarConnection
       .deleteMany({ where: { userId } })

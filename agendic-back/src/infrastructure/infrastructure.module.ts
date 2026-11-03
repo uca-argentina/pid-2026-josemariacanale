@@ -2,6 +2,8 @@ import { Global, Module } from '@nestjs/common';
 import { ANALYTICS_REPOSITORY } from '../domain/analytics/analytics.repository';
 import { AVAILABILITIES_REPOSITORY } from '../domain/availabilities/availabilities.repository';
 import { CALENDAR_CONNECTIONS_REPOSITORY } from '../domain/calendar/calendar-connections.repository';
+import { GOOGLE_CALENDAR_EVENTS } from '../domain/calendar/google-calendar-events';
+import { ListExternalBusyService } from '../application/calendar/list-external-busy.service';
 import { CALENDAR_OAUTH_STATE } from '../domain/calendar/calendar-oauth-state';
 import { GOOGLE_CALENDAR_OAUTH } from '../domain/calendar/google-calendar-oauth';
 import { CLOCK, Clock } from '../domain/clock';
@@ -30,6 +32,7 @@ import { PrismaBookingsRepository } from './bookings/prisma-bookings.repository'
 import { readBookingCodeSecret, TotpBookingVerificationCodes } from './bookings/totp-booking-verification-codes';
 import { CalendarModule } from './calendar/calendar.module';
 import { HmacCalendarOauthState } from './calendar/hmac-calendar-oauth-state';
+import { GoogleCalendarEventsClient } from './calendar/google-calendar-events.client';
 import { GoogleOauthApiClient } from './calendar/google-oauth-api.client';
 import { PrismaCalendarConnectionsRepository } from './calendar/prisma-calendar-connections.repository';
 import { BookingsModule } from './bookings/bookings.module';
@@ -135,9 +138,12 @@ import { WaitlistModule } from './waitlist/waitlist.module';
       useClass: PrismaCalendarConnectionsRepository,
     },
     { provide: GOOGLE_CALENDAR_OAUTH, useClass: GoogleOauthApiClient },
+    { provide: GOOGLE_CALENDAR_EVENTS, useClass: GoogleCalendarEventsClient },
+    ListExternalBusyService,
     { provide: CALENDAR_OAUTH_STATE, useClass: HmacCalendarOauthState },
   ],
   exports: [
+    ListExternalBusyService,
     CLOCK,
     MAILER,
     FILE_STORAGE,

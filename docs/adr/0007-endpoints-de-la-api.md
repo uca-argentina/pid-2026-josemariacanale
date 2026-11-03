@@ -293,6 +293,7 @@ Calendario conectado (ADR 0036):
 - Query: `from`/`to` (`YYYY-MM-DD`, fechas locales de la Sucursal, inclusive, requeridos); falta alguno o formato inválido → 400
 - Rango de hasta 31 días; más, o `to` anterior a `from` → 422
 - Servicio inexistente o dado de baja → 404
+- Si quien atiende tiene un Calendario conectado (ADR 0036), sus Ocupados externos restan Horarios reservables como un Turno tomado, también con el Tiempo de preparación (ADR 0038). Se piden en vivo a Google, con una caché de un minuto por Usuario y rango; si Google falla, la respuesta se calcula sin ellos. Un día que se queda sin horarios por ellos sale `FULLY_BOOKED`. Al Reservar y al Reagendar se recalculan: un Ocupado externo nuevo da el mismo 422 `Slot <startsAt> is not available for Service <id>` que un horario tomado.
 - Cada Empleado activo que Ofrece el Servicio aporta sus Horarios reservables, calculados con su propia Availability y su propia ocupación (por Usuario); sin `employeeId`, la respuesta es la unión de los de cada Empleado. El Límite diario se cuenta sumando a todos
 - Algoritmo de cal.diy, con dayjs (`utc` y `timezone`); la respuesta trae instantes UTC:
   1. Rangos por día: las Franjas de la Availability con la que ese Empleado atiende ese Servicio, leídas en la zona de la Availability, pasan a rangos concretos (el horario de verano lo resuelve dayjs). Una Franja que termina a las 23:59 llega hasta la medianoche

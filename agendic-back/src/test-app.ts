@@ -53,6 +53,10 @@ import {
   CalendarConnectionsRepository,
 } from './domain/calendar/calendar-connections.repository';
 import {
+  GOOGLE_CALENDAR_EVENTS,
+  GoogleCalendarEvents,
+} from './domain/calendar/google-calendar-events';
+import {
   GOOGLE_CALENDAR_OAUTH,
   GoogleCalendarOauth,
 } from './domain/calendar/google-calendar-oauth';
@@ -298,7 +302,11 @@ export async function createTestApp() {
     findByUserId: jest.fn(),
     findRefreshTokenByUserId: jest.fn().mockResolvedValue(null),
     save: jest.fn(),
+    markDisconnected: jest.fn(),
     deleteByUserId: jest.fn(),
+  };
+  const googleCalendarEvents: jest.Mocked<GoogleCalendarEvents> = {
+    listBusy: jest.fn().mockResolvedValue([]),
   };
   const googleOauth: jest.Mocked<GoogleCalendarOauth> = {
     assertConfigured: jest.fn(),
@@ -359,6 +367,8 @@ export async function createTestApp() {
     .useValue(googleCalendar)
     .overrideProvider(CALENDAR_CONNECTIONS_REPOSITORY)
     .useValue(calendarConnections)
+    .overrideProvider(GOOGLE_CALENDAR_EVENTS)
+    .useValue(googleCalendarEvents)
     .overrideProvider(GOOGLE_CALENDAR_OAUTH)
     .useValue(googleOauth)
     .overrideProvider(ANALYTICS_REPOSITORY)
@@ -389,6 +399,7 @@ export async function createTestApp() {
     userHolidaySettings,
     googleCalendar,
     calendarConnections,
+    googleCalendarEvents,
     googleOauth,
     analytics,
     http: request(app.getHttpServer()),
