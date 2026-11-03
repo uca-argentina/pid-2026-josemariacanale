@@ -3,6 +3,7 @@ import {
   Booking,
   BookingActor,
   BookingStatus,
+  ClientBooking,
   CancellationCause,
 } from '../../domain/bookings/booking';
 import {
@@ -885,6 +886,24 @@ describe('Turno', () => {
         expect(t.mailer.sendBookingCancellation).not.toHaveBeenCalled();
       },
     );
+
+    if (action === 'accept')
+      it('hands the confirmed calendar file to the Aviso de cambio del Turno', async () => {
+        t.bookings.findByLink.mockResolvedValue({
+          ...BOOKING,
+          employeeName: 'Luis',
+          service: { name: 'Corte' },
+          business: { name: 'Peluquería' },
+          branch: { name: 'Centro', address: 'Calle 1' },
+        } as unknown as ClientBooking);
+
+        await patch(CLERK_TOKEN).expect(200);
+
+        const invite = t.mailer.sendBookingAcceptance.mock.calls[0][3];
+        expect(invite).toMatchObject({ method: 'REQUEST' });
+        expect(invite?.ics).toContain('STATUS:CONFIRMED');
+        expect(invite?.ics).toContain(`UID:${BOOKING.link}@agendic`);
+      });
 
     it('answers 422 when the Turno is not PENDING', async () => {
       t.bookings.findById.mockResolvedValue(BOOKING);

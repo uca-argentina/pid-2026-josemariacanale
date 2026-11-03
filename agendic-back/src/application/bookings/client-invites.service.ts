@@ -14,6 +14,13 @@ import {
 
 const logger = new Logger('ClientInvites');
 
+/**
+ * Offset inside each Reagendar's block of two `SEQUENCE` numbers (`2 * moves + step`): the acceptance outranks the
+ * REQUEST of its own Reagendar, the CANCEL outranks the acceptance, and the next Reagendar's REQUEST outranks all of
+ * them, so a calendar never ignores a message for repeating a number.
+ */
+const SEQUENCE_STEP = { request: 0, accept: 1, cancel: 2 } as const;
+
 /** The address in `SMTP_FROM`, which may come as `Agendic <turnos@agendic.test>`. */
 const organizerEmail = (from: string | undefined) =>
   from?.match(/<([^>]+)>/)?.[1] ?? from ?? 'no-reply@agendic.invalid';
@@ -33,23 +40,23 @@ export class ClientInvites {
 
   /** Confirmación de reserva o Reagendar: crea o mueve el evento de cada Turno, con el `SEQUENCE` de su cadena. */
   request(links: string[]): Promise<ClientInvite | undefined> {
-    return this.build('REQUEST', links);
+    return this.build('REQUEST', links, SEQUENCE_STEP.request);
   }
 
   /** Cancelar o Rechazar: borra el evento de cada Turno. */
   cancel(links: string[]): Promise<ClientInvite | undefined> {
-    return this.build('CANCEL', links);
+    return this.build('CANCEL', links, SEQUENCE_STEP.cancel);
   }
 
   /** Aceptar turno: el evento tentativo de cada Turno pasa a confirmado, con un `SEQUENCE` por encima del último `REQUEST`. */
   accept(links: string[]): Promise<ClientInvite | undefined> {
-    return this.build('REQUEST', links, true);
+    return this.build('REQUEST', links, SEQUENCE_STEP.accept);
   }
 
   private async build(
     method: InviteMethod,
     links: string[],
-    outranksLast = method === 'CANCEL',
+    step: number,
   ): Promise<ClientInvite | undefined> {
     try {
       if (links.length === 0) return undefined;
@@ -61,10 +68,9 @@ export class ClientInvites {
           const moves = booking.fromRescheduleId
             ? (await this.bookings.findHistoryChain(booking.id)).length - 1
             : 0;
-          // The CANCEL and the acceptance must outrank the last REQUEST the Cliente's calendar applied.
           return {
             booking,
-            event: inviteEventOf(booking, frontendUrl, outranksLast ? moves + 1 : moves),
+            event: inviteEventOf(booking, frontendUrl, 2 * moves + step),
           };
         }),
       );
