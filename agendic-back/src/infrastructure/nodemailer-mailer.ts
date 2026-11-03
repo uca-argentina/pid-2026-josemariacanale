@@ -24,7 +24,6 @@ export function readFrontendUrl(
 const escapeHtml = (text: string) =>
   text.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
-/** Day and hour of a Turno in the zone it is shown in; the same in the Invitación a calificar and the Aviso con Causa. */
 /** The archivo de calendario as nodemailer attaches it: a `text/calendar` alternative with its `METHOD`, which is what Gmail and Outlook read as an invitation. */
 const calendarOf = (invite?: ClientInvite) =>
   invite ? { icalEvent: { method: invite.method, content: invite.ics } } : {};
@@ -37,6 +36,7 @@ const addLinks = (invite: ClientInvite | undefined, link: string) => {
     : '';
 };
 
+/** Day and hour of a Turno in the zone it is shown in; the same in the Invitación a calificar and the Aviso con Causa. */
 const formatWhen = (startsAt: Date, timeZone: string) =>
   new Intl.DateTimeFormat('es-AR', {
     dateStyle: 'full',
