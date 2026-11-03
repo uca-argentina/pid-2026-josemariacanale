@@ -49,6 +49,10 @@ import {
   WaitlistRepository,
 } from './domain/waitlist/waitlist.repository';
 import {
+  BOOKING_CALENDAR_EVENTS_REPOSITORY,
+  BookingCalendarEventsRepository,
+} from './domain/calendar/booking-calendar-events.repository';
+import {
   CALENDAR_CONNECTIONS_REPOSITORY,
   CalendarConnectionsRepository,
 } from './domain/calendar/calendar-connections.repository';
@@ -310,6 +314,19 @@ export async function createTestApp() {
   const googleCalendarEvents: jest.Mocked<GoogleCalendarEvents> = {
     listCalendars: jest.fn().mockResolvedValue([]),
     listBusy: jest.fn().mockResolvedValue([]),
+    createEvent: jest.fn(),
+    updateEvent: jest.fn(),
+    deleteEvent: jest.fn(),
+  };
+  const bookingCalendarEvents: jest.Mocked<BookingCalendarEventsRepository> = {
+    listLiveOfConnectedUsers: jest.fn().mockResolvedValue([]),
+    listOfEndedBookingsOfConnectedUsers: jest.fn().mockResolvedValue([]),
+    findEventOfPreviousBooking: jest.fn().mockResolvedValue(null),
+    save: jest.fn(),
+    moveToBooking: jest.fn(),
+    deleteByBookingId: jest.fn(),
+    listFutureByUserId: jest.fn().mockResolvedValue([]),
+    deleteByUserId: jest.fn(),
   };
   const googleOauth: jest.Mocked<GoogleCalendarOauth> = {
     assertConfigured: jest.fn(),
@@ -372,6 +389,8 @@ export async function createTestApp() {
     .useValue(calendarConnections)
     .overrideProvider(GOOGLE_CALENDAR_EVENTS)
     .useValue(googleCalendarEvents)
+    .overrideProvider(BOOKING_CALENDAR_EVENTS_REPOSITORY)
+    .useValue(bookingCalendarEvents)
     .overrideProvider(GOOGLE_CALENDAR_OAUTH)
     .useValue(googleOauth)
     .overrideProvider(ANALYTICS_REPOSITORY)
@@ -403,6 +422,7 @@ export async function createTestApp() {
     googleCalendar,
     calendarConnections,
     googleCalendarEvents,
+    bookingCalendarEvents,
     googleOauth,
     analytics,
     http: request(app.getHttpServer()),

@@ -138,4 +138,78 @@ describe('GoogleCalendarEventsClient', () => {
       client.listBusy('refresh', ['borrado', 'primary'], from, to),
     ).resolves.toHaveLength(1);
   });
+
+  describe('Eventos del Turno', () => {
+    const content = {
+      bookingId: 7,
+      title: 'Corte · Ana',
+      description: 'Peluquería',
+      location: 'Calle 1',
+      start: new Date('2026-01-02T15:00:00.000Z'),
+      end: new Date('2026-01-02T16:00:00.000Z'),
+      attendeeEmail: 'ana@example.com',
+    };
+    const sentBody = () => JSON.parse(fetchMock.mock.calls[1][1]!.body as string);
+
+    it('crea el evento en el calendario principal con el Cliente invitado, sin mail de Google y con la marca de Agendic', async () => {
+      fetchMock
+        .mockResolvedValueOnce(json({ access_token: 'token' }))
+        .mockResolvedValueOnce(json({ id: 'evt' }));
+
+      await expect(client.createEvent('refresh', content)).resolves.toBe('evt');
+
+      const [url, init] = fetchMock.mock.calls[1];
+      expect(url).toBe(
+        'https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=none',
+      );
+      expect(init?.method).toBe('POST');
+      expect(sentBody()).toMatchObject({
+        summary: 'Corte · Ana',
+        location: 'Calle 1',
+        start: { dateTime: '2026-01-02T15:00:00.000Z' },
+        attendees: [{ email: 'ana@example.com' }],
+        extendedProperties: { private: { agendicBookingId: '7' } },
+      });
+    });
+
+    it('falla con ExternalServiceError si Google rechaza la creación', async () => {
+      fetchMock
+        .mockResolvedValueOnce(json({ access_token: 'token' }))
+        .mockResolvedValueOnce(json({}, 500));
+
+      await expect(client.createEvent('refresh', content)).rejects.toThrow(
+        ExternalServiceError,
+      );
+    });
+
+    it('actualiza el evento, y dice que no está si Google no lo encuentra', async () => {
+      fetchMock
+        .mockResolvedValueOnce(json({ access_token: 'token' }))
+        .mockResolvedValueOnce(json({ id: 'evt', status: 'confirmed' }));
+      await expect(client.updateEvent('refresh', 'evt', content)).resolves.toBe(true);
+      expect(fetchMock.mock.calls[1][1]?.method).toBe('PATCH');
+
+      fetchMock
+        .mockResolvedValueOnce(json({ access_token: 'token' }))
+        .mockResolvedValueOnce(json({}, 404));
+      await expect(client.updateEvent('refresh', 'evt', content)).resolves.toBe(false);
+    });
+
+    it('un evento que Google conserva como cancelado cuenta como borrado', async () => {
+      fetchMock
+        .mockResolvedValueOnce(json({ access_token: 'token' }))
+        .mockResolvedValueOnce(json({ id: 'evt', status: 'cancelled' }));
+
+      await expect(client.updateEvent('refresh', 'evt', content)).resolves.toBe(false);
+    });
+
+    it('borra el evento, y no falla si ya no existe', async () => {
+      fetchMock
+        .mockResolvedValueOnce(json({ access_token: 'token' }))
+        .mockResolvedValueOnce(json({}, 410));
+
+      await expect(client.deleteEvent('refresh', 'evt')).resolves.toBeUndefined();
+      expect(fetchMock.mock.calls[1][1]?.method).toBe('DELETE');
+    });
+  });
 });

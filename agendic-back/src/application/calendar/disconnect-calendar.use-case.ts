@@ -8,11 +8,12 @@ import {
   GoogleCalendarOauth,
 } from '../../domain/calendar/google-calendar-oauth';
 import { NotFoundError } from '../../domain/errors';
+import { DeleteFutureBookingEventsService } from './delete-future-booking-events.service';
 
 const logger = new Logger('DisconnectCalendar');
 
 /**
- * Desconecta el Calendario conectado del Usuario y revoca el token en Google.
+ * Desconecta el Calendario conectado del Usuario: borra sus Eventos del Turno futuros y después revoca el token en Google.
  *
  * Si la revocación falla, o el token guardado no se puede descifrar (clave rotada), se loguea y la conexión se
  * borra igual: dejarla viva, o trabar la baja del Usuario, sería peor que dejar un token sin revocar que ya nadie guarda.
@@ -24,6 +25,7 @@ export class DisconnectCalendarUseCase {
     private readonly connections: CalendarConnectionsRepository,
     @Inject(GOOGLE_CALENDAR_OAUTH)
     private readonly google: GoogleCalendarOauth,
+    private readonly deleteFutureEvents: DeleteFutureBookingEventsService,
   ) {}
 
   /** @throws {NotFoundError} el Usuario no tiene un Calendario conectado */
@@ -42,6 +44,7 @@ export class DisconnectCalendarUseCase {
     try {
       const refreshToken =
         await this.connections.findRefreshTokenByUserId(userId);
+      await this.deleteFutureEvents.execute(userId, refreshToken);
       if (refreshToken !== null) await this.google.revoke(refreshToken);
     } catch (error) {
       logger.error(

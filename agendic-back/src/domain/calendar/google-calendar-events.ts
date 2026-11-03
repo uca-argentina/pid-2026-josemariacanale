@@ -1,4 +1,5 @@
 import { DomainError } from '../errors';
+import { BookingEventContent } from './booking-event';
 
 /** Token de inyección del puerto `GoogleCalendarEvents`. */
 export const GOOGLE_CALENDAR_EVENTS = Symbol('GoogleCalendarEvents');
@@ -54,4 +55,38 @@ export interface GoogleCalendarEvents {
     from: Date,
     to: Date,
   ): Promise<ExternalBusy[]>;
+
+  /**
+   * Crea el Evento del Turno en el calendario principal, con el Cliente de invitado y sin que Google le mande nada; devuelve su id.
+   *
+   * @throws {CalendarAccessRevokedError} Google rechazó el refresh token
+   * @throws {NotConfiguredError} faltan las credenciales OAuth de Google
+   * @throws {ExternalServiceError} Google respondió con error o no respondió
+   */
+  createEvent(
+    refreshToken: string,
+    content: BookingEventContent,
+  ): Promise<string>;
+
+  /**
+   * Reescribe el evento con el contenido nuevo; `false` si ya no existe en el calendario (el Usuario lo borró).
+   *
+   * @throws {CalendarAccessRevokedError} Google rechazó el refresh token
+   * @throws {NotConfiguredError} faltan las credenciales OAuth de Google
+   * @throws {ExternalServiceError} Google respondió con error o no respondió
+   */
+  updateEvent(
+    refreshToken: string,
+    eventId: string,
+    content: BookingEventContent,
+  ): Promise<boolean>;
+
+  /**
+   * Borra el evento; si ya no existe no hace nada.
+   *
+   * @throws {CalendarAccessRevokedError} Google rechazó el refresh token
+   * @throws {NotConfiguredError} faltan las credenciales OAuth de Google
+   * @throws {ExternalServiceError} Google respondió con error o no respondió
+   */
+  deleteEvent(refreshToken: string, eventId: string): Promise<void>;
 }

@@ -1,6 +1,8 @@
 import { Global, Module } from '@nestjs/common';
 import { ANALYTICS_REPOSITORY } from '../domain/analytics/analytics.repository';
 import { AVAILABILITIES_REPOSITORY } from '../domain/availabilities/availabilities.repository';
+import { BOOKING_CALENDAR_EVENTS_REPOSITORY } from '../domain/calendar/booking-calendar-events.repository';
+import { BOOKING_PANEL_LINKS } from '../domain/calendar/booking-event';
 import { CALENDAR_CONNECTIONS_REPOSITORY } from '../domain/calendar/calendar-connections.repository';
 import { GOOGLE_CALENDAR_EVENTS } from '../domain/calendar/google-calendar-events';
 import { ListExternalBusyService } from '../application/calendar/list-external-busy.service';
@@ -31,6 +33,8 @@ import { PrismaAvailabilitiesRepository } from './availabilities/prisma-availabi
 import { PrismaBookingsRepository } from './bookings/prisma-bookings.repository';
 import { readBookingCodeSecret, TotpBookingVerificationCodes } from './bookings/totp-booking-verification-codes';
 import { CalendarModule } from './calendar/calendar.module';
+import { EnvBookingPanelLinks } from './calendar/env-booking-panel-links';
+import { PrismaBookingCalendarEventsRepository } from './calendar/prisma-booking-calendar-events.repository';
 import { HmacCalendarOauthState } from './calendar/hmac-calendar-oauth-state';
 import { GoogleCalendarEventsClient } from './calendar/google-calendar-events.client';
 import { GoogleOauthApiClient } from './calendar/google-oauth-api.client';
@@ -137,6 +141,11 @@ import { WaitlistModule } from './waitlist/waitlist.module';
       provide: CALENDAR_CONNECTIONS_REPOSITORY,
       useClass: PrismaCalendarConnectionsRepository,
     },
+    {
+      provide: BOOKING_CALENDAR_EVENTS_REPOSITORY,
+      useClass: PrismaBookingCalendarEventsRepository,
+    },
+    { provide: BOOKING_PANEL_LINKS, useClass: EnvBookingPanelLinks },
     { provide: GOOGLE_CALENDAR_OAUTH, useClass: GoogleOauthApiClient },
     { provide: GOOGLE_CALENDAR_EVENTS, useClass: GoogleCalendarEventsClient },
     ListExternalBusyService,
@@ -169,6 +178,8 @@ import { WaitlistModule } from './waitlist/waitlist.module';
     GOOGLE_CALENDAR_OAUTH,
     CALENDAR_OAUTH_STATE,
     GOOGLE_CALENDAR_EVENTS,
+    BOOKING_CALENDAR_EVENTS_REPOSITORY,
+    BOOKING_PANEL_LINKS,
   ],
 })
 export class InfrastructureModule {}
