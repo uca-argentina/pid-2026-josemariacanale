@@ -5,6 +5,7 @@ import { BOOKING_CALENDAR_EVENTS_REPOSITORY } from '../domain/calendar/booking-c
 import { BOOKING_PANEL_LINKS } from '../domain/calendar/booking-event';
 import { CALENDAR_CONNECTIONS_REPOSITORY } from '../domain/calendar/calendar-connections.repository';
 import { CALENDAR_EVENTS } from '../domain/calendar/calendar-events';
+import { ClientInvites } from '../application/bookings/client-invites.service';
 import { ListExternalBusyService } from '../application/calendar/list-external-busy.service';
 import { CALENDAR_OAUTH_STATE } from '../domain/calendar/calendar-oauth-state';
 import { CALENDAR_OAUTH } from '../domain/calendar/calendar-oauth';
@@ -157,10 +158,12 @@ import { WaitlistModule } from './waitlist/waitlist.module';
     { provide: CALENDAR_OAUTH, useClass: ProviderCalendarOauthRouter },
     { provide: CALENDAR_EVENTS, useClass: ProviderCalendarEventsRouter },
     ListExternalBusyService,
+    ClientInvites,
     { provide: CALENDAR_OAUTH_STATE, useClass: HmacCalendarOauthState },
   ],
   exports: [
     ListExternalBusyService,
+    ClientInvites,
     CLOCK,
     MAILER,
     FILE_STORAGE,

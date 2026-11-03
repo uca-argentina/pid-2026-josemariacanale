@@ -163,6 +163,7 @@ describe('Acciones sobre la Serie (#305)', () => {
           bookings: [1, 2, 3].map((n) => ({ startsAt: turno(n).startsAt, link: `link-${n}` })),
           timeZone: ANAS_BRANCH.timeZone,
         },
+        expect.objectContaining({ method: 'CANCEL' }),
       );
     });
 
@@ -225,6 +226,7 @@ describe('Acciones sobre la Serie (#305)', () => {
           bookings: [2, 3].map((n) => ({ startsAt: turno(n).startsAt, link: `link-${n}` })),
           timeZone: ANAS_BRANCH.timeZone,
         },
+        expect.objectContaining({ method: 'CANCEL' }),
       );
     });
 
@@ -233,7 +235,13 @@ describe('Acciones sobre la Serie (#305)', () => {
 
       await patch().expect(200);
 
-      expect(t.mailer.sendBookingCancellation).toHaveBeenCalledWith('carla@example.com', 'link-3', null);
+      expect(t.mailer.sendBookingCancellation).toHaveBeenCalledWith(
+        'carla@example.com',
+        'link-3',
+        null,
+        undefined,
+        expect.objectContaining({ method: 'CANCEL' }),
+      );
     });
 
     it('responde 422 en un Turno sin Serie', async () => {
@@ -275,7 +283,7 @@ describe('Acciones sobre la Serie (#305)', () => {
       expect(t.mailer.sendBookingCancellation).toHaveBeenCalledWith('carla@example.com', 'link-2', null, {
         bookings: [2, 3].map((n) => ({ startsAt: turno(n).startsAt, link: `link-${n}` })),
         timeZone: ANAS_BRANCH.timeZone,
-      });
+      }, expect.objectContaining({ method: 'CANCEL' }));
     });
 
     it('responde 200 aunque el mail falle', async () => {

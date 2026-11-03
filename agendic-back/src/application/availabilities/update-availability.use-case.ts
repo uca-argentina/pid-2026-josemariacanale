@@ -14,6 +14,7 @@ import { LeftOutsideBookingsService } from '../bookings/left-outside-bookings.se
 import { notifyCausedCancellations } from '../bookings/notify-caused-cancellations';
 import { confirmedCancellations } from '../out-of-office/confirmed-cancellations';
 import { getOwnAvailability } from './get-own-availability';
+import { ClientInvites } from '../bookings/client-invites.service';
 
 @Injectable()
 export class UpdateAvailabilityUseCase {
@@ -23,6 +24,7 @@ export class UpdateAvailabilityUseCase {
     private readonly leftOutside: LeftOutsideBookingsService,
     @Inject(MAILER) private readonly mailer: Mailer,
     @Inject(CLOCK) private readonly clock: Clock,
+    private readonly invites: ClientInvites,
   ) {}
 
   /**
@@ -61,6 +63,7 @@ export class UpdateAvailabilityUseCase {
     await notifyCausedCancellations(
       this.mailer,
       left.filter((booking) => cancelled.has(booking.id)),
+      (links) => this.invites.cancel(links),
     );
     return { availability, cancelledBookings: cancelledIds.length };
   }

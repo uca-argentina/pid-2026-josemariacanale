@@ -230,3 +230,47 @@ describe.each([
     expect(html).toContain('http://localhost:3000/turnos/two');
   });
 });
+
+describe('NodemailerMailer con archivo de calendario (#404)', () => {
+  const sendMail = jest.fn().mockResolvedValue(undefined);
+  const invite = (method: 'REQUEST' | 'CANCEL') => ({
+    method,
+    ics: 'BEGIN:VCALENDAR',
+    events: [
+      { link: 'secret', googleUrl: 'https://google.test/add', outlookUrl: 'https://outlook.test/add' },
+    ],
+  });
+
+  beforeEach(() => {
+    process.env.FRONTEND_URL = 'http://localhost:3000';
+    (createTransport as jest.Mock).mockReturnValue({ sendMail });
+    sendMail.mockClear();
+  });
+
+  it('attaches the REQUEST and links "Agregar a Google / Outlook" in the Confirmación de reserva', async () => {
+    await new NodemailerMailer().sendBookingConfirmation('a@b.com', 'secret', null, undefined, invite('REQUEST'));
+
+    const mail = sendMail.mock.calls[0][0];
+    expect(mail.icalEvent).toEqual({ method: 'REQUEST', content: 'BEGIN:VCALENDAR' });
+    expect(mail.html).toContain('href="https://google.test/add"');
+    expect(mail.html).toContain('href="https://outlook.test/add"');
+  });
+
+  it('attaches the CANCEL in the Aviso de cambio del Turno', async () => {
+    await new NodemailerMailer().sendBookingCancellation('a@b.com', 'secret', null, undefined, invite('CANCEL'));
+
+    expect(sendMail.mock.calls[0][0].icalEvent).toEqual({ method: 'CANCEL', content: 'BEGIN:VCALENDAR' });
+  });
+
+  it('attaches the REQUEST when Reagendar', async () => {
+    await new NodemailerMailer().sendBookingReschedule('a@b.com', 'secret', invite('REQUEST'));
+
+    expect(sendMail.mock.calls[0][0].icalEvent.method).toBe('REQUEST');
+  });
+
+  it('sends the same mail as before without an archivo de calendario', async () => {
+    await new NodemailerMailer().sendBookingReschedule('a@b.com', 'secret');
+
+    expect(sendMail.mock.calls[0][0]).not.toHaveProperty('icalEvent');
+  });
+});

@@ -10,6 +10,7 @@ import { MAILER, Mailer } from '../../domain/mailer';
 import { findBookingByLink } from './find-booking-by-link';
 import { notifySeries } from './notify-clients';
 import { serieOf } from './serie-of';
+import { ClientInvites } from './client-invites.service';
 
 /**
  * Cancela, por su Enlace del Turno, ese Turno y los siguientes de su Serie (#305, ADR 0032). Manda un solo Aviso de
@@ -21,6 +22,7 @@ export class CancelBookingSeriesByLinkUseCase {
     @Inject(BOOKINGS_REPOSITORY) private readonly bookings: BookingsRepository,
     @Inject(CLOCK) private readonly clock: Clock,
     @Inject(MAILER) private readonly mailer: Mailer,
+    private readonly invites: ClientInvites,
   ) {}
 
   /**
@@ -47,6 +49,7 @@ export class CancelBookingSeriesByLinkUseCase {
       cancelled,
       async () => booking.timeZone,
       (...notice) => this.mailer.sendBookingCancellation(...notice),
+      (links) => this.invites.cancel(links),
     );
     return { cancelled, kept: [] };
   }

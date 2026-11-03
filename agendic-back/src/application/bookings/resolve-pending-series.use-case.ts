@@ -13,6 +13,7 @@ import { MAILER, Mailer } from '../../domain/mailer';
 import { assertAssignedAttendant } from './assert-assigned-attendant';
 import { notifySeries } from './notify-clients';
 import { serieOf } from './serie-of';
+import { ClientInvites } from './client-invites.service';
 
 /**
  * Acepta o rechaza los Turnos pendientes de una Serie (#305, ADR 0032): los de quien atiende que todavía no
@@ -26,6 +27,7 @@ export class ResolvePendingSeriesUseCase {
     private readonly employees: EmployeesRepository,
     @Inject(MAILER) private readonly mailer: Mailer,
     @Inject(CLOCK) private readonly clock: Clock,
+    private readonly invites: ClientInvites,
   ) {}
 
   /**
@@ -61,6 +63,7 @@ export class ResolvePendingSeriesUseCase {
         resolved,
         async () => (await this.bookings.findByLink(resolved[0].link!)).timeZone,
         (...notice) => this.mailer.sendBookingRejection(...notice),
+        (links) => this.invites.cancel(links),
       );
     return resolved;
   }
