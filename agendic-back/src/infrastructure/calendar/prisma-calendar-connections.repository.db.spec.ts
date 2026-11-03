@@ -90,6 +90,21 @@ describe('PrismaCalendarConnectionsRepository checked calendars (real database)'
     });
   });
 
+  it('replaces the refresh token with the one the provider rotated, keeping the rest of the connection', async () => {
+    await connect('ana@outlook.com', 'MICROSOFT');
+
+    await repository.replaceRefreshToken(userId, 'refresh-2');
+
+    await expect(repository.findCredentialsByUserId(userId)).resolves.toMatchObject({
+      provider: 'MICROSOFT',
+      refreshToken: 'refresh-2',
+    });
+    await expect(repository.findByUserId(userId)).resolves.toMatchObject({
+      email: 'ana@outlook.com',
+      status: 'CONNECTED',
+    });
+  });
+
   it('answers an empty list without a connection', async () => {
     await repository.deleteByUserId(userId);
 

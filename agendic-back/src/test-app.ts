@@ -310,6 +310,7 @@ export async function createTestApp() {
     saveCheckedCalendarIds: jest.fn(),
     save: jest.fn(),
     markDisconnected: jest.fn(),
+    replaceRefreshToken: jest.fn(),
     deleteByUserId: jest.fn(),
   };
   const calendarEvents: jest.Mocked<CalendarEvents> = {

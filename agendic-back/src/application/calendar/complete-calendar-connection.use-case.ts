@@ -37,8 +37,9 @@ const logger = new Logger('CompleteCalendarConnection');
 /**
  * Cierra la conexión con un proveedor cuando el Usuario vuelve del permiso.
  *
- * Conectar otro proveedor reemplaza una conexión `DISCONNECTED`: antes se intentan borrar los Eventos del Turno
- * futuros del calendario anterior con su token, y si no se puede se dejan (el Usuario ya no es dueño de ese acceso).
+ * Conectar otro proveedor, o otra cuenta del mismo, reemplaza la conexión anterior: antes se intentan borrar los
+ * Eventos del Turno futuros del calendario anterior con su token, y si no se puede se dejan (el Usuario ya no es dueño
+ * de ese acceso). Las filas se olvidan igual, así el job escribe los Turnos vivos en el calendario nuevo.
  *
  * Identifica al Usuario solo por el `state`. Cualquier falla se resuelve en un resultado, no en una excepción: el
  * callback lo abre el navegador y siempre tiene que terminar en una pantalla del front.
@@ -73,7 +74,7 @@ export class CompleteCalendarConnectionUseCase {
       const grant = await this.oauth.exchangeCode(provider, query.code);
       if (!this.oauth.hasRequiredScopes(provider, grant.scopes))
         return 'missing-scope';
-      await this.leavePreviousProvider(userId, provider);
+      await this.leavePreviousAccount(userId, provider, grant.email);
       await this.connections.save(userId, {
         provider,
         email: grant.email,
@@ -90,20 +91,22 @@ export class CompleteCalendarConnectionUseCase {
     }
   }
 
-  /** Si el Usuario tenía otro proveedor, borra sus Eventos del Turno futuros con el token viejo; si no se puede, se dejan. */
-  private async leavePreviousProvider(
+  /** Si el Usuario tenía otro proveedor u otra cuenta, borra sus Eventos del Turno futuros con el token viejo; si no se puede, se dejan. */
+  private async leavePreviousAccount(
     userId: number,
     provider: CalendarProvider,
+    email: string,
   ) {
     const previous = await this.connections.findByUserId(userId);
-    if (!previous || previous.provider === provider) return;
+    if (!previous) return;
+    if (previous.provider === provider && previous.email === email) return;
     try {
       const credentials =
         await this.connections.findCredentialsByUserId(userId);
       await this.deleteFutureEvents.execute(userId, credentials);
     } catch (error) {
       logger.error(
-        `Eventos del Turno del Usuario ${userId} no borrados de ${previous.provider}; se dejan`,
+        `Eventos del Turno del Usuario ${userId} no borrados de ${previous.provider} (${previous.email}); se dejan`,
         error instanceof Error ? error.stack : String(error),
       );
     }
