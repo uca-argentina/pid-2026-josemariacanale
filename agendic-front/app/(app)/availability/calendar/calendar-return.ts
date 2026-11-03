@@ -1,3 +1,4 @@
+import { CALENDAR_CONNECT_FAILED_MESSAGE } from '@/app/(app)/_components/calendar-copy';
 import { calendarReturnSchema, type CalendarReturn } from '@/src/entities/models/calendar-connection';
 
 /** El `?calendar=` de la URL si es uno de los cuatro que manda el back al volver de Google; `null` si falta o es otro. */
@@ -14,5 +15,5 @@ export const CALENDAR_RETURN_MESSAGES: Record<CalendarReturn, { kind: 'success' 
         kind: 'error',
         message: 'Google no nos dio el permiso para escribir en tu calendario. Volvé a conectar y aceptá todos los permisos.',
     },
-    error: { kind: 'error', message: 'No pudimos conectar tu calendario. Intentá de nuevo.' },
+    error: { kind: 'error', message: CALENDAR_CONNECT_FAILED_MESSAGE },
 };

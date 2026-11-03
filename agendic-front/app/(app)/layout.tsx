@@ -11,6 +11,7 @@ import { getInjection } from '@/di/container';
 import { isSessionExpired, isUserDeactivated } from '@/app/api-error';
 import { loadMyBookings } from '@/app/(app)/bookings/load-my-bookings';
 import { myPreferences } from './my-preferences';
+import { isCalendarDisconnected } from '@/src/entities/models/calendar-connection';
 import type { NavItem } from './_components/types';
 
 const navItems: NavItem[] = [
@@ -59,7 +60,7 @@ async function ownedBusinessName() {
 /** Si Google dejó de dar acceso al Calendario conectado del Usuario; si la consulta falla, no: el aviso no vale un error de página. */
 async function calendarDisconnected() {
     try {
-        return (await getInjection('IGetMyCalendarConnectionController')())?.status === 'DISCONNECTED';
+        return isCalendarDisconnected(await getInjection('IGetMyCalendarConnectionController')());
     } catch (error) {
         if (!isSessionExpired(error) && !isUserDeactivated(error)) getInjection('ICrashReporterService').report(error);
         return false;

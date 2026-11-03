@@ -13,6 +13,9 @@ export const calendarConnectionSchema = z.object({
 });
 export type CalendarConnection = z.infer<typeof calendarConnectionSchema>;
 
+/** Si Google dejó de aceptar el permiso del Calendario conectado; `false` si el Usuario no tiene ninguno. */
+export const isCalendarDisconnected = (connection: Pick<CalendarConnection, 'status'> | null) => connection?.status === 'DISCONNECTED';
+
 /** El cuerpo de `GET /users/me/calendar`: `connection` es `null` mientras el Usuario no conectó ninguno. */
 export const myCalendarSchema = z.object({ connection: calendarConnectionSchema.nullable() });
 

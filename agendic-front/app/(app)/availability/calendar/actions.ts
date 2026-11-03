@@ -5,6 +5,7 @@ import { redirect, unstable_rethrow } from 'next/navigation';
 import { isSessionExpired } from '@/app/api-error';
 import { SIGN_IN_PATH } from '@/app/routes';
 import { getInjection } from '@/di/container';
+import { CALENDAR_CONNECT_FAILED_MESSAGE, CALENDAR_NOT_CONFIGURED_MESSAGE } from '@/app/(app)/_components/calendar-copy';
 import { CalendarAlreadyConnectedError, CalendarNotConfiguredError } from '@/src/entities/errors/calendar';
 import { NotFoundError } from '@/src/entities/errors/common';
 
@@ -28,14 +29,14 @@ export async function connectGoogleCalendarAction(): Promise<ConnectCalendarResu
         unstable_rethrow(error);
         if (isSessionExpired(error)) redirect(SIGN_IN_PATH);
         if (error instanceof CalendarNotConfiguredError) {
-            return { ok: false, notConfigured: true, message: 'Google Calendar todavía no está disponible. Probá más tarde.' };
+            return { ok: false, notConfigured: true, message: CALENDAR_NOT_CONFIGURED_MESSAGE };
         }
         if (error instanceof CalendarAlreadyConnectedError) {
             refresh();
             return { ok: false, message: 'Ya tenés un calendario conectado. Actualizamos la pantalla.' };
         }
         getInjection('ICrashReporterService').report(error);
-        return { ok: false, message: 'No pudimos conectar tu calendario. Intentá de nuevo.' };
+        return { ok: false, message: CALENDAR_CONNECT_FAILED_MESSAGE };
     }
 }
 

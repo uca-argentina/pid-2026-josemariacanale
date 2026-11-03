@@ -17,7 +17,8 @@ import {
     AlertDialogTitle,
 } from '@/app/_components/ui/alert-dialog';
 import { Button } from '@/app/_components/ui/button';
-import type { CalendarConnection, CalendarReturn } from '@/src/entities/models/calendar-connection';
+import { CALENDAR_DISCONNECTED_NOTICE, CALENDAR_NOT_CONFIGURED_MESSAGE } from '@/app/(app)/_components/calendar-copy';
+import { isCalendarDisconnected, type CalendarConnection, type CalendarReturn } from '@/src/entities/models/calendar-connection';
 import { connectGoogleCalendarAction, disconnectCalendarAction } from '../actions';
 import { CALENDAR_RETURN_MESSAGES } from '../calendar-return';
 
@@ -64,19 +65,19 @@ export function CalendarView({ connection, returned }: { connection: CalendarCon
         else toast.error(result.message);
     };
 
-    const disconnected = connection?.status === 'DISCONNECTED';
+    const disconnected = isCalendarDisconnected(connection);
 
     return (
         <div className="flex-1 bg-background px-4 py-8 text-foreground sm:px-8">
             <header className="flex flex-col gap-1">
                 <h1 className="m-0 text-xl font-extrabold tracking-tight">Calendario conectado</h1>
-                <p className="m-0 text-sm text-muted-foreground">Conectá tu cuenta de Google para que tus Turnos aparezcan en tu calendario.</p>
+                <p className="m-0 text-sm text-muted-foreground">Conectá Google Calendar para que tus Turnos aparezcan en tu calendario.</p>
             </header>
 
             {disconnected && (
                 <div role="alert" className="mt-6 flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-4 text-sm">
                     <CircleAlert className="mt-0.5 size-4 shrink-0 text-destructive" />
-                    <p className="m-0 font-medium">Google dejó de dar acceso, volvé a conectar.</p>
+                    <p className="m-0 font-medium">{CALENDAR_DISCONNECTED_NOTICE}</p>
                 </div>
             )}
 
@@ -93,21 +94,16 @@ export function CalendarView({ connection, returned }: { connection: CalendarCon
                     ) : (
                         <>
                             <p className="m-0 text-sm font-bold">Ningún calendario conectado</p>
-                            <p className="m-0 text-sm text-muted-foreground">Todavía no conectaste tu cuenta de Google.</p>
+                            <p className="m-0 text-sm text-muted-foreground">Todavía no conectaste Google Calendar.</p>
                         </>
                     )}
                 </div>
-                {connection && !disconnected ? (
-                    <Button type="button" variant="outline" disabled={busy} onClick={() => setConfirming(true)}>
-                        <Unplug />
-                        Desconectar
-                    </Button>
-                ) : (
+                {(!connection || disconnected) && (
                     <Button type="button" disabled={busy || notConfigured} onClick={connect}>
                         {disconnected ? 'Volver a conectar' : 'Conectar Google Calendar'}
                     </Button>
                 )}
-                {disconnected && (
+                {connection && (
                     <Button type="button" variant="outline" disabled={busy} onClick={() => setConfirming(true)}>
                         <Unplug />
                         Desconectar
@@ -117,7 +113,7 @@ export function CalendarView({ connection, returned }: { connection: CalendarCon
 
             {notConfigured && (
                 <p role="status" className="mt-3 text-sm text-muted-foreground">
-                    Google Calendar todavía no está disponible. Probá más tarde.
+                    {CALENDAR_NOT_CONFIGURED_MESSAGE}
                 </p>
             )}
 
