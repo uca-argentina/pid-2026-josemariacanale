@@ -19,15 +19,19 @@ Lo que un Negocio sabe de un email de Cliente a lo largo de todos sus Turnos. Es
 _Avoid_: perfil del cliente, cuenta del cliente, historia clínica
 
 **Sucursal**:
-Sede física de un Negocio, con zona horaria propia. Un Negocio puede tener varias. No tiene horario de apertura ni de cierre: los Horarios reservables salen solo de las Availability de sus Empleados. Solo los Servicios del Negocio tienen Sucursal. Tiene siempre al menos una imagen, desde que se crea. Puede tener una descripción propia, opcional, que reemplaza a la del Negocio en la página de la Sucursal.
+Sede física de un Negocio, con zona horaria y Ubicación propias. Un Negocio puede tener varias. No tiene horario de apertura ni de cierre: los Horarios reservables salen solo de las Availability de sus Empleados. Solo los Servicios del Negocio tienen Sucursal. Tiene siempre al menos una imagen, desde que se crea. Puede tener una descripción propia, opcional, que reemplaza a la del Negocio en la página de la Sucursal.
 _Avoid_: sede, local
+
+**Ubicación**:
+Dirección de una Sucursal junto con su punto en el mapa. El Dueño la elige de las sugerencias mientras la escribe y puede corregir el punto a mano. El Cliente ve la dirección y el punto en la página del Negocio, en la de la Sucursal, en la Confirmación de reserva y en el Enlace del Turno; una Sucursal sin punto no aparece en el mapa. Solo las Sucursales tienen Ubicación: los Servicios personales no.
+_Avoid_: dirección (a secas), coordenadas, geolocalización, pin
 
 **Cabina**:
 Espacio o equipo de una Sucursal (un box, una camilla, un láser) que un Turno ocupa mientras dura, con su Tiempo de preparación. Dos Turnos no pueden ocupar la misma Cabina a la vez, igual que pasa con el Empleado. No tiene horario propio: solo resta Horarios reservables. Solo la usan los Servicios del Negocio que la admiten, y es opcional: un Servicio sin Cabinas depende solo de sus Empleados. Un Servicio puede admitir varias; cada Turno ocupa una sola. Al Reservar se le asigna una libre, la que hace más tiempo que no recibe un Turno de cualquier Servicio, sin atarla al Empleado. Reagendar la conserva si sigue libre; si no, pasa a otra. El Cliente no la elige ni la ve. Solo la gestiona el Dueño. Los Turnos tomados antes de que su Servicio admitiera Cabinas no ocupan ninguna hasta que se Reagendan. A diferencia de lo demás, no se puede Dar de baja una Cabina mientras tenga Turnos futuros: primero se Reagendan o se Cancelan.
 _Avoid_: recurso, sala, box, equipo, puesto
 
 **Empleado**:
-Usuario que atiende los Servicios del Negocio. Puede atender cualquiera de ellos. Un Usuario puede ser Empleado de varios Negocios a la vez, sea o no Dueño de otro.
+Usuario que atiende los Servicios del Negocio. Trabaja en una o más Sucursales del Negocio, siempre al menos una, y puede atender cualquier Servicio de ellas. Las elige el Dueño, en la Invitación y después; el Dueño trabaja en todas. Dejar de trabajar en una Sucursal es dejar de Ofrecer todos sus Servicios ahí: sus Turnos futuros en esa Sucursal se Cancelan, previa confirmación, y no se puede si es el último Empleado de alguno. Un Usuario puede ser Empleado de varios Negocios a la vez, sea o no Dueño de otro.
 _Avoid_: recurso
 
 **Especialidad**:
@@ -38,7 +42,7 @@ _Avoid_: habilidad, skill, rubro
 El conjunto de Empleados de un Negocio. Solo se usa en plural/colectivo.
 
 **Invitación**:
-Pedido del Dueño a una persona, identificada por su email, para que sea Empleado de su Negocio. No hace Empleado a nadie hasta que la persona la acepta. Si la persona todavía no es Usuario, además recibe un mail que la invita a crearse una cuenta de Agendic.
+Pedido del Dueño a una persona, identificada por su email, para que sea Empleado de su Negocio en las Sucursales que elige. No hace Empleado a nadie hasta que la persona la acepta. Si la persona todavía no es Usuario, además recibe un mail que la invita a crearse una cuenta de Agendic.
 _Avoid_: solicitud, pedido, agregar Empleado (eso saltea la aceptación)
 
 **Aceptar invitación**:
@@ -118,7 +122,7 @@ Minutos que tienen que faltar como mínimo para el inicio de un Turno al Reserva
 _Avoid_: aviso previo, minimum notice
 
 **Ofrecer un Servicio**:
-Acción de un Empleado de empezar a atender un Servicio del Negocio, con una de sus Availability. La hace él mismo o el Dueño por él. Su contraria es dejar de ofrecerlo, que no se puede si es el último Empleado del Servicio.
+Acción de un Empleado de empezar a atender un Servicio del Negocio, con una de sus Availability. Solo puede Ofrecer los Servicios de las Sucursales donde trabaja. La hace él mismo o el Dueño por él. Su contraria es dejar de ofrecerlo, que no se puede si es el último Empleado del Servicio.
 _Avoid_: asignarse, tomar un servicio
 
 **Servicio oculto**:
@@ -169,8 +173,20 @@ _Avoid_: razón, causa (eso es la Causa de cancelación)
 Feriado de un país o de un calendario religioso que el Usuario elige. Todos los Días festivos de lo elegido quedan prendidos hasta que el Usuario apaga alguno, y cada uno prendido bloquea al Usuario como un día Fuera de la oficina, siempre que caiga en un día que trabaja. Al prenderlo, los Turnos pendientes o aceptados que caen en ese día se Cancelan, previa confirmación y con una Causa de cancelación.
 _Avoid_: feriado, holiday
 
+**Calendario conectado**:
+Cuenta de Google o de Microsoft que un Usuario vincula a Agendic, una sola a la vez. Agendic escribe ahí un Evento del Turno por cada Turno que ese Usuario atiende, en el calendario principal, y lee los Ocupados externos de los calendarios de la cuenta que el Usuario elige (el principal, si no elige otro). Es del Usuario, no de su vínculo con un Negocio. El Cliente no tiene uno: recibe el Turno como archivo de calendario en sus mails.
+_Avoid_: integración, sincronización (a secas), calendario externo (a secas)
+
+**Evento del Turno**:
+Evento que Agendic escribe en el Calendario conectado de quien atiende un Turno, y que sigue al Turno: nace al Reservar (también pendiente), cambia al Aceptar o Reagendar, y se borra al Cancelar o Rechazar. Lleva al Cliente como invitado. Nunca lleva la Nota interna ni las Preferencias del Cliente. Al desconectar el Calendario conectado se borran los futuros; los pasados quedan.
+_Avoid_: evento (a secas), cita, invitación (eso es la del Empleado)
+
+**Ocupado externo**:
+Tramo en que un Calendario conectado figura ocupado por algo que no escribió Agendic. Resta Horarios reservables a ese Usuario en todos sus Servicios, también en su Tiempo de preparación, pero nunca Cancela un Turno ya tomado. Si el calendario no responde, se ignora. Nadie lo ve en Agendic, ni el Dueño ni el propio Usuario: solo se ve su efecto, menos Horarios reservables.
+_Avoid_: evento externo, bloqueo, busy
+
 **Horario reservable**:
-Hora concreta en la que un Cliente puede Reservar un Turno para un Servicio, ya descontadas las Anulaciones, los días Fuera de la oficina, los Días festivos, la Anticipación mínima y los Turnos tomados. En un Servicio del Negocio, basta con que un Empleado que lo Ofrece esté libre y, si el Servicio admite Cabinas, también una de ellas. Los Turnos ocupan al Usuario que los atiende en todos sus Servicios, personales o de cualquier Negocio.
+Hora concreta en la que un Cliente puede Reservar un Turno para un Servicio, ya descontadas las Anulaciones, los días Fuera de la oficina, los Días festivos, los Ocupados externos, la Anticipación mínima y los Turnos tomados. En un Servicio del Negocio, basta con que un Empleado que lo Ofrece esté libre y, si el Servicio admite Cabinas, también una de ellas. Los Turnos ocupan al Usuario que los atiende en todos sus Servicios, personales o de cualquier Negocio.
 _Avoid_: slot, hueco, disponibilidad
 
 **Categoría de Servicio**:
@@ -280,15 +296,15 @@ _Avoid_: cancelar (eso aplica a un turno ya aceptado)
 ### Comunicación
 
 **Confirmación de reserva**:
-Aviso automático que recibe el Cliente cuando su turno queda creado.
+Aviso automático que recibe el Cliente cuando su turno queda creado. Lleva el Turno como archivo de calendario, tentativo si queda pendiente, y enlaces para agregarlo a Google o a Outlook; en una Serie, un evento por Turno.
 _Avoid_: confirmación (a secas)
 
 **Aviso de cambio del Turno**:
-Aviso automático por mail que recibe el Cliente cuando su Turno se Cancela, se Reagenda, se Rechaza o queda cancelado por una baja, lo haga el Empleado o el propio Cliente. Cuando lo Cancela un cambio en el horario de quien lo atiende, lleva además la Causa de cancelación. Lleva el Enlace del Turno. Si el mail falla, el cambio igual queda hecho.
+Aviso automático por mail que recibe el Cliente cuando su Turno se Acepta, se Cancela, se Reagenda, se Rechaza o queda cancelado por una baja, lo haga el Empleado o el propio Cliente. Cuando lo Cancela un cambio en el horario de quien lo atiende, lleva además la Causa de cancelación. Lleva el Enlace del Turno y el archivo de calendario que actualiza o borra el evento que trajo la Confirmación de reserva. Marcarlo atendido o con una Ausencia, Pagar la Seña o Calificar no mandan Aviso. Si el mail falla, el cambio igual queda hecho.
 _Avoid_: notificación (a secas), recordatorio
 
 **Lista de espera**:
-Clientes anotados para un Servicio en una fecha con todos sus Horarios reservables tomados, a la espera de que se libere uno. Solo se ofrece en un día lleno: no en uno en que nadie trabaja, ni en uno Fuera de la oficina o Día festivo. Lleno es el Servicio entero, sumando a todos sus Empleados: si un Empleado elegido no tiene lugar pero otro sí, el día no está lleno. Vale igual para los Servicios personales y los del Negocio. Se compone de Anotaciones. El Negocio no ve quién está anotado.
+Clientes anotados para un Servicio en una fecha con todos sus Horarios reservables tomados, a la espera de que se libere uno. Solo se ofrece en un día lleno: no en uno en que nadie trabaja, ni en uno Fuera de la oficina o Día festivo. Un día sin lugar por Ocupados externos sí cuenta como lleno. Lleno es el Servicio entero, sumando a todos sus Empleados: si un Empleado elegido no tiene lugar pero otro sí, el día no está lleno. Vale igual para los Servicios personales y los del Negocio. Se compone de Anotaciones. El Negocio no ve quién está anotado.
 _Avoid_: waitlist, cola
 
 **Anotación**:
