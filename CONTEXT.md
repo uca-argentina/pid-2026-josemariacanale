@@ -288,7 +288,7 @@ Aviso automático que recibe el Cliente cuando su turno queda creado.
 _Avoid_: confirmación (a secas)
 
 **Aviso de cambio del Turno**:
-Aviso automático por mail que recibe el Cliente cuando su Turno se Cancela, se Reagenda, se Rechaza o queda cancelado por una baja, lo haga el Empleado o el propio Cliente. Cuando lo Cancela un cambio en el horario de quien lo atiende, lleva además la Causa de cancelación. Lleva el Enlace del Turno. Si el mail falla, el cambio igual queda hecho.
+Aviso automático por mail que recibe el Cliente cuando su Turno se Cancela, se Reagenda, se Rechaza, se Acepta (si estaba pendiente) o queda cancelado por una baja, lo haga el Empleado o el propio Cliente. Cuando lo Cancela un cambio en el horario de quien lo atiende, lleva además la Causa de cancelación. Lleva el Enlace del Turno. Si el mail falla, el cambio igual queda hecho.
 _Avoid_: notificación (a secas), recordatorio
 
 **Lista de espera**:

@@ -877,6 +877,8 @@ describe('Turno', () => {
           expect(t.mailer.sendBookingAcceptance).toHaveBeenCalledWith(
             BOOKING.clientEmail,
             BOOKING.link,
+            undefined,
+            undefined,
           );
           expect(t.mailer.sendBookingRejection).not.toHaveBeenCalled();
         }

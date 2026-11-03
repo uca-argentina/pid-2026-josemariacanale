@@ -43,9 +43,7 @@ export class AcceptBookingUseCase {
     await notifyClients(
       [accepted],
       (email, link, _reason, invite) =>
-        invite
-          ? this.mailer.sendBookingAcceptance(email, link, undefined, invite)
-          : this.mailer.sendBookingAcceptance(email, link),
+        this.mailer.sendBookingAcceptance(email, link, undefined, invite),
       (links) => this.invites.accept(links),
     );
     return accepted;
