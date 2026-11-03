@@ -64,3 +64,22 @@ Reservar y el Enlace del Turno (ADR 0022) necesitan estas variables. Sin ellas e
 | `FRONTEND_URL` | Dirección del front (por ejemplo `http://localhost:3000`). La Confirmación de reserva manda el Enlace del Turno como `<FRONTEND_URL>/turnos/<link>`. |
 
 Para generar el secreto: `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`. Cambiarlo solo invalida los códigos que estén en vuelo (duran 15 minutos). Los tests no lo usan: la app de test reemplaza los códigos y el mailer.
+
+### Geocodificar las Sucursales existentes
+
+Las Sucursales anteriores a la Ubicación (ADR 0037) no tienen punto en el mapa. Un script que se corre una sola vez, a mano, por ambiente, les pasa la `address` por la Geocoding API de Google y guarda el primer resultado. No es una migración de Prisma porque depende de una API externa y de una key.
+
+| Variable | Qué es |
+| --- | --- |
+| `GOOGLE_GEOCODING_API_KEY` | API key de Google con la Geocoding API habilitada. Sin valor en el repo; el script no la loguea. |
+| `DATABASE_URL` | La base del ambiente donde se corre. |
+
+```
+GOOGLE_GEOCODING_API_KEY=<key> DATABASE_URL=<url> npm run geocode-branches
+```
+
+En PowerShell: `$env:GOOGLE_GEOCODING_API_KEY='<key>'; npm run geocode-branches`.
+
+Al terminar imprime cuántas completó y lista, con id, nombre y dirección, las que quedaron sin punto (sin resultado, o con un resultado `APPROXIMATE`): el Dueño las completa desde el panel. Se puede volver a correr sin riesgo: solo toca las Sucursales que siguen sin punto.
+
+> **Pendiente:** correrlo en cada ambiente que tenga Sucursales previas. Tildar acá cuando esté hecho: `[ ]` desarrollo, `[ ]` producción.
