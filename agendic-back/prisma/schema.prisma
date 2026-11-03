@@ -118,6 +118,8 @@ model Branch {
   timeZone    String // IANA name (e.g. America/Argentina/Buenos_Aires), never a UTC offset; the only source of time zone in the system
   slug        String // Enlace de reserva's second tramo: /business/<business slug>/<slug>, always lowercase (ADR 0014)
   description String? // shown on the public page instead of the Negocio's own; null = none
+  latitude    Float? // Ubicación's point (ADR 0037); both or neither (CHECK Branch_location_both_or_neither), null only on Sucursales from before it existed
+  longitude   Float?
 
   business Business      @relation(fields: [businessId], references: [id])
   services Service[]

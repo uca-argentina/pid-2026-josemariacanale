@@ -1,4 +1,9 @@
-import { Branch, BranchWithImages } from './branch';
+import {
+  Branch,
+  BranchWithImages,
+  CreateBranchInput,
+  UpdateBranchInput,
+} from './branch';
 
 export const BRANCHES_REPOSITORY = Symbol('BranchesRepository');
 
@@ -11,20 +16,11 @@ export interface BranchesRepository {
    * @throws {DatabaseOperationError} la base respondió con error
    */
   createWithImages(
-    data: Pick<
-      Branch,
-      'businessId' | 'name' | 'address' | 'timeZone' | 'slug'
-    > &
-      Partial<Pick<Branch, 'description'>>,
+    data: CreateBranchInput & Pick<Branch, 'businessId'>,
     imageUrls: string[],
   ): Promise<BranchWithImages>;
   findById(id: number): Promise<Branch | null>;
   listByBusiness(businessId: number): Promise<Branch[]>;
   /** Leaves undefined fields unchanged. */
-  update(
-    id: number,
-    data: Partial<
-      Pick<Branch, 'name' | 'address' | 'timeZone' | 'slug' | 'description'>
-    >,
-  ): Promise<Branch>;
+  update(id: number, data: UpdateBranchInput): Promise<Branch>;
 }

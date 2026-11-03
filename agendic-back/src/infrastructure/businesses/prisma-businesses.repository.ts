@@ -11,7 +11,10 @@ import {
 } from '../../domain/errors';
 import { Business as BusinessRow, Prisma } from '../../generated/prisma/client';
 import { toBranchImage } from '../branch-images/prisma-branch-images.repository';
-import { toBranch } from '../branches/prisma-branches.repository';
+import {
+  toBranch,
+  toPointColumns,
+} from '../branches/prisma-branches.repository';
 import {
   toEmployee,
   WITH_USER,
@@ -46,6 +49,7 @@ export class PrismaBusinessesRepository implements BusinessesRepository {
             timeZone: data.branch.timeZone,
             slug: data.branch.slug,
             description: data.branch.description,
+            ...toPointColumns(data.branch.location),
             images: {
               create: data.branchImageUrls.map((url, order) => ({
                 url,

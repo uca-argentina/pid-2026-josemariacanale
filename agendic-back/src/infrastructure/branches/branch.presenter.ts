@@ -9,6 +9,7 @@ export const presentBranch = (branch: Branch) => ({
   timeZone: branch.timeZone,
   slug: branch.slug,
   description: branch.description,
+  location: branch.location,
 });
 
 /** A Sucursal as `presentBranch`, plus its images in order. */

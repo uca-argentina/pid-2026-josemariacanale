@@ -1,5 +1,5 @@
 import { BranchImage } from '../branch-images/branch-image';
-import { Branch } from '../branches/branch';
+import { Branch, CreateBranchInput } from '../branches/branch';
 import { Employee } from '../employees/employee';
 import { Service } from '../services/service';
 import { Business } from './business';
@@ -9,8 +9,7 @@ export const BUSINESSES_REPOSITORY = Symbol('BusinessesRepository');
 /** Everything a Negocio needs to take Turnos, written at once. */
 export interface CreateBusinessData {
   business: Pick<Business, 'name' | 'description' | 'ownerId' | 'slug'>;
-  branch: Pick<Branch, 'name' | 'address' | 'timeZone' | 'slug'> &
-    Partial<Pick<Branch, 'description'>>;
+  branch: CreateBranchInput;
   /** Without it the Negocio is created with no Servicio. */
   service?: Pick<
     Service,
