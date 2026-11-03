@@ -10,9 +10,9 @@ describe('PrismaCalendarConnectionsRepository checked calendars (real database)'
   const original = { ...process.env };
   let userId: number;
 
-  const connect = (email: string) =>
+  const connect = (email: string, provider: 'GOOGLE' | 'MICROSOFT' = 'GOOGLE') =>
     repository.save(userId, {
-      provider: 'GOOGLE',
+      provider,
       email,
       refreshToken: 'refresh',
       connectedAt: new Date(),
@@ -40,15 +40,21 @@ describe('PrismaCalendarConnectionsRepository checked calendars (real database)'
   it('a new connection ticks only the primary calendar', async () => {
     await connect('ana@gmail.com');
 
-    await expect(repository.findCheckedCalendarIdsByUserId(userId)).resolves.toEqual(['primary']);
+    await expect(
+      repository.findCheckedCalendarIdsByUserId(userId),
+    ).resolves.toEqual(['primary']);
   });
 
   it('saves the ticked calendars, an empty list included', async () => {
     await repository.saveCheckedCalendarIds(userId, ['trabajo']);
-    await expect(repository.findCheckedCalendarIdsByUserId(userId)).resolves.toEqual(['trabajo']);
+    await expect(
+      repository.findCheckedCalendarIdsByUserId(userId),
+    ).resolves.toEqual(['trabajo']);
 
     await repository.saveCheckedCalendarIds(userId, []);
-    await expect(repository.findCheckedCalendarIdsByUserId(userId)).resolves.toEqual([]);
+    await expect(
+      repository.findCheckedCalendarIdsByUserId(userId),
+    ).resolves.toEqual([]);
   });
 
   it('reconnecting the same account keeps the selection', async () => {
@@ -56,7 +62,9 @@ describe('PrismaCalendarConnectionsRepository checked calendars (real database)'
 
     await connect('Ana@gmail.com');
 
-    await expect(repository.findCheckedCalendarIdsByUserId(userId)).resolves.toEqual(['trabajo']);
+    await expect(
+      repository.findCheckedCalendarIdsByUserId(userId),
+    ).resolves.toEqual(['trabajo']);
   });
 
   it('connecting another account goes back to the primary calendar', async () => {
@@ -64,12 +72,29 @@ describe('PrismaCalendarConnectionsRepository checked calendars (real database)'
 
     await connect('otra@gmail.com');
 
+    await expect(
+      repository.findCheckedCalendarIdsByUserId(userId),
+    ).resolves.toEqual(['primary']);
+  });
+
+  it('connecting another provider goes back to the primary calendar, even with the same email', async () => {
+    await connect('ana@gmail.com');
+    await repository.saveCheckedCalendarIds(userId, ['trabajo']);
+
+    await connect('ana@gmail.com', 'MICROSOFT');
+
     await expect(repository.findCheckedCalendarIdsByUserId(userId)).resolves.toEqual(['primary']);
+    await expect(repository.findCredentialsByUserId(userId)).resolves.toEqual({
+      provider: 'MICROSOFT',
+      refreshToken: 'refresh',
+    });
   });
 
   it('answers an empty list without a connection', async () => {
     await repository.deleteByUserId(userId);
 
-    await expect(repository.findCheckedCalendarIdsByUserId(userId)).resolves.toEqual([]);
+    await expect(
+      repository.findCheckedCalendarIdsByUserId(userId),
+    ).resolves.toEqual([]);
   });
 });

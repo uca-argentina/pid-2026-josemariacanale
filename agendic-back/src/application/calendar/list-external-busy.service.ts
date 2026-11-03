@@ -6,12 +6,12 @@ import {
 import {
   CalendarAccessRevokedError,
   ExternalBusy,
-  GOOGLE_CALENDAR_EVENTS,
-  GoogleCalendarEvents,
-} from '../../domain/calendar/google-calendar-events';
+  CALENDAR_EVENTS,
+  CalendarEvents,
+} from '../../domain/calendar/calendar-events';
 import { CLOCK, Clock } from '../../domain/clock';
 
-/** Cuánto vale lo que Google contestó para el mismo Usuario y rango (ADR 0038). */
+/** Cuánto vale lo que el proveedor contestó para el mismo Usuario y rango (ADR 0038). */
 const CACHE_TTL_MS = 60_000;
 
 /** Los Ocupados externos del Calendario conectado de un Usuario, leídos en vivo (ADR 0038). */
@@ -26,14 +26,14 @@ export class ListExternalBusyService {
   constructor(
     @Inject(CALENDAR_CONNECTIONS_REPOSITORY)
     private readonly connections: CalendarConnectionsRepository,
-    @Inject(GOOGLE_CALENDAR_EVENTS)
-    private readonly events: GoogleCalendarEvents,
+    @Inject(CALENDAR_EVENTS)
+    private readonly events: CalendarEvents,
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
   /**
    * Los ocupados de `userId` que se cruzan con `[from, to)`, con una caché de un minuto por Usuario y rango. Sin
-   * Calendario conectado, o `DISCONNECTED`, ninguno. Fail-open: si Google falla se loguea y el cálculo sigue sin ellos;
+   * Calendario conectado, o `DISCONNECTED`, ninguno. Fail-open: si el proveedor falla se loguea y el cálculo sigue sin ellos;
    * si rechaza el refresh token, la conexión pasa a `DISCONNECTED`.
    */
   async execute(userId: number, from: Date, to: Date): Promise<ExternalBusy[]> {
@@ -47,7 +47,7 @@ export class ListExternalBusyService {
       const read = this.read(userId, from, to);
       entry = { at: now, busy: read.then(({ busy }) => busy) };
       this.cache.set(key, entry);
-      // A failed read isn't cached: the next calculation (the re-check on Reservar included) asks Google again.
+      // A failed read isn't cached: the next calculation (the re-check on Reservar included) asks the provider again.
       void read.then(({ failed }) => failed && this.cache.delete(key));
     }
     return entry.busy;
@@ -66,16 +66,17 @@ export class ListExternalBusyService {
   ): Promise<{ busy: ExternalBusy[]; failed: boolean }> {
     try {
       const connection = await this.connections.findByUserId(userId);
-      if (connection?.status !== 'CONNECTED') return { busy: [], failed: false };
-      const refreshToken =
-        await this.connections.findRefreshTokenByUserId(userId);
-      if (!refreshToken) return { busy: [], failed: false };
+      if (connection?.status !== 'CONNECTED')
+        return { busy: [], failed: false };
+      const credentials =
+        await this.connections.findCredentialsByUserId(userId);
+      if (!credentials) return { busy: [], failed: false };
       const calendarIds =
         await this.connections.findCheckedCalendarIdsByUserId(userId);
-      // Nothing checked is a valid choice: Google isn't asked at all.
+      // Nothing checked is a valid choice: the provider isn't asked at all.
       if (calendarIds.length === 0) return { busy: [], failed: false };
       return {
-        busy: await this.events.listBusy(refreshToken, calendarIds, from, to),
+        busy: await this.events.listBusy(credentials, calendarIds, from, to),
         failed: false,
       };
     } catch (error) {
@@ -94,7 +95,7 @@ export class ListExternalBusyService {
     try {
       await this.connections.markDisconnected(userId);
       this.logger.warn(
-        `Google rechazó el refresh token del Usuario ${userId}; su Calendario conectado pasa a DISCONNECTED`,
+        `El proveedor rechazó el refresh token del Usuario ${userId}; su Calendario conectado pasa a DISCONNECTED`,
       );
     } catch (error) {
       this.logger.error(

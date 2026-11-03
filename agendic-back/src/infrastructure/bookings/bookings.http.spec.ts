@@ -394,8 +394,8 @@ describe('Turno', () => {
         status: 'CONNECTED',
         connectedAt: new Date('2025-12-01T00:00:00.000Z'),
       });
-      t.calendarConnections.findRefreshTokenByUserId.mockResolvedValue('refresh');
-      t.googleCalendarEvents.listBusy.mockResolvedValue([
+      t.calendarConnections.findCredentialsByUserId.mockResolvedValue({ provider: 'GOOGLE', refreshToken: 'refresh' });
+      t.calendarEvents.listBusy.mockResolvedValue([
         {
           start: new Date('2026-01-01T12:00:00.000Z'),
           end: new Date('2026-01-01T13:00:00.000Z'),

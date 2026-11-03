@@ -5,54 +5,53 @@ import {
 } from '../../domain/calendar/calendar-connections.repository';
 import {
   CalendarAccessRevokedError,
-  GOOGLE_CALENDAR_EVENTS,
-  GoogleCalendarEvents,
-  GoogleCalendarSummary,
+  CALENDAR_EVENTS,
+  CalendarEvents,
+  CalendarSummary,
   PRIMARY_CALENDAR_ID,
-} from '../../domain/calendar/google-calendar-events';
+} from '../../domain/calendar/calendar-events';
 import { ConflictError, NotFoundError } from '../../domain/errors';
 
 const logger = new Logger('ConnectedCalendars');
 
 /** Un calendario de la cuenta conectada y si cuenta como Ocupado externo. */
-export interface CheckableCalendar extends GoogleCalendarSummary {
+export interface CheckableCalendar extends CalendarSummary {
   checked: boolean;
 }
 
-/** Los calendarios de la cuenta del Calendario conectado, leídos de Google, con cuáles están tildados (ADR 0038). */
+/** Los calendarios de la cuenta del Calendario conectado, leídos del proveedor, con cuáles están tildados (ADR 0038). */
 @Injectable()
 export class ConnectedCalendarsService {
   constructor(
     @Inject(CALENDAR_CONNECTIONS_REPOSITORY)
     private readonly connections: CalendarConnectionsRepository,
-    @Inject(GOOGLE_CALENDAR_EVENTS)
-    private readonly events: GoogleCalendarEvents,
+    @Inject(CALENDAR_EVENTS)
+    private readonly events: CalendarEvents,
   ) {}
 
   /**
-   * Los calendarios de la cuenta de Google del Usuario. Si Google rechaza el refresh token, la conexión pasa a
+   * Los calendarios de la cuenta conectada del Usuario. Si el proveedor rechaza el refresh token, la conexión pasa a
    * `DISCONNECTED`.
    *
    * @throws {NotFoundError} el Usuario no tiene un Calendario conectado
    * @throws {ConflictError} el Calendario conectado está `DISCONNECTED`
-   * @throws {NotConfiguredError} faltan las credenciales OAuth de Google
-   * @throws {ExternalServiceError} Google respondió con error o no respondió
+   * @throws {NotConfiguredError} faltan las credenciales OAuth del proveedor
+   * @throws {ExternalServiceError} el proveedor respondió con error o no respondió
    */
   async list(userId: number): Promise<CheckableCalendar[]> {
     const connection = await this.connections.findByUserId(userId);
     if (!connection) throw notConnected(userId);
     if (connection.status !== 'CONNECTED') throw disconnected(userId);
-    const refreshToken =
-      await this.connections.findRefreshTokenByUserId(userId);
-    if (!refreshToken) throw notConnected(userId);
-    let calendars: GoogleCalendarSummary[];
+    const credentials = await this.connections.findCredentialsByUserId(userId);
+    if (!credentials) throw notConnected(userId);
+    let calendars: CalendarSummary[];
     try {
-      calendars = await this.events.listCalendars(refreshToken);
+      calendars = await this.events.listCalendars(credentials);
     } catch (error) {
       if (!(error instanceof CalendarAccessRevokedError)) throw error;
       await this.connections.markDisconnected(userId);
       logger.warn(
-        `Google rechazó el refresh token del Usuario ${userId}; su Calendario conectado pasa a DISCONNECTED`,
+        `El proveedor rechazó el refresh token del Usuario ${userId}; su Calendario conectado pasa a DISCONNECTED`,
       );
       throw disconnected(userId);
     }

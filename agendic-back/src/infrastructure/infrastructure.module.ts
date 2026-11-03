@@ -4,10 +4,10 @@ import { AVAILABILITIES_REPOSITORY } from '../domain/availabilities/availabiliti
 import { BOOKING_CALENDAR_EVENTS_REPOSITORY } from '../domain/calendar/booking-calendar-events.repository';
 import { BOOKING_PANEL_LINKS } from '../domain/calendar/booking-event';
 import { CALENDAR_CONNECTIONS_REPOSITORY } from '../domain/calendar/calendar-connections.repository';
-import { GOOGLE_CALENDAR_EVENTS } from '../domain/calendar/google-calendar-events';
+import { CALENDAR_EVENTS } from '../domain/calendar/calendar-events';
 import { ListExternalBusyService } from '../application/calendar/list-external-busy.service';
 import { CALENDAR_OAUTH_STATE } from '../domain/calendar/calendar-oauth-state';
-import { GOOGLE_CALENDAR_OAUTH } from '../domain/calendar/google-calendar-oauth';
+import { CALENDAR_OAUTH } from '../domain/calendar/calendar-oauth';
 import { CLOCK, Clock } from '../domain/clock';
 import { FILE_STORAGE } from '../domain/file-storage';
 import { MAILER } from '../domain/mailer';
@@ -38,6 +38,10 @@ import { PrismaBookingCalendarEventsRepository } from './calendar/prisma-booking
 import { HmacCalendarOauthState } from './calendar/hmac-calendar-oauth-state';
 import { GoogleCalendarEventsClient } from './calendar/google-calendar-events.client';
 import { GoogleOauthApiClient } from './calendar/google-oauth-api.client';
+import { MicrosoftCalendarEventsClient } from './calendar/microsoft-calendar-events.client';
+import { MicrosoftOauthApiClient } from './calendar/microsoft-oauth-api.client';
+import { ProviderCalendarEventsRouter } from './calendar/provider-calendar-events.router';
+import { ProviderCalendarOauthRouter } from './calendar/provider-calendar-oauth.router';
 import { PrismaCalendarConnectionsRepository } from './calendar/prisma-calendar-connections.repository';
 import { BookingsModule } from './bookings/bookings.module';
 import { CABINS_REPOSITORY } from '../domain/cabins/cabins.repository';
@@ -146,8 +150,12 @@ import { WaitlistModule } from './waitlist/waitlist.module';
       useClass: PrismaBookingCalendarEventsRepository,
     },
     { provide: BOOKING_PANEL_LINKS, useClass: EnvBookingPanelLinks },
-    { provide: GOOGLE_CALENDAR_OAUTH, useClass: GoogleOauthApiClient },
-    { provide: GOOGLE_CALENDAR_EVENTS, useClass: GoogleCalendarEventsClient },
+    GoogleOauthApiClient,
+    MicrosoftOauthApiClient,
+    GoogleCalendarEventsClient,
+    MicrosoftCalendarEventsClient,
+    { provide: CALENDAR_OAUTH, useClass: ProviderCalendarOauthRouter },
+    { provide: CALENDAR_EVENTS, useClass: ProviderCalendarEventsRouter },
     ListExternalBusyService,
     { provide: CALENDAR_OAUTH_STATE, useClass: HmacCalendarOauthState },
   ],
@@ -175,9 +183,9 @@ import { WaitlistModule } from './waitlist/waitlist.module';
     ANALYTICS_REPOSITORY,
     WAITLIST_REPOSITORY,
     CALENDAR_CONNECTIONS_REPOSITORY,
-    GOOGLE_CALENDAR_OAUTH,
+    CALENDAR_OAUTH,
     CALENDAR_OAUTH_STATE,
-    GOOGLE_CALENDAR_EVENTS,
+    CALENDAR_EVENTS,
     BOOKING_CALENDAR_EVENTS_REPOSITORY,
     BOOKING_PANEL_LINKS,
   ],

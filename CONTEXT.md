@@ -162,7 +162,7 @@ Período de uno o más días enteros en que un Usuario no atiende: en esos días
 _Avoid_: ausencia (eso es el no-show), OOO, licencia, vacaciones
 
 **Calendario conectado**:
-Cuenta de Google de un Usuario que Agendic usa como su calendario. Es del Usuario, no de su vínculo con un Negocio: una conexión cubre todos los Turnos que atiende. Es una sola por Usuario. El Usuario la conecta y la desconecta él mismo, con un OAuth propio de Agendic, no el de Clerk. Está `CONNECTED`, o `DISCONNECTED` cuando Google dejó de aceptar su permiso: en ese caso se puede reconectar. Dar de baja al Usuario la desconecta.
+Cuenta de Google o de Microsoft (Outlook o Microsoft 365) de un Usuario que Agendic usa como su calendario. Es del Usuario, no de su vínculo con un Negocio: una conexión cubre todos los Turnos que atiende. Es una sola por Usuario. El Usuario la conecta y la desconecta él mismo, con un OAuth propio de Agendic, no el de Clerk. Está `CONNECTED`, o `DISCONNECTED` cuando el proveedor dejó de aceptar su permiso: en ese caso se puede reconectar, con el mismo proveedor o con el otro. Dar de baja al Usuario la desconecta.
 _Avoid_: integración, sincronización, cuenta de Google (a secas), calendario externo
 
 **Motivo**:

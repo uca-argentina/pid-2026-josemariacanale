@@ -4,9 +4,10 @@ import {
   BookingCalendarEventsRepository,
 } from '../../domain/calendar/booking-calendar-events.repository';
 import {
-  GOOGLE_CALENDAR_EVENTS,
-  GoogleCalendarEvents,
-} from '../../domain/calendar/google-calendar-events';
+  CALENDAR_EVENTS,
+  CalendarEvents,
+} from '../../domain/calendar/calendar-events';
+import { CalendarCredentials } from '../../domain/calendar/calendar-connection';
 import { CLOCK, Clock } from '../../domain/clock';
 
 const logger = new Logger('DeleteFutureBookingEvents');
@@ -17,29 +18,32 @@ export class DeleteFutureBookingEventsService {
   constructor(
     @Inject(BOOKING_CALENDAR_EVENTS_REPOSITORY)
     private readonly events: BookingCalendarEventsRepository,
-    @Inject(GOOGLE_CALENDAR_EVENTS)
-    private readonly google: GoogleCalendarEvents,
+    @Inject(CALENDAR_EVENTS)
+    private readonly calendar: CalendarEvents,
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
   /**
    * Borra los eventos de los Turnos que no terminaron y después olvida todos los del Usuario: los pasados quedan en su
-   * calendario. Se llama antes de revocar el token. Un fallo de Google se loguea y no frena la desconexión.
+   * calendario. Se llama antes de revocar el token. Un fallo del proveedor se loguea y no frena la desconexión.
    *
    * @throws {DatabaseOperationError} la base falló
    */
-  async execute(userId: number, refreshToken: string | null): Promise<void> {
-    if (refreshToken !== null) {
+  async execute(
+    userId: number,
+    credentials: CalendarCredentials | null,
+  ): Promise<void> {
+    if (credentials !== null) {
       const future = await this.events.listFutureByUserId(
         userId,
         this.clock.now(),
       );
       for (const event of future) {
         try {
-          await this.google.deleteEvent(refreshToken, event.googleEventId);
+          await this.calendar.deleteEvent(credentials, event.googleEventId);
         } catch (error) {
           logger.error(
-            `Evento del Turno ${event.bookingId} del Usuario ${userId} no borrado de Google`,
+            `Evento del Turno ${event.bookingId} del Usuario ${userId} no borrado del calendario`,
             error instanceof Error ? error.stack : String(error),
           );
         }

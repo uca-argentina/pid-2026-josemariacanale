@@ -1,7 +1,7 @@
-/** Quién da el calendario; hoy solo Google. */
-export type CalendarProvider = 'GOOGLE';
+/** Quién da el calendario: Google o Microsoft (Outlook o Microsoft 365). */
+export type CalendarProvider = 'GOOGLE' | 'MICROSOFT';
 
-/** `DISCONNECTED`: Google dejó de aceptar el permiso, y el Usuario puede reconectar. */
+/** `DISCONNECTED`: el proveedor dejó de aceptar el permiso, y el Usuario puede reconectar. */
 export type CalendarConnectionStatus = 'CONNECTED' | 'DISCONNECTED';
 
 /** El Calendario conectado de un Usuario (ADR 0036). El refresh token no forma parte de esta vista. */
@@ -10,4 +10,10 @@ export interface CalendarConnection {
   email: string;
   status: CalendarConnectionStatus;
   connectedAt: Date;
+}
+
+/** Con qué proveedor y qué refresh token (ya descifrado) se habla con el calendario de un Usuario. */
+export interface CalendarCredentials {
+  provider: CalendarProvider;
+  refreshToken: string;
 }
