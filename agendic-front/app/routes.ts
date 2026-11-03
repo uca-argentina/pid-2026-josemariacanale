@@ -74,3 +74,6 @@ export const bookOtherDayPath = (entry: {
         : entry.business && entry.branch
           ? bookingLinkPath(entry.business.slug, entry.branch.slug, entry.service.slug)
           : null;
+
+/** La pantalla del Calendario conectado: la URL a la que vuelve el back desde Google (`CALENDAR_RETURN_URL`). */
+export const CALENDAR_PATH = '/availability/calendar';

@@ -4,6 +4,7 @@ import { SIGN_IN_PATH } from '@/app/routes';
 import { AppToaster } from '@/app/_components/AppToaster';
 import { SidebarInset, SidebarProvider } from '@/app/_components/ui/sidebar';
 import { AppSidebar } from './_components/AppSidebar';
+import { CalendarDisconnectedBanner } from './_components/CalendarDisconnectedBanner';
 import { SiteHeader } from './_components/SiteHeader';
 import { SignOutOnDeactivated } from './_components/SignOutOnDeactivated';
 import { getInjection } from '@/di/container';
@@ -55,13 +56,24 @@ async function ownedBusinessName() {
     }
 }
 
+/** Si Google dejó de dar acceso al Calendario conectado del Usuario; si la consulta falla, no: el aviso no vale un error de página. */
+async function calendarDisconnected() {
+    try {
+        return (await getInjection('IGetMyCalendarConnectionController')())?.status === 'DISCONNECTED';
+    } catch (error) {
+        if (!isSessionExpired(error) && !isUserDeactivated(error)) getInjection('ICrashReporterService').report(error);
+        return false;
+    }
+}
+
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
     const user = await getCurrentUser();
     if (!user) redirect(SIGN_IN_PATH);
-    const [{ count: pendingCount, deactivated }, businessName, preferences] = await Promise.all([
+    const [{ count: pendingCount, deactivated }, businessName, preferences, showCalendarNotice] = await Promise.all([
         countPendingBookings(),
         ownedBusinessName(),
         myPreferences(),
+        calendarDisconnected(),
     ]);
     if (deactivated) return <SignOutOnDeactivated />;
 
@@ -82,6 +94,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             />
             <SidebarInset className="min-w-0">
                 <SiteHeader sections={navItems} />
+                {showCalendarNotice && <CalendarDisconnectedBanner />}
                 {/* The pages paint their own white background; rounding it keeps the inset's corners without clipping wide content. */}
                 <div className="@container/main flex flex-1 flex-col md:*:rounded-b-xl">{children}</div>
             </SidebarInset>
