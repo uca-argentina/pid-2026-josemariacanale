@@ -23,11 +23,13 @@ async function main() {
       branches,
       (address) => geocodeAddress(key, address),
       // El `latitude: null` evita pisar un punto que el Dueño cargó mientras corría.
-      (id, latitude, longitude) =>
-        prisma.branch.updateMany({
+      async (id, latitude, longitude) => {
+        const { count } = await prisma.branch.updateMany({
           where: { id, latitude: null },
           data: { latitude, longitude },
-        }),
+        });
+        return count > 0;
+      },
     );
 
     console.log(`Completadas: ${report.completed}`);

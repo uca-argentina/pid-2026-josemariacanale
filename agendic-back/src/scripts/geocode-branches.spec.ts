@@ -17,7 +17,7 @@ describe('geocodeBranches', () => {
       'Calle 2': { kind: 'none', reason: 'sin resultado' },
       'Calle 3': { kind: 'none', reason: 'baja precisión (APPROXIMATE)' },
     };
-    const save = jest.fn();
+    const save = jest.fn().mockResolvedValue(true);
 
     const report = await geocodeBranches(
       [branch(1), branch(2), branch(3)],
@@ -86,9 +86,8 @@ describe('geocodeAddress', () => {
 
   it('un error de la API corta sin loguear la key', async () => {
     respond({ status: 'REQUEST_DENIED', error_message: 'bad key' });
-    await expect(geocodeAddress('SECRET', 'x')).rejects.toThrow(
-      /REQUEST_DENIED: bad key/,
-    );
-    await expect(geocodeAddress('SECRET', 'x')).rejects.not.toThrow(/SECRET/);
+    const error = await geocodeAddress('SECRET', 'x').catch((e: Error) => e);
+    expect((error as Error).message).toMatch(/REQUEST_DENIED: bad key/);
+    expect((error as Error).message).not.toContain('SECRET');
   });
 });
