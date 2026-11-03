@@ -23,6 +23,18 @@ export const myCalendarSchema = z.object({ connection: calendarConnectionSchema.
 export const googleAuthorizationSchema = z.object({ authorizationUrl: z.string().url() });
 export type GoogleAuthorization = z.infer<typeof googleAuthorizationSchema>;
 
+/** Un calendario de la cuenta de Google conectada; `checked` es si cuenta como Ocupado externo. */
+export const accountCalendarSchema = z.object({
+    id: z.string(),
+    name: z.string(),
+    primary: z.boolean(),
+    checked: z.boolean(),
+});
+export type AccountCalendar = z.infer<typeof accountCalendarSchema>;
+
+/** El cuerpo de `GET` y `PUT /users/me/calendar/calendars`. */
+export const accountCalendarsSchema = z.object({ calendars: z.array(accountCalendarSchema) });
+
 /** Cómo volvió el Usuario de Google, según el `?calendar=` de la pantalla. */
 export const calendarReturnSchema = z.enum(['connected', 'denied', 'missing-scope', 'error']);
 export type CalendarReturn = z.infer<typeof calendarReturnSchema>;

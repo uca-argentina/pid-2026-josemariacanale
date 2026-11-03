@@ -1,4 +1,4 @@
-import type { CalendarConnection, GoogleAuthorization } from '@/src/entities/models/calendar-connection';
+import type { AccountCalendar, CalendarConnection, GoogleAuthorization } from '@/src/entities/models/calendar-connection';
 
 /** Calendario conectado del Usuario con Sesión contra la API del back. */
 export interface ICalendarConnectionsRepository {
@@ -26,4 +26,26 @@ export interface ICalendarConnectionsRepository {
      * @throws {NotFoundError} el Usuario no tiene un Calendario conectado (404)
      */
     disconnect(): Promise<void>;
+
+    /**
+     * Los calendarios de la cuenta de Google conectada, el principal primero, con cuáles cuentan como Ocupado externo.
+     *
+     * @throws {UnauthenticatedError} no hay Sesión válida (401)
+     * @throws {NotFoundError} el Usuario no tiene un Calendario conectado (404)
+     * @throws {CalendarDisconnectedError} el Calendario conectado está `DISCONNECTED` (409)
+     * @throws {CalendarsUnavailableError} Google no respondió (502)
+     */
+    listCalendars(): Promise<AccountCalendar[]>;
+
+    /**
+     * Guarda cuáles calendarios cuentan como Ocupado externo; una lista vacía vale.
+     *
+     * @returns los calendarios de la cuenta como quedaron
+     * @throws {UnauthenticatedError} no hay Sesión válida (401)
+     * @throws {NotFoundError} el Usuario no tiene un Calendario conectado (404)
+     * @throws {CalendarDisconnectedError} el Calendario conectado está `DISCONNECTED` (409)
+     * @throws {CalendarNotInAccountError} algún id no es de la cuenta conectada (422)
+     * @throws {CalendarsUnavailableError} Google no respondió (502)
+     */
+    setCheckedCalendars(checkedIds: string[]): Promise<AccountCalendar[]>;
 }

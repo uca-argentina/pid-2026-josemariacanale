@@ -17,17 +17,29 @@ import {
     AlertDialogTitle,
 } from '@/app/_components/ui/alert-dialog';
 import { Button } from '@/app/_components/ui/button';
-import { CALENDAR_DISCONNECTED_NOTICE, CALENDAR_NOT_CONFIGURED_MESSAGE } from '@/app/(app)/_components/calendar-copy';
-import { isCalendarDisconnected, type CalendarConnection, type CalendarReturn } from '@/src/entities/models/calendar-connection';
+import { CALENDAR_DISCONNECTED_NOTICE, CALENDAR_NOT_CONFIGURED_MESSAGE, CALENDARS_UNAVAILABLE_MESSAGE } from '@/app/(app)/_components/calendar-copy';
+import { isCalendarDisconnected, type AccountCalendar, type CalendarConnection, type CalendarReturn } from '@/src/entities/models/calendar-connection';
 import { connectGoogleCalendarAction, disconnectCalendarAction } from '../actions';
 import { CALENDAR_RETURN_MESSAGES } from '../calendar-return';
+import { CalendarsPicker } from './CalendarsPicker';
 
 /**
  * La pantalla del Calendario conectado: conectar la cuenta de Google, ver cuál está conectada y desconectarla; con la
  * conexión `DISCONNECTED`, avisa que Google dejó de dar acceso y ofrece reconectar. `returned` es cómo volvió el Usuario
- * de Google: se muestra una vez y se saca de la URL.
+ * de Google: se muestra una vez y se saca de la URL. Con la conexión `CONNECTED`, `calendars` son los de la cuenta para
+ * tildar cuáles cuentan como Ocupado externo; `calendarsUnavailable` es que Google no respondió al leerlos.
  */
-export function CalendarView({ connection, returned }: { connection: CalendarConnection | null; returned: CalendarReturn | null }) {
+export function CalendarView({
+    connection,
+    calendars,
+    calendarsUnavailable,
+    returned,
+}: {
+    connection: CalendarConnection | null;
+    calendars: AccountCalendar[] | null;
+    calendarsUnavailable: boolean;
+    returned: CalendarReturn | null;
+}) {
     const router = useRouter();
     const [busy, setBusy] = useState(false);
     const [notConfigured, setNotConfigured] = useState(false);
@@ -110,6 +122,17 @@ export function CalendarView({ connection, returned }: { connection: CalendarCon
                     </Button>
                 )}
             </div>
+
+            {calendars && <CalendarsPicker key={JSON.stringify(calendars)} calendars={calendars} />}
+
+            {calendarsUnavailable && (
+                <div role="alert" className="mt-6 flex flex-wrap items-center gap-3 rounded-md border p-4 text-sm">
+                    <p className="m-0 flex-1">{CALENDARS_UNAVAILABLE_MESSAGE}</p>
+                    <Button type="button" variant="outline" onClick={() => router.refresh()}>
+                        Reintentar
+                    </Button>
+                </div>
+            )}
 
             {notConfigured && (
                 <p role="status" className="mt-3 text-sm text-muted-foreground">

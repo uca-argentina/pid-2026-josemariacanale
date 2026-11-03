@@ -5,9 +5,21 @@ import { redirect, unstable_rethrow } from 'next/navigation';
 import { isSessionExpired } from '@/app/api-error';
 import { SIGN_IN_PATH } from '@/app/routes';
 import { getInjection } from '@/di/container';
-import { CALENDAR_CONNECT_FAILED_MESSAGE, CALENDAR_NOT_CONFIGURED_MESSAGE } from '@/app/(app)/_components/calendar-copy';
-import { CalendarAlreadyConnectedError, CalendarNotConfiguredError } from '@/src/entities/errors/calendar';
+import {
+    CALENDAR_CONNECT_FAILED_MESSAGE,
+    CALENDAR_DISCONNECTED_NOTICE,
+    CALENDAR_NOT_CONFIGURED_MESSAGE,
+    CALENDARS_UNAVAILABLE_MESSAGE,
+} from '@/app/(app)/_components/calendar-copy';
+import {
+    CalendarAlreadyConnectedError,
+    CalendarDisconnectedError,
+    CalendarNotConfiguredError,
+    CalendarNotInAccountError,
+    CalendarsUnavailableError,
+} from '@/src/entities/errors/calendar';
 import { NotFoundError } from '@/src/entities/errors/common';
+import type { AccountCalendar } from '@/src/entities/models/calendar-connection';
 
 /** Lo que devuelve conectar: a dónde llevar el navegador, o el mensaje para el Usuario (`notConfigured`: Google no está configurado). */
 export type ConnectCalendarResult =
@@ -37,6 +49,39 @@ export async function connectGoogleCalendarAction(): Promise<ConnectCalendarResu
         }
         getInjection('ICrashReporterService').report(error);
         return { ok: false, message: CALENDAR_CONNECT_FAILED_MESSAGE };
+    }
+}
+
+/** Lo que devuelve guardar la selección: los calendarios como quedaron, o el mensaje para el Usuario. */
+export type SetCheckedCalendarsResult = { ok: true; calendars: AccountCalendar[] } | { ok: false; message: string };
+
+/**
+ * Guarda cuáles calendarios cuentan como Ocupado externo con un solo `PUT` y devuelve la lista como quedó, sin
+ * refrescar: la pantalla refleja la respuesta. Con el 409 (la conexión pasó a `DISCONNECTED`), el 404 (ya no hay
+ * conexión) y el 422 (un calendario ya no es de la cuenta) refresca, así la pantalla muestra el estado real.
+ */
+export async function setCheckedCalendarsAction(checkedIds: string[]): Promise<SetCheckedCalendarsResult> {
+    try {
+        const calendars = await getInjection('ISetCheckedCalendarsController')({ checkedIds });
+        return { ok: true, calendars };
+    } catch (error) {
+        unstable_rethrow(error);
+        if (isSessionExpired(error)) redirect(SIGN_IN_PATH);
+        if (error instanceof CalendarDisconnectedError) {
+            refresh();
+            return { ok: false, message: CALENDAR_DISCONNECTED_NOTICE };
+        }
+        if (error instanceof NotFoundError) {
+            refresh();
+            return { ok: false, message: 'Ya no tenés un calendario conectado. Actualizamos la pantalla.' };
+        }
+        if (error instanceof CalendarNotInAccountError) {
+            refresh();
+            return { ok: false, message: 'Cambiaron los calendarios de tu cuenta. Actualizamos la lista, revisá la selección.' };
+        }
+        if (error instanceof CalendarsUnavailableError) return { ok: false, message: CALENDARS_UNAVAILABLE_MESSAGE };
+        getInjection('ICrashReporterService').report(error);
+        return { ok: false, message: 'No pudimos guardar tu selección. Intentá de nuevo.' };
     }
 }
 

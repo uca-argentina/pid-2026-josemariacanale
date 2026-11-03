@@ -95,6 +95,8 @@ export const calendarConnectionsWith = (stubs: Partial<ICalendarConnectionsRepos
     getConnection: jest.fn(notStubbed('getConnection')),
     startGoogleConnection: jest.fn(notStubbed('startGoogleConnection')),
     disconnect: jest.fn(notStubbed('disconnect')),
+    listCalendars: jest.fn(notStubbed('listCalendars')),
+    setCheckedCalendars: jest.fn(notStubbed('setCheckedCalendars')),
     ...stubs,
 });
 
