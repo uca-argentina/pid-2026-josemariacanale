@@ -17,25 +17,28 @@ export function AchievementsView({ badges }: { badges: MyBadge[] }) {
             </header>
 
             <Group title="En curso" empty="No tenés Insignias en curso.">
-                {ongoing.map((badge) => (
-                    <li key={badge.badge} className="flex items-center gap-4 rounded-xl border border-[#e5e7eb] p-4">
-                        <Medal badge={badge.badge} name={badge.name} level={badge.level} />
-                        <div className="flex min-w-0 flex-1 flex-col gap-2">
-                            <span className="text-[14px] font-bold">{badge.name}</span>
-                            <div
-                                role="progressbar"
-                                aria-label={`Progreso de ${badge.name}`}
-                                aria-valuemin={0}
-                                aria-valuemax={100}
-                                aria-valuenow={progressPercent(badge.progress!)}
-                                className="h-2 overflow-hidden rounded-full bg-[#f3f4f6]"
-                            >
-                                <div className="h-full rounded-full bg-[#0f1b2d]" style={{ width: `${progressPercent(badge.progress!)}%` }} />
+                {ongoing.map((badge) => {
+                    const percent = progressPercent(badge.progress!);
+                    return (
+                        <li key={badge.badge} className="flex items-center gap-4 rounded-xl border border-[#e5e7eb] p-4">
+                            <Medal badge={badge.badge} name={badge.name} level={badge.level} />
+                            <div className="flex min-w-0 flex-1 flex-col gap-2">
+                                <span className="text-[14px] font-bold">{badge.name}</span>
+                                <div
+                                    role="progressbar"
+                                    aria-label={`Progreso de ${badge.name}`}
+                                    aria-valuemin={0}
+                                    aria-valuemax={100}
+                                    aria-valuenow={percent}
+                                    className="h-2 overflow-hidden rounded-full bg-[#f3f4f6]"
+                                >
+                                    <div className="h-full rounded-full bg-[#0f1b2d]" style={{ width: `${percent}%` }} />
+                                </div>
+                                <span className="text-[12px] font-medium text-[#6b7280]">{progressText(badge)}</span>
                             </div>
-                            <span className="text-[12px] font-medium text-[#6b7280]">{progressText(badge)}</span>
-                        </div>
-                    </li>
-                ))}
+                        </li>
+                    );
+                })}
             </Group>
 
             <Group title="Conseguidas" empty="Todavía no ganaste ninguna Insignia.">
