@@ -25,6 +25,8 @@ import type { IGetPublicBranchController } from '@/src/interface-adapters/contro
 import type { IAuthenticationService } from '@/src/application/services/authentication.service.interface';
 import type { ICrashReporterService } from '@/src/application/services/crash-reporter.service.interface';
 import type { IInstrumentationService } from '@/src/application/services/instrumentation.service.interface';
+import type { IListMyBusinessesUseCase } from '@/src/application/use-cases/businesses/list-my-businesses.use-case';
+import type { IListMyBusinessesController } from '@/src/interface-adapters/controllers/businesses/list-my-businesses.controller';
 import type { IListBusinessesUseCase } from '@/src/application/use-cases/businesses/list-businesses.use-case';
 import type { IGetMyBusinessController } from '@/src/interface-adapters/controllers/businesses/get-my-business.controller';
 import type { ICreateBusinessUseCase } from '@/src/application/use-cases/businesses/create-business.use-case';
@@ -47,7 +49,7 @@ import type { IListEmployeesUseCase } from '@/src/application/use-cases/employee
 import type { IListInvitationsUseCase } from '@/src/application/use-cases/employees/list-invitations.use-case';
 import type { IAddEmployeeUseCase } from '@/src/application/use-cases/employees/add-employee.use-case';
 import type { IRetireEmployeeUseCase } from '@/src/application/use-cases/employees/retire-employee.use-case';
-import type { IListMyEmployeesController } from '@/src/interface-adapters/controllers/employees/list-my-employees.controller';
+import type { IListBusinessStaffController } from '@/src/interface-adapters/controllers/employees/list-business-staff.controller';
 import type { IAddEmployeeController } from '@/src/interface-adapters/controllers/employees/add-employee.controller';
 import type { IListMyInvitationsUseCase } from '@/src/application/use-cases/employees/list-my-invitations.use-case';
 import type { IAcceptInvitationUseCase } from '@/src/application/use-cases/employees/accept-invitation.use-case';
@@ -226,6 +228,7 @@ export const DI_SYMBOLS = {
     IRetireCabinUseCase: Symbol.for('IRetireCabinUseCase'),
     ICreateBusinessUseCase: Symbol.for('ICreateBusinessUseCase'),
     IListBusinessesUseCase: Symbol.for('IListBusinessesUseCase'),
+    IListMyBusinessesUseCase: Symbol.for('IListMyBusinessesUseCase'),
     IUpdateBusinessUseCase: Symbol.for('IUpdateBusinessUseCase'),
     IUploadBusinessLogoUseCase: Symbol.for('IUploadBusinessLogoUseCase'),
     IDeleteBusinessLogoUseCase: Symbol.for('IDeleteBusinessLogoUseCase'),
@@ -312,6 +315,7 @@ export const DI_SYMBOLS = {
     IRetireCabinController: Symbol.for('IRetireCabinController'),
     ICreateBusinessController: Symbol.for('ICreateBusinessController'),
     IGetMyBusinessController: Symbol.for('IGetMyBusinessController'),
+    IListMyBusinessesController: Symbol.for('IListMyBusinessesController'),
     IUpdateBusinessController: Symbol.for('IUpdateBusinessController'),
     IUploadBusinessLogoController: Symbol.for('IUploadBusinessLogoController'),
     IDeleteBusinessLogoController: Symbol.for('IDeleteBusinessLogoController'),
@@ -321,7 +325,7 @@ export const DI_SYMBOLS = {
     IGetPublicBusinessController: Symbol.for('IGetPublicBusinessController'),
     IGetPublicBranchController: Symbol.for('IGetPublicBranchController'),
     IResolveBookingLinkController: Symbol.for('IResolveBookingLinkController'),
-    IListMyEmployeesController: Symbol.for('IListMyEmployeesController'),
+    IListBusinessStaffController: Symbol.for('IListBusinessStaffController'),
     IAddEmployeeController: Symbol.for('IAddEmployeeController'),
     IRetireEmployeeController: Symbol.for('IRetireEmployeeController'),
     IListMyServicesController: Symbol.for('IListMyServicesController'),
@@ -431,6 +435,7 @@ export interface DI_RETURN_TYPES {
     IRetireCabinUseCase: IRetireCabinUseCase;
     ICreateBusinessUseCase: ICreateBusinessUseCase;
     IListBusinessesUseCase: IListBusinessesUseCase;
+    IListMyBusinessesUseCase: IListMyBusinessesUseCase;
     IUpdateBusinessUseCase: IUpdateBusinessUseCase;
     IUploadBusinessLogoUseCase: IUploadBusinessLogoUseCase;
     IDeleteBusinessLogoUseCase: IDeleteBusinessLogoUseCase;
@@ -517,6 +522,7 @@ export interface DI_RETURN_TYPES {
     IRetireCabinController: IRetireCabinController;
     ICreateBusinessController: ICreateBusinessController;
     IGetMyBusinessController: IGetMyBusinessController;
+    IListMyBusinessesController: IListMyBusinessesController;
     IUpdateBusinessController: IUpdateBusinessController;
     IUploadBusinessLogoController: IUploadBusinessLogoController;
     IDeleteBusinessLogoController: IDeleteBusinessLogoController;
@@ -526,7 +532,7 @@ export interface DI_RETURN_TYPES {
     IGetPublicBusinessController: IGetPublicBusinessController;
     IGetPublicBranchController: IGetPublicBranchController;
     IResolveBookingLinkController: IResolveBookingLinkController;
-    IListMyEmployeesController: IListMyEmployeesController;
+    IListBusinessStaffController: IListBusinessStaffController;
     IAddEmployeeController: IAddEmployeeController;
     IRetireEmployeeController: IRetireEmployeeController;
     IListMyServicesController: IListMyServicesController;

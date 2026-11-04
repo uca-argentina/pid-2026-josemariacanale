@@ -1,10 +1,10 @@
-import { bookAgainPath, bookOtherDayPath, bookingLinkPath, bookingPath, sectionOf, userLinkPath, waitlistPath } from '@/app/routes';
+import { bookAgainPath, bookOtherDayPath, bookingLinkPath, bookingPath, sectionOf, staffPath, userLinkPath, waitlistPath } from '@/app/routes';
 
 describe('sectionOf', () => {
     const sections = [
         { href: '/bookings', label: 'Turnos' },
         { href: '/services', label: 'Servicios' },
-        { href: '/business', label: 'Mi Negocio' },
+        { href: '/business', label: 'Negocios' },
         { href: '/analytics', label: 'Analíticas' },
     ];
 
@@ -14,7 +14,7 @@ describe('sectionOf', () => {
 
     it('sigue siendo la sección en una subpantalla', () => {
         expect(sectionOf('/services/12', sections)?.label).toBe('Servicios');
-        expect(sectionOf('/business/employees', sections)?.label).toBe('Mi Negocio');
+        expect(sectionOf('/business/employees', sections)?.label).toBe('Negocios');
     });
 
     it('no coincide con una ruta que solo comparte el prefijo de texto', () => {
@@ -101,5 +101,11 @@ describe('bookOtherDayPath', () => {
 
     it('es null si no trae ni Negocio ni Usuario', () => {
         expect(bookOtherDayPath({ service, business: null, branch: null, user: null })).toBeNull();
+    });
+});
+
+describe('staffPath', () => {
+    it('apunta al Staff del Negocio', () => {
+        expect(staffPath(7)).toBe('/business/employees?businessId=7');
     });
 });

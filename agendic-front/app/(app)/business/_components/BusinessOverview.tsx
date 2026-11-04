@@ -2,12 +2,11 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, Link2, MoreHorizontal, Pencil, Plus, Store, UserPlus } from 'lucide-react';
-import { toast } from 'sonner';
+import { ArrowRight, MoreHorizontal, Pencil, Plus, Store, UserPlus } from 'lucide-react';
 import { PanelIconButton, PanelIconGroup, PanelMenu } from '@/app/(app)/_components/panel-ui';
-import { BRANCHES_PATH, newServicePath } from '@/app/routes';
-import { bookingLink } from '@/app/(app)/_components/mock-services';
-import { BusinessCard } from './business-ui';
+import { BRANCHES_PATH, newServicePath, staffPath } from '@/app/routes';
+import { BusinessCard } from './BusinessCard';
+import { CopyBookingLinkButton } from './CopyBookingLinkButton';
 import { EditBusinessDialog, type EditableBusiness } from './EditBusinessDialog';
 
 function NextStep({
@@ -39,29 +38,19 @@ function NextStep({
     );
 }
 
-/** Mi Negocio del Dueño: su Negocio y los próximos pasos recomendados. */
-export function BusinessOverview({ business }: { business: EditableBusiness }) {
+/** Un Negocio del que el Usuario es Dueño: su tarjeta y los próximos pasos recomendados. */
+export function BusinessOverview({ business, defaultOpen }: { business: EditableBusiness; defaultOpen: boolean }) {
     const [editing, setEditing] = useState(false);
-
-    const copyLink = async () => {
-        try {
-            await navigator.clipboard.writeText(`https://${bookingLink(business.slug)}`);
-            toast.success('Enlace de reserva copiado');
-        } catch {
-            toast.error('No se pudo copiar el Enlace de reserva');
-        }
-    };
 
     return (
         <>
             <BusinessCard
                 business={business}
                 role="owner"
+                defaultOpen={defaultOpen}
                 actions={
                     <PanelIconGroup>
-                        <PanelIconButton label="Copiar Enlace de reserva" onClick={copyLink}>
-                            <Link2 />
-                        </PanelIconButton>
+                        <CopyBookingLinkButton slug={business.slug} />
                         <PanelMenu
                             trigger={
                                 <PanelIconButton label="Más acciones">
@@ -79,7 +68,7 @@ export function BusinessOverview({ business }: { business: EditableBusiness }) {
                         icon={<UserPlus className="text-[#15803d]" />}
                         title="Invitar empleado"
                         description="Los turnos salen mejor con todo tu equipo. Invitalos ahora."
-                        href="/business/employees"
+                        href={staffPath(business.id)}
                         action="Invitar"
                     />
                     <NextStep

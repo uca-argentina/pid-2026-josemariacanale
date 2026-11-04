@@ -5,15 +5,13 @@ import { Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { PanelAvatar, PanelButton, PanelSection } from '@/app/(app)/_components/panel-ui';
 import { bookingLink } from '@/app/(app)/_components/mock-services';
-import { BusinessCard } from './business-ui';
 import { CreateBusinessDialog, type Owner } from './CreateBusinessDialog';
 import type { MyInvitation as Invitation } from '@/src/entities/models/employee';
 import { acceptInvitationAction, rejectInvitationAction } from '../actions';
 
 
-/** Mi Negocio de un Usuario que todavía no hizo Crear Negocio: sus invitaciones y el botón para crearlo. */
+/** Lo que ve el Usuario que no es Dueño de ningún Negocio: sus Invitaciones pendientes y el botón de Crear Negocio. */
 export function NoBusinessView({ owner, invitations }: { owner: Owner; invitations: Invitation[] }) {
-    const [joined, setJoined] = useState<Invitation['business']>();
     const [creating, setCreating] = useState(false);
     const [isAnswering, startTransition] = useTransition();
 
@@ -21,13 +19,10 @@ export function NoBusinessView({ owner, invitations }: { owner: Owner; invitatio
         startTransition(async () => {
             const result = await (accepted ? acceptInvitationAction : rejectInvitationAction)(invitation.id);
             if (!result.ok) return void toast.error(result.message);
-            if (accepted) setJoined(invitation.business);
             toast.success(
                 accepted ? `Te sumaste a ${invitation.business.name}` : `Rechazaste la invitación de ${invitation.business.name}`,
             );
         });
-
-    if (joined) return <BusinessCard business={joined} role="employee" />;
 
     return (
         <div className="flex flex-col gap-8">

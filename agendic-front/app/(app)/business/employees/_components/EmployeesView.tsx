@@ -94,7 +94,10 @@ function InviteEmployeeDialog({ businessId, onClose }: { businessId: number; onC
     );
 }
 
-/** El Staff del Negocio. La lista viene del server: invitar y dar de baja la refrescan. */
+/**
+ * El Staff del Negocio. La lista viene del server: invitar y dar de baja la refrescan. Para quien no es el Dueño es de
+ * solo lectura: sin Invitar, sin Dar de baja y sin Invitaciones pendientes.
+ */
 export function EmployeesView({
     businessId,
     viewerIsOwner,
@@ -102,7 +105,7 @@ export function EmployeesView({
     invitations,
 }: {
     businessId: number;
-    /** Si quien mira es el Dueño del Negocio: solo él ve las estadísticas de un Empleado. */
+    /** Si quien mira es el Dueño del Negocio: solo él invita, da de baja y ve las estadísticas de un Empleado. */
     viewerIsOwner: boolean;
     employees: EmployeeRow[];
     invitations: InvitationRow[];
@@ -154,10 +157,12 @@ export function EmployeesView({
                         className="h-full min-w-0 flex-1 bg-transparent text-[13.5px] font-medium outline-none placeholder:text-[#9ca3af]"
                     />
                 </div>
-                <PanelButton onClick={() => setInviting(true)}>
-                    <Plus className="size-4" />
-                    Invitar
-                </PanelButton>
+                {viewerIsOwner && (
+                    <PanelButton onClick={() => setInviting(true)}>
+                        <Plus className="size-4" />
+                        Invitar
+                    </PanelButton>
+                )}
             </div>
 
             <div className="overflow-x-auto rounded-md border border-[#e5e7eb]">
@@ -196,8 +201,8 @@ export function EmployeesView({
                                             <PanelIconButton label={`Ver a ${employee.name}`} onClick={() => setViewing(employee)}>
                                                 <PanelRightOpen />
                                             </PanelIconButton>
-                                            {/* El Dueño no se da de baja de su propio Negocio. */}
-                                            {employee.role === 'employee' && (
+                                            {/* El Dueño no se da de baja de su propio Negocio, y un Empleado no da de baja a nadie. */}
+                                            {viewerIsOwner && employee.role === 'employee' && (
                                                 <PanelMenu
                                                     trigger={
                                                         <PanelIconButton label="Más acciones">

@@ -31,7 +31,7 @@ export default async function BranchesPage() {
                 title="Sucursales"
                 description="El Logo de tu Negocio y tus Sucursales, con su descripción e imágenes."
                 backHref={BUSINESS_PATH}
-                backLabel="Volver a Mi Negocio"
+                backLabel="Volver a Negocios"
             />
             <BranchesView businessId={business.id} businessSlug={business.slug} logoUrl={business.logoUrl} branches={branches} />
         </div>

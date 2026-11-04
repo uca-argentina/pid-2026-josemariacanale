@@ -4,6 +4,8 @@ export const SIGN_IN_PATH = '/sign-in';
 export const SIGNED_IN_HOME_PATH = '/bookings';
 export const BUSINESS_PATH = '/business';
 export const BRANCHES_PATH = '/business/branches';
+/** El Staff del Negocio `businessId`: editable para el Dueño, de solo lectura para un Empleado. */
+export const staffPath = (businessId: number) => `/business/employees?businessId=${businessId}`;
 export const SERVICES_PATH = '/services';
 
 /**
@@ -53,7 +55,7 @@ export const OUT_OF_OFFICE_HOLIDAYS_PATH = `${OUT_OF_OFFICE_PATH}?type=holidays`
 export const OUT_OF_OFFICE_MINE_PATH = `${OUT_OF_OFFICE_PATH}?type=mine`;
 export const newOutOfOfficePath = `${OUT_OF_OFFICE_PATH}?nuevo`;
 
-/** Servicios con el modal de alta abierto, apuntado al Negocio `businessId` (la tarjeta "Crear servicio" de Mi Negocio). */
+/** Servicios con el modal de alta abierto, apuntado al Negocio `businessId` (la tarjeta "Crear servicio" de Negocios). */
 export const newServicePath = (businessId: number) => `${SERVICES_PATH}?nuevo=${businessId}`;
 
 /** La ruta del enlace de Salir de la Lista de espera (ADR 0034): esa Anotación sola, sin Código de verificación. */
