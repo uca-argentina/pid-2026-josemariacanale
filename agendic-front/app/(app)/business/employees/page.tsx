@@ -10,7 +10,8 @@ export const metadata = { title: 'Empleados' };
 
 export default async function EmployeesPage({ searchParams }: { searchParams: Promise<{ businessId?: string }> }) {
     const { businessId } = await searchParams;
-    if (!businessId) redirect(BUSINESS_PATH);
+    // Sin businessId, o con uno que no es un número, no hay Staff que mostrar.
+    if (!businessId || Number.isNaN(Number(businessId))) redirect(BUSINESS_PATH);
 
     let staff;
     try {
@@ -22,7 +23,7 @@ export default async function EmployeesPage({ searchParams }: { searchParams: Pr
         return <BackendErrorNotice />;
     }
 
-    // Sin businessId, o de un Negocio donde el Usuario no es Empleado, no hay Staff que mostrar.
+    // El Usuario no es Empleado de ese Negocio.
     if (!staff) redirect(BUSINESS_PATH);
 
     return (

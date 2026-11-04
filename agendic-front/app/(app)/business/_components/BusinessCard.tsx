@@ -33,7 +33,7 @@ export function BusinessCard({
                 <button
                     type="button"
                     aria-expanded={open}
-                    aria-controls={panelId}
+                    aria-controls={open ? panelId : undefined}
                     onClick={() => setOpen((value) => !value)}
                     className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-md border-0 bg-transparent p-0 text-left text-inherit outline-none focus-visible:ring-2 focus-visible:ring-[#0f1b2d] focus-visible:ring-offset-2"
                 >

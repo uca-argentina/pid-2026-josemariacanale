@@ -5,6 +5,7 @@ import { staffPath } from '@/app/routes';
 import { BusinessCard } from './BusinessCard';
 import { CopyBookingLinkButton } from './CopyBookingLinkButton';
 
+/** Un Negocio de `GET /users/me/businesses` donde el Usuario es Empleado, con sus Sucursales ya resueltas. */
 export type EmployeeBusinessData = {
     id: number;
     name: string;

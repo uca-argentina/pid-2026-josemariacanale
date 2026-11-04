@@ -29,7 +29,12 @@ export default async function BusinessPage() {
                 businesses
                     .filter((b) => b.role === 'employee')
                     .map(async (b) => {
-                        const branches = await listBranches({ businessId: b.id });
+                        // Las Sucursales son un detalle de la tarjeta: si fallan, el Usuario igual ve sus Negocios.
+                        const branches = await listBranches({ businessId: b.id }).catch((error) => {
+                            unstable_rethrow(error);
+                            getInjection('ICrashReporterService').report(error);
+                            return [];
+                        });
                         return [b.id, branches.filter((branch) => b.branchIds.includes(branch.id))] as const;
                     }),
             ),
