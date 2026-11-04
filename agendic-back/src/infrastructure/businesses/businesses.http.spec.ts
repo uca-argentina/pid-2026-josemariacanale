@@ -760,7 +760,10 @@ describe('Negocio', () => {
     const put = (id: number = ANAS_BUSINESS.id) =>
       t.http.put(`/businesses/${id}/logo`);
     const withPng = (req: ReturnType<typeof put>) =>
-      req.attach('file', PNG, { filename: 'logo.png', contentType: 'image/png' });
+      req.attach('file', PNG, {
+        filename: 'logo.png',
+        contentType: 'image/png',
+      });
 
     beforeEach(() => {
       scriptSession(t);
@@ -1038,6 +1041,92 @@ describe('Negocio', () => {
       t.businesses.findBySlug.mockResolvedValue(null);
 
       await t.http.get('/businesses/by-slug/unknown-salon').expect(404);
+    });
+  });
+
+  describe('GET /users/me/businesses', () => {
+    const ZETA_BUSINESS = { ...ANAS_BUSINESS, id: 3, name: 'Zeta', ownerId: 9 };
+    const ALFA_BUSINESS = { ...ANAS_BUSINESS, id: 4, name: 'Alfa', ownerId: 8 };
+
+    beforeEach(() => scriptSession(t));
+
+    it('lists the Dueño Negocio first and the rest by name, with role and branchIds', async () => {
+      t.businesses.listByEmployeeUser.mockResolvedValue([
+        { business: ZETA_BUSINESS, branchIds: [30] },
+        { business: ANAS_BUSINESS, branchIds: [1, 2] },
+        { business: ALFA_BUSINESS, branchIds: [40, 41] },
+      ]);
+
+      const res = await t.http
+        .get('/users/me/businesses')
+        .set(bearer(CLERK_TOKEN))
+        .expect(200);
+
+      expect(t.businesses.listByEmployeeUser).toHaveBeenCalledWith(ANA.id);
+      const shared = {
+        description: ANAS_BUSINESS.description,
+        slug: ANAS_BUSINESS.slug,
+        logoUrl: null,
+      };
+      expect(res.body).toEqual([
+        {
+          ...shared,
+          id: ANAS_BUSINESS.id,
+          name: ANAS_BUSINESS.name,
+          role: 'owner',
+          branchIds: [1, 2],
+        },
+        {
+          ...shared,
+          id: 4,
+          name: 'Alfa',
+          role: 'employee',
+          branchIds: [40, 41],
+        },
+        { ...shared, id: 3, name: 'Zeta', role: 'employee', branchIds: [30] },
+      ]);
+    });
+
+    it('puts the Dueño Negocio first even when its name sorts last', async () => {
+      t.businesses.listByEmployeeUser.mockResolvedValue([
+        { business: ALFA_BUSINESS, branchIds: [] },
+        { business: { ...ANAS_BUSINESS, name: 'Zzz' }, branchIds: [1] },
+      ]);
+
+      const res = await t.http
+        .get('/users/me/businesses')
+        .set(bearer(CLERK_TOKEN))
+        .expect(200);
+
+      expect(res.body.map((b: { id: number }) => b.id)).toEqual([1, 4]);
+    });
+
+    it('answers [] for a Usuario who is Empleado of none', async () => {
+      t.businesses.listByEmployeeUser.mockResolvedValue([]);
+
+      const res = await t.http
+        .get('/users/me/businesses')
+        .set(bearer(CLERK_TOKEN))
+        .expect(200);
+
+      expect(res.body).toEqual([]);
+    });
+
+    it('answers 401 without a session', async () => {
+      await t.http.get('/users/me/businesses').expect(401);
+    });
+
+    it('answers a database failure with a generic 500', async () => {
+      t.businesses.listByEmployeeUser.mockRejectedValue(
+        new DatabaseOperationError('Database operation failed', {
+          cause: new Error('connection refused'),
+        }),
+      );
+
+      await t.http
+        .get('/users/me/businesses')
+        .set(bearer(CLERK_TOKEN))
+        .expect(500);
     });
   });
 });
