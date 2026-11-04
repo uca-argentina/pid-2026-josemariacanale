@@ -7,6 +7,8 @@ export const BRANCHES_PATH = '/business/branches';
 /** El Staff del Negocio `businessId`: editable para el Dueño, de solo lectura para un Empleado. */
 export const staffPath = (businessId: number) => `/business/${businessId}/employees`;
 export const SERVICES_PATH = '/services';
+/** La pantalla Logros (Insignias del Usuario), desde el menú del perfil. */
+export const ACHIEVEMENTS_PATH = '/logros';
 
 /**
  * La ruta del Enlace de reserva, sin prefijo (ADR 0026): sin tramo de Sucursal, la página del Negocio (ADR 0014); con

@@ -12,6 +12,7 @@ import { createAnalyticsModule } from '@/di/modules/analytics.module';
 import { createOutOfOfficeModule } from '@/di/modules/out-of-office.module';
 import { createHolidaysModule } from '@/di/modules/holidays.module';
 import { createServicesModule } from '@/di/modules/services.module';
+import { createBadgesModule } from '@/di/modules/badges.module';
 import { createUsersModule } from '@/di/modules/users.module';
 import { createWaitlistModule } from '@/di/modules/waitlist.module';
 
@@ -30,6 +31,7 @@ ApplicationContainer.load(Symbol('OutOfOfficeModule'), createOutOfOfficeModule()
 ApplicationContainer.load(Symbol('HolidaysModule'), createHolidaysModule());
 ApplicationContainer.load(Symbol('ServicesModule'), createServicesModule());
 ApplicationContainer.load(Symbol('UsersModule'), createUsersModule());
+ApplicationContainer.load(Symbol('BadgesModule'), createBadgesModule());
 ApplicationContainer.load(Symbol('WaitlistModule'), createWaitlistModule());
 
 export function getInjection<K extends keyof typeof DI_SYMBOLS>(symbol: K): DI_RETURN_TYPES[K] {
