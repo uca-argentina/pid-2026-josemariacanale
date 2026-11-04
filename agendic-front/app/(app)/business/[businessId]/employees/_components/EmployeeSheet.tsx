@@ -6,7 +6,7 @@ import { PanelAvatar } from '@/app/(app)/_components/panel-ui';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/app/_components/ui/sheet';
 import { addDays } from '@/app/_components/booking/format';
 import { toIsoDay } from '@/app/_components/day-range';
-import { RoleBadge } from '../../_components/business-ui';
+import { RoleBadge } from '../../../_components/business-ui';
 import { loadEmployeeStatsAction, type EmployeeStatsData } from '../actions';
 import type { EmployeeRow } from './EmployeesView';
 

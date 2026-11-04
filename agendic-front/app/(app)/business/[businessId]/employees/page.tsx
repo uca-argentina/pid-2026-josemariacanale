@@ -1,17 +1,16 @@
-import { redirect, unstable_rethrow } from 'next/navigation';
+import { notFound, redirect, unstable_rethrow } from 'next/navigation';
 import { isSessionExpired } from '@/app/api-error';
 import { BackendErrorNotice } from '@/app/_components/BackendErrorNotice';
 import { BUSINESS_PATH, SIGN_IN_PATH } from '@/app/routes';
 import { getInjection } from '@/di/container';
-import { PageHeader } from '../_components/business-ui';
+import { PageHeader } from '../../_components/business-ui';
 import { EmployeesView } from './_components/EmployeesView';
 
 export const metadata = { title: 'Empleados' };
 
-export default async function EmployeesPage({ searchParams }: { searchParams: Promise<{ businessId?: string }> }) {
-    const { businessId } = await searchParams;
-    // Sin businessId, o con uno que no es un número, no hay Staff que mostrar.
-    if (!businessId || Number.isNaN(Number(businessId))) redirect(BUSINESS_PATH);
+export default async function EmployeesPage({ params }: { params: Promise<{ businessId: string }> }) {
+    const { businessId } = await params;
+    if (Number.isNaN(Number(businessId))) notFound();
 
     let staff;
     try {

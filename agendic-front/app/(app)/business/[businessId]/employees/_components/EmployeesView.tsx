@@ -17,7 +17,7 @@ import {
     PanelMenu,
 } from '@/app/(app)/_components/panel-ui';
 import { inviteEmployeeSchema, fieldErrorsOf, type FieldErrors } from '@/app/_components/business-schemas';
-import { RoleBadge, type BusinessRole } from '../../_components/business-ui';
+import { RoleBadge, type BusinessRole } from '../../../_components/business-ui';
 import { addEmployeeAction, cancelInvitationAction, resendInvitationAction, retireEmployeeAction } from '../actions';
 import { EmployeeSheet } from './EmployeeSheet';
 

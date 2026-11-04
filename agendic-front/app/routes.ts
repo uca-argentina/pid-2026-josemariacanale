@@ -5,7 +5,7 @@ export const SIGNED_IN_HOME_PATH = '/bookings';
 export const BUSINESS_PATH = '/business';
 export const BRANCHES_PATH = '/business/branches';
 /** El Staff del Negocio `businessId`: editable para el Dueño, de solo lectura para un Empleado. */
-export const staffPath = (businessId: number) => `/business/employees?businessId=${businessId}`;
+export const staffPath = (businessId: number) => `/business/${businessId}/employees`;
 export const SERVICES_PATH = '/services';
 
 /**

@@ -14,7 +14,7 @@ describe('sectionOf', () => {
 
     it('sigue siendo la sección en una subpantalla', () => {
         expect(sectionOf('/services/12', sections)?.label).toBe('Servicios');
-        expect(sectionOf('/business/employees', sections)?.label).toBe('Negocios');
+        expect(sectionOf('/business/7/employees', sections)?.label).toBe('Negocios');
     });
 
     it('no coincide con una ruta que solo comparte el prefijo de texto', () => {
@@ -106,6 +106,6 @@ describe('bookOtherDayPath', () => {
 
 describe('staffPath', () => {
     it('apunta al Staff del Negocio', () => {
-        expect(staffPath(7)).toBe('/business/employees?businessId=7');
+        expect(staffPath(7)).toBe('/business/7/employees');
     });
 });

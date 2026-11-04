@@ -62,6 +62,7 @@ export function createBusinessesModule() {
             DI_SYMBOLS.IInstrumentationService,
             DI_SYMBOLS.IAuthenticationService,
             DI_SYMBOLS.IListMyBusinessesUseCase,
+            DI_SYMBOLS.IListBusinessBranchesUseCase,
         ]);
 
     businessesModule

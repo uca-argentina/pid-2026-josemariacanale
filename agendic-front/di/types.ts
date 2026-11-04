@@ -11,6 +11,7 @@ import type { IRetireCabinController } from '@/src/interface-adapters/controller
 import type { IBranchesRepository } from '@/src/application/repositories/branches.repository.interface';
 import type { ICreateBranchUseCase } from '@/src/application/use-cases/branches/create-branch.use-case';
 import type { IUpdateBranchUseCase } from '@/src/application/use-cases/branches/update-branch.use-case';
+import type { IListBusinessBranchesUseCase } from '@/src/application/use-cases/branches/list-business-branches.use-case';
 import type { IListBranchesWithImagesUseCase } from '@/src/application/use-cases/branches/list-branches-with-images.use-case';
 import type { ICreateBranchController } from '@/src/interface-adapters/controllers/branches/create-branch.controller';
 import type { IUpdateBranchController } from '@/src/interface-adapters/controllers/branches/update-branch.controller';
@@ -222,6 +223,7 @@ export const DI_SYMBOLS = {
     ICreateBranchUseCase: Symbol.for('ICreateBranchUseCase'),
     IUpdateBranchUseCase: Symbol.for('IUpdateBranchUseCase'),
     IListBranchesWithImagesUseCase: Symbol.for('IListBranchesWithImagesUseCase'),
+    IListBusinessBranchesUseCase: Symbol.for('IListBusinessBranchesUseCase'),
     IListCabinsUseCase: Symbol.for('IListCabinsUseCase'),
     ICreateCabinUseCase: Symbol.for('ICreateCabinUseCase'),
     IRenameCabinUseCase: Symbol.for('IRenameCabinUseCase'),
@@ -429,6 +431,7 @@ export interface DI_RETURN_TYPES {
     ICreateBranchUseCase: ICreateBranchUseCase;
     IUpdateBranchUseCase: IUpdateBranchUseCase;
     IListBranchesWithImagesUseCase: IListBranchesWithImagesUseCase;
+    IListBusinessBranchesUseCase: IListBusinessBranchesUseCase;
     IListCabinsUseCase: IListCabinsUseCase;
     ICreateCabinUseCase: ICreateCabinUseCase;
     IRenameCabinUseCase: IRenameCabinUseCase;

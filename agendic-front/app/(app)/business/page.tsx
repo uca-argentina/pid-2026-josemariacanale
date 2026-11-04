@@ -19,26 +19,8 @@ export default async function BusinessPage() {
 
     // Si la consulta falla no se ofrece Crear Negocio: haría creer al Dueño que no tiene Negocio (ADR 0012).
     let businesses;
-    let branchesByBusiness;
     try {
         businesses = await getInjection('IListMyBusinessesController')();
-        const listBranches = getInjection('IListBranchesWithImagesController');
-        // Solo los Negocios ajenos muestran Sucursales: las del Dueño se editan en su propia pantalla.
-        branchesByBusiness = new Map(
-            await Promise.all(
-                businesses
-                    .filter((b) => b.role === 'employee')
-                    .map(async (b) => {
-                        // Las Sucursales son un detalle de la tarjeta: si fallan, el Usuario igual ve sus Negocios.
-                        const branches = await listBranches({ businessId: b.id }).catch((error) => {
-                            unstable_rethrow(error);
-                            getInjection('ICrashReporterService').report(error);
-                            return [];
-                        });
-                        return [b.id, branches.filter((branch) => b.branchIds.includes(branch.id))] as const;
-                    }),
-            ),
-        );
     } catch (error) {
         unstable_rethrow(error); // redirect/notFound/dynamic usage are Next's control flow, not failures
         if (isSessionExpired(error)) redirect(SIGN_IN_PATH);
@@ -74,7 +56,7 @@ export default async function BusinessPage() {
                         ) : (
                             <EmployeeBusiness
                                 key={business.id}
-                                business={{ ...business, branches: branchesByBusiness.get(business.id) ?? [] }}
+                                business={business}
                                 defaultOpen={defaultOpen}
                             />
                         ),
