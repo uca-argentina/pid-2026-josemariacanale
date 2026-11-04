@@ -18,8 +18,8 @@ const STAT_CARDS = [
     { key: 'cancelled', label: 'Cancelados' },
 ] as const satisfies readonly { key: keyof EmployeeStatsData; label: string }[];
 
-/** Cuántos días atrás empieza el período de las estadísticas: hoy y los 29 anteriores. */
-const STATS_DAYS_BACK = 29;
+/** El largo del período de las estadísticas en días: hoy y los anteriores. */
+const STATS_DAYS = 30;
 
 type StatsState = { status: 'loading' } | { status: 'error' } | { status: 'ready'; data: EmployeeStatsData };
 
@@ -30,7 +30,7 @@ function EmployeeStats({ businessId, employeeId }: { businessId: number; employe
         let cancelled = false;
         // "Hoy" es el del browser: el servidor no sabe en qué zona está quien mira.
         const to = toIsoDay(new Date());
-        void loadEmployeeStatsAction({ businessId, employeeId, from: addDays(to, -STATS_DAYS_BACK), to }).then((result) => {
+        void loadEmployeeStatsAction({ businessId, employeeId, from: addDays(to, -(STATS_DAYS - 1)), to }).then((result) => {
             if (!cancelled) setState(result.ok ? { status: 'ready', data: result.data } : { status: 'error' });
         });
         return () => {
@@ -47,8 +47,8 @@ function EmployeeStats({ businessId, employeeId }: { businessId: number; employe
     }
 
     return (
-        <section aria-label="Estadísticas de los últimos 30 días" className="flex flex-col gap-3">
-            <h3 className="m-0 text-[12px] font-bold tracking-[0.04em] text-[#6b7280] uppercase">Últimos 30 días</h3>
+        <section aria-label={`Estadísticas de los últimos ${STATS_DAYS} días`} className="flex flex-col gap-3">
+            <h3 className="m-0 text-[12px] font-bold tracking-[0.04em] text-[#6b7280] uppercase">Últimos {STATS_DAYS} días</h3>
             <div className="grid grid-cols-2 gap-3">
                 {STAT_CARDS.map(({ key, label }) => (
                     <div key={key} className="flex flex-col gap-1 rounded-md border border-[#e5e7eb] p-4">
