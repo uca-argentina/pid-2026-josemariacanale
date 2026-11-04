@@ -47,6 +47,23 @@ actualizarlo a mano cuando se agregue, cambie o borre un endpoint.
 - `UpdateMeDto`: `{ name?, email? }`
 - Respuesta (`presentUser`): `{ id, name, email, pendingEmail? (solo si está seteado), role }`. Suma `imageUrl: string | null`: la foto de perfil, la de Clerk al crearse el Usuario; `null` sin una foto real o con una URL que no se pudo parsear. Se refresca en cada request desde los claims `imageUrl` / `hasImage` del session token (como el nombre y el email, ADR 0009): sin los claims no se toca; si Clerk dice que no hay foto real pasa a `null`; si no cambió no se escribe; una falla al refrescar no tumba el request.
 
+### Insignias del Usuario (#421)
+
+| Método | Ruta | Auth | Qué hace |
+|---|---|---|---|
+| GET | `/users/me/badges` | sí | Evalúa al Usuario y responde sus Insignias |
+| GET | `/users/me/badges/unseen` | sí | Evalúa al Usuario y responde los Niveles ganados que todavía no vio |
+| POST | `/users/me/badges/seen` | sí | Marca como vistos todos sus Niveles sin ver; **204** sin body |
+
+- Sin Sesión, los tres responden **401**. Ninguno tiene body ni parámetros.
+- El catálogo vive en el dominio: `first-booking` (Primer Turno), `attended` (Turnos atendidos), `five-stars` (Cinco estrellas), `loyal-clients` (Clientes fieles) y `always-present` (Siempre presente). Los Niveles son `bronze`, `silver`, `gold` y `platinum`; una Insignia de un solo Nivel usa `bronze`.
+- Cuenta el trabajo del Usuario como quien atiende: Turnos de sus Servicios personales y de todo Negocio donde es o fue Empleado. Dejar un Negocio no resta. Un Turno atendido sigue la regla del KPI `attended`.
+- **`GET /users/me/badges`**: **200** `[{ badge, name, level, progress, levels }]`, una entrada por Insignia del catálogo y en su orden. `level` es el Nivel más alto ganado, o `null` si no ganó ninguno. `progress` es `{ current, target }` hacia el próximo Nivel sin ganar, o `null` si ya ganó el último. `levels` es `[{ level, target, earnedAt }]` con `earnedAt` en ISO, o `null` si ese Nivel no se ganó.
+- **`GET /users/me/badges/unseen`**: **200** `[{ badge, name, level, earnedAt }]` (`earnedAt` en ISO) ordenado por `earnedAt`; `[]` si no hay nada sin ver.
+- Evaluar guarda los Niveles alcanzados que faltaban, todos los intermedios si se alcanzan varios de golpe, con `earnedAt` = el momento de la evaluación. Un Nivel ganado nunca se borra ni se baja: si el conteo baja, `level` no cambia (`progress.current` sí).
+- `seen` no evalúa: marca lo que ya estaba guardado.
+- El front usa `GET /users/me/badges` en la pantalla Logros; al abrir la app pide `unseen`, muestra un modal por Nivel y, al cerrar el último, llama a `seen`.
+
 ## Businesses (Negocio)
 
 | Método | Ruta | Auth | Qué hace |

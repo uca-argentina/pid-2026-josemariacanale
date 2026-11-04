@@ -51,6 +51,14 @@ enum ServiceCategory {
   OTRO
 }
 
+/// Nivel de una Insignia (CONTEXT.md, Reconocimiento). Una Insignia de un solo Nivel usa BRONZE.
+enum BadgeLevel {
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
+}
+
 enum OutOfOfficeReason {
   UNSPECIFIED
   VACATION
@@ -79,6 +87,7 @@ model User {
   bookingSlug     BookingSlug?
   outOfOffices    OutOfOffice[]
   holidaySettings UserHolidaySettings?
+  badges          UserBadge[]
 }
 
 model Business {
@@ -402,4 +411,18 @@ model WaitlistEntry {
   createdAt  DateTime  @default(now()) @db.Timestamptz(3)
 
   service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+}
+
+/// Nivel de una Insignia que el Usuario ganó. El catálogo vive en el dominio, por eso `badge` es su clave y no una FK. Nunca se borra: ganado, no se pierde aunque el conteo baje. `seenAt` es null hasta que el Usuario ve el aviso.
+model UserBadge {
+  id       Int        @id @default(autoincrement())
+  userId   Int
+  badge    String
+  level    BadgeLevel
+  earnedAt DateTime   @db.Timestamptz(3)
+  seenAt   DateTime?  @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, badge, level])
 }
