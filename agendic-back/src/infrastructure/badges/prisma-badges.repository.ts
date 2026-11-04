@@ -97,6 +97,8 @@ export class PrismaBadgesRepository implements BadgesRepository {
   }
 
   /**
+   * Lista los Niveles ganados de los Usuarios, del más viejo al más nuevo.
+   *
    * @throws {DatabaseOperationError} la consulta falló
    */
   async listEarned(
@@ -156,6 +158,8 @@ export class PrismaBadgesRepository implements BadgesRepository {
   }
 
   /**
+   * Marca como vistos los Niveles sin ver del Usuario.
+   *
    * @throws {DatabaseOperationError} la escritura falló
    */
   async markSeen(userId: number, seenAt: Date): Promise<void> {

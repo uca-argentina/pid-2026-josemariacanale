@@ -50,12 +50,12 @@ export class EvaluateBadgesUseCase {
         .map(({ badge, level }) => ({ userId, badge, level, earnedAt: now }));
     });
 
-    // Si dos requests evalúan a la vez, el guardado ignora los duplicados; releer deja el `earnedAt` del ganador.
-    const final =
-      missing.length === 0
-        ? earned
-        : (await this.badges.saveEarned(missing),
-          await this.badges.listEarned(ids));
+    let final = earned;
+    if (missing.length > 0) {
+      await this.badges.saveEarned(missing);
+      // Si dos requests evalúan a la vez, el guardado ignora los duplicados; releer deja el `earnedAt` del ganador.
+      final = await this.badges.listEarned(ids);
+    }
 
     return new Map(
       ids.map((userId) => [
