@@ -2,6 +2,7 @@ import { Controller, Get, UseGuards } from '@nestjs/common';
 import { ListMyBusinessesUseCase } from '../../application/businesses/list-my-businesses.use-case';
 import { ClerkGuard, CurrentUser } from '../users/clerk.guard';
 
+/** Negocios del Usuario de la Sesión. */
 @Controller()
 export class UserBusinessesController {
   constructor(
