@@ -20,6 +20,7 @@ function presenter(
         const isOwner = (employee: Employee) => employee.email.toLowerCase() === user.email.toLowerCase();
         return {
             businessId: business.id,
+            viewerIsOwner: employees.some(isOwner),
             employees: employees
                 .map((e) => ({ id: e.id, name: e.name, email: e.email, imageUrl: e.imageUrl, role: isOwner(e) ? ('owner' as const) : ('employee' as const) }))
                 .sort((a, b) => Number(b.role === 'owner') - Number(a.role === 'owner')),

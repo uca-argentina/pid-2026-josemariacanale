@@ -31,8 +31,7 @@ export default async function EmployeesPage() {
             />
             <EmployeesView
                 businessId={staff.businessId}
-                // Esta página lista el Negocio del que el Usuario es Dueño.
-                viewerIsOwner
+                viewerIsOwner={staff.viewerIsOwner}
                 employees={staff.employees}
                 invitations={staff.invitations}
             />

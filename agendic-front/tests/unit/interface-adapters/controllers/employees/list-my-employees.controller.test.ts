@@ -17,6 +17,7 @@ describe('listMyEmployeesController', () => {
 
         await expect(listMyEmployeesController(instrumentation, signedIn(), listBusinesses, listEmployees, listInvitations)()).resolves.toEqual({
             businessId: 1,
+            viewerIsOwner: true,
             employees: [
                 { id: 3, name: 'Ana', email: 'Ana@Estudio.com', role: 'owner' },
                 { id: 4, name: 'Martina', email: 'martina@estudio.com', role: 'employee' },
@@ -24,6 +25,12 @@ describe('listMyEmployeesController', () => {
             invitations: [{ id: 5, email: 'nuevo@estudio.com', expiresAt: 'x' }],
         });
         expect(listEmployees).toHaveBeenCalledWith(1);
+    });
+
+    it('does not mark the viewer as Dueño when no Empleado matches their email', async () => {
+        const listBusinesses = jest.fn().mockResolvedValue([business]);
+        const result = await listMyEmployeesController(instrumentation, signedIn(), listBusinesses, jest.fn().mockResolvedValue([martina]), jest.fn().mockResolvedValue([]))();
+        expect(result).toMatchObject({ viewerIsOwner: false });
     });
 
     it('returns null without listing Empleados when the Usuario has no Negocio', async () => {
