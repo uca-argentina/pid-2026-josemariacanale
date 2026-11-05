@@ -6,6 +6,8 @@ import { ListMyInvitationsUseCase } from '../../application/invitations/list-my-
 import { ManageInvitationUseCase } from '../../application/invitations/manage-invitation.use-case';
 import { RespondToInvitationUseCase } from '../../application/invitations/respond-to-invitation.use-case';
 import { RetireEmployeeUseCase } from '../../application/employees/retire-employee.use-case';
+import { ChangeEmployeeBranchesUseCase } from '../../application/employees/change-employee-branches.use-case';
+import { PreviewEmployeeBranchesUseCase } from '../../application/employees/preview-employee-branches.use-case';
 import { UsersModule } from '../users/users.module';
 import { EmployeesController } from './employees.controller';
 
@@ -20,6 +22,8 @@ import { EmployeesController } from './employees.controller';
     RespondToInvitationUseCase,
     ManageInvitationUseCase,
     RetireEmployeeUseCase,
+    PreviewEmployeeBranchesUseCase,
+    ChangeEmployeeBranchesUseCase,
   ],
 })
 export class EmployeesModule {}
