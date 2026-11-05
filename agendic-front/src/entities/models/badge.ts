@@ -22,3 +22,16 @@ export const myBadgeSchema = z.object({
     levels: z.array(z.object({ level: badgeLevelSchema, target: z.number(), earnedAt: z.iso.datetime({ offset: true }).nullable() })),
 });
 export type MyBadge = z.infer<typeof myBadgeSchema>;
+
+/**
+ * Un Nivel ganado que el Usuario todavía no vio (`GET /users/me/badges/unseen`, ADR 0007).
+ *
+ * `badge` es un string libre por la misma razón que en `MyBadge`. El back las responde ordenadas por `earnedAt`.
+ */
+export const unseenBadgeSchema = z.object({
+    badge: z.string(),
+    name: z.string(),
+    level: badgeLevelSchema,
+    earnedAt: z.iso.datetime({ offset: true }),
+});
+export type UnseenBadge = z.infer<typeof unseenBadgeSchema>;
