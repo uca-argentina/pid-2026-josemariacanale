@@ -9,7 +9,8 @@ import { getInjection } from '@/di/container';
 import { BookingNotAllowedError, BookingStateError, CancellationReasonTooLongError, SlotTakenError, SlotUnavailableError } from '@/src/entities/errors/booking';
 import type { DI_RETURN_TYPES } from '@/di/types';
 import { TIME_ZONE } from '@/app/(app)/_components/booking-format';
-import { HISTORY_LOAD_ERROR } from './_components/booking-helpers';
+import { HISTORY_LOAD_ERROR, STREAK_LOAD_ERROR } from './_components/booking-helpers';
+import { PrizeAlreadyRedeemedError, PrizeExpiredError, PrizeOfAnotherClientError } from '@/src/entities/errors/streak';
 import type { Preferences } from '@/src/entities/models/user';
 
 import { InputParseError, NotFoundError } from '@/src/entities/errors/common';
@@ -117,5 +118,50 @@ export async function getBookingHistoryAction(bookingId: number, timeFormat: Pre
         if (isSessionExpired(error)) redirect(SIGN_IN_PATH);
         if (!(error instanceof NotFoundError || error instanceof BookingNotAllowedError)) getInjection('ICrashReporterService').report(error);
         return { ok: false, message: HISTORY_LOAD_ERROR };
+    }
+}
+
+/** El bloque Racha del Turno ya armado para el panel lateral (`null` si no hay nada que mostrar), o el mensaje de por qué no se pudo cargar. */
+export type BookingStreakResult =
+    | { ok: true; streak: Awaited<ReturnType<DI_RETURN_TYPES['IGetBookingStreakController']>> }
+    | { ok: false; message: string };
+
+/**
+ * La Racha del Cliente del Turno, con los días en la zona del panel. No refresca la página: es una lectura. Un Turno que
+ * ya no es del Usuario o no existe no se reporta; cualquier otro error sí.
+ */
+export async function getBookingStreakAction(bookingId: number): Promise<BookingStreakResult> {
+    try {
+        return { ok: true, streak: await getInjection('IGetBookingStreakController')({ bookingId, timeZone: TIME_ZONE }) };
+    } catch (error) {
+        unstable_rethrow(error);
+        if (isSessionExpired(error)) redirect(SIGN_IN_PATH);
+        if (!(error instanceof NotFoundError || error instanceof BookingNotAllowedError)) getInjection('ICrashReporterService').report(error);
+        return { ok: false, message: STREAK_LOAD_ERROR };
+    }
+}
+
+/** Lo que el panel recibe de Canjear: lo entregado, en palabras, o el mensaje que va dentro del bloque Racha. */
+export type RedeemPrizeResult = { ok: true; text: string } | { ok: false; message: string };
+
+/**
+ * Canjea un Premio en el Turno. No refresca la página, porque no cambia la lista de Turnos: el bloque Racha se vuelve a
+ * pedir solo. El 409 y los 422 son lo esperable cuando otra pestaña se adelantó o el Premio venció, así que no se reportan.
+ */
+export async function redeemPrizeAction(bookingId: number, prizeId: number): Promise<RedeemPrizeResult> {
+    try {
+        return { ok: true, ...(await getInjection('IRedeemPrizeController')({ bookingId, prizeId })) };
+    } catch (error) {
+        unstable_rethrow(error);
+        if (isSessionExpired(error)) redirect(SIGN_IN_PATH);
+        if (error instanceof PrizeAlreadyRedeemedError) return { ok: false, message: 'Este Premio ya se canjeó.' };
+        if (error instanceof PrizeExpiredError) return { ok: false, message: 'Este Premio venció.' };
+        if (error instanceof PrizeOfAnotherClientError) return { ok: false, message: 'Este Premio es de otro Cliente.' };
+        if (error instanceof BookingStateError) return { ok: false, message: 'El turno tiene que estar aceptado para canjear un Premio.' };
+        if (error instanceof BookingNotAllowedError) return { ok: false, message: 'Este turno no es tuyo.' };
+        if (error instanceof NotFoundError) return { ok: false, message: 'Ese Premio o este turno ya no existe.' };
+        if (error instanceof InputParseError) return { ok: false, message: 'Revisá los datos e intentá de nuevo.' };
+        getInjection('ICrashReporterService').report(error);
+        return { ok: false, message: 'No pudimos canjear el Premio. Intentá de nuevo.' };
     }
 }
