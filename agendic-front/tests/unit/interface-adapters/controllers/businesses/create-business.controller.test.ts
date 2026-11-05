@@ -6,7 +6,13 @@ import { authWith, instrumentation } from '@/tests/unit/stubs';
 const IMAGE = new File(['a'], 'a.png', { type: 'image/png' });
 const validInput = () => ({
     business: { name: 'Estudio', description: 'Desc', slug: 'estudio' },
-    branch: { name: 'Centro', address: 'Av. 1', timeZone: 'America/Argentina/Buenos_Aires', slug: 'centro' },
+    branch: {
+        name: 'Centro',
+        address: 'Av. 1',
+        timeZone: 'America/Argentina/Buenos_Aires',
+        slug: 'centro',
+        location: { lat: -34.6, lng: -58.4 },
+    },
     images: [IMAGE],
 });
 const user = { id: 'user_1', name: 'Ana', email: 'a@a.com' };
@@ -39,6 +45,22 @@ describe('createBusinessController', () => {
         await expect(controller({ ...input, branch: { name: 'Centro', address: 'Av. 1' } })).rejects.toBeInstanceOf(
             InputParseError,
         );
+        expect(useCase).not.toHaveBeenCalled();
+    });
+
+    it.each([
+        ['without a location', undefined],
+        ['with a lat out of range', { lat: 91, lng: 0 }],
+    ])('throws InputParseError on a Sucursal %s, without calling the use case', async (_case, location) => {
+        const useCase = jest.fn();
+        const controller = createBusinessController(
+            instrumentation,
+            authWith({ getCurrentUser: jest.fn().mockResolvedValue(user) }),
+            useCase,
+        );
+        const input = validInput();
+
+        await expect(controller({ ...input, branch: { ...input.branch, location } })).rejects.toBeInstanceOf(InputParseError);
         expect(useCase).not.toHaveBeenCalled();
     });
 

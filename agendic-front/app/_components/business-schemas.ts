@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { locationSchema } from '@/src/entities/models/branch';
 import { CABIN_NAME_MAX } from '@/src/entities/models/cabin';
 
 // La forma exacta que espera POST /businesses del back. No lleva Servicio.
@@ -30,12 +31,21 @@ export const businessSchema = z.object({
 const BRANCH_SLUG_MIN = 3;
 const BRANCH_SLUG_MAX = 40;
 
+/** Qué pide el formulario cuando la dirección no salió de una sugerencia: sin ella no hay punto. */
+export const PICK_ADDRESS_MESSAGE = 'Elegí una dirección de la lista.';
+
 const branchFields = z.object({
     name: required('el nombre de la Sucursal').refine((n) => slugify(n).length >= BRANCH_SLUG_MIN, {
         message: `El nombre tiene que tener al menos ${BRANCH_SLUG_MIN} letras o números.`,
     }),
     address: required('la dirección'),
     timeZone: required('la zona horaria'),
+    // Null until the Dueño picks a suggestion; the form shows this error under the address, where the fix is.
+    location: locationSchema.nullable().transform((location, ctx) => {
+        if (location) return location;
+        ctx.addIssue({ code: 'custom', message: PICK_ADDRESS_MESSAGE });
+        return z.NEVER;
+    }),
 });
 
 export const branchSchema = branchFields.transform((b) => ({

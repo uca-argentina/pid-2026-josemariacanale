@@ -1,6 +1,6 @@
 import type { IBranchesRepository } from '@/src/application/repositories/branches.repository.interface';
 import type { IAuthenticationService } from '@/src/application/services/authentication.service.interface';
-import { InvalidSlugError, SlugTakenError } from '@/src/entities/errors/business';
+import { InvalidLocationError, InvalidSlugError, SlugTakenError } from '@/src/entities/errors/business';
 import { ApiRequestError } from '@/src/entities/errors/common';
 import { throwIfBranchImagesRejected } from './branch-images-rejection';
 import { branchSchema, type Branch, type CreateBranch, type UpdateBranch } from '@/src/entities/models/branch';
@@ -26,6 +26,7 @@ export class BranchesRepository implements IBranchesRepository {
      *
      * @throws {SlugTakenError} 409
      * @throws {InvalidSlugError} 400 sobre el tramo
+     * @throws {InvalidLocationError} 400 sobre la Ubicación
      * @throws {BranchImagesRejectedError} 400 sobre las imágenes, o 413
      * @throws {ApiRequestError} cualquier otra falla, o un body que no es una Sucursal
      */
@@ -41,6 +42,7 @@ export class BranchesRepository implements IBranchesRepository {
      *
      * @throws {SlugTakenError} 409
      * @throws {InvalidSlugError} 400 sobre el tramo
+     * @throws {InvalidLocationError} 400 sobre la Ubicación, o por quitarla
      * @throws {ApiRequestError} cualquier otra falla, o un body que no es una Sucursal
      */
     async updateBranch({ id, ...changes }: UpdateBranch): Promise<Branch> {
@@ -73,6 +75,7 @@ export class BranchesRepository implements IBranchesRepository {
         const message = String(json?.message ?? `${what} responded ${response.status}`);
         if (response.status === 409) throw new SlugTakenError(message);
         if (response.status === 400 && /slug/i.test(message)) throw new InvalidSlugError(message);
+        if (response.status === 400 && /\blocation\b/i.test(message)) throw new InvalidLocationError(message);
         throwIfBranchImagesRejected(response.status, message);
         if (!response.ok) throw new ApiRequestError(message, { status: response.status });
 

@@ -12,6 +12,7 @@ function presenter(branch: Branch, instrumentationService: IInstrumentationServi
         timeZone: branch.timeZone,
         slug: branch.slug,
         description: branch.description,
+        location: branch.location,
     }));
 }
 

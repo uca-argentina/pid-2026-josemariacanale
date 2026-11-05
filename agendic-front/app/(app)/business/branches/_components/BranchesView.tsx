@@ -1,11 +1,19 @@
 'use client';
 
 import { useMemo, useState, useTransition } from 'react';
-import { Loader2, Plus } from 'lucide-react';
+import { Loader2, Plus, TriangleAlert } from 'lucide-react';
 import { toast } from 'sonner';
 import { PanelButton, PanelCard } from '@/app/(app)/_components/panel-ui';
 import { ImageUploader, type UploaderImage } from '@/app/_components/image-uploader/ImageUploader';
-import { branchFormSchema, fieldErrorsOf, type BranchFormFields, type FieldErrors } from '@/app/_components/business-schemas';
+import {
+    branchFormSchema,
+    fieldErrorsOf,
+    PICK_ADDRESS_MESSAGE,
+    type BranchFormFields,
+    type FieldErrors,
+} from '@/app/_components/business-schemas';
+import { Alert, AlertAction, AlertDescription, AlertTitle } from '@/app/_components/ui/alert';
+import { locationSchema, type Location } from '@/src/entities/models/branch';
 import {
     deleteBranchImageAction,
     deleteBusinessLogoAction,
@@ -27,9 +35,14 @@ export type BranchItem = {
     timeZone: string;
     slug: string;
     description: string | null;
+    /** null en una Sucursal vieja, cargada antes de que hubiera mapa. */
+    location: Location | null;
     images: { id: number; url: string }[];
     cabins: CabinItem[];
 };
+
+/** Editar no exige punto: una Sucursal vieja sin él guarda igual sus otros campos. */
+const branchEditSchema = branchFormSchema.extend({ location: locationSchema.nullable() });
 
 const oneFile = (file: File) => {
     const form = new FormData();
@@ -120,19 +133,29 @@ function BranchCard({ branch, businessSlug }: { branch: BranchItem; businessSlug
         description: branch.description ?? '',
         address: branch.address,
         timeZone: branch.timeZone,
+        location: branch.location,
     };
     const [values, setValues] = useState(initial);
     const [errors, setErrors] = useState<FieldErrors>({});
     const [isPending, startTransition] = useTransition();
     const dirty = (Object.keys(initial) as (keyof BranchFormFields)[]).some((k) => values[k] !== initial[k]);
+    const addressId = `branch-${branch.id}-address`;
 
     const save = (event: React.FormEvent) => {
         event.preventDefault();
-        const parsed = branchFormSchema.safeParse(values);
+        // An old Sucursal without a punto can still save its other fields; a new address always needs one.
+        if (values.address !== initial.address && !values.location) return setErrors({ location: PICK_ADDRESS_MESSAGE });
+        const parsed = branchEditSchema.safeParse(values);
         if (!parsed.success) return setErrors(fieldErrorsOf(parsed.error));
         setErrors({});
+        const { location, ...fields } = parsed.data;
         startTransition(async () => {
-            const result = await updateBranchAction({ id: branch.id, ...parsed.data, description: parsed.data.description || null });
+            const result = await updateBranchAction({
+                id: branch.id,
+                ...fields,
+                description: fields.description || null,
+                ...(location && { location }),
+            });
             if (result.ok) toast.success(`${parsed.data.name}: cambios guardados`);
             else if (result.field) setErrors({ [result.field]: result.message });
             else toast.error(result.message);
@@ -142,6 +165,25 @@ function BranchCard({ branch, businessSlug }: { branch: BranchItem; businessSlug
     return (
         <PanelCard className="flex flex-col gap-5">
             <h2 className="m-0 text-[14.5px] font-bold tracking-[-0.02em]">{branch.name}</h2>
+            {!branch.location && (
+                <Alert variant="warning">
+                    <TriangleAlert />
+                    <AlertTitle>Esta Sucursal no aparece en el mapa. Completá su Ubicación</AlertTitle>
+                    <AlertDescription>Buscá su dirección y elegila de la lista.</AlertDescription>
+                    <AlertAction>
+                        <PanelButton
+                            variant="secondary"
+                            onClick={() => {
+                                const input = document.getElementById(addressId);
+                                input?.scrollIntoView({ block: 'center' });
+                                input?.focus();
+                            }}
+                        >
+                            Completar Ubicación
+                        </PanelButton>
+                    </AlertAction>
+                </Alert>
+            )}
             <form onSubmit={save} noValidate className="flex flex-col gap-5">
                 <Fields
                     idPrefix={`branch-${branch.id}`}

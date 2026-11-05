@@ -15,6 +15,9 @@ import type { IListBranchesWithImagesUseCase } from '@/src/application/use-cases
 import type { ICreateBranchController } from '@/src/interface-adapters/controllers/branches/create-branch.controller';
 import type { IUpdateBranchController } from '@/src/interface-adapters/controllers/branches/update-branch.controller';
 import type { IListBranchesWithImagesController } from '@/src/interface-adapters/controllers/branches/list-branches-with-images.controller';
+import type { ITimeZoneService } from '@/src/application/services/time-zone.service.interface';
+import type { IGetTimeZoneUseCase } from '@/src/application/use-cases/branches/get-time-zone.use-case';
+import type { IGetTimeZoneController } from '@/src/interface-adapters/controllers/branches/get-time-zone.controller';
 import type { IPublicBusinessesRepository } from '@/src/application/repositories/public-businesses.repository.interface';
 import type { IGetPublicBusinessUseCase } from '@/src/application/use-cases/businesses/get-public-business.use-case';
 import type { IGetPublicBranchUseCase } from '@/src/application/use-cases/businesses/get-public-branch.use-case';
@@ -199,6 +202,7 @@ export const DI_SYMBOLS = {
     IInstrumentationService: Symbol.for('IInstrumentationService'),
     ICrashReporterService: Symbol.for('ICrashReporterService'),
     IAuthenticationService: Symbol.for('IAuthenticationService'),
+    ITimeZoneService: Symbol.for('ITimeZoneService'),
 
     IBusinessesRepository: Symbol.for('IBusinessesRepository'),
     IPublicBusinessesRepository: Symbol.for('IPublicBusinessesRepository'),
@@ -218,6 +222,7 @@ export const DI_SYMBOLS = {
     ICreateBranchUseCase: Symbol.for('ICreateBranchUseCase'),
     IUpdateBranchUseCase: Symbol.for('IUpdateBranchUseCase'),
     IListBranchesWithImagesUseCase: Symbol.for('IListBranchesWithImagesUseCase'),
+    IGetTimeZoneUseCase: Symbol.for('IGetTimeZoneUseCase'),
     IListCabinsUseCase: Symbol.for('IListCabinsUseCase'),
     ICreateCabinUseCase: Symbol.for('ICreateCabinUseCase'),
     IRenameCabinUseCase: Symbol.for('IRenameCabinUseCase'),
@@ -303,6 +308,7 @@ export const DI_SYMBOLS = {
     ICreateBranchController: Symbol.for('ICreateBranchController'),
     IUpdateBranchController: Symbol.for('IUpdateBranchController'),
     IListBranchesWithImagesController: Symbol.for('IListBranchesWithImagesController'),
+    IGetTimeZoneController: Symbol.for('IGetTimeZoneController'),
     IListCabinsController: Symbol.for('IListCabinsController'),
     ICreateCabinController: Symbol.for('ICreateCabinController'),
     IRenameCabinController: Symbol.for('IRenameCabinController'),
@@ -402,6 +408,7 @@ export interface DI_RETURN_TYPES {
     IInstrumentationService: IInstrumentationService;
     ICrashReporterService: ICrashReporterService;
     IAuthenticationService: IAuthenticationService;
+    ITimeZoneService: ITimeZoneService;
 
     IBusinessesRepository: IBusinessesRepository;
     IPublicBusinessesRepository: IPublicBusinessesRepository;
@@ -421,6 +428,7 @@ export interface DI_RETURN_TYPES {
     ICreateBranchUseCase: ICreateBranchUseCase;
     IUpdateBranchUseCase: IUpdateBranchUseCase;
     IListBranchesWithImagesUseCase: IListBranchesWithImagesUseCase;
+    IGetTimeZoneUseCase: IGetTimeZoneUseCase;
     IListCabinsUseCase: IListCabinsUseCase;
     ICreateCabinUseCase: ICreateCabinUseCase;
     IRenameCabinUseCase: IRenameCabinUseCase;
@@ -506,6 +514,7 @@ export interface DI_RETURN_TYPES {
     ICreateBranchController: ICreateBranchController;
     IUpdateBranchController: IUpdateBranchController;
     IListBranchesWithImagesController: IListBranchesWithImagesController;
+    IGetTimeZoneController: IGetTimeZoneController;
     IListCabinsController: IListCabinsController;
     ICreateCabinController: ICreateCabinController;
     IRenameCabinController: IRenameCabinController;

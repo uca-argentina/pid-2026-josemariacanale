@@ -6,14 +6,14 @@ import { isSessionExpired } from '@/app/api-error';
 import { SIGN_IN_PATH } from '@/app/routes';
 import { getInjection } from '@/di/container';
 import { BRANCH_IMAGES_REJECTED } from './branch-images-messages';
-import { AlreadyOwnerError, BranchImagesRejectedError, InvalidSlugError, SlugTakenError } from '@/src/entities/errors/business';
+import { AlreadyOwnerError, BranchImagesRejectedError, InvalidLocationError, InvalidSlugError, SlugTakenError } from '@/src/entities/errors/business';
 import { InputParseError } from '@/src/entities/errors/common';
 import { InvitationNotAcceptableError } from '@/src/entities/errors/employee';
 
 /** `logoFailed`: el Logo no se pudo subir; el Negocio ya existe y el Dueño lo carga después. */
 export type CreateBusinessResult =
     | { ok: true; failedEmployees: string[]; logoFailed: boolean }
-    | { ok: false; message: string };
+    | { ok: false; message: string; field?: 'address' };
 
 /** @throws {InputParseError} el campo del formulario no es JSON */
 function parseJson<T>(value: FormDataEntryValue | null): T {
@@ -65,6 +65,8 @@ export async function createBusinessAction(form: FormData): Promise<CreateBusine
         }
         if (error instanceof SlugTakenError) return { ok: false, message: 'Esa dirección ya está en uso.' };
         if (error instanceof InvalidSlugError) return { ok: false, message: 'El Enlace de reserva no es válido.' };
+        // The form only builds a Ubicación from a suggestion, so a 400 here means it has to pick one again.
+        if (error instanceof InvalidLocationError) return { ok: false, field: 'address', message: 'Elegí una dirección de la lista.' };
         if (error instanceof BranchImagesRejectedError) return { ok: false, message: BRANCH_IMAGES_REJECTED[error.reason] };
         // La Sesión vencida la resuelve el Usuario solo: se lo manda a Iniciar sesión.
         if (isSessionExpired(error)) redirect(SIGN_IN_PATH);

@@ -1,9 +1,23 @@
-import { createBranchAction, deleteBranchImageAction, uploadBranchImageAction } from '@/app/(app)/business/branches/actions';
-import { BranchImageLimitError, BranchImagesRejectedError, LastBranchImageError, SlugTakenError } from '@/src/entities/errors/business';
+import {
+    createBranchAction,
+    deleteBranchImageAction,
+    getTimeZoneAction,
+    updateBranchAction,
+    uploadBranchImageAction,
+} from '@/app/(app)/business/branches/actions';
+import {
+    BranchImageLimitError,
+    BranchImagesRejectedError,
+    InvalidLocationError,
+    LastBranchImageError,
+    SlugTakenError,
+} from '@/src/entities/errors/business';
 import { ApiRequestError } from '@/src/entities/errors/common';
 
 const mockControllers: Record<string, jest.Mock> = {
     ICreateBranchController: jest.fn(),
+    IUpdateBranchController: jest.fn(),
+    IGetTimeZoneController: jest.fn(),
     IUploadBranchImageController: jest.fn(),
     IDeleteBranchImageController: jest.fn(),
 };
@@ -66,6 +80,17 @@ describe('createBranchAction', () => {
         expect(mockRefresh).not.toHaveBeenCalled();
     });
 
+    it('puts a 400 about the Ubicación under the address field, without reporting it', async () => {
+        mockControllers.ICreateBranchController.mockRejectedValue(new InvalidLocationError('location is required'));
+
+        await expect(createBranchAction({}, imagesForm('a.png'))).resolves.toEqual({
+            ok: false,
+            field: 'address',
+            message: 'Elegí una dirección de la lista.',
+        });
+        expect(mockReport).not.toHaveBeenCalled();
+    });
+
     it.each([
         ['type', 'Las imágenes tienen que ser JPEG, PNG, WebP o GIF.'],
         ['size', 'Cada imagen puede pesar hasta 5 MB.'],
@@ -83,6 +108,44 @@ describe('createBranchAction', () => {
 
         const result = await createBranchAction({}, imagesForm('a.png'));
         expect(result.ok).toBe(false);
+        expect(mockReport).toHaveBeenCalledWith(error);
+    });
+});
+
+describe('updateBranchAction', () => {
+    it('sends the new Ubicación and refreshes', async () => {
+        const location = { lat: -34.6, lng: -58.4 };
+        mockControllers.IUpdateBranchController.mockResolvedValue({ id: 4, location });
+
+        await expect(updateBranchAction({ id: 4, address: 'Av. 2', location })).resolves.toMatchObject({ ok: true });
+        expect(mockControllers.IUpdateBranchController).toHaveBeenCalledWith({ id: 4, address: 'Av. 2', location });
+        expect(mockRefresh).toHaveBeenCalled();
+    });
+
+    it('puts the 400 of removing the Ubicación under the address field', async () => {
+        mockControllers.IUpdateBranchController.mockRejectedValue(new InvalidLocationError('location cannot be removed'));
+
+        await expect(updateBranchAction({ id: 4 })).resolves.toEqual({
+            ok: false,
+            field: 'address',
+            message: 'Elegí una dirección de la lista.',
+        });
+    });
+});
+
+describe('getTimeZoneAction', () => {
+    it('returns the zona horaria of the punto', async () => {
+        mockControllers.IGetTimeZoneController.mockResolvedValue({ timeZone: 'America/Argentina/Cordoba' });
+
+        await expect(getTimeZoneAction({ lat: -31.4, lng: -64.2 })).resolves.toBe('America/Argentina/Cordoba');
+        expect(mockRefresh).not.toHaveBeenCalled();
+    });
+
+    it('returns null and reports it when the Time Zone API fails, so the form keeps the one it had', async () => {
+        const error = new ApiRequestError('Time Zone API answered ZERO_RESULTS');
+        mockControllers.IGetTimeZoneController.mockRejectedValue(error);
+
+        await expect(getTimeZoneAction({ lat: 0, lng: 0 })).resolves.toBeNull();
         expect(mockReport).toHaveBeenCalledWith(error);
     });
 });
