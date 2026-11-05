@@ -17,7 +17,7 @@ import { initials } from '@/app/_components/booking/format';
 import type { BookingPrefill } from '@/app/_components/booking/booking-prefill';
 import type { Service } from '@/app/_components/booking/types';
 import { BranchGalleryModal } from './BranchGalleryModal';
-import { directionsUrl } from './branch-location';
+import { directionsUrl } from '@/app/_components/maps/directions';
 import { galleryLayout } from './gallery-layout';
 import { ShareBranchButton } from './ShareBranchButton';
 import type { Branch, BranchImage, Business, Employee, OtherBranch } from './types';

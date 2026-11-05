@@ -32,9 +32,3 @@ export function sortByDistance<T extends BranchUbicacion>(
         // Stable sort: equal keys (two without a distance) keep their order.
         .sort((a, b) => (a.distanceKm ?? Number.MAX_VALUE) - (b.distanceKm ?? Number.MAX_VALUE));
 }
-
-/** Arma el enlace "Cómo llegar": la ruta de Google Maps hasta el punto de la Sucursal, o hasta su dirección si no tiene. */
-export function directionsUrl({ address, location }: BranchUbicacion): string {
-    const destination = location ? `${location.lat},${location.lng}` : encodeURIComponent(address);
-    return `https://www.google.com/maps/dir/?api=1&destination=${destination}`;
-}

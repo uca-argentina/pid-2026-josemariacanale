@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { BOOKING_STATUSES } from '@/src/entities/models/booking';
 import { clientStreakSchema } from '@/src/entities/models/booking-streak';
+import { locationSchema } from '@/src/entities/models/branch';
 
 /**
  * Un Turno del Cliente, como lo devuelven `GET` y los `PATCH` de `/booking-links/:secret`. `cancellationReason` es el
@@ -37,8 +38,15 @@ export const clientBookingSchema = z.object({
     employeeName: z.string(),
     // Null en un Servicio personal, que no tiene Negocio ni Sucursal.
     business: z.object({ name: z.string(), slug: z.string() }).nullable(),
+    // `location` es el punto de la Ubicación (ADR 0037), null en una Sucursal anterior a la Ubicación.
     branch: z
-        .object({ name: z.string(), slug: z.string(), address: z.string(), coverUrl: z.string().nullable() })
+        .object({
+            name: z.string(),
+            slug: z.string(),
+            address: z.string(),
+            coverUrl: z.string().nullable(),
+            location: locationSchema.nullable(),
+        })
         .nullable(),
     // Al revés que `business` y `branch`: solo viene en un Servicio personal, con el Enlace de reserva del Usuario.
     user: z.object({ slug: z.string().nullable() }).nullable(),
