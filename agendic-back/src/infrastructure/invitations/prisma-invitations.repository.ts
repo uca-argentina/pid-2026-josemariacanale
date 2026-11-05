@@ -2,13 +2,34 @@ import { Injectable } from '@nestjs/common';
 import { DatabaseOperationError } from '../../domain/errors';
 import { Invitation } from '../../domain/invitations/invitation';
 import { InvitationsRepository } from '../../domain/invitations/invitations.repository';
+import { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../prisma.service';
 
-const toInvitation = ({ id, businessId, email, expiresAt }: Invitation) => ({
+/** The fields of an Invitación, with its Sucursales in id order. */
+const INVITATION_SELECT = {
+  id: true,
+  businessId: true,
+  email: true,
+  expiresAt: true,
+  branches: { select: { branchId: true }, orderBy: { branchId: 'asc' } },
+} satisfies Prisma.InvitationSelect;
+
+type InvitationRow = Prisma.InvitationGetPayload<{
+  select: typeof INVITATION_SELECT;
+}>;
+
+const toInvitation = ({
   id,
   businessId,
   email,
   expiresAt,
+  branches,
+}: InvitationRow): Invitation => ({
+  id,
+  businessId,
+  email,
+  expiresAt,
+  branchIds: branches.map(({ branchId }) => branchId),
 });
 
 const fail = (error: unknown): never => {
@@ -26,14 +47,25 @@ export class PrismaInvitationsRepository implements InvitationsRepository {
     const row = await this.prisma.invitation
       .findFirst({
         where: { businessId, email, expiresAt: { gt: now }, closedAt: null },
+        select: INVITATION_SELECT,
       })
       .catch(fail);
     return row && toInvitation(row);
   }
 
-  async create(data: Omit<Invitation, 'id'>) {
+  async create({ branchIds, ...data }: Omit<Invitation, 'id'>) {
     return toInvitation(
-      await this.prisma.invitation.create({ data }).catch(fail),
+      await this.prisma.invitation
+        .create({
+          data: {
+            ...data,
+            branches: {
+              create: branchIds.map((branchId) => ({ branchId })),
+            },
+          },
+          select: INVITATION_SELECT,
+        })
+        .catch(fail),
     );
   }
 
@@ -42,6 +74,7 @@ export class PrismaInvitationsRepository implements InvitationsRepository {
       await this.prisma.invitation
         .findMany({
           where: { businessId, expiresAt: { gt: now }, closedAt: null },
+          select: INVITATION_SELECT,
           orderBy: { id: 'asc' },
         })
         .catch(fail)
@@ -50,7 +83,10 @@ export class PrismaInvitationsRepository implements InvitationsRepository {
 
   async findById(id: number) {
     const row = await this.prisma.invitation
-      .findUnique({ where: { id } })
+      .findUnique({
+        where: { id },
+        select: { ...INVITATION_SELECT, closedAt: true },
+      })
       .catch(fail);
     return row && { ...toInvitation(row), closedAt: row.closedAt };
   }
@@ -60,11 +96,44 @@ export class PrismaInvitationsRepository implements InvitationsRepository {
       await this.prisma.invitation
         .findMany({
           where: { email, expiresAt: { gt: now }, closedAt: null },
-          include: { business: { select: { name: true, slug: true } } },
+          select: {
+            ...INVITATION_SELECT,
+            business: { select: { name: true, slug: true } },
+            branches: {
+              select: {
+                branchId: true,
+                branch: { select: { id: true, name: true } },
+              },
+              orderBy: { branchId: 'asc' },
+            },
+          },
           orderBy: { id: 'asc' },
         })
         .catch(fail)
-    ).map((row) => ({ ...toInvitation(row), business: row.business }));
+    ).map((row) => ({
+      ...toInvitation(row),
+      business: row.business,
+      branches: row.branches.map(({ branch }) => branch),
+    }));
+  }
+
+  async replaceBranches(id: number, branchIds: number[]) {
+    await this.prisma
+      .$transaction(async (tx) => {
+        const { businessId } = await tx.invitation.findUniqueOrThrow({
+          where: { id },
+          select: { businessId: true },
+        });
+        await tx.invitationBranch.deleteMany({ where: { invitationId: id } });
+        await tx.invitationBranch.createMany({
+          data: branchIds.map((branchId) => ({
+            invitationId: id,
+            branchId,
+            businessId,
+          })),
+        });
+      })
+      .catch(fail);
   }
 
   async renew(id: number, expiresAt: Date) {

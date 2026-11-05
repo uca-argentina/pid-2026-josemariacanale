@@ -16,9 +16,16 @@ export interface InvitationsRepository {
   listPendingByEmail(
     email: string,
     now: Date,
-  ): Promise<(Invitation & { business: { name: string; slug: string } })[]>;
+  ): Promise<
+    (Invitation & {
+      business: { name: string; slug: string };
+      branches: { id: number; name: string }[];
+    })[]
+  >;
   /** Marks it accepted or rejected so it is no longer pending. */
   close(id: number, closedAt: Date): Promise<void>;
+  /** Replaces the Sucursales the Invitación lleva. */
+  replaceBranches(id: number, branchIds: number[]): Promise<void>;
   /** Sets a new expiry on the Invitación. */
   renew(id: number, expiresAt: Date): Promise<void>;
   /** The Negocio's not yet expired Invitaciones. */

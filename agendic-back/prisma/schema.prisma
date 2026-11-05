@@ -11,6 +11,7 @@
 // - BookingSlug: exactly one of businessId / userId (check), slug lowercase (check) (ADR 0026)
 // - Booking.cancelledAt only with status CANCELLED, Booking.rejectedAt only with REJECTED (check)
 // - EmployeeBranch: the Sucursal is of the Empleado's own Negocio, by the composite foreign keys on (id, businessId)
+// - InvitationBranch: the Sucursal is of the Invitación's own Negocio, by the composite foreign keys on (id, businessId)
 // - AvailabilityInterval Franjas of one weekday don't overlap: checked by the API only, since `days` is an array (ADR 0020)
 
 generator client {
@@ -106,9 +107,25 @@ model Invitation {
   expiresAt  DateTime  @db.Timestamptz(3)
   closedAt   DateTime? @db.Timestamptz(3) // aceptada o rechazada
 
-  business Business @relation(fields: [businessId], references: [id])
+  business Business           @relation(fields: [businessId], references: [id])
+  branches InvitationBranch[]
 
   @@index([businessId, email])
+  @@unique([id, businessId]) // target of InvitationBranch's foreign key, so its Sucursal is of the Invitación's Negocio
+}
+
+/// A Sucursal where the invited person will work once they Aceptan la invitación (#387). `businessId` is repeated so
+/// both foreign keys can require the Sucursal and the Invitación to be of the same Negocio.
+model InvitationBranch {
+  invitationId Int
+  branchId     Int
+  businessId   Int
+
+  invitation Invitation @relation(fields: [invitationId, businessId], references: [id, businessId], onDelete: Cascade)
+  branch     Branch     @relation(fields: [branchId, businessId], references: [id, businessId], onDelete: Cascade)
+
+  @@id([invitationId, branchId])
+  @@index([branchId])
 }
 
 model Branch {
@@ -122,11 +139,12 @@ model Branch {
   latitude    Float? // Ubicación's point (ADR 0037); both or neither (CHECK Branch_location_both_or_neither), null only on Sucursales from before it existed
   longitude   Float?
 
-  business  Business         @relation(fields: [businessId], references: [id])
-  services  Service[]
-  images    BranchImage[]
-  cabins    Cabin[]
-  employees EmployeeBranch[]
+  business    Business           @relation(fields: [businessId], references: [id])
+  services    Service[]
+  images      BranchImage[]
+  cabins      Cabin[]
+  employees   EmployeeBranch[]
+  invitations InvitationBranch[]
 
   @@unique([businessId, slug]) // unique within its Negocio only, unlike Business.slug
   @@unique([id, businessId]) // target of EmployeeBranch's foreign key, so its Sucursal is of the Empleado's Negocio

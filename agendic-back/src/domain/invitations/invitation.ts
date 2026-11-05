@@ -5,6 +5,8 @@ export interface Invitation {
   /** Always lowercase. */
   email: string;
   expiresAt: Date;
+  /** Sucursales of the Negocio where the Empleado will work once they accept. */
+  branchIds: number[];
 }
 
 /** Días que una Invitación sigue pendiente. */
