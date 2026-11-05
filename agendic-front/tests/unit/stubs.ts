@@ -94,7 +94,10 @@ export const outOfOfficeWith = (stubs: Partial<IOutOfOfficeRepository>): IOutOfO
 export const calendarConnectionsWith = (stubs: Partial<ICalendarConnectionsRepository>): ICalendarConnectionsRepository => ({
     getConnection: jest.fn(notStubbed('getConnection')),
     startGoogleConnection: jest.fn(notStubbed('startGoogleConnection')),
+    startMicrosoftConnection: jest.fn(notStubbed('startMicrosoftConnection')),
     disconnect: jest.fn(notStubbed('disconnect')),
+    listCalendars: jest.fn(notStubbed('listCalendars')),
+    setCheckedCalendars: jest.fn(notStubbed('setCheckedCalendars')),
     ...stubs,
 });
 

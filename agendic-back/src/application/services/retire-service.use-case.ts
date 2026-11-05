@@ -16,6 +16,7 @@ import {
 import { MAILER, Mailer } from '../../domain/mailer';
 import { notifyClients } from '../bookings/notify-clients';
 import { assertServiceOwner } from './assert-service-owner';
+import { ClientInvites } from '../bookings/client-invites.service';
 
 /** Da de baja un Servicio y cancela sus Turnos futuros, avisando por mail al Cliente de cada uno. */
 @Injectable()
@@ -29,6 +30,7 @@ export class RetireServiceUseCase {
     private readonly services: ServicesRepository,
     @Inject(CLOCK) private readonly clock: Clock,
     @Inject(MAILER) private readonly mailer: Mailer,
+    private readonly invites: ClientInvites,
   ) {}
 
   /**
@@ -46,8 +48,13 @@ export class RetireServiceUseCase {
       serviceId,
       this.clock.now(),
     );
-    await notifyClients(cancelledBookings, (email, link) =>
-      this.mailer.sendBookingCancellation(email, link),
+    await notifyClients(
+      cancelledBookings,
+      (email, link, _reason, invite) =>
+        invite
+          ? this.mailer.sendBookingCancellation(email, link, undefined, undefined, invite)
+          : this.mailer.sendBookingCancellation(email, link),
+      (links) => this.invites.cancel(links),
     );
     return { id: serviceId, cancelledBookings: cancelledBookings.length };
   }

@@ -17,6 +17,7 @@ import { isLastEmployee } from '../services/is-last-employee';
 import { MAILER, Mailer } from '../../domain/mailer';
 import { notifyClients } from '../bookings/notify-clients';
 import { assertEmployeeOwner } from './assert-employee-owner';
+import { ClientInvites } from '../bookings/client-invites.service';
 
 /** Da de baja un Empleado y cancela sus Turnos futuros, avisando por mail al Cliente de cada uno. */
 @Injectable()
@@ -30,6 +31,7 @@ export class RetireEmployeeUseCase {
     private readonly services: ServicesRepository,
     @Inject(CLOCK) private readonly clock: Clock,
     @Inject(MAILER) private readonly mailer: Mailer,
+    private readonly invites: ClientInvites,
   ) {}
 
   /**
@@ -61,8 +63,13 @@ export class RetireEmployeeUseCase {
       employee.id,
       this.clock.now(),
     );
-    await notifyClients(cancelledBookings, (email, link) =>
-      this.mailer.sendBookingCancellation(email, link),
+    await notifyClients(
+      cancelledBookings,
+      (email, link, _reason, invite) =>
+        invite
+          ? this.mailer.sendBookingCancellation(email, link, undefined, undefined, invite)
+          : this.mailer.sendBookingCancellation(email, link),
+      (links) => this.invites.cancel(links),
     );
     return { cancelledBookings: cancelledBookings.length };
   }

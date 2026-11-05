@@ -1,9 +1,9 @@
 import type { IAuthenticationService } from '@/src/application/services/authentication.service.interface';
 import type { IInstrumentationService } from '@/src/application/services/instrumentation.service.interface';
 import type { IStartGoogleCalendarConnectionUseCase } from '@/src/application/use-cases/calendar/start-google-calendar-connection.use-case';
-import type { GoogleAuthorization } from '@/src/entities/models/calendar-connection';
+import type { CalendarAuthorization } from '@/src/entities/models/calendar-connection';
 
-function presenter(authorization: GoogleAuthorization, instrumentationService: IInstrumentationService) {
+function presenter(authorization: CalendarAuthorization, instrumentationService: IInstrumentationService) {
     return instrumentationService.startSpan({ name: 'startGoogleCalendarConnection Presenter', op: 'serialize' }, () => ({
         authorizationUrl: authorization.authorizationUrl,
     }));

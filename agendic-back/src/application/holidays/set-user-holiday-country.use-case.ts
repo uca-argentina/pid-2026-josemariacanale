@@ -20,6 +20,7 @@ import { notifyCausedCancellations } from '../bookings/notify-caused-cancellatio
 import { confirmedCancellations } from '../out-of-office/confirmed-cancellations';
 import { GetHolidaysForCountryUseCase } from './get-holidays-for-country.use-case';
 import { listHolidaysWithStatus } from './list-holidays-with-status';
+import { ClientInvites } from '../bookings/client-invites.service';
 
 /** Cambia el país o calendario religioso de los Días festivos del Usuario (ADR 0027). */
 @Injectable()
@@ -33,6 +34,7 @@ export class SetUserHolidayCountryUseCase {
     private readonly leftOutside: LeftOutsideBookingsService,
     @Inject(MAILER) private readonly mailer: Mailer,
     @Inject(CLOCK) private readonly clock: Clock,
+    private readonly invites: ClientInvites,
   ) {}
 
   /**
@@ -66,6 +68,7 @@ export class SetUserHolidayCountryUseCase {
       await notifyCausedCancellations(
         this.mailer,
         left.filter((booking) => cancelled.has(booking.id)),
+        (links) => this.invites.cancel(links),
       );
       cancelledBookings = cancelledIds.length;
     }

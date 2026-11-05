@@ -2,13 +2,15 @@ import { Injectable } from '@nestjs/common';
 import dayjs from 'dayjs';
 import timezone from 'dayjs/plugin/timezone';
 import utc from 'dayjs/plugin/utc';
+import { BookingEventContent } from '../../domain/calendar/booking-event';
 import {
   AGENDIC_EVENT_MARKER,
   CalendarAccessRevokedError,
   ExternalBusy,
-  GoogleCalendarEvents,
-  GoogleCalendarSummary,
-} from '../../domain/calendar/google-calendar-events';
+  ProviderCalendarEvents,
+  CalendarSummary,
+  PRIMARY_CALENDAR_ID,
+} from '../../domain/calendar/calendar-events';
 import { ExternalServiceError } from '../../domain/errors';
 import { readCalendarOauthConfig } from './calendar-oauth-config';
 
@@ -17,6 +19,8 @@ dayjs.extend(timezone);
 
 const TOKEN_ENDPOINT = 'https://oauth2.googleapis.com/token';
 const CALENDAR_API = 'https://www.googleapis.com/calendar/v3';
+/** Los Eventos del Turno siempre van al calendario principal. */
+const EVENTS_URL = `${CALENDAR_API}/calendars/${PRIMARY_CALENDAR_ID}/events`;
 
 interface GoogleEvent {
   status?: string;
@@ -47,7 +51,7 @@ interface GoogleEventsPage {
  * porque no deja distinguir los Eventos del Turno que escribe Agendic.
  */
 @Injectable()
-export class GoogleCalendarEventsClient implements GoogleCalendarEvents {
+export class GoogleCalendarEventsClient implements ProviderCalendarEvents {
   /**
    * @throws {CalendarAccessRevokedError} Google rechazó el refresh token
    * @throws {NotConfiguredError} faltan las credenciales OAuth de Google
@@ -55,7 +59,7 @@ export class GoogleCalendarEventsClient implements GoogleCalendarEvents {
    */
   async listCalendars(refreshToken: string) {
     const accessToken = await this.refreshAccessToken(refreshToken);
-    const calendars: GoogleCalendarSummary[] = [];
+    const calendars: CalendarSummary[] = [];
     let pageToken: string | undefined;
     do {
       const query = new URLSearchParams({
@@ -118,6 +122,95 @@ export class GoogleCalendarEventsClient implements GoogleCalendarEvents {
     return busy;
   }
 
+  /**
+   * @throws {CalendarAccessRevokedError} Google rechazó el refresh token
+   * @throws {NotConfiguredError} faltan las credenciales OAuth de Google
+   * @throws {ExternalServiceError} Google respondió con error o no respondió
+   */
+  async createEvent(refreshToken: string, content: BookingEventContent) {
+    const accessToken = await this.refreshAccessToken(refreshToken);
+    const res = await this.send(
+      'POST',
+      `${EVENTS_URL}?sendUpdates=none`,
+      accessToken,
+      eventBody(content),
+    );
+    if (!res.ok)
+      throw new ExternalServiceError(
+        `Google event creation failed: ${res.status}`,
+      );
+    const { id } = (await res.json()) as { id: string };
+    return id;
+  }
+
+  /**
+   * @throws {CalendarAccessRevokedError} Google rechazó el refresh token
+   * @throws {NotConfiguredError} faltan las credenciales OAuth de Google
+   * @throws {ExternalServiceError} Google respondió con error o no respondió
+   */
+  async updateEvent(
+    refreshToken: string,
+    eventId: string,
+    content: BookingEventContent,
+  ) {
+    const accessToken = await this.refreshAccessToken(refreshToken);
+    const res = await this.send(
+      'PATCH',
+      `${EVENTS_URL}/${encodeURIComponent(eventId)}?sendUpdates=none`,
+      accessToken,
+      // A patch only clears a field when it is sent as null.
+      { ...eventBody(content), location: content.location },
+    );
+    if (res.status === 404 || res.status === 410) return false;
+    if (!res.ok)
+      throw new ExternalServiceError(
+        `Google event update failed: ${res.status}`,
+      );
+    // Google answers 200 for an event the User deleted in its UI: it still exists, as cancelled.
+    const { status } = (await res.json()) as { status?: string };
+    return status !== 'cancelled';
+  }
+
+  /**
+   * @throws {CalendarAccessRevokedError} Google rechazó el refresh token
+   * @throws {NotConfiguredError} faltan las credenciales OAuth de Google
+   * @throws {ExternalServiceError} Google respondió con error o no respondió
+   */
+  async deleteEvent(refreshToken: string, eventId: string) {
+    const accessToken = await this.refreshAccessToken(refreshToken);
+    const res = await this.send(
+      'DELETE',
+      `${EVENTS_URL}/${encodeURIComponent(eventId)}?sendUpdates=none`,
+      accessToken,
+    );
+    if (res.ok || res.status === 404 || res.status === 410) return;
+    throw new ExternalServiceError(
+      `Google event deletion failed: ${res.status}`,
+    );
+  }
+
+  private async send(
+    method: string,
+    url: string,
+    accessToken: string,
+    body?: unknown,
+  ): Promise<Response> {
+    try {
+      return await fetch(url, {
+        method,
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
+        },
+        body: body === undefined ? undefined : JSON.stringify(body),
+      });
+    } catch (error) {
+      throw new ExternalServiceError('Google Calendar not reachable', {
+        cause: error,
+      });
+    }
+  }
+
   private async get(url: string, accessToken: string): Promise<Response> {
     try {
       return await fetch(url, {
@@ -131,7 +224,7 @@ export class GoogleCalendarEventsClient implements GoogleCalendarEvents {
   }
 
   private async refreshAccessToken(refreshToken: string): Promise<string> {
-    const { clientId, clientSecret } = readCalendarOauthConfig();
+    const { clientId, clientSecret } = readCalendarOauthConfig('GOOGLE');
     let res: Response;
     try {
       res = await fetch(TOKEN_ENDPOINT, {
@@ -188,6 +281,21 @@ export class GoogleCalendarEventsClient implements GoogleCalendarEvents {
       );
     return (await res.json()) as GoogleEventsPage;
   }
+}
+
+/** El cuerpo del evento: el Cliente de invitado y la marca privada que los Ocupados externos descartan. */
+function eventBody(content: BookingEventContent) {
+  return {
+    summary: content.title,
+    description: content.description,
+    ...(content.location ? { location: content.location } : {}),
+    start: { dateTime: content.start.toISOString() },
+    end: { dateTime: content.end.toISOString() },
+    attendees: [{ email: content.attendeeEmail }],
+    extendedProperties: {
+      private: { [AGENDIC_EVENT_MARKER]: String(content.bookingId) },
+    },
+  };
 }
 
 /** El tramo que un evento ocupa, o `null` si no cuenta: cancelado, "disponible" o un Evento del Turno de Agendic. */

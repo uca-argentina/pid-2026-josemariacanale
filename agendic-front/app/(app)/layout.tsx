@@ -11,7 +11,7 @@ import { getInjection } from '@/di/container';
 import { isSessionExpired, isUserDeactivated } from '@/app/api-error';
 import { loadMyBookings } from '@/app/(app)/bookings/load-my-bookings';
 import { myPreferences } from './my-preferences';
-import { isCalendarDisconnected } from '@/src/entities/models/calendar-connection';
+import { isCalendarDisconnected, type CalendarProvider } from '@/src/entities/models/calendar-connection';
 import type { NavItem } from './_components/types';
 
 const navItems: NavItem[] = [
@@ -57,20 +57,21 @@ async function ownedBusinessName() {
     }
 }
 
-/** Si Google dejó de dar acceso al Calendario conectado del Usuario; si la consulta falla, no: el aviso no vale un error de página. */
-async function calendarDisconnected() {
+/** El proveedor del Calendario conectado del Usuario si dejó de dar acceso, o `null`; si la consulta falla, `null`: el aviso no vale un error de página. */
+async function calendarDisconnected(): Promise<CalendarProvider | null> {
     try {
-        return isCalendarDisconnected(await getInjection('IGetMyCalendarConnectionController')());
+        const connection = await getInjection('IGetMyCalendarConnectionController')();
+        return connection && isCalendarDisconnected(connection) ? connection.provider : null;
     } catch (error) {
         if (!isSessionExpired(error) && !isUserDeactivated(error)) getInjection('ICrashReporterService').report(error);
-        return false;
+        return null;
     }
 }
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
     const user = await getCurrentUser();
     if (!user) redirect(SIGN_IN_PATH);
-    const [{ count: pendingCount, deactivated }, businessName, preferences, showCalendarNotice] = await Promise.all([
+    const [{ count: pendingCount, deactivated }, businessName, preferences, disconnectedCalendar] = await Promise.all([
         countPendingBookings(),
         ownedBusinessName(),
         myPreferences(),
@@ -95,7 +96,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             />
             <SidebarInset className="min-w-0">
                 <SiteHeader sections={navItems} />
-                {showCalendarNotice && <CalendarDisconnectedBanner />}
+                {disconnectedCalendar && <CalendarDisconnectedBanner provider={disconnectedCalendar} />}
                 {/* The pages paint their own white background; rounding it keeps the inset's corners without clipping wide content. */}
                 <div className="@container/main flex flex-1 flex-col md:*:rounded-b-xl">{children}</div>
             </SidebarInset>
