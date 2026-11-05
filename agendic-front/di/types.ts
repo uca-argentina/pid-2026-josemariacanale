@@ -1,4 +1,15 @@
 import type { IBusinessesRepository } from '@/src/application/repositories/businesses.repository.interface';
+import type { IStreakProgramsRepository } from '@/src/application/repositories/streak-programs.repository.interface';
+import type { IGetStreakProgramUseCase } from '@/src/application/use-cases/streaks/get-streak-program.use-case';
+import type { IGetStreakProgramController } from '@/src/interface-adapters/controllers/streaks/get-streak-program.controller';
+import type { ISaveStreakProgramUseCase } from '@/src/application/use-cases/streaks/save-streak-program.use-case';
+import type { ISaveStreakProgramController } from '@/src/interface-adapters/controllers/streaks/save-streak-program.controller';
+import type { ICreateStreakRewardUseCase } from '@/src/application/use-cases/streaks/create-streak-reward.use-case';
+import type { ICreateStreakRewardController } from '@/src/interface-adapters/controllers/streaks/create-streak-reward.controller';
+import type { IUpdateStreakRewardUseCase } from '@/src/application/use-cases/streaks/update-streak-reward.use-case';
+import type { IUpdateStreakRewardController } from '@/src/interface-adapters/controllers/streaks/update-streak-reward.controller';
+import type { IDeleteStreakRewardUseCase } from '@/src/application/use-cases/streaks/delete-streak-reward.use-case';
+import type { IDeleteStreakRewardController } from '@/src/interface-adapters/controllers/streaks/delete-streak-reward.controller';
 import type { ICabinsRepository } from '@/src/application/repositories/cabins.repository.interface';
 import type { IListCabinsUseCase } from '@/src/application/use-cases/cabins/list-cabins.use-case';
 import type { IListCabinsController } from '@/src/interface-adapters/controllers/cabins/list-cabins.controller';
@@ -204,6 +215,7 @@ export const DI_SYMBOLS = {
     IPublicBusinessesRepository: Symbol.for('IPublicBusinessesRepository'),
     IBranchesRepository: Symbol.for('IBranchesRepository'),
     ICabinsRepository: Symbol.for('ICabinsRepository'),
+    IStreakProgramsRepository: Symbol.for('IStreakProgramsRepository'),
     IEmployeesRepository: Symbol.for('IEmployeesRepository'),
     IBookingsRepository: Symbol.for('IBookingsRepository'),
     IUserBookingsRepository: Symbol.for('IUserBookingsRepository'),
@@ -222,6 +234,11 @@ export const DI_SYMBOLS = {
     ICreateCabinUseCase: Symbol.for('ICreateCabinUseCase'),
     IRenameCabinUseCase: Symbol.for('IRenameCabinUseCase'),
     IRetireCabinUseCase: Symbol.for('IRetireCabinUseCase'),
+    IGetStreakProgramUseCase: Symbol.for('IGetStreakProgramUseCase'),
+    ISaveStreakProgramUseCase: Symbol.for('ISaveStreakProgramUseCase'),
+    ICreateStreakRewardUseCase: Symbol.for('ICreateStreakRewardUseCase'),
+    IUpdateStreakRewardUseCase: Symbol.for('IUpdateStreakRewardUseCase'),
+    IDeleteStreakRewardUseCase: Symbol.for('IDeleteStreakRewardUseCase'),
     ICreateBusinessUseCase: Symbol.for('ICreateBusinessUseCase'),
     IListBusinessesUseCase: Symbol.for('IListBusinessesUseCase'),
     IUpdateBusinessUseCase: Symbol.for('IUpdateBusinessUseCase'),
@@ -307,6 +324,11 @@ export const DI_SYMBOLS = {
     ICreateCabinController: Symbol.for('ICreateCabinController'),
     IRenameCabinController: Symbol.for('IRenameCabinController'),
     IRetireCabinController: Symbol.for('IRetireCabinController'),
+    IGetStreakProgramController: Symbol.for('IGetStreakProgramController'),
+    ISaveStreakProgramController: Symbol.for('ISaveStreakProgramController'),
+    ICreateStreakRewardController: Symbol.for('ICreateStreakRewardController'),
+    IUpdateStreakRewardController: Symbol.for('IUpdateStreakRewardController'),
+    IDeleteStreakRewardController: Symbol.for('IDeleteStreakRewardController'),
     ICreateBusinessController: Symbol.for('ICreateBusinessController'),
     IGetMyBusinessController: Symbol.for('IGetMyBusinessController'),
     IUpdateBusinessController: Symbol.for('IUpdateBusinessController'),
@@ -407,6 +429,7 @@ export interface DI_RETURN_TYPES {
     IPublicBusinessesRepository: IPublicBusinessesRepository;
     IBranchesRepository: IBranchesRepository;
     ICabinsRepository: ICabinsRepository;
+    IStreakProgramsRepository: IStreakProgramsRepository;
     IEmployeesRepository: IEmployeesRepository;
     IBookingsRepository: IBookingsRepository;
     IUserBookingsRepository: IUserBookingsRepository;
@@ -425,6 +448,11 @@ export interface DI_RETURN_TYPES {
     ICreateCabinUseCase: ICreateCabinUseCase;
     IRenameCabinUseCase: IRenameCabinUseCase;
     IRetireCabinUseCase: IRetireCabinUseCase;
+    IGetStreakProgramUseCase: IGetStreakProgramUseCase;
+    ISaveStreakProgramUseCase: ISaveStreakProgramUseCase;
+    ICreateStreakRewardUseCase: ICreateStreakRewardUseCase;
+    IUpdateStreakRewardUseCase: IUpdateStreakRewardUseCase;
+    IDeleteStreakRewardUseCase: IDeleteStreakRewardUseCase;
     ICreateBusinessUseCase: ICreateBusinessUseCase;
     IListBusinessesUseCase: IListBusinessesUseCase;
     IUpdateBusinessUseCase: IUpdateBusinessUseCase;
@@ -510,6 +538,11 @@ export interface DI_RETURN_TYPES {
     ICreateCabinController: ICreateCabinController;
     IRenameCabinController: IRenameCabinController;
     IRetireCabinController: IRetireCabinController;
+    IGetStreakProgramController: IGetStreakProgramController;
+    ISaveStreakProgramController: ISaveStreakProgramController;
+    ICreateStreakRewardController: ICreateStreakRewardController;
+    IUpdateStreakRewardController: IUpdateStreakRewardController;
+    IDeleteStreakRewardController: IDeleteStreakRewardController;
     ICreateBusinessController: ICreateBusinessController;
     IGetMyBusinessController: IGetMyBusinessController;
     IUpdateBusinessController: IUpdateBusinessController;

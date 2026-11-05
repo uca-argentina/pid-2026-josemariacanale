@@ -5,24 +5,25 @@ import { PanelAvatar } from '@/app/(app)/_components/panel-ui';
 import { Button } from '@/app/_components/ui/button';
 import { Combobox, ComboboxEmpty, ComboboxInput, ComboboxItem, ComboboxList, ComboboxPopup, ComboboxTrigger } from '@/app/_components/ui/combobox';
 import { cn } from '@/app/_components/utils';
-import type { AnalyticsBusiness } from '@/src/entities/models/analytics';
 
-/** De quién son las analíticas: el Usuario (`id: undefined`, sus Servicios personales) o un Negocio del que es Empleado. */
+/** De quién es lo que se ve: el Usuario (`id: undefined`, sus Servicios personales) o un Negocio. */
 type Scope = { id: number | undefined; name: string; imageUrl: string | null };
 
 /**
- * El selector de Analíticas, como el de Cal.com Insights: un Combobox con buscador y, en cada opción, avatar y check.
- * Primero el Usuario, con su foto; después los Negocios de los que es Empleado. `selected` es el `businessId` elegido.
+ * El selector de alcance del panel, como el de Cal.com Insights: un Combobox con buscador y, en cada opción, avatar y check.
+ * Primero el Usuario, con su foto; después los Negocios. `selected` es el `businessId` elegido; `label`, su nombre accesible.
  * El check propio de `ComboboxItem` (a la izquierda) se esconde: el de Cal.com va a la derecha.
  */
 export function ScopeSelect({
+    label,
     user,
     businesses,
     selected,
     onChange,
 }: {
+    label: string;
     user: { name: string; imageUrl: string | null };
-    businesses: AnalyticsBusiness[];
+    businesses: { id: number; name: string }[];
     selected: number | undefined;
     onChange: (businessId: number | undefined) => void;
 }) {
@@ -38,7 +39,7 @@ export function ScopeSelect({
             itemToStringValue={(scope: Scope) => String(scope.id ?? 'me')}
             isItemEqualToValue={(a: Scope, b: Scope) => a.id === b.id}
         >
-            <ComboboxTrigger render={<Button type="button" variant="outline" className="max-w-64 justify-between gap-2" aria-label="Ver analíticas de" />}>
+            <ComboboxTrigger render={<Button type="button" variant="outline" className="max-w-64 justify-between gap-2" aria-label={label} />}>
                 <PanelAvatar name={current.name} imageUrl={current.imageUrl} className="size-5 text-[8px]" />
                 <span className="truncate">{current.name}</span>
                 <ChevronDown className="opacity-60" />

@@ -1,4 +1,4 @@
-import { bookAgainPath, bookOtherDayPath, bookingLinkPath, bookingPath, sectionOf, userLinkPath, waitlistPath } from '@/app/routes';
+import { bookAgainPath, bookOtherDayPath, bookingLinkPath, bookingPath, sectionOf, streaksPath, userLinkPath, waitlistPath } from '@/app/routes';
 
 describe('sectionOf', () => {
     const sections = [
@@ -101,5 +101,15 @@ describe('bookOtherDayPath', () => {
 
     it('es null si no trae ni Negocio ni Usuario', () => {
         expect(bookOtherDayPath({ service, business: null, branch: null, user: null })).toBeNull();
+    });
+});
+
+describe('streaksPath', () => {
+    it('is the personal scope without a Negocio', () => {
+        expect(streaksPath()).toBe('/streaks');
+    });
+
+    it('carries the Negocio otherwise', () => {
+        expect(streaksPath(3)).toBe('/streaks?businessId=3');
     });
 });
