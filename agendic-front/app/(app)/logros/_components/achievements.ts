@@ -20,11 +20,12 @@ export function progressPercent({ current, target }: { current: number; target: 
     return target > 0 ? Math.min(100, Math.round((current / target) * 100)) : 0;
 }
 
-/**
- * El día en que la Insignia ganó su Nivel actual, `YYYY-MM-DD`. Es el día UTC de `earnedAt`: el server no conoce la
- * zona del Usuario.
- */
-export function earnedDay(badge: MyBadge) {
-    const earnedAt = badge.levels.find((l) => l.level === badge.level)?.earnedAt;
-    return earnedAt ? earnedAt.slice(0, 10) : null;
+/** El instante en que la Insignia ganó su Nivel actual (ISO), o null si no tiene Nivel. */
+export function earnedAt(badge: MyBadge) {
+    return badge.levels.find((l) => l.level === badge.level)?.earnedAt ?? null;
+}
+
+/** El día `YYYY-MM-DD` de un instante ISO en `timeZone`; sin zona, la del navegador. */
+export function dayInZone(iso: string, timeZone?: string) {
+    return new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(iso));
 }

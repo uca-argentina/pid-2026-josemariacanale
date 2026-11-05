@@ -1,4 +1,4 @@
-import { achieved, earnedDay, inProgress, progressPercent, progressText } from '@/app/(app)/logros/_components/achievements';
+import { achieved, dayInZone, earnedAt, inProgress, progressPercent, progressText } from '@/app/(app)/logros/_components/achievements';
 import { medalLabel } from '@/app/_components/medal-style';
 import type { MyBadge } from '@/src/entities/models/badge';
 
@@ -60,13 +60,20 @@ describe('progressPercent', () => {
     });
 });
 
-describe('earnedDay', () => {
-    it('is the day the current Nivel was won', () => {
-        expect(earnedDay(silverGoingForGold)).toBe('2026-10-01');
+describe('earnedAt', () => {
+    it('is the instant the current Nivel was won', () => {
+        expect(earnedAt(silverGoingForGold)).toBe('2026-10-01T10:00:00.000Z');
     });
 
     it('is null without a Nivel', () => {
-        expect(earnedDay(notStarted)).toBeNull();
+        expect(earnedAt(notStarted)).toBeNull();
+    });
+});
+
+describe('dayInZone', () => {
+    it('is the day in the given zone, which can differ from the UTC day', () => {
+        expect(dayInZone('2026-10-02T01:30:00.000Z', 'UTC')).toBe('2026-10-02');
+        expect(dayInZone('2026-10-02T01:30:00.000Z', 'America/Argentina/Buenos_Aires')).toBe('2026-10-01');
     });
 });
 

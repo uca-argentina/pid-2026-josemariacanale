@@ -1,8 +1,8 @@
 import { Medal } from '@/app/_components/Medal';
 import { LEVEL_NAMES } from '@/app/_components/medal-style';
-import { formatOutOfOfficeDate } from '@/app/_components/format-day';
 import type { MyBadge } from '@/src/entities/models/badge';
-import { achieved, earnedDay, inProgress, progressPercent, progressText } from './achievements';
+import { achieved, earnedAt, inProgress, progressPercent, progressText } from './achievements';
+import { EarnedDate } from './EarnedDate';
 
 /** La pantalla Logros: las Insignias en curso con su avance y las conseguidas con la fecha. Una puede estar en las dos. */
 export function AchievementsView({ badges }: { badges: MyBadge[] }) {
@@ -43,7 +43,7 @@ export function AchievementsView({ badges }: { badges: MyBadge[] }) {
 
             <Group title="Conseguidas" empty="Todavía no ganaste ninguna Insignia.">
                 {won.map((badge) => {
-                    const day = earnedDay(badge);
+                    const earned = earnedAt(badge);
                     return (
                         <li key={badge.badge} className="flex items-center gap-4 rounded-xl border border-[#e5e7eb] p-4">
                             <Medal badge={badge.badge} name={badge.name} level={badge.level} />
@@ -51,7 +51,12 @@ export function AchievementsView({ badges }: { badges: MyBadge[] }) {
                                 <span className="text-[14px] font-bold">{badge.name}</span>
                                 <span className="text-[12px] font-medium text-[#6b7280]">
                                     Nivel {LEVEL_NAMES[badge.level!]}
-                                    {day && ` · ${formatOutOfOfficeDate(day)}`}
+                                    {earned && (
+                                        <>
+                                            {' · '}
+                                            <EarnedDate earnedAt={earned} />
+                                        </>
+                                    )}
                                 </span>
                             </div>
                         </li>
