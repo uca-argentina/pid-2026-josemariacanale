@@ -48,6 +48,7 @@ export class EmployeesController {
       userId,
       businessId,
       dto.email,
+      dto.branchIds,
     );
     res.status(created ? 201 : 200);
     return presentInvitation(invitation);
@@ -69,7 +70,7 @@ export class EmployeesController {
   @UseGuards(ClerkGuard)
   async listMyInvitations(@CurrentUser() userId: number) {
     return (await this.listMyInvitationsUseCase.execute(userId)).map(
-      ({ id, business }) => ({ id, business }),
+      ({ id, business, branches }) => ({ id, business, branches }),
     );
   }
 

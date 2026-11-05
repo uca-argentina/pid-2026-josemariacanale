@@ -42,12 +42,14 @@ describe('Empleado', () => {
       businessId: ANAS_BUSINESS.id,
       email: BRUNO.email,
       expiresAt: new Date('2026-01-08T12:00:00.000Z'),
+      branchIds: [ANAS_BRANCH.id],
     };
-    const post = (email = BRUNO.email) =>
+    const post = (email = BRUNO.email, branchIds?: unknown) =>
       t.http
         .post(`/businesses/${ANAS_BUSINESS.id}/employees`)
         .set(bearer(CLERK_TOKEN))
-        .send({ email });
+        .send(branchIds === undefined ? { email } : { email, branchIds });
+    const SECOND_BRANCH = { ...ANAS_BRANCH, id: ANAS_BRANCH.id + 1 };
 
     beforeEach(() => {
       scriptSession(t);
@@ -56,6 +58,7 @@ describe('Empleado', () => {
       t.invitations.findPending.mockResolvedValue(null);
       t.invitations.create.mockResolvedValue(INVITATION);
       t.users.findByEmail.mockResolvedValue(null);
+      t.branches.listByBusiness.mockResolvedValue([ANAS_BRANCH]);
     });
 
     it('creates an Invitaci�n that expires in 7 days and has Clerk mail an email with no Usuario', async () => {
@@ -66,12 +69,82 @@ describe('Empleado', () => {
         businessId: ANAS_BUSINESS.id,
         email: BRUNO.email,
         expiresAt: new Date('2026-01-08T12:00:00.000Z'),
+        branchIds: [ANAS_BRANCH.id],
       });
       expect(res.body).toEqual({
         id: 5,
         email: BRUNO.email,
         expiresAt: '2026-01-08T12:00:00.000Z',
+        branchIds: [ANAS_BRANCH.id],
       });
+    });
+
+    it('sends the Invitación to the only Sucursal when branchIds is missing and the Negocio has one', async () => {
+      await post().expect(201);
+
+      expect(t.invitations.create).toHaveBeenCalledWith(
+        expect.objectContaining({ branchIds: [ANAS_BRANCH.id] }),
+      );
+    });
+
+    it('sends the Invitación to the chosen Sucursales of a Negocio with several', async () => {
+      t.branches.listByBusiness.mockResolvedValue([ANAS_BRANCH, SECOND_BRANCH]);
+
+      await post(BRUNO.email, [SECOND_BRANCH.id]).expect(201);
+
+      expect(t.invitations.create).toHaveBeenCalledWith(
+        expect.objectContaining({ branchIds: [SECOND_BRANCH.id] }),
+      );
+    });
+
+    it.each([undefined, []])(
+      'answers 400 and calls neither Clerk nor the repository when branchIds is %j and the Negocio has several Sucursales',
+      async (branchIds) => {
+        t.branches.listByBusiness.mockResolvedValue([
+          ANAS_BRANCH,
+          SECOND_BRANCH,
+        ]);
+
+        const res = await post(BRUNO.email, branchIds).expect(400);
+
+        expect(res.body.message).toBe('branchIds must have at least one Branch');
+        expect(t.clerkAuth.inviteByEmail).not.toHaveBeenCalled();
+        expect(t.invitations.create).not.toHaveBeenCalled();
+      },
+    );
+
+    it('answers 422 and calls neither Clerk nor the repository when a Sucursal is of another Negocio', async () => {
+      const res = await post(BRUNO.email, [99]).expect(422);
+
+      expect(res.body.message).toBe(
+        `Branch 99 is not a Branch of Business ${ANAS_BUSINESS.id}`,
+      );
+      expect(t.clerkAuth.inviteByEmail).not.toHaveBeenCalled();
+      expect(t.invitations.create).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['not an array', 1],
+      ['not integers', ['1']],
+      ['repeated', [ANAS_BRANCH.id, ANAS_BRANCH.id]],
+    ])('answers 400 when branchIds are %s', async (_, branchIds) => {
+      await post(BRUNO.email, branchIds).expect(400);
+
+      expect(t.invitations.create).not.toHaveBeenCalled();
+    });
+
+    it('replaces the Sucursales of an already pending Invitación when inviting again', async () => {
+      t.branches.listByBusiness.mockResolvedValue([ANAS_BRANCH, SECOND_BRANCH]);
+      t.invitations.findPending.mockResolvedValue(INVITATION);
+
+      const res = await post(BRUNO.email, [SECOND_BRANCH.id]).expect(200);
+
+      expect(t.invitations.replaceBranches).toHaveBeenCalledWith(
+        INVITATION.id,
+        [SECOND_BRANCH.id],
+      );
+      expect(res.body.branchIds).toEqual([SECOND_BRANCH.id]);
+      expect(t.invitations.create).not.toHaveBeenCalled();
     });
 
     it('creates the Invitaci�n without mail when the email already has a Usuario', async () => {
@@ -181,6 +254,7 @@ describe('Empleado', () => {
           businessId: ANAS_BUSINESS.id,
           email: BRUNO.email,
           expiresAt: new Date('2026-01-08T12:00:00.000Z'),
+          branchIds: [ANAS_BRANCH.id],
         },
       ]);
 
@@ -194,7 +268,12 @@ describe('Empleado', () => {
         new Date('2026-01-01T12:00:00.000Z'),
       );
       expect(res.body).toEqual([
-        { id: 5, email: BRUNO.email, expiresAt: '2026-01-08T12:00:00.000Z' },
+        {
+          id: 5,
+          email: BRUNO.email,
+          expiresAt: '2026-01-08T12:00:00.000Z',
+          branchIds: [ANAS_BRANCH.id],
+        },
       ]);
     });
 
@@ -213,6 +292,7 @@ describe('Empleado', () => {
       email: ANA.email,
       expiresAt: new Date('2026-01-05T12:00:00.000Z'),
       closedAt: null,
+      branchIds: [4, 2],
     };
     const auth = (req: import('supertest').Test) =>
       req.set(bearer(CLERK_TOKEN));
@@ -222,7 +302,6 @@ describe('Empleado', () => {
       t.users.findById.mockResolvedValue({ ...ANA, email: 'Ana@Example.com' });
       t.invitations.findById.mockResolvedValue(MINE);
       t.employees.listActiveByUser.mockResolvedValue([ANAS_EMPLOYEE]);
-      t.branches.listByBusiness.mockResolvedValue([]);
       t.employees.create.mockResolvedValue({
         ...ANAS_EMPLOYEE,
         id: 3,
@@ -232,7 +311,11 @@ describe('Empleado', () => {
 
     it('lists only the pending Invitaciones of the Session email, with their Negocio', async () => {
       t.invitations.listPendingByEmail.mockResolvedValue([
-        { ...MINE, business: { name: 'Spa', slug: 'spa' } },
+        {
+          ...MINE,
+          business: { name: 'Spa', slug: 'spa' },
+          branches: [{ id: 4, name: 'Centro' }],
+        },
       ]);
 
       const res = await auth(t.http.get('/invitations/me')).expect(200);
@@ -242,7 +325,11 @@ describe('Empleado', () => {
         new Date('2026-01-01T12:00:00.000Z'),
       );
       expect(res.body).toEqual([
-        { id: 9, business: { name: 'Spa', slug: 'spa' } },
+        {
+          id: 9,
+          business: { name: 'Spa', slug: 'spa' },
+          branches: [{ id: 4, name: 'Centro' }],
+        },
       ]);
     });
 
@@ -256,11 +343,7 @@ describe('Empleado', () => {
       expect(res.body.id).toBe(3);
     });
 
-    it('accepting places the Empleado in every Sucursal of the Negocio, until #387 lets the Dueño choose', async () => {
-      t.branches.listByBusiness.mockResolvedValue([
-        { ...ANAS_BRANCH, id: 4, businessId: 7 },
-        { ...ANAS_BRANCH, id: 2, businessId: 7 },
-      ]);
+    it("accepting places the Empleado in the Invitación's Sucursales", async () => {
       t.employees.create.mockResolvedValue({
         ...ANAS_EMPLOYEE,
         id: 3,
@@ -270,12 +353,12 @@ describe('Empleado', () => {
 
       const res = await auth(t.http.post('/invitations/9/accept')).expect(200);
 
-      expect(t.branches.listByBusiness).toHaveBeenCalledWith(7);
       expect(t.employees.create).toHaveBeenCalledWith({
         userId: ANA.id,
         businessId: 7,
         branchIds: [4, 2],
       });
+      expect(t.branches.listByBusiness).not.toHaveBeenCalled();
       expect(res.body.branchIds).toEqual([2, 4]);
     });
 
@@ -321,6 +404,7 @@ describe('Empleado', () => {
       email: BRUNO.email,
       expiresAt: new Date('2026-01-02T12:00:00.000Z'),
       closedAt: null,
+      branchIds: [ANAS_BRANCH.id],
     };
     const as = (token: string, req: ReturnType<typeof t.http.get>) => req.set(bearer(token));
 
@@ -347,6 +431,7 @@ describe('Empleado', () => {
         id: 5,
         email: BRUNO.email,
         expiresAt: '2026-01-08T12:00:00.000Z',
+        branchIds: [ANAS_BRANCH.id],
       });
     });
 
@@ -645,6 +730,7 @@ describe('Empleado', () => {
     scriptSession(t);
     t.businesses.findById.mockResolvedValue(ANAS_BUSINESS);
     t.employees.listActiveByBusiness.mockResolvedValue([]);
+    t.branches.listByBusiness.mockResolvedValue([ANAS_BRANCH]);
     t.invitations.findPending.mockResolvedValue(null);
     t.users.findByEmail.mockResolvedValue(BRUNO);
     t.invitations.create.mockRejectedValue(
