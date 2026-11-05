@@ -1,12 +1,13 @@
 import { z } from 'zod';
 
-/** El Tiempo de quemada admitido, en días, como lo valida el back. */
+/** El mínimo del Tiempo de quemada, en días, como lo valida el back. */
 export const BURN_AFTER_DAYS_MIN = 1;
+/** El máximo del Tiempo de quemada, en días, como lo valida el back. */
 export const BURN_AFTER_DAYS_MAX = 365;
 /** El largo máximo del texto de un regalo. */
 export const GIFT_DESCRIPTION_MAX = 200;
-/** Lo más que entra en el `value` de una Recompensa, un Decimal(10, 2) en el back. */
-export const REWARD_VALUE_MAX = 99_999_999.99;
+// A Decimal(10, 2) in the back.
+const REWARD_VALUE_MAX = 99_999_999.99;
 // An int4 in the back: above this it answers a 500, not a 400.
 const POSITIVE_INT_MAX = 2_147_483_647;
 

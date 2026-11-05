@@ -31,7 +31,11 @@ const TYPE_OPTIONS: { value: StreakRewardType; label: string }[] = [
     { value: 'FREE_SERVICE', label: 'Servicio gratis' },
 ];
 
-/** Alta (sin `reward`) o edición de una Recompensa, con los campos que pide su tipo. */
+/**
+ * Alta (sin `reward`) o edición de una Recompensa, con los campos que pide su tipo. Los números van sin `min` ni `max`,
+ * que los corregirían en silencio, y sin separador de miles, que leería el punto de `149.85` como miles: los valida
+ * `parseRewardDraft`.
+ */
 export function StreakRewardDialog({
     businessId,
     reward,
@@ -58,7 +62,7 @@ export function StreakRewardDialog({
         startTransition(async () => {
             const result = reward ? await updateStreakRewardAction(reward.id, parsed.fields) : await createStreakRewardAction(businessId, parsed.fields);
             if (result.ok) onClose();
-            else if (result.field && result.field !== 'burnAfterDays') setErrors({ [result.field]: result.message });
+            else if (result.field) setErrors({ [result.field]: result.message });
             else toast.error(result.message);
         });
     };
@@ -82,12 +86,11 @@ export function StreakRewardDialog({
                 </>
             }
         >
-            <form id="streak-reward" onSubmit={save} noValidate className="flex flex-col gap-6">
-                <div className="grid gap-6 sm:grid-cols-2">
+            <form id="streak-reward" onSubmit={save} noValidate className="@container/reward flex flex-col gap-6">
+                <div className="grid gap-6 @md/reward:grid-cols-2">
                     <PanelField label="Cantidad de Turnos" htmlFor="reward-requiredCount" error={errors.requiredCount}>
                         <PanelNumberField
                             id="reward-requiredCount"
-                            min={1}
                             suffix="Turnos"
                             value={draft.requiredCount}
                             aria-describedby={describedBy('requiredCount')}
@@ -121,8 +124,6 @@ export function StreakRewardDialog({
                     <PanelField label="Porcentaje" htmlFor="reward-value" error={errors.value}>
                         <PanelNumberField
                             id="reward-value"
-                            min={1}
-                            max={100}
                             suffix="%"
                             value={draft.value}
                             aria-describedby={describedBy('value')}
@@ -134,8 +135,6 @@ export function StreakRewardDialog({
                     <PanelField label="Monto" htmlFor="reward-value" error={errors.value}>
                         <PanelNumberField
                             id="reward-value"
-                            min={0}
-                            grouping
                             prefix="$"
                             suffix="ARS"
                             value={draft.value}
@@ -181,7 +180,6 @@ export function StreakRewardDialog({
                 >
                     <PanelNumberField
                         id="reward-validForDays"
-                        min={1}
                         suffix="días"
                         value={draft.validForDays}
                         aria-describedby={describedBy('validForDays')}

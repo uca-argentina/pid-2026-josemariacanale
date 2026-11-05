@@ -29,7 +29,7 @@ export default async function StreaksPage({ searchParams }: { searchParams: Prom
         owned = await getInjection('IGetMyBusinessController')();
         businessId = owned && requested === String(owned.id) ? owned.id : undefined;
         [program, services] = await Promise.all([
-            getInjection('IGetStreakProgramController')(businessId === undefined ? {} : { businessId }),
+            getInjection('IGetStreakProgramController')({ businessId }),
             servicesOf(businessId),
         ]);
     } catch (error) {
@@ -40,7 +40,7 @@ export default async function StreaksPage({ searchParams }: { searchParams: Prom
     }
 
     return (
-        <div className="flex-1 bg-white px-4 py-8 text-[#0f1b2d] sm:px-8">
+        <div className="flex-1 bg-white px-4 py-8 text-[#0f1b2d] lg:px-6">
             <div className="mx-auto flex max-w-[800px] flex-col gap-6">
                 <div className="flex flex-col gap-4">
                     <div>

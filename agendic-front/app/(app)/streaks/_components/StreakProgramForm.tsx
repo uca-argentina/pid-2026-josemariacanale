@@ -4,11 +4,13 @@ import { useState, useTransition } from 'react';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PanelButton, PanelField, PanelNumberField, PanelSection, PanelToggleRow } from '@/app/(app)/_components/panel-ui';
-import { BURN_AFTER_DAYS_MAX, BURN_AFTER_DAYS_MIN } from '@/src/entities/models/streak-program';
 import { saveStreakProgramAction } from '../actions';
 import { burnDaysError, shortensBurnTime } from './streak-form';
 
-/** El interruptor de las Rachas y su Tiempo de quemada; avisa si lo que se tipeó acorta el que está guardado. */
+/**
+ * El interruptor de las Rachas y su Tiempo de quemada; avisa si lo que se tipeó acorta el que está guardado. El campo
+ * va sin `min` ni `max`: los aplicaría en silencio mientras se tipea, y el rango lo avisa `burnDaysError`.
+ */
 export function StreakProgramForm({
     businessId,
     active: savedActive,
@@ -29,7 +31,7 @@ export function StreakProgramForm({
         setError(invalid);
         if (invalid) return;
         startTransition(async () => {
-            const result = await saveStreakProgramAction({ ...(businessId !== undefined && { businessId }), active, burnAfterDays: Number(days) });
+            const result = await saveStreakProgramAction({ businessId, active, burnAfterDays: Number(days) });
             if (result.ok) toast.success('Guardamos las Rachas');
             else if (result.field) setError(result.message);
             else toast.error(result.message);
@@ -56,8 +58,6 @@ export function StreakProgramForm({
                     >
                         <PanelNumberField
                             id="streaks-burn-days"
-                            min={BURN_AFTER_DAYS_MIN}
-                            max={BURN_AFTER_DAYS_MAX}
                             suffix="días"
                             value={days}
                             disabled={isPending}

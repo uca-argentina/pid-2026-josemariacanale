@@ -88,13 +88,13 @@ export class StreakProgramsRepository implements IStreakProgramsRepository {
         return this.send('deleteReward', 'DELETE', `/streak-rewards/${id}`, undefined, () => undefined);
     }
 
-    private send<T>(method: string, verb: string, path: string, body: object | undefined, parse: (json: unknown) => T): Promise<T> {
-        return this.instrumentationService.startSpan({ name: `StreakProgramsRepository > ${method}`, op: 'http.client' }, async () => {
-            const json = await apiRequest(this.authenticationService, this.apiUrl, verb, path, { body, errors: ERRORS });
+    private send<T>(repositoryMethod: string, httpMethod: string, path: string, body: object | undefined, parse: (json: unknown) => T): Promise<T> {
+        return this.instrumentationService.startSpan({ name: `StreakProgramsRepository > ${repositoryMethod}`, op: 'http.client' }, async () => {
+            const json = await apiRequest(this.authenticationService, this.apiUrl, httpMethod, path, { body, errors: ERRORS });
             try {
                 return parse(json);
             } catch (cause) {
-                throw new ApiRequestError(`${verb} ${path} responded with an unexpected body`, { cause });
+                throw new ApiRequestError(`${httpMethod} ${path} responded with an unexpected body`, { cause });
             }
         });
     }

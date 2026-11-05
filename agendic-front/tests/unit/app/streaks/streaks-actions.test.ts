@@ -113,6 +113,31 @@ describe('createStreakRewardAction', () => {
     });
 });
 
+describe('a 400 about a field every type has', () => {
+    it.each([
+        ['requiredCount', 'requiredCount must not be less than 1'],
+        ['validForDays', 'validForDays must not be less than 1'],
+    ] as const)('goes under %s', async (field, message) => {
+        mockControllers.ICreateStreakRewardController.mockRejectedValue(new InputParseError(message));
+
+        await expect(createStreakRewardAction(3, percent)).resolves.toEqual({ ok: false, field, message: REWARD_FIELD_MESSAGES[field] });
+    });
+});
+
+describe('a 404 from a Negocio', () => {
+    it('says the Negocio is gone when saving the program', async () => {
+        mockControllers.ISaveStreakProgramController.mockRejectedValue(new NotFoundError('Business not found'));
+
+        await expect(saveStreakProgramAction({ businessId: 3, active: true, burnAfterDays: 30 })).resolves.toEqual({ ok: false, message: 'Ese Negocio ya no existe.' });
+    });
+
+    it('says the Negocio is gone when creating a Recompensa', async () => {
+        mockControllers.ICreateStreakRewardController.mockRejectedValue(new NotFoundError('Business not found'));
+
+        await expect(createStreakRewardAction(3, percent)).resolves.toEqual({ ok: false, message: 'Ese Negocio ya no existe.' });
+    });
+});
+
 describe('updateStreakRewardAction', () => {
     it('passes the id and the Recompensa to the controller and refreshes', async () => {
         mockControllers.IUpdateStreakRewardController.mockResolvedValue({});
