@@ -1,3 +1,4 @@
+import { StaffMember } from '../../application/employees/list-employees-by-business.use-case';
 import { Employee } from '../../domain/employees/employee';
 
 /**
@@ -10,4 +11,10 @@ export const presentEmployee = (employee: Employee) => ({
   name: employee.name,
   email: employee.email,
   imageUrl: employee.imageUrl,
+});
+
+/** A member of the Staff as `GET /businesses/:id/employees` lists it: the Empleado plus the highest Nivel of each of their Insignias. */
+export const presentStaffMember = ({ employee, badges }: StaffMember) => ({
+  ...presentEmployee(employee),
+  badges,
 });

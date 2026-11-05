@@ -1,3 +1,4 @@
+import { EarnedLevel, NO_METRICS } from '../../domain/badges/badges';
 import {
   DatabaseOperationError,
   ExternalServiceError,
@@ -296,7 +297,8 @@ describe('Empleado', () => {
       expiresAt: new Date('2026-01-02T12:00:00.000Z'),
       closedAt: null,
     };
-    const as = (token: string, req: ReturnType<typeof t.http.get>) => req.set(bearer(token));
+    const as = (token: string, req: ReturnType<typeof t.http.get>) =>
+      req.set(bearer(token));
 
     beforeEach(() => {
       scriptSession(t);
@@ -409,7 +411,9 @@ describe('Empleado', () => {
         employee: { ...OTHER_EMPLOYEE, deletedAt: new Date() },
         cancelledBookings: cancelledBookings(1),
       });
-      t.mailer.sendBookingCancellation.mockRejectedValue(new Error('SMTP down'));
+      t.mailer.sendBookingCancellation.mockRejectedValue(
+        new Error('SMTP down'),
+      );
 
       const res = await t.http
         .delete(`/employees/${OTHER_EMPLOYEE.id}`)
@@ -553,9 +557,24 @@ describe('Empleado', () => {
   });
 
   describe('GET /businesses/:id/employees', () => {
+    let stored: (EarnedLevel & { userId: number })[];
+
     beforeEach(() => {
       scriptSession(t);
       t.businesses.findById.mockResolvedValue(ANAS_BUSINESS);
+      stored = [];
+      t.badges.measure.mockImplementation(
+        async (ids) => new Map(ids.map((id) => [id, { ...NO_METRICS }])),
+      );
+      t.badges.listEarned.mockImplementation(async (ids) => {
+        const map = new Map<number, EarnedLevel[]>();
+        for (const row of stored.filter((s) => ids.includes(s.userId)))
+          map.set(row.userId, [...(map.get(row.userId) ?? []), row]);
+        return map;
+      });
+      t.badges.saveEarned.mockImplementation(async (levels) => {
+        for (const l of levels) stored.push({ ...l, seenAt: null });
+      });
     });
 
     it('lists the Business Employees not dados de baja as { id, userId, name, email, imageUrl }', async () => {
@@ -576,6 +595,7 @@ describe('Empleado', () => {
           name: ANAS_EMPLOYEE.name,
           email: ANAS_EMPLOYEE.email,
           imageUrl: null,
+          badges: [],
         },
         {
           id: OTHER_EMPLOYEE.id,
@@ -583,11 +603,81 @@ describe('Empleado', () => {
           name: OTHER_EMPLOYEE.name,
           email: OTHER_EMPLOYEE.email,
           imageUrl: 'https://img.clerk.com/bruno.png',
+          badges: [],
         },
       ]);
       expect(t.employees.listActiveByBusiness).toHaveBeenCalledWith(
         ANAS_BUSINESS.id,
       );
+    });
+
+    it('adds the highest Nivel of each Insignia, highest Nivel first, with no progress', async () => {
+      t.employees.listActiveByBusiness.mockResolvedValue([
+        ANAS_EMPLOYEE,
+        OTHER_EMPLOYEE,
+      ]);
+      t.badges.measure.mockResolvedValue(
+        new Map([
+          [ANAS_EMPLOYEE.userId, { ...NO_METRICS, attended: 60, fiveStars: 5 }],
+          [OTHER_EMPLOYEE.userId, { ...NO_METRICS }],
+        ]),
+      );
+
+      const res = await t.http
+        .get(`/businesses/${ANAS_BUSINESS.id}/employees`)
+        .set(bearer(CLERK_TOKEN))
+        .expect(200);
+
+      expect(res.body[0].badges).toEqual([
+        { badge: 'attended', name: 'Turnos atendidos', level: 'silver' },
+        { badge: 'first-booking', name: 'Primer Turno', level: 'bronze' },
+        { badge: 'five-stars', name: 'Cinco estrellas', level: 'bronze' },
+      ]);
+      expect(res.body[1].badges).toEqual([]);
+    });
+
+    it('evaluates the whole Staff in one batch and saves the Niveles reached, unseen', async () => {
+      t.employees.listActiveByBusiness.mockResolvedValue([
+        ANAS_EMPLOYEE,
+        OTHER_EMPLOYEE,
+      ]);
+      t.badges.measure.mockResolvedValue(
+        new Map([
+          [ANAS_EMPLOYEE.userId, { ...NO_METRICS }],
+          [OTHER_EMPLOYEE.userId, { ...NO_METRICS, attended: 1 }],
+        ]),
+      );
+
+      await t.http
+        .get(`/businesses/${ANAS_BUSINESS.id}/employees`)
+        .set(bearer(CLERK_TOKEN))
+        .expect(200);
+
+      expect(t.badges.measure).toHaveBeenCalledTimes(1);
+      expect(t.badges.measure.mock.calls[0][0]).toEqual([
+        ANAS_EMPLOYEE.userId,
+        OTHER_EMPLOYEE.userId,
+      ]);
+      expect(stored).toEqual([
+        expect.objectContaining({
+          userId: OTHER_EMPLOYEE.userId,
+          badge: 'first-booking',
+          level: 'bronze',
+          seenAt: null,
+        }),
+      ]);
+    });
+
+    it('does not evaluate anyone when the Usuario is not an Empleado of the Business', async () => {
+      scriptOtherSession(t);
+      t.employees.listActiveByBusiness.mockResolvedValue([ANAS_EMPLOYEE]);
+
+      await t.http
+        .get(`/businesses/${ANAS_BUSINESS.id}/employees`)
+        .set(bearer(OTHER_CLERK_TOKEN))
+        .expect(403);
+
+      expect(t.badges.measure).not.toHaveBeenCalled();
     });
 
     it('lets an Empleado who is not the Dueño see the Staff', async () => {
