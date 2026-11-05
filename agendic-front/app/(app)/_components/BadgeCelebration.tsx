@@ -8,6 +8,7 @@ import { Button } from '@/app/_components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/app/_components/ui/dialog';
 import type { UnseenBadge } from '@/src/entities/models/badge';
 import { markBadgesSeenAction } from './badge-celebration-actions';
+import { closeCelebration } from './celebration-queue';
 
 const CONFETTI_Z_INDEX = 55;
 
@@ -38,8 +39,9 @@ export function BadgeCelebration({ badges }: { badges: UnseenBadge[] }) {
     const isLast = index === badges.length - 1;
 
     const close = () => {
-        if (isLast) void markBadgesSeenAction();
-        setIndex(index + 1);
+        const { next, markSeen } = closeCelebration(index, badges.length);
+        if (markSeen) void markBadgesSeenAction();
+        setIndex(next);
     };
 
     return (

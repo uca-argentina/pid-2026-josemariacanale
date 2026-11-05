@@ -1,11 +1,12 @@
-import { redirect, unstable_rethrow } from 'next/navigation';
+import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/app/(public)/(auth)/current-user';
 import { SIGN_IN_PATH } from '@/app/routes';
 import { AppToaster } from '@/app/_components/AppToaster';
 import { SidebarInset, SidebarProvider } from '@/app/_components/ui/sidebar';
 import { AppSidebar } from './_components/AppSidebar';
 import { SiteHeader } from './_components/SiteHeader';
-import { BadgeCelebration } from './_components/BadgeCelebration';
+import { Suspense } from 'react';
+import { UnseenBadgeCelebration } from './_components/UnseenBadgeCelebration';
 import { SignOutOnDeactivated } from './_components/SignOutOnDeactivated';
 import { getInjection } from '@/di/container';
 import { isSessionExpired, isUserDeactivated } from '@/app/api-error';
@@ -56,25 +57,13 @@ async function ownedBusinessName() {
     }
 }
 
-/** Los Niveles ganados sin ver, o `[]` si la consulta falla: la celebración nunca bloquea la app. */
-async function unseenBadges() {
-    try {
-        return await getInjection('IListUnseenBadgesController')();
-    } catch (error) {
-        unstable_rethrow(error);
-        if (!isSessionExpired(error) && !isUserDeactivated(error)) getInjection('ICrashReporterService').report(error);
-        return [];
-    }
-}
-
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
     const user = await getCurrentUser();
     if (!user) redirect(SIGN_IN_PATH);
-    const [{ count: pendingCount, deactivated }, businessName, preferences, badges] = await Promise.all([
+    const [{ count: pendingCount, deactivated }, businessName, preferences] = await Promise.all([
         countPendingBookings(),
         ownedBusinessName(),
         myPreferences(),
-        unseenBadges(),
     ]);
     if (deactivated) return <SignOutOnDeactivated />;
 
@@ -99,7 +88,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 <div className="@container/main flex flex-1 flex-col md:*:rounded-b-xl">{children}</div>
             </SidebarInset>
             <AppToaster />
-            <BadgeCelebration badges={badges} />
+            <Suspense>
+                <UnseenBadgeCelebration />
+            </Suspense>
         </SidebarProvider>
     );
 }
