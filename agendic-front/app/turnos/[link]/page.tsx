@@ -3,7 +3,7 @@ import { unstable_rethrow } from 'next/navigation';
 import { ViewTransition } from 'react';
 import { readClock } from '@/app/_components/clock';
 import { BackendErrorNotice } from '@/app/_components/BackendErrorNotice';
-import type { ClientBooking, ClientStreak } from '@/app/_components/client-booking/types';
+import type { ClientBooking, ClientStreakView } from '@/app/_components/client-booking/types';
 import { Footer } from '@/app/_components/Footer';
 import { Header } from '@/app/_components/Header';
 import { getInjection } from '@/di/container';
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 };
 
 type LoadedBooking =
-    | { found: true; booking: ClientBooking; streak: ClientStreak }
+    | { found: true; booking: ClientBooking; streak: ClientStreakView }
     | { found: false; failed: boolean };
 
 async function loadBooking(link: string): Promise<LoadedBooking> {

@@ -51,7 +51,7 @@ export function presentBookingStreak({ streak, nextReward, prizes }: BookingStre
     };
 }
 
-/** `12/12`, el día y el mes en la zona del Turno. */
+// `12/12`, el día y el mes en la zona del Turno.
 function dayAndMonth(iso: string, timeZone: string) {
     return new Intl.DateTimeFormat('es-AR', { timeZone, day: 'numeric', month: 'numeric' }).format(new Date(iso));
 }
@@ -67,13 +67,14 @@ export function presentClientStreak(streak: ClientStreak | null, timeZone: strin
     if (!streak) return null;
     const { count, burnsAt, nextReward, prizes } = streak;
     return {
-        count,
         title: turnos(count),
         progress: nextReward && {
             done: nextReward.reward.requiredCount - nextReward.remaining,
             total: nextReward.reward.requiredCount,
         },
-        nextReward: nextReward && `Te faltan ${turnos(nextReward.remaining)} para ${rewardText(nextReward.reward)}`,
+        nextReward:
+            nextReward &&
+            `${nextReward.remaining === 1 ? 'Te falta' : 'Te faltan'} ${turnos(nextReward.remaining)} para ${rewardText(nextReward.reward)}`,
         returnBy: burnsAt && `Volvé antes del ${dayAndMonth(burnsAt, timeZone)}`,
         prizes: prizes.map((prize) => ({
             id: prize.id,

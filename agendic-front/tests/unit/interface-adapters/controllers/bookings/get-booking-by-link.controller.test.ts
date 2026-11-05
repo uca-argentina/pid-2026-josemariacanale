@@ -44,7 +44,6 @@ describe('getBookingByLinkController', () => {
         const result = await getBookingByLinkController(instrumentation, useCase)({ link: 's3cr3t-l1nk' });
 
         expect(result.streak).toEqual({
-            count: 3,
             title: '3 Turnos',
             progress: { done: 3, total: 5 },
             nextReward: 'Te faltan 2 Turnos para 20% de descuento',

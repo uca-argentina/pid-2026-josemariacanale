@@ -1,12 +1,12 @@
 import { Flame, Gift } from 'lucide-react';
-import type { ClientStreak } from '@/app/_components/client-booking/types';
+import type { ClientStreakView } from '@/app/_components/client-booking/types';
 
 /**
  * El bloque Tu Racha del Enlace del Turno: cuántos Turnos lleva el Cliente, una barra de avance hacia la próxima
  * Recompensa, hasta cuándo tiene que volver para no quemarla y sus Premios disponibles, con su vencimiento. El Cliente
  * no Canjea: el Premio se pide en el próximo Turno.
  */
-export function StreakBlock({ streak }: { streak: NonNullable<ClientStreak> }) {
+export function StreakBlock({ streak }: { streak: NonNullable<ClientStreakView> }) {
     const { title, progress, nextReward, returnBy, prizes } = streak;
 
     return (

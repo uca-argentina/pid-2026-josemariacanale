@@ -53,7 +53,10 @@ export type ClientBooking = z.infer<typeof clientBookingSchema>;
  * Lo que responde `GET /booking-links/:secret`: el Turno y la Racha de su Cliente. `streak` solo viaja en el GET, no en las
  * respuestas de las acciones del Enlace (`PATCH`), y es nula si el programa no está activo.
  */
-export const clientBookingWithStreakSchema = clientBookingSchema.extend({ streak: clientStreakSchema.nullable() });
+export const clientBookingWithStreakSchema = clientBookingSchema.extend({
+    // A back that does not send it yet (deployed before this field) must not stop the Turno from opening: it is no Racha.
+    streak: clientStreakSchema.nullish().transform((streak) => streak ?? null),
+});
 export type ClientBookingWithStreak = z.infer<typeof clientBookingWithStreakSchema>;
 
 /**

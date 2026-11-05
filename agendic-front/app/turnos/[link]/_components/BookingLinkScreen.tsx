@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { ClientBookingDetail } from '@/app/_components/client-booking/ClientBookingDetail';
-import type { ClientBooking, ClientStreak } from '@/app/_components/client-booking/types';
+import type { ClientBooking, ClientStreakView } from '@/app/_components/client-booking/types';
 import { cancelBookingByLinkAction, cancelBookingSeriesByLinkAction, markEmployeeNoShowByLinkAction, payDepositByLinkAction, rateBookingByLinkAction, rescheduleBookingByLinkAction } from '../../actions';
 import { BookAgainLink } from './BookAgainLink';
 import { StreakBlock } from './StreakBlock';
@@ -12,7 +12,7 @@ import { StreakBlock } from './StreakBlock';
  * no hay acceso que venza, así que no hay vuelta a pedir un código. Debajo va la Racha del Cliente (`streak`), si hay: la
  * trae solo la lectura del Enlace, y ninguna acción de acá la cambia, así que se queda como llegó.
  */
-export function BookingLinkScreen({ link, booking: initial, streak, now }: { link: string; booking: ClientBooking; streak: ClientStreak; now: number }) {
+export function BookingLinkScreen({ link, booking: initial, streak, now }: { link: string; booking: ClientBooking; streak: ClientStreakView; now: number }) {
     const [booking, setBooking] = useState(initial);
 
     return (

@@ -4,7 +4,7 @@ import type { DI_RETURN_TYPES } from '@/di/types';
 export type ClientBooking = Awaited<ReturnType<DI_RETURN_TYPES['IGetBookingByLinkController']>>['booking'];
 
 /** La Racha del Cliente de un Turno (bloque Tu Racha), o `null` si no hay nada que mostrar. */
-export type ClientStreak = Awaited<ReturnType<DI_RETURN_TYPES['IGetBookingByLinkController']>>['streak'];
+export type ClientStreakView = Awaited<ReturnType<DI_RETURN_TYPES['IGetBookingByLinkController']>>['streak'];
 
 /**
  * Resultado de Cancelar, Reagendar, Pagar la Seña o marcar la Ausencia del Anfitrión como Cliente. `booking` es el Turno recargado cuando el fallo lo dejó desactualizado (el 409 al Calificar). `slotTaken` marca el 409 y el 422 de horario no disponible, que

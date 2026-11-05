@@ -65,8 +65,14 @@ describe('ClientBookingsRepository.getBookingByLink', () => {
         await expect(repo().getBookingByLink('s3cr3t-l1nk')).resolves.toMatchObject({ streak: { count: 0, burnsAt: null } });
     });
 
-    it('rejects a body without the streak field: the back always sends it, null when there is nothing to show', async () => {
+    it('treats a body without the streak field as no Racha, so a back that does not send it yet does not stop the Turno', async () => {
         respond(200, booking);
+
+        await expect(repo().getBookingByLink('s3cr3t-l1nk')).resolves.toEqual({ ...booking, streak: null });
+    });
+
+    it('rejects a streak that is not a Racha', async () => {
+        respond(200, { ...booking, streak: { count: 'many' } });
 
         await expect(repo().getBookingByLink('s3cr3t-l1nk')).rejects.toBeInstanceOf(ApiRequestError);
     });

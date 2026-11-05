@@ -38,7 +38,6 @@ describe('presentClientStreak', () => {
 
     it('says the Turnos, the progress, what is left and until when to come back', () => {
         expect(presentClientStreak(streak(), ZONE)).toEqual({
-            count: 3,
             title: '3 Turnos',
             progress: { done: 3, total: 5 },
             nextReward: 'Te faltan 2 Turnos para 20% de descuento',
@@ -58,7 +57,7 @@ describe('presentClientStreak', () => {
         const presented = presentClientStreak(streak({ count: 1, nextReward: { reward: reward(), remaining: 1 } }), ZONE);
 
         expect(presented?.title).toBe('1 Turno');
-        expect(presented?.nextReward).toBe('Te faltan 1 Turno para 20% de descuento');
+        expect(presented?.nextReward).toBe('Te falta 1 Turno para 20% de descuento');
     });
 
     it('in a repeatable Recompensa, the progress is inside the lap in course', () => {
@@ -84,7 +83,6 @@ describe('presentClientStreak', () => {
 
     it('without a Racha in course there is nothing to come back before', () => {
         expect(presentClientStreak(streak({ count: 0, burnsAt: null, prizes: [prize()] }), ZONE)).toMatchObject({
-            count: 0,
             title: '0 Turnos',
             returnBy: null,
         });
