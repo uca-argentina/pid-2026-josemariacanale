@@ -133,6 +133,15 @@ describe('Empleado', () => {
       expect(t.invitations.create).not.toHaveBeenCalled();
     });
 
+    it('keeps the chosen Sucursales in id order, whatever order they come in', async () => {
+      t.branches.listByBusiness.mockResolvedValue([ANAS_BRANCH, SECOND_BRANCH]);
+      t.invitations.findPending.mockResolvedValue(INVITATION);
+
+      const res = await post(BRUNO.email, [SECOND_BRANCH.id, ANAS_BRANCH.id]).expect(200);
+
+      expect(res.body.branchIds).toEqual([ANAS_BRANCH.id, SECOND_BRANCH.id]);
+    });
+
     it('replaces the Sucursales of an already pending Invitación when inviting again', async () => {
       t.branches.listByBusiness.mockResolvedValue([ANAS_BRANCH, SECOND_BRANCH]);
       t.invitations.findPending.mockResolvedValue(INVITATION);

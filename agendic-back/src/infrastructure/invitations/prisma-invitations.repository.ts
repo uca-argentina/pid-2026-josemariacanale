@@ -5,18 +5,18 @@ import { InvitationsRepository } from '../../domain/invitations/invitations.repo
 import { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../prisma.service';
 
-/** The Invitación's Sucursales, in id order, read along with it. */
-const BRANCHES = {
+/** The fields of an Invitación, with its Sucursales in id order. */
+const INVITATION_SELECT = {
+  id: true,
+  businessId: true,
+  email: true,
+  expiresAt: true,
   branches: { select: { branchId: true }, orderBy: { branchId: 'asc' } },
-} satisfies Prisma.InvitationInclude;
+} satisfies Prisma.InvitationSelect;
 
-type InvitationRow = {
-  id: number;
-  businessId: number;
-  email: string;
-  expiresAt: Date;
-  branches: { branchId: number }[];
-};
+type InvitationRow = Prisma.InvitationGetPayload<{
+  select: typeof INVITATION_SELECT;
+}>;
 
 const toInvitation = ({
   id,
@@ -47,7 +47,7 @@ export class PrismaInvitationsRepository implements InvitationsRepository {
     const row = await this.prisma.invitation
       .findFirst({
         where: { businessId, email, expiresAt: { gt: now }, closedAt: null },
-        include: BRANCHES,
+        select: INVITATION_SELECT,
       })
       .catch(fail);
     return row && toInvitation(row);
@@ -63,7 +63,7 @@ export class PrismaInvitationsRepository implements InvitationsRepository {
               create: branchIds.map((branchId) => ({ branchId })),
             },
           },
-          include: BRANCHES,
+          select: INVITATION_SELECT,
         })
         .catch(fail),
     );
@@ -74,7 +74,7 @@ export class PrismaInvitationsRepository implements InvitationsRepository {
       await this.prisma.invitation
         .findMany({
           where: { businessId, expiresAt: { gt: now }, closedAt: null },
-          include: BRANCHES,
+          select: INVITATION_SELECT,
           orderBy: { id: 'asc' },
         })
         .catch(fail)
@@ -83,7 +83,10 @@ export class PrismaInvitationsRepository implements InvitationsRepository {
 
   async findById(id: number) {
     const row = await this.prisma.invitation
-      .findUnique({ where: { id }, include: BRANCHES })
+      .findUnique({
+        where: { id },
+        select: { ...INVITATION_SELECT, closedAt: true },
+      })
       .catch(fail);
     return row && { ...toInvitation(row), closedAt: row.closedAt };
   }
@@ -93,23 +96,24 @@ export class PrismaInvitationsRepository implements InvitationsRepository {
       await this.prisma.invitation
         .findMany({
           where: { email, expiresAt: { gt: now }, closedAt: null },
-          include: {
+          select: {
+            ...INVITATION_SELECT,
             business: { select: { name: true, slug: true } },
             branches: {
-              select: { branch: { select: { id: true, name: true } } },
+              select: {
+                branchId: true,
+                branch: { select: { id: true, name: true } },
+              },
               orderBy: { branchId: 'asc' },
             },
           },
           orderBy: { id: 'asc' },
         })
         .catch(fail)
-    ).map(({ branches, ...row }) => ({
-      ...toInvitation({
-        ...row,
-        branches: branches.map(({ branch }) => ({ branchId: branch.id })),
-      }),
+    ).map((row) => ({
+      ...toInvitation(row),
       business: row.business,
-      branches: branches.map(({ branch }) => branch),
+      branches: row.branches.map(({ branch }) => branch),
     }));
   }
 

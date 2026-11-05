@@ -103,11 +103,12 @@ export class InviteEmployeeUseCase {
         throw new BadRequestError('branchIds must have at least one Branch');
       return ofBusiness;
     }
-    const foreign = branchIds.find((id) => !ofBusiness.includes(id));
+    const known = new Set(ofBusiness);
+    const foreign = branchIds.find((id) => !known.has(id));
     if (foreign !== undefined)
       throw new BusinessRuleError(
         `Branch ${foreign} is not a Branch of Business ${businessId}`,
       );
-    return branchIds;
+    return [...branchIds].sort((a, b) => a - b);
   }
 }
