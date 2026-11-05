@@ -12,6 +12,8 @@ export type IPreviewEmployeeBranchesUseCase = ReturnType<typeof previewEmployeeB
  * @throws {BranchNotOfBusinessError} una Sucursal no es del Negocio
  * @throws {OwnerWorksAtEveryBranchError} al Empleado del Dueño se le saca una Sucursal
  * @throws {LastEmployeeError} un Servicio se queda sin Empleados
+ * @throws {NotFoundError} el Empleado no existe o está dado de baja
+ * @throws {ApiRequestError} no es el Dueño (403) u otro error de la API
  */
 export const previewEmployeeBranchesUseCase =
     (instrumentationService: IInstrumentationService, employeesRepository: IEmployeesRepository) =>

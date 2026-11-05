@@ -4,6 +4,7 @@ import type { IPreviewEmployeeBranchesUseCase } from '@/src/application/use-case
 import { InputParseError } from '@/src/entities/errors/common';
 import { employeeBranchesSchema, type BranchCancelledBooking } from '@/src/entities/models/employee';
 
+/** Da forma a los Turnos que se cancelan para el diálogo de confirmación del Staff. */
 function presenter(bookings: BranchCancelledBooking[]) {
     return bookings.map((b) => ({
         id: b.id,

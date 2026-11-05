@@ -1,4 +1,4 @@
-import { ApiRequestError } from '@/src/entities/errors/common';
+import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
 import {
     AlreadyEmployeeError,
     BranchesRequiredError,
@@ -312,8 +312,8 @@ describe('EmployeesRepository.changeEmployeeBranches', () => {
         await expect(repo().changeEmployeeBranches(input)).rejects.toBeInstanceOf(BranchesRequiredError);
     });
 
-    it('leaves a 404 as ApiRequestError carrying the status', async () => {
+    it('translates a 404 to NotFoundError', async () => {
         respond(404, { statusCode: 404, message: 'Employee 3 not found' });
-        await expect(repo().changeEmployeeBranches(input)).rejects.toMatchObject({ status: 404 });
+        await expect(repo().changeEmployeeBranches(input)).rejects.toBeInstanceOf(NotFoundError);
     });
 });

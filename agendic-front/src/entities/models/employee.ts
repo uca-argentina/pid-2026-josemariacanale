@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { badgeLevelSchema } from './badge';
-import { cancelBookingIdsSchema } from './left-outside-booking';
+import { cancelBookingIdsSchema, leftOutsideBookingSchema } from './left-outside-booking';
 
 /**
  * Una Insignia ganada por un Empleado, como la trae el Staff: su Nivel más alto, sin progreso (ADR 0007).
@@ -66,15 +66,9 @@ export type ConfirmedEmployeeBranches = z.infer<typeof confirmedEmployeeBranches
  * Un Turno pendiente o aceptado que cambiar las Sucursales del Empleado cancelaría, como lo devuelve
  * `POST /employees/:id/branches/preview`; `timeZone` es la de la Sucursal.
  */
-export const branchCancelledBookingSchema = z.object({
-    id: z.number(),
-    startsAt: z.string(),
-    endsAt: z.string(),
-    timeZone: z.string(),
-    serviceName: z.string(),
-    clientName: z.string(),
-    branch: z.object({ id: z.number(), name: z.string() }),
-});
+export const branchCancelledBookingSchema = leftOutsideBookingSchema
+    .pick({ id: true, startsAt: true, endsAt: true, timeZone: true, serviceName: true, clientName: true })
+    .extend({ branch: z.object({ id: z.number(), name: z.string() }) });
 export type BranchCancelledBooking = z.infer<typeof branchCancelledBookingSchema>;
 
 /** La Invitación pendiente del Usuario, como la lista GET /invitations/me; `branches` son donde va a trabajar. */

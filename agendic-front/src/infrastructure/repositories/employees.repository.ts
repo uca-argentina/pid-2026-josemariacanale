@@ -1,6 +1,6 @@
 import type { IEmployeesRepository } from '@/src/application/repositories/employees.repository.interface';
 import type { IAuthenticationService } from '@/src/application/services/authentication.service.interface';
-import { ApiRequestError } from '@/src/entities/errors/common';
+import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
 import {
     AlreadyEmployeeError,
     BranchesRequiredError,
@@ -51,6 +51,7 @@ const EMPLOYEE_BRANCHES_BOOKINGS_CHANGED_MESSAGE = 'Los Turnos que se cancelan c
 
 /** Shared by the preview and the PUT of an Empleado's Sucursales: they fail the same way. */
 const EMPLOYEE_BRANCHES_ERRORS: ErrorByStatus = {
+    404: (message) => new NotFoundError(message),
     400: (message) => (message === BRANCHES_REQUIRED_MESSAGE ? new BranchesRequiredError(message) : undefined),
     422: (message) => {
         if (message === OWNER_WORKS_AT_EVERY_BRANCH_MESSAGE) return new OwnerWorksAtEveryBranchError(message);
@@ -139,6 +140,7 @@ export class EmployeesRepository implements IEmployeesRepository {
      * @throws {BranchNotOfBusinessError} una Sucursal no es del Negocio (422)
      * @throws {OwnerWorksAtEveryBranchError} al Empleado del Dueño se le saca una Sucursal (422)
      * @throws {LastEmployeeError} un Servicio se queda sin Empleados (422)
+     * @throws {NotFoundError} el Empleado no existe o está dado de baja (404)
      * @throws {ApiRequestError} la API respondió con otro error o con un cuerpo inesperado
      */
     async previewEmployeeBranches({ employeeId, branchIds }: EmployeeBranches): Promise<BranchCancelledBooking[]> {
@@ -152,6 +154,7 @@ export class EmployeesRepository implements IEmployeesRepository {
      * @throws {BranchNotOfBusinessError} una Sucursal no es del Negocio (422)
      * @throws {OwnerWorksAtEveryBranchError} al Empleado del Dueño se le saca una Sucursal (422)
      * @throws {LastEmployeeError} un Servicio se queda sin Empleados (422)
+     * @throws {NotFoundError} el Empleado no existe o está dado de baja (404)
      * @throws {ApiRequestError} la API respondió con otro error o con un cuerpo inesperado
      */
     async changeEmployeeBranches({ employeeId, ...input }: ConfirmedEmployeeBranches): Promise<CancelledBookings> {

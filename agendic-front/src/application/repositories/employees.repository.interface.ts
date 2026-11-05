@@ -55,7 +55,8 @@ export interface IEmployeesRepository {
      * @throws {BranchNotOfBusinessError} una Sucursal no es del Negocio (422)
      * @throws {OwnerWorksAtEveryBranchError} al Empleado del Dueño se le saca una Sucursal (422)
      * @throws {LastEmployeeError} un Servicio se queda sin Empleados (422)
-     * @throws {ApiRequestError} no es el Dueño (403), el Empleado no existe (404) u otro error de la API
+     * @throws {NotFoundError} el Empleado no existe o está dado de baja (404)
+     * @throws {ApiRequestError} no es el Dueño (403) u otro error de la API
      */
     previewEmployeeBranches(input: EmployeeBranches): Promise<BranchCancelledBooking[]>;
     /**

@@ -1,5 +1,5 @@
 import { changeEmployeeBranchesAction, previewEmployeeBranchesAction } from '@/app/(app)/business/[businessId]/employees/actions';
-import { ApiRequestError, InputParseError } from '@/src/entities/errors/common';
+import { ApiRequestError, InputParseError, NotFoundError } from '@/src/entities/errors/common';
 import {
     BranchesRequiredError,
     BranchNotOfBusinessError,
@@ -66,7 +66,7 @@ describe('previewEmployeeBranchesAction', () => {
     });
 
     it('refreshes when the Empleado no longer exists', async () => {
-        mockControllers.IPreviewEmployeeBranchesController.mockRejectedValue(new ApiRequestError('Employee 3 not found', { status: 404 }));
+        mockControllers.IPreviewEmployeeBranchesController.mockRejectedValue(new NotFoundError('Employee 3 not found'));
 
         await expect(previewEmployeeBranchesAction(3, [1])).resolves.toEqual({ ok: false, message: 'Este Empleado ya no está en tu Negocio. Actualizamos la lista.' });
         expect(mockRefresh).toHaveBeenCalled();
