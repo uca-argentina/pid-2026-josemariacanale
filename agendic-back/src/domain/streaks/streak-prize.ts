@@ -35,3 +35,37 @@ export interface ClientFileBooking extends StreakBooking {
   link: string | null;
   timeZone: string;
 }
+
+/** A Premio as the panel shows it; `redeemedAt` is null while it can still be Canjeado. */
+export interface StreakPrize extends PromisedPrize {
+  id: number;
+  grantedAt: Date;
+  expiresAt: Date | null;
+  redeemedAt: Date | null;
+}
+
+/** A Premio with the Ficha del Cliente it belongs to. */
+export interface OwnedStreakPrize extends StreakPrize {
+  owner: StreakProgramOwner;
+  /** Lowercase. */
+  clientEmail: string;
+}
+
+/** Copies what a Recompensa promises, as a Premio would. */
+export const promisedOf = (reward: {
+  type: StreakRewardType;
+  value: number | null;
+  description: string | null;
+  service: { name: string } | null;
+}): PromisedPrize => ({
+  type: reward.type,
+  value: reward.value,
+  description: reward.description,
+  serviceName: reward.service?.name ?? null,
+});
+
+/** Where a Cliente's Racha stands, for the Confirmación de reserva: `next` is null once every Recompensa of "una vez" was reached. */
+export interface StreakProgress {
+  count: number;
+  next: { reward: PromisedPrize; remaining: number } | null;
+}

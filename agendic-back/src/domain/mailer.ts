@@ -1,4 +1,4 @@
-import { PromisedPrize } from './streaks/streak-prize';
+import { PromisedPrize, StreakProgress } from './streaks/streak-prize';
 
 export const MAILER = Symbol('Mailer');
 
@@ -28,12 +28,14 @@ export interface Mailer {
   /**
    * Confirmación de reserva: the Turno was created, with its Enlace del Turno (ADR 0022) and, if it has one, the Seña to pay from there.
    * For a Serie (#304), `series` lists every Turno with its own Enlace, the dates shown in `timeZone`, in this one mail.
+   * With `streak`, the Cliente's Racha and what is left to the next Recompensa go in a line; without it the mail is the same as ever.
    */
   sendBookingConfirmation(
     email: string,
     link: string,
     depositAmount: number | null,
     series?: SeriesConfirmation,
+    streak?: StreakProgress,
   ): Promise<void>;
   /**
    * Aviso de cambio del Turno: the Turno was cancelled, by whoever did it or by a baja, with its Enlace del Turno and the Motivo de cancelación if it has one.

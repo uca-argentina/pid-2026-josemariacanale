@@ -1,15 +1,45 @@
 import { Injectable } from '@nestjs/common';
 import { DEFAULT_AVAILABILITY } from '../../domain/availabilities/availability';
-import { DatabaseOperationError } from '../../domain/errors';
+import {
+  ConflictError,
+  DatabaseOperationError,
+  NotFoundError,
+} from '../../domain/errors';
 import { StreakProgramOwner, StreakRewardType } from '../../domain/streaks/streak-program';
 import {
   ClientFileBooking,
   NewStreakPrize,
+  OwnedStreakPrize,
+  StreakPrize,
   StreakPrizeKey,
 } from '../../domain/streaks/streak-prize';
 import { StreakPrizesRepository } from '../../domain/streaks/streak-prizes.repository';
 import { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../prisma.service';
+
+const PRIZE_FIELDS = {
+  id: true,
+  type: true,
+  value: true,
+  description: true,
+  serviceName: true,
+  grantedAt: true,
+  expiresAt: true,
+  redeemedAt: true,
+} satisfies Prisma.StreakPrizeSelect;
+
+type PrizeRow = Prisma.StreakPrizeGetPayload<{ select: typeof PRIZE_FIELDS }>;
+
+const toPrize = ({ type, value, ...prize }: PrizeRow): StreakPrize => ({
+  ...prize,
+  type: type as StreakRewardType,
+  value: value === null ? null : value.toNumber(),
+});
+
+const ownerWhere = (owner: StreakProgramOwner) =>
+  owner.kind === 'business'
+    ? { businessId: owner.businessId }
+    : { userId: owner.userId };
 
 const ownerFilter = (owner: StreakProgramOwner) =>
   owner.kind === 'business'
@@ -100,6 +130,105 @@ export class PrismaStreakPrizesRepository implements StreakPrizesRepository {
           cause: error,
         });
       });
+  }
+
+  /**
+   * @throws {NotFoundError} the Turno does not exist
+   * @throws {DatabaseOperationError} the query failed
+   */
+  async findOwnerByBookingId(bookingId: number): Promise<StreakProgramOwner> {
+    const row = await this.prisma.booking
+      .findUnique({
+        where: { id: bookingId },
+        select: {
+          service: { select: { userId: true, branch: { select: { businessId: true } } } },
+        },
+      })
+      .catch((error: unknown) => {
+        throw new DatabaseOperationError(
+          `Ficha of Turno ${bookingId} not read`,
+          { cause: error },
+        );
+      });
+    if (!row) throw new NotFoundError(`Booking ${bookingId} not found`);
+    const { userId, branch } = row.service;
+    // A Servicio is of a Sucursal or of a Usuario, exactly one (ADR 0004).
+    return branch
+      ? { kind: 'business', businessId: branch.businessId }
+      : { kind: 'personal', userId: userId! };
+  }
+
+  /**
+   * Lists the Premios of a Ficha that are neither Canjeados nor vencidos at `now`, the oldest first.
+   *
+   * @throws {DatabaseOperationError} the query failed
+   */
+  async listAvailable(owner: StreakProgramOwner, clientEmail: string, now: Date) {
+    const rows = await this.prisma.streakPrize
+      .findMany({
+        where: {
+          ...ownerWhere(owner),
+          clientEmail,
+          redeemedAt: null,
+          OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+        },
+        orderBy: [{ grantedAt: 'asc' }, { id: 'asc' }],
+        select: PRIZE_FIELDS,
+      })
+      .catch((error: unknown) => {
+        throw new DatabaseOperationError(
+          `Premios available of ${JSON.stringify(owner)} not read`,
+          { cause: error },
+        );
+      });
+    return rows.map(toPrize);
+  }
+
+  /** @throws {DatabaseOperationError} the query failed */
+  async findById(id: number): Promise<OwnedStreakPrize | null> {
+    const row = await this.prisma.streakPrize
+      .findUnique({
+        where: { id },
+        select: { ...PRIZE_FIELDS, clientEmail: true, businessId: true, userId: true },
+      })
+      .catch((error: unknown) => {
+        throw new DatabaseOperationError(`Premio ${id} not read`, { cause: error });
+      });
+    if (!row) return null;
+    const { clientEmail, businessId, userId } = row;
+    return {
+      ...toPrize(row),
+      clientEmail,
+      // StreakPrize_exactly_one_owner guarantees that without a Negocio there's a Usuario (ADR 0004).
+      owner:
+        businessId !== null
+          ? { kind: 'business', businessId }
+          : { kind: 'personal', userId: userId! },
+    };
+  }
+
+  /**
+   * Canjea el Premio, solo si sigue sin Canjear en el momento de escribir.
+   *
+   * @throws {ConflictError} the Premio was already Canjeado
+   * @throws {DatabaseOperationError} the write failed
+   */
+  async redeem(id: number, bookingId: number, userId: number, now: Date) {
+    const { count } = await this.prisma.streakPrize
+      .updateMany({
+        where: { id, redeemedAt: null },
+        data: { redeemedAt: now, redeemedBookingId: bookingId, redeemedByUserId: userId },
+      })
+      .catch((error: unknown) => {
+        throw new DatabaseOperationError(`Premio ${id} not redeemed`, { cause: error });
+      });
+    if (count === 0) throw new ConflictError(`Prize ${id} already redeemed`);
+    const row = await this.prisma.streakPrize
+      .findUniqueOrThrow({ where: { id }, select: PRIZE_FIELDS })
+      .catch((error: unknown) => {
+        throw new DatabaseOperationError(`Premio ${id} not read after redeeming`, { cause: error });
+      });
+    return toPrize(row);
   }
 
   /** @throws {DatabaseOperationError} the write failed */

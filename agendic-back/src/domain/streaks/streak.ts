@@ -79,3 +79,29 @@ export function earnedCounts(
     (_, i) => requiredCount * (i + 1),
   );
 }
+
+/** The Recompensa a Racha of `count` Turnos is closest to earning, and how many Turnos it takes. */
+export interface NextReward<R> {
+  reward: R;
+  remaining: number;
+}
+
+/**
+ * The Recompensa with the fewest Turnos the Racha has not reached yet; in a repeatable one, its next multiple. Null when
+ * a once-per-Racha Recompensa is all there is and the Racha already passed it. Ties go to the first in `rewards`.
+ */
+export function nextReward<R extends { requiredCount: number; repeatable: boolean }>(
+  rewards: readonly R[],
+  count: number,
+): NextReward<R> | null {
+  let next: NextReward<R> | null = null;
+  for (const reward of rewards) {
+    const target = reward.repeatable
+      ? (Math.floor(count / reward.requiredCount) + 1) * reward.requiredCount
+      : reward.requiredCount;
+    if (target <= count) continue;
+    if (next === null || target - count < next.remaining)
+      next = { reward, remaining: target - count };
+  }
+  return next;
+}

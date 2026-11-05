@@ -317,6 +317,10 @@ export async function createTestApp() {
     listEmailsAttendedBetween: jest.fn(),
     listClientFileBookings: jest.fn(),
     listGrantedKeys: jest.fn(),
+    findOwnerByBookingId: jest.fn(),
+    listAvailable: jest.fn(),
+    findById: jest.fn(),
+    redeem: jest.fn(),
     createMany: jest.fn(),
   };
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })

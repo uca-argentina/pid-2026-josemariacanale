@@ -301,6 +301,90 @@ describe('PrismaStreakPrizesRepository (real database)', () => {
     });
   });
 
+  describe('Premios disponibles y Canjear', () => {
+    const email = `carla-${tag}@example.com`;
+    const create = async (over: Partial<NewStreakPrize> = {}) => {
+      const made = prize({ clientEmail: email, ...over });
+      await prizes.createMany([made]);
+      return (await prisma.streakPrize.findFirstOrThrow({
+        where: { rewardId, clientEmail: made.clientEmail, reachedCount: made.reachedCount },
+      })).id;
+    };
+
+    it('lista los disponibles de la Ficha del más viejo al más nuevo, sin los Canjeados ni los vencidos', async () => {
+      const newest = await create({ reachedCount: 1, grantedAt: hoursAgo(1) });
+      const oldest = await create({ reachedCount: 2, grantedAt: hoursAgo(5) });
+      const expiring = await create({ reachedCount: 3, grantedAt: hoursAgo(3), expiresAt: new Date(NOW.getTime() + 1) });
+      await create({ reachedCount: 4, grantedAt: hoursAgo(4), expiresAt: NOW });
+      const redeemed = await create({ reachedCount: 6, grantedAt: hoursAgo(6) });
+      await prisma.streakPrize.update({ where: { id: redeemed }, data: { redeemedAt: NOW } });
+      await create({ reachedCount: 7, clientEmail: `otra-${email}` });
+      await create({ reachedCount: 8, owner: personal });
+
+      const found = await prizes.listAvailable(ofBusiness, email, NOW);
+
+      expect(found.map(({ id }) => id)).toEqual([oldest, expiring, newest]);
+      expect(found[0]).toEqual({
+        id: oldest,
+        type: StreakRewardType.PERCENT_DISCOUNT,
+        value: 12.5,
+        description: null,
+        serviceName: null,
+        grantedAt: hoursAgo(5),
+        expiresAt: null,
+        redeemedAt: null,
+      });
+    });
+
+    it('findById trae el Premio con su Ficha, o null', async () => {
+      const id = await create();
+
+      await expect(prizes.findById(id)).resolves.toMatchObject({ id, owner: ofBusiness, clientEmail: email });
+      await expect(prizes.findById(id + 1_000_000)).resolves.toBeNull();
+    });
+
+    it('findOwnerByBookingId es el Negocio del Servicio, o el Usuario de un Servicio personal', async () => {
+      const inBranch = await createTurno(branchServiceId, email);
+      const own = await createTurno(personalServiceId, email);
+
+      await expect(prizes.findOwnerByBookingId(inBranch.id)).resolves.toEqual(ofBusiness);
+      await expect(prizes.findOwnerByBookingId(own.id)).resolves.toEqual(personal);
+      await expect(prizes.findOwnerByBookingId(inBranch.id + 1_000_000)).rejects.toThrow(`Booking ${inBranch.id + 1_000_000} not found`);
+    });
+
+    it('Canjea una vez: guarda cuándo, en qué Turno y quién', async () => {
+      const id = await create();
+      const turno = await createTurno(branchServiceId, email);
+
+      const redeemed = await prizes.redeem(id, turno.id, userId, NOW);
+
+      expect(redeemed).toMatchObject({ id, redeemedAt: NOW });
+      await expect(prisma.streakPrize.findUniqueOrThrow({ where: { id } })).resolves.toMatchObject({
+        redeemedAt: NOW,
+        redeemedBookingId: turno.id,
+        redeemedByUserId: userId,
+      });
+      await expect(prizes.redeem(id, turno.id, userId, NOW)).rejects.toThrow(`Prize ${id} already redeemed`);
+    });
+
+    it('dos Canjes a la vez dejan uno solo, y el otro recibe el Conflicto', async () => {
+      const id = await create();
+      const first = await createTurno(branchServiceId, email);
+      const second = await createTurno(otherBranchServiceId, email);
+
+      const results = await Promise.allSettled([
+        prizes.redeem(id, first.id, userId, NOW),
+        prizes.redeem(id, second.id, userId, NOW),
+      ]);
+
+      expect(results.filter(({ status }) => status === 'fulfilled')).toHaveLength(1);
+      const [failed] = results.filter((r): r is PromiseRejectedResult => r.status === 'rejected');
+      expect(failed.reason.message).toBe(`Prize ${id} already redeemed`);
+      const stored = await prisma.streakPrize.findUniqueOrThrow({ where: { id } });
+      expect([first.id, second.id]).toContain(stored.redeemedBookingId);
+    });
+  });
+
   describe('listActiveIncludeRewards', () => {
     const mine = async () =>
       (await programs.listActiveIncludeRewards()).filter(

@@ -1,4 +1,5 @@
-import { PromisedPrize } from '../domain/streaks/streak-prize';
+import { SeriesConfirmation } from '../domain/mailer';
+import { PromisedPrize, StreakProgress } from '../domain/streaks/streak-prize';
 import { StreakRewardType } from '../domain/streaks/streak-program';
 import { createTransport } from 'nodemailer';
 import { NodemailerMailer, readFrontendUrl } from './nodemailer-mailer';
@@ -101,6 +102,62 @@ describe('NodemailerMailer.sendRatingRequest', () => {
     expect(html).toContain('lunes, 19 de octubre de 2026');
     expect(html).toContain('22:30');
     expect(html).toContain('http://localhost:3000/turnos/secret');
+  });
+});
+
+describe('NodemailerMailer.sendBookingConfirmation con la Racha', () => {
+  const sendMail = jest.fn().mockResolvedValue(undefined);
+  const gift = { type: StreakRewardType.GIFT, value: null, description: 'Un lavado <b>', serviceName: null };
+  const send = (streak?: StreakProgress, series?: SeriesConfirmation) =>
+    new NodemailerMailer().sendBookingConfirmation('a@b.com', 'secret', null, series, streak);
+  const html = () => sendMail.mock.calls[0][0].html as string;
+
+  beforeEach(() => {
+    process.env.FRONTEND_URL = 'http://localhost:3000';
+    (createTransport as jest.Mock).mockReturnValue({ sendMail });
+    sendMail.mockClear();
+  });
+
+  it('dice los Turnos de la Racha y cuántos faltan para la Recompensa, con el texto escapado', async () => {
+    await send({ count: 2, next: { reward: gift, remaining: 3 } });
+
+    expect(html()).toContain('Tu Racha: 2 Turnos. Te faltan 3 para Un lavado &#60;b&#62;.');
+  });
+
+  it('en singular dice 1 Turno y Te falta 1', async () => {
+    await send({ count: 1, next: { reward: { ...gift, type: StreakRewardType.PERCENT_DISCOUNT, value: 12.5 }, remaining: 1 } });
+
+    expect(html()).toContain('Tu Racha: 1 Turno. Te falta 1 para 12,5% de descuento.');
+  });
+
+  it('con la cuenta en 0 invita a empezar la Racha', async () => {
+    await send({ count: 0, next: { reward: { ...gift, type: StreakRewardType.FREE_SERVICE, serviceName: 'Corte' }, remaining: 5 } });
+
+    expect(html()).toContain('Empezá tu Racha: con 5 Turnos ganás Corte gratis.');
+    expect(html()).not.toContain('Tu Racha:');
+  });
+
+  it('sin Recompensa que falte, solo dice la Racha', async () => {
+    await send({ count: 7, next: null });
+
+    expect(html()).toContain('Tu Racha: 7 Turnos.');
+    expect(html()).not.toContain('Te falta');
+  });
+
+  it('sin Racha, el mail es el de siempre', async () => {
+    await send();
+
+    expect(html()).not.toContain('Racha');
+  });
+
+  it('en la Confirmación de una Serie también va la línea', async () => {
+    await send(
+      { count: 2, next: { reward: gift, remaining: 3 } },
+      { bookings: [{ startsAt: new Date('2026-10-20T01:30:00Z'), link: 'uno' }], timeZone: 'America/Argentina/Buenos_Aires' },
+    );
+
+    expect(html()).toContain('Tu Racha: 2 Turnos.');
+    expect(html()).toContain('/turnos/uno');
   });
 });
 

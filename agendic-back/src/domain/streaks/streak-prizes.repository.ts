@@ -2,6 +2,8 @@ import { StreakProgramOwner } from './streak-program';
 import {
   ClientFileBooking,
   NewStreakPrize,
+  OwnedStreakPrize,
+  StreakPrize,
   StreakPrizeKey,
 } from './streak-prize';
 
@@ -29,6 +31,31 @@ export interface StreakPrizesRepository {
     rewardIds: number[],
     emails: string[],
   ): Promise<StreakPrizeKey[]>;
+  /**
+   * The Ficha del Cliente a Turno belongs to: its Negocio, or the Usuario of a Servicio personal.
+   *
+   * @throws {NotFoundError} the Turno does not exist
+   */
+  findOwnerByBookingId(bookingId: number): Promise<StreakProgramOwner>;
+  /** The Premios of a Ficha that are neither Canjeados nor vencidos at `now`, the oldest first. */
+  listAvailable(
+    owner: StreakProgramOwner,
+    clientEmail: string,
+    now: Date,
+  ): Promise<StreakPrize[]>;
+  /** Null when there is no such Premio. */
+  findById(id: number): Promise<OwnedStreakPrize | null>;
+  /**
+   * Canjea el Premio en el Turno, solo si sigue sin Canjear en el momento de escribir.
+   *
+   * @throws {ConflictError} the Premio was already Canjeado
+   */
+  redeem(
+    id: number,
+    bookingId: number,
+    userId: number,
+    now: Date,
+  ): Promise<StreakPrize>;
   /** Saves the Premios, skipping those the unique already has; returns only the ones it created. */
   createMany(prizes: NewStreakPrize[]): Promise<NewStreakPrize[]>;
 }
