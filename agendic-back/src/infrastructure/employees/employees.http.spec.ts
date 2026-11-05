@@ -668,6 +668,30 @@ describe('Empleado', () => {
       ]);
     });
 
+    it('still lists the Staff, with no badges, when evaluating the Insignias fails', async () => {
+      t.employees.listActiveByBusiness.mockResolvedValue([
+        ANAS_EMPLOYEE,
+        OTHER_EMPLOYEE,
+      ]);
+      t.badges.measure.mockRejectedValue(
+        new DatabaseOperationError('Badge metrics not read'),
+      );
+
+      const res = await t.http
+        .get(`/businesses/${ANAS_BUSINESS.id}/employees`)
+        .set(bearer(CLERK_TOKEN))
+        .expect(200);
+
+      expect(res.body.map((m: { id: number }) => m.id)).toEqual([
+        ANAS_EMPLOYEE.id,
+        OTHER_EMPLOYEE.id,
+      ]);
+      expect(res.body.map((m: { badges: unknown[] }) => m.badges)).toEqual([
+        [],
+        [],
+      ]);
+    });
+
     it('does not evaluate anyone when the Usuario is not an Empleado of the Business', async () => {
       scriptOtherSession(t);
       t.employees.listActiveByBusiness.mockResolvedValue([ANAS_EMPLOYEE]);
