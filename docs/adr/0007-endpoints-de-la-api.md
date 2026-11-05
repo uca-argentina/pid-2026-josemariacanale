@@ -264,10 +264,14 @@ como uno que no existe.
 | POST | `/users/me/holidays/:holidayId/preview` | sí | Body como el del `PATCH`. Los Turnos que prender el Día festivo dejaría afuera (ADR 0034); solo lectura, 200 |
 | PATCH | `/users/me/holidays/:holidayId` | sí | Body `{ enabled: boolean, cancelBookingIds?: number[] }`. Apaga o vuelve a prender el Día festivo; al prenderlo cancela los Turnos de ese día que deja afuera, en una transacción. Responde como el `GET` más `cancelledBookings: number` |
 | GET | `/users/me/holidays/conflicts` | sí | `200 [{ holidayId, holidayName, date, bookings: [{ id, startsAt, clientName }] }]`: los Turnos pendientes o aceptados, futuros, que atiende el Usuario y que caen en Días festivos prendidos, por fecha del Día festivo. El día de cada Turno se lee en la zona de la Availability con la que se atiende. Sin país, `[]` |
-| GET | `/users/me/calendar` | sí | `200 { connection: { provider: 'GOOGLE', email, status: 'CONNECTED' \| 'DISCONNECTED', connectedAt } \| null }`: el Calendario conectado del Usuario (ADR 0036). Nunca trae el token |
+| GET | `/users/me/calendar` | sí | `200 { connection: { provider: 'GOOGLE' \| 'MICROSOFT', email, status: 'CONNECTED' \| 'DISCONNECTED', connectedAt } \| null }`: el Calendario conectado del Usuario (ADR 0036). Nunca trae el token |
 | POST | `/users/me/calendar/google` | sí | `200 { authorizationUrl }`: la dirección de Google a la que el front lleva al navegador para dar el permiso. El `state` va firmado y vence a los 10 minutos |
+| POST | `/users/me/calendar/microsoft` | sí | Lo mismo con Microsoft (Outlook o Microsoft 365, #402): `200 { authorizationUrl }`, la dirección de Microsoft. Mismos errores que el de Google |
 | GET | `/calendar-oauth/google/callback` | no | Lo llama Google. Identifica al Usuario por el `state`. Responde 302 a `CALENDAR_RETURN_URL` con `?calendar=connected \| denied \| missing-scope \| error` |
-| DELETE | `/users/me/calendar` | sí | Desconecta y revoca el token en Google. 204 sin body |
+| GET | `/calendar-oauth/microsoft/callback` | no | Lo llama Microsoft. Mismo redirect y mismos valores de `?calendar=` que el de Google |
+| GET | `/users/me/calendar/calendars` | sí | `200 { calendars: [{ id, name, primary, checked }] }`: los calendarios de la cuenta conectada (Google o Microsoft), leídos del proveedor en el momento, el principal primero. `checked` es si cuenta como Ocupado externo. Una conexión nueva arranca con solo el principal tildado |
+| PUT | `/users/me/calendar/calendars` | sí | Body `{ checkedIds: string[] }`. Guarda cuáles calendarios cuentan como Ocupado externo y responde `200` con la misma forma que el `GET`. Una lista vacía vale: no se lee ninguno |
+| DELETE | `/users/me/calendar` | sí | Desconecta y revoca el token en el proveedor (Microsoft no tiene cómo revocarlo: solo se borra). 204 sin body |
 
 - Sin `GOOGLE_CALENDAR_API_KEY` → 503 `Días festivos no configurados`. Todos los endpoints de Días festivos que vengan después responden igual
 - `PUT /users/me/holidays`: `countryCode` ausente o que no es texto → 400; un código que no está en `GET /holidays/countries` → 400 `Unknown holiday country <código>`
@@ -279,8 +283,13 @@ como uno que no existe.
 Calendario conectado (ADR 0036):
 
 - `POST /users/me/calendar/google`: 409 `Calendar already connected for User <id>` si ya tiene uno `CONNECTED`; uno `DISCONNECTED` se puede reconectar y la conexión nueva lo reemplaza. Sin credenciales OAuth de Google en el entorno → 503 `Calendario conectado no configurado`
+- `POST /users/me/calendar/microsoft` (#402): 409 `Calendar already connected for User <id>` si ya tiene uno `CONNECTED`, **de cualquier proveedor** (hay una sola conexión a la vez); sin credenciales OAuth de Microsoft (`MICROSOFT_OAUTH_CLIENT_ID`, `MICROSOFT_OAUTH_CLIENT_SECRET`, `MICROSOFT_OAUTH_REDIRECT_URI`) → 503 `Calendario conectado no configurado`, el mismo mensaje que el de Google
+- Conectar un proveedor distinto del que tenía un Calendario conectado `DISCONNECTED` lo reemplaza: antes se intentan borrar los Eventos del Turno futuros del calendario anterior con el token viejo y, si no se puede, se dejan en ese calendario (Agendic los olvida igual). Reconectar el mismo proveedor no toca los eventos
+- `GET /calendar-oauth/microsoft/callback`: la app es multi-tenant y acepta cuentas personales y de trabajo; si el administrador de la empresa tiene que dar el consentimiento (`error=access_denied` o `consent_required`), termina en `?calendar=denied`
 - `GET /calendar-oauth/google/callback`: `?calendar=denied` si el Usuario rechazó el permiso, `missing-scope` si destildó el de calendario, `error` si el `state` es inválido o venció, o si falla el intercambio del código. Sin credenciales → 503
 - `DELETE /users/me/calendar`: 404 `User <id> has no Calendario conectado` si no tiene uno. Si Google no revoca el token, se loguea y la conexión se borra igual
+- `GET` y `PUT /users/me/calendar/calendars`: 404 `User <id> has no Calendario conectado`; 409 `Calendario conectado of User <id> is disconnected` (también cuando Google rechaza el token al leer: la conexión pasa a `DISCONNECTED`); 502 si Google no responde (el mismo código que el resto de las fallas de servicios externos, `ExternalServiceError`; el ticket decía 503, que en la API es solo "sin configuración"); `PUT`: 400 si `checkedIds` no es un arreglo de textos, 422 `Calendar <id> is not in the connected account` si trae un id que no es de la cuenta (no se guarda nada)
+- Los Ocupados externos se leen de los calendarios tildados; los Eventos del Turno se siguen escribiendo solo en el principal. Un calendario tildado que desaparece de la cuenta se ignora sin error y sale de la lista en el próximo `GET`. Reconectar la misma cuenta (mismo email, sin importar mayúsculas) conserva la selección; conectar otra vuelve al principal. Guardar la selección descarta la caché de un minuto de los Ocupados externos del Usuario
 - `DELETE /users/me` (ADR 0024) también desconecta el Calendario conectado
 
 ## Slots (Horario reservable)
@@ -293,6 +302,7 @@ Calendario conectado (ADR 0036):
 - Query: `from`/`to` (`YYYY-MM-DD`, fechas locales de la Sucursal, inclusive, requeridos); falta alguno o formato inválido → 400
 - Rango de hasta 31 días; más, o `to` anterior a `from` → 422
 - Servicio inexistente o dado de baja → 404
+- Si quien atiende tiene un Calendario conectado (ADR 0036), sus Ocupados externos restan Horarios reservables como un Turno tomado, también con el Tiempo de preparación (ADR 0038). Se piden en vivo a Google, con una caché de un minuto por Usuario y rango; si Google falla, la respuesta se calcula sin ellos. Un día que se queda sin horarios por ellos sale `FULLY_BOOKED`. Al Reservar y al Reagendar se recalculan: un Ocupado externo nuevo da el mismo 422 `Slot <startsAt> is not available for Service <id>` que un horario tomado.
 - Cada Empleado activo que Ofrece el Servicio aporta sus Horarios reservables, calculados con su propia Availability y su propia ocupación (por Usuario); sin `employeeId`, la respuesta es la unión de los de cada Empleado. El Límite diario se cuenta sumando a todos
 - Algoritmo de cal.diy, con dayjs (`utc` y `timezone`); la respuesta trae instantes UTC:
   1. Rangos por día: las Franjas de la Availability con la que ese Empleado atiende ese Servicio, leídas en la zona de la Availability, pasan a rangos concretos (el horario de verano lo resuelve dayjs). Una Franja que termina a las 23:59 llega hasta la medianoche

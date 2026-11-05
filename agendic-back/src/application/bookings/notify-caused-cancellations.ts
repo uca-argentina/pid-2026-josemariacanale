@@ -1,5 +1,6 @@
 import { Logger } from '@nestjs/common';
 import { Mailer } from '../../domain/mailer';
+import { InviteFor } from './notify-clients';
 
 const logger = new Logger('NotifyCausedCancellations');
 
@@ -26,6 +27,7 @@ export interface CausedCancellationNotice {
 export async function notifyCausedCancellations(
   mailer: Mailer,
   cancelled: CausedCancellationNotice[],
+  inviteFor?: InviteFor,
 ): Promise<void> {
   const groups = new Map<string, CausedCancellationNotice[]>();
   for (const [index, notice] of cancelled.entries()) {
@@ -38,18 +40,19 @@ export async function notifyCausedCancellations(
   }
   const batches = [...groups.values()];
   const results = await Promise.allSettled(
-    batches.map((notices) =>
-      mailer.sendBookingCancellationWithCause(
-        notices[0].clientEmail,
-        notices.map((n) => ({
-          link: n.link!,
-          serviceName: n.serviceName,
-          startsAt: n.startsAt,
-          timeZone: n.clientTimeZone,
-          reason: n.cancellationReason,
-        })),
-      ),
-    ),
+    batches.map(async (notices) => {
+      const invite = await inviteFor?.(notices.map((n) => n.link!));
+      const bookings = notices.map((n) => ({
+        link: n.link!,
+        serviceName: n.serviceName,
+        startsAt: n.startsAt,
+        timeZone: n.clientTimeZone,
+        reason: n.cancellationReason,
+      }));
+      return invite
+        ? mailer.sendBookingCancellationWithCause(notices[0].clientEmail, bookings, invite)
+        : mailer.sendBookingCancellationWithCause(notices[0].clientEmail, bookings);
+    }),
   );
   results.forEach((result, index) => {
     if (result.status === 'rejected')

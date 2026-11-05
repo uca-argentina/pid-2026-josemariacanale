@@ -9,6 +9,7 @@ import {
   USERS_REPOSITORY,
   UsersRepository,
 } from '../../domain/users/users.repository';
+import { ClientInvites } from '../bookings/client-invites.service';
 
 /**
  * Da de baja al Usuario de la Sesión (ADR 0024).
@@ -30,6 +31,7 @@ export class RetireMeUseCase {
     @Inject(CLOCK) private readonly clock: Clock,
     @Inject(MAILER) private readonly mailer: Mailer,
     private readonly disconnectCalendar: DisconnectCalendarUseCase,
+    private readonly invites: ClientInvites,
   ) {}
 
   /** Repetir la baja de un Usuario ya dado de baja solo reintenta el borrado en Clerk. */
@@ -41,8 +43,13 @@ export class RetireMeUseCase {
         userId,
         this.clock.now(),
       );
-      await notifyClients(cancelledBookings, (email, link) =>
-        this.mailer.sendBookingCancellation(email, link),
+      await notifyClients(
+        cancelledBookings,
+        (email, link, _reason, invite) =>
+          invite
+            ? this.mailer.sendBookingCancellation(email, link, undefined, undefined, invite)
+            : this.mailer.sendBookingCancellation(email, link),
+        (links) => this.invites.cancel(links),
       );
     }
     await this.disconnectCalendar.disconnectIfAny(userId);

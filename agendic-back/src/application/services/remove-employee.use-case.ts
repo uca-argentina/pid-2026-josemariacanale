@@ -21,6 +21,7 @@ import { MAILER, Mailer } from '../../domain/mailer';
 import { notifyClients } from '../bookings/notify-clients';
 import { assertServiceOwnerOrSelf } from './assert-service-owner-or-self';
 import { isLastEmployee } from './is-last-employee';
+import { ClientInvites } from '../bookings/client-invites.service';
 
 @Injectable()
 export class RemoveEmployeeUseCase {
@@ -35,6 +36,7 @@ export class RemoveEmployeeUseCase {
     private readonly employees: EmployeesRepository,
     @Inject(CLOCK) private readonly clock: Clock,
     @Inject(MAILER) private readonly mailer: Mailer,
+    private readonly invites: ClientInvites,
   ) {}
 
   /**
@@ -71,8 +73,13 @@ export class RemoveEmployeeUseCase {
       employeeId,
       this.clock.now(),
     );
-    await notifyClients(cancelledBookings, (email, link) =>
-      this.mailer.sendBookingCancellation(email, link),
+    await notifyClients(
+      cancelledBookings,
+      (email, link, _reason, invite) =>
+        invite
+          ? this.mailer.sendBookingCancellation(email, link, undefined, undefined, invite)
+          : this.mailer.sendBookingCancellation(email, link),
+      (links) => this.invites.cancel(links),
     );
     return { cancelledBookings: cancelledBookings.length };
   }

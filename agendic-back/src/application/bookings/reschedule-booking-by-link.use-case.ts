@@ -14,6 +14,7 @@ import { ListSlotsUseCase } from '../slots/list-slots.use-case';
 import { notifyClients } from './notify-clients';
 import { findBookingByLink } from './find-booking-by-link';
 import { rescheduleResolvedBooking } from './reschedule-resolved-booking';
+import { ClientInvites } from './client-invites.service';
 
 /**
  * Reagenda un Turno pendiente o aceptado por su Enlace del Turno a otro Horario reservable del mismo Servicio
@@ -27,6 +28,7 @@ export class RescheduleBookingByLinkUseCase {
     private readonly listSlots: ListSlotsUseCase,
     @Inject(MAILER) private readonly mailer: Mailer,
     @Inject(CLOCK) private readonly clock: Clock,
+    private readonly invites: ClientInvites,
   ) {}
 
   /**
@@ -44,8 +46,13 @@ export class RescheduleBookingByLinkUseCase {
       startsAt,
       this.clock.now(),
     );
-    await notifyClients([rescheduled], (email, noticeLink) =>
-      this.mailer.sendBookingReschedule(email, noticeLink),
+    await notifyClients(
+      [rescheduled],
+      (email, noticeLink, _reason, invite) =>
+        invite
+          ? this.mailer.sendBookingReschedule(email, noticeLink, invite)
+          : this.mailer.sendBookingReschedule(email, noticeLink),
+      (links) => this.invites.request(links),
     );
     return rescheduled;
   }

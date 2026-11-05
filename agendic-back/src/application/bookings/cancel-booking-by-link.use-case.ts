@@ -9,6 +9,7 @@ import { MAILER, Mailer } from '../../domain/mailer';
 import { notifyClients } from './notify-clients';
 import { cancelResolvedBooking } from './cancel-resolved-booking';
 import { findBookingByLink } from './find-booking-by-link';
+import { ClientInvites } from './client-invites.service';
 
 /** Cancela un Turno pendiente o aceptado por su Enlace del Turno, hasta que empieza (ADR 0022), y le avisa por mail al Cliente. */
 @Injectable()
@@ -17,6 +18,7 @@ export class CancelBookingByLinkUseCase {
     @Inject(BOOKINGS_REPOSITORY) private readonly bookings: BookingsRepository,
     @Inject(CLOCK) private readonly clock: Clock,
     @Inject(MAILER) private readonly mailer: Mailer,
+    private readonly invites: ClientInvites,
   ) {}
 
   /**
@@ -31,8 +33,13 @@ export class CancelBookingByLinkUseCase {
       booking,
       reason,
     );
-    await notifyClients([cancelled], (email, noticeLink, noticeReason) =>
-      this.mailer.sendBookingCancellation(email, noticeLink, noticeReason),
+    await notifyClients(
+      [cancelled],
+      (email, noticeLink, noticeReason, invite) =>
+        invite
+          ? this.mailer.sendBookingCancellation(email, noticeLink, noticeReason, undefined, invite)
+          : this.mailer.sendBookingCancellation(email, noticeLink, noticeReason),
+      (links) => this.invites.cancel(links),
     );
     return cancelled;
   }

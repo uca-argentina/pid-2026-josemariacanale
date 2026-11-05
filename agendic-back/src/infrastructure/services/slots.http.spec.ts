@@ -1,4 +1,5 @@
 import { Availability } from '../../domain/availabilities/availability';
+import { CalendarAccessRevokedError } from '../../domain/calendar/calendar-events';
 import { ExternalServiceError, NotConfiguredError } from '../../domain/errors';
 import {
   OutOfOffice,
@@ -66,6 +67,153 @@ describe('GET /services/:id/slots', () => {
     expect(day.slots[0]).toBe('2026-01-02T12:00:00.000Z'); // 09:00 ARG
     expect(day.slots.at(-1)).toBe('2026-01-02T20:30:00.000Z'); // 17:30 ARG, ends 18:00
     expect(day.slots).toHaveLength(18);
+  });
+
+  describe('Ocupados externos (ADR 0038)', () => {
+    const connected = {
+      provider: 'GOOGLE' as const,
+      email: 'ana@gmail.com',
+      status: 'CONNECTED' as const,
+      connectedAt: new Date('2026-01-01T00:00:00.000Z'),
+    };
+    const meeting = (from: string, to: string) => ({
+      start: new Date(from),
+      end: new Date(to),
+    });
+
+    beforeEach(() => {
+      t.calendarConnections.findByUserId.mockResolvedValue(connected);
+      t.calendarConnections.findCredentialsByUserId.mockResolvedValue({ provider: 'GOOGLE', refreshToken: 'refresh' });
+    });
+
+    it('restan Horarios reservables, con el Tiempo de preparación del Servicio', async () => {
+      t.services.findById.mockResolvedValue({ ...SERVICE, prepMinutes: 30 });
+      // 10:00–11:00 ARG
+      t.calendarEvents.listBusy.mockResolvedValue([
+        meeting('2026-01-02T13:00:00.000Z', '2026-01-02T14:00:00.000Z'),
+      ]);
+
+      const res = await query(t, {}).expect(200);
+
+      const [day] = res.body.days;
+      expect(day.slots).toContain('2026-01-02T12:30:00.000Z'); // 09:30, ends 10:00, as the meeting starts
+      expect(day.slots).not.toContain('2026-01-02T13:00:00.000Z');
+      expect(day.slots).not.toContain('2026-01-02T13:30:00.000Z');
+      expect(day.slots).not.toContain('2026-01-02T14:00:00.000Z'); // its preparation would run into the meeting
+      expect(day.slots).toContain('2026-01-02T14:30:00.000Z');
+    });
+
+    it('un día entero ocupado sale FULLY_BOOKED, no NOT_WORKING', async () => {
+      t.calendarEvents.listBusy.mockResolvedValue([
+        meeting('2026-01-02T03:00:00.000Z', '2026-01-03T03:00:00.000Z'),
+      ]);
+
+      const res = await query(t, {}).expect(200);
+
+      expect(res.body.days).toEqual([
+        { date: '2026-01-02', slots: [], reason: 'FULLY_BOOKED' },
+      ]);
+    });
+
+    it('lee con el refresh token del Usuario que atiende', async () => {
+      await query(t, {}).expect(200);
+
+      expect(t.calendarConnections.findCredentialsByUserId).toHaveBeenCalledWith(
+        ANAS_EMPLOYEE.userId,
+      );
+      expect(t.calendarEvents.listBusy).toHaveBeenCalledWith(
+        { provider: 'GOOGLE', refreshToken: 'refresh' },
+        ['primary'],
+        expect.any(Date),
+        expect.any(Date),
+      );
+    });
+
+    it('lee los calendarios tildados', async () => {
+      t.calendarConnections.findCheckedCalendarIdsByUserId.mockResolvedValue(['trabajo', 'familia']);
+
+      await query(t, {}).expect(200);
+
+      expect(t.calendarEvents.listBusy).toHaveBeenCalledWith(
+        { provider: 'GOOGLE', refreshToken: 'refresh' },
+        ['trabajo', 'familia'],
+        expect.any(Date),
+        expect.any(Date),
+      );
+    });
+
+    it('sin calendarios tildados no consulta a Google', async () => {
+      t.calendarConnections.findCheckedCalendarIdsByUserId.mockResolvedValue([]);
+
+      const res = await query(t, {}).expect(200);
+
+      expect(t.calendarEvents.listBusy).not.toHaveBeenCalled();
+      expect(res.body.days[0].slots).toHaveLength(18);
+    });
+
+    it('guarda en caché un minuto lo que contestó Google', async () => {
+      await query(t, {}).expect(200);
+      await query(t, {}).expect(200);
+      expect(t.calendarEvents.listBusy).toHaveBeenCalledTimes(1);
+
+      t.clock.advance(61_000);
+      await query(t, {}).expect(200);
+
+      expect(t.calendarEvents.listBusy).toHaveBeenCalledTimes(2);
+    });
+
+    it('sin Calendario conectado no consulta a Google', async () => {
+      t.calendarConnections.findByUserId.mockResolvedValue(null);
+
+      await query(t, {}).expect(200);
+
+      expect(t.calendarEvents.listBusy).not.toHaveBeenCalled();
+    });
+
+    it('un Calendario conectado DISCONNECTED se ignora', async () => {
+      t.calendarConnections.findByUserId.mockResolvedValue({
+        ...connected,
+        status: 'DISCONNECTED',
+      });
+
+      await query(t, {}).expect(200);
+
+      expect(t.calendarEvents.listBusy).not.toHaveBeenCalled();
+    });
+
+    it('fail-open: si Google falla, calcula sin el Calendario conectado', async () => {
+      t.calendarEvents.listBusy.mockRejectedValue(
+        new ExternalServiceError('Google Calendar not reachable'),
+      );
+
+      const res = await query(t, {}).expect(200);
+
+      expect(res.body.days[0].slots).toHaveLength(18);
+    });
+
+    it('una lectura que falló no queda en la caché', async () => {
+      t.calendarEvents.listBusy
+        .mockRejectedValueOnce(new ExternalServiceError('Google Calendar not reachable'))
+        .mockResolvedValue([]);
+
+      await query(t, {}).expect(200);
+      await query(t, {}).expect(200);
+
+      expect(t.calendarEvents.listBusy).toHaveBeenCalledTimes(2);
+    });
+
+    it('si Google rechaza el refresh token, la conexión pasa a DISCONNECTED y se calcula sin ella', async () => {
+      t.calendarEvents.listBusy.mockRejectedValue(
+        new CalendarAccessRevokedError('Google rejected the refresh token'),
+      );
+
+      const res = await query(t, {}).expect(200);
+
+      expect(res.body.days[0].slots).toHaveLength(18);
+      expect(t.calendarConnections.markDisconnected).toHaveBeenCalledWith(
+        ANAS_EMPLOYEE.userId,
+      );
+    });
   });
 
   describe('con Cabinas (ADR 0030)', () => {
