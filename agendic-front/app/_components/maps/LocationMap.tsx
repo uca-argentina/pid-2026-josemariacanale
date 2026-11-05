@@ -10,17 +10,21 @@ const SINGLE_POINT_ZOOM = 16;
 
 /**
  * Un mapa de Google con un marcador por punto; lo reusa el mapa de Sucursales del Cliente (#391). Con `onMove` hay
- * un solo punto y se puede arrastrar para corregirlo. Sin SDK (falta la key o no cargó) no dibuja nada.
+ * un solo punto y se puede arrastrar para corregirlo. Con `onSelect` cada punto se puede tocar. Sin SDK (falta la key
+ * o no cargó) no dibuja nada.
  */
 export function LocationMap({
     points,
     onMove,
+    onSelect,
     label = 'Mapa',
     className,
 }: {
     points: Location[];
     /** Recibe el punto nuevo al soltar el marcador. */
     onMove?: (point: Location) => void;
+    /** Recibe la posición en `points` del punto tocado. */
+    onSelect?: (index: number) => void;
     label?: string;
     className?: string;
 }) {
@@ -28,10 +32,13 @@ export function LocationMap({
     const map = useRef<google.maps.Map | null>(null);
     const markers = useRef<google.maps.marker.AdvancedMarkerElement[]>([]);
     const onMoveRef = useRef(onMove);
+    const onSelectRef = useRef(onSelect);
     useEffect(() => {
         onMoveRef.current = onMove;
+        onSelectRef.current = onSelect;
     });
     const draggable = !!onMove;
+    const clickable = !!onSelect;
     // Points arrive as a fresh array each render: key the effect on their values, not their identity.
     const key = JSON.stringify(points);
 
@@ -54,15 +61,22 @@ export function LocationMap({
             });
 
             // Same markers, new positions (a drag, or a new address picked): move them and keep the Dueño's zoom.
-            if (markers.current.length === current.length && current.length > 0) {
+            const sameKind = markers.current[0]?.gmpClickable === clickable && markers.current[0]?.gmpDraggable === draggable;
+            if (sameKind && markers.current.length === current.length && current.length > 0) {
                 markers.current.forEach((marker, i) => (marker.position = current[i]));
                 if (current.length === 1 && !map.current.getBounds()?.contains(current[0])) map.current.panTo(current[0]);
                 return;
             }
 
             markers.current.forEach((marker) => (marker.map = null));
-            markers.current = current.map((position) => {
-                const marker = new AdvancedMarkerElement({ map: map.current, position, gmpDraggable: draggable });
+            markers.current = current.map((position, index) => {
+                const marker = new AdvancedMarkerElement({
+                    map: map.current,
+                    position,
+                    gmpDraggable: draggable,
+                    gmpClickable: clickable,
+                });
+                if (clickable) marker.addEventListener('gmp-click', () => onSelectRef.current?.(index));
                 if (draggable) {
                     marker.addListener('dragend', () => {
                         const moved = new google.maps.LatLng(marker.position!);
@@ -85,7 +99,7 @@ export function LocationMap({
         return () => {
             alive = false;
         };
-    }, [key, draggable]);
+    }, [key, draggable, clickable]);
 
     useEffect(
         () => () => {

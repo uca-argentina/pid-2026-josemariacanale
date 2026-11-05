@@ -1,14 +1,13 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { cache } from 'react';
-import { MapPin } from 'lucide-react';
 import { BackendErrorNotice } from '@/app/_components/BackendErrorNotice';
 import { Footer } from '@/app/_components/Footer';
 import { Header } from '@/app/_components/Header';
 import { bookingLinkPath } from '@/app/routes';
 import { getInjection } from '@/di/container';
 import { InputParseError, NotFoundError } from '@/src/entities/errors/common';
+import { BranchPicker } from './BranchPicker';
 
 // La metadata y la página piden lo mismo: una sola llamada al back por request.
 const getPublicBusiness = cache((businessSlug: string) =>
@@ -48,7 +47,7 @@ export async function PublicBusinessScreen({ businessSlug }: { businessSlug: str
     return (
         <>
             <Header user={null} nav={false} />
-            <main className="mx-auto w-full max-w-[720px] flex-1 px-4 pt-6 pb-20 sm:px-8">
+            <main className="mx-auto w-full max-w-[1100px] flex-1 px-4 pt-6 pb-20 sm:px-8">
                 {business && branches ? (
                     <>
                         <h1 className="text-[40px] leading-[1.05] font-extrabold tracking-[-0.03em] sm:text-[52px]">
@@ -66,24 +65,9 @@ export async function PublicBusinessScreen({ businessSlug }: { businessSlug: str
                                 >
                                     Elegí una sucursal
                                 </h2>
-                                <ul className="mt-5 flex flex-col gap-3">
-                                    {branches.map((branch) => (
-                                        <li key={branch.id}>
-                                            <Link
-                                                href={bookingLinkPath(business.slug, branch.slug)}
-                                                className="flex flex-col gap-1 rounded-2xl border border-border p-4.5 transition-colors hover:border-foreground/20"
-                                            >
-                                                <span className="text-[15.5px] font-bold tracking-[-0.02em]">
-                                                    {branch.name}
-                                                </span>
-                                                <span className="flex items-center gap-1.5 text-[13.5px] text-muted-foreground">
-                                                    <MapPin className="size-4" />
-                                                    {branch.address}
-                                                </span>
-                                            </Link>
-                                        </li>
-                                    ))}
-                                </ul>
+                                <div className="mt-5">
+                                    <BranchPicker businessSlug={business.slug} branches={branches} />
+                                </div>
                             </section>
                         ) : (
                             <p className="mt-10 text-[14.5px] text-muted-foreground">

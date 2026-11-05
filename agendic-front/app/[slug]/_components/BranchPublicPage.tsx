@@ -2,7 +2,9 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { MapPin, Images, Building2 } from 'lucide-react';
+import { MapPin, Images, Building2, Navigation } from 'lucide-react';
+import { LocationMap } from '@/app/_components/maps/LocationMap';
+import { useGoogleMaps } from '@/app/_components/maps/google-maps';
 import { Avatar, AvatarFallback, AvatarImage } from '@/app/_components/ui/avatar';
 import { Button } from '@/app/_components/ui/button';
 import { bookingLinkPath } from '@/app/routes';
@@ -15,6 +17,7 @@ import { initials } from '@/app/_components/booking/format';
 import type { BookingPrefill } from '@/app/_components/booking/booking-prefill';
 import type { Service } from '@/app/_components/booking/types';
 import { BranchGalleryModal } from './BranchGalleryModal';
+import { directionsUrl } from './branch-location';
 import { galleryLayout } from './gallery-layout';
 import { ShareBranchButton } from './ShareBranchButton';
 import type { Branch, BranchImage, Business, Employee, OtherBranch } from './types';
@@ -69,6 +72,7 @@ export function BranchPublicPage({
     const sideImages = gallery.mosaic.side.map((index) => images[index]);
     const [galleryOpen, setGalleryOpen] = useState(false);
     const openGallery = () => setGalleryOpen(true);
+    const maps = useGoogleMaps();
 
     return (
         <>
@@ -254,9 +258,26 @@ export function BranchPublicPage({
                                 <div className="flex gap-2">
                                     <dt className="sr-only">Dirección</dt>
                                     <MapPin className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-                                    <dd className="font-medium">{branch.address}</dd>
+                                    <dd className="min-w-0 font-medium break-words">{branch.address}</dd>
                                 </div>
                             </dl>
+                            {branch.location && maps !== false && (
+                                <LocationMap
+                                    label={`Mapa de ${branch.address}`}
+                                    points={[branch.location]}
+                                    className="mt-3 h-40 rounded-xl"
+                                />
+                            )}
+                            <a
+                                href={directionsUrl(branch)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="mt-1 inline-flex min-h-11 items-center gap-1.5 text-[13.5px] font-bold underline-offset-2 hover:underline"
+                            >
+                                <Navigation className="size-4" />
+                                Cómo llegar
+                                <span className="sr-only"> (se abre en otra pestaña)</span>
+                            </a>
 
                             {otherBranches.length > 0 && (
                                 <div className="mt-4 border-t border-border pt-4">

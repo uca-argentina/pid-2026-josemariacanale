@@ -1,6 +1,6 @@
 # Errors
 
-Applies to `agendic-front/` and `agendic-back/`. Which layer throws and catches what: `agendic-front/docs/agents/clean-architecture.md` § Errors.
+Applies to `agendic-front/` and `agendic-back/`.
 
 - **Throw a domain error class.** Back: a subclass of `DomainError` (`src/domain/errors.ts`), which `DomainExceptionFilter` maps to its status. Front: a class from `src/entities/errors`. A bare `Error` reaches the client as a generic 500.
 - **Name what failed and with which value.** `Employee 12 has no Franjas on 2026-10-05`, not `Operation failed`. The message is what you read in the log or the response when debugging.

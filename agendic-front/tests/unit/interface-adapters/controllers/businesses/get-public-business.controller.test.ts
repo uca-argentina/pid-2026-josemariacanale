@@ -5,15 +5,22 @@ import { instrumentation } from '@/tests/unit/stubs';
 const TZ = 'America/Argentina/Buenos_Aires';
 
 describe('getPublicBusinessController', () => {
-    it('presents the Negocio and the tramo of each Sucursal, and nothing of the Dueño', async () => {
+    it('presents the Negocio and the tramo and punto of each Sucursal, and nothing of the Dueño', async () => {
+        const punto = { lat: -34.6037, lng: -58.3816 };
         const useCase = jest.fn().mockResolvedValue({
             business: { id: 1, name: 'Vitalia', description: 'Desc', slug: 'vitalia', logoUrl: null, ownerId: 7 },
-            branches: [{ id: 10, businessId: 1, name: 'Centro', address: 'Av. 1', timeZone: TZ, slug: 'centro' }],
+            branches: [
+                { id: 10, businessId: 1, name: 'Centro', address: 'Av. 1', timeZone: TZ, slug: 'centro', location: punto },
+                { id: 11, businessId: 1, name: 'Palermo', address: 'Thames 1', timeZone: TZ, slug: 'palermo', location: null },
+            ],
         });
 
         await expect(getPublicBusinessController(instrumentation, useCase)({ businessSlug: 'vitalia' })).resolves.toEqual({
             business: { name: 'Vitalia', description: 'Desc', slug: 'vitalia', logoUrl: null },
-            branches: [{ id: 10, name: 'Centro', address: 'Av. 1', slug: 'centro' }],
+            branches: [
+                { id: 10, name: 'Centro', address: 'Av. 1', slug: 'centro', location: punto },
+                { id: 11, name: 'Palermo', address: 'Thames 1', slug: 'palermo', location: null },
+            ],
         });
         expect(useCase).toHaveBeenCalledWith({ businessSlug: 'vitalia' });
     });
