@@ -2,7 +2,6 @@ Agendic es una plataforma de gestión de turnos para negocios de servicios. El f
 
 Cada app tiene su propio `CLAUDE.md` con las reglas que solo valen ahí.
 
-@docs/agents/comments.md
 @docs/agents/errors.md
 @docs/agents/testing.md
 

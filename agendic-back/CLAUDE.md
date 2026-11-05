@@ -1,2 +1,1 @@
-@docs/agents/data-layer.md
-@docs/agents/performance.md
+- Schema y migraciones: antes de cambiar `prisma/schema.prisma` o crear una migración, leé § Schema changes and migrations de `docs/agents/data-layer.md`.
