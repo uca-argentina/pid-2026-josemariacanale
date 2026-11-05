@@ -10,7 +10,14 @@ import {
     SlotUnavailableError,
 } from '@/src/entities/errors/booking';
 import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
-import { cancelledSeriesSchema, clientBookingSchema, type CancelledSeries, type ClientBooking } from '@/src/entities/models/client-booking';
+import {
+    cancelledSeriesSchema,
+    clientBookingSchema,
+    clientBookingWithStreakSchema,
+    type CancelledSeries,
+    type ClientBooking,
+    type ClientBookingWithStreak,
+} from '@/src/entities/models/client-booking';
 
 function parseOrFail<T>(parse: () => T, what: string): T {
     try {
@@ -37,12 +44,12 @@ export class ClientBookingsRepository implements IClientBookingsRepository {
      * @throws {NotFoundError} el back respondió 404
      * @throws {ApiRequestError} cualquier otra respuesta con error, un cuerpo inesperado o una falla de red
      */
-    async getBookingByLink(link: string): Promise<ClientBooking> {
+    async getBookingByLink(link: string): Promise<ClientBookingWithStreak> {
         return this.instrumentationService.startSpan({ name: 'ClientBookingsRepository > getBookingByLink', op: 'http.client' }, async () => {
             // El Enlace es una credencial: `what` llega a los mensajes de error y a los logs, así que va sin él.
             const what = 'GET /booking-links/:link';
             const body = await this.request(what, `/booking-links/${encodeURIComponent(link)}`, { method: 'GET' });
-            return parseOrFail(() => clientBookingSchema.parse(body), what);
+            return parseOrFail(() => clientBookingWithStreakSchema.parse(body), what);
         });
     }
 
