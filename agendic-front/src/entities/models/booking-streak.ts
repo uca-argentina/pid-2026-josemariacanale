@@ -31,3 +31,17 @@ export const bookingStreakSchema = z.object({
 });
 /** La Racha del Cliente de un Turno, ya validada. */
 export type BookingStreak = z.infer<typeof bookingStreakSchema>;
+
+/**
+ * La Racha del Cliente que viaja en `GET /booking-links/:secret`: la misma Ficha del Turno y las mismas reglas que
+ * `GET /bookings/:id/streak`, pero aplanada. El back la manda nula con el programa apagado, y también sin Racha en curso y sin
+ * Premios disponibles. `burnsAt` es nulo si no hay una Racha en curso.
+ */
+export const clientStreakSchema = z.object({
+    count: z.number(),
+    burnsAt: z.iso.datetime().nullable(),
+    nextReward: z.object({ reward: streakRewardSchema, remaining: z.number() }).nullable(),
+    prizes: z.array(prizeSchema),
+});
+/** La Racha del Cliente de un Enlace del Turno, ya validada. */
+export type ClientStreak = z.infer<typeof clientStreakSchema>;

@@ -75,8 +75,9 @@ export async function rateBookingByLinkAction(link: string, score: number, comme
                 return await getInjection('IRateBookingByLinkController')({ link, score, comment });
             } catch (error) {
                 if (!(error instanceof BookingAlreadyRatedError)) throw error;
-                reloaded = await getInjection('IGetBookingByLinkController')({ link });
-                return reloaded;
+                const { booking } = await getInjection('IGetBookingByLinkController')({ link });
+                reloaded = booking;
+                return booking;
             }
         },
         'No pudimos guardar tu calificación. Intentá de nuevo.',

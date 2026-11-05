@@ -36,15 +36,43 @@ const booking = {
 };
 
 describe('ClientBookingsRepository.getBookingByLink', () => {
-    it('GETs el Enlace del Turno sin header de acceso, y devuelve el Turno', async () => {
-        const fetchSpy = respond(200, booking);
+    const streak = {
+        count: 3,
+        burnsAt: '2026-12-13T01:30:00.000Z',
+        nextReward: {
+            reward: { id: 7, requiredCount: 5, repeatable: false, type: 'GIFT', value: null, description: 'Un lavado', service: null, validForDays: null },
+            remaining: 2,
+        },
+        prizes: [{ id: 3, type: 'GIFT', value: null, description: 'Un lavado', serviceName: null, grantedAt: '2026-10-01T12:00:00.000Z', expiresAt: null }],
+    };
 
-        await expect(repo().getBookingByLink('s3cr3t-l1nk')).resolves.toEqual(booking);
+    it('GETs el Enlace del Turno sin header de acceso, y devuelve el Turno', async () => {
+        const fetchSpy = respond(200, { ...booking, streak: null });
+
+        await expect(repo().getBookingByLink('s3cr3t-l1nk')).resolves.toEqual({ ...booking, streak: null });
         expect(fetchSpy).toHaveBeenCalledWith('http://api/booking-links/s3cr3t-l1nk', { method: 'GET', headers: {} });
     });
 
+    it('trae la Racha del Cliente, con lo que falta para la próxima Recompensa y sus Premios', async () => {
+        respond(200, { ...booking, streak });
+
+        await expect(repo().getBookingByLink('s3cr3t-l1nk')).resolves.toMatchObject({ streak });
+    });
+
+    it('acepta una Racha que no empezó (burnsAt null) con un Premio disponible', async () => {
+        respond(200, { ...booking, streak: { ...streak, count: 0, burnsAt: null } });
+
+        await expect(repo().getBookingByLink('s3cr3t-l1nk')).resolves.toMatchObject({ streak: { count: 0, burnsAt: null } });
+    });
+
+    it('rejects a body without the streak field: the back always sends it, null when there is nothing to show', async () => {
+        respond(200, booking);
+
+        await expect(repo().getBookingByLink('s3cr3t-l1nk')).rejects.toBeInstanceOf(ApiRequestError);
+    });
+
     it('escapes the link in the path', async () => {
-        const fetchSpy = respond(200, booking);
+        const fetchSpy = respond(200, { ...booking, streak: null });
         await repo().getBookingByLink('a/b?c');
         expect(fetchSpy).toHaveBeenCalledWith('http://api/booking-links/a%2Fb%3Fc', expect.anything());
     });

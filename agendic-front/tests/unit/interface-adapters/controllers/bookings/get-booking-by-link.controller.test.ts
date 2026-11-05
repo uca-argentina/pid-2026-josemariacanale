@@ -21,23 +21,46 @@ const booking = {
 
 describe('getBookingByLinkController', () => {
     it('devuelve el Turno del Enlace, con el link recortado', async () => {
-        const useCase = jest.fn().mockResolvedValue(booking);
+        const useCase = jest.fn().mockResolvedValue({ ...booking, streak: null });
 
         const result = await getBookingByLinkController(instrumentation, useCase)({ link: ' s3cr3t-l1nk ' });
 
         expect(useCase).toHaveBeenCalledWith({ link: 's3cr3t-l1nk' });
-        expect(result).toEqual(booking);
+        expect(result).toEqual({ booking, streak: null });
+    });
+
+    it('presenta la Racha del Cliente aparte del Turno, con los días en la zona del Turno', async () => {
+        const racha = {
+            count: 3,
+            burnsAt: '2026-12-13T01:30:00.000Z',
+            nextReward: {
+                reward: { id: 7, requiredCount: 5, repeatable: false, type: 'PERCENT_DISCOUNT' as const, value: 20, description: null, service: null, validForDays: null },
+                remaining: 2,
+            },
+            prizes: [{ id: 3, type: 'GIFT' as const, value: null, description: 'Un lavado', serviceName: null, grantedAt: '2026-10-01T12:00:00.000Z', expiresAt: '2026-11-30T15:00:00.000Z' }],
+        };
+        const useCase = jest.fn().mockResolvedValue({ ...booking, streak: racha });
+
+        const result = await getBookingByLinkController(instrumentation, useCase)({ link: 's3cr3t-l1nk' });
+
+        expect(result.streak).toEqual({
+            count: 3,
+            title: '3 Turnos',
+            progress: { done: 3, total: 5 },
+            nextReward: 'Te faltan 2 Turnos para 20% de descuento',
+            returnBy: 'Volvé antes del 12/12',
+            prizes: [{ id: 3, text: 'Un lavado', expires: 'Vence el 30/11' }],
+        });
+        expect(result.booking).not.toHaveProperty('streak');
     });
 
     // En un Servicio personal no hay Negocio ni Sucursal: el Enlace de reserva para volver es el del Usuario.
     it('devuelve el Enlace de reserva del Usuario en un Turno de un Servicio personal', async () => {
-        const personal = { ...booking, business: null, branch: null, user: { slug: 'juana' } };
+        const personal = { ...booking, business: null, branch: null, user: { slug: 'juana' }, streak: null };
         const useCase = jest.fn().mockResolvedValue(personal);
 
         await expect(getBookingByLinkController(instrumentation, useCase)({ link: 's3cr3t-l1nk' })).resolves.toMatchObject({
-            business: null,
-            branch: null,
-            user: { slug: 'juana' },
+            booking: { business: null, branch: null, user: { slug: 'juana' } },
         });
     });
 

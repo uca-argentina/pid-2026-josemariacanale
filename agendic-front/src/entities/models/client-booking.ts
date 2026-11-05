@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { BOOKING_STATUSES } from '@/src/entities/models/booking';
+import { clientStreakSchema } from '@/src/entities/models/booking-streak';
 
 /**
  * Un Turno del Cliente, como lo devuelven `GET` y los `PATCH` de `/booking-links/:secret`. `cancellationReason` es el
@@ -47,6 +48,13 @@ export const clientBookingSchema = z.object({
         .nullable(),
 });
 export type ClientBooking = z.infer<typeof clientBookingSchema>;
+
+/**
+ * Lo que responde `GET /booking-links/:secret`: el Turno y la Racha de su Cliente. `streak` solo viaja en el GET, no en las
+ * respuestas de las acciones del Enlace (`PATCH`), y es nula si el programa no está activo.
+ */
+export const clientBookingWithStreakSchema = clientBookingSchema.extend({ streak: clientStreakSchema.nullable() });
+export type ClientBookingWithStreak = z.infer<typeof clientBookingWithStreakSchema>;
 
 /**
  * Lo que responde Cancelar "este y los siguientes" desde el Enlace del Turno (#305): `cancelled` empieza por el Turno
