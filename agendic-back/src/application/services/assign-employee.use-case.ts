@@ -22,6 +22,7 @@ import {
   ServicesRepository,
 } from '../../domain/services/services.repository';
 import { defaultAvailability } from '../availabilities/default-availability';
+import { assertWorksAt } from '../employees/assert-works-at';
 import { assertServiceOwnerOrSelf } from './assert-service-owner-or-self';
 
 export interface AssignEmployeeInput {
@@ -51,8 +52,8 @@ export class AssignEmployeeUseCase {
    * @throws {NotFoundError} el Servicio, su Sucursal, el Empleado o la Availability no existen, o el Servicio está oculto y quien
    * llama no es Dueño ni lo atiende
    * @throws {ForbiddenError} no es el Dueño ni ese Empleado
-   * @throws {BusinessRuleError} el Servicio está dado de baja, el Empleado no es del Negocio o está dado de baja, o la
-   * Availability es de otro Usuario
+   * @throws {BusinessRuleError} el Servicio está dado de baja, el Empleado no es del Negocio, está dado de baja o no
+   * trabaja en la Sucursal del Servicio, o la Availability es de otro Usuario
    * @throws {ConflictError} el Empleado ya lo atiende
    */
   async execute(
@@ -88,6 +89,7 @@ export class AssignEmployeeUseCase {
       throw new BusinessRuleError(
         'The Employee must belong to this Business and not be retired',
       );
+    assertWorksAt(employee, branch.id);
     const availability =
       availabilityId === undefined
         ? await defaultAvailability(this.availabilities, employee.userId)

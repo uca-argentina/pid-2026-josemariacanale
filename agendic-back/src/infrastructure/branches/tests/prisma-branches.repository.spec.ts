@@ -54,7 +54,7 @@ describe('PrismaBranchesRepository', () => {
 
   beforeEach(() => jest.resetAllMocks());
 
-  it('creates a Sucursal with one image per URL, ordered as given, in the same create', async () => {
+  it('creates a Sucursal with one image per URL, ordered as given, and the Empleados working there, in the same create', async () => {
     prisma.branch.create.mockResolvedValue({
       ...BRANCH_ROW,
       images: [
@@ -74,6 +74,7 @@ describe('PrismaBranchesRepository', () => {
           location: { lat: -34.6037, lng: -58.3816 },
         },
         ['https://files.example.com/a', 'https://files.example.com/b'],
+        [7],
       ),
     ).resolves.toEqual({
       branch: BRANCH,
@@ -97,6 +98,7 @@ describe('PrismaBranchesRepository', () => {
             { url: 'https://files.example.com/b', order: 1 },
           ],
         },
+        employees: { create: [{ employeeId: 7 }] },
       },
       include: {
         images: {
@@ -176,9 +178,11 @@ describe('PrismaBranchesRepository', () => {
   describe('translates Prisma errors, keeping the original as cause', () => {
     const calls = {
       createWithImages: () =>
-        repository.createWithImages({ ...BRANCH, location: POINT }, [
-          'https://files.example.com/a',
-        ]),
+        repository.createWithImages(
+          { ...BRANCH, location: POINT },
+          ['https://files.example.com/a'],
+          [],
+        ),
       findById: () => repository.findById(1),
       update: () => repository.update(1, { name: 'New name' }),
     };

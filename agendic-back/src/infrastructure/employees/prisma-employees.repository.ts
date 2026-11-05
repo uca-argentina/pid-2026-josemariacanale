@@ -17,13 +17,15 @@ import {
 import { cancelFutureBooked } from '../bookings/cancel-future-booked';
 import { PrismaService } from '../prisma.service';
 
-/** The Usuario fields the Empleado's view reads instead of storing its own. */
-export const WITH_USER = {
+/** The Usuario fields the Empleado's view reads instead of storing its own, and the Sucursales where they trabajan. */
+export const EMPLOYEE_RELATIONS = {
   user: { select: { name: true, email: true, imageUrl: true } },
+  branches: { select: { branchId: true }, orderBy: { branchId: 'asc' } },
 } satisfies Prisma.EmployeeInclude;
 
 type EmployeeRowWithUser = EmployeeRow & {
   user: Pick<UserRow, 'name' | 'email' | 'imageUrl'>;
+  branches: { branchId: number }[];
 };
 
 @Injectable()
@@ -33,22 +35,31 @@ export class PrismaEmployeesRepository implements EmployeesRepository {
   async listByIds(ids: number[]) {
     return (
       await this.prisma.employee
-        .findMany({ where: { id: { in: ids } }, include: WITH_USER })
+        .findMany({ where: { id: { in: ids } }, include: EMPLOYEE_RELATIONS })
         .catch(translateError)
     ).map(toEmployee);
   }
 
-  async create(data: CreateEmployeeData) {
+  async create({ userId, businessId, branchIds }: CreateEmployeeData) {
     return toEmployee(
       await this.prisma.employee
-        .create({ data, include: WITH_USER })
+        .create({
+          data: {
+            userId,
+            businessId,
+            branches: {
+              create: branchIds.map((branchId) => ({ branchId })),
+            },
+          },
+          include: EMPLOYEE_RELATIONS,
+        })
         .catch(translateError),
     );
   }
 
   async findById(id: number) {
     const row = await this.prisma.employee
-      .findUnique({ where: { id }, include: WITH_USER })
+      .findUnique({ where: { id }, include: EMPLOYEE_RELATIONS })
       .catch(translateError);
     return row && toEmployee(row);
   }
@@ -59,7 +70,7 @@ export class PrismaEmployeesRepository implements EmployeesRepository {
   async listActiveByUser(userId: number) {
     return (
       await this.prisma.employee
-        .findMany({ where: { userId, deletedAt: null }, include: WITH_USER })
+        .findMany({ where: { userId, deletedAt: null }, include: EMPLOYEE_RELATIONS })
         .catch(translateError)
     ).map(toEmployee);
   }
@@ -69,7 +80,7 @@ export class PrismaEmployeesRepository implements EmployeesRepository {
       await this.prisma.employee
         .findMany({
           where: { businessId, deletedAt: null },
-          include: WITH_USER,
+          include: EMPLOYEE_RELATIONS,
         })
         .catch(translateError)
     ).map(toEmployee);
@@ -81,7 +92,7 @@ export class PrismaEmployeesRepository implements EmployeesRepository {
         const row = await tx.employee.update({
           where: { id },
           data: { deletedAt, services: { deleteMany: {} } },
-          include: WITH_USER,
+          include: EMPLOYEE_RELATIONS,
         });
         const cancelledBookings = await cancelFutureBooked(
           tx,
@@ -102,6 +113,7 @@ export const toEmployee = (row: EmployeeRowWithUser): Employee => ({
   email: row.user.email,
   imageUrl: row.user.imageUrl,
   deletedAt: row.deletedAt,
+  branchIds: row.branches.map(({ branchId }) => branchId),
 });
 
 const translateError = (error: unknown): never => {

@@ -12,6 +12,10 @@ import {
   BusinessesRepository,
 } from '../../domain/businesses/businesses.repository';
 import {
+  EMPLOYEES_REPOSITORY,
+  EmployeesRepository,
+} from '../../domain/employees/employees.repository';
+import {
   FILE_STORAGE,
   FileStorage,
   FileUpload,
@@ -28,16 +32,20 @@ export class CreateBranchUseCase {
     private readonly branches: BranchesRepository,
     @Inject(FILE_STORAGE)
     private readonly storage: FileStorage,
+    @Inject(EMPLOYEES_REPOSITORY)
+    private readonly employees: EmployeesRepository,
   ) {}
 
   /**
-   * Creates the Sucursal with its images, in the order given, so it never exists without one. Uploads the files
-   * first; if any upload or the creation fails, deletes the files already uploaded (best effort: a file left behind
-   * is only wasted space, so the original error is the one reported).
+   * Creates the Sucursal with its images, in the order given, so it never exists without one, and with the Dueño
+   * working there: they trabajan en todas las Sucursales of their Negocio, the other Empleados only where they
+   * are put. Uploads the files first; if any upload or the creation fails, deletes the files already uploaded
+   * (best effort: a file left behind is only wasted space, so the original error is the one reported).
    *
    * @throws {NotFoundError} el Negocio no existe
    * @throws {ForbiddenError} el Usuario no es el Dueño del Negocio
    * @throws {ConflictError} el Enlace de reserva ya está en uso en el Negocio
+   * @throws {DatabaseOperationError} falló la base
    * @throws el error del storage si falla alguna subida
    */
   async execute(
@@ -47,8 +55,15 @@ export class CreateBranchUseCase {
     images: FileUpload[],
   ): Promise<BranchWithImages> {
     assertOwner(await this.businesses.findById(businessId), userId);
+    const ownerEmployeeIds = (await this.employees.listActiveByUser(userId))
+      .filter((employee) => employee.businessId === businessId)
+      .map(({ id }) => id);
     return withUploadedFiles(this.storage, images, (urls) =>
-      this.branches.createWithImages({ businessId, ...input }, urls),
+      this.branches.createWithImages(
+        { businessId, ...input },
+        urls,
+        ownerEmployeeIds,
+      ),
     );
   }
 }

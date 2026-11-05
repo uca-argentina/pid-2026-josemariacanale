@@ -6,12 +6,14 @@ export const EMPLOYEES_REPOSITORY = Symbol('EmployeesRepository');
 export interface CreateEmployeeData {
   userId: number;
   businessId: number;
+  /** Sucursales of that same Negocio where they start working. */
+  branchIds: number[];
 }
 
 export interface EmployeesRepository {
   /** Only the ids that exist, in no particular order. */
   listByIds(ids: number[]): Promise<Employee[]>;
-  /** Throws ConflictError when the Usuario is already an active Empleado of the Negocio. */
+  /** Throws ConflictError when the Usuario is already an active Empleado of the Negocio. Creates their Sucursales with them, atomically. */
   create(data: CreateEmployeeData): Promise<Employee>;
   findById(id: number): Promise<Employee | null>;
   /** The Usuario's Employees not dados de baja: one per Negocio they work at. */

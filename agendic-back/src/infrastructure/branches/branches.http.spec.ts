@@ -2,6 +2,7 @@ import { Branch } from '../../domain/branches/branch';
 import { ConflictError } from '../../domain/errors';
 import {
   ANAS_BUSINESS,
+  ANAS_EMPLOYEE,
   bearer,
   createTestApp,
   BRUNO,
@@ -73,6 +74,7 @@ describe('Sucursal', () => {
       scriptSession(t);
       scriptOtherSession(t);
       t.businesses.findById.mockResolvedValue(ANAS_BUSINESS);
+      t.employees.listActiveByUser.mockResolvedValue([ANAS_EMPLOYEE]);
       let uploaded = 0;
       t.fileStorage.upload.mockImplementation(async () => URLS[uploaded++]);
       t.fileStorage.delete.mockResolvedValue();
@@ -98,6 +100,7 @@ describe('Sucursal', () => {
       expect(t.branches.createWithImages).toHaveBeenCalledWith(
         { businessId: ANAS_BUSINESS.id, ...VALID_BRANCH },
         URLS,
+        [ANAS_EMPLOYEE.id],
       );
       expect(res.body).toEqual({
         ...BRANCH,
@@ -107,6 +110,21 @@ describe('Sucursal', () => {
         ],
       });
       expect(t.fileStorage.delete).not.toHaveBeenCalled();
+    });
+
+    it('adds only the Dueño’s Empleado of this Negocio to the new Sucursal', async () => {
+      t.employees.listActiveByUser.mockResolvedValue([
+        { ...ANAS_EMPLOYEE, id: 2, businessId: ANAS_BUSINESS.id + 1 },
+        ANAS_EMPLOYEE,
+      ]);
+
+      await post(VALID_BRANCH).expect(201);
+
+      expect(t.branches.createWithImages).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        [ANAS_EMPLOYEE.id],
+      );
     });
 
     it('creates a Sucursal with five images', async () => {
@@ -125,10 +143,12 @@ describe('Sucursal', () => {
         1,
         expect.objectContaining({ description: 'Sede central' }),
         expect.any(Array),
+        expect.any(Array),
       );
       expect(t.branches.createWithImages).toHaveBeenNthCalledWith(
         2,
         expect.objectContaining({ description: null }),
+        expect.any(Array),
         expect.any(Array),
       );
     });
@@ -138,6 +158,7 @@ describe('Sucursal', () => {
 
       expect(t.branches.createWithImages).toHaveBeenCalledWith(
         expect.objectContaining({ slug: 'downtown' }),
+        expect.any(Array),
         expect.any(Array),
       );
     });

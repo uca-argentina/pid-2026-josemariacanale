@@ -8,7 +8,7 @@ import { Prisma } from '../../../generated/prisma/client';
 import { PrismaService } from '../../prisma.service';
 import {
   PrismaEmployeesRepository,
-  WITH_USER,
+  EMPLOYEE_RELATIONS,
 } from '../prisma-employees.repository';
 
 const EMPLOYEE: Employee = {
@@ -19,6 +19,7 @@ const EMPLOYEE: Employee = {
   email: 'ana@example.com',
   imageUrl: null,
   deletedAt: null,
+  branchIds: [1, 3],
 };
 
 /** The row shape Prisma returns with the Usuario joined in. */
@@ -27,6 +28,7 @@ const EMPLOYEE_ROW = {
   userId: EMPLOYEE.userId,
   businessId: EMPLOYEE.businessId,
   deletedAt: EMPLOYEE.deletedAt,
+  branches: [{ branchId: 1 }, { branchId: 3 }],
   user: { name: EMPLOYEE.name, email: EMPLOYEE.email, imageUrl: EMPLOYEE.imageUrl },
 };
 
@@ -66,7 +68,7 @@ describe('PrismaEmployeesRepository', () => {
     await expect(repository.listByIds([1, 2])).resolves.toEqual([EMPLOYEE]);
     expect(prisma.employee.findMany).toHaveBeenCalledWith({
       where: { id: { in: [1, 2] } },
-      include: WITH_USER,
+      include: EMPLOYEE_RELATIONS,
     });
   });
 
@@ -76,15 +78,19 @@ describe('PrismaEmployeesRepository', () => {
     await expect(repository.listByIds([999])).resolves.toEqual([]);
   });
 
-  it('creates an Employee and returns only its domain fields', async () => {
+  it('creates an Employee working at the given Sucursales, in the same write, and returns only its domain fields', async () => {
     prisma.employee.create.mockResolvedValue(EMPLOYEE_ROW);
 
     await expect(
-      repository.create({ userId: 1, businessId: 1 }),
+      repository.create({ userId: 1, businessId: 1, branchIds: [1, 3] }),
     ).resolves.toEqual(EMPLOYEE);
     expect(prisma.employee.create).toHaveBeenCalledWith({
-      data: { userId: 1, businessId: 1 },
-      include: WITH_USER,
+      data: {
+        userId: 1,
+        businessId: 1,
+        branches: { create: [{ branchId: 1 }, { branchId: 3 }] },
+      },
+      include: EMPLOYEE_RELATIONS,
     });
   });
 
@@ -92,7 +98,7 @@ describe('PrismaEmployeesRepository', () => {
     prisma.employee.create.mockResolvedValue({ ...EMPLOYEE_ROW, id: 2 });
 
     await expect(
-      repository.create({ userId: 1, businessId: 1 }),
+      repository.create({ userId: 1, businessId: 1, branchIds: [] }),
     ).resolves.toEqual({ ...EMPLOYEE, id: 2 });
     // Rehire is guarded only by the DB's partial unique index (ADR 0004), never by a repository-level lookup.
     expect(prisma.employee.findUnique).not.toHaveBeenCalled();
@@ -105,7 +111,7 @@ describe('PrismaEmployeesRepository', () => {
     await expect(repository.findById(1)).resolves.toEqual(EMPLOYEE);
     expect(prisma.employee.findUnique).toHaveBeenCalledWith({
       where: { id: 1 },
-      include: WITH_USER,
+      include: EMPLOYEE_RELATIONS,
     });
   });
 
@@ -123,7 +129,7 @@ describe('PrismaEmployeesRepository', () => {
     ]);
     expect(prisma.employee.findMany).toHaveBeenCalledWith({
       where: { businessId: 1, deletedAt: null },
-      include: WITH_USER,
+      include: EMPLOYEE_RELATIONS,
     });
   });
 
@@ -150,7 +156,7 @@ describe('PrismaEmployeesRepository', () => {
       expect(tx.employee.update).toHaveBeenCalledWith({
         where: { id: 1 },
         data: { deletedAt, services: { deleteMany: {} } },
-        include: WITH_USER,
+        include: EMPLOYEE_RELATIONS,
       });
       expect(tx.booking.findMany).toHaveBeenCalledWith({
         where: {
@@ -180,7 +186,7 @@ describe('PrismaEmployeesRepository', () => {
       prisma.employee.create.mockRejectedValue(cause);
 
       const error = await repository
-        .create({ userId: 1, businessId: 1 })
+        .create({ userId: 1, businessId: 1, branchIds: [] })
         .catch((e: unknown) => e);
 
       expect(error).toBeInstanceOf(ConflictError);

@@ -23,6 +23,7 @@ export class PrismaBranchesRepository implements BranchesRepository {
   async createWithImages(
     data: CreateBranchInput & Pick<Branch, 'businessId'>,
     imageUrls: string[],
+    employeeIds: number[],
   ) {
     const row = await this.prisma.branch
       .create({
@@ -36,6 +37,9 @@ export class PrismaBranchesRepository implements BranchesRepository {
           ...toPointColumns(data.location),
           images: {
             create: imageUrls.map((url, order) => ({ url, order })),
+          },
+          employees: {
+            create: employeeIds.map((employeeId) => ({ employeeId })),
           },
         },
         include: {

@@ -5,6 +5,7 @@ import {
 import { ServiceCategory } from '../../domain/services/service';
 import {
   ANA,
+  ANAS_BRANCH,
   ANAS_BUSINESS,
   ANAS_EMPLOYEE,
   bearer,
@@ -26,6 +27,7 @@ const OTHER_EMPLOYEE = {
   email: BRUNO.email,
   imageUrl: BRUNO.imageUrl,
   deletedAt: null,
+  branchIds: [ANAS_BRANCH.id],
 };
 
 describe('Empleado', () => {
@@ -220,6 +222,7 @@ describe('Empleado', () => {
       t.users.findById.mockResolvedValue({ ...ANA, email: 'Ana@Example.com' });
       t.invitations.findById.mockResolvedValue(MINE);
       t.employees.listActiveByUser.mockResolvedValue([ANAS_EMPLOYEE]);
+      t.branches.listByBusiness.mockResolvedValue([]);
       t.employees.create.mockResolvedValue({
         ...ANAS_EMPLOYEE,
         id: 3,
@@ -251,6 +254,29 @@ describe('Empleado', () => {
       );
       expect(t.invitations.close).toHaveBeenCalledWith(9, expect.any(Date));
       expect(res.body.id).toBe(3);
+    });
+
+    it('accepting places the Empleado in every Sucursal of the Negocio, until #387 lets the Dueño choose', async () => {
+      t.branches.listByBusiness.mockResolvedValue([
+        { ...ANAS_BRANCH, id: 4, businessId: 7 },
+        { ...ANAS_BRANCH, id: 2, businessId: 7 },
+      ]);
+      t.employees.create.mockResolvedValue({
+        ...ANAS_EMPLOYEE,
+        id: 3,
+        businessId: 7,
+        branchIds: [2, 4],
+      });
+
+      const res = await auth(t.http.post('/invitations/9/accept')).expect(200);
+
+      expect(t.branches.listByBusiness).toHaveBeenCalledWith(7);
+      expect(t.employees.create).toHaveBeenCalledWith({
+        userId: ANA.id,
+        businessId: 7,
+        branchIds: [4, 2],
+      });
+      expect(res.body.branchIds).toEqual([2, 4]);
     });
 
     it('accepting twice answers 422', async () => {
@@ -558,10 +584,14 @@ describe('Empleado', () => {
       t.businesses.findById.mockResolvedValue(ANAS_BUSINESS);
     });
 
-    it('lists the Business Employees not dados de baja as { id, userId, name, email, imageUrl }', async () => {
+    it('lists the Business Employees not dados de baja as { id, userId, name, email, imageUrl, branchIds }', async () => {
       t.employees.listActiveByBusiness.mockResolvedValue([
-        ANAS_EMPLOYEE,
-        { ...OTHER_EMPLOYEE, imageUrl: 'https://img.clerk.com/bruno.png' },
+        { ...ANAS_EMPLOYEE, branchIds: [1, 2] },
+        {
+          ...OTHER_EMPLOYEE,
+          imageUrl: 'https://img.clerk.com/bruno.png',
+          branchIds: [2],
+        },
       ]);
 
       const res = await t.http
@@ -576,6 +606,7 @@ describe('Empleado', () => {
           name: ANAS_EMPLOYEE.name,
           email: ANAS_EMPLOYEE.email,
           imageUrl: null,
+          branchIds: [1, 2],
         },
         {
           id: OTHER_EMPLOYEE.id,
@@ -583,6 +614,7 @@ describe('Empleado', () => {
           name: OTHER_EMPLOYEE.name,
           email: OTHER_EMPLOYEE.email,
           imageUrl: 'https://img.clerk.com/bruno.png',
+          branchIds: [2],
         },
       ]);
       expect(t.employees.listActiveByBusiness).toHaveBeenCalledWith(
