@@ -1,4 +1,5 @@
 import {
+  ActiveStreakProgram,
   OwnedStreakReward,
   StreakProgram,
   StreakProgramOwner,
@@ -12,6 +13,11 @@ export const STREAK_PROGRAMS_REPOSITORY = Symbol('StreakProgramsRepository');
 
 /** Programs of Rachas and their Recompensas; authorization is the use cases' job. */
 export interface StreakProgramsRepository {
+  /**
+   * The programs that can give Premios: on, of a Negocio or Usuario not dados de baja, with their Recompensas not
+   * borradas whose Servicio gratis, if any, is not dado de baja. Those without one are left out.
+   */
+  listActiveIncludeRewards(): Promise<ActiveStreakProgram[]>;
   /** Null when the owner has no program. */
   findByOwnerIncludeRewards(
     owner: StreakProgramOwner,

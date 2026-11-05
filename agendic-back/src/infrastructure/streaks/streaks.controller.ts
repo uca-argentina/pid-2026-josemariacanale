@@ -13,17 +13,22 @@ import {
 } from '@nestjs/common';
 import { CreateStreakRewardUseCase } from '../../application/streaks/create-streak-reward.use-case';
 import { DeleteStreakRewardUseCase } from '../../application/streaks/delete-streak-reward.use-case';
+import { GetBookingStreakUseCase } from '../../application/streaks/get-booking-streak.use-case';
+import { RedeemStreakPrizeUseCase } from '../../application/streaks/redeem-streak-prize.use-case';
 import { GetStreakProgramUseCase } from '../../application/streaks/get-streak-program.use-case';
 import { SaveStreakProgramUseCase } from '../../application/streaks/save-streak-program.use-case';
 import { UpdateStreakRewardUseCase } from '../../application/streaks/update-streak-reward.use-case';
 import { StreakProgramOwner } from '../../domain/streaks/streak-program';
 import { ClerkGuard, CurrentUser } from '../users/clerk.guard';
 import {
+  presentBookingStreak,
+  presentStreakPrize,
   presentStreakProgram,
   presentStreakReward,
 } from './streak-program.presenter';
 import {
   CreateStreakRewardDto,
+  RedeemStreakPrizeDto,
   SaveStreakProgramDto,
   UpdateStreakRewardDto,
 } from './streaks.dto';
@@ -48,6 +53,8 @@ export class StreaksController {
     private readonly createStreakRewardUseCase: CreateStreakRewardUseCase,
     private readonly updateStreakRewardUseCase: UpdateStreakRewardUseCase,
     private readonly deleteStreakRewardUseCase: DeleteStreakRewardUseCase,
+    private readonly getBookingStreakUseCase: GetBookingStreakUseCase,
+    private readonly redeemStreakPrizeUseCase: RedeemStreakPrizeUseCase,
   ) {}
 
   private async getProgram(userId: number, owner: StreakProgramOwner) {
@@ -182,5 +189,37 @@ export class StreaksController {
     @Param('id', ParseIntPipe) id: number,
   ) {
     await this.deleteStreakRewardUseCase.execute(userId, id);
+  }
+
+  /**
+   * La Racha del Cliente de un Turno, lo que le falta para la próxima Recompensa y sus Premios disponibles.
+   *
+   * @throws {NotFoundError} el Turno no existe
+   * @throws {ForbiddenError} el Usuario no es el Empleado asignado
+   */
+  @Get('bookings/:id/streak')
+  async streak(
+    @CurrentUser() userId: number,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return presentBookingStreak(await this.getBookingStreakUseCase.execute(userId, id));
+  }
+
+  /**
+   * Canjea un Premio de la Ficha del Cliente en el Turno.
+   *
+   * @throws {NotFoundError} el Turno o el Premio no existen
+   * @throws {ForbiddenError} el Usuario no es el Empleado asignado
+   * @throws {BusinessRuleError} el Turno no está aceptado, el Premio es de otra Ficha o venció
+   * @throws {ConflictError} el Premio ya se Canjeó
+   */
+  @Patch('bookings/:id/redeem-prize')
+  async redeemPrize(
+    @CurrentUser() userId: number,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: RedeemStreakPrizeDto,
+  ) {
+    const prize = await this.redeemStreakPrizeUseCase.execute(userId, id, dto.prizeId);
+    return { ...presentStreakPrize(prize), redeemedAt: prize.redeemedAt };
   }
 }

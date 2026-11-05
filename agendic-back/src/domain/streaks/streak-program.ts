@@ -1,3 +1,4 @@
+import type { PromisedPrize } from './streak-prize';
 import { BadRequestError } from '../errors';
 
 /** The shortest Tiempo de quemada, in days. */
@@ -62,6 +63,27 @@ export interface StreakProgram {
   burnAfterDays: number | null;
   /** Without the borradas, ascending by `requiredCount`. */
   rewards: StreakReward[];
+}
+
+/** Whether two owners are the same Negocio or the same Usuario. */
+export const isSameOwner = (a: StreakProgramOwner, b: StreakProgramOwner) =>
+  a.kind === 'business'
+    ? b.kind === 'business' && a.businessId === b.businessId
+    : b.kind === 'personal' && a.userId === b.userId;
+
+/** A Recompensa as the job of Premios reads it: what it asks for and the copy of what it promises. */
+export interface GrantableStreakReward extends PromisedPrize {
+  id: number;
+  requiredCount: number;
+  repeatable: boolean;
+  validForDays: number | null;
+}
+
+/** A program with its Rachas on and at least one Recompensa that can be earned. */
+export interface ActiveStreakProgram {
+  owner: StreakProgramOwner;
+  burnAfterDays: number;
+  rewards: GrantableStreakReward[];
 }
 
 /** What a Negocio or a Usuario that never touched their Rachas has. */

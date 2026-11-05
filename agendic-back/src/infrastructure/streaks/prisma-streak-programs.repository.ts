@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { DatabaseOperationError, NotFoundError } from '../../domain/errors';
 import {
+  ActiveStreakProgram,
   OwnedStreakReward,
   StreakProgram,
   StreakProgramOwner,
@@ -42,6 +43,60 @@ type RewardRow = Prisma.StreakRewardGetPayload<{
 @Injectable()
 export class PrismaStreakProgramsRepository implements StreakProgramsRepository {
   constructor(private readonly prisma: PrismaService) {}
+
+  /** @throws {DatabaseOperationError} the query failed */
+  async listActiveIncludeRewards(): Promise<ActiveStreakProgram[]> {
+    const grantable = {
+      deletedAt: null,
+      OR: [{ serviceId: null }, { service: { deletedAt: null } }],
+    } satisfies Prisma.StreakRewardWhereInput;
+    const rows = await this.prisma.streakProgram
+      .findMany({
+        where: {
+          active: true,
+          burnAfterDays: { not: null },
+          rewards: { some: grantable },
+          OR: [
+            { business: { deletedAt: null } },
+            { user: { deletedAt: null } },
+          ],
+        },
+        select: {
+          businessId: true,
+          userId: true,
+          burnAfterDays: true,
+          rewards: {
+            where: grantable,
+            select: {
+              id: true,
+              requiredCount: true,
+              repeatable: true,
+              type: true,
+              value: true,
+              description: true,
+              service: { select: { name: true } },
+              validForDays: true,
+            },
+          },
+        },
+      })
+      .catch((error: unknown) => {
+        throw new DatabaseOperationError('Active Rachas programs not read', {
+          cause: error,
+        });
+      });
+    return rows.map(({ businessId, userId, burnAfterDays, rewards }) => ({
+      owner: toOwner({ businessId, userId }),
+      // The query asks for it not null.
+      burnAfterDays: burnAfterDays!,
+      rewards: rewards.map(({ value, service, type, ...reward }) => ({
+        ...reward,
+        type: type as StreakRewardType,
+        value: value === null ? null : value.toNumber(),
+        serviceName: service?.name ?? null,
+      })),
+    }));
+  }
 
   /** @throws {DatabaseOperationError} the query failed */
   async findByOwnerIncludeRewards(owner: StreakProgramOwner) {

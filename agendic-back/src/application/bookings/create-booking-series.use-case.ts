@@ -7,6 +7,7 @@ import {
   BRANCHES_REPOSITORY,
   BranchesRepository,
 } from '../../domain/branches/branches.repository';
+import { ClientFileStreakReader } from '../streaks/client-file-streak.reader';
 import {
   BOOKING_VERIFICATION_CODES,
   BookingVerificationCodes,
@@ -72,6 +73,7 @@ export class CreateBookingSeriesUseCase {
     @Inject(CLOCK) private readonly clock: Clock,
     @Inject(MAILER) private readonly mailer: Mailer,
     private readonly seriesSlots: ListSeriesSlotsUseCase,
+    private readonly streaks: ClientFileStreakReader,
   ) {}
 
   /**
@@ -173,10 +175,16 @@ export class CreateBookingSeriesUseCase {
       throw new NotFoundError(`User ${userId} not found`);
     // The Serie is already saved: a mail that fails is logged, since a 500 would not undo it.
     try {
-      await this.mailer.sendBookingConfirmation(input.clientEmail, first.link!, first.depositAmount, {
-        bookings: created.map(({ startsAt, link }) => ({ startsAt, link: link! })),
-        timeZone,
-      });
+      await this.mailer.sendBookingConfirmation(
+        input.clientEmail,
+        first.link!,
+        first.depositAmount,
+        {
+          bookings: created.map(({ startsAt, link }) => ({ startsAt, link: link! })),
+          timeZone,
+        },
+        await this.streaks.progressOfBooking(first.id, input.clientEmail, now),
+      );
     } catch (error) {
       logger.error(
         `Confirmación de reserva de la Serie ${first.seriesId} a ${input.clientEmail} falló`,

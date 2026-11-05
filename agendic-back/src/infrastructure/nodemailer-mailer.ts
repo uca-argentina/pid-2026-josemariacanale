@@ -6,6 +6,8 @@ import {
   SeriesConfirmation,
   SeriesNotice,
 } from '../domain/mailer';
+import { PromisedPrize, StreakProgress } from '../domain/streaks/streak-prize';
+import { StreakRewardType } from '../domain/streaks/streak-program';
 
 /**
  * Reads the front's base URL, where the Enlace del Turno of the Confirmación de reserva points. Throws when it is
@@ -32,6 +34,32 @@ const formatWhen = (startsAt: Date, timeZone: string) =>
     timeZone,
   }).format(startsAt);
 
+// What the Dueño typed goes escaped.
+const promisedText = ({ type, value, description, serviceName }: PromisedPrize) => {
+  switch (type) {
+    case StreakRewardType.PERCENT_DISCOUNT:
+      return `${new Intl.NumberFormat('es-AR').format(value ?? 0)}% de descuento`;
+    case StreakRewardType.AMOUNT_DISCOUNT:
+      return `$${new Intl.NumberFormat('es-AR').format(value ?? 0)} de descuento`;
+    case StreakRewardType.GIFT:
+      return escapeHtml(description ?? '');
+    case StreakRewardType.FREE_SERVICE:
+      return `${escapeHtml(serviceName ?? 'Un Servicio')} gratis`;
+  }
+};
+
+const turnos = (count: number) => (count === 1 ? '1 Turno' : `${count} Turnos`);
+
+/** The line of the Confirmación de reserva about the Racha of the Cliente. */
+const streakLine = ({ count, next }: StreakProgress) => {
+  if (!next) return `Tu Racha: ${turnos(count)}.`;
+  const reward = promisedText(next.reward);
+  if (count === 0)
+    return `Empezá tu Racha: con ${turnos(next.remaining)} ganás ${reward}.`;
+  const missing = next.remaining === 1 ? 'Te falta 1' : `Te faltan ${next.remaining}`;
+  return `Tu Racha: ${turnos(count)}. ${missing} para ${reward}.`;
+};
+
 @Injectable()
 export class NodemailerMailer implements Mailer {
   private readonly transporter: Transporter;
@@ -56,14 +84,16 @@ export class NodemailerMailer implements Mailer {
 
   /**
    * Avisa que el Turno quedó creado; con Seña, suma el monto y dice que se paga desde el Enlace del Turno. De una Serie
-   * lista cada fecha, en la zona del Turno, con su Enlace.
+   * lista cada fecha, en la zona del Turno, con su Enlace. Con `streak`, suma la línea de la Racha.
    */
   async sendBookingConfirmation(
     email: string,
     link: string,
     depositAmount: number | null,
     series?: SeriesConfirmation,
+    streak?: StreakProgress,
   ) {
+    const racha = streak ? ` ${streakLine(streak)}` : '';
     const deposit =
       depositAmount === null
         ? ''
@@ -78,7 +108,7 @@ export class NodemailerMailer implements Mailer {
         from: process.env.SMTP_FROM,
         to: email,
         subject: 'Your bookings are confirmed',
-        html: `<p>Your Turnos are confirmed.${seriesDeposit} Manage each one from its link:</p><ul>${items}</ul>`,
+        html: `<p>Your Turnos are confirmed.${seriesDeposit}${racha} Manage each one from its link:</p><ul>${items}</ul>`,
       });
       return;
     }
@@ -86,7 +116,7 @@ export class NodemailerMailer implements Mailer {
       email,
       link,
       'Your booking is confirmed',
-      `Your Turno is confirmed.${deposit} Manage it here`,
+      `Your Turno is confirmed.${deposit}${racha} Manage it here`,
     );
   }
 
@@ -156,6 +186,31 @@ export class NodemailerMailer implements Mailer {
       to: email,
       subject: '¿Cómo te fue en tu turno?',
       html: `<p>Tu turno de ${escapeHtml(serviceName)} del ${when} ya terminó. Contanos cómo te fue: <a href="${url}">${url}</a></p>`,
+    });
+  }
+
+  /**
+   * Manda el Aviso de Premio.
+   *
+   * @throws {Error} el transporte SMTP rechazó el mail
+   */
+  async sendStreakPrizeNotice(
+    email: string,
+    clientName: string,
+    promised: PromisedPrize,
+    expiresAt: Date | null,
+    timeZone: string,
+    link: string,
+  ) {
+    const url = `${this.frontendUrl}/turnos/${link}`;
+    const until = expiresAt
+      ? ` Vale hasta el ${new Intl.DateTimeFormat('es-AR', { dateStyle: 'full', timeZone }).format(expiresAt)}.`
+      : '';
+    await this.transporter.sendMail({
+      from: process.env.SMTP_FROM,
+      to: email,
+      subject: '¡Ganaste un Premio!',
+      html: `<p>¡Hola, ${escapeHtml(clientName)}! Tu Racha te dio un Premio: ${promisedText(promised)}.${until} Pedilo en tu próximo turno. Mirá tu Racha: <a href="${url}">${url}</a></p>`,
     });
   }
 

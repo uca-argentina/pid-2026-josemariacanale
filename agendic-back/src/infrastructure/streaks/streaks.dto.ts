@@ -79,3 +79,9 @@ export class UpdateStreakRewardDto extends StreakRewardOptionalFieldsDto {
   @IsEnum(StreakRewardType)
   type?: StreakRewardType;
 }
+
+/** Body of PATCH `bookings/:id/redeem-prize`. */
+export class RedeemStreakPrizeDto {
+  @IsInt()
+  prizeId!: number;
+}

@@ -28,6 +28,7 @@ import { readBookingCodeSecret, TotpBookingVerificationCodes } from './bookings/
 import { BookingsModule } from './bookings/bookings.module';
 import { CABINS_REPOSITORY } from '../domain/cabins/cabins.repository';
 import { STREAK_PROGRAMS_REPOSITORY } from '../domain/streaks/streak-programs.repository';
+import { STREAK_PRIZES_REPOSITORY } from '../domain/streaks/streak-prizes.repository';
 import { CabinsModule } from './cabins/cabins.module';
 import { PrismaCabinsRepository } from './cabins/prisma-cabins.repository';
 import { BranchImagesModule } from './branch-images/branch-images.module';
@@ -54,6 +55,7 @@ import { SlugsModule } from './slugs/slugs.module';
 import { SystemClock } from './system-clock';
 import { ClerkBackendAuth } from './users/clerk-backend-auth';
 import { PrismaStreakProgramsRepository } from './streaks/prisma-streak-programs.repository';
+import { PrismaStreakPrizesRepository } from './streaks/prisma-streak-prizes.repository';
 import { StreaksModule } from './streaks/streaks.module';
 import { PrismaUsersRepository } from './users/prisma-users.repository';
 import { UsersModule } from './users/users.module';
@@ -130,6 +132,10 @@ import { WaitlistModule } from './waitlist/waitlist.module';
       provide: STREAK_PROGRAMS_REPOSITORY,
       useClass: PrismaStreakProgramsRepository,
     },
+    {
+      provide: STREAK_PRIZES_REPOSITORY,
+      useClass: PrismaStreakPrizesRepository,
+    },
   ],
   exports: [
     CLOCK,
@@ -154,6 +160,7 @@ import { WaitlistModule } from './waitlist/waitlist.module';
     ANALYTICS_REPOSITORY,
     WAITLIST_REPOSITORY,
     STREAK_PROGRAMS_REPOSITORY,
+    STREAK_PRIZES_REPOSITORY,
   ],
 })
 export class InfrastructureModule {}

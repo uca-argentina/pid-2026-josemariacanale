@@ -1,3 +1,5 @@
+import { PromisedPrize, StreakProgress } from './streaks/streak-prize';
+
 export const MAILER = Symbol('Mailer');
 
 /** The Turnos of a Serie to list in its Confirmación de reserva, with the zone their dates are shown in. */
@@ -26,12 +28,14 @@ export interface Mailer {
   /**
    * Confirmación de reserva: the Turno was created, with its Enlace del Turno (ADR 0022) and, if it has one, the Seña to pay from there.
    * For a Serie (#304), `series` lists every Turno with its own Enlace, the dates shown in `timeZone`, in this one mail.
+   * With `streak`, the Cliente's Racha and what is left to the next Recompensa go in a line; without it the mail is the same as ever.
    */
   sendBookingConfirmation(
     email: string,
     link: string,
     depositAmount: number | null,
     series?: SeriesConfirmation,
+    streak?: StreakProgress,
   ): Promise<void>;
   /**
    * Aviso de cambio del Turno: the Turno was cancelled, by whoever did it or by a baja, with its Enlace del Turno and the Motivo de cancelación if it has one.
@@ -62,6 +66,20 @@ export interface Mailer {
     serviceName: string,
     startsAt: Date,
     timeZone: string,
+  ): Promise<void>;
+  /**
+   * Aviso de Premio: tells the Cliente what their Racha earned and until when it lasts (`expiresAt` shown in `timeZone`,
+   * null when it does not expire), with the Enlace del Turno of the Turno that gave it.
+   *
+   * @throws {Error} the SMTP transport rejected the mail
+   */
+  sendStreakPrizeNotice(
+    email: string,
+    clientName: string,
+    promised: PromisedPrize,
+    expiresAt: Date | null,
+    timeZone: string,
+    link: string,
   ): Promise<void>;
   /** Confirmación de anotación: the Cliente joined the Lista de espera of `serviceName` for `date` (`YYYY-MM-DD`), with the link to Salir. */
   sendWaitlistConfirmation(
