@@ -13,11 +13,12 @@ function parseOrFail<T>(parse: () => T, what: string): T {
     }
 }
 
-// The back's messages for the Sucursales of an Invitación (ADR 0007): the rest of their 400s and 422s are other errors.
+/** The back's 400 for an Invitación without Sucursales (ADR 0007); its other 400s are something else. */
 const BRANCHES_REQUIRED_MESSAGE = 'branchIds must have at least one Branch';
+/** The back's 422 for a Sucursal of another Negocio (ADR 0007); its other 422 is "ya es Empleado". */
 const BRANCH_NOT_OF_BUSINESS_MESSAGE = /^Branch \d+ is not a Branch of Business \d+$/;
 
-// Translates the back's message for that status into an entities error; undefined leaves it an ApiRequestError.
+/** Translates the back's message for that status into an entities error; undefined leaves it an ApiRequestError. */
 type ErrorByStatus = Record<number, (message: string) => Error | undefined>;
 
 export class EmployeesRepository implements IEmployeesRepository {

@@ -69,7 +69,8 @@ function InviteEmployeeDialog({ businessId, branches, onClose }: { businessId: n
         startTransition(async () => {
             const response = await addEmployeeAction({ businessId, ...result.data, ...(choosesBranches && { branchIds }) });
             if (!response.ok) {
-                if (response.field) setErrors({ [response.field]: response.message });
+                // Without the selector, a branchIds error has nowhere to show but the footer.
+                if (response.field === 'email' || (response.field === 'branchIds' && choosesBranches)) setErrors({ [response.field]: response.message });
                 else setSubmitError(response.message);
                 return;
             }

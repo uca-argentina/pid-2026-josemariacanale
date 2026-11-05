@@ -77,8 +77,7 @@ export class ServicesRepository implements IServicesRepository {
         const what = 'POST /branches/:id/services';
         const { status, json } = await this.request('POST', `/branches/${branchId}/services`, service);
         if (status === 409) throw takenError(json, what, status);
-        if (status === 422 && NOT_AT_BRANCH_MESSAGE.test(messageOf(json, what, status)))
-            throw new EmployeeNotAtBranchError(messageOf(json, what, status));
+        if (status === 422) throw notAtBranchError(json, what, status) ?? apiError(what, status, json);
         if (status >= 400) throw apiError(what, status, json);
         return parseOrFail(() => catalogServiceSchema.parse(json), what);
     }
@@ -159,9 +158,7 @@ export class ServicesRepository implements IServicesRepository {
     async assignEmployee({ serviceId, employeeId }: ServiceEmployeeRef): Promise<CatalogService> {
         const what = 'POST /services/:id/employees';
         const { status, json } = await this.request('POST', `/services/${serviceId}/employees`, { employeeId });
-        if (status === 422 && NOT_AT_BRANCH_MESSAGE.test(messageOf(json, what, status)))
-            throw new EmployeeNotAtBranchError(messageOf(json, what, status));
-        if (status === 422) throw new EmployeeNotAssignableError(messageOf(json, what, status));
+        if (status === 422) throw notAtBranchError(json, what, status) ?? new EmployeeNotAssignableError(messageOf(json, what, status));
         if (status === 404) throw new NotFoundError(messageOf(json, what, status));
         if (status >= 400) throw apiError(what, status, json);
         return parseOrFail(() => catalogServiceSchema.parse(json), what);
@@ -244,4 +241,10 @@ const repetitionError = (message: string) => {
 const takenError = (json: { message?: unknown } | undefined, what: string, status: number) => {
     const message = messageOf(json, what, status);
     return message === SLUG_TAKEN_MESSAGE ? new ServiceSlugTakenError(message) : new ServiceNameTakenError(message);
+};
+
+/** The 422 of an Empleado outside the Sucursal as EmployeeNotAtBranchError, or null for any other 422. */
+const notAtBranchError = (json: { message?: unknown } | undefined, what: string, status: number) => {
+    const message = messageOf(json, what, status);
+    return NOT_AT_BRANCH_MESSAGE.test(message) ? new EmployeeNotAtBranchError(message) : null;
 };
