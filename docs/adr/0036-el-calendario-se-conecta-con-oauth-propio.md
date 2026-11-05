@@ -19,3 +19,15 @@ Por eso el back hace su propio flujo OAuth contra Google, con un cliente OAuth p
 
 - Mientras la app de Google no esté verificada, funciona en modo de prueba: los testers se cargan a mano en la consola de Google y el refresh token vence a los 7 días, así que hay que reconectar.
 - Perder o rotar `CALENDAR_TOKEN_KEY` deja ilegibles los tokens guardados: los Usuarios tienen que reconectar.
+
+## Microsoft (#402)
+
+El Usuario puede conectar una cuenta de Microsoft (Outlook o Microsoft 365) en vez de una de Google, con el mismo flujo y el mismo `state`; sigue habiendo una sola conexión por Usuario. Los casos de uso hablan con un puerto sin proveedor y un enrutador manda cada llamada al cliente de Google o de Microsoft según la conexión.
+
+- **Microsoft Graph, app multi-tenant (`common`)**, con scopes `openid email offline_access Calendars.ReadWrite`. Acepta cuentas personales y de trabajo; si una empresa exige el consentimiento de su administrador, el callback vuelve con `?calendar=denied`.
+- **Credenciales propias**: `MICROSOFT_OAUTH_CLIENT_ID`, `MICROSOFT_OAUTH_CLIENT_SECRET` y `MICROSOFT_OAUTH_REDIRECT_URI`; `CALENDAR_RETURN_URL` y `CALENDAR_TOKEN_KEY` son los mismos. Sin ellas, los endpoints de Microsoft responden 503 y el de Google sigue andando.
+- **Microsoft no revoca refresh tokens**: al desconectar solo se borra el token guardado (el Usuario puede quitar el permiso desde su cuenta de Microsoft).
+- **El Cliente va en la descripción del evento y no como invitado**: Graph no deja crear un evento con invitados sin que Microsoft les mande la invitación. Ver `docs/agents/domain.md`.
+- **Reemplazar un proveedor**: conectar Microsoft con un Google `DISCONNECTED` (o al revés) primero intenta borrar los Eventos del Turno futuros con el token viejo; si no se puede, se dejan.
+- **Rotación del refresh token**: al renovar el acceso, Microsoft puede devolver un refresh token nuevo. Se guarda (`CalendarCredentials.onRefreshTokenRotated`, `CalendarConnectionsRepository.replaceRefreshToken`) para que la conexión no venza a los 90 días sin uso del token original. Si guardarlo falla, se loguea y se usa el acceso renovado igual.
+- **Otra cuenta del mismo proveedor** se trata como un reemplazo: ver ADR 0038.

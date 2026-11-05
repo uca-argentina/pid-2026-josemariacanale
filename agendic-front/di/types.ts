@@ -163,10 +163,16 @@ import type { IGetPersonalAnalyticsController } from '@/src/interface-adapters/c
 import type { ICalendarConnectionsRepository } from '@/src/application/repositories/calendar-connections.repository.interface';
 import type { IGetCalendarConnectionUseCase } from '@/src/application/use-cases/calendar/get-calendar-connection.use-case';
 import type { IStartGoogleCalendarConnectionUseCase } from '@/src/application/use-cases/calendar/start-google-calendar-connection.use-case';
+import type { IStartMicrosoftCalendarConnectionUseCase } from '@/src/application/use-cases/calendar/start-microsoft-calendar-connection.use-case';
 import type { IDisconnectCalendarUseCase } from '@/src/application/use-cases/calendar/disconnect-calendar.use-case';
 import type { IGetMyCalendarConnectionController } from '@/src/interface-adapters/controllers/calendar/get-my-calendar-connection.controller';
 import type { IStartGoogleCalendarConnectionController } from '@/src/interface-adapters/controllers/calendar/start-google-calendar-connection.controller';
+import type { IStartMicrosoftCalendarConnectionController } from '@/src/interface-adapters/controllers/calendar/start-microsoft-calendar-connection.controller';
 import type { IDisconnectCalendarController } from '@/src/interface-adapters/controllers/calendar/disconnect-calendar.controller';
+import type { IListAccountCalendarsUseCase } from '@/src/application/use-cases/calendar/list-account-calendars.use-case';
+import type { ISetCheckedCalendarsUseCase } from '@/src/application/use-cases/calendar/set-checked-calendars.use-case';
+import type { IListAccountCalendarsController } from '@/src/interface-adapters/controllers/calendar/list-account-calendars.controller';
+import type { ISetCheckedCalendarsController } from '@/src/interface-adapters/controllers/calendar/set-checked-calendars.controller';
 import type { IOutOfOfficeRepository } from '@/src/application/repositories/out-of-office.repository.interface';
 import type { IListOutOfOfficeUseCase } from '@/src/application/use-cases/out-of-office/list-out-of-office.use-case';
 import type { IListMyOutOfOfficeController } from '@/src/interface-adapters/controllers/out-of-office/list-my-out-of-office.controller';
@@ -296,7 +302,10 @@ export const DI_SYMBOLS = {
     IListOutOfOfficeUseCase: Symbol.for('IListOutOfOfficeUseCase'),
     IGetCalendarConnectionUseCase: Symbol.for('IGetCalendarConnectionUseCase'),
     IStartGoogleCalendarConnectionUseCase: Symbol.for('IStartGoogleCalendarConnectionUseCase'),
+    IStartMicrosoftCalendarConnectionUseCase: Symbol.for('IStartMicrosoftCalendarConnectionUseCase'),
     IDisconnectCalendarUseCase: Symbol.for('IDisconnectCalendarUseCase'),
+    IListAccountCalendarsUseCase: Symbol.for('IListAccountCalendarsUseCase'),
+    ISetCheckedCalendarsUseCase: Symbol.for('ISetCheckedCalendarsUseCase'),
     ICreateOutOfOfficeUseCase: Symbol.for('ICreateOutOfOfficeUseCase'),
     IUpdateOutOfOfficeUseCase: Symbol.for('IUpdateOutOfOfficeUseCase'),
     IDeleteOutOfOfficeUseCase: Symbol.for('IDeleteOutOfOfficeUseCase'),
@@ -397,7 +406,10 @@ export const DI_SYMBOLS = {
     IListMyOutOfOfficeController: Symbol.for('IListMyOutOfOfficeController'),
     IGetMyCalendarConnectionController: Symbol.for('IGetMyCalendarConnectionController'),
     IStartGoogleCalendarConnectionController: Symbol.for('IStartGoogleCalendarConnectionController'),
+    IStartMicrosoftCalendarConnectionController: Symbol.for('IStartMicrosoftCalendarConnectionController'),
     IDisconnectCalendarController: Symbol.for('IDisconnectCalendarController'),
+    IListAccountCalendarsController: Symbol.for('IListAccountCalendarsController'),
+    ISetCheckedCalendarsController: Symbol.for('ISetCheckedCalendarsController'),
     ICreateOutOfOfficeController: Symbol.for('ICreateOutOfOfficeController'),
     IUpdateOutOfOfficeController: Symbol.for('IUpdateOutOfOfficeController'),
     IDeleteOutOfOfficeController: Symbol.for('IDeleteOutOfOfficeController'),
@@ -506,7 +518,10 @@ export interface DI_RETURN_TYPES {
     IListOutOfOfficeUseCase: IListOutOfOfficeUseCase;
     IGetCalendarConnectionUseCase: IGetCalendarConnectionUseCase;
     IStartGoogleCalendarConnectionUseCase: IStartGoogleCalendarConnectionUseCase;
+    IStartMicrosoftCalendarConnectionUseCase: IStartMicrosoftCalendarConnectionUseCase;
     IDisconnectCalendarUseCase: IDisconnectCalendarUseCase;
+    IListAccountCalendarsUseCase: IListAccountCalendarsUseCase;
+    ISetCheckedCalendarsUseCase: ISetCheckedCalendarsUseCase;
     ICreateOutOfOfficeUseCase: ICreateOutOfOfficeUseCase;
     IUpdateOutOfOfficeUseCase: IUpdateOutOfOfficeUseCase;
     IDeleteOutOfOfficeUseCase: IDeleteOutOfOfficeUseCase;
@@ -607,7 +622,10 @@ export interface DI_RETURN_TYPES {
     IListMyOutOfOfficeController: IListMyOutOfOfficeController;
     IGetMyCalendarConnectionController: IGetMyCalendarConnectionController;
     IStartGoogleCalendarConnectionController: IStartGoogleCalendarConnectionController;
+    IStartMicrosoftCalendarConnectionController: IStartMicrosoftCalendarConnectionController;
     IDisconnectCalendarController: IDisconnectCalendarController;
+    IListAccountCalendarsController: IListAccountCalendarsController;
+    ISetCheckedCalendarsController: ISetCheckedCalendarsController;
     ICreateOutOfOfficeController: ICreateOutOfOfficeController;
     IUpdateOutOfOfficeController: IUpdateOutOfOfficeController;
     IDeleteOutOfOfficeController: IDeleteOutOfOfficeController;
