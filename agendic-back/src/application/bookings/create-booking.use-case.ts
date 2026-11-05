@@ -39,6 +39,7 @@ import { ListSlotsUseCase } from '../slots/list-slots.use-case';
 import { assertBookable } from './assert-booking-rules';
 import { pickCabin } from './pick-cabin';
 import { pickEmployee } from './pick-employee';
+import { ClientInvites } from './client-invites.service';
 
 @Injectable()
 export class CreateBookingUseCase {
@@ -54,6 +55,7 @@ export class CreateBookingUseCase {
     @Inject(CLOCK) private readonly clock: Clock,
     @Inject(MAILER) private readonly mailer: Mailer,
     private readonly listSlots: ListSlotsUseCase,
+    private readonly invites: ClientInvites,
   ) {}
 
   /**
@@ -144,11 +146,10 @@ export class CreateBookingUseCase {
     const attendingUser = employee ? null : await this.users.findById(attendant.userId);
     if (!employee && !attendingUser)
       throw new NotFoundError(`User ${attendant.userId} not found`);
-    await this.mailer.sendBookingConfirmation(
-      input.clientEmail,
-      booking.link!,
-      booking.depositAmount,
-    );
+    const invite = await this.invites.request([booking.link!]);
+    await (invite
+      ? this.mailer.sendBookingConfirmation(input.clientEmail, booking.link!, booking.depositAmount, undefined, invite)
+      : this.mailer.sendBookingConfirmation(input.clientEmail, booking.link!, booking.depositAmount));
     return {
       ...booking,
       employeeName: (employee ?? attendingUser!).name,

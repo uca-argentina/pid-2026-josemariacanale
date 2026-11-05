@@ -24,7 +24,10 @@ export class ProviderCalendarEventsRouter implements CalendarEvents {
    * @throws {ExternalServiceError} el proveedor respondió con error o no respondió
    */
   listCalendars(credentials: CalendarCredentials): Promise<CalendarSummary[]> {
-    return this.of(credentials).listCalendars(credentials.refreshToken);
+    return this.of(credentials).listCalendars(
+      credentials.refreshToken,
+      credentials.onRefreshTokenRotated,
+    );
   }
 
   /**
@@ -43,6 +46,7 @@ export class ProviderCalendarEventsRouter implements CalendarEvents {
       calendarIds,
       from,
       to,
+      credentials.onRefreshTokenRotated,
     );
   }
 
@@ -55,7 +59,11 @@ export class ProviderCalendarEventsRouter implements CalendarEvents {
     credentials: CalendarCredentials,
     content: BookingEventContent,
   ): Promise<string> {
-    return this.of(credentials).createEvent(credentials.refreshToken, content);
+    return this.of(credentials).createEvent(
+      credentials.refreshToken,
+      content,
+      credentials.onRefreshTokenRotated,
+    );
   }
 
   /**
@@ -72,6 +80,7 @@ export class ProviderCalendarEventsRouter implements CalendarEvents {
       credentials.refreshToken,
       eventId,
       content,
+      credentials.onRefreshTokenRotated,
     );
   }
 
@@ -84,7 +93,11 @@ export class ProviderCalendarEventsRouter implements CalendarEvents {
     credentials: CalendarCredentials,
     eventId: string,
   ): Promise<void> {
-    return this.of(credentials).deleteEvent(credentials.refreshToken, eventId);
+    return this.of(credentials).deleteEvent(
+      credentials.refreshToken,
+      eventId,
+      credentials.onRefreshTokenRotated,
+    );
   }
 
   private of({ provider }: CalendarCredentials): ProviderCalendarEvents {

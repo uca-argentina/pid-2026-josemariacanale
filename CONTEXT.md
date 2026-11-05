@@ -165,6 +165,14 @@ _Avoid_: ausencia (eso es el no-show), OOO, licencia, vacaciones
 Cuenta de Google o de Microsoft (Outlook o Microsoft 365) de un Usuario que Agendic usa como su calendario. Es del Usuario, no de su vínculo con un Negocio: una conexión cubre todos los Turnos que atiende. Es una sola por Usuario. El Usuario la conecta y la desconecta él mismo, con un OAuth propio de Agendic, no el de Clerk. Está `CONNECTED`, o `DISCONNECTED` cuando el proveedor dejó de aceptar su permiso: en ese caso se puede reconectar, con el mismo proveedor o con el otro. Dar de baja al Usuario la desconecta.
 _Avoid_: integración, sincronización, cuenta de Google (a secas), calendario externo
 
+**Ocupado externo**:
+Tramo en que el Calendario conectado de un Usuario lo muestra ocupado, por un evento que no es un Turno de Agendic. Se lee en vivo, de los calendarios de la cuenta que el Usuario tilda (por defecto, el principal), y resta Horarios reservables como un Turno tomado. No cuentan los eventos que se muestran como disponibles, los cancelados ni los Eventos del Turno. Si el proveedor no responde, el Usuario se atiende como si no tuviera Ocupados externos.
+_Avoid_: bloqueo, evento externo, conflicto
+
+**Evento del Turno**:
+Evento que Agendic escribe en el Calendario conectado del Usuario que atiende un Turno pendiente o aceptado, y que sigue al Turno: se crea al Reservar, se mueve al Reagendar y se borra al Cancelar o Rechazar. Lo escribe un job, así que tarda hasta un minuto. Si el Usuario lo borra a mano, no se recrea hasta que cambie algo del Turno. Al desconectar el calendario se borran los futuros.
+_Avoid_: cita, sincronización, evento (a secas)
+
 **Motivo**:
 Por qué un Usuario está Fuera de la oficina, elegido de una lista fija: No especificado, Vacaciones, Viaje, Baja por enfermedad, Día festivo.
 _Avoid_: razón, causa (eso es la Causa de cancelación)
@@ -288,7 +296,7 @@ Aviso automático que recibe el Cliente cuando su turno queda creado.
 _Avoid_: confirmación (a secas)
 
 **Aviso de cambio del Turno**:
-Aviso automático por mail que recibe el Cliente cuando su Turno se Cancela, se Reagenda, se Rechaza o queda cancelado por una baja, lo haga el Empleado o el propio Cliente. Cuando lo Cancela un cambio en el horario de quien lo atiende, lleva además la Causa de cancelación. Lleva el Enlace del Turno. Si el mail falla, el cambio igual queda hecho.
+Aviso automático por mail que recibe el Cliente cuando su Turno se Cancela, se Reagenda, se Rechaza, se Acepta (si estaba pendiente) o queda cancelado por una baja, lo haga el Empleado o el propio Cliente. Cuando lo Cancela un cambio en el horario de quien lo atiende, lleva además la Causa de cancelación. Lleva el Enlace del Turno. Si el mail falla, el cambio igual queda hecho.
 _Avoid_: notificación (a secas), recordatorio
 
 **Lista de espera**:

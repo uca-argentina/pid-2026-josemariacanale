@@ -13,6 +13,7 @@ import { MAILER, Mailer } from '../../domain/mailer';
 import { findOwnBookedBooking } from './find-own-booked-booking';
 import { notifySeries } from './notify-clients';
 import { serieOf } from './serie-of';
+import { ClientInvites } from './client-invites.service';
 
 /**
  * Cancela un Turno aceptado y los siguientes de su Serie (#305, ADR 0032), pendientes o aceptados, en un solo
@@ -26,6 +27,7 @@ export class CancelBookingSeriesUseCase {
     private readonly employees: EmployeesRepository,
     @Inject(MAILER) private readonly mailer: Mailer,
     @Inject(CLOCK) private readonly clock: Clock,
+    private readonly invites: ClientInvites,
   ) {}
 
   /**
@@ -56,6 +58,7 @@ export class CancelBookingSeriesUseCase {
       cancelled,
       async () => (await this.bookings.findByLink(cancelled[0].link!)).timeZone,
       (...notice) => this.mailer.sendBookingCancellation(...notice),
+      (links) => this.invites.cancel(links),
     );
     return cancelled;
   }
