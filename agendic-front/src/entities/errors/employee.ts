@@ -25,3 +25,17 @@ export class InvitationNotPendingError extends Error {
         super(message, options);
     }
 }
+
+/** 400 `branchIds must have at least one Branch`: el Negocio tiene varias Sucursales y no se eligió ninguna. */
+export class BranchesRequiredError extends Error {
+    constructor(message: string, options?: ErrorOptions) {
+        super(message, options);
+    }
+}
+
+/** 422 `Branch <branchId> is not a Branch of Business <businessId>`: una Sucursal elegida ya no es del Negocio. */
+export class BranchNotOfBusinessError extends Error {
+    constructor(message: string, options?: ErrorOptions) {
+        super(message, options);
+    }
+}

@@ -4,6 +4,7 @@ import { LastEmployeeError } from '@/src/entities/errors/employee';
 import {
     AvailabilityNotOfEmployeeError,
     EmployeeNotAssignableError,
+    EmployeeNotAtBranchError,
     ServiceNameTakenError,
     ServiceRepetitionError,
     ServiceSlugTakenError,
@@ -138,7 +139,12 @@ describe('ServicesRepository.createService', () => {
         await expect(repo().createService(input)).rejects.toBeInstanceOf(ServiceNameTakenError);
     });
 
-    it.each([400, 403, 404, 500])('translates a %i to ApiRequestError carrying the status', async (status) => {
+    it('translates the 422 of an Empleado who does not work at the Sucursal to EmployeeNotAtBranchError', async () => {
+        respond(422, { statusCode: 422, message: 'Employee 1 does not work at Branch 10' });
+        await expect(repo().createService(input)).rejects.toBeInstanceOf(EmployeeNotAtBranchError);
+    });
+
+    it.each([400, 403, 404, 422, 500])('translates a %i to ApiRequestError carrying the status', async (status) => {
         respond(status, { statusCode: status, message: 'no' });
         await expect(repo().createService(input)).rejects.toMatchObject({ status });
     });
@@ -321,6 +327,11 @@ describe('ServicesRepository.assignEmployee', () => {
         const error = await repo().assignEmployee({ serviceId: 100, employeeId: 1 }).catch((e) => e);
         expect(error).toBeInstanceOf(EmployeeNotAssignableError);
         expect(error.message).toBe('The Employee is retired');
+    });
+
+    it('translates the 422 of an Empleado who does not work at the Sucursal to EmployeeNotAtBranchError', async () => {
+        respond(422, { statusCode: 422, message: 'Employee 1 does not work at Branch 10' });
+        await expect(repo().assignEmployee({ serviceId: 100, employeeId: 1 })).rejects.toBeInstanceOf(EmployeeNotAtBranchError);
     });
 
     it('translates a 404 to NotFoundError', async () => {

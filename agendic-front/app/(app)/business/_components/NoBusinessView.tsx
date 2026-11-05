@@ -39,6 +39,11 @@ export function NoBusinessView({ owner, invitations }: { owner: Owner; invitatio
                                     <span className="truncate text-[12.5px] font-medium text-[#6b7280]">
                                         {bookingLink(invitation.business.slug)}
                                     </span>
+                                    {invitation.branches.length > 0 && (
+                                        <span className="text-[12.5px] font-medium text-[#374151]">
+                                            Vas a trabajar en {invitation.branches.map((b) => b.name).join(', ')}
+                                        </span>
+                                    )}
                                 </div>
                                 <div className="ml-auto flex gap-2">
                                     <PanelButton variant="secondary" disabled={isAnswering} onClick={() => answer(invitation, false)}>

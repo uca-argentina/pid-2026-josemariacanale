@@ -1,7 +1,7 @@
 import type { IEmployeesRepository } from '@/src/application/repositories/employees.repository.interface';
 import type { IAuthenticationService } from '@/src/application/services/authentication.service.interface';
 import { ApiRequestError } from '@/src/entities/errors/common';
-import { AlreadyEmployeeError, InvitationNotAcceptableError, InvitationNotPendingError, LastEmployeeError } from '@/src/entities/errors/employee';
+import { AlreadyEmployeeError, BranchesRequiredError, BranchNotOfBusinessError, InvitationNotAcceptableError, InvitationNotPendingError, LastEmployeeError } from '@/src/entities/errors/employee';
 import { employeeSchema, invitationSchema, myInvitationSchema, type CreateEmployee, type Employee, type Invitation, type MyInvitation } from '@/src/entities/models/employee';
 
 // Same as in BusinessesRepository: the boundaries lint keeps adapters from importing each other.
@@ -13,7 +13,13 @@ function parseOrFail<T>(parse: () => T, what: string): T {
     }
 }
 
-type ErrorByStatus = Record<number, new (message: string) => Error>;
+/** The back's 400 for an Invitación without Sucursales (ADR 0007); its other 400s are something else. */
+const BRANCHES_REQUIRED_MESSAGE = 'branchIds must have at least one Branch';
+/** The back's 422 for a Sucursal of another Negocio (ADR 0007); its other 422 is "ya es Empleado". */
+const BRANCH_NOT_OF_BUSINESS_MESSAGE = /^Branch \d+ is not a Branch of Business \d+$/;
+
+/** Translates the back's message for that status into an entities error; undefined leaves it an ApiRequestError. */
+type ErrorByStatus = Record<number, (message: string) => Error | undefined>;
 
 export class EmployeesRepository implements IEmployeesRepository {
     constructor(
@@ -26,10 +32,20 @@ export class EmployeesRepository implements IEmployeesRepository {
         return parseOrFail(() => employeeSchema.array().parse(body), 'GET /businesses/:id/employees');
     }
 
+    /**
+     * @throws {BranchesRequiredError} el Negocio tiene varias Sucursales y no vino ninguna (400)
+     * @throws {BranchNotOfBusinessError} una Sucursal no es del Negocio (422)
+     * @throws {AlreadyEmployeeError} el email ya es Empleado del Negocio (422)
+     * @throws {ApiRequestError} la API respondió con otro error o con un cuerpo inesperado
+     */
     async addEmployee({ businessId, ...invitation }: CreateEmployee): Promise<Invitation> {
         const body = await this.request('POST', `/businesses/${businessId}/employees`, {
             body: invitation,
-            errors: { 422: AlreadyEmployeeError },
+            errors: {
+                400: (message) => (message === BRANCHES_REQUIRED_MESSAGE ? new BranchesRequiredError(message) : undefined),
+                422: (message) =>
+                    BRANCH_NOT_OF_BUSINESS_MESSAGE.test(message) ? new BranchNotOfBusinessError(message) : new AlreadyEmployeeError(message),
+            },
         });
         return parseOrFail(() => invitationSchema.parse(body), 'POST /businesses/:id/employees');
     }
@@ -50,7 +66,7 @@ export class EmployeesRepository implements IEmployeesRepository {
      * @throws {ApiRequestError} la API respondió con otro error
      */
     async acceptInvitation(invitationId: number): Promise<void> {
-        await this.request('POST', `/invitations/${invitationId}/accept`, { errors: { 422: InvitationNotAcceptableError } });
+        await this.request('POST', `/invitations/${invitationId}/accept`, { errors: { 422: (message) => new InvitationNotAcceptableError(message) } });
     }
 
     /** @throws {ApiRequestError} la API respondió con error */
@@ -63,7 +79,7 @@ export class EmployeesRepository implements IEmployeesRepository {
      * @throws {ApiRequestError} la API respondió con otro error o con un cuerpo inesperado
      */
     async resendInvitation(invitationId: number): Promise<Invitation> {
-        const body = await this.request('POST', `/invitations/${invitationId}/resend`, { errors: { 422: InvitationNotPendingError } });
+        const body = await this.request('POST', `/invitations/${invitationId}/resend`, { errors: { 422: (message) => new InvitationNotPendingError(message) } });
         return parseOrFail(() => invitationSchema.parse(body), 'POST /invitations/:id/resend');
     }
 
@@ -72,11 +88,11 @@ export class EmployeesRepository implements IEmployeesRepository {
      * @throws {ApiRequestError} la API respondió con otro error
      */
     async cancelInvitation(invitationId: number): Promise<void> {
-        await this.request('DELETE', `/invitations/${invitationId}`, { errors: { 422: InvitationNotPendingError } });
+        await this.request('DELETE', `/invitations/${invitationId}`, { errors: { 422: (message) => new InvitationNotPendingError(message) } });
     }
 
     async retireEmployee(employeeId: number): Promise<void> {
-        await this.request('DELETE', `/employees/${employeeId}`, { errors: { 422: LastEmployeeError } });
+        await this.request('DELETE', `/employees/${employeeId}`, { errors: { 422: (message) => new LastEmployeeError(message) } });
     }
 
     // Any status not in `errors` that is not ok becomes an ApiRequestError carrying it.
@@ -98,8 +114,8 @@ export class EmployeesRepository implements IEmployeesRepository {
 
         const json = await response.json().catch(() => undefined);
         const message = String(json?.message ?? `${what} responded ${response.status}`);
-        const KnownError = errors[response.status];
-        if (KnownError) throw new KnownError(message);
+        const known = errors[response.status]?.(message);
+        if (known) throw known;
         if (!response.ok) throw new ApiRequestError(message, { status: response.status });
         return json;
     }

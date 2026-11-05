@@ -5,13 +5,17 @@ import type { MyInvitation } from '@/src/entities/models/employee';
 
 function presenter(invitations: MyInvitation[], instrumentationService: IInstrumentationService) {
     return instrumentationService.startSpan({ name: 'listMyInvitations Presenter', op: 'serialize' }, () =>
-        invitations.map((i) => ({ id: i.id, business: { name: i.business.name, slug: i.business.slug } })),
+        invitations.map((i) => ({
+            id: i.id,
+            business: { name: i.business.name, slug: i.business.slug },
+            branches: i.branches.map((b) => ({ id: b.id, name: b.name })),
+        })),
     );
 }
 
 export type IListMyInvitationsController = ReturnType<typeof listMyInvitationsController>;
 /**
- * Lista las Invitaciones pendientes del Usuario autenticado.
+ * Lista las Invitaciones pendientes del Usuario autenticado, con las Sucursales donde va a trabajar si acepta.
  *
  * @throws {UnauthenticatedError} no hay Sesión
  */

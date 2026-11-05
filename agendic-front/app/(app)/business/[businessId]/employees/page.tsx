@@ -38,6 +38,7 @@ export default async function EmployeesPage({ params }: { params: Promise<{ busi
                 viewerIsOwner={staff.viewerIsOwner}
                 employees={staff.employees}
                 invitations={staff.invitations}
+                branches={staff.branches}
             />
         </div>
     );

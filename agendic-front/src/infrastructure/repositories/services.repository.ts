@@ -6,6 +6,7 @@ import { LastEmployeeError } from '@/src/entities/errors/employee';
 import {
     AvailabilityNotOfEmployeeError,
     EmployeeNotAssignableError,
+    EmployeeNotAtBranchError,
     ServiceNameTakenError,
     ServiceSlugTakenError,
     ServiceRepetitionError,
@@ -42,6 +43,9 @@ function parseOrFail<T>(parse: () => T, what: string): T {
 /** The back answers both 409s of a Servicio with the same status; only this message tells the tramo one apart. */
 const SLUG_TAKEN_MESSAGE = 'Service booking link already in use';
 
+/** The 422 of an Empleado assigned outside the Sucursales where they work (ADR 0007); other 422s are something else. */
+const NOT_AT_BRANCH_MESSAGE = /^Employee \d+ does not work at Branch \d+$/;
+
 /** The panel's Servicios endpoints, with the Usuario's bearer token. */
 export class ServicesRepository implements IServicesRepository {
     constructor(
@@ -66,12 +70,14 @@ export class ServicesRepository implements IServicesRepository {
      *
      * @throws {ServiceSlugTakenError} the tramo is taken in that Sucursal (409)
      * @throws {ServiceNameTakenError} the name is taken in that Sucursal (409)
+     * @throws {EmployeeNotAtBranchError} an Empleado of `employeeIds` does not work at the Sucursal (422)
      * @throws {ApiRequestError} any other failure, or a body that is not a Servicio
      */
     async createService({ branchId, ...service }: CreateService): Promise<CatalogService> {
         const what = 'POST /branches/:id/services';
         const { status, json } = await this.request('POST', `/branches/${branchId}/services`, service);
         if (status === 409) throw takenError(json, what, status);
+        if (status === 422) throw notAtBranchError(json, what, status) ?? apiError(what, status, json);
         if (status >= 400) throw apiError(what, status, json);
         return parseOrFail(() => catalogServiceSchema.parse(json), what);
     }
@@ -144,6 +150,7 @@ export class ServicesRepository implements IServicesRepository {
     /**
      * Ofrecer un Servicio: `POST /services/:id/employees`, without an Availability so the default one is used.
      *
+     * @throws {EmployeeNotAtBranchError} the Empleado does not work at the Sucursal of the Servicio (422)
      * @throws {EmployeeNotAssignableError} the Empleado is not of the Negocio or was dado de baja (422)
      * @throws {NotFoundError} the Servicio or the Empleado do not exist (404)
      * @throws {ApiRequestError} any other failure, or a body that is not a Servicio
@@ -151,7 +158,7 @@ export class ServicesRepository implements IServicesRepository {
     async assignEmployee({ serviceId, employeeId }: ServiceEmployeeRef): Promise<CatalogService> {
         const what = 'POST /services/:id/employees';
         const { status, json } = await this.request('POST', `/services/${serviceId}/employees`, { employeeId });
-        if (status === 422) throw new EmployeeNotAssignableError(messageOf(json, what, status));
+        if (status === 422) throw notAtBranchError(json, what, status) ?? new EmployeeNotAssignableError(messageOf(json, what, status));
         if (status === 404) throw new NotFoundError(messageOf(json, what, status));
         if (status >= 400) throw apiError(what, status, json);
         return parseOrFail(() => catalogServiceSchema.parse(json), what);
@@ -234,4 +241,10 @@ const repetitionError = (message: string) => {
 const takenError = (json: { message?: unknown } | undefined, what: string, status: number) => {
     const message = messageOf(json, what, status);
     return message === SLUG_TAKEN_MESSAGE ? new ServiceSlugTakenError(message) : new ServiceNameTakenError(message);
+};
+
+/** The 422 of an Empleado outside the Sucursal as EmployeeNotAtBranchError, or null for any other 422. */
+const notAtBranchError = (json: { message?: unknown } | undefined, what: string, status: number) => {
+    const message = messageOf(json, what, status);
+    return NOT_AT_BRANCH_MESSAGE.test(message) ? new EmployeeNotAtBranchError(message) : null;
 };

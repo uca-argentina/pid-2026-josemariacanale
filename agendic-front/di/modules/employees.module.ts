@@ -48,6 +48,7 @@ export function createEmployeesModule() {
             DI_SYMBOLS.IListMyBusinessesUseCase,
             DI_SYMBOLS.IListEmployeesUseCase,
             DI_SYMBOLS.IListInvitationsUseCase,
+            DI_SYMBOLS.IListBusinessBranchesUseCase,
         ]);
 
     employeesModule

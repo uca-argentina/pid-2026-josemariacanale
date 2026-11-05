@@ -1,10 +1,11 @@
-import { cancelInvitationAction, resendInvitationAction } from '@/app/(app)/business/[businessId]/employees/actions';
+import { addEmployeeAction, cancelInvitationAction, resendInvitationAction } from '@/app/(app)/business/[businessId]/employees/actions';
 import { ApiRequestError, InputParseError } from '@/src/entities/errors/common';
-import { InvitationNotPendingError } from '@/src/entities/errors/employee';
+import { AlreadyEmployeeError, BranchesRequiredError, BranchNotOfBusinessError, InvitationNotPendingError } from '@/src/entities/errors/employee';
 
 const mockControllers: Record<string, jest.Mock> = {
     IResendInvitationController: jest.fn(),
     ICancelInvitationController: jest.fn(),
+    IAddEmployeeController: jest.fn(),
 };
 const mockReport = jest.fn();
 const mockRefresh = jest.fn();
@@ -62,5 +63,33 @@ describe.each([
         mockControllers[controller].mockRejectedValue(new InputParseError('bad'));
 
         await expect(action({})).resolves.toEqual({ ok: false, message: 'Revisá los datos e intentá de nuevo.' });
+    });
+});
+
+describe('addEmployeeAction', () => {
+    it('sends the Invitación with its Sucursales and refreshes the table', async () => {
+        await expect(addEmployeeAction({ businessId: 1, email: 'm@x.com', branchIds: [2] })).resolves.toEqual({ ok: true });
+        expect(mockControllers.IAddEmployeeController).toHaveBeenCalledWith({ businessId: 1, email: 'm@x.com', branchIds: [2] });
+        expect(mockRefresh).toHaveBeenCalled();
+    });
+
+    it.each([
+        ['400 without Sucursales', new BranchesRequiredError('branchIds must have at least one Branch'), 'Elegí al menos una Sucursal.'],
+        [
+            '422 of a Sucursal of another Negocio',
+            new BranchNotOfBusinessError('Branch 9 is not a Branch of Business 1'),
+            'Una de las Sucursales ya no es de tu Negocio. Recargá la página y elegí de nuevo.',
+        ],
+    ])('shows the %s under the Sucursales', async (_case, error, message) => {
+        mockControllers.IAddEmployeeController.mockRejectedValue(error);
+
+        await expect(addEmployeeAction({ businessId: 1, email: 'm@x.com' })).resolves.toEqual({ ok: false, field: 'branchIds', message });
+        expect(mockReport).not.toHaveBeenCalled();
+    });
+
+    it('shows an Empleado that already is one under the email', async () => {
+        mockControllers.IAddEmployeeController.mockRejectedValue(new AlreadyEmployeeError('Already an Employee'));
+
+        await expect(addEmployeeAction({ businessId: 1, email: 'm@x.com' })).resolves.toMatchObject({ ok: false, field: 'email' });
     });
 });

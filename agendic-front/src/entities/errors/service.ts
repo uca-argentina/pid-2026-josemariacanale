@@ -19,6 +19,13 @@ export class EmployeeNotAssignableError extends Error {
     }
 }
 
+/** 422 `Employee <employeeId> does not work at Branch <branchId>`: the Empleado does not work at the Sucursal of the Servicio. */
+export class EmployeeNotAtBranchError extends Error {
+    constructor(message: string, options?: ErrorOptions) {
+        super(message, options);
+    }
+}
+
 /** 422: the Availability chosen for a Servicio belongs to another Empleado. */
 export class AvailabilityNotOfEmployeeError extends Error {
     constructor(message: string, options?: ErrorOptions) {

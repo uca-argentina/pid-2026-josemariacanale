@@ -7,6 +7,7 @@ import {
     PanelAvatar,
     PanelBadge,
     PanelButton,
+    PanelCheckbox,
     PanelConfirm,
     PanelDialog,
     PanelDialogClose,
@@ -23,32 +24,53 @@ import { addEmployeeAction, cancelInvitationAction, resendInvitationAction, reti
 import { EmployeeMedals } from './EmployeeMedals';
 import { EmployeeSheet } from './EmployeeSheet';
 
-/** Una fila del Staff; `badges` viene de mayor a menor Nivel. */
-export type EmployeeRow = { id: number; name: string; email: string; imageUrl: string | null; badges: EmployeeBadge[]; role: BusinessRole };
+/** Una fila del Staff; `badges` viene de mayor a menor Nivel y `branchNames` son las Sucursales donde trabaja. */
+export type EmployeeRow = {
+    id: number;
+    name: string;
+    email: string;
+    imageUrl: string | null;
+    badges: EmployeeBadge[];
+    branchNames: string[];
+    role: BusinessRole;
+};
 /** Invitación pendiente del Negocio; `expiresAt` es ISO y se muestra en hora de Buenos Aires. */
-export type InvitationRow = { id: number; email: string; expiresAt: string };
+export type InvitationRow = { id: number; email: string; expiresAt: string; branchNames: string[] };
+/** Una Sucursal del Negocio, para elegir dónde va a trabajar la persona invitada. */
+export type BranchOption = { id: number; name: string };
 
 const EXPIRY_DATE_FORMAT = new Intl.DateTimeFormat('es-AR', { day: 'numeric', month: 'short', timeZone: 'America/Argentina/Buenos_Aires' });
 
-function InviteEmployeeDialog({ businessId, onClose }: { businessId: number; onClose: () => void }) {
+function BranchNames({ names }: { names: string[] }) {
+    if (names.length === 0) return null;
+    return <span className="truncate text-[12.5px] font-medium text-[#374151]">{names.join(' · ')}</span>;
+}
+
+/** Con una sola Sucursal no se pregunta: el back la usa sin `branchIds`. */
+function InviteEmployeeDialog({ businessId, branches, onClose }: { businessId: number; branches: BranchOption[]; onClose: () => void }) {
     const [form, setForm] = useState({ email: '' });
+    const [branchIds, setBranchIds] = useState<number[]>([]);
     const [errors, setErrors] = useState<FieldErrors>({});
     const [submitError, setSubmitError] = useState<string>();
     const [isPending, startTransition] = useTransition();
+    const choosesBranches = branches.length > 1;
+
+    const toggleBranch = (id: number, checked: boolean) =>
+        setBranchIds((ids) => (checked ? [...ids, id] : ids.filter((other) => other !== id)));
 
     const submit = (event: React.FormEvent) => {
         event.preventDefault();
         setSubmitError(undefined);
         const result = inviteEmployeeSchema.safeParse(form);
-        if (!result.success) {
-            setErrors(fieldErrorsOf(result.error));
-            return;
-        }
-        setErrors({});
+        const nextErrors: FieldErrors = result.success ? {} : fieldErrorsOf(result.error);
+        if (choosesBranches && branchIds.length === 0) nextErrors.branchIds = 'Elegí al menos una Sucursal.';
+        setErrors(nextErrors);
+        if (!result.success || Object.keys(nextErrors).length > 0) return;
         startTransition(async () => {
-            const response = await addEmployeeAction({ businessId, ...result.data });
+            const response = await addEmployeeAction({ businessId, ...result.data, ...(choosesBranches && { branchIds }) });
             if (!response.ok) {
-                if (response.field) setErrors({ [response.field]: response.message });
+                // Without the selector, a branchIds error has nowhere to show but the footer.
+                if (response.field === 'email' || (response.field === 'branchIds' && choosesBranches)) setErrors({ [response.field]: response.message });
                 else setSubmitError(response.message);
                 return;
             }
@@ -87,6 +109,34 @@ function InviteEmployeeDialog({ businessId, onClose }: { businessId: number; onC
                         aria-describedby={errors.email ? 'invite-email-error' : undefined}
                     />
                 </PanelField>
+                {choosesBranches && (
+                    <fieldset
+                        className="m-0 flex flex-col gap-2 border-0 p-0"
+                        aria-invalid={Boolean(errors.branchIds)}
+                        aria-describedby={errors.branchIds ? 'invite-branches-error' : undefined}
+                    >
+                        <legend className="mb-2 p-0 text-[13.5px] font-bold tracking-[-0.01em] text-[#0f1b2d]">Sucursales</legend>
+                        {branches.map((branch) => (
+                            <label
+                                key={branch.id}
+                                htmlFor={`invite-branch-${branch.id}`}
+                                className="flex cursor-pointer items-center gap-2.5 text-[13.5px] font-medium text-[#0f1b2d]"
+                            >
+                                <PanelCheckbox
+                                    id={`invite-branch-${branch.id}`}
+                                    checked={branchIds.includes(branch.id)}
+                                    onCheckedChange={(checked) => toggleBranch(branch.id, checked === true)}
+                                />
+                                {branch.name}
+                            </label>
+                        ))}
+                        {errors.branchIds && (
+                            <p id="invite-branches-error" role="alert" className="m-0 text-[13px] font-semibold text-[#b91c1c]">
+                                {errors.branchIds}
+                            </p>
+                        )}
+                    </fieldset>
+                )}
                 {submitError && (
                     <p role="alert" className="m-0 text-[13px] font-semibold text-[#b91c1c]">
                         {submitError}
@@ -106,12 +156,14 @@ export function EmployeesView({
     viewerIsOwner,
     employees,
     invitations,
+    branches,
 }: {
     businessId: number;
     /** Si quien mira es el Dueño del Negocio: solo él invita, da de baja y ve las estadísticas de un Empleado. */
     viewerIsOwner: boolean;
     employees: EmployeeRow[];
     invitations: InvitationRow[];
+    branches: BranchOption[];
 }) {
     const [query, setQuery] = useState('');
     const [inviting, setInviting] = useState(false);
@@ -192,6 +244,7 @@ export function EmployeesView({
                                         <div className="flex min-w-0 flex-col">
                                             <span className="truncate text-[14px] font-bold tracking-[-0.02em]">{employee.name}</span>
                                             <span className="truncate text-[12.5px] font-medium text-[#6b7280]">{employee.email}</span>
+                                            <BranchNames names={employee.branchNames} />
                                         </div>
                                         <EmployeeMedals badges={employee.badges} />
                                     </div>
@@ -239,6 +292,7 @@ export function EmployeesView({
                                             <span className="truncate text-[12.5px] font-medium text-[#6b7280]">
                                                 Vence el {EXPIRY_DATE_FORMAT.format(new Date(invitation.expiresAt))}
                                             </span>
+                                            <BranchNames names={invitation.branchNames} />
                                         </div>
                                     </div>
                                 </td>
@@ -267,7 +321,7 @@ export function EmployeesView({
                 <p className="m-0 mt-10 text-center text-[13px] font-medium text-[#9ca3af]">No hay empleados que coincidan con la búsqueda</p>
             )}
 
-            {inviting && <InviteEmployeeDialog businessId={businessId} onClose={() => setInviting(false)} />}
+            {inviting && <InviteEmployeeDialog businessId={businessId} branches={branches} onClose={() => setInviting(false)} />}
             {viewing && (
                 <EmployeeSheet businessId={businessId} employee={viewing} showStats={viewerIsOwner} onClose={() => setViewing(undefined)} />
             )}
