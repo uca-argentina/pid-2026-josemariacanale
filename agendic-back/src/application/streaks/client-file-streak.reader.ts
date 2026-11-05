@@ -58,12 +58,8 @@ export class ClientFileStreakReader {
     );
   }
 
-  /**
-   * Lee la Racha de la Ficha de `clientEmail` en `owner`, sin distinguir mayúsculas.
-   *
-   * @throws {DatabaseOperationError} falló la base
-   */
-  async read(
+  // Lee la Racha de la Ficha de `clientEmail` en `owner`, sin distinguir mayúsculas.
+  private async read(
     owner: StreakProgramOwner,
     clientEmail: string,
     now: Date,
