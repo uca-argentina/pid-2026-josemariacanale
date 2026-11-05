@@ -35,3 +35,18 @@ export interface ClientFileBooking extends StreakBooking {
   link: string | null;
   timeZone: string;
 }
+
+/** A Premio as the panel shows it; `redeemedAt` is null while it can still be Canjeado. */
+export interface StreakPrize extends PromisedPrize {
+  id: number;
+  grantedAt: Date;
+  expiresAt: Date | null;
+  redeemedAt: Date | null;
+}
+
+/** A Premio with the Ficha del Cliente it belongs to. */
+export interface OwnedStreakPrize extends StreakPrize {
+  owner: StreakProgramOwner;
+  /** Lowercase. */
+  clientEmail: string;
+}

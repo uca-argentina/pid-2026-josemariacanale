@@ -484,3 +484,25 @@ Configuración de las Rachas de un Negocio y de los Servicios personales de un U
 - **404** `Business not found` en las rutas de `/businesses/:id/...` si el Negocio no existe o está dado de baja (ADR 0024).
 - **404** `Streak reward <id> not found` si no existe, está borrada o es de otro. Un Usuario que no es Empleado del Negocio de la Recompensa recibe este 404, no el 403: un id no dice nada de los programas ajenos.
 - **422** `Service <id> cannot be a free Service for this program` si el Servicio no existe, no es del Negocio (o no es Servicio personal del Usuario) o está dado de baja. En el PATCH se valida solo si `serviceId` cambia: que el Servicio se haya dado de baja después no impide editar el resto de la Recompensa, aunque el body reenvíe el mismo. El front lo muestra debajo del selector de Servicio.
+
+## Racha en el detalle del Turno y Canjear (#431)
+
+Lo que el Empleado ve de la Racha del Cliente en el detalle del Turno, y cómo Canjea un Premio. Los dos exigen Sesión y que el Usuario sea quien atiende el Turno (como `/bookings/:id/history`).
+
+| Método | Ruta | Auth | Qué hace |
+|---|---|---|---|
+| GET | `/bookings/:id/streak` | sí | La Racha de la Ficha del Cliente del Turno, lo que le falta para la próxima Recompensa y sus Premios disponibles |
+| PATCH | `/bookings/:id/redeem-prize` | sí | Canjea un Premio de esa Ficha en este Turno |
+
+- La Ficha es la del Turno: el Negocio del Servicio (o el Usuario, en un Servicio personal) y el email del Cliente sin distinguir mayúsculas.
+- Respuesta del GET: `{ streak: { count, burnsAt: string | null } | null, nextReward: { reward: Reward, remaining: number } | null, prizes: Prize[] }`. `Reward` es el de las Rachas (#428).
+  - `streak` es `null` si el programa no está activo, no tiene Recompensas o no tiene Tiempo de quemada. Con el programa activo y sin Racha en curso es `{ count: 0, burnsAt: null }`: el front distingue "Rachas apagadas" de "todavía no empezó".
+  - `nextReward` es la Recompensa con la menor cantidad que la Racha todavía no alcanzó; en una repetible, su próximo múltiplo. `remaining` son los Turnos que faltan. Es `null` si todas las de "una vez" ya se alcanzaron, y siempre que `streak` es `null`.
+  - `prizes` son los Premios disponibles (sin Canjear y sin vencer), del más viejo al más nuevo, también con el programa apagado: ya estaban prometidos.
+- `Prize` = `{ id, type, value: number | null, description: string | null, serviceName: string | null, grantedAt, expiresAt: string | null }`. `serviceName` es la copia del nombre del Servicio al ganarlo.
+- Body del PATCH: `{ prizeId }`, un entero; si no, 400. Responde 200 con el `Prize` y `redeemedAt`. Se puede Canjear en un Turno de cualquier Servicio de la misma Ficha.
+- **404** `Booking not found` si el Turno no existe; **404** `Prize <id> not found`.
+- **403** `Only the assigned Employee can act on this Turno`.
+- **422** `Booking <id> is not accepted`; **422** `Prize <id> belongs to another Ficha del Cliente`; **422** `Prize <id> expired`, que vale desde el momento exacto de `expiresAt`.
+- **409** `Prize <id> already redeemed`. La escritura lleva la guarda `redeemedAt IS NULL`: de dos Canjes a la vez gana uno y el otro recibe este 409.
+- El orden en que se revisa es el de arriba, salvo que un Premio ya Canjeado da 409 aunque además haya vencido.

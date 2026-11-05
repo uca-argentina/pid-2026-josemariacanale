@@ -1,3 +1,5 @@
+import { BookingStreak } from '../../application/streaks/get-booking-streak.use-case';
+import { StreakPrize } from '../../domain/streaks/streak-prize';
 import {
   StreakProgram,
   StreakReward,
@@ -20,4 +22,25 @@ export const presentStreakProgram = (program: StreakProgram) => ({
   active: program.active,
   burnAfterDays: program.burnAfterDays,
   rewards: program.rewards.map(presentStreakReward),
+});
+
+/** A Premio as the Empleado sees it; `redeemedAt` is null until it is Canjeado. */
+export const presentStreakPrize = (prize: StreakPrize) => ({
+  id: prize.id,
+  type: prize.type,
+  value: prize.value,
+  description: prize.description,
+  serviceName: prize.serviceName,
+  grantedAt: prize.grantedAt,
+  expiresAt: prize.expiresAt,
+});
+
+/** The Racha block of the detail of a Turno. */
+export const presentBookingStreak = ({ streak, nextReward, prizes }: BookingStreak) => ({
+  streak,
+  nextReward: nextReward && {
+    reward: presentStreakReward(nextReward.reward),
+    remaining: nextReward.remaining,
+  },
+  prizes: prizes.map(presentStreakPrize),
 });
