@@ -6,8 +6,9 @@ const TZ = 'America/Argentina/Buenos_Aires';
 
 describe('getPublicBranchController', () => {
     it('presents only what the page of the Sucursal shows', async () => {
-        const centro = { id: 10, businessId: 1, name: 'Centro', address: 'Av. 1', timeZone: TZ, slug: 'centro', description: null };
-        const palermo = { id: 11, businessId: 1, name: 'Palermo', address: 'Thames 1', timeZone: TZ, slug: 'palermo', description: null };
+        const punto = { lat: -34.6037, lng: -58.3816 };
+        const centro = { id: 10, businessId: 1, name: 'Centro', address: 'Av. 1', timeZone: TZ, slug: 'centro', description: null, location: punto };
+        const palermo = { id: 11, businessId: 1, name: 'Palermo', address: 'Thames 1', timeZone: TZ, slug: 'palermo', description: null, location: null };
         const ana = { id: 1, name: 'Ana' };
         const useCase = jest.fn().mockResolvedValue({
             business: { id: 1, name: 'Vitalia', description: 'Desc', slug: 'vitalia', logoUrl: null, ownerId: 7 },
@@ -27,7 +28,7 @@ describe('getPublicBranchController', () => {
             getPublicBranchController(instrumentation, useCase)({ businessSlug: 'vitalia', branchSlug: 'centro' }),
         ).resolves.toEqual({
             business: { name: 'Vitalia', description: 'Desc', slug: 'vitalia', logoUrl: null },
-            branch: { id: 10, name: 'Centro', address: 'Av. 1', timeZone: TZ, slug: 'centro', description: 'Desc' },
+            branch: { id: 10, name: 'Centro', address: 'Av. 1', timeZone: TZ, slug: 'centro', description: 'Desc', location: punto },
             otherBranches: [{ id: 11, name: 'Palermo', address: 'Thames 1', slug: 'palermo' }],
             services: [
                 { id: 100, name: 'Masaje', description: null, category: 'SPA', durationMinutes: 60, price: 20000, depositPercent: 20, employees: [ana] },

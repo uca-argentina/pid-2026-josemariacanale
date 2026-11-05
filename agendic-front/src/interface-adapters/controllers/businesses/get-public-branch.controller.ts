@@ -33,6 +33,7 @@ function presenter(
             timeZone: branch.timeZone,
             slug: branch.slug,
             description: branch.description ?? business.description,
+            location: branch.location,
         },
         otherBranches: branches
             .filter((b) => b.id !== branch.id)

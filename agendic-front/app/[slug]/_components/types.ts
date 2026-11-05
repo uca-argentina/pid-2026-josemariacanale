@@ -15,3 +15,6 @@ export type OtherBranch = PublicBranchPage['otherBranches'][number];
 export type Employee = PublicBranchPage['employees'][number];
 /** Imágenes de Sucursal, ya en el orden de la galería. */
 export type BranchImage = PublicBranchPage['images'][number];
+
+/** Una Sucursal en la página del Negocio, donde el Cliente elige: su tramo y su punto, si tiene. */
+export type BusinessBranch = Awaited<ReturnType<DI_RETURN_TYPES['IGetPublicBusinessController']>>['branches'][number];
