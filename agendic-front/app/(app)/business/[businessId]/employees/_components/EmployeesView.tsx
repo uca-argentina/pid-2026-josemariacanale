@@ -17,11 +17,14 @@ import {
     PanelMenu,
 } from '@/app/(app)/_components/panel-ui';
 import { inviteEmployeeSchema, fieldErrorsOf, type FieldErrors } from '@/app/_components/business-schemas';
+import type { EmployeeBadge } from '@/src/entities/models/employee';
 import { RoleBadge, type BusinessRole } from '../../../_components/business-ui';
 import { addEmployeeAction, cancelInvitationAction, resendInvitationAction, retireEmployeeAction } from '../actions';
+import { EmployeeMedals } from './EmployeeMedals';
 import { EmployeeSheet } from './EmployeeSheet';
 
-export type EmployeeRow = { id: number; name: string; email: string; imageUrl: string | null; role: BusinessRole };
+/** Una fila del Staff; `badges` viene de mayor a menor Nivel. */
+export type EmployeeRow = { id: number; name: string; email: string; imageUrl: string | null; badges: EmployeeBadge[]; role: BusinessRole };
 /** Invitación pendiente del Negocio; `expiresAt` es ISO y se muestra en hora de Buenos Aires. */
 export type InvitationRow = { id: number; email: string; expiresAt: string };
 
@@ -190,6 +193,7 @@ export function EmployeesView({
                                             <span className="truncate text-[14px] font-bold tracking-[-0.02em]">{employee.name}</span>
                                             <span className="truncate text-[12.5px] font-medium text-[#6b7280]">{employee.email}</span>
                                         </div>
+                                        <EmployeeMedals badges={employee.badges} />
                                     </div>
                                 </td>
                                 <td className="px-6 py-4">

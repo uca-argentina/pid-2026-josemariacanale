@@ -20,7 +20,7 @@ import { RespondToInvitationUseCase } from '../../application/invitations/respon
 import { RetireEmployeeUseCase } from '../../application/employees/retire-employee.use-case';
 import { ClerkGuard, CurrentUser } from '../users/clerk.guard';
 import { presentInvitation } from '../invitations/invitation.presenter';
-import { presentEmployee } from './employee.presenter';
+import { presentEmployee, presentStaffMember } from './employee.presenter';
 import { CreateEmployeeDto } from './employees.dto';
 
 @Controller()
@@ -138,6 +138,6 @@ export class EmployeesController {
   ) {
     return (
       await this.listEmployeesByBusinessUseCase.execute(userId, businessId)
-    ).map(presentEmployee);
+    ).map(presentStaffMember);
   }
 }

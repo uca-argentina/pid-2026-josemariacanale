@@ -6,11 +6,12 @@ import { ListMyInvitationsUseCase } from '../../application/invitations/list-my-
 import { ManageInvitationUseCase } from '../../application/invitations/manage-invitation.use-case';
 import { RespondToInvitationUseCase } from '../../application/invitations/respond-to-invitation.use-case';
 import { RetireEmployeeUseCase } from '../../application/employees/retire-employee.use-case';
+import { BadgesModule } from '../badges/badges.module';
 import { UsersModule } from '../users/users.module';
 import { EmployeesController } from './employees.controller';
 
 @Module({
-  imports: [UsersModule],
+  imports: [UsersModule, BadgesModule],
   controllers: [EmployeesController],
   providers: [
     InviteEmployeeUseCase,
