@@ -303,7 +303,7 @@ export async function createTestApp() {
     findByOwnerIncludeRewards: jest.fn(),
     save: jest.fn(),
     createReward: jest.fn(),
-    findRewardById: jest.fn(),
+    findRewardByIdIncludeProgram: jest.fn(),
     updateReward: jest.fn(),
     deleteReward: jest.fn(),
   };

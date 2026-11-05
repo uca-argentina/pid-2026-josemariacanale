@@ -18,6 +18,7 @@ import { IfPresent } from '../users/users.dto';
 /** The most `StreakReward.value`, a Decimal(10, 2), can hold. */
 const MAX_REWARD_VALUE = 99_999_999.99;
 
+/** Body of PUT `streak-program`. */
 export class SaveStreakProgramDto {
   @IsBoolean()
   active!: boolean;
@@ -50,6 +51,7 @@ class StreakRewardOptionalFieldsDto {
   validForDays?: number | null;
 }
 
+/** Body of POST `streak-rewards`. */
 export class CreateStreakRewardDto extends StreakRewardOptionalFieldsDto {
   @IsInt()
   @Min(1)
@@ -62,6 +64,7 @@ export class CreateStreakRewardDto extends StreakRewardOptionalFieldsDto {
   type!: StreakRewardType;
 }
 
+/** Body of PATCH `streak-rewards/:id`: the same fields, partial. */
 export class UpdateStreakRewardDto extends StreakRewardOptionalFieldsDto {
   @IfPresent()
   @IsInt()

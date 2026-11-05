@@ -26,8 +26,8 @@ export interface StreakProgramsRepository {
     owner: StreakProgramOwner,
     terms: StreakRewardTerms,
   ): Promise<StreakReward>;
-  /** Also finds the borradas. */
-  findRewardById(id: number): Promise<OwnedStreakReward | null>;
+  /** With the owner of its program; also finds the borradas. */
+  findRewardByIdIncludeProgram(id: number): Promise<OwnedStreakReward | null>;
   /** @throws {NotFoundError} `Streak reward <id> not found`: it no longer exists or was borrada */
   updateReward(id: number, terms: StreakRewardTerms): Promise<StreakReward>;
   /** Sets `deletedAt`, keeping the row. A Recompensa already borrada stays as it was. */

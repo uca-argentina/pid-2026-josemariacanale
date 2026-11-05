@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { DatabaseOperationError, NotFoundError } from '../../domain/errors';
 import {
   OwnedStreakReward,
+  StreakProgram,
   StreakProgramOwner,
   StreakProgramSettings,
   StreakReward,
@@ -47,26 +48,31 @@ export class PrismaStreakProgramsRepository implements StreakProgramsRepository 
     const row = await this.prisma.streakProgram
       .findUnique({ where: ownerKey(owner), select: PROGRAM_FIELDS })
       .catch(translateError);
-    return row && { ...row, rewards: row.rewards.map(toReward) };
+    return row && toProgram(row);
   }
 
   /** @throws {DatabaseOperationError} the write failed */
   async save(owner: StreakProgramOwner, settings: StreakProgramSettings) {
-    const row = await this.prisma.streakProgram
+    // The read goes apart: with nothing nested, Prisma's upsert is a native ON CONFLICT, so two first
+    // saves at once can't both try to create the program.
+    const { id } = await this.prisma.streakProgram
       .upsert({
         where: ownerKey(owner),
         create: { ...ownerKey(owner), ...settings },
         update: settings,
-        select: PROGRAM_FIELDS,
+        select: { id: true },
       })
       .catch(translateError);
-    return { ...row, rewards: row.rewards.map(toReward) };
+    return toProgram(
+      await this.prisma.streakProgram
+        .findUniqueOrThrow({ where: { id }, select: PROGRAM_FIELDS })
+        .catch(translateError),
+    );
   }
 
   /** @throws {DatabaseOperationError} the write failed */
   async createReward(owner: StreakProgramOwner, terms: StreakRewardTerms) {
-    // The upsert goes first and alone: with nothing nested, Prisma sends a native ON CONFLICT, so two
-    // first Recompensas at once can't both try to create the program.
+    // Same native ON CONFLICT as in save, for two first Recompensas at once.
     const { id: programId } = await this.prisma.streakProgram
       .upsert({
         where: ownerKey(owner),
@@ -83,7 +89,9 @@ export class PrismaStreakProgramsRepository implements StreakProgramsRepository 
   }
 
   /** @throws {DatabaseOperationError} the query failed */
-  async findRewardById(id: number): Promise<OwnedStreakReward | null> {
+  async findRewardByIdIncludeProgram(
+    id: number,
+  ): Promise<OwnedStreakReward | null> {
     const row = await this.prisma.streakReward
       .findUnique({
         where: { id },
@@ -146,6 +154,14 @@ const toOwner = ({
   businessId !== null
     ? { kind: 'business', businessId }
     : { kind: 'personal', userId: userId! };
+
+const toProgram = (
+  row: Prisma.StreakProgramGetPayload<{ select: typeof PROGRAM_FIELDS }>,
+): StreakProgram => ({
+  active: row.active,
+  burnAfterDays: row.burnAfterDays,
+  rewards: row.rewards.map(toReward),
+});
 
 const toReward = (row: RewardRow): StreakReward => ({
   id: row.id,

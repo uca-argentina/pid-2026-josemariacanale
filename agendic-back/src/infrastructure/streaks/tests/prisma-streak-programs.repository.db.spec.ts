@@ -171,7 +171,9 @@ describe('PrismaStreakProgramsRepository (real database)', () => {
 
     await programs.deleteReward(reward.id);
 
-    expect(await programs.findRewardById(reward.id)).toMatchObject({
+    expect(
+      await programs.findRewardByIdIncludeProgram(reward.id),
+    ).toMatchObject({
       id: reward.id,
       owner: personal,
       deletedAt: expect.any(Date),
@@ -181,13 +183,13 @@ describe('PrismaStreakProgramsRepository (real database)', () => {
   it('borrar twice keeps the first date', async () => {
     const reward = await programs.createReward(personal, GIFT);
     await programs.deleteReward(reward.id);
-    const first = await programs.findRewardById(reward.id);
+    const first = await programs.findRewardByIdIncludeProgram(reward.id);
 
     await programs.deleteReward(reward.id);
 
-    expect((await programs.findRewardById(reward.id))?.deletedAt).toEqual(
-      first?.deletedAt,
-    );
+    expect(
+      (await programs.findRewardByIdIncludeProgram(reward.id))?.deletedAt,
+    ).toEqual(first?.deletedAt);
   });
 
   it('updateReward changes the row in place, and refuses a borrada', async () => {
@@ -226,7 +228,9 @@ describe('PrismaStreakProgramsRepository (real database)', () => {
       data: { deletedAt: new Date() },
     });
 
-    expect((await programs.findRewardById(reward.id))?.service).toEqual({
+    expect(
+      (await programs.findRewardByIdIncludeProgram(reward.id))?.service,
+    ).toEqual({
       id: serviceId,
       name: tag,
     });

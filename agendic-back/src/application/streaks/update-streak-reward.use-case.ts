@@ -42,7 +42,7 @@ export class UpdateStreakRewardUseCase {
   ) {}
 
   /**
-   * The free Servicio is only checked when the patch names it: one dado de baja
+   * The free Servicio is only checked when the patch changes it: one dado de baja
    * after the fact doesn't block editing the rest of the Recompensa.
    *
    * @throws {NotFoundError} `Streak reward <id> not found`: it doesn't exist, was borrada or is somebody else's
@@ -74,7 +74,7 @@ export class UpdateStreakRewardUseCase {
       validForDays: reward.validForDays,
       ...patch,
     });
-    if (terms.serviceId !== null && patch.serviceId !== undefined)
+    if (terms.serviceId !== null && terms.serviceId !== reward.service?.id)
       await assertFreeService(
         { services: this.services, branches: this.branches },
         reward.owner,

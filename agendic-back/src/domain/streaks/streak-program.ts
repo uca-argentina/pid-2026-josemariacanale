@@ -1,7 +1,9 @@
 import { BadRequestError } from '../errors';
 
-/** The shortest and longest Tiempo de quemada, in days. */
+/** The shortest Tiempo de quemada, in days. */
 export const MIN_BURN_AFTER_DAYS = 1;
+
+/** The longest Tiempo de quemada, in days. */
 export const MAX_BURN_AFTER_DAYS = 365;
 
 /** The longest a regalo's text can be. */

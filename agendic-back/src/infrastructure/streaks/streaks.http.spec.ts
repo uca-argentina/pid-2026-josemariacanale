@@ -105,8 +105,8 @@ describe('Rachas: programa y Recompensas', () => {
         service: serviceId ? { id: serviceId, name: 'Haircut' } : null,
       }),
     );
-    t.streakPrograms.findRewardById.mockImplementation(async (id) =>
-      id === TEN_PERCENT.id ? TEN_PERCENT : null,
+    t.streakPrograms.findRewardByIdIncludeProgram.mockImplementation(
+      async (id) => (id === TEN_PERCENT.id ? TEN_PERCENT : null),
     );
     t.streakPrograms.updateReward.mockImplementation(
       async (id, { serviceId, ...terms }) => ({
@@ -346,7 +346,7 @@ describe('Rachas: programa y Recompensas', () => {
 
     it('PATCH and DELETE work on their own Recompensa, and answer 404 to anybody else', async () => {
       const personal: OwnedStreakReward = { ...TEN_PERCENT, owner };
-      t.streakPrograms.findRewardById.mockResolvedValue(personal);
+      t.streakPrograms.findRewardByIdIncludeProgram.mockResolvedValue(personal);
 
       await t.http
         .patch(`/streak-rewards/${personal.id}`)
@@ -527,7 +527,7 @@ describe('Rachas: programa y Recompensas', () => {
     });
 
     it('takes validForDays away with null', async () => {
-      t.streakPrograms.findRewardById.mockResolvedValue({
+      t.streakPrograms.findRewardByIdIncludeProgram.mockResolvedValue({
         ...TEN_PERCENT,
         validForDays: 30,
       });
@@ -573,7 +573,7 @@ describe('Rachas: programa y Recompensas', () => {
     });
 
     it('lets the Dueño edit a free-Servicio Recompensa whose Servicio was dado de baja', async () => {
-      t.streakPrograms.findRewardById.mockResolvedValue({
+      t.streakPrograms.findRewardByIdIncludeProgram.mockResolvedValue({
         ...TEN_PERCENT,
         type: StreakRewardType.FREE_SERVICE,
         value: null,
@@ -588,11 +588,27 @@ describe('Rachas: programa y Recompensas', () => {
       await patch({ requiredCount: 8 }).expect(200);
     });
 
+    it('lets the Dueño resend the free Servicio it already has, even dado de baja', async () => {
+      t.streakPrograms.findRewardByIdIncludeProgram.mockResolvedValue({
+        ...TEN_PERCENT,
+        type: StreakRewardType.FREE_SERVICE,
+        value: null,
+        service: { id: 4, name: 'Retirado' },
+      });
+      t.services.findById.mockResolvedValue({
+        ...ANAS_SERVICE,
+        id: 4,
+        deletedAt: new Date('2026-01-01'),
+      });
+
+      await patch({ requiredCount: 8, serviceId: 4 }).expect(200);
+    });
+
     it.each([
       ['does not exist', null],
       ['was borrada', { ...TEN_PERCENT, deletedAt: new Date('2026-01-01') }],
     ])('answers 404 when the Recompensa %s', async (_, found) => {
-      t.streakPrograms.findRewardById.mockResolvedValue(found);
+      t.streakPrograms.findRewardByIdIncludeProgram.mockResolvedValue(found);
 
       const res = await patch({ requiredCount: 8 }).expect(404);
 
@@ -627,7 +643,7 @@ describe('Rachas: programa y Recompensas', () => {
     });
 
     it('answers 404 when it was already borrada', async () => {
-      t.streakPrograms.findRewardById.mockResolvedValue({
+      t.streakPrograms.findRewardByIdIncludeProgram.mockResolvedValue({
         ...TEN_PERCENT,
         deletedAt: new Date('2026-01-01'),
       });

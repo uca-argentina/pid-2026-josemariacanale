@@ -87,7 +87,10 @@ export class StreaksController {
     );
   }
 
-  /** @throws {ForbiddenError} the Usuario isn't the Dueño */
+  /**
+   * @throws {NotFoundError} the Negocio doesn't exist or was dado de baja
+   * @throws {ForbiddenError} the Usuario isn't the Dueño
+   */
   @Get('businesses/:id/streak-program')
   getOfBusiness(
     @CurrentUser() userId: number,
@@ -96,7 +99,10 @@ export class StreaksController {
     return this.getProgram(userId, ofBusiness(businessId));
   }
 
-  /** @throws {ForbiddenError} the Usuario isn't the Dueño */
+  /**
+   * @throws {NotFoundError} the Negocio doesn't exist or was dado de baja
+   * @throws {ForbiddenError} the Usuario isn't the Dueño
+   */
   @Put('businesses/:id/streak-program')
   saveOfBusiness(
     @CurrentUser() userId: number,
@@ -107,7 +113,9 @@ export class StreaksController {
   }
 
   /**
+   * @throws {NotFoundError} the Negocio doesn't exist or was dado de baja
    * @throws {ForbiddenError} the Usuario isn't the Dueño
+   * @throws {BadRequestError} the field of the type is missing or out of range
    * @throws {BusinessRuleError} the free Servicio isn't of the Negocio or was dado de baja
    */
   @Post('businesses/:id/streak-rewards')
@@ -119,11 +127,13 @@ export class StreaksController {
     return this.createReward(userId, ofBusiness(businessId), dto);
   }
 
+  /** Reads the program of the Servicios personales of the Usuario of the Sesión. */
   @Get('users/me/streak-program')
   getPersonal(@CurrentUser() userId: number) {
     return this.getProgram(userId, personalOf(userId));
   }
 
+  /** Saves the program of the Servicios personales of the Usuario of the Sesión. */
   @Put('users/me/streak-program')
   savePersonal(
     @CurrentUser() userId: number,
@@ -132,7 +142,10 @@ export class StreaksController {
     return this.saveProgram(userId, personalOf(userId), dto);
   }
 
-  /** @throws {BusinessRuleError} the free Servicio isn't a Servicio personal of the Usuario or was dado de baja */
+  /**
+   * @throws {BadRequestError} the field of the type is missing or out of range
+   * @throws {BusinessRuleError} the free Servicio isn't a Servicio personal of the Usuario or was dado de baja
+   */
   @Post('users/me/streak-rewards')
   createPersonal(
     @CurrentUser() userId: number,
@@ -144,6 +157,7 @@ export class StreaksController {
   /**
    * @throws {NotFoundError} the Recompensa doesn't exist, was borrada or is somebody else's
    * @throws {ForbiddenError} the Usuario is an Empleado of its Negocio, not the Dueño
+   * @throws {BadRequestError} the field of the resulting type is missing or out of range
    * @throws {BusinessRuleError} the free Servicio isn't of the program's owner or was dado de baja
    */
   @Patch('streak-rewards/:id')

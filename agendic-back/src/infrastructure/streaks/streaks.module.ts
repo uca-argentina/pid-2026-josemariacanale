@@ -7,6 +7,7 @@ import { UpdateStreakRewardUseCase } from '../../application/streaks/update-stre
 import { UsersModule } from '../users/users.module';
 import { StreaksController } from './streaks.controller';
 
+/** Wires the configuration of the Rachas and their Recompensas. */
 @Module({
   imports: [UsersModule],
   controllers: [StreaksController],
