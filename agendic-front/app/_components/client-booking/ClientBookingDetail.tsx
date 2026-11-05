@@ -3,8 +3,8 @@
 import { useState, useTransition } from 'react';
 import { formatPrice as formatPriceWithCents } from '@/app/_components/booking/format';
 import Link from 'next/link';
-import { MapPin, Navigation } from 'lucide-react';
-import { directionsUrl } from '@/app/_components/maps/directions';
+import { MapPin } from 'lucide-react';
+import { DirectionsLink } from '@/app/_components/maps/DirectionsLink';
 import { Button } from '@/app/_components/ui/button';
 import { bookingPath } from '@/app/routes';
 import { Textarea } from '@/app/_components/ui/textarea';
@@ -116,16 +116,7 @@ export function ClientBookingDetail({
                         <span className="sr-only">Dirección: </span>
                         <span className="min-w-0 break-words">{booking.branch.address}</span>
                     </p>
-                    <a
-                        href={directionsUrl(booking.branch)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="mt-1 inline-flex min-h-11 items-center gap-1.5 font-bold underline-offset-2 hover:underline"
-                    >
-                        <Navigation aria-hidden className="size-4" />
-                        Cómo llegar
-                        <span className="sr-only"> (se abre en otra pestaña)</span>
-                    </a>
+                    <DirectionsLink ubicacion={booking.branch} className="mt-1" />
                 </div>
             )}
 

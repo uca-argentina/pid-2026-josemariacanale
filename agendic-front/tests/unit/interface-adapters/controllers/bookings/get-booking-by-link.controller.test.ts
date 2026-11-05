@@ -15,7 +15,7 @@ const booking = {
     service: { name: 'Corte', durationMinutes: 60, price: 5000, depositPercent: 20 },
     employeeName: 'Ana',
     business: { name: 'Peluquería Luna', slug: 'peluqueria-luna' },
-    branch: { name: 'Centro', slug: 'centro', address: 'Av. Siempreviva 742', coverUrl: null },
+    branch: { name: 'Centro', slug: 'centro', address: 'Av. Siempreviva 742', coverUrl: null, location: null },
     user: null,
 };
 
