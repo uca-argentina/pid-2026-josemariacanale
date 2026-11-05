@@ -506,3 +506,13 @@ Lo que el Empleado ve de la Racha del Cliente en el detalle del Turno, y cómo C
 - **422** `Booking <id> is not accepted`; **422** `Prize <id> belongs to another Ficha del Cliente`; **422** `Prize <id> expired`, que vale desde el momento exacto de `expiresAt`.
 - **409** `Prize <id> already redeemed`. La escritura lleva la guarda `redeemedAt IS NULL`: de dos Canjes a la vez gana uno y el otro recibe este 409.
 - Se revisa en este orden: el Turno (404, 403), que esté aceptado (422), el Premio (404), que sea de la misma Ficha (422), que no esté Canjeado (409) y que no haya vencido (422). Un Premio ya Canjeado da 409 aunque además haya vencido, y un Premio que no existe en un Turno que no está aceptado da el 422 del Turno.
+
+## Racha en el Enlace del Turno y en la Confirmación de reserva (#432)
+
+Lo que el Cliente ve de su Racha. No hay endpoints nuevos.
+
+- `GET /booking-links/:secret` suma `streak: { count, burnsAt: string | null, nextReward: { reward: Reward, remaining: number } | null, prizes: Prize[] } | null`. `Reward` y `Prize` son los de `GET /bookings/:id/streak` (#431), y las reglas de `nextReward` y `prizes` son las mismas. La Ficha es la del Turno: el Negocio del Servicio (o el Usuario, en un Servicio personal) y el email del Cliente sin distinguir mayúsculas. El Enlace del Turno prueba que se tiene un Turno de ese email (ADR 0022): los Premios no se exponen en ningún otro lado sin Sesión.
+- `streak` es `null` si el programa no está activo, no tiene Recompensas o no tiene Tiempo de quemada, **aunque haya Premios disponibles** (un Negocio que apagó las Rachas no muestra nada al Cliente); y también si `count` es 0 y no hay Premios disponibles. Con `count` 0 y algún Premio disponible, `burnsAt` es `null`.
+- `streak` solo viaja en el GET: las respuestas de `PATCH /booking-links/:secret/...` no lo traen, así que el front lo vuelve a pedir si necesita refrescarlo.
+- Si la Racha no se puede leer, el Turno abre igual con `streak: null` y el error queda en el log.
+- Confirmación de reserva: con el programa activo y con Recompensas suma una línea al mail, también en el de una Serie. Con Racha en curso dice `Tu Racha: N Turnos. Te faltan M para <Recompensa>.` (`Te falta 1` si falta uno); con la cuenta en 0, `Empezá tu Racha: con M Turnos ganás <Recompensa>.`; si ya alcanzó todas las Recompensas de "una vez", solo `Tu Racha: N Turnos.`. La Racha es la de antes de ese Turno: todavía no se atendió. Sin programa activo el mail no cambia, y si la Racha no se puede leer el mail sale sin la línea.

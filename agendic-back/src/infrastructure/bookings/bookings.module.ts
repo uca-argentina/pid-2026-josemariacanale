@@ -23,6 +23,7 @@ import { AcceptBookingUseCase } from '../../application/bookings/accept-booking.
 import { RejectBookingUseCase } from '../../application/bookings/reject-booking.use-case';
 import { RequestBookingCodeUseCase } from '../../application/bookings/request-booking-code.use-case';
 import { HolidaysModule } from '../holidays/holidays.module';
+import { StreaksModule } from '../streaks/streaks.module';
 import { UsersModule } from '../users/users.module';
 import { SendRatingRequestsUseCase } from '../../application/bookings/send-rating-requests.use-case';
 import { RatingRequestsJob } from './rating-requests.job';
@@ -30,7 +31,7 @@ import { BookingLinksController } from './booking-links.controller';
 import { BookingsController } from './bookings.controller';
 
 @Module({
-  imports: [UsersModule, HolidaysModule],
+  imports: [UsersModule, HolidaysModule, StreaksModule],
   controllers: [BookingsController, BookingLinksController],
   providers: [
     CreateBookingUseCase,
