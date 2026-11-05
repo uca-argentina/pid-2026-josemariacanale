@@ -28,16 +28,17 @@ export function BadgeCelebration({ badges }: { badges: UnseenBadge[] }) {
     useEffect(() => {
         if (!current || prefersReducedMotion()) return;
         // The Dialog popup sits at z-60 and its overlay at z-50, so the confetti shows over the overlay but behind the modal.
-        void confetti({ particleCount: 140, spread: 90, origin: { y: 0.4 }, zIndex: CONFETTI_Z_INDEX, disableForReducedMotion: true });
+        void confetti({ particleCount: 140, spread: 90, origin: { y: 0.4 }, zIndex: CONFETTI_Z_INDEX });
         return () => {
             void confetti.reset();
         };
     }, [current]);
 
     if (!current) return null;
+    const isLast = index === badges.length - 1;
 
     const close = () => {
-        if (index === badges.length - 1) void markBadgesSeenAction();
+        if (isLast) void markBadgesSeenAction();
         setIndex(index + 1);
     };
 
@@ -50,7 +51,7 @@ export function BadgeCelebration({ badges }: { badges: UnseenBadge[] }) {
                     <DialogDescription>{`¡Ganaste el Nivel ${LEVEL_NAMES[current.level]}!`}</DialogDescription>
                 </DialogHeader>
                 <DialogFooter>
-                    <Button onClick={close}>{index === badges.length - 1 ? 'Genial' : 'Siguiente'}</Button>
+                    <Button onClick={close}>{isLast ? 'Genial' : 'Siguiente'}</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

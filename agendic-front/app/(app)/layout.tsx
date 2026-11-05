@@ -1,4 +1,4 @@
-import { redirect } from 'next/navigation';
+import { redirect, unstable_rethrow } from 'next/navigation';
 import { getCurrentUser } from '@/app/(public)/(auth)/current-user';
 import { SIGN_IN_PATH } from '@/app/routes';
 import { AppToaster } from '@/app/_components/AppToaster';
@@ -61,6 +61,7 @@ async function unseenBadges() {
     try {
         return await getInjection('IListUnseenBadgesController')();
     } catch (error) {
+        unstable_rethrow(error);
         if (!isSessionExpired(error) && !isUserDeactivated(error)) getInjection('ICrashReporterService').report(error);
         return [];
     }
