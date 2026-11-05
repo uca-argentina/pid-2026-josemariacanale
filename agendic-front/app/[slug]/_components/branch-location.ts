@@ -1,7 +1,7 @@
 import type { Location } from '@/src/entities/models/branch';
 
-/** Lo que hace falta de una Sucursal para llegar a ella: el punto, si tiene, y la dirección. */
-type Place = { address: string; location: Location | null };
+/** La Ubicación de una Sucursal (ADR 0037): su dirección y su punto, `null` en una Sucursal anterior a la Ubicación. */
+type BranchUbicacion = { address: string; location: Location | null };
 
 const EARTH_RADIUS_KM = 6371;
 
@@ -15,18 +15,26 @@ function distanceKm(a: Location, b: Location): number {
 }
 
 /**
- * Las Sucursales de la más cercana a `origin` a la más lejana, cada una con su distancia en km. Las que no tienen punto
- * no tienen distancia: quedan al final, en el orden en que vinieron.
+ * Ordena las Sucursales de la más cercana a `origin` a la más lejana, cada una con su distancia en km.
+ *
+ * Las que no tienen punto no tienen distancia y quedan al final, en el orden en que vinieron. Sin `origin` (el Cliente
+ * no compartió su ubicación) quedan todas como vinieron.
  */
-export function sortByDistance<T extends Place>(branches: T[], origin: Location): (T & { distanceKm: number | null })[] {
+export function sortByDistance<T extends BranchUbicacion>(
+    branches: T[],
+    origin: Location | null,
+): (T & { distanceKm: number | null })[] {
     return branches
-        .map((branch) => ({ ...branch, distanceKm: branch.location ? distanceKm(origin, branch.location) : null }))
-        // Stable sort: equal keys (two without a punto) keep their order.
+        .map((branch) => ({
+            ...branch,
+            distanceKm: origin && branch.location ? distanceKm(origin, branch.location) : null,
+        }))
+        // Stable sort: equal keys (two without a distance) keep their order.
         .sort((a, b) => (a.distanceKm ?? Number.MAX_VALUE) - (b.distanceKm ?? Number.MAX_VALUE));
 }
 
-/** El enlace "Cómo llegar": Google Maps con la ruta hasta el punto de la Sucursal, o hasta su dirección si no tiene. */
-export function directionsUrl({ address, location }: Place): string {
+/** Arma el enlace "Cómo llegar": la ruta de Google Maps hasta el punto de la Sucursal, o hasta su dirección si no tiene. */
+export function directionsUrl({ address, location }: BranchUbicacion): string {
     const destination = location ? `${location.lat},${location.lng}` : encodeURIComponent(address);
     return `https://www.google.com/maps/dir/?api=1&destination=${destination}`;
 }

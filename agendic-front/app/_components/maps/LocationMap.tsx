@@ -61,7 +61,8 @@ export function LocationMap({
             });
 
             // Same markers, new positions (a drag, or a new address picked): move them and keep the Dueño's zoom.
-            if (markers.current.length === current.length && current.length > 0) {
+            const sameKind = markers.current[0]?.gmpClickable === clickable && markers.current[0]?.gmpDraggable === draggable;
+            if (sameKind && markers.current.length === current.length && current.length > 0) {
                 markers.current.forEach((marker, i) => (marker.position = current[i]));
                 if (current.length === 1 && !map.current.getBounds()?.contains(current[0])) map.current.panTo(current[0]);
                 return;

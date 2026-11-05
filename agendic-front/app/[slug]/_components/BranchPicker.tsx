@@ -12,13 +12,13 @@ import type { Location } from '@/src/entities/models/branch';
 import { sortByDistance } from './branch-location';
 import type { BusinessBranch } from './types';
 
-const km = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 1 });
+const kmFormat = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 1 });
 
 type Locating = 'idle' | 'locating' | 'failed';
 
 /**
- * Las Sucursales de un Negocio para que el Cliente elija: un mapa con un punto por Sucursal que tenga Ubicación y la
- * lista al costado (debajo, si no hay lugar). Tocar un punto resalta su Sucursal en la lista. "Usar mi ubicación"
+ * Muestra las Sucursales de un Negocio para que el Cliente elija: un mapa con un punto por Sucursal que tenga punto y
+ * la lista al costado (debajo, si no hay lugar). Tocar un punto resalta su Sucursal en la lista. "Usar mi ubicación"
  * ordena la lista por distancia sin guardar nada; sin permiso, o si falla, la lista queda como vino y lo avisa.
  */
 export function BranchPicker({ businessSlug, branches }: { businessSlug: string; branches: BusinessBranch[] }) {
@@ -26,17 +26,17 @@ export function BranchPicker({ businessSlug, branches }: { businessSlug: string;
     const [origin, setOrigin] = useState<Location | null>(null);
     const [locating, setLocating] = useState<Locating>('idle');
     const [selectedId, setSelectedId] = useState<number | null>(null);
-    const items = useRef(new Map<number, HTMLLIElement>());
+    const listItems = useRef(new Map<number, HTMLLIElement>());
 
-    // The map keeps the original order, so sorting the list does not redraw it.
+    // The map keeps the original order, so sorting the list does not redraw it; its point i is located[i].
     const located = branches.filter((b) => b.location !== null);
     const showMap = maps !== false && located.length > 0;
-    const listed = origin ? sortByDistance(branches, origin) : branches.map((b) => ({ ...b, distanceKm: null }));
+    const listed = sortByDistance(branches, origin);
 
-    const select = (index: number) => {
+    const selectPoint = (index: number) => {
         const id = located[index].id;
         setSelectedId(id);
-        items.current.get(id)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        listItems.current.get(id)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     };
 
     const locate = () => {
@@ -59,7 +59,7 @@ export function BranchPicker({ businessSlug, branches }: { businessSlug: string;
                     <LocationMap
                         label="Mapa de las sucursales"
                         points={located.map((b) => b.location!)}
-                        onSelect={select}
+                        onSelect={selectPoint}
                         className="h-72 rounded-2xl @3xl/branches:sticky @3xl/branches:top-6 @3xl/branches:h-[480px]"
                     />
                 )}
@@ -84,13 +84,12 @@ export function BranchPicker({ businessSlug, branches }: { businessSlug: string;
                             <li
                                 key={branch.id}
                                 ref={(el) => {
-                                    if (el) items.current.set(branch.id, el);
-                                    else items.current.delete(branch.id);
+                                    if (el) listItems.current.set(branch.id, el);
+                                    else listItems.current.delete(branch.id);
                                 }}
                             >
                                 <Link
                                     href={bookingLinkPath(businessSlug, branch.slug)}
-                                    aria-current={branch.id === selectedId ? 'true' : undefined}
                                     className={cn(
                                         'flex flex-col gap-1 rounded-2xl border border-border p-4.5 transition-colors hover:border-foreground/20',
                                         branch.id === selectedId && 'border-foreground ring-1 ring-foreground',
@@ -102,7 +101,7 @@ export function BranchPicker({ businessSlug, branches }: { businessSlug: string;
                                         </span>
                                         {branch.distanceKm !== null && (
                                             <span className="shrink-0 text-[13px] font-semibold text-muted-foreground">
-                                                {km.format(branch.distanceKm)} km
+                                                {kmFormat.format(branch.distanceKm)} km
                                             </span>
                                         )}
                                     </span>

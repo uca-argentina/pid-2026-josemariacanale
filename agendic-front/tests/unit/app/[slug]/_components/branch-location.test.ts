@@ -14,6 +14,15 @@ describe('sortByDistance', () => {
         expect(sorted[1].distanceKm).toBeCloseTo(646, -1);
     });
 
+    it('keeps the order they came in, without distances, when there is no origin', () => {
+        const sorted = sortByDistance([cordoba, laPlata], null);
+
+        expect(sorted.map((b) => [b.id, b.distanceKm])).toEqual([
+            [1, null],
+            [2, null],
+        ]);
+    });
+
     it('leaves the Sucursales without a punto at the end, in their order and without a distance', () => {
         const sinPuntoA = { id: 3, address: 'Sin punto A', location: null };
         const sinPuntoB = { id: 4, address: 'Sin punto B', location: null };
