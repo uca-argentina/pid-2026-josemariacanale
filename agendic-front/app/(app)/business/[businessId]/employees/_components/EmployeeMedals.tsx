@@ -1,4 +1,5 @@
 import { Medal } from '@/app/_components/Medal';
+import { badgeDescription } from '@/app/_components/badge-descriptions';
 import { LEVEL_NAMES } from '@/app/_components/medal-style';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/app/_components/ui/tooltip';
 import type { EmployeeBadge } from '@/src/entities/models/employee';
@@ -18,7 +19,10 @@ export function EmployeeMedals({ badges }: { badges: EmployeeBadge[] }) {
                     <TooltipTrigger render={<span tabIndex={0} className="inline-flex rounded-full" />}>
                         <Medal badge={b.badge} name={b.name} level={b.level} size="sm" />
                     </TooltipTrigger>
-                    <TooltipContent>{medalTooltip(b)}</TooltipContent>
+                    <TooltipContent className="max-w-56 flex-col items-start">
+                        <span>{medalTooltip(b)}</span>
+                        {badgeDescription(b.badge) && <span className="font-normal opacity-80">{badgeDescription(b.badge)}</span>}
+                    </TooltipContent>
                 </Tooltip>
             ))}
             {rest.length > 0 && (
@@ -45,12 +49,18 @@ export function EmployeeMedalsLarge({ badges }: { badges: EmployeeBadge[] }) {
     return (
         <section aria-label="Insignias" className="flex flex-col gap-3">
             <h3 className="m-0 text-[12px] font-bold tracking-[0.04em] text-[#6b7280] uppercase">Insignias</h3>
-            <ul className="m-0 flex list-none flex-wrap gap-4 p-0">
+            <ul className="m-0 flex list-none flex-col gap-4 p-0">
                 {badges.map((b) => (
-                    <li key={b.badge} className="flex w-24 flex-col items-center gap-2 text-center">
+                    <li key={b.badge} className="flex items-center gap-3">
                         <Medal badge={b.badge} name={b.name} level={b.level} />
-                        <span className="text-[12.5px] leading-tight font-semibold">{b.name}</span>
-                        <span className="text-[12px] font-medium text-[#6b7280]">{LEVEL_NAMES[b.level]}</span>
+                        <div className="flex min-w-0 flex-col gap-0.5">
+                            <span className="text-[13px] leading-tight font-semibold">
+                                {b.name} <span className="font-medium text-[#6b7280]">· {LEVEL_NAMES[b.level]}</span>
+                            </span>
+                            {badgeDescription(b.badge) && (
+                                <span className="text-[12px] leading-snug text-[#6b7280]">{badgeDescription(b.badge)}</span>
+                            )}
+                        </div>
                     </li>
                 ))}
             </ul>

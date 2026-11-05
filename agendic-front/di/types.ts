@@ -98,6 +98,10 @@ import type { IRemoveEmployeeController } from '@/src/interface-adapters/control
 import type { IChangeEmployeeAvailabilityController } from '@/src/interface-adapters/controllers/services/change-employee-availability.controller';
 import type { IBadgesRepository } from '@/src/application/repositories/badges.repository.interface';
 import type { IListMyBadgesUseCase } from '@/src/application/use-cases/badges/list-my-badges.use-case';
+import type { IListUnseenBadgesUseCase } from '@/src/application/use-cases/badges/list-unseen-badges.use-case';
+import type { IMarkBadgesSeenUseCase } from '@/src/application/use-cases/badges/mark-badges-seen.use-case';
+import type { IListUnseenBadgesController } from '@/src/interface-adapters/controllers/badges/list-unseen-badges.controller';
+import type { IMarkBadgesSeenController } from '@/src/interface-adapters/controllers/badges/mark-badges-seen.controller';
 import type { IListMyBadgesController } from '@/src/interface-adapters/controllers/badges/list-my-badges.controller';
 import type { IUsersRepository } from '@/src/application/repositories/users.repository.interface';
 import type { IGetMeUseCase } from '@/src/application/use-cases/users/get-me.use-case';
@@ -344,6 +348,10 @@ export const DI_SYMBOLS = {
     IBadgesRepository: Symbol.for('IBadgesRepository'),
     IListMyBadgesUseCase: Symbol.for('IListMyBadgesUseCase'),
     IListMyBadgesController: Symbol.for('IListMyBadgesController'),
+    IListUnseenBadgesUseCase: Symbol.for('IListUnseenBadgesUseCase'),
+    IMarkBadgesSeenUseCase: Symbol.for('IMarkBadgesSeenUseCase'),
+    IListUnseenBadgesController: Symbol.for('IListUnseenBadgesController'),
+    IMarkBadgesSeenController: Symbol.for('IMarkBadgesSeenController'),
     IUsersRepository: Symbol.for('IUsersRepository'),
     IGetMeUseCase: Symbol.for('IGetMeUseCase'),
     IUpdateMySlugUseCase: Symbol.for('IUpdateMySlugUseCase'),
@@ -556,6 +564,10 @@ export interface DI_RETURN_TYPES {
     IBadgesRepository: IBadgesRepository;
     IListMyBadgesUseCase: IListMyBadgesUseCase;
     IListMyBadgesController: IListMyBadgesController;
+    IListUnseenBadgesUseCase: IListUnseenBadgesUseCase;
+    IMarkBadgesSeenUseCase: IMarkBadgesSeenUseCase;
+    IListUnseenBadgesController: IListUnseenBadgesController;
+    IMarkBadgesSeenController: IMarkBadgesSeenController;
     IGetMeUseCase: IGetMeUseCase;
     IUpdateMySlugUseCase: IUpdateMySlugUseCase;
     IGetUserPageUseCase: IGetUserPageUseCase;

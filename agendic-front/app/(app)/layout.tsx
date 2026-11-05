@@ -5,6 +5,8 @@ import { AppToaster } from '@/app/_components/AppToaster';
 import { SidebarInset, SidebarProvider } from '@/app/_components/ui/sidebar';
 import { AppSidebar } from './_components/AppSidebar';
 import { SiteHeader } from './_components/SiteHeader';
+import { Suspense } from 'react';
+import { UnseenBadgeCelebration } from './_components/UnseenBadgeCelebration';
 import { SignOutOnDeactivated } from './_components/SignOutOnDeactivated';
 import { getInjection } from '@/di/container';
 import { isSessionExpired, isUserDeactivated } from '@/app/api-error';
@@ -86,6 +88,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 <div className="@container/main flex flex-1 flex-col md:*:rounded-b-xl">{children}</div>
             </SidebarInset>
             <AppToaster />
+            <Suspense>
+                <UnseenBadgeCelebration />
+            </Suspense>
         </SidebarProvider>
     );
 }

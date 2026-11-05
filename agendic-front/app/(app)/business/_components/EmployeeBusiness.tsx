@@ -1,9 +1,8 @@
-import Link from 'next/link';
-import { ArrowRight, MapPin } from 'lucide-react';
+import { MapPin } from 'lucide-react';
 import { PanelIconGroup } from '@/app/(app)/_components/panel-ui';
-import { staffPath } from '@/app/routes';
 import { BusinessCard } from './BusinessCard';
 import { CopyBookingLinkButton } from './CopyBookingLinkButton';
+import { StaffLink } from './StaffLink';
 
 /** Un Negocio de `GET /users/me/businesses` donde el Usuario es Empleado, con sus Sucursales ya resueltas. */
 export type EmployeeBusinessData = {
@@ -47,13 +46,7 @@ export function EmployeeBusiness({ business, defaultOpen }: { business: Employee
                         </ul>
                     )}
                 </div>
-                <Link
-                    href={staffPath(business.id)}
-                    className="inline-flex h-9 w-fit items-center gap-1.5 rounded-md border border-[#e5e7eb] bg-white px-3.5 text-[13px] font-bold text-[#0f1b2d] transition-colors outline-none hover:bg-[#f3f4f6] focus-visible:ring-2 focus-visible:ring-[#0f1b2d] focus-visible:ring-offset-1 [&_svg]:size-4"
-                >
-                    Ver Staff
-                    <ArrowRight />
-                </Link>
+                <StaffLink businessId={business.id} />
             </div>
         </BusinessCard>
     );
