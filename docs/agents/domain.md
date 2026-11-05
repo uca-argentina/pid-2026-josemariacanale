@@ -36,7 +36,7 @@ The glossary is in Spanish; code is in English, in both apps (ADR 0003). Each te
 | Cliente | `Client` (`name`, `email`; una fila por Turno vía `Client.bookingId`, índice no único sobre `email`); la API sigue exponiendo `clientName` / `clientEmail` en el Turno |
 | Empleado elegido (ADR 0026, 0029) | `Booking.employeeChosen` (`boolean`, por defecto `false`); `employeeId` en `GET /services/:id/slots` y en `POST /bookings`; el Enlace de reserva de ese Empleado es `User.slug`, que `employees[].slug` expone; en el front, `bookingLinkPath(negocio, sucursal, servicio, empleado)` arma la URL, `PublicBranchScreen` busca al Empleado por ese tramo (`selectedEmployee`, 404 si no Ofrece el Servicio) y `BookingFlow` recibe `employee`; el Empleado del borrador de la reserva es `BookingDraft.employee` (`null` = Cualquiera) y el selector es el componente `EmployeePicker`, que arranca preseleccionado con el del enlace y deja cambiarlo (ADR 0029); `ClientBooking` y `UserBooking` traen `employeeChosen` |
 | Quien atiende un Turno | `Booking.userId` (siempre); `Booking.employeeId` solo en un Servicio del Negocio |
-| Empleado | `Employee` |
+| Empleado | `Employee`; las Sucursales donde trabaja, `EmployeeBranch` (`Employee.branches`, `Branch.employees`; `Employee.branchIds` en el dominio y `branchIds` en `presentEmployee`) |
 | Invitación | `Invitation` (`email`, `expiresAt`) |
 | Availability | `Availability` (predeterminada → `isDefault`; zona horaria → `Availability.timeZone`; es del Usuario, `userId`) |
 | Franja | `AvailabilityInterval` (días → `days`, 0 = domingo como `dayjs().day()`, varios por Franja; inicio/fin → `startTime`/`endTime`) |

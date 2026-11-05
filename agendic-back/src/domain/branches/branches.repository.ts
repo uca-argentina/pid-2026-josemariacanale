@@ -9,8 +9,8 @@ export const BRANCHES_REPOSITORY = Symbol('BranchesRepository');
 
 export interface BranchesRepository {
   /**
-   * Generates the ids. Creates the Sucursal and one image per URL in one transaction, each image's order being
-   * its position in `imageUrls`.
+   * Generates the ids. Creates the Sucursal, one image per URL and the Empleados of `employeeIds` working there, in
+   * one transaction, each image's order being its position in `imageUrls`.
    *
    * @throws {ConflictError} el `slug` ya está en uso en el Negocio
    * @throws {DatabaseOperationError} la base respondió con error
@@ -18,6 +18,7 @@ export interface BranchesRepository {
   createWithImages(
     data: CreateBranchInput & Pick<Branch, 'businessId'>,
     imageUrls: string[],
+    employeeIds: number[],
   ): Promise<BranchWithImages>;
   findById(id: number): Promise<Branch | null>;
   listByBusiness(businessId: number): Promise<Branch[]>;

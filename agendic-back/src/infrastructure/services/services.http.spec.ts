@@ -2,6 +2,7 @@ import { Availability, emptySchedule } from '../../domain/availabilities/availab
 import { ConflictError } from '../../domain/errors';
 import { ServiceCategory } from '../../domain/services/service';
 import {
+  ANA,
   ANAS_BRANCH,
   ANAS_BUSINESS,
   ANAS_EMPLOYEE,
@@ -415,6 +416,27 @@ describe('Servicio', () => {
         .send(VALID_SERVICE)
         .expect(422);
 
+      expect(t.services.create).not.toHaveBeenCalled();
+    });
+
+    it('answers 422 naming the Empleado who does not work at the Sucursal, creating nothing', async () => {
+      t.employees.listByIds.mockResolvedValue([
+        ANAS_EMPLOYEE,
+        { ...OTHER_EMPLOYEE, branchIds: [BRANCH.id + 1] },
+      ]);
+
+      const res = await t.http
+        .post(`/branches/${BRANCH.id}/services`)
+        .set(bearer(CLERK_TOKEN))
+        .send({
+          ...VALID_SERVICE,
+          employeeIds: [ANAS_EMPLOYEE.id, OTHER_EMPLOYEE.id],
+        })
+        .expect(422);
+
+      expect(res.body.message).toBe(
+        `Employee ${OTHER_EMPLOYEE.id} does not work at Branch ${BRANCH.id}`,
+      );
       expect(t.services.create).not.toHaveBeenCalled();
     });
 
@@ -1136,6 +1158,24 @@ describe('Servicio', () => {
       });
     });
 
+    it('answers 422 when the Empleado does not work at the Servicio’s Sucursal, writing nothing', async () => {
+      t.employees.findById.mockResolvedValue({
+        ...OTHER_EMPLOYEE,
+        branchIds: [BRANCH.id + 1],
+      });
+
+      const res = await t.http
+        .post(`/services/${SERVICE.id}/employees`)
+        .set(bearer(CLERK_TOKEN))
+        .send({ employeeId: OTHER_EMPLOYEE.id })
+        .expect(422);
+
+      expect(res.body.message).toBe(
+        `Employee ${OTHER_EMPLOYEE.id} does not work at Branch ${BRANCH.id}`,
+      );
+      expect(t.services.addEmployee).not.toHaveBeenCalled();
+    });
+
     it('puts the Empleado in charge with the Availability of theirs it names', async () => {
       t.services.addEmployee.mockResolvedValue(SERVICE);
 
@@ -1842,7 +1882,12 @@ describe('Servicio', () => {
     };
     const BRANCH_B = { ...ANAS_BRANCH, id: 3, businessId: 2, slug: 'b-sur' };
     const BRANCH_A = { ...ANAS_BRANCH, id: 4, businessId: 2, slug: 'a-norte' };
-    const ANAS_SEAT_AT_BRUNOS = { ...ANAS_EMPLOYEE, id: 5, businessId: 2 };
+    const ANAS_SEAT_AT_BRUNOS = {
+      ...ANAS_EMPLOYEE,
+      id: 5,
+      businessId: 2,
+      branchIds: [BRANCH_B.id, BRANCH_A.id],
+    };
     const brunosService = (
       id: number,
       hidden: boolean,
@@ -1977,6 +2022,43 @@ describe('Servicio', () => {
       );
       expect(res.body[1].branches[0].services).toEqual([]);
       expect(ids(res.body[1].branches[1].services)).toEqual([10, 12]);
+    });
+
+    it('shows an Empleado only the Sucursales where they work, even one without Servicios', async () => {
+      t.employees.listActiveByUser.mockResolvedValue([
+        { ...ANAS_SEAT_AT_BRUNOS, branchIds: [BRANCH_A.id] },
+      ]);
+      t.services.listActiveByBranch.mockResolvedValue([]);
+
+      const res = await t.http
+        .get('/employees/me/services')
+        .set(bearer(CLERK_TOKEN))
+        .expect(200);
+
+      expect(res.body[0].branches.map((b: { id: number }) => b.id)).toEqual([
+        BRANCH_A.id,
+      ]);
+      expect(t.services.listActiveByBranch).not.toHaveBeenCalledWith(
+        BRANCH_B.id,
+      );
+    });
+
+    it('shows the Dueño every Sucursal of their Negocio', async () => {
+      t.businesses.findById.mockResolvedValue({ ...BRUNOS_BUSINESS, ownerId: ANA.id });
+      t.employees.listActiveByUser.mockResolvedValue([
+        { ...ANAS_SEAT_AT_BRUNOS, branchIds: [BRANCH_A.id] },
+      ]);
+      t.services.listActiveByBranch.mockResolvedValue([]);
+
+      const res = await t.http
+        .get('/employees/me/services')
+        .set(bearer(CLERK_TOKEN))
+        .expect(200);
+
+      expect(res.body[0].branches.map((b: { id: number }) => b.id)).toEqual([
+        BRANCH_A.id,
+        BRANCH_B.id,
+      ]);
     });
 
     it('answers [] for a Usuario who is not Empleado of anything', async () => {

@@ -206,6 +206,7 @@ describe('Negocio', () => {
           name: ANAS_EMPLOYEE.name,
           email: ANAS_EMPLOYEE.email,
           imageUrl: ANAS_EMPLOYEE.imageUrl,
+          branchIds: [ANAS_BRANCH.id],
         },
         images: [PRESENTED_IMAGE],
       });

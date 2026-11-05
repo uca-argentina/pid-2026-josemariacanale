@@ -426,6 +426,7 @@ export const ANAS_EMPLOYEE: Employee = {
   email: ANA.email,
   imageUrl: ANA.imageUrl,
   deletedAt: null,
+  branchIds: [ANAS_BRANCH.id],
 };
 
 /** A Servicio of Ana's Sucursal, attended by Ana. */

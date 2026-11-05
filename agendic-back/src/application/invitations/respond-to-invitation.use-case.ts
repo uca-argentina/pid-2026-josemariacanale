@@ -1,4 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
+import {
+  BRANCHES_REPOSITORY,
+  BranchesRepository,
+} from '../../domain/branches/branches.repository';
 import { CLOCK, Clock } from '../../domain/clock';
 import { Employee } from '../../domain/employees/employee';
 import {
@@ -18,7 +22,8 @@ import {
 /**
  * Acepta o rechaza una Invitación dirigida al email del Usuario (ADR 0019).
  *
- * Aceptar crea el Empleado y cierra la Invitación; rechazar solo la cierra.
+ * Aceptar crea el Empleado, trabajando en todas las Sucursales del Negocio, y cierra la Invitación; rechazar solo
+ * la cierra.
  *
  * @throws {NotFoundError} la Invitación no existe o no es del email del Usuario
  * @throws {BusinessRuleError} la Invitación venció, o el Usuario ya es Empleado del Negocio
@@ -31,6 +36,8 @@ export class RespondToInvitationUseCase {
     @Inject(EMPLOYEES_REPOSITORY)
     private readonly employees: EmployeesRepository,
     @Inject(USERS_REPOSITORY) private readonly users: UsersRepository,
+    @Inject(BRANCHES_REPOSITORY)
+    private readonly branches: BranchesRepository,
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
@@ -48,9 +55,14 @@ export class RespondToInvitationUseCase {
       throw new BusinessRuleError('Ya sos Empleado del Negocio.');
     if (invitation.closedAt)
       throw new BusinessRuleError('La invitación ya fue respondida.');
+    // Every Sucursal of the Negocio until #387 lets the Dueño choose them in the Invitación.
+    const branchIds = (
+      await this.branches.listByBusiness(invitation.businessId)
+    ).map(({ id }) => id);
     const employee = await this.employees.create({
       userId,
       businessId: invitation.businessId,
+      branchIds,
     });
     await this.invitations.close(invitation.id, this.clock.now());
     return employee;

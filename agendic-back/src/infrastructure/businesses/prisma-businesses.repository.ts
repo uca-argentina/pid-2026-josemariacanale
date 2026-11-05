@@ -17,7 +17,7 @@ import {
 } from '../branches/prisma-branches.repository';
 import {
   toEmployee,
-  WITH_USER,
+  EMPLOYEE_RELATIONS,
 } from '../employees/prisma-employees.repository';
 import {
   toService,
@@ -64,9 +64,14 @@ export class PrismaBusinessesRepository implements BusinessesRepository {
             },
           },
         });
+        // The Dueño trabaja en todas las Sucursales of their Negocio, starting with this one.
         const employee = await tx.employee.create({
-          data: { businessId: business.id, ...data.employee },
-          include: WITH_USER,
+          data: {
+            businessId: business.id,
+            ...data.employee,
+            branches: { create: [{ branchId: branch.id }] },
+          },
+          include: EMPLOYEE_RELATIONS,
         });
         const availability = await tx.availability.findFirstOrThrow({
           where: { userId: data.employee.userId, isDefault: true },

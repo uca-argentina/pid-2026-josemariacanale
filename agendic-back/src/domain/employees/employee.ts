@@ -9,6 +9,8 @@ export interface Employee {
   imageUrl: string | null;
   /** When dado de baja; null while employed. */
   deletedAt: Date | null;
+  /** The Sucursales of their Negocio where they trabajan, ascending: they only Ofrecen those Servicios. */
+  branchIds: number[];
 }
 
 /** What anyone browsing a Sucursal sees of an Empleado: never their email. */

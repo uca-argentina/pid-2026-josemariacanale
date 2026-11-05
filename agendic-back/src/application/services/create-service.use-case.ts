@@ -28,6 +28,7 @@ import {
 import { defaultAvailability } from '../availabilities/default-availability';
 import { assertBranchOwner } from '../branches/assert-branch-owner';
 import { assertActiveCabins } from '../cabins/assert-active-cabins';
+import { assertWorksAt } from '../employees/assert-works-at';
 
 @Injectable()
 export class CreateServiceUseCase {
@@ -48,7 +49,8 @@ export class CreateServiceUseCase {
   /**
    * @throws {NotFoundError} la Sucursal no existe
    * @throws {ForbiddenError} el Usuario no es el Dueño de su Negocio
-   * @throws {BusinessRuleError} un Empleado no es del Negocio o está dado de baja, o una Cabina no es una activa de la Sucursal
+   * @throws {BusinessRuleError} un Empleado no es del Negocio, está dado de baja o no trabaja en la Sucursal, o una
+   * Cabina no es una activa de la Sucursal
    */
   async execute(
     userId: number,
@@ -67,6 +69,7 @@ export class CreateServiceUseCase {
       branch.businessId,
       input.employeeIds,
     );
+    for (const employee of attending) assertWorksAt(employee, branchId);
     // Each Empleado enters with their User's default Availability.
     const employees = await Promise.all(
       attending.map(async ({ id, userId }) => ({

@@ -45,6 +45,7 @@ const EMPLOYEE_ROW = {
   businessId: ANAS_BUSINESS.id,
   deletedAt: null,
   user: { name: 'Ana Pérez', email: 'ana@example.com' },
+  branches: [{ branchId: 10 }],
 };
 
 const SERVICE_ROW = {
@@ -209,6 +210,7 @@ describe('PrismaBusinessesRepository', () => {
       name: 'Ana Pérez',
       email: 'ana@example.com',
       deletedAt: null,
+      branchIds: [BRANCH_ROW.id],
     });
     expect(created.service).toEqual({
       id: SERVICE_ROW.id,
@@ -255,6 +257,25 @@ describe('PrismaBusinessesRepository', () => {
             select: { id: true, branchId: true, url: true, order: true },
             orderBy: { order: 'asc' },
           },
+        },
+      }),
+    );
+  });
+
+  it('leaves the Dueño working at the first Sucursal, in the same transaction', async () => {
+    tx.business.create.mockResolvedValue(ANAS_BUSINESS);
+    tx.branch.create.mockResolvedValue(BRANCH_ROW);
+    tx.employee.create.mockResolvedValue(EMPLOYEE_ROW);
+    tx.service.create.mockResolvedValue(SERVICE_ROW);
+
+    await repository.create(CREATE_DATA);
+
+    expect(tx.employee.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: {
+          businessId: ANAS_BUSINESS.id,
+          userId: ANAS_BUSINESS.ownerId,
+          branches: { create: [{ branchId: BRANCH_ROW.id }] },
         },
       }),
     );

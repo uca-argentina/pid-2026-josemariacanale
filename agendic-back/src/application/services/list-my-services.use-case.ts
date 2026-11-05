@@ -43,7 +43,8 @@ export class ListMyServicesUseCase {
   ) {}
 
   /**
-   * Las Sucursales van ordenadas por slug y aparecen aunque no tengan Servicios. Un Servicio oculto sale solo
+   * Las Sucursales van ordenadas por slug y aparecen aunque no tengan Servicios, pero solo las que el Usuario trabaja
+   * (todas, si es Dueño). Un Servicio oculto sale solo
    * si el Usuario es Dueño del Negocio o lo atiende. Vacío si el Usuario no es Empleado activo de nada.
    *
    * @throws {DatabaseOperationError} falló la base
@@ -56,9 +57,10 @@ export class ListMyServicesUseCase {
         // Un Negocio dado de baja deja de verse, aunque quede un Empleado suyo activo.
         if (!business) return null;
         const isOwner = business.ownerId === userId;
-        const branches = (await this.branches.listByBusiness(business.id)).sort(
-          (a, b) => a.slug.localeCompare(b.slug),
-        );
+        // El Dueño trabaja en todas las Sucursales; un Empleado, solo en las suyas.
+        const branches = (await this.branches.listByBusiness(business.id))
+          .filter(({ id }) => isOwner || employee.branchIds.includes(id))
+          .sort((a, b) => a.slug.localeCompare(b.slug));
         return {
           business,
           role: isOwner ? ('owner' as const) : ('employee' as const),
