@@ -185,6 +185,8 @@ export async function createTestApp() {
     listActiveByBusiness: jest.fn(),
     listActiveByUser: jest.fn(),
     retire: jest.fn(),
+    listUpcomingInBranches: jest.fn(),
+    changeBranches: jest.fn(),
   };
   const invitations: jest.Mocked<InvitationsRepository> = {
     findPending: jest.fn(),

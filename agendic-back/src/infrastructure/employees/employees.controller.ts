@@ -7,6 +7,7 @@ import {
   Param,
   ParseIntPipe,
   Post,
+  Put,
   Res,
   UseGuards,
 } from '@nestjs/common';
@@ -21,7 +22,13 @@ import { RetireEmployeeUseCase } from '../../application/employees/retire-employ
 import { ClerkGuard, CurrentUser } from '../users/clerk.guard';
 import { presentInvitation } from '../invitations/invitation.presenter';
 import { presentEmployee } from './employee.presenter';
-import { CreateEmployeeDto } from './employees.dto';
+import { ChangeEmployeeBranchesUseCase } from '../../application/employees/change-employee-branches.use-case';
+import { PreviewEmployeeBranchesUseCase } from '../../application/employees/preview-employee-branches.use-case';
+import {
+  ConfirmedEmployeeBranchesDto,
+  CreateEmployeeDto,
+  EmployeeBranchesDto,
+} from './employees.dto';
 
 @Controller()
 export class EmployeesController {
@@ -33,6 +40,8 @@ export class EmployeesController {
     private readonly respondToInvitationUseCase: RespondToInvitationUseCase,
     private readonly manageInvitationUseCase: ManageInvitationUseCase,
     private readonly retireEmployeeUseCase: RetireEmployeeUseCase,
+    private readonly previewEmployeeBranchesUseCase: PreviewEmployeeBranchesUseCase,
+    private readonly changeEmployeeBranchesUseCase: ChangeEmployeeBranchesUseCase,
   ) {}
 
   @Post('businesses/:id/employees')
@@ -129,6 +138,60 @@ export class EmployeesController {
     @Param('id', ParseIntPipe) id: number,
   ) {
     return this.retireEmployeeUseCase.execute(userId, id);
+  }
+
+  /** Los Turnos que cambiar las Sucursales del Empleado cancelaría; no guarda nada. */
+  @Post('employees/:id/branches/preview')
+  @HttpCode(200)
+  @UseGuards(ClerkGuard)
+  async previewBranches(
+    @CurrentUser() userId: number,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: EmployeeBranchesDto,
+  ) {
+    return (
+      await this.previewEmployeeBranchesUseCase.execute(
+        userId,
+        id,
+        dto.branchIds,
+      )
+    ).map(
+      ({
+        id,
+        startsAt,
+        endsAt,
+        timeZone,
+        serviceName,
+        clientName,
+        branch,
+      }) => ({
+        id,
+        startsAt,
+        endsAt,
+        timeZone,
+        serviceName,
+        clientName,
+        branch,
+      }),
+    );
+  }
+
+  /** Cambia las Sucursales del Empleado y cancela los Turnos que el Dueño confirmó. */
+  @Put('employees/:id/branches')
+  @UseGuards(ClerkGuard)
+  async changeBranches(
+    @CurrentUser() userId: number,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: ConfirmedEmployeeBranchesDto,
+  ) {
+    const { employee, cancelledBookings } =
+      await this.changeEmployeeBranchesUseCase.execute(
+        userId,
+        id,
+        dto.branchIds,
+        dto.cancelBookingIds,
+      );
+    return { ...presentEmployee(employee), cancelledBookings };
   }
 
   @Get('businesses/:id/employees')

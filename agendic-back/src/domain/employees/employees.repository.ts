@@ -10,6 +10,22 @@ export interface CreateEmployeeData {
   branchIds: number[];
 }
 
+/** A Turno that taking an Empleado off a Sucursal cancels, with what the vista previa and the Aviso de cambio del Turno need. */
+export interface BranchChangeBooking {
+  id: number;
+  startsAt: Date;
+  endsAt: Date;
+  /** The zone of the Sucursal, which is also the one the Cliente sees the Turno in. */
+  timeZone: string;
+  serviceName: string;
+  clientName: string;
+  clientEmail: string;
+  /** Enlace del Turno; null only in a Turno Reagendar replaced, which is never upcoming. */
+  link: string | null;
+  seriesId: string | null;
+  branch: { id: number; name: string };
+}
+
 export interface EmployeesRepository {
   /** Only the ids that exist, in no particular order. */
   listByIds(ids: number[]): Promise<Employee[]>;
@@ -25,4 +41,27 @@ export interface EmployeesRepository {
     id: number,
     deletedAt: Date,
   ): Promise<{ employee: Employee; cancelledBookings: ClientNotice[] }>;
+  /**
+   * PENDING and BOOKED Turnos of the Empleado that have not started by `now`, in Servicios of any of `branchIds`, by
+   * `startsAt` and then id.
+   */
+  listUpcomingInBranches(
+    employeeId: number,
+    branchIds: number[],
+    now: Date,
+  ): Promise<BranchChangeBooking[]>;
+  /**
+   * Sets the Empleado's Sucursales to `branchIds`, atomically: takes them off every Servicio of the Sucursales they lose,
+   * and cancels the Turnos of `cancelBookingIds` that are still PENDING or BOOKED and have not started by `now`
+   * (CANCELLED, `cancelledAt` = `now`, `cancelledBy` EMPLOYEE, no Motivo de cancelación). Returns the Empleado and the ids
+   * it really cancelled. If any write fails, none stays.
+   *
+   * @throws {NotFoundError} the Empleado does not exist
+   */
+  changeBranches(
+    id: number,
+    branchIds: number[],
+    cancelBookingIds: number[],
+    now: Date,
+  ): Promise<{ employee: Employee; cancelledIds: number[] }>;
 }

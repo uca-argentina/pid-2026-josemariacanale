@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Employee } from '../../domain/employees/employee';
 import {
+  BranchChangeBooking,
   CreateEmployeeData,
   EmployeesRepository,
 } from '../../domain/employees/employees.repository';
@@ -100,6 +101,108 @@ export class PrismaEmployeesRepository implements EmployeesRepository {
           deletedAt,
         );
         return { employee: toEmployee(row), cancelledBookings };
+      })
+      .catch(translateError);
+  }
+
+  async listUpcomingInBranches(
+    employeeId: number,
+    branchIds: number[],
+    now: Date,
+  ): Promise<BranchChangeBooking[]> {
+    const rows = await this.prisma.booking
+      .findMany({
+        where: {
+          employeeId,
+          status: { in: ['PENDING', 'BOOKED'] },
+          startsAt: { gt: now },
+          service: { branchId: { in: branchIds } },
+        },
+        orderBy: [{ startsAt: 'asc' }, { id: 'asc' }],
+        select: {
+          id: true,
+          startsAt: true,
+          endsAt: true,
+          link: true,
+          seriesId: true,
+          client: { select: { name: true, email: true } },
+          service: {
+            select: {
+              name: true,
+              branch: { select: { id: true, name: true, timeZone: true } },
+            },
+          },
+        },
+      })
+      .catch(translateError);
+    // A Turno of a Servicio del Negocio always has its Sucursal and its Cliente (ADR 0005): the filter only narrows the types.
+    return rows.flatMap(({ service, client, ...row }) =>
+      service.branch && client
+        ? [
+            {
+              ...row,
+              timeZone: service.branch.timeZone,
+              serviceName: service.name,
+              clientName: client.name,
+              clientEmail: client.email,
+              branch: { id: service.branch.id, name: service.branch.name },
+            },
+          ]
+        : [],
+    );
+  }
+
+  async changeBranches(
+    id: number,
+    branchIds: number[],
+    cancelBookingIds: number[],
+    now: Date,
+  ) {
+    return this.prisma
+      .$transaction(async (tx) => {
+        const current = (
+          await tx.employeeBranch.findMany({
+            where: { employeeId: id },
+            select: { branchId: true },
+          })
+        ).map(({ branchId }) => branchId);
+        const kept = new Set(branchIds);
+        const had = new Set(current);
+        const lost = current.filter((branchId) => !kept.has(branchId));
+        await tx.employeeService.deleteMany({
+          where: { employeeId: id, service: { branchId: { in: lost } } },
+        });
+        const employee = await tx.employee.update({
+          where: { id },
+          data: {
+            branches: {
+              deleteMany: { branchId: { in: lost } },
+              create: branchIds
+                .filter((branchId) => !had.has(branchId))
+                .map((branchId) => ({ branchId })),
+            },
+          },
+          include: EMPLOYEE_RELATIONS,
+        });
+        const open = await tx.booking.findMany({
+          where: {
+            id: { in: cancelBookingIds },
+            employeeId: id,
+            status: { in: ['PENDING', 'BOOKED'] },
+            startsAt: { gt: now },
+          },
+          select: { id: true },
+        });
+        const cancelledIds = open.map((row) => row.id);
+        await tx.booking.updateMany({
+          where: { id: { in: cancelledIds } },
+          data: {
+            status: 'CANCELLED',
+            cancelledAt: now,
+            cancelledBy: 'EMPLOYEE',
+          },
+        });
+        return { employee: toEmployee(employee), cancelledIds };
       })
       .catch(translateError);
   }
