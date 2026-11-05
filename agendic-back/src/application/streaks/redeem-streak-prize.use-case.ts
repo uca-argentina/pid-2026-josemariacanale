@@ -16,6 +16,7 @@ import {
   NotFoundError,
 } from '../../domain/errors';
 import { StreakPrize } from '../../domain/streaks/streak-prize';
+import { isSameOwner } from '../../domain/streaks/streak-program';
 import {
   STREAK_PRIZES_REPOSITORY,
   StreakPrizesRepository,
@@ -60,8 +61,10 @@ export class RedeemStreakPrizeUseCase {
     const prize = await this.prizes.findById(prizeId);
     if (!prize) throw new NotFoundError(`Prize ${prizeId} not found`);
     const owner = await this.prizes.findOwnerByBookingId(bookingId);
-    const sameOwner = JSON.stringify(prize.owner) === JSON.stringify(owner);
-    if (!sameOwner || prize.clientEmail !== booking.clientEmail.toLowerCase())
+    if (
+      !isSameOwner(prize.owner, owner) ||
+      prize.clientEmail !== booking.clientEmail.toLowerCase()
+    )
       throw new BusinessRuleError(
         `Prize ${prizeId} belongs to another Ficha del Cliente`,
       );

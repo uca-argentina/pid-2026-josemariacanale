@@ -65,6 +65,12 @@ export interface StreakProgram {
   rewards: StreakReward[];
 }
 
+/** Whether two owners are the same Negocio or the same Usuario. */
+export const isSameOwner = (a: StreakProgramOwner, b: StreakProgramOwner) =>
+  a.kind === 'business'
+    ? b.kind === 'business' && a.businessId === b.businessId
+    : b.kind === 'personal' && a.userId === b.userId;
+
 /** A Recompensa as the job of Premios reads it: what it asks for and the copy of what it promises. */
 export interface GrantableStreakReward extends PromisedPrize {
   id: number;

@@ -150,7 +150,7 @@ export class PrismaStreakPrizesRepository implements StreakPrizesRepository {
           { cause: error },
         );
       });
-    if (!row) throw new NotFoundError('Booking not found');
+    if (!row) throw new NotFoundError(`Booking ${bookingId} not found`);
     const { userId, branch } = row.service;
     // A Servicio is of a Sucursal or of a Usuario, exactly one (ADR 0004).
     return branch
@@ -158,7 +158,11 @@ export class PrismaStreakPrizesRepository implements StreakPrizesRepository {
       : { kind: 'personal', userId: userId! };
   }
 
-  /** @throws {DatabaseOperationError} the query failed */
+  /**
+   * Lists the Premios of a Ficha that are neither Canjeados nor vencidos at `now`, the oldest first.
+   *
+   * @throws {DatabaseOperationError} the query failed
+   */
   async listAvailable(owner: StreakProgramOwner, clientEmail: string, now: Date) {
     const rows = await this.prisma.streakPrize
       .findMany({
@@ -204,6 +208,8 @@ export class PrismaStreakPrizesRepository implements StreakPrizesRepository {
   }
 
   /**
+   * Canjea el Premio, solo si sigue sin Canjear en el momento de escribir.
+   *
    * @throws {ConflictError} the Premio was already Canjeado
    * @throws {DatabaseOperationError} the write failed
    */
@@ -217,10 +223,11 @@ export class PrismaStreakPrizesRepository implements StreakPrizesRepository {
         throw new DatabaseOperationError(`Premio ${id} not redeemed`, { cause: error });
       });
     if (count === 0) throw new ConflictError(`Prize ${id} already redeemed`);
-    const row = await this.prisma.streakPrize.findUniqueOrThrow({
-      where: { id },
-      select: PRIZE_FIELDS,
-    });
+    const row = await this.prisma.streakPrize
+      .findUniqueOrThrow({ where: { id }, select: PRIZE_FIELDS })
+      .catch((error: unknown) => {
+        throw new DatabaseOperationError(`Premio ${id} not read after redeeming`, { cause: error });
+      });
     return toPrize(row);
   }
 

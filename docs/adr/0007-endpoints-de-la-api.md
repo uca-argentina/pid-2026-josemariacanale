@@ -501,8 +501,8 @@ Lo que el Empleado ve de la Racha del Cliente en el detalle del Turno, y cómo C
   - `prizes` son los Premios disponibles (sin Canjear y sin vencer), del más viejo al más nuevo, también con el programa apagado: ya estaban prometidos.
 - `Prize` = `{ id, type, value: number | null, description: string | null, serviceName: string | null, grantedAt, expiresAt: string | null }`. `serviceName` es la copia del nombre del Servicio al ganarlo.
 - Body del PATCH: `{ prizeId }`, un entero; si no, 400. Responde 200 con el `Prize` y `redeemedAt`. Se puede Canjear en un Turno de cualquier Servicio de la misma Ficha.
-- **404** `Booking not found` si el Turno no existe; **404** `Prize <id> not found`.
+- **404** `Booking not found` si el Turno no existe; **404** `Prize <id> not found` si el Premio no existe.
 - **403** `Only the assigned Employee can act on this Turno`.
 - **422** `Booking <id> is not accepted`; **422** `Prize <id> belongs to another Ficha del Cliente`; **422** `Prize <id> expired`, que vale desde el momento exacto de `expiresAt`.
 - **409** `Prize <id> already redeemed`. La escritura lleva la guarda `redeemedAt IS NULL`: de dos Canjes a la vez gana uno y el otro recibe este 409.
-- El orden en que se revisa es el de arriba, salvo que un Premio ya Canjeado da 409 aunque además haya vencido.
+- Se revisa en este orden: el Turno (404, 403), que esté aceptado (422), el Premio (404), que sea de la misma Ficha (422), que no esté Canjeado (409) y que no haya vencido (422). Un Premio ya Canjeado da 409 aunque además haya vencido, y un Premio que no existe en un Turno que no está aceptado da el 422 del Turno.

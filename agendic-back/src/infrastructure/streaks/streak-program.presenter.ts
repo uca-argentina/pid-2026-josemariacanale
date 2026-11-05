@@ -35,7 +35,7 @@ export const presentStreakPrize = (prize: StreakPrize) => ({
   expiresAt: prize.expiresAt,
 });
 
-/** The Racha block of the detail of a Turno. */
+/** The Racha block of the detail of a Turno; `nextReward` carries the Recompensa as the program shows it. */
 export const presentBookingStreak = ({ streak, nextReward, prizes }: BookingStreak) => ({
   streak,
   nextReward: nextReward && {

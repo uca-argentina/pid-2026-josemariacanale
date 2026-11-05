@@ -349,7 +349,7 @@ describe('PrismaStreakPrizesRepository (real database)', () => {
 
       await expect(prizes.findOwnerByBookingId(inBranch.id)).resolves.toEqual(ofBusiness);
       await expect(prizes.findOwnerByBookingId(own.id)).resolves.toEqual(personal);
-      await expect(prizes.findOwnerByBookingId(inBranch.id + 1_000_000)).rejects.toThrow('Booking not found');
+      await expect(prizes.findOwnerByBookingId(inBranch.id + 1_000_000)).rejects.toThrow(`Booking ${inBranch.id + 1_000_000} not found`);
     });
 
     it('Canjea una vez: guarda cuándo, en qué Turno y quién', async () => {
