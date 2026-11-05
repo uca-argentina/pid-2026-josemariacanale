@@ -77,7 +77,7 @@ export class CreateBookingUseCase {
       throw new InvalidCodeError(
         `Invalid or expired verification code for ${input.clientEmail}`,
       );
-    const { service, timeZone } = await assertBookable(
+    const { service, branch, timeZone } = await assertBookable(
       this.services,
       this.branches,
       this.availabilities,
@@ -148,6 +148,7 @@ export class CreateBookingUseCase {
       input.clientEmail,
       booking.link!,
       booking.depositAmount,
+      branch,
     );
     return {
       ...booking,

@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { createTransport, Transporter } from 'nodemailer';
 import {
   CausedCancellation,
+  ConfirmationBranch,
   Mailer,
   SeriesConfirmation,
   SeriesNotice,
@@ -56,18 +57,20 @@ export class NodemailerMailer implements Mailer {
 
   /**
    * Avisa que el Turno quedó creado; con Seña, suma el monto y dice que se paga desde el Enlace del Turno. De una Serie
-   * lista cada fecha, en la zona del Turno, con su Enlace.
+   * lista cada fecha, en la zona del Turno, con su Enlace. Con Sucursal, cierra con su dirección y Cómo llegar.
    */
   async sendBookingConfirmation(
     email: string,
     link: string,
     depositAmount: number | null,
+    branch: ConfirmationBranch | null,
     series?: SeriesConfirmation,
   ) {
     const deposit =
       depositAmount === null
         ? ''
         : ` Seña: ${depositAmount.toFixed(2)}. You can pay it from the same link.`;
+    const place = branch ? addressAndDirectionsHtml(branch) : '';
     if (series) {
       const seriesDeposit =
         depositAmount === null
@@ -78,7 +81,7 @@ export class NodemailerMailer implements Mailer {
         from: process.env.SMTP_FROM,
         to: email,
         subject: 'Your bookings are confirmed',
-        html: `<p>Your Turnos are confirmed.${seriesDeposit} Manage each one from its link:</p><ul>${items}</ul>`,
+        html: `<p>Your Turnos are confirmed.${seriesDeposit} Manage each one from its link:</p><ul>${items}</ul>${place}`,
       });
       return;
     }
@@ -87,6 +90,7 @@ export class NodemailerMailer implements Mailer {
       link,
       'Your booking is confirmed',
       `Your Turno is confirmed.${deposit} Manage it here`,
+      place,
     );
   }
 
@@ -274,16 +278,26 @@ export class NodemailerMailer implements Mailer {
     link: string,
     subject: string,
     text: string,
+    extraHtml = '',
   ) {
     const url = `${this.frontendUrl}/turnos/${link}`;
     await this.transporter.sendMail({
       from: process.env.SMTP_FROM,
       to: email,
       subject,
-      html: `<p>${text}: <a href="${url}">${url}</a></p>`,
+      html: `<p>${text}: <a href="${url}">${url}</a></p>${extraHtml}`,
     });
   }
 }
+
+/** The Sucursal's address and its Cómo llegar: to the point, or to the address when it has none. */
+const addressAndDirectionsHtml = ({ address, location }: ConfirmationBranch) => {
+  const destination = location
+    ? `${location.lat},${location.lng}`
+    : encodeURIComponent(address);
+  const url = `https://www.google.com/maps/dir/?api=1&destination=${destination}`;
+  return `<p>${escapeHtml(address)}<br><a href="${escapeHtml(url)}">Cómo llegar</a></p>`;
+};
 
 /** Appends the Motivo de cancelación, if any, to a mail text; it is typed by a person, so it goes escaped into the HTML. */
 const withReason = (text: string, reason?: string | null) =>

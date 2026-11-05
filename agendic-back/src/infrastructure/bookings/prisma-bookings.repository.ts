@@ -36,6 +36,7 @@ import {
   isExclusionViolation,
 } from '../prisma-errors';
 import { HistoryBooking } from '../../domain/bookings/booking-history';
+import { toMapPoint } from '../branches/prisma-branches.repository';
 import { PrismaService } from '../prisma.service';
 import { generateSecretLink } from '../secret-link';
 
@@ -128,6 +129,8 @@ const CLIENT_BOOKING_SELECT = {
           slug: true,
           address: true,
           timeZone: true,
+          latitude: true,
+          longitude: true,
           business: { select: { name: true, slug: true } },
           images: { select: { url: true }, orderBy: { order: 'asc' }, take: 1 },
         },
@@ -1104,6 +1107,7 @@ const toClientBooking = (
           slug: branch.slug,
           address: branch.address,
           coverUrl: branch.images[0]?.url ?? null,
+          location: toMapPoint(branch),
         }
       : null,
     user: branch ? null : { slug: row.user.slug },

@@ -60,6 +60,7 @@ const CLIENT_BOOKED: ClientBooking = {
     slug: ANAS_BRANCH.slug,
     address: ANAS_BRANCH.address,
     coverUrl: null,
+    location: ANAS_BRANCH.location,
   },
   user: null,
   series: null,
@@ -91,6 +92,20 @@ describe('Enlace del Turno', () => {
 
       expect(t.bookings.findByLink).toHaveBeenCalledWith(LINK);
       expect(res.body).toMatchObject({ id: BOOKED.id, status: 'BOOKED' });
+    });
+
+    it('trae la Ubicación de la Sucursal, o null si no tiene punto', async () => {
+      t.bookings.findByLink.mockResolvedValueOnce(CLIENT_BOOKED);
+      t.bookings.findByLink.mockResolvedValueOnce({
+        ...CLIENT_BOOKED,
+        branch: { ...CLIENT_BOOKED.branch!, location: null },
+      });
+
+      const withPoint = await t.http.get(`/booking-links/${LINK}`).expect(200);
+      const withoutPoint = await t.http.get(`/booking-links/${LINK}`).expect(200);
+
+      expect(withPoint.body.branch.location).toEqual({ lat: -34.6037, lng: -58.3816 });
+      expect(withoutPoint.body.branch.location).toBeNull();
     });
 
     it('un Turno suelto trae series null', async () => {
