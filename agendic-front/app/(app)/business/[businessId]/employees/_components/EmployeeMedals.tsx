@@ -2,27 +2,23 @@ import { Medal } from '@/app/_components/Medal';
 import { LEVEL_NAMES } from '@/app/_components/medal-style';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/app/_components/ui/tooltip';
 import type { EmployeeBadge } from '@/src/entities/models/employee';
-
-/** Cuántas medallas se ven en una fila de la tabla antes del "+N". */
-const MAX_VISIBLE_MEDALS = 3;
-
-const tooltipLabel = ({ name, level }: EmployeeBadge) => `${name} · ${LEVEL_NAMES[level]}`;
+import { medalTooltip, splitMedals } from './employee-medals';
 
 /**
- * Las medallas de un Empleado en una fila del Staff: las `MAX_VISIBLE_MEDALS` de mayor Nivel y un "+N" con el resto.
+ * Las medallas de un Empleado en una fila del Staff: las de mayor Nivel y un "+N" con el resto.
  * `badges` ya viene ordenada de mayor a menor Nivel. Sin Insignias no renderiza nada.
  */
 export function EmployeeMedals({ badges }: { badges: EmployeeBadge[] }) {
     if (badges.length === 0) return null;
-    const rest = badges.slice(MAX_VISIBLE_MEDALS);
+    const { visible, rest } = splitMedals(badges);
     return (
         <div className="flex shrink-0 items-center gap-1">
-            {badges.slice(0, MAX_VISIBLE_MEDALS).map((b) => (
+            {visible.map((b) => (
                 <Tooltip key={b.badge}>
                     <TooltipTrigger render={<span tabIndex={0} className="inline-flex rounded-full" />}>
                         <Medal badge={b.badge} name={b.name} level={b.level} size="sm" />
                     </TooltipTrigger>
-                    <TooltipContent>{tooltipLabel(b)}</TooltipContent>
+                    <TooltipContent>{medalTooltip(b)}</TooltipContent>
                 </Tooltip>
             ))}
             {rest.length > 0 && (
@@ -34,7 +30,7 @@ export function EmployeeMedals({ badges }: { badges: EmployeeBadge[] }) {
                     </TooltipTrigger>
                     <TooltipContent className="flex-col items-start">
                         {rest.map((b) => (
-                            <span key={b.badge}>{tooltipLabel(b)}</span>
+                            <span key={b.badge}>{medalTooltip(b)}</span>
                         ))}
                     </TooltipContent>
                 </Tooltip>
