@@ -426,7 +426,7 @@ describe('Servicio personal', () => {
       expect(res.body.days[0].slots).not.toContain('2026-01-02T00:00:00.000Z');
     });
 
-    it('books the Turno with the Usuario as who attends it and no Empleado, and confirms it without an address', async () => {
+    it('books the Turno with the Usuario as who attends it and no Empleado', async () => {
       const res = await t.http
         .post('/bookings')
         .send({
@@ -447,6 +447,20 @@ describe('Servicio personal', () => {
         undefined,
       );
       expect(res.body.employeeName).toBe(ANA.name);
+    });
+
+    it('confirms the Turno without an address', async () => {
+      await t.http
+        .post('/bookings')
+        .send({
+          serviceId: PERSONAL.id,
+          startsAt: '2026-01-02T00:00:00.000Z',
+          clientName: 'Bruno Díaz',
+          clientEmail: 'bruno@example.com',
+          code: 'A1B2C3',
+        })
+        .expect(201);
+
       expect(t.mailer.sendBookingConfirmation).toHaveBeenCalledWith(
         'bruno@example.com',
         BOOKING.link,

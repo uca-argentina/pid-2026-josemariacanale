@@ -70,7 +70,7 @@ export class NodemailerMailer implements Mailer {
       depositAmount === null
         ? ''
         : ` Seña: ${depositAmount.toFixed(2)}. You can pay it from the same link.`;
-    const place = branch ? placeParagraph(branch) : '';
+    const place = branch ? addressAndDirectionsHtml(branch) : '';
     if (series) {
       const seriesDeposit =
         depositAmount === null
@@ -291,12 +291,12 @@ export class NodemailerMailer implements Mailer {
 }
 
 /** The Sucursal's address and its Cómo llegar: to the point, or to the address when it has none. */
-const placeParagraph = ({ address, location }: ConfirmationBranch) => {
+const addressAndDirectionsHtml = ({ address, location }: ConfirmationBranch) => {
   const destination = location
     ? `${location.lat},${location.lng}`
     : encodeURIComponent(address);
   const url = `https://www.google.com/maps/dir/?api=1&destination=${destination}`;
-  return `<p>${escapeHtml(address)}. <a href="${escapeHtml(url)}">Cómo llegar</a></p>`;
+  return `<p>${escapeHtml(address)}<br><a href="${escapeHtml(url)}">Cómo llegar</a></p>`;
 };
 
 /** Appends the Motivo de cancelación, if any, to a mail text; it is typed by a person, so it goes escaped into the HTML. */

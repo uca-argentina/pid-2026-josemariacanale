@@ -177,7 +177,7 @@ export class CreateBookingSeriesUseCase {
         input.clientEmail,
         first.link!,
         first.depositAmount,
-        branch && { address: branch.address, location: branch.location },
+        branch,
         {
           bookings: created.map(({ startsAt, link }) => ({ startsAt, link: link! })),
           timeZone,

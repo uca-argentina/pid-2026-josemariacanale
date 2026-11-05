@@ -180,7 +180,7 @@ describe('Turno', () => {
         VALID_BOOKING.clientEmail,
         BOOKING.link,
         null,
-        { address: BRANCH.address, location: BRANCH.location },
+        BRANCH,
       );
     });
 
@@ -198,7 +198,7 @@ describe('Turno', () => {
         VALID_BOOKING.clientEmail,
         BOOKING.link,
         1.51,
-        expect.anything(),
+        BRANCH,
       );
     });
 
@@ -215,7 +215,7 @@ describe('Turno', () => {
         VALID_BOOKING.clientEmail,
         BOOKING.link,
         null,
-        expect.anything(),
+        BRANCH,
       );
     });
 

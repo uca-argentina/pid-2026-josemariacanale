@@ -148,7 +148,7 @@ export class CreateBookingUseCase {
       input.clientEmail,
       booking.link!,
       booking.depositAmount,
-      branch && { address: branch.address, location: branch.location },
+      branch,
     );
     return {
       ...booking,
