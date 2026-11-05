@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import confetti from 'canvas-confetti';
+import { badgeDescription } from '@/app/_components/badge-descriptions';
 import { Medal } from '@/app/_components/Medal';
 import { LEVEL_NAMES } from '@/app/_components/medal-style';
 import { Button } from '@/app/_components/ui/button';
@@ -51,6 +52,7 @@ export function BadgeCelebration({ badges }: { badges: UnseenBadge[] }) {
                     <Medal badge={current.badge} name={current.name} level={current.level} className="size-24 [&_svg]:size-12" />
                     <DialogTitle>{current.name}</DialogTitle>
                     <DialogDescription>{`¡Ganaste el Nivel ${LEVEL_NAMES[current.level]}!`}</DialogDescription>
+                    {badgeDescription(current.badge) && <p className="m-0 text-[13px] text-[#6b7280]">{badgeDescription(current.badge)}</p>}
                 </DialogHeader>
                 <DialogFooter>
                     <Button onClick={close}>{isLast ? 'Genial' : 'Siguiente'}</Button>
