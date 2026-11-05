@@ -64,6 +64,25 @@ export interface StreakProgram {
   rewards: StreakReward[];
 }
 
+/** A Recompensa as the job of Premios reads it: what it asks for and the copy of what it promises. */
+export interface GrantableStreakReward {
+  id: number;
+  requiredCount: number;
+  repeatable: boolean;
+  type: StreakRewardType;
+  value: number | null;
+  description: string | null;
+  serviceName: string | null;
+  validForDays: number | null;
+}
+
+/** A program with its Rachas on and at least one Recompensa that can be earned. */
+export interface ActiveStreakProgram {
+  owner: StreakProgramOwner;
+  burnAfterDays: number;
+  rewards: GrantableStreakReward[];
+}
+
 /** What a Negocio or a Usuario that never touched their Rachas has. */
 export const NO_STREAK_PROGRAM: StreakProgram = {
   active: false,

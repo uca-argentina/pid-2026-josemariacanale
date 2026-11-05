@@ -6,6 +6,8 @@ import {
   SeriesConfirmation,
   SeriesNotice,
 } from '../domain/mailer';
+import { PromisedPrize } from '../domain/streaks/streak-prize';
+import { StreakRewardType } from '../domain/streaks/streak-program';
 
 /**
  * Reads the front's base URL, where the Enlace del Turno of the Confirmación de reserva points. Throws when it is
@@ -31,6 +33,20 @@ const formatWhen = (startsAt: Date, timeZone: string) =>
     hourCycle: 'h23',
     timeZone,
   }).format(startsAt);
+
+/** What a Premio gives, in the Cliente's words; what the Dueño typed goes escaped. */
+const promisedText = ({ type, value, description, serviceName }: PromisedPrize) => {
+  switch (type) {
+    case StreakRewardType.PERCENT_DISCOUNT:
+      return `${new Intl.NumberFormat('es-AR').format(value ?? 0)}% de descuento`;
+    case StreakRewardType.AMOUNT_DISCOUNT:
+      return `$${new Intl.NumberFormat('es-AR').format(value ?? 0)} de descuento`;
+    case StreakRewardType.GIFT:
+      return escapeHtml(description ?? '');
+    case StreakRewardType.FREE_SERVICE:
+      return `${escapeHtml(serviceName ?? 'Un Servicio')} gratis`;
+  }
+};
 
 @Injectable()
 export class NodemailerMailer implements Mailer {
@@ -156,6 +172,26 @@ export class NodemailerMailer implements Mailer {
       to: email,
       subject: '¿Cómo te fue en tu turno?',
       html: `<p>Tu turno de ${escapeHtml(serviceName)} del ${when} ya terminó. Contanos cómo te fue: <a href="${url}">${url}</a></p>`,
+    });
+  }
+
+  async sendStreakPrizeNotice(
+    email: string,
+    clientName: string,
+    promised: PromisedPrize,
+    expiresAt: Date | null,
+    timeZone: string,
+    link: string,
+  ) {
+    const url = `${this.frontendUrl}/turnos/${link}`;
+    const until = expiresAt
+      ? ` Vale hasta el ${new Intl.DateTimeFormat('es-AR', { dateStyle: 'full', timeZone }).format(expiresAt)}.`
+      : '';
+    await this.transporter.sendMail({
+      from: process.env.SMTP_FROM,
+      to: email,
+      subject: '¡Ganaste un Premio!',
+      html: `<p>¡Hola, ${escapeHtml(clientName)}! Tu Racha te dio un Premio: ${promisedText(promised)}.${until} Pedilo en tu próximo turno. Mirá tu Racha: <a href="${url}">${url}</a></p>`,
     });
   }
 

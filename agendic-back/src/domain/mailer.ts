@@ -1,3 +1,5 @@
+import { PromisedPrize } from './streaks/streak-prize';
+
 export const MAILER = Symbol('Mailer');
 
 /** The Turnos of a Serie to list in its Confirmación de reserva, with the zone their dates are shown in. */
@@ -62,6 +64,18 @@ export interface Mailer {
     serviceName: string,
     startsAt: Date,
     timeZone: string,
+  ): Promise<void>;
+  /**
+   * Aviso de Premio: tells the Cliente what their Racha earned and until when it lasts (`expiresAt` shown in `timeZone`,
+   * null when it does not expire), with the Enlace del Turno of the Turno that gave it.
+   */
+  sendStreakPrizeNotice(
+    email: string,
+    clientName: string,
+    promised: PromisedPrize,
+    expiresAt: Date | null,
+    timeZone: string,
+    link: string,
   ): Promise<void>;
   /** Confirmación de anotación: the Cliente joined the Lista de espera of `serviceName` for `date` (`YYYY-MM-DD`), with the link to Salir. */
   sendWaitlistConfirmation(

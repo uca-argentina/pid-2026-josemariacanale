@@ -11,6 +11,7 @@
 // - BookingSlug: exactly one of businessId / userId (check), slug lowercase (check) (ADR 0026)
 // - Booking.cancelledAt only with status CANCELLED, Booking.rejectedAt only with REJECTED (check)
 // - StreakProgram: exactly one of businessId / userId (check), burnAfterDays 1 to 365 (check); StreakReward: requiredCount and validForDays above 0 (check)
+// - StreakPrize: exactly one of businessId / userId (check), clientEmail lowercase (check), reachedCount above 0 (check)
 // - AvailabilityInterval Franjas of one weekday don't overlap: checked by the API only, since `days` is an array (ADR 0020)
 
 generator client {
@@ -88,6 +89,8 @@ model User {
   outOfOffices    OutOfOffice[]
   holidaySettings UserHolidaySettings?
   streakProgram   StreakProgram?
+  streakPrizes    StreakPrize[] @relation("StreakPrizeOwner")
+  redeemedStreakPrizes StreakPrize[] @relation("StreakPrizeRedeemedBy")
 }
 
 model Business {
@@ -105,6 +108,7 @@ model Business {
   invitations   Invitation[]
   bookingSlug   BookingSlug?
   streakProgram StreakProgram?
+  streakPrizes  StreakPrize[]
 }
 
 /// Invitaci�n pendiente de un Negocio a un email para ser Empleado (ADR 0019); vence a los 7 d�as.
@@ -332,6 +336,7 @@ model Booking {
   fromReschedule Booking?  @relation("Reschedule", fields: [fromRescheduleId], references: [id])
   rescheduledTo  Booking?  @relation("Reschedule")
   rating         BookingRating?
+  redeemedStreakPrizes StreakPrize[]
 
   @@index([seriesId])
 }
@@ -443,6 +448,37 @@ model StreakReward {
 
   program StreakProgram @relation(fields: [programId], references: [id])
   service Service?      @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  prizes  StreakPrize[]
 
   @@index([programId])
+}
+
+/// Premio: lo que ganó una Ficha del Cliente al llegar su Racha a una Recompensa. Copia lo prometido: editar la Recompensa no lo cambia.
+model StreakPrize {
+  id                Int              @id @default(autoincrement())
+  rewardId          Int
+  businessId        Int?
+  userId            Int?
+  clientEmail       String // lowercase: with the Negocio or the Usuario, the Ficha del Cliente
+  streakStartedAt   DateTime         @db.Timestamptz(3) // startsAt of the Racha's first Turno
+  reachedCount      Int // the Turnos of the Racha that earned it
+  type              StreakRewardType
+  value             Decimal?         @db.Decimal(10, 2)
+  description       String?
+  serviceName       String?
+  grantedAt         DateTime         @db.Timestamptz(3)
+  expiresAt         DateTime?        @db.Timestamptz(3)
+  redeemedAt        DateTime?        @db.Timestamptz(3)
+  redeemedBookingId Int?
+  redeemedByUserId  Int?
+
+  reward          StreakReward @relation(fields: [rewardId], references: [id], onDelete: Restrict)
+  business        Business?    @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  user            User?        @relation("StreakPrizeOwner", fields: [userId], references: [id], onDelete: Restrict)
+  redeemedBooking Booking?     @relation(fields: [redeemedBookingId], references: [id], onDelete: Restrict)
+  redeemedBy      User?        @relation("StreakPrizeRedeemedBy", fields: [redeemedByUserId], references: [id], onDelete: Restrict)
+
+  @@unique([rewardId, clientEmail, streakStartedAt, reachedCount])
+  @@index([businessId, clientEmail])
+  @@index([userId, clientEmail])
 }

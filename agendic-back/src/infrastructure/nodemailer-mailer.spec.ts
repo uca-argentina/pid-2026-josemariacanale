@@ -1,3 +1,5 @@
+import { PromisedPrize } from '../domain/streaks/streak-prize';
+import { StreakRewardType } from '../domain/streaks/streak-program';
 import { createTransport } from 'nodemailer';
 import { NodemailerMailer, readFrontendUrl } from './nodemailer-mailer';
 
@@ -99,6 +101,53 @@ describe('NodemailerMailer.sendRatingRequest', () => {
     expect(html).toContain('lunes, 19 de octubre de 2026');
     expect(html).toContain('22:30');
     expect(html).toContain('http://localhost:3000/turnos/secret');
+  });
+});
+
+describe('NodemailerMailer.sendStreakPrizeNotice', () => {
+  const sendMail = jest.fn().mockResolvedValue(undefined);
+  const nothing = { value: null, description: null, serviceName: null };
+  const send = (promised: PromisedPrize, expiresAt: Date | null = null) =>
+    new NodemailerMailer().sendStreakPrizeNotice(
+      'a@b.com',
+      'Carla <i>',
+      promised,
+      expiresAt,
+      'America/Argentina/Buenos_Aires',
+      'secret',
+    );
+
+  beforeEach(() => {
+    process.env.FRONTEND_URL = 'http://localhost:3000';
+    (createTransport as jest.Mock).mockReturnValue({ sendMail });
+    sendMail.mockClear();
+  });
+
+  it('names the Cliente, escaped, and links the Enlace del Turno', async () => {
+    await send({ ...nothing, type: StreakRewardType.GIFT, description: 'Un lavado <b>' });
+
+    const { to, html } = sendMail.mock.calls[0][0];
+    expect(to).toBe('a@b.com');
+    expect(html).toContain('Carla &#60;i&#62;');
+    expect(html).toContain('Un lavado &#60;b&#62;');
+    expect(html).toContain('http://localhost:3000/turnos/secret');
+    expect(html).not.toContain('Vale hasta');
+  });
+
+  it('says the expiry day in the zone of the Turno', async () => {
+    await send({ ...nothing, type: StreakRewardType.GIFT, description: 'x' }, new Date('2026-10-20T01:30:00Z'));
+
+    expect(sendMail.mock.calls[0][0].html).toContain('Vale hasta el lunes, 19 de octubre de 2026');
+  });
+
+  it.each([
+    [{ ...nothing, type: StreakRewardType.PERCENT_DISCOUNT, value: 12.5 }, '12,5% de descuento'],
+    [{ ...nothing, type: StreakRewardType.AMOUNT_DISCOUNT, value: 3600 }, '$3.600 de descuento'],
+    [{ ...nothing, type: StreakRewardType.FREE_SERVICE, serviceName: 'Corte <b>' }, 'Corte &#60;b&#62; gratis'],
+  ])('says what %j promises', async (promised, text) => {
+    await send(promised);
+
+    expect(sendMail.mock.calls[0][0].html).toContain(text);
   });
 });
 

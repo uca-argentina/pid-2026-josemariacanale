@@ -84,6 +84,10 @@ import {
   STREAK_PROGRAMS_REPOSITORY,
   StreakProgramsRepository,
 } from './domain/streaks/streak-programs.repository';
+import {
+  STREAK_PRIZES_REPOSITORY,
+  StreakPrizesRepository,
+} from './domain/streaks/streak-prizes.repository';
 import { User } from './domain/users/user';
 import {
   USERS_REPOSITORY,
@@ -132,6 +136,7 @@ export async function createTestApp() {
     sendBookingReschedule: jest.fn(),
     sendBookingRejection: jest.fn(),
     sendRatingRequest: jest.fn(),
+    sendStreakPrizeNotice: jest.fn(),
     sendWaitlistConfirmation: jest.fn(),
     sendFreeSlotNotice: jest.fn(),
     sendBookingCancellationWithCause: jest.fn(),
@@ -300,12 +305,19 @@ export async function createTestApp() {
     bookingRows: jest.fn(),
   };
   const streakPrograms: jest.Mocked<StreakProgramsRepository> = {
+    listActiveIncludeRewards: jest.fn(),
     findByOwnerIncludeRewards: jest.fn(),
     save: jest.fn(),
     createReward: jest.fn(),
     findRewardByIdIncludeProgram: jest.fn(),
     updateReward: jest.fn(),
     deleteReward: jest.fn(),
+  };
+  const streakPrizes: jest.Mocked<StreakPrizesRepository> = {
+    listEmailsAttendedBetween: jest.fn(),
+    listFichaBookings: jest.fn(),
+    listGrantedKeys: jest.fn(),
+    createMany: jest.fn(),
   };
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(CLOCK)
@@ -352,6 +364,8 @@ export async function createTestApp() {
     .useValue(analytics)
     .overrideProvider(STREAK_PROGRAMS_REPOSITORY)
     .useValue(streakPrograms)
+    .overrideProvider(STREAK_PRIZES_REPOSITORY)
+    .useValue(streakPrizes)
     .compile();
   const app = setupApp(moduleRef.createNestApplication());
   await app.init();
@@ -379,6 +393,7 @@ export async function createTestApp() {
     googleCalendar,
     analytics,
     streakPrograms,
+    streakPrizes,
     http: request(app.getHttpServer()),
   };
 }
