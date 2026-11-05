@@ -151,7 +151,7 @@ export function BookingDetailsSheet({
                                     </ul>
                                 </Section>
                             )}
-                            <BookingStreak booking={booking} />
+                            <BookingStreak key={booking.id} booking={booking} />
                             <BookingHistory booking={booking} timeFormat={preferences.timeFormat} />
                         </div>
 

@@ -16,32 +16,31 @@ type Prize = NonNullable<Extract<BookingStreakResult, { ok: true }>['streak']>['
  * El bloque Racha del detalle del Turno: la Racha del Cliente y hasta cuándo dura, lo que le falta para la próxima
  * Recompensa y sus Premios disponibles, que el Empleado Canjea con una confirmación. Se pide al abrir el Turno y de nuevo
  * después de Canjear. No aparece si no hay Racha en curso ni Premios; el mensaje de un Canje que no se pudo (ya Canjeado,
- * vencido…) sí, y queda hasta el próximo Canje.
+ * vencido…) sí, y queda hasta el próximo Canje. Quien lo monta le pone `key={booking.id}`: cada Turno empieza de cero, sin
+ * la respuesta ni el mensaje de otro.
  */
 export function BookingStreak({ booking }: { booking: Booking }) {
     const [reload, setReload] = useState(0);
     const key = streakKey(booking, reload);
-    const [loaded, setLoaded] = useState<{ bookingId: number; key: string; result: BookingStreakResult } | null>(null);
-    const [message, setMessage] = useState<{ bookingId: number; text: string } | null>(null);
+    const [result, setResult] = useState<BookingStreakResult | null>(null);
+    const [message, setMessage] = useState<string | null>(null);
     const [confirming, setConfirming] = useState<Prize | null>(null);
     const [isPending, startTransition] = useTransition();
 
     useEffect(() => {
         let current = true;
         getBookingStreakAction(booking.id).then(
-            (result) => current && setLoaded({ bookingId: booking.id, key, result }),
-            () => current && setLoaded({ bookingId: booking.id, key, result: { ok: false, message: STREAK_LOAD_ERROR } }),
+            (loaded) => current && setResult(loaded),
+            () => current && setResult({ ok: false, message: STREAK_LOAD_ERROR }),
         );
         return () => {
             current = false;
         };
     }, [booking.id, key]);
 
-    // The previous answer stays on screen while the next one loads, but never the one of another Turno.
-    const result = loaded?.bookingId === booking.id ? loaded.result : null;
-    const error = message?.bookingId === booking.id ? message.text : undefined;
+    // La respuesta anterior sigue a la vista mientras carga la próxima.
     const data = result?.ok ? result.streak : null;
-    if (!data && !error && !(result && !result.ok)) return null;
+    if (!data && !message && !(result && !result.ok)) return null;
 
     const canRedeem = booking.status === 'BOOKED';
     const redeem = (prize: Prize) =>
@@ -50,7 +49,7 @@ export function BookingStreak({ booking }: { booking: Booking }) {
             if (redeemed.ok) {
                 setMessage(null);
                 toast.success(`Canjeaste: ${redeemed.text}`);
-            } else setMessage({ bookingId: booking.id, text: redeemed.message });
+            } else setMessage(redeemed.message);
             setReload((n) => n + 1);
         });
 
@@ -92,9 +91,9 @@ export function BookingStreak({ booking }: { booking: Booking }) {
             {data && data.prizes.length > 0 && !canRedeem && (
                 <p className="m-0 text-[12.5px] font-medium text-[#6b7280]">Los Premios se canjean en un turno aceptado.</p>
             )}
-            {error && (
+            {message && (
                 <p role="alert" className="m-0 text-[13px] font-medium text-[#b91c1c]">
-                    {error}
+                    {message}
                 </p>
             )}
             <PanelConfirm
