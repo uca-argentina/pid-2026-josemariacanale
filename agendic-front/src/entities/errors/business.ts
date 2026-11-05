@@ -19,7 +19,7 @@ export class AlreadyOwnerError extends Error {
     }
 }
 
-/** 400: la Ubicación de la Sucursal falta, está fuera de rango o se la quiso quitar. */
+/** 400: el punto de la Ubicación (`location`) falta, está fuera de rango o se lo quiso quitar. */
 export class InvalidLocationError extends Error {
     constructor(message: string, options?: ErrorOptions) {
         super(message, options);

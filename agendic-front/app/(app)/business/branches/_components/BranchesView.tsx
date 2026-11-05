@@ -12,6 +12,7 @@ import {
     type BranchFormFields,
     type FieldErrors,
 } from '@/app/_components/business-schemas';
+import { useGoogleMaps } from '@/app/_components/maps/google-maps';
 import { Alert, AlertAction, AlertDescription, AlertTitle } from '@/app/_components/ui/alert';
 import { locationSchema, type Location } from '@/src/entities/models/branch';
 import {
@@ -140,11 +141,13 @@ function BranchCard({ branch, businessSlug }: { branch: BranchItem; businessSlug
     const [isPending, startTransition] = useTransition();
     const dirty = (Object.keys(initial) as (keyof BranchFormFields)[]).some((k) => values[k] !== initial[k]);
     const addressId = `branch-${branch.id}-address`;
+    const maps = useGoogleMaps();
 
     const save = (event: React.FormEvent) => {
         event.preventDefault();
-        // An old Sucursal without a punto can still save its other fields; a new address always needs one.
-        if (values.address !== initial.address && !values.location) return setErrors({ location: PICK_ADDRESS_MESSAGE });
+        // An old Sucursal without a punto still saves its other fields; a new address needs one, unless there is no
+        // map to pick it from (no key): then the address is saved as text, as #390 asks.
+        if (maps !== false && values.address !== initial.address && !values.location) return setErrors({ location: PICK_ADDRESS_MESSAGE });
         const parsed = branchEditSchema.safeParse(values);
         if (!parsed.success) return setErrors(fieldErrorsOf(parsed.error));
         setErrors({});

@@ -21,7 +21,9 @@ export function BranchFormFields({
     errors: FieldErrors;
 }) {
     const id = (field: string) => `${idPrefix}-${field}`;
-    const invalid = (field: string) => (errors[field] ? { 'aria-invalid': true, 'aria-describedby': `${id(field)}-error` } : {});
+    // The punto has no input of its own: its error belongs to the address, so both point at the address' message.
+    const invalid = (field: string) =>
+        errors[field] ? { 'aria-invalid': true, 'aria-describedby': `${id(field === 'location' ? 'address' : field)}-error` } : {};
 
     return (
         <>
@@ -51,7 +53,7 @@ export function BranchFormFields({
                     address={value.address}
                     location={value.location}
                     onChange={onChange}
-                    invalid={errors.address || errors.location ? { 'aria-invalid': true, 'aria-describedby': `${id('address')}-error` } : {}}
+                    invalid={{ ...invalid('address'), ...invalid('location') }}
                 />
             </PanelField>
             <PanelField label="Zona horaria" htmlFor={id('timeZone')} error={errors.timeZone}>

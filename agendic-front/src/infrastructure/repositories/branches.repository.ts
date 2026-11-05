@@ -26,7 +26,7 @@ export class BranchesRepository implements IBranchesRepository {
      *
      * @throws {SlugTakenError} 409
      * @throws {InvalidSlugError} 400 sobre el tramo
-     * @throws {InvalidLocationError} 400 sobre la Ubicación
+     * @throws {InvalidLocationError} 400 sobre el punto
      * @throws {BranchImagesRejectedError} 400 sobre las imágenes, o 413
      * @throws {ApiRequestError} cualquier otra falla, o un body que no es una Sucursal
      */
@@ -42,7 +42,7 @@ export class BranchesRepository implements IBranchesRepository {
      *
      * @throws {SlugTakenError} 409
      * @throws {InvalidSlugError} 400 sobre el tramo
-     * @throws {InvalidLocationError} 400 sobre la Ubicación, o por quitarla
+     * @throws {InvalidLocationError} 400 sobre el punto, o por quitarlo
      * @throws {ApiRequestError} cualquier otra falla, o un body que no es una Sucursal
      */
     async updateBranch({ id, ...changes }: UpdateBranch): Promise<Branch> {

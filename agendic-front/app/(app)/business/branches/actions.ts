@@ -5,7 +5,9 @@ import { redirect, unstable_rethrow } from 'next/navigation';
 import { isSessionExpired } from '@/app/api-error';
 import { SIGN_IN_PATH } from '@/app/routes';
 import { getInjection } from '@/di/container';
+import { PICK_ADDRESS_MESSAGE } from '@/app/_components/business-schemas';
 import { BRANCH_IMAGES_REJECTED } from '../branch-images-messages';
+import type { Location } from '@/src/entities/models/branch';
 import {
     BranchImageLimitError,
     BranchImagesRejectedError,
@@ -21,9 +23,6 @@ import { ApiRequestError, InputParseError } from '@/src/entities/errors/common';
 export type BranchActionResult<T = undefined> =
     | { ok: true; data: T }
     | { ok: false; message: string; field?: 'slug' | 'name' | 'address' };
-
-/** Qué ve el Dueño si el back rechaza la Ubicación: el formulario solo la arma al elegir una sugerencia. */
-const INVALID_LOCATION_MESSAGE = 'Elegí una dirección de la lista.';
 
 /** Por qué no se puede borrar la única imagen de una Sucursal, si el back lo rechaza igual (otra pestaña desactualizada). */
 const LAST_BRANCH_IMAGE_MESSAGE = 'La sucursal necesita al menos una imagen';
@@ -49,7 +48,8 @@ async function run<T>(fallback: string, work: () => Promise<T>): Promise<BranchA
         unstable_rethrow(error);
         if (error instanceof SlugTakenError) return { ok: false, field: 'slug', message: 'Esa dirección ya está en uso.' };
         if (error instanceof InvalidSlugError) return { ok: false, field: 'slug', message: 'El Enlace de reserva no es válido.' };
-        if (error instanceof InvalidLocationError) return { ok: false, field: 'address', message: INVALID_LOCATION_MESSAGE };
+        // The form only builds a punto from a suggestion, so a 400 about it means picking one again.
+        if (error instanceof InvalidLocationError) return { ok: false, field: 'address', message: PICK_ADDRESS_MESSAGE };
         if (error instanceof CabinNameTakenError) return { ok: false, field: 'name', message: 'Ya hay una Cabina con ese nombre en esta Sucursal.' };
         if (error instanceof InvalidCabinNameError) return { ok: false, field: 'name', message: 'El nombre tiene que tener entre 1 y 60 caracteres.' };
         if (error instanceof CabinHasUpcomingBookingsError) return { ok: false, message: upcomingBookingsMessage(error.upcomingBookings) };
@@ -89,13 +89,14 @@ export async function updateBranchAction(payload: unknown) {
  * La zona horaria de la Ubicación elegida, para precargarla. Si falla devuelve null y el formulario deja la que tenía:
  * es una ayuda, no un paso obligatorio.
  */
-export async function getTimeZoneAction(location: { lat: number; lng: number }): Promise<string | null> {
+export async function getTimeZoneAction(location: Location): Promise<string | null> {
     try {
         const { timeZone } = await getInjection('IGetTimeZoneController')(location);
         return timeZone;
     } catch (error) {
         unstable_rethrow(error);
-        getInjection('ICrashReporterService').report(error);
+        // No redirect on an expired Sesión: this runs mid-form, and saving will send the Dueño to sign in anyway.
+        if (!isSessionExpired(error) && !(error instanceof InputParseError)) getInjection('ICrashReporterService').report(error);
         return null;
     }
 }

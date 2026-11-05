@@ -12,7 +12,8 @@ import {
     LastBranchImageError,
     SlugTakenError,
 } from '@/src/entities/errors/business';
-import { ApiRequestError } from '@/src/entities/errors/common';
+import { UnauthenticatedError } from '@/src/entities/errors/auth';
+import { ApiRequestError, InputParseError } from '@/src/entities/errors/common';
 
 const mockControllers: Record<string, jest.Mock> = {
     ICreateBranchController: jest.fn(),
@@ -147,6 +148,16 @@ describe('getTimeZoneAction', () => {
 
         await expect(getTimeZoneAction({ lat: 0, lng: 0 })).resolves.toBeNull();
         expect(mockReport).toHaveBeenCalledWith(error);
+    });
+
+    it.each([
+        ['no Sesión', new UnauthenticatedError('No hay Sesión')],
+        ['an invalid punto', new InputParseError('Invalid data')],
+    ])('returns null without reporting it on %s', async (_case, error) => {
+        mockControllers.IGetTimeZoneController.mockRejectedValue(error);
+
+        await expect(getTimeZoneAction({ lat: 0, lng: 0 })).resolves.toBeNull();
+        expect(mockReport).not.toHaveBeenCalled();
     });
 });
 

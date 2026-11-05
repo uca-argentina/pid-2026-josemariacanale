@@ -80,7 +80,7 @@ export class BusinessesRepository implements IBusinessesRepository {
      * @throws {AlreadyOwnerError} 409 "Ya tenés un Negocio"
      * @throws {SlugTakenError} el otro 409, dirección en uso
      * @throws {InvalidSlugError} 400 sobre `business.slug`
-     * @throws {InvalidLocationError} 400 sobre la Ubicación de la Sucursal
+     * @throws {InvalidLocationError} 400 sobre el punto de la Sucursal
      * @throws {BranchImagesRejectedError} 400 sobre las imágenes, o 413
      * @throws {ApiRequestError} cualquier otra falla, o un body que no es un Negocio creado
      */
