@@ -1,6 +1,9 @@
 {
   "name": "2026-agendic-back",
   "version": "0.0.1",
+  "engines": {
+    "node": ">=24.9"
+  },
   "description": "",
   "author": "",
   "private": true,
