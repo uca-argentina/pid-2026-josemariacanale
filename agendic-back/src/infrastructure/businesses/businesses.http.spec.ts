@@ -381,6 +381,7 @@ describe('Negocio', () => {
       'trpc',
       'lista-de-espera',
       'logros',
+      'streaks',
     ])(
       'answers 409 and creates nothing when the Enlace de reserva is the reserved word %j',
       async (slug) => {

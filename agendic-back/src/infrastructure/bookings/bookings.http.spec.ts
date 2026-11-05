@@ -13,6 +13,7 @@ import {
   TooManyRequestsError,
 } from '../../domain/errors';
 import { OutOfOfficeReason } from '../../domain/out-of-office/out-of-office';
+import { StreakRewardType } from '../../domain/streaks/streak-program';
 import {
   ANAS_BRANCH,
   ANAS_BUSINESS,
@@ -181,6 +182,8 @@ describe('Turno', () => {
         VALID_BOOKING.clientEmail,
         BOOKING.link,
         null,
+        undefined,
+        undefined,
       );
     });
 
@@ -198,6 +201,8 @@ describe('Turno', () => {
         VALID_BOOKING.clientEmail,
         BOOKING.link,
         1.51,
+        undefined,
+        undefined,
       );
     });
 
@@ -214,7 +219,112 @@ describe('Turno', () => {
         VALID_BOOKING.clientEmail,
         BOOKING.link,
         null,
+        undefined,
+        undefined,
       );
+    });
+
+    describe('la línea de la Racha en la Confirmación de reserva', () => {
+      const GIFT_REWARD = {
+        id: 7,
+        requiredCount: 5,
+        repeatable: false,
+        type: StreakRewardType.GIFT,
+        value: null,
+        description: 'Un lavado',
+        service: null,
+        validForDays: null,
+      };
+      const attended = (daysAgo: number) => {
+        const startsAt = new Date(t.clock.now().getTime() - daysAgo * 86_400_000);
+        return {
+          email: VALID_BOOKING.clientEmail,
+          clientName: 'Carla',
+          link: `link-${daysAgo}`,
+          timeZone: ANAS_BRANCH.timeZone,
+          startsAt,
+          endsAt: new Date(startsAt.getTime() + 3_600_000),
+          status: BookingStatus.BOOKED,
+          noShowAt: null,
+          employeeNoShowAt: null,
+        };
+      };
+
+      beforeEach(() => {
+        t.streakPrizes.findOwnerByBookingId.mockResolvedValue({ kind: 'business', businessId: ANAS_BUSINESS.id });
+        t.streakPrizes.listAvailable.mockResolvedValue([]);
+        t.streakPrograms.findByOwnerIncludeRewards.mockResolvedValue({
+          active: true,
+          burnAfterDays: 30,
+          rewards: [GIFT_REWARD],
+        });
+        t.streakPrizes.listClientFileBookings.mockResolvedValue([attended(20), attended(10)]);
+      });
+
+      it('con el programa activo, manda cuántos Turnos lleva y qué Recompensa sigue', async () => {
+        await t.http.post('/bookings').send(VALID_BOOKING).expect(201);
+
+        expect(t.streakPrizes.findOwnerByBookingId).toHaveBeenCalledWith(BOOKING.id);
+        expect(t.mailer.sendBookingConfirmation).toHaveBeenCalledWith(
+          VALID_BOOKING.clientEmail,
+          BOOKING.link,
+          null,
+          undefined,
+          {
+            count: 2,
+            next: {
+              reward: { type: 'GIFT', value: null, description: 'Un lavado', serviceName: null },
+              remaining: 3,
+            },
+          },
+        );
+      });
+
+      it('sin Racha en curso manda la cuenta en 0, para que el mail invite a empezarla', async () => {
+        t.streakPrizes.listClientFileBookings.mockResolvedValue([]);
+
+        await t.http.post('/bookings').send(VALID_BOOKING).expect(201);
+
+        expect(t.mailer.sendBookingConfirmation).toHaveBeenCalledWith(
+          VALID_BOOKING.clientEmail,
+          BOOKING.link,
+          null,
+          undefined,
+          expect.objectContaining({ count: 0, next: expect.objectContaining({ remaining: 5 }) }),
+        );
+      });
+
+      it.each([
+        ['apagado', { active: false, burnAfterDays: 30, rewards: [GIFT_REWARD] }],
+        ['sin Recompensas', { active: true, burnAfterDays: 30, rewards: [] }],
+        ['inexistente', null],
+      ])('con el programa %s, el mail no cambia', async (_case, program) => {
+        t.streakPrograms.findByOwnerIncludeRewards.mockResolvedValue(program);
+
+        await t.http.post('/bookings').send(VALID_BOOKING).expect(201);
+
+        expect(t.mailer.sendBookingConfirmation).toHaveBeenCalledWith(
+          VALID_BOOKING.clientEmail,
+          BOOKING.link,
+          null,
+          undefined,
+          undefined,
+        );
+      });
+
+      it('si no se puede leer la Racha, el Turno queda reservado y el mail sale sin la línea', async () => {
+        t.streakPrograms.findByOwnerIncludeRewards.mockRejectedValue(new Error('database down'));
+
+        await t.http.post('/bookings').send(VALID_BOOKING).expect(201);
+
+        expect(t.mailer.sendBookingConfirmation).toHaveBeenCalledWith(
+          VALID_BOOKING.clientEmail,
+          BOOKING.link,
+          null,
+          undefined,
+          undefined,
+        );
+      });
     });
 
     it('leaves the Turno PENDING when the Servicio requires approval', async () => {

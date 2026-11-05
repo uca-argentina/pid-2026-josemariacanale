@@ -36,6 +36,7 @@ import {
 } from '../../domain/users/users.repository';
 import { assertChosenEmployee } from '../slots/assert-chosen-employee';
 import { ListSlotsUseCase } from '../slots/list-slots.use-case';
+import { ClientFileStreakReader } from '../streaks/client-file-streak.reader';
 import { assertBookable } from './assert-booking-rules';
 import { pickCabin } from './pick-cabin';
 import { pickEmployee } from './pick-employee';
@@ -55,6 +56,7 @@ export class CreateBookingUseCase {
     @Inject(CLOCK) private readonly clock: Clock,
     @Inject(MAILER) private readonly mailer: Mailer,
     private readonly listSlots: ListSlotsUseCase,
+    private readonly streaks: ClientFileStreakReader,
     private readonly invites: ClientInvites,
   ) {}
 
@@ -146,10 +148,15 @@ export class CreateBookingUseCase {
     const attendingUser = employee ? null : await this.users.findById(attendant.userId);
     if (!employee && !attendingUser)
       throw new NotFoundError(`User ${attendant.userId} not found`);
+    const streak = await this.streaks.progressOfBooking(
+      booking.id,
+      input.clientEmail,
+      now,
+    );
     const invite = await this.invites.request([booking.link!]);
     await (invite
-      ? this.mailer.sendBookingConfirmation(input.clientEmail, booking.link!, booking.depositAmount, undefined, invite)
-      : this.mailer.sendBookingConfirmation(input.clientEmail, booking.link!, booking.depositAmount));
+      ? this.mailer.sendBookingConfirmation(input.clientEmail, booking.link!, booking.depositAmount, undefined, streak, invite)
+      : this.mailer.sendBookingConfirmation(input.clientEmail, booking.link!, booking.depositAmount, undefined, streak));
     return {
       ...booking,
       employeeName: (employee ?? attendingUser!).name,

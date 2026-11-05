@@ -22,6 +22,7 @@ const navItems: NavItem[] = [
     { id: 'services', href: '/services', label: 'Servicios' },
     { id: 'business', href: '/business', label: 'Negocios' },
     { id: 'analytics', href: '/analytics', label: 'Analíticas' },
+    { id: 'streaks', href: '/streaks', label: 'Rachas' },
 ];
 
 function initialsOf(name: string) {

@@ -1,4 +1,4 @@
-import type { CancelledSeries, ClientBooking } from '@/src/entities/models/client-booking';
+import type { CancelledSeries, ClientBooking, ClientBookingWithStreak } from '@/src/entities/models/client-booking';
 
 /**
  * El Turno de un Enlace del Turno (ADR 0022), sin cookie ni Sesión: el Enlace alcanza por sí solo para verlo,
@@ -6,11 +6,11 @@ import type { CancelledSeries, ClientBooking } from '@/src/entities/models/clien
  */
 export interface IClientBookingsRepository {
     /**
-     * Busca el Turno de un Enlace del Turno, en cualquier estado.
+     * Busca el Turno de un Enlace del Turno, en cualquier estado, con la Racha de su Cliente.
      *
      * @throws {NotFoundError} el Enlace no es de ningún Turno (404)
      */
-    getBookingByLink(link: string): Promise<ClientBooking>;
+    getBookingByLink(link: string): Promise<ClientBookingWithStreak>;
 
     /**
      * Cancela el Turno de un Enlace del Turno, con un Motivo de cancelación opcional.

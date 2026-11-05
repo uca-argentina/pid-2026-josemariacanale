@@ -81,7 +81,7 @@ actualizarlo a mano cuando se agregue, cambie o borre un endpoint.
 - POST: `multipart/form-data`, con la misma forma que el alta de Sucursal. El campo `data` lleva el `CreateBusinessDto` como JSON string, con la misma validación que un body JSON: falta `data`, JSON inválido, que no es un objeto o que no pasa el DTO → 400. El campo `images` lleva de 1 a 5 archivos, las imágenes de la primera Sucursal, con las mismas validaciones que `POST /branches/:id/images`: tipo que no es JPEG, PNG, WebP o GIF → 400 `La imagen tiene que ser JPEG, PNG, WebP o GIF`; más de 5 MB → 413. Sin archivos → 400 `At least one image is required`; más de 5 → 400 `Unexpected field - images`. Ningún 400/413 crea nada ni sube archivos, y tampoco se sube nada si el Usuario ya es Dueño o el Enlace de reserva es una palabra reservada. Las imágenes quedan en la primera Sucursal (con `order` según el orden recibido) en la misma transacción que crea Negocio, Sucursal, Servicio y Empleado; si una subida o el alta fallan (por ejemplo el 409 de Enlace de reserva en uso), los archivos ya subidos se borran. El Logo sigue subiéndose aparte con `PUT /businesses/:id/logo`
 - `CreateBusinessDto`: `{ business: { name, description, slug }, branch: { name, address, timeZone, slug, location }, service?: ServiceFieldsDto }`; `service` es opcional; `branch` valida sus campos igual que `CreateBranchDto` del endpoint de Sucursales, `slug` incluido: es requerido y sin él es 400 (antes, sin él la primera Sucursal tomaba el `slug` del Negocio y el Enlace de reserva quedaba `/x/x`). `location` también es requerida (#384): los 400 llevan el prefijo del campo, `branch.location is required`, `branch.location.lat must be between -90 and 90` y `branch.location.lng must be between -180 and 180`
 - `UpdateBusinessDto`: `{ name?, description?, slug? }`
-- `slug` (Enlace de reserva): se pasa a minúsculas, 3-40 caracteres, palabras de letras y dígitos unidas por guiones (`^[a-z0-9]+(-[a-z0-9]+)*$`); formato inválido → 400, slug ya tomado por otro Negocio o por un Usuario (aunque esté dado de baja) o palabra reservada (`bookings, services, business, availability, analytics, turnos, sign-in, sign-up, api, trpc, u, lista-de-espera, logros`) → 409 `Booking link already in use` (ADR 0026); `POST /businesses` y `PATCH /businesses/:id` comparten esa regla
+- `slug` (Enlace de reserva): se pasa a minúsculas, 3-40 caracteres, palabras de letras y dígitos unidas por guiones (`^[a-z0-9]+(-[a-z0-9]+)*$`); formato inválido → 400, slug ya tomado por otro Negocio o por un Usuario (aunque esté dado de baja) o palabra reservada (`bookings, services, business, availability, analytics, turnos, sign-in, sign-up, api, trpc, u, lista-de-espera, logros, streaks`) → 409 `Booking link already in use` (ADR 0026); `POST /businesses` y `PATCH /businesses/:id` comparten esa regla
 - Respuesta (`presentBusiness`): `{ id, name, description, slug, ownerId }`
 - Respuesta del POST: `{ business, branch, service, employee, images }` (cada uno con su propio presenter; `images` es la lista de imágenes de la primera Sucursal con `presentBranchImage`, en orden)
 
@@ -496,3 +496,63 @@ Calendario conectado (ADR 0036):
 - **`GET /waitlist-links/:secret`**: sin Sesión. **200** `{ date, timeZone, left: boolean, service: { name, slug }, business: { name, slug } | null, branch: { name, slug } | null, user: { slug } | null }`, con la convención de `ClientBooking`: `business` y `branch` nulos en un Servicio personal, `user` (el Enlace de reserva del Usuario) nulo en uno del Negocio. `timeZone` es la del Servicio. Responde aunque la fecha haya pasado o el Servicio esté dado de baja. **404** `Anotación not found`.
 - **`POST /waitlist-links/:secret/leave`**: sin Sesión, sin body. **204**; también **204**, sin tocar nada, si ya había Salido. **404** `Anotación not found`. El front lo llama desde un botón, nunca con un GET, porque los antivirus del mail abren los links.
 - `lista-de-espera` es palabra reservada del primer tramo del Enlace de reserva: Crear Negocio y editar el Negocio o el Usuario con ese slug dan **409** `Booking link already in use`. Su migración falla si un Negocio o Usuario ya lo tiene.
+
+## Rachas (#428)
+
+Configuración de las Rachas de un Negocio y de los Servicios personales de un Usuario. Solo se guarda la configuración: todavía no se gana nada. Todos exigen Sesión.
+
+| Método | Ruta | Auth | Qué hace |
+|---|---|---|---|
+| GET | `/businesses/:id/streak-program` | sí | El programa del Negocio (solo el Dueño) |
+| PUT | `/businesses/:id/streak-program` | sí | Prende o apaga las Rachas y fija el Tiempo de quemada (solo el Dueño); lo crea si no existe |
+| POST | `/businesses/:id/streak-rewards` | sí | Crea una Recompensa del Negocio (solo el Dueño); 201 |
+| GET | `/users/me/streak-program` | sí | El programa de los Servicios personales del Usuario de la Sesión |
+| PUT | `/users/me/streak-program` | sí | Igual que el PUT del Negocio, para los Servicios personales |
+| POST | `/users/me/streak-rewards` | sí | Crea una Recompensa de los Servicios personales; 201 |
+| PATCH | `/streak-rewards/:id` | sí | Edita una Recompensa (solo el dueño del programa); 200 |
+| DELETE | `/streak-rewards/:id` | sí | Borra una Recompensa (solo el dueño del programa); 204. El borrado es lógico (`deletedAt`) |
+
+- Respuesta del programa (`presentStreakProgram`, GET y PUT): `{ active, burnAfterDays: number | null, rewards: Reward[] }`. `rewards` va sin las borradas y por `requiredCount` ascendente. Sin programa: `{ active: false, burnAfterDays: null, rewards: [] }`.
+- `Reward` (`presentStreakReward`): `{ id, requiredCount, repeatable, type, value: number | null, description: string | null, service: { id, name } | null, validForDays: number | null }`. `service` se sigue mostrando con su nombre si el Servicio se dio de baja después.
+- `SaveStreakProgramDto` (PUT): `{ active: boolean, burnAfterDays: number }`, los dos obligatorios. `burnAfterDays` es un entero de 1 a 365; fuera de eso → 400. No toca las Recompensas.
+- `CreateStreakRewardDto` (POST): `{ requiredCount, repeatable, type, value?, description?, serviceId?, validForDays? }`; en los opcionales, `null` es lo mismo que no mandarlos. Si no existe el programa, lo crea apagado y con `burnAfterDays` nulo.
+- `UpdateStreakRewardDto` (PATCH): el mismo body, parcial. Lo que no viene queda como estaba; `null` en `value`, `description`, `serviceId` o `validForDays` lo saca. El tipo se valida sobre el resultado: cambiar `type` sin mandar el campo que pide, si la Recompensa no lo tenía, es 400.
+- `requiredCount` y `validForDays` son enteros mayores que 0. `type` es `PERCENT_DISCOUNT | AMOUNT_DISCOUNT | GIFT | FREE_SERVICE`.
+- Validación por `type`: `PERCENT_DISCOUNT` exige `value` entre 1 y 100; `AMOUNT_DISCOUNT` exige `value` > 0; `GIFT` exige `description` de 1 a 200 caracteres, que se guarda recortada; `FREE_SERVICE` exige `serviceId`. `value` admite hasta dos decimales y como mucho 99999999.99; si no → 400. Los campos que no corresponden al tipo se guardan nulos, aunque vengan en el body.
+- **400** si la forma es inválida, `burnAfterDays` está fuera de 1–365 o falta el campo que pide el tipo.
+- **403** `Only the Dueño of Business <id> can change its Rachas`: en las rutas de `/businesses/:id/...`, cualquier Usuario que no sea el Dueño, también un Empleado; en `/streak-rewards/:id`, un Empleado de ese Negocio que no es el Dueño.
+- **404** `Business not found` en las rutas de `/businesses/:id/...` si el Negocio no existe o está dado de baja (ADR 0024).
+- **404** `Streak reward <id> not found` si no existe, está borrada o es de otro. Un Usuario que no es Empleado del Negocio de la Recompensa recibe este 404, no el 403: un id no dice nada de los programas ajenos.
+- **422** `Service <id> cannot be a free Service for this program` si el Servicio no existe, no es del Negocio (o no es Servicio personal del Usuario) o está dado de baja. En el PATCH se valida solo si `serviceId` cambia: que el Servicio se haya dado de baja después no impide editar el resto de la Recompensa, aunque el body reenvíe el mismo. El front lo muestra debajo del selector de Servicio.
+
+## Racha en el detalle del Turno y Canjear (#431)
+
+Lo que el Empleado ve de la Racha del Cliente en el detalle del Turno, y cómo Canjea un Premio. Los dos exigen Sesión y que el Usuario sea quien atiende el Turno (como `/bookings/:id/history`).
+
+| Método | Ruta | Auth | Qué hace |
+|---|---|---|---|
+| GET | `/bookings/:id/streak` | sí | La Racha de la Ficha del Cliente del Turno, lo que le falta para la próxima Recompensa y sus Premios disponibles |
+| PATCH | `/bookings/:id/redeem-prize` | sí | Canjea un Premio de esa Ficha en este Turno |
+
+- La Ficha es la del Turno: el Negocio del Servicio (o el Usuario, en un Servicio personal) y el email del Cliente sin distinguir mayúsculas.
+- Respuesta del GET: `{ streak: { count, burnsAt: string | null } | null, nextReward: { reward: Reward, remaining: number } | null, prizes: Prize[] }`. `Reward` es el de las Rachas (#428).
+  - `streak` es `null` si el programa no está activo, no tiene Recompensas o no tiene Tiempo de quemada. Con el programa activo y sin Racha en curso es `{ count: 0, burnsAt: null }`: el front distingue "Rachas apagadas" de "todavía no empezó".
+  - `nextReward` es la Recompensa con la menor cantidad que la Racha todavía no alcanzó; en una repetible, su próximo múltiplo. `remaining` son los Turnos que faltan. Es `null` si todas las de "una vez" ya se alcanzaron, y siempre que `streak` es `null`.
+  - `prizes` son los Premios disponibles (sin Canjear y sin vencer), del más viejo al más nuevo, también con el programa apagado: ya estaban prometidos.
+- `Prize` = `{ id, type, value: number | null, description: string | null, serviceName: string | null, grantedAt, expiresAt: string | null }`. `serviceName` es la copia del nombre del Servicio al ganarlo.
+- Body del PATCH: `{ prizeId }`, un entero; si no, 400. Responde 200 con el `Prize` y `redeemedAt`. Se puede Canjear en un Turno de cualquier Servicio de la misma Ficha.
+- **404** `Booking not found` si el Turno no existe; **404** `Prize <id> not found` si el Premio no existe.
+- **403** `Only the assigned Employee can act on this Turno`.
+- **422** `Booking <id> is not accepted`; **422** `Prize <id> belongs to another Ficha del Cliente`; **422** `Prize <id> expired`, que vale desde el momento exacto de `expiresAt`.
+- **409** `Prize <id> already redeemed`. La escritura lleva la guarda `redeemedAt IS NULL`: de dos Canjes a la vez gana uno y el otro recibe este 409.
+- Se revisa en este orden: el Turno (404, 403), que esté aceptado (422), el Premio (404), que sea de la misma Ficha (422), que no esté Canjeado (409) y que no haya vencido (422). Un Premio ya Canjeado da 409 aunque además haya vencido, y un Premio que no existe en un Turno que no está aceptado da el 422 del Turno.
+
+## Racha en el Enlace del Turno y en la Confirmación de reserva (#432)
+
+Lo que el Cliente ve de su Racha. No hay endpoints nuevos.
+
+- `GET /booking-links/:secret` suma `streak: { count, burnsAt: string | null, nextReward: { reward: Reward, remaining: number } | null, prizes: Prize[] } | null`. `Reward` y `Prize` son los de `GET /bookings/:id/streak` (#431), y las reglas de `nextReward` y `prizes` son las mismas. La Ficha es la del Turno: el Negocio del Servicio (o el Usuario, en un Servicio personal) y el email del Cliente sin distinguir mayúsculas. El Enlace del Turno prueba que se tiene un Turno de ese email (ADR 0022): los Premios no se exponen en ningún otro lado sin Sesión.
+- `streak` es `null` si el programa no está activo, no tiene Recompensas o no tiene Tiempo de quemada, **aunque haya Premios disponibles** (un Negocio que apagó las Rachas no muestra nada al Cliente); y también si `count` es 0 y no hay Premios disponibles. Con `count` 0 y algún Premio disponible, `burnsAt` es `null`.
+- `streak` solo viaja en el GET: las respuestas de `PATCH /booking-links/:secret/...` no lo traen, así que el front lo vuelve a pedir si necesita refrescarlo.
+- Si la Racha no se puede leer, el Turno abre igual con `streak: null` y el error queda en el log.
+- Confirmación de reserva: con el programa activo y con Recompensas suma una línea al mail, también en el de una Serie. Con Racha en curso dice `Tu Racha: N Turnos. Te faltan M para <Recompensa>.` (`Te falta 1` si falta uno); con la cuenta en 0, `Empezá tu Racha: con M Turnos ganás <Recompensa>.`; si ya alcanzó todas las Recompensas de "una vez", solo `Tu Racha: N Turnos.`. La Racha es la de antes de ese Turno: todavía no se atendió. Sin programa activo el mail no cambia, y si la Racha no se puede leer el mail sale sin la línea.

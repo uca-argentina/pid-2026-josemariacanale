@@ -10,6 +10,8 @@
 // - no overlapping AvailabilityOverride Franjas per (availabilityId, date), half-open, skipping día-libre rows (exclusion constraint)
 // - BookingSlug: exactly one of businessId / userId (check), slug lowercase (check) (ADR 0026)
 // - Booking.cancelledAt only with status CANCELLED, Booking.rejectedAt only with REJECTED (check)
+// - StreakProgram: exactly one of businessId / userId (check), burnAfterDays 1 to 365 (check); StreakReward: requiredCount and validForDays above 0 (check)
+// - StreakPrize: exactly one of businessId / userId (check), clientEmail lowercase (check), reachedCount above 0 (check)
 // - AvailabilityInterval Franjas of one weekday don't overlap: checked by the API only, since `days` is an array (ADR 0020)
 
 generator client {
@@ -79,6 +81,13 @@ enum OutOfOfficeReason {
   PUBLIC_HOLIDAY
 }
 
+enum StreakRewardType {
+  PERCENT_DISCOUNT
+  AMOUNT_DISCOUNT
+  GIFT
+  FREE_SERVICE
+}
+
 model User {
   id         Int       @id @default(autoincrement())
   clerkId    String    @unique // Clerk is the identity's system of record; no local credentials
@@ -102,6 +111,9 @@ model User {
   calendar              CalendarConnection?
   bookingCalendarEvents BookingCalendarEvent[]
   badges                UserBadge[]
+  streakProgram         StreakProgram?
+  streakPrizes          StreakPrize[]          @relation("StreakPrizeOwner")
+  redeemedStreakPrizes  StreakPrize[]          @relation("StreakPrizeRedeemedBy")
 }
 
 model Business {
@@ -113,11 +125,13 @@ model Business {
   deletedAt   DateTime? @db.Timestamptz(3) // cuándo se dio de baja con su Dueño (ADR 0024); null mientras está activo, también en las filas previas a la migración
   logoUrl     String? // Logo del Negocio en el storage externo (ADR 0015); null si no tiene
 
-  owner       User         @relation(fields: [ownerId], references: [id])
-  branches    Branch[]
-  employees   Employee[]
-  invitations Invitation[]
-  bookingSlug BookingSlug?
+  owner         User           @relation(fields: [ownerId], references: [id])
+  branches      Branch[]
+  employees     Employee[]
+  invitations   Invitation[]
+  bookingSlug   BookingSlug?
+  streakProgram StreakProgram?
+  streakPrizes  StreakPrize[]
 }
 
 /// Invitaci�n pendiente de un Negocio a un email para ser Empleado (ADR 0019); vence a los 7 d�as.
@@ -212,13 +226,14 @@ model Service {
   repeatEveryWeeks     Int? // Repetición: weeks between the Turnos of a Serie; null with repeatMaxBookings when there is none (CHECK: both or neither)
   repeatMaxBookings    Int? // Repetición: most Turnos a Serie may have, 2 to 10
 
-  branch       Branch?           @relation(fields: [branchId], references: [id], onDelete: Restrict)
-  user         User?             @relation(fields: [userId], references: [id], onDelete: Restrict)
-  availability Availability?     @relation(fields: [availabilityId], references: [id], onDelete: Restrict)
-  employees    EmployeeService[]
-  cabins       ServiceCabin[]
-  bookings     Booking[]
-  waitlist     WaitlistEntry[]
+  branch        Branch?           @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  user          User?             @relation(fields: [userId], references: [id], onDelete: Restrict)
+  availability  Availability?     @relation(fields: [availabilityId], references: [id], onDelete: Restrict)
+  employees     EmployeeService[]
+  cabins        ServiceCabin[]
+  bookings      Booking[]
+  waitlist      WaitlistEntry[]
+  streakRewards StreakReward[]
 }
 
 model Employee {
@@ -336,15 +351,16 @@ model Booking {
   seriesId            String?            @db.Uuid // Serie (#303): shared by the Turnos booked together with Repetición; null in a Turno suelto. Reagendar copies it to the new Turno
   createdAt           DateTime           @default(now()) @db.Timestamptz(3)
 
-  service        Service               @relation(fields: [serviceId], references: [id])
-  employee       Employee?             @relation(fields: [employeeId], references: [id])
-  user           User                  @relation(fields: [userId], references: [id])
-  cabin          Cabin?                @relation(fields: [cabinId], references: [id])
-  client         Client?
-  fromReschedule Booking?              @relation("Reschedule", fields: [fromRescheduleId], references: [id])
-  rescheduledTo  Booking?              @relation("Reschedule")
-  rating         BookingRating?
-  calendarEvent  BookingCalendarEvent?
+  service              Service               @relation(fields: [serviceId], references: [id])
+  employee             Employee?             @relation(fields: [employeeId], references: [id])
+  user                 User                  @relation(fields: [userId], references: [id])
+  cabin                Cabin?                @relation(fields: [cabinId], references: [id])
+  client               Client?
+  fromReschedule       Booking?              @relation("Reschedule", fields: [fromRescheduleId], references: [id])
+  rescheduledTo        Booking?              @relation("Reschedule")
+  rating               BookingRating?
+  calendarEvent        BookingCalendarEvent?
+  redeemedStreakPrizes StreakPrize[]
 
   @@index([seriesId])
 }
@@ -426,6 +442,69 @@ model WaitlistEntry {
   createdAt  DateTime  @default(now()) @db.Timestamptz(3)
 
   service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+}
+
+/// Las Rachas de un Negocio o de los Servicios personales de un Usuario: uno de los dos, exactamente (CHECK).
+model StreakProgram {
+  id            Int     @id @default(autoincrement())
+  businessId    Int?    @unique
+  userId        Int?    @unique
+  burnAfterDays Int? // Tiempo de quemada, 1 to 365; null while nobody fixed it (a Recompensa created the program)
+  active        Boolean @default(false)
+
+  business Business?      @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  user     User?          @relation(fields: [userId], references: [id], onDelete: Restrict)
+  rewards  StreakReward[]
+}
+
+/// Recompensa: lo que se gana al llegar a `requiredCount` Turnos de la Racha.
+model StreakReward {
+  id            Int              @id @default(autoincrement())
+  programId     Int
+  requiredCount Int
+  repeatable    Boolean // true: every requiredCount Turnos; false: once per Racha
+  type          StreakRewardType
+  value         Decimal?         @db.Decimal(10, 2) // percentage or amount; null in the other types
+  description   String? // GIFT only
+  serviceId     Int? // FREE_SERVICE only
+  validForDays  Int? // how long its Premios last; null when they don't expire
+  deletedAt     DateTime?        @db.Timestamptz(3) // set = borrada; the row stays as history
+
+  program StreakProgram @relation(fields: [programId], references: [id])
+  service Service?      @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  prizes  StreakPrize[]
+
+  @@index([programId])
+}
+
+/// Premio: lo que ganó una Ficha del Cliente al llegar su Racha a una Recompensa. Copia lo prometido: editar la Recompensa no lo cambia.
+model StreakPrize {
+  id                Int              @id @default(autoincrement())
+  rewardId          Int
+  businessId        Int?
+  userId            Int?
+  clientEmail       String // lowercase: with the Negocio or the Usuario, the Ficha del Cliente
+  streakStartedAt   DateTime         @db.Timestamptz(3) // startsAt of the Racha's first Turno
+  reachedCount      Int // the Turnos of the Racha that earned it
+  type              StreakRewardType
+  value             Decimal?         @db.Decimal(10, 2)
+  description       String?
+  serviceName       String?
+  grantedAt         DateTime         @db.Timestamptz(3)
+  expiresAt         DateTime?        @db.Timestamptz(3)
+  redeemedAt        DateTime?        @db.Timestamptz(3)
+  redeemedBookingId Int?
+  redeemedByUserId  Int?
+
+  reward          StreakReward @relation(fields: [rewardId], references: [id], onDelete: Restrict)
+  business        Business?    @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  user            User?        @relation("StreakPrizeOwner", fields: [userId], references: [id], onDelete: Restrict)
+  redeemedBooking Booking?     @relation(fields: [redeemedBookingId], references: [id], onDelete: Restrict)
+  redeemedBy      User?        @relation("StreakPrizeRedeemedBy", fields: [redeemedByUserId], references: [id], onDelete: Restrict)
+
+  @@unique([rewardId, clientEmail, streakStartedAt, reachedCount])
+  @@index([businessId, clientEmail])
+  @@index([userId, clientEmail])
 }
 
 /// Calendario conectado (ADR 0036): la cuenta de Google o de Microsoft de un Usuario. Una sola por Usuario (unique, ADR 0004).

@@ -100,6 +100,14 @@ import {
   ClerkAuth,
   ClerkIdentity,
 } from './domain/users/clerk-auth';
+import {
+  STREAK_PROGRAMS_REPOSITORY,
+  StreakProgramsRepository,
+} from './domain/streaks/streak-programs.repository';
+import {
+  STREAK_PRIZES_REPOSITORY,
+  StreakPrizesRepository,
+} from './domain/streaks/streak-prizes.repository';
 import { User } from './domain/users/user';
 import {
   USERS_REPOSITORY,
@@ -149,6 +157,7 @@ export async function createTestApp() {
     sendBookingRejection: jest.fn(),
     sendBookingAcceptance: jest.fn(),
     sendRatingRequest: jest.fn(),
+    sendStreakPrizeNotice: jest.fn(),
     sendWaitlistConfirmation: jest.fn(),
     sendFreeSlotNotice: jest.fn(),
     sendBookingCancellationWithCause: jest.fn(),
@@ -351,6 +360,25 @@ export async function createTestApp() {
     businessServices: jest.fn(),
     bookingRows: jest.fn(),
   };
+  const streakPrograms: jest.Mocked<StreakProgramsRepository> = {
+    listActiveIncludeRewards: jest.fn(),
+    findByOwnerIncludeRewards: jest.fn(),
+    save: jest.fn(),
+    createReward: jest.fn(),
+    findRewardByIdIncludeProgram: jest.fn(),
+    updateReward: jest.fn(),
+    deleteReward: jest.fn(),
+  };
+  const streakPrizes: jest.Mocked<StreakPrizesRepository> = {
+    listEmailsAttendedBetween: jest.fn(),
+    listClientFileBookings: jest.fn(),
+    listGrantedKeys: jest.fn(),
+    findOwnerByBookingId: jest.fn(),
+    listAvailable: jest.fn(),
+    findById: jest.fn(),
+    redeem: jest.fn(),
+    createMany: jest.fn(),
+  };
   const badges: jest.Mocked<BadgesRepository> = {
     measure: jest.fn(),
     listEarned: jest.fn(),
@@ -408,6 +436,10 @@ export async function createTestApp() {
     .useValue(calendarOauth)
     .overrideProvider(ANALYTICS_REPOSITORY)
     .useValue(analytics)
+    .overrideProvider(STREAK_PROGRAMS_REPOSITORY)
+    .useValue(streakPrograms)
+    .overrideProvider(STREAK_PRIZES_REPOSITORY)
+    .useValue(streakPrizes)
     .overrideProvider(BADGES_REPOSITORY)
     .useValue(badges)
     .compile();
@@ -440,6 +472,8 @@ export async function createTestApp() {
     bookingCalendarEvents,
     calendarOauth,
     analytics,
+    streakPrograms,
+    streakPrizes,
     badges,
     http: request(app.getHttpServer()),
   };

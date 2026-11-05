@@ -10,6 +10,7 @@ import {
     Clock,
     EllipsisVertical,
     ExternalLink,
+    Flame,
     LayoutGrid,
     Link as LinkIcon,
     LogOut,
@@ -59,6 +60,7 @@ const ICONS: Record<SectionId, React.ComponentType> = {
     services: LayoutGrid,
     business: Store,
     analytics: ChartColumn,
+    streaks: Flame,
 };
 
 // The primitive hovers with the active item's token; the panel hovers a lighter celeste. Only on inactive items:
