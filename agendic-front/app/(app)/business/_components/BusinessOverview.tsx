@@ -7,6 +7,7 @@ import { PanelIconButton, PanelIconGroup, PanelMenu } from '@/app/(app)/_compone
 import { BRANCHES_PATH, newServicePath, staffPath } from '@/app/routes';
 import { BusinessCard } from './BusinessCard';
 import { CopyBookingLinkButton } from './CopyBookingLinkButton';
+import { StaffLink } from './StaffLink';
 import { EditBusinessDialog, type EditableBusiness } from './EditBusinessDialog';
 
 function NextStep({
@@ -62,7 +63,8 @@ export function BusinessOverview({ business, defaultOpen }: { business: Editable
                     </PanelIconGroup>
                 }
             >
-                <h2 className="m-0 text-[14.5px] font-bold tracking-[-0.02em]">Próximos pasos recomendados</h2>
+                <StaffLink businessId={business.id} />
+                <h2 className="m-0 mt-6 text-[14.5px] font-bold tracking-[-0.02em]">Próximos pasos recomendados</h2>
                 <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
                     <NextStep
                         icon={<UserPlus className="text-[#15803d]" />}

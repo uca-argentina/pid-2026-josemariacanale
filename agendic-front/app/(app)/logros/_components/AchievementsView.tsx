@@ -1,4 +1,5 @@
 import { Medal } from '@/app/_components/Medal';
+import { badgeDescription } from '@/app/_components/badge-descriptions';
 import { LEVEL_NAMES } from '@/app/_components/medal-style';
 import type { MyBadge } from '@/src/entities/models/badge';
 import { achieved, earnedAt, inProgress, progressPercent, progressText } from './achievements';
@@ -24,6 +25,7 @@ export function AchievementsView({ badges }: { badges: MyBadge[] }) {
                             <Medal badge={badge.badge} name={badge.name} level={badge.level} />
                             <div className="flex min-w-0 flex-1 flex-col gap-2">
                                 <span className="text-[14px] font-bold">{badge.name}</span>
+                                <Description badge={badge.badge} />
                                 <div
                                     role="progressbar"
                                     aria-label={`Progreso de ${badge.name}`}
@@ -49,6 +51,7 @@ export function AchievementsView({ badges }: { badges: MyBadge[] }) {
                             <Medal badge={badge.badge} name={badge.name} level={badge.level} />
                             <div className="flex min-w-0 flex-col gap-1">
                                 <span className="text-[14px] font-bold">{badge.name}</span>
+                                <Description badge={badge.badge} />
                                 <span className="text-[12px] font-medium text-[#6b7280]">
                                     Nivel {LEVEL_NAMES[badge.level!]}
                                     {earned && (
@@ -65,6 +68,11 @@ export function AchievementsView({ badges }: { badges: MyBadge[] }) {
             </Group>
         </div>
     );
+}
+
+function Description({ badge }: { badge: string }) {
+    const text = badgeDescription(badge);
+    return text && <span className="text-[12.5px] leading-snug text-[#374151]">{text}</span>;
 }
 
 function Group({ title, empty, children }: { title: string; empty: string; children: React.ReactNode[] }) {
