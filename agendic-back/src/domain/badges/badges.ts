@@ -134,3 +134,26 @@ export function describeBadges(
     };
   });
 }
+
+/** Una Insignia con el Nivel más alto que ganó el Usuario, sin progreso: es lo que ven los demás. */
+export type HighestLevel = { badge: string; name: string; level: BadgeLevel };
+
+/**
+ * El Nivel más alto ganado de cada Insignia, de mayor a menor Nivel y, a igual Nivel, en el orden del catálogo.
+ * Ignora las Insignias que ya no están en el catálogo.
+ */
+export function highestLevels(earned: readonly EarnedLevel[]): HighestLevel[] {
+  return BADGE_CATALOG.flatMap((badge) => {
+    const highest = badge.levels
+      .map((l) => l.level)
+      .filter((level) =>
+        earned.some((e) => e.badge === badge.key && e.level === level),
+      )
+      .at(-1);
+    return highest
+      ? [{ badge: badge.key, name: badge.name, level: highest }]
+      : [];
+  }).sort(
+    (a, b) => BADGE_LEVELS.indexOf(b.level) - BADGE_LEVELS.indexOf(a.level),
+  );
+}

@@ -1,4 +1,4 @@
-import { cancelInvitationAction, resendInvitationAction } from '@/app/(app)/business/employees/actions';
+import { cancelInvitationAction, resendInvitationAction } from '@/app/(app)/business/[businessId]/employees/actions';
 import { ApiRequestError, InputParseError } from '@/src/entities/errors/common';
 import { InvitationNotPendingError } from '@/src/entities/errors/employee';
 

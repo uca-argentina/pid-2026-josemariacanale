@@ -16,7 +16,7 @@ import { acceptInvitationController } from '@/src/interface-adapters/controllers
 import { rejectInvitationController } from '@/src/interface-adapters/controllers/employees/reject-invitation.controller';
 import { EmployeesRepository } from '@/src/infrastructure/repositories/employees.repository';
 import { addEmployeeController } from '@/src/interface-adapters/controllers/employees/add-employee.controller';
-import { listMyEmployeesController } from '@/src/interface-adapters/controllers/employees/list-my-employees.controller';
+import { listBusinessStaffController } from '@/src/interface-adapters/controllers/employees/list-business-staff.controller';
 import { retireEmployeeController } from '@/src/interface-adapters/controllers/employees/retire-employee.controller';
 
 export function createEmployeesModule() {
@@ -41,11 +41,11 @@ export function createEmployeesModule() {
         .toHigherOrderFunction(retireEmployeeUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IEmployeesRepository]);
 
     employeesModule
-        .bind(DI_SYMBOLS.IListMyEmployeesController)
-        .toHigherOrderFunction(listMyEmployeesController, [
+        .bind(DI_SYMBOLS.IListBusinessStaffController)
+        .toHigherOrderFunction(listBusinessStaffController, [
             DI_SYMBOLS.IInstrumentationService,
             DI_SYMBOLS.IAuthenticationService,
-            DI_SYMBOLS.IListBusinessesUseCase,
+            DI_SYMBOLS.IListMyBusinessesUseCase,
             DI_SYMBOLS.IListEmployeesUseCase,
             DI_SYMBOLS.IListInvitationsUseCase,
         ]);

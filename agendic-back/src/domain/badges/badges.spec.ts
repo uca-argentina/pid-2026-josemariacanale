@@ -2,6 +2,7 @@ import {
   BADGE_CATALOG,
   describeBadges,
   EarnedLevel,
+  highestLevels,
   levelsReached,
   NO_METRICS,
 } from './badges';
@@ -109,5 +110,35 @@ describe('describeBadges', () => {
     ]);
     const loyal = all.find((b) => b.badge === 'loyal-clients');
     expect(loyal).toMatchObject({ level: 'bronze', progress: null });
+  });
+});
+
+describe('highestLevels', () => {
+  it('keeps the highest Nivel earned of each Insignia', () => {
+    expect(
+      highestLevels([
+        earned('attended', 'bronze'),
+        earned('attended', 'silver'),
+        earned('five-stars', 'bronze'),
+      ]),
+    ).toEqual([
+      { badge: 'attended', name: 'Turnos atendidos', level: 'silver' },
+      { badge: 'five-stars', name: 'Cinco estrellas', level: 'bronze' },
+    ]);
+  });
+
+  it('sorts by Nivel descending and ties by the order of the catalog', () => {
+    expect(
+      highestLevels([
+        earned('always-present', 'bronze'),
+        earned('first-booking', 'bronze'),
+        earned('attended', 'gold'),
+      ]).map((b) => b.badge),
+    ).toEqual(['attended', 'first-booking', 'always-present']);
+  });
+
+  it('is empty when nothing was earned, and ignores Insignias out of the catalog', () => {
+    expect(highestLevels([])).toEqual([]);
+    expect(highestLevels([earned('retired-badge', 'gold')])).toEqual([]);
   });
 });

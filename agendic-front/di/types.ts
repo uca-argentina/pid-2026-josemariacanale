@@ -11,6 +11,7 @@ import type { IRetireCabinController } from '@/src/interface-adapters/controller
 import type { IBranchesRepository } from '@/src/application/repositories/branches.repository.interface';
 import type { ICreateBranchUseCase } from '@/src/application/use-cases/branches/create-branch.use-case';
 import type { IUpdateBranchUseCase } from '@/src/application/use-cases/branches/update-branch.use-case';
+import type { IListBusinessBranchesUseCase } from '@/src/application/use-cases/branches/list-business-branches.use-case';
 import type { IListBranchesWithImagesUseCase } from '@/src/application/use-cases/branches/list-branches-with-images.use-case';
 import type { ICreateBranchController } from '@/src/interface-adapters/controllers/branches/create-branch.controller';
 import type { IUpdateBranchController } from '@/src/interface-adapters/controllers/branches/update-branch.controller';
@@ -25,6 +26,8 @@ import type { IGetPublicBranchController } from '@/src/interface-adapters/contro
 import type { IAuthenticationService } from '@/src/application/services/authentication.service.interface';
 import type { ICrashReporterService } from '@/src/application/services/crash-reporter.service.interface';
 import type { IInstrumentationService } from '@/src/application/services/instrumentation.service.interface';
+import type { IListMyBusinessesUseCase } from '@/src/application/use-cases/businesses/list-my-businesses.use-case';
+import type { IListMyBusinessesController } from '@/src/interface-adapters/controllers/businesses/list-my-businesses.controller';
 import type { IListBusinessesUseCase } from '@/src/application/use-cases/businesses/list-businesses.use-case';
 import type { IGetMyBusinessController } from '@/src/interface-adapters/controllers/businesses/get-my-business.controller';
 import type { ICreateBusinessUseCase } from '@/src/application/use-cases/businesses/create-business.use-case';
@@ -47,7 +50,7 @@ import type { IListEmployeesUseCase } from '@/src/application/use-cases/employee
 import type { IListInvitationsUseCase } from '@/src/application/use-cases/employees/list-invitations.use-case';
 import type { IAddEmployeeUseCase } from '@/src/application/use-cases/employees/add-employee.use-case';
 import type { IRetireEmployeeUseCase } from '@/src/application/use-cases/employees/retire-employee.use-case';
-import type { IListMyEmployeesController } from '@/src/interface-adapters/controllers/employees/list-my-employees.controller';
+import type { IListBusinessStaffController } from '@/src/interface-adapters/controllers/employees/list-business-staff.controller';
 import type { IAddEmployeeController } from '@/src/interface-adapters/controllers/employees/add-employee.controller';
 import type { IListMyInvitationsUseCase } from '@/src/application/use-cases/employees/list-my-invitations.use-case';
 import type { IAcceptInvitationUseCase } from '@/src/application/use-cases/employees/accept-invitation.use-case';
@@ -93,6 +96,9 @@ import type { IRetireServiceController } from '@/src/interface-adapters/controll
 import type { IAssignEmployeeController } from '@/src/interface-adapters/controllers/services/assign-employee.controller';
 import type { IRemoveEmployeeController } from '@/src/interface-adapters/controllers/services/remove-employee.controller';
 import type { IChangeEmployeeAvailabilityController } from '@/src/interface-adapters/controllers/services/change-employee-availability.controller';
+import type { IBadgesRepository } from '@/src/application/repositories/badges.repository.interface';
+import type { IListMyBadgesUseCase } from '@/src/application/use-cases/badges/list-my-badges.use-case';
+import type { IListMyBadgesController } from '@/src/interface-adapters/controllers/badges/list-my-badges.controller';
 import type { IUsersRepository } from '@/src/application/repositories/users.repository.interface';
 import type { IGetMeUseCase } from '@/src/application/use-cases/users/get-me.use-case';
 import type { IUpdateMySlugUseCase } from '@/src/application/use-cases/users/update-my-slug.use-case';
@@ -220,12 +226,14 @@ export const DI_SYMBOLS = {
     ICreateBranchUseCase: Symbol.for('ICreateBranchUseCase'),
     IUpdateBranchUseCase: Symbol.for('IUpdateBranchUseCase'),
     IListBranchesWithImagesUseCase: Symbol.for('IListBranchesWithImagesUseCase'),
+    IListBusinessBranchesUseCase: Symbol.for('IListBusinessBranchesUseCase'),
     IListCabinsUseCase: Symbol.for('IListCabinsUseCase'),
     ICreateCabinUseCase: Symbol.for('ICreateCabinUseCase'),
     IRenameCabinUseCase: Symbol.for('IRenameCabinUseCase'),
     IRetireCabinUseCase: Symbol.for('IRetireCabinUseCase'),
     ICreateBusinessUseCase: Symbol.for('ICreateBusinessUseCase'),
     IListBusinessesUseCase: Symbol.for('IListBusinessesUseCase'),
+    IListMyBusinessesUseCase: Symbol.for('IListMyBusinessesUseCase'),
     IUpdateBusinessUseCase: Symbol.for('IUpdateBusinessUseCase'),
     IUploadBusinessLogoUseCase: Symbol.for('IUploadBusinessLogoUseCase'),
     IDeleteBusinessLogoUseCase: Symbol.for('IDeleteBusinessLogoUseCase'),
@@ -312,6 +320,7 @@ export const DI_SYMBOLS = {
     IRetireCabinController: Symbol.for('IRetireCabinController'),
     ICreateBusinessController: Symbol.for('ICreateBusinessController'),
     IGetMyBusinessController: Symbol.for('IGetMyBusinessController'),
+    IListMyBusinessesController: Symbol.for('IListMyBusinessesController'),
     IUpdateBusinessController: Symbol.for('IUpdateBusinessController'),
     IUploadBusinessLogoController: Symbol.for('IUploadBusinessLogoController'),
     IDeleteBusinessLogoController: Symbol.for('IDeleteBusinessLogoController'),
@@ -321,7 +330,7 @@ export const DI_SYMBOLS = {
     IGetPublicBusinessController: Symbol.for('IGetPublicBusinessController'),
     IGetPublicBranchController: Symbol.for('IGetPublicBranchController'),
     IResolveBookingLinkController: Symbol.for('IResolveBookingLinkController'),
-    IListMyEmployeesController: Symbol.for('IListMyEmployeesController'),
+    IListBusinessStaffController: Symbol.for('IListBusinessStaffController'),
     IAddEmployeeController: Symbol.for('IAddEmployeeController'),
     IRetireEmployeeController: Symbol.for('IRetireEmployeeController'),
     IListMyServicesController: Symbol.for('IListMyServicesController'),
@@ -332,6 +341,9 @@ export const DI_SYMBOLS = {
     IAssignEmployeeController: Symbol.for('IAssignEmployeeController'),
     IRemoveEmployeeController: Symbol.for('IRemoveEmployeeController'),
     IChangeEmployeeAvailabilityController: Symbol.for('IChangeEmployeeAvailabilityController'),
+    IBadgesRepository: Symbol.for('IBadgesRepository'),
+    IListMyBadgesUseCase: Symbol.for('IListMyBadgesUseCase'),
+    IListMyBadgesController: Symbol.for('IListMyBadgesController'),
     IUsersRepository: Symbol.for('IUsersRepository'),
     IGetMeUseCase: Symbol.for('IGetMeUseCase'),
     IUpdateMySlugUseCase: Symbol.for('IUpdateMySlugUseCase'),
@@ -425,12 +437,14 @@ export interface DI_RETURN_TYPES {
     ICreateBranchUseCase: ICreateBranchUseCase;
     IUpdateBranchUseCase: IUpdateBranchUseCase;
     IListBranchesWithImagesUseCase: IListBranchesWithImagesUseCase;
+    IListBusinessBranchesUseCase: IListBusinessBranchesUseCase;
     IListCabinsUseCase: IListCabinsUseCase;
     ICreateCabinUseCase: ICreateCabinUseCase;
     IRenameCabinUseCase: IRenameCabinUseCase;
     IRetireCabinUseCase: IRetireCabinUseCase;
     ICreateBusinessUseCase: ICreateBusinessUseCase;
     IListBusinessesUseCase: IListBusinessesUseCase;
+    IListMyBusinessesUseCase: IListMyBusinessesUseCase;
     IUpdateBusinessUseCase: IUpdateBusinessUseCase;
     IUploadBusinessLogoUseCase: IUploadBusinessLogoUseCase;
     IDeleteBusinessLogoUseCase: IDeleteBusinessLogoUseCase;
@@ -517,6 +531,7 @@ export interface DI_RETURN_TYPES {
     IRetireCabinController: IRetireCabinController;
     ICreateBusinessController: ICreateBusinessController;
     IGetMyBusinessController: IGetMyBusinessController;
+    IListMyBusinessesController: IListMyBusinessesController;
     IUpdateBusinessController: IUpdateBusinessController;
     IUploadBusinessLogoController: IUploadBusinessLogoController;
     IDeleteBusinessLogoController: IDeleteBusinessLogoController;
@@ -526,7 +541,7 @@ export interface DI_RETURN_TYPES {
     IGetPublicBusinessController: IGetPublicBusinessController;
     IGetPublicBranchController: IGetPublicBranchController;
     IResolveBookingLinkController: IResolveBookingLinkController;
-    IListMyEmployeesController: IListMyEmployeesController;
+    IListBusinessStaffController: IListBusinessStaffController;
     IAddEmployeeController: IAddEmployeeController;
     IRetireEmployeeController: IRetireEmployeeController;
     IListMyServicesController: IListMyServicesController;
@@ -538,6 +553,9 @@ export interface DI_RETURN_TYPES {
     IRemoveEmployeeController: IRemoveEmployeeController;
     IChangeEmployeeAvailabilityController: IChangeEmployeeAvailabilityController;
     IUsersRepository: IUsersRepository;
+    IBadgesRepository: IBadgesRepository;
+    IListMyBadgesUseCase: IListMyBadgesUseCase;
+    IListMyBadgesController: IListMyBadgesController;
     IGetMeUseCase: IGetMeUseCase;
     IUpdateMySlugUseCase: IUpdateMySlugUseCase;
     IGetUserPageUseCase: IGetUserPageUseCase;

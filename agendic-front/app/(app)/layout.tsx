@@ -16,7 +16,7 @@ const navItems: NavItem[] = [
     { id: 'bookings', href: '/bookings', label: 'Turnos' },
     { id: 'availability', href: '/availability', label: 'Horas laborables' },
     { id: 'services', href: '/services', label: 'Servicios' },
-    { id: 'business', href: '/business', label: 'Mi Negocio' },
+    { id: 'business', href: '/business', label: 'Negocios' },
     { id: 'analytics', href: '/analytics', label: 'Analíticas' },
 ];
 

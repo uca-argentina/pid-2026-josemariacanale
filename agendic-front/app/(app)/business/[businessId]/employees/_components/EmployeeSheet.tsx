@@ -6,8 +6,9 @@ import { PanelAvatar } from '@/app/(app)/_components/panel-ui';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/app/_components/ui/sheet';
 import { addDays } from '@/app/_components/booking/format';
 import { toIsoDay } from '@/app/_components/day-range';
-import { RoleBadge } from '../../_components/business-ui';
+import { RoleBadge } from '../../../_components/business-ui';
 import { loadEmployeeStatsAction, type EmployeeStatsData } from '../actions';
+import { EmployeeMedalsLarge } from './EmployeeMedals';
 import type { EmployeeRow } from './EmployeesView';
 
 /** Las tarjetas de estadísticas, en el orden en que se muestran. */
@@ -99,6 +100,7 @@ export function EmployeeSheet({
                             <RoleBadge role={employee.role} />
                         </dd>
                     </dl>
+                    <EmployeeMedalsLarge badges={employee.badges} />
                     {showStats && <EmployeeStats businessId={businessId} employeeId={employee.id} />}
                 </div>
             </SheetContent>
