@@ -36,9 +36,11 @@ import {
 } from '../../domain/users/users.repository';
 import { assertChosenEmployee } from '../slots/assert-chosen-employee';
 import { ListSlotsUseCase } from '../slots/list-slots.use-case';
+import { ClientFileStreakReader } from '../streaks/client-file-streak.reader';
 import { assertBookable } from './assert-booking-rules';
 import { pickCabin } from './pick-cabin';
 import { pickEmployee } from './pick-employee';
+import { ClientInvites } from './client-invites.service';
 
 @Injectable()
 export class CreateBookingUseCase {
@@ -54,6 +56,8 @@ export class CreateBookingUseCase {
     @Inject(CLOCK) private readonly clock: Clock,
     @Inject(MAILER) private readonly mailer: Mailer,
     private readonly listSlots: ListSlotsUseCase,
+    private readonly streaks: ClientFileStreakReader,
+    private readonly invites: ClientInvites,
   ) {}
 
   /**
@@ -77,7 +81,7 @@ export class CreateBookingUseCase {
       throw new InvalidCodeError(
         `Invalid or expired verification code for ${input.clientEmail}`,
       );
-    const { service, timeZone } = await assertBookable(
+    const { service, branch, timeZone } = await assertBookable(
       this.services,
       this.branches,
       this.availabilities,
@@ -144,11 +148,15 @@ export class CreateBookingUseCase {
     const attendingUser = employee ? null : await this.users.findById(attendant.userId);
     if (!employee && !attendingUser)
       throw new NotFoundError(`User ${attendant.userId} not found`);
-    await this.mailer.sendBookingConfirmation(
+    const streak = await this.streaks.progressOfBooking(
+      booking.id,
       input.clientEmail,
-      booking.link!,
-      booking.depositAmount,
+      now,
     );
+    const invite = await this.invites.request([booking.link!]);
+    await (invite
+      ? this.mailer.sendBookingConfirmation(input.clientEmail, booking.link!, booking.depositAmount, branch, undefined, streak, invite)
+      : this.mailer.sendBookingConfirmation(input.clientEmail, booking.link!, booking.depositAmount, branch, undefined, streak));
     return {
       ...booking,
       employeeName: (employee ?? attendingUser!).name,

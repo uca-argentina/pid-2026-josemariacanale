@@ -15,6 +15,7 @@ import { notifyCausedCancellations } from '../bookings/notify-caused-cancellatio
 import { confirmedCancellations } from './confirmed-cancellations';
 import { assertNoDuplicateOutOfOffice } from './assert-no-duplicate-out-of-office';
 import { getOwnOutOfOffice } from './get-own-out-of-office';
+import { ClientInvites } from '../bookings/client-invites.service';
 
 @Injectable()
 export class UpdateOutOfOfficeUseCase {
@@ -24,6 +25,7 @@ export class UpdateOutOfOfficeUseCase {
     private readonly leftOutside: LeftOutsideBookingsService,
     @Inject(MAILER) private readonly mailer: Mailer,
     @Inject(CLOCK) private readonly clock: Clock,
+    private readonly invites: ClientInvites,
   ) {}
 
   /**
@@ -64,6 +66,7 @@ export class UpdateOutOfOfficeUseCase {
     await notifyCausedCancellations(
       this.mailer,
       left.filter((booking) => cancelled.has(booking.id)),
+      (links) => this.invites.cancel(links),
     );
     return { outOfOffice, cancelledBookings: cancelledIds.length };
   }

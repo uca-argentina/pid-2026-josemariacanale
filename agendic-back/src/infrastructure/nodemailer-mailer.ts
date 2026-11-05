@@ -1,11 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { createTransport, Transporter } from 'nodemailer';
+import { ClientInvite } from '../domain/calendar/client-invite';
 import {
   CausedCancellation,
+  ConfirmationBranch,
   Mailer,
   SeriesConfirmation,
   SeriesNotice,
 } from '../domain/mailer';
+import { PromisedPrize, StreakProgress } from '../domain/streaks/streak-prize';
+import { StreakRewardType } from '../domain/streaks/streak-program';
 
 /**
  * Reads the front's base URL, where the Enlace del Turno of the Confirmación de reserva points. Throws when it is
@@ -23,6 +27,18 @@ export function readFrontendUrl(
 const escapeHtml = (text: string) =>
   text.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
+/** The archivo de calendario as nodemailer attaches it: a `text/calendar` alternative with its `METHOD`, which is what Gmail and Outlook read as an invitation. */
+const calendarOf = (invite?: ClientInvite) =>
+  invite ? { icalEvent: { method: invite.method, content: invite.ics } } : {};
+
+/** "Agregar a Google Calendar" and "Agregar a Outlook" of a Turno. */
+const addLinks = (invite: ClientInvite | undefined, link: string) => {
+  const urls = invite?.events.find((event) => event.link === link);
+  return urls
+    ? ` <a href="${escapeHtml(urls.googleUrl)}">Agregar a Google Calendar</a> · <a href="${escapeHtml(urls.outlookUrl)}">Agregar a Outlook</a>`
+    : '';
+};
+
 /** Day and hour of a Turno in the zone it is shown in; the same in the Invitación a calificar and the Aviso con Causa. */
 const formatWhen = (startsAt: Date, timeZone: string) =>
   new Intl.DateTimeFormat('es-AR', {
@@ -31,6 +47,32 @@ const formatWhen = (startsAt: Date, timeZone: string) =>
     hourCycle: 'h23',
     timeZone,
   }).format(startsAt);
+
+// What the Dueño typed goes escaped.
+const promisedText = ({ type, value, description, serviceName }: PromisedPrize) => {
+  switch (type) {
+    case StreakRewardType.PERCENT_DISCOUNT:
+      return `${new Intl.NumberFormat('es-AR').format(value ?? 0)}% de descuento`;
+    case StreakRewardType.AMOUNT_DISCOUNT:
+      return `$${new Intl.NumberFormat('es-AR').format(value ?? 0)} de descuento`;
+    case StreakRewardType.GIFT:
+      return escapeHtml(description ?? '');
+    case StreakRewardType.FREE_SERVICE:
+      return `${escapeHtml(serviceName ?? 'Un Servicio')} gratis`;
+  }
+};
+
+const turnos = (count: number) => (count === 1 ? '1 Turno' : `${count} Turnos`);
+
+/** The line of the Confirmación de reserva about the Racha of the Cliente. */
+const streakLine = ({ count, next }: StreakProgress) => {
+  if (!next) return `Tu Racha: ${turnos(count)}.`;
+  const reward = promisedText(next.reward);
+  if (count === 0)
+    return `Empezá tu Racha: con ${turnos(next.remaining)} ganás ${reward}.`;
+  const missing = next.remaining === 1 ? 'Te falta 1' : `Te faltan ${next.remaining}`;
+  return `Tu Racha: ${turnos(count)}. ${missing} para ${reward}.`;
+};
 
 @Injectable()
 export class NodemailerMailer implements Mailer {
@@ -56,29 +98,36 @@ export class NodemailerMailer implements Mailer {
 
   /**
    * Avisa que el Turno quedó creado; con Seña, suma el monto y dice que se paga desde el Enlace del Turno. De una Serie
-   * lista cada fecha, en la zona del Turno, con su Enlace.
+   * lista cada fecha, en la zona del Turno, con su Enlace. Con `streak`, suma la línea de la Racha. Con Sucursal, cierra
+   * con su dirección y Cómo llegar.
    */
   async sendBookingConfirmation(
     email: string,
     link: string,
     depositAmount: number | null,
+    branch: ConfirmationBranch | null,
     series?: SeriesConfirmation,
+    streak?: StreakProgress,
+    invite?: ClientInvite,
   ) {
+    const racha = streak ? ` ${streakLine(streak)}` : '';
     const deposit =
       depositAmount === null
         ? ''
         : ` Seña: ${depositAmount.toFixed(2)}. You can pay it from the same link.`;
+    const place = branch ? addressAndDirectionsHtml(branch) : '';
     if (series) {
       const seriesDeposit =
         depositAmount === null
           ? ''
           : ` Seña per Turno: ${depositAmount.toFixed(2)}. You can pay each from its own link.`;
-      const items = this.seriesItems(series);
+      const items = this.seriesItems(series, invite);
       await this.transporter.sendMail({
         from: process.env.SMTP_FROM,
         to: email,
         subject: 'Your bookings are confirmed',
-        html: `<p>Your Turnos are confirmed.${seriesDeposit} Manage each one from its link:</p><ul>${items}</ul>`,
+        html: `<p>Your Turnos are confirmed.${seriesDeposit}${racha} Manage each one from its link:</p><ul>${items}</ul>${place}`,
+        ...calendarOf(invite),
       });
       return;
     }
@@ -86,7 +135,10 @@ export class NodemailerMailer implements Mailer {
       email,
       link,
       'Your booking is confirmed',
-      `Your Turno is confirmed.${deposit} Manage it here`,
+      `Your Turno is confirmed.${deposit}${racha} Manage it here`,
+      invite,
+      addLinks(invite, link),
+      place,
     );
   }
 
@@ -96,9 +148,10 @@ export class NodemailerMailer implements Mailer {
     link: string,
     reason?: string | null,
     series?: SeriesNotice,
+    invite?: ClientInvite,
   ) {
     if (series) {
-      await this.sendSeriesMail(email, 'Your bookings were cancelled', 'Your Turnos were cancelled', reason, series);
+      await this.sendSeriesMail(email, 'Your bookings were cancelled', 'Your Turnos were cancelled', reason, series, invite);
       return;
     }
     await this.sendBookingMail(
@@ -106,16 +159,22 @@ export class NodemailerMailer implements Mailer {
       link,
       'Your booking was cancelled',
       withReason('Your Turno was cancelled', reason) + '. See it here',
+      invite,
     );
   }
 
   /** Avisa que el Turno pasó a otro horario. */
-  async sendBookingReschedule(email: string, link: string) {
+  async sendBookingReschedule(
+    email: string,
+    link: string,
+    invite?: ClientInvite,
+  ) {
     await this.sendBookingMail(
       email,
       link,
       'Your booking was rescheduled',
       'Your Turno was moved to another time. See the new time here',
+      invite,
     );
   }
 
@@ -125,9 +184,10 @@ export class NodemailerMailer implements Mailer {
     link: string,
     reason?: string | null,
     series?: SeriesNotice,
+    invite?: ClientInvite,
   ) {
     if (series) {
-      await this.sendSeriesMail(email, 'Your bookings were rejected', 'Your Turnos were rejected', reason, series);
+      await this.sendSeriesMail(email, 'Your bookings were rejected', 'Your Turnos were rejected', reason, series, invite);
       return;
     }
     await this.sendBookingMail(
@@ -135,6 +195,28 @@ export class NodemailerMailer implements Mailer {
       link,
       'Your booking was rejected',
       withReason('Your Turno was rejected', reason) + '. See it here',
+      invite,
+    );
+  }
+
+  /** Avisa que el Negocio aceptó el Turno pendiente; de varios Turnos de una Serie, los lista en un solo mail. */
+  async sendBookingAcceptance(
+    email: string,
+    link: string,
+    series?: SeriesNotice,
+    invite?: ClientInvite,
+  ) {
+    if (series) {
+      await this.sendSeriesMail(email, 'Your bookings were accepted', 'Your Turnos were accepted', null, series, invite);
+      return;
+    }
+    await this.sendBookingMail(
+      email,
+      link,
+      'Your booking was accepted',
+      'Your Turno was accepted. See it here',
+      invite,
+      addLinks(invite, link),
     );
   }
 
@@ -159,8 +241,33 @@ export class NodemailerMailer implements Mailer {
     });
   }
 
+  /**
+   * Manda el Aviso de Premio.
+   *
+   * @throws {Error} el transporte SMTP rechazó el mail
+   */
+  async sendStreakPrizeNotice(
+    email: string,
+    clientName: string,
+    promised: PromisedPrize,
+    expiresAt: Date | null,
+    timeZone: string,
+    link: string,
+  ) {
+    const url = `${this.frontendUrl}/turnos/${link}`;
+    const until = expiresAt
+      ? ` Vale hasta el ${new Intl.DateTimeFormat('es-AR', { dateStyle: 'full', timeZone }).format(expiresAt)}.`
+      : '';
+    await this.transporter.sendMail({
+      from: process.env.SMTP_FROM,
+      to: email,
+      subject: '¡Ganaste un Premio!',
+      html: `<p>¡Hola, ${escapeHtml(clientName)}! Tu Racha te dio un Premio: ${promisedText(promised)}.${until} Pedilo en tu próximo turno. Mirá tu Racha: <a href="${url}">${url}</a></p>`,
+    });
+  }
+
   /** One `<li>` per Turno of the Serie: its date, in the zone of the Turno, and its Enlace del Turno. */
-  private seriesItems(series: SeriesConfirmation) {
+  private seriesItems(series: SeriesConfirmation, invite?: ClientInvite) {
     const when = new Intl.DateTimeFormat('es-AR', {
       dateStyle: 'full',
       timeStyle: 'short',
@@ -170,7 +277,7 @@ export class NodemailerMailer implements Mailer {
     return series.bookings
       .map(({ startsAt, link }) => {
         const url = `${this.frontendUrl}/turnos/${link}`;
-        return `<li>${when.format(startsAt)}: <a href="${url}">${url}</a></li>`;
+        return `<li>${when.format(startsAt)}: <a href="${url}">${url}</a>${addLinks(invite, link)}</li>`;
       })
       .join('');
   }
@@ -181,12 +288,14 @@ export class NodemailerMailer implements Mailer {
     text: string,
     reason: string | null | undefined,
     series: SeriesNotice,
+    invite?: ClientInvite,
   ) {
     await this.transporter.sendMail({
       from: process.env.SMTP_FROM,
       to: email,
       subject,
       html: `<p>${withReason(text, reason)}. See each one here:</p><ul>${this.seriesItems(series)}</ul>`,
+      ...calendarOf(invite),
     });
   }
 
@@ -198,6 +307,7 @@ export class NodemailerMailer implements Mailer {
   async sendBookingCancellationWithCause(
     email: string,
     bookings: CausedCancellation[],
+    invite?: ClientInvite,
   ) {
     const sameReason = bookings.every((b) => b.reason === bookings[0].reason);
     const items = bookings.map((b) => {
@@ -214,6 +324,7 @@ export class NodemailerMailer implements Mailer {
           ? 'Tu turno fue cancelado'
           : 'Tus turnos fueron cancelados',
       html: `${intro}<ul>${items.join('')}</ul>`,
+      ...calendarOf(invite),
     });
   }
 
@@ -274,16 +385,29 @@ export class NodemailerMailer implements Mailer {
     link: string,
     subject: string,
     text: string,
+    invite?: ClientInvite,
+    extra = '',
+    extraHtml = '',
   ) {
     const url = `${this.frontendUrl}/turnos/${link}`;
     await this.transporter.sendMail({
       from: process.env.SMTP_FROM,
       to: email,
       subject,
-      html: `<p>${text}: <a href="${url}">${url}</a></p>`,
+      html: `<p>${text}: <a href="${url}">${url}</a></p>${extra && `<p>${extra.trim()}</p>`}${extraHtml}`,
+      ...calendarOf(invite),
     });
   }
 }
+
+/** The Sucursal's address and its Cómo llegar: to the point, or to the address when it has none. */
+const addressAndDirectionsHtml = ({ address, location }: ConfirmationBranch) => {
+  const destination = location
+    ? `${location.lat},${location.lng}`
+    : encodeURIComponent(address);
+  const url = `https://www.google.com/maps/dir/?api=1&destination=${destination}`;
+  return `<p>${escapeHtml(address)}<br><a href="${escapeHtml(url)}">Cómo llegar</a></p>`;
+};
 
 /** Appends the Motivo de cancelación, if any, to a mail text; it is typed by a person, so it goes escaped into the HTML. */
 const withReason = (text: string, reason?: string | null) =>

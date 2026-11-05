@@ -4,6 +4,7 @@ import { PanelField, PanelInput, PanelTextarea } from '@/app/(app)/_components/p
 import { TimezoneSelect } from '@/app/(app)/_components/TimezoneSelect';
 import { bookingLink } from '@/app/(app)/_components/mock-services';
 import type { BranchFormFields as Fields, FieldErrors } from '@/app/_components/business-schemas';
+import { AddressField } from '../../_components/AddressField';
 
 /** Los campos de una Sucursal, para editarla en su tarjeta y para crearla en el modal. `idPrefix` evita ids repetidos entre tarjetas. */
 export function BranchFormFields({
@@ -20,7 +21,9 @@ export function BranchFormFields({
     errors: FieldErrors;
 }) {
     const id = (field: string) => `${idPrefix}-${field}`;
-    const invalid = (field: string) => (errors[field] ? { 'aria-invalid': true, 'aria-describedby': `${id(field)}-error` } : {});
+    // The punto has no input of its own: its error belongs to the address, so both point at the address' message.
+    const invalid = (field: string) =>
+        errors[field] ? { 'aria-invalid': true, 'aria-describedby': `${id(field === 'location' ? 'address' : field)}-error` } : {};
 
     return (
         <>
@@ -44,8 +47,14 @@ export function BranchFormFields({
             >
                 <PanelTextarea id={id('description')} value={value.description} onChange={(e) => onChange({ description: e.target.value })} />
             </PanelField>
-            <PanelField label="Dirección" htmlFor={id('address')} error={errors.address}>
-                <PanelInput id={id('address')} value={value.address} onChange={(e) => onChange({ address: e.target.value })} {...invalid('address')} />
+            <PanelField label="Dirección" htmlFor={id('address')} error={errors.address ?? errors.location}>
+                <AddressField
+                    id={id('address')}
+                    address={value.address}
+                    location={value.location}
+                    onChange={onChange}
+                    invalid={{ ...invalid('address'), ...invalid('location') }}
+                />
             </PanelField>
             <PanelField label="Zona horaria" htmlFor={id('timeZone')} error={errors.timeZone}>
                 <TimezoneSelect id={id('timeZone')} value={value.timeZone} onChange={(timeZone) => onChange({ timeZone })} />

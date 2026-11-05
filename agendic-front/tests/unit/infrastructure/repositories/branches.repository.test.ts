@@ -1,4 +1,4 @@
-import { BranchImagesRejectedError, InvalidSlugError, SlugTakenError } from '@/src/entities/errors/business';
+import { BranchImagesRejectedError, InvalidLocationError, InvalidSlugError, SlugTakenError } from '@/src/entities/errors/business';
 import { ApiRequestError } from '@/src/entities/errors/common';
 import { BranchesRepository } from '@/src/infrastructure/repositories/branches.repository';
 import { authWith } from '@/tests/unit/stubs';
@@ -11,6 +11,7 @@ const branch = {
     timeZone: 'America/Argentina/Buenos_Aires',
     slug: 'centro',
     description: null,
+    location: { lat: -34.6, lng: -58.4 },
 };
 const repo = () => new BranchesRepository(authWith({ getAccessToken: jest.fn().mockResolvedValue('tok') }), 'http://api');
 const respond = (status: number, body: unknown) =>
@@ -26,6 +27,7 @@ describe('BranchesRepository.createBranch', () => {
         timeZone: 'America/Argentina/Buenos_Aires',
         slug: 'centro',
         description: 'Con estacionamiento',
+        location: { lat: -34.6, lng: -58.4 },
         images: [new File(['a'], 'a.png', { type: 'image/png' }), new File(['b'], 'b.png', { type: 'image/png' })],
     };
 
@@ -61,6 +63,14 @@ describe('BranchesRepository.createBranch', () => {
         respond(400, { statusCode: 400, message: ['slug must be longer than or equal to 3 characters'] });
         await expect(repo().createBranch(input)).rejects.toBeInstanceOf(InvalidSlugError);
     });
+
+    it.each(['location is required', 'location.lat must be between -90 and 90', 'location.lng must be between -180 and 180'])(
+        'translates the 400 %j to InvalidLocationError',
+        async (message) => {
+            respond(400, { statusCode: 400, message: [message] });
+            await expect(repo().createBranch(input)).rejects.toBeInstanceOf(InvalidLocationError);
+        },
+    );
 
     it('keeps a 400 about another field as ApiRequestError, with its message', async () => {
         respond(400, { statusCode: 400, message: ['timeZone must be a valid IANA time zone name'] });
@@ -104,6 +114,16 @@ describe('BranchesRepository.updateBranch', () => {
                 body: JSON.stringify({ description: null }),
             }),
         );
+    });
+
+    it('parses an old Sucursal without a punto', async () => {
+        respond(200, { ...branch, location: null });
+        await expect(repo().updateBranch({ id: 10, name: 'X' })).resolves.toMatchObject({ location: null });
+    });
+
+    it('translates the 400 of removing the location to InvalidLocationError', async () => {
+        respond(400, { statusCode: 400, message: 'location cannot be removed' });
+        await expect(repo().updateBranch({ id: 10, name: 'X' })).rejects.toBeInstanceOf(InvalidLocationError);
     });
 
     it('translates 409 to SlugTakenError', async () => {

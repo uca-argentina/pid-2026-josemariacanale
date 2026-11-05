@@ -8,6 +8,7 @@ export type ICreateBranchUseCase = ReturnType<typeof createBranchUseCase>;
  *
  * @throws {SlugTakenError} otra Sucursal del Negocio ya usa el tramo
  * @throws {InvalidSlugError} el tramo no tiene un formato válido
+ * @throws {InvalidLocationError} el back rechazó el punto
  * @throws {BranchImagesRejectedError} el back rechazó alguna imagen
  */
 export const createBranchUseCase =

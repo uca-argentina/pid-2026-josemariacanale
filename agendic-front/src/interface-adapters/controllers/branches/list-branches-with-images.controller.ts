@@ -16,6 +16,7 @@ function presenter(items: BranchWithImages[], instrumentationService: IInstrumen
             timeZone: branch.timeZone,
             slug: branch.slug,
             description: branch.description,
+            location: branch.location,
             images: images.map((i) => ({ id: i.id, url: i.url })),
         })),
     );

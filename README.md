@@ -25,6 +25,9 @@ npm run start:dev
 cd agendic-front
 npm install
 # .env.local necesita NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY y CLERK_SECRET_KEY
+# Mapa y autocompletado (ADR 0037): NEXT_PUBLIC_GOOGLE_MAPS_API_KEY (del navegador, restringida por dominio),
+# GOOGLE_MAPS_API_KEY (del servidor, para la Time Zone API) y, opcional, NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID.
+# Sin la key pública el formulario de Sucursal queda en texto y no deja crear una nueva.
 npm run dev
 ```
 

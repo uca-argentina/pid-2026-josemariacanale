@@ -1,11 +1,17 @@
-import { AlreadyOwnerError, BranchImagesRejectedError, InvalidSlugError, SlugTakenError } from '@/src/entities/errors/business';
+import { AlreadyOwnerError, BranchImagesRejectedError, InvalidLocationError, InvalidSlugError, SlugTakenError } from '@/src/entities/errors/business';
 import { ApiRequestError } from '@/src/entities/errors/common';
 import { BusinessesRepository } from '@/src/infrastructure/repositories/businesses.repository';
 import { authWith } from '@/tests/unit/stubs';
 
 const fields = {
     business: { name: 'Estudio', description: 'Desc', slug: 'estudio' },
-    branch: { name: 'Centro', address: 'Av. 1', timeZone: 'America/Argentina/Buenos_Aires', slug: 'centro' },
+    branch: {
+        name: 'Centro',
+        address: 'Av. 1',
+        timeZone: 'America/Argentina/Buenos_Aires',
+        slug: 'centro',
+        location: { lat: -34.6, lng: -58.4 },
+    },
 };
 const input = {
     ...fields,
@@ -52,6 +58,14 @@ describe('BusinessesRepository.createBusiness', () => {
         respond(400, { statusCode: 400, message: ['business.slug must match /^[a-z0-9]+$/'] });
         await expect(repo().createBusiness(input)).rejects.toBeInstanceOf(InvalidSlugError);
     });
+
+    it.each(['branch.location is required', 'branch.location.lat must be between -90 and 90'])(
+        'translates the 400 %j to InvalidLocationError',
+        async (message) => {
+            respond(400, { statusCode: 400, message: [message] });
+            await expect(repo().createBusiness(input)).rejects.toBeInstanceOf(InvalidLocationError);
+        },
+    );
 
     it('keeps a 400 about the service slug as ApiRequestError, not as the Negocio slug', async () => {
         respond(400, { statusCode: 400, message: ['service.slug must be longer than or equal to 3 characters'] });
@@ -195,6 +209,34 @@ describe('BusinessesRepository.updateBusiness', () => {
     it('translates a body that does not match the schema to ApiRequestError without status', async () => {
         respond(200, { id: 'x' });
         const error = await repo().updateBusiness(update).catch((e) => e);
+        expect(error).toBeInstanceOf(ApiRequestError);
+        expect(error.status).toBeUndefined();
+    });
+});
+
+describe('BusinessesRepository.listMyBusinesses', () => {
+    const mine = { id: 1, name: 'Estudio', description: 'Desc', slug: 'estudio', logoUrl: null, role: 'owner', branchIds: [3] };
+
+    it('GETs /users/me/businesses with the bearer token and returns them', async () => {
+        const fetchSpy = respond(200, [mine]);
+
+        await expect(repo().listMyBusinesses()).resolves.toEqual([mine]);
+        expect(fetchSpy).toHaveBeenCalledWith(
+            'http://api/users/me/businesses',
+            expect.objectContaining({ headers: expect.objectContaining({ Authorization: 'Bearer tok' }) }),
+        );
+    });
+
+    it('translates a 401 to ApiRequestError with status 401', async () => {
+        respond(401, { statusCode: 401, message: 'Invalid or expired Clerk token' });
+        const error = await repo().listMyBusinesses().catch((e) => e);
+        expect(error).toBeInstanceOf(ApiRequestError);
+        expect(error.status).toBe(401);
+    });
+
+    it('translates a body that does not match the schema to ApiRequestError without status', async () => {
+        respond(200, [{ ...mine, role: 'admin' }]);
+        const error = await repo().listMyBusinesses().catch((e) => e);
         expect(error).toBeInstanceOf(ApiRequestError);
         expect(error.status).toBeUndefined();
     });

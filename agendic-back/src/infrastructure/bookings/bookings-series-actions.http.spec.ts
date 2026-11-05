@@ -59,7 +59,7 @@ const asClient = (booking: Booking): ClientBooking => ({
     depositPercent: ANAS_SERVICE.depositPercent,
   },
   business: { name: ANAS_BUSINESS.name, slug: ANAS_BUSINESS.slug },
-  branch: { name: ANAS_BRANCH.name, slug: ANAS_BRANCH.slug, address: ANAS_BRANCH.address, coverUrl: null },
+  branch: { name: ANAS_BRANCH.name, slug: ANAS_BRANCH.slug, address: ANAS_BRANCH.address, coverUrl: null, location: ANAS_BRANCH.location },
   user: null,
   series: null,
 });
@@ -98,6 +98,32 @@ describe('Acciones sobre la Serie (#305)', () => {
       );
       expect(res.body.accepted.map((b: { id: number }) => b.id)).toEqual([1, 2]);
       expect(t.mailer.sendBookingRejection).not.toHaveBeenCalled();
+    });
+
+    it('manda un solo Aviso con todas las fechas aceptadas, y si el mail falla la Serie queda aceptada', async () => {
+      t.bookings.findById.mockResolvedValue(turno(1));
+      t.bookings.findByLink.mockResolvedValue({ ...turno(1), timeZone: 'America/Argentina/Buenos_Aires' } as never);
+      t.bookings.resolvePendingSeries.mockResolvedValue([
+        turno(1, BookingStatus.BOOKED),
+        turno(2, BookingStatus.BOOKED),
+      ]);
+      t.mailer.sendBookingAcceptance.mockRejectedValue(new Error('SMTP down'));
+
+      await patch().expect(200);
+
+      expect(t.mailer.sendBookingAcceptance).toHaveBeenCalledTimes(1);
+      expect(t.mailer.sendBookingAcceptance).toHaveBeenCalledWith(
+        turno(1).clientEmail,
+        turno(1).link,
+        {
+          bookings: [
+            { startsAt: turno(1).startsAt, link: turno(1).link },
+            { startsAt: turno(2).startsAt, link: turno(2).link },
+          ],
+          timeZone: 'America/Argentina/Buenos_Aires',
+        },
+        undefined,
+      );
     });
 
     it('sigue aceptando un solo Turno sin series', async () => {
@@ -163,6 +189,7 @@ describe('Acciones sobre la Serie (#305)', () => {
           bookings: [1, 2, 3].map((n) => ({ startsAt: turno(n).startsAt, link: `link-${n}` })),
           timeZone: ANAS_BRANCH.timeZone,
         },
+        expect.objectContaining({ method: 'CANCEL' }),
       );
     });
 
@@ -225,6 +252,7 @@ describe('Acciones sobre la Serie (#305)', () => {
           bookings: [2, 3].map((n) => ({ startsAt: turno(n).startsAt, link: `link-${n}` })),
           timeZone: ANAS_BRANCH.timeZone,
         },
+        expect.objectContaining({ method: 'CANCEL' }),
       );
     });
 
@@ -233,7 +261,13 @@ describe('Acciones sobre la Serie (#305)', () => {
 
       await patch().expect(200);
 
-      expect(t.mailer.sendBookingCancellation).toHaveBeenCalledWith('carla@example.com', 'link-3', null);
+      expect(t.mailer.sendBookingCancellation).toHaveBeenCalledWith(
+        'carla@example.com',
+        'link-3',
+        null,
+        undefined,
+        expect.objectContaining({ method: 'CANCEL' }),
+      );
     });
 
     it('responde 422 en un Turno sin Serie', async () => {
@@ -275,7 +309,7 @@ describe('Acciones sobre la Serie (#305)', () => {
       expect(t.mailer.sendBookingCancellation).toHaveBeenCalledWith('carla@example.com', 'link-2', null, {
         bookings: [2, 3].map((n) => ({ startsAt: turno(n).startsAt, link: `link-${n}` })),
         timeZone: ANAS_BRANCH.timeZone,
-      });
+      }, expect.objectContaining({ method: 'CANCEL' }));
     });
 
     it('responde 200 aunque el mail falle', async () => {

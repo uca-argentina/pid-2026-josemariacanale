@@ -1,10 +1,17 @@
 import { z } from 'zod';
 
+/** El punto de una Sucursal en el mapa (ADR 0037): se guardan las coordenadas, no el lugar de Google. */
+export const locationSchema = z.object({
+    lat: z.number().min(-90).max(90),
+    lng: z.number().min(-180).max(180),
+});
+export type Location = z.infer<typeof locationSchema>;
+
 /**
  * A Sucursal as GET /businesses/:businessId/branches returns it.
  *
  * `slug` is its tramo of the Enlace de reserva, unique within its Negocio (ADR 0014). `description` is its
- * own, optional one: without it the page shows the Negocio's.
+ * own, optional one: without it the page shows the Negocio's. `location` is null on an old Sucursal without a punto.
  */
 export const branchSchema = z.object({
     id: z.number(),
@@ -14,6 +21,7 @@ export const branchSchema = z.object({
     timeZone: z.string(),
     slug: z.string(),
     description: z.string().nullable(),
+    location: locationSchema.nullable(),
 });
 export type Branch = z.infer<typeof branchSchema>;
 
@@ -22,20 +30,25 @@ export const BRANCH_IMAGES = { min: 1, max: 5 } as const;
 
 /**
  * What POST /businesses/:businessId/branches takes in one multipart request: the fields, the businessId that goes in
- * the path, and its first images, in order.
+ * the path, and its first images, in order. A new Sucursal always has a punto.
  */
 export const createBranchSchema = branchSchema
     .pick({ name: true, address: true, timeZone: true, slug: true })
     .extend({
         businessId: z.number(),
         description: z.string().optional(),
+        location: locationSchema,
         images: z.array(z.instanceof(File)).min(BRANCH_IMAGES.min).max(BRANCH_IMAGES.max),
     });
 export type CreateBranch = z.infer<typeof createBranchSchema>;
 
-/** The exact shape PATCH /branches/:id expects, plus the id that goes in the path. Every field is optional; `description: null` removes it. */
+/**
+ * The exact shape PATCH /branches/:id expects, plus the id that goes in the path. Every field is optional;
+ * `description: null` removes it, but `location` can only be changed, never removed.
+ */
 export const updateBranchSchema = branchSchema
     .pick({ name: true, address: true, timeZone: true, slug: true, description: true })
+    .extend({ location: locationSchema })
     .partial()
     .extend({ id: z.number() });
 export type UpdateBranch = z.infer<typeof updateBranchSchema>;

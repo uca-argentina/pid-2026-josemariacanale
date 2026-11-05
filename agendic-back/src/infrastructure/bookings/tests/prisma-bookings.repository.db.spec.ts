@@ -114,6 +114,8 @@ describe('PrismaBookingsRepository (real database)', () => {
         address: '123 Main St',
         timeZone: 'America/Argentina/Buenos_Aires',
         slug: 'downtown',
+        latitude: -34.6037,
+        longitude: -58.3816,
       },
     });
     const { id: employeeId } = await prisma.employee.create({
@@ -161,7 +163,13 @@ describe('PrismaBookingsRepository (real database)', () => {
           depositPercent: null,
         },
         business: { name: tag, slug: tag },
-        branch: { name: 'Downtown', slug: 'downtown', address: '123 Main St', coverUrl: null },
+        branch: {
+          name: 'Downtown',
+          slug: 'downtown',
+          address: '123 Main St',
+          coverUrl: null,
+          location: { lat: -34.6037, lng: -58.3816 },
+        },
         user: null,
       });
     } finally {

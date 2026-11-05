@@ -20,6 +20,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@evyweb/ioctopus": "^1.4.1",
     "@tanstack/react-table": "^9.2.8",
+    "canvas-confetti": "^1.9.3",
     "class-variance-authority": "^0.7.1",
     "cmdk": "^1.1.1",
     "cn": "^0.2.6",
@@ -40,6 +41,8 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/canvas-confetti": "^1.9.0",
+    "@types/google.maps": "^3.66.9",
     "@types/jest": "^30.0.0",
     "@types/node": "^20",
     "@types/react": "^19",

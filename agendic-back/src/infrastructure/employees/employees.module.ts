@@ -8,11 +8,12 @@ import { RespondToInvitationUseCase } from '../../application/invitations/respon
 import { RetireEmployeeUseCase } from '../../application/employees/retire-employee.use-case';
 import { ChangeEmployeeBranchesUseCase } from '../../application/employees/change-employee-branches.use-case';
 import { PreviewEmployeeBranchesUseCase } from '../../application/employees/preview-employee-branches.use-case';
+import { BadgesModule } from '../badges/badges.module';
 import { UsersModule } from '../users/users.module';
 import { EmployeesController } from './employees.controller';
 
 @Module({
-  imports: [UsersModule],
+  imports: [UsersModule, BadgesModule],
   controllers: [EmployeesController],
   providers: [
     InviteEmployeeUseCase,

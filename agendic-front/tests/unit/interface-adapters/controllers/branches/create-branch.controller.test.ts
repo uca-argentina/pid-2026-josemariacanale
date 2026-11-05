@@ -6,7 +6,8 @@ import { authWith, instrumentation } from '@/tests/unit/stubs';
 const user = { id: 'user_1', name: 'Ana', email: 'a@a.com' };
 const signedIn = () => authWith({ getCurrentUser: jest.fn().mockResolvedValue(user) });
 const images = [new File(['a'], 'a.png', { type: 'image/png' })];
-const input = { businessId: 1, name: 'Centro', address: 'Av. 1', timeZone: 'America/Argentina/Buenos_Aires', slug: 'centro', images };
+const location = { lat: -34.6, lng: -58.4 };
+const input = { businessId: 1, name: 'Centro', address: 'Av. 1', timeZone: 'America/Argentina/Buenos_Aires', slug: 'centro', location, images };
 
 describe('createBranchController', () => {
     it('returns the presented Sucursal, without businessId', async () => {
@@ -25,6 +26,8 @@ describe('createBranchController', () => {
         ['a missing businessId', { ...input, businessId: undefined }],
         ['a non-string slug', { ...input, slug: 3 }],
         ['no input', undefined],
+        ['a missing location', { ...input, location: undefined }],
+        ['a lng out of range', { ...input, location: { lat: 0, lng: 181 } }],
         ['no images', { ...input, images: [] }],
         ['more than five images', { ...input, images: Array(6).fill(images[0]) }],
         ['an image that is not a File', { ...input, images: ['a.png'] }],

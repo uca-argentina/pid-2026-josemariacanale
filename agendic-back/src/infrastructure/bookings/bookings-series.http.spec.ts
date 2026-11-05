@@ -106,10 +106,12 @@ describe('POST /bookings con repeat (Reservar una Serie)', () => {
       REQUEST.clientEmail,
       'link-1',
       null,
+      ANAS_BRANCH,
       {
         bookings: MONDAYS.map((date, i) => ({ startsAt: new Date(at(date)), link: `link-${i + 1}` })),
         timeZone: ANAS_BRANCH.timeZone,
       },
+      undefined,
     );
   });
 

@@ -1,5 +1,5 @@
 import { createBusinessAction } from '@/app/(app)/business/actions';
-import { BranchImagesRejectedError } from '@/src/entities/errors/business';
+import { BranchImagesRejectedError, InvalidLocationError } from '@/src/entities/errors/business';
 import { ApiRequestError } from '@/src/entities/errors/common';
 
 const mockControllers: Record<string, jest.Mock> = {
@@ -104,6 +104,17 @@ describe('createBusinessAction', () => {
         mockControllers.ICreateBusinessController.mockRejectedValue(new BranchImagesRejectedError('x', { reason }));
 
         await expect(createBusinessAction(form({ images: [file('a.png')] }))).resolves.toEqual({ ok: false, message });
+        expect(mockReport).not.toHaveBeenCalled();
+    });
+
+    it('points a 400 about the Ubicación at the address field, without reporting it', async () => {
+        mockControllers.ICreateBusinessController.mockRejectedValue(new InvalidLocationError('branch.location is required'));
+
+        await expect(createBusinessAction(form({ images: [file('a.png')] }))).resolves.toEqual({
+            ok: false,
+            field: 'address',
+            message: 'Elegí una dirección de la lista.',
+        });
         expect(mockReport).not.toHaveBeenCalled();
     });
 

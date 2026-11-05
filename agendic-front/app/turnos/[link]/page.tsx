@@ -3,7 +3,7 @@ import { unstable_rethrow } from 'next/navigation';
 import { ViewTransition } from 'react';
 import { readClock } from '@/app/_components/clock';
 import { BackendErrorNotice } from '@/app/_components/BackendErrorNotice';
-import type { ClientBooking } from '@/app/_components/client-booking/types';
+import type { ClientBooking, ClientStreakView } from '@/app/_components/client-booking/types';
 import { Footer } from '@/app/_components/Footer';
 import { Header } from '@/app/_components/Header';
 import { getInjection } from '@/di/container';
@@ -18,12 +18,12 @@ export const metadata: Metadata = {
 };
 
 type LoadedBooking =
-    | { found: true; booking: ClientBooking }
+    | { found: true; booking: ClientBooking; streak: ClientStreakView }
     | { found: false; failed: boolean };
 
 async function loadBooking(link: string): Promise<LoadedBooking> {
     try {
-        return { found: true, booking: await getInjection('IGetBookingByLinkController')({ link }) };
+        return { found: true, ...(await getInjection('IGetBookingByLinkController')({ link })) };
     } catch (error) {
         unstable_rethrow(error);
         // Un Enlace mal formado no puede ser de ningún Turno: es el mismo aviso que uno que no existe.
@@ -49,7 +49,7 @@ export default async function BookingLinkPage({ params }: { params: Promise<{ li
             <ViewTransition enter={{ booked: 'booked-in', default: 'none' }} default="none">
                 <div className="flex flex-1 flex-col">
                     {loaded.found ? (
-                        <BookingLinkScreen link={link} booking={loaded.booking} now={now} />
+                        <BookingLinkScreen link={link} booking={loaded.booking} streak={loaded.streak} now={now} />
                     ) : loaded.failed ? (
                         <BackendErrorNotice />
                     ) : (

@@ -53,7 +53,15 @@ describe('branchSchema', () => {
         name: 'Sucursal Centro',
         address: 'Av. Cabildo 1234',
         timeZone: 'America/Argentina/Buenos_Aires',
+        location: { lat: -34.56, lng: -58.46 },
     };
+
+    it('pide elegir la dirección de la lista mientras no hay punto', () => {
+        const result = branchSchema.safeParse({ ...branch, location: null });
+
+        expect(result.success).toBe(false);
+        expect(fieldErrorsOf(result.error!).location).toBe('Elegí una dirección de la lista.');
+    });
 
     it('no pide Servicio: la Sucursal y el Negocio alcanzan para Crear Negocio', () => {
         const payload: CreateBusinessPayload = {

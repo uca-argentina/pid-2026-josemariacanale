@@ -8,6 +8,9 @@ export type Booking = Awaited<ReturnType<DI_RETURN_TYPES['IListMyBookingsControl
 /** Qué ve el Usuario en el panel cuando el Historial del Turno no se puede cargar. */
 export const HISTORY_LOAD_ERROR = 'No pudimos cargar el historial del turno.';
 
+/** Qué dice el bloque Racha cuando no se pudo cargar. */
+export const STREAK_LOAD_ERROR = 'No pudimos cargar la Racha del Cliente.';
+
 /** Pestañas de la lista de Turnos; `series` agrupa por Serie en vez de listar Turnos, así que ningún Turno es de ella. */
 export type BookingTab = 'upcoming' | 'pending' | 'series' | 'past' | 'cancelled';
 

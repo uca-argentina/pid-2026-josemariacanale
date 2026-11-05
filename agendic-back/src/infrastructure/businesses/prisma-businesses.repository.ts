@@ -125,6 +125,51 @@ export class PrismaBusinessesRepository implements BusinessesRepository {
     ).map(toBusiness);
   }
 
+  async listByEmployeeUser(userId: number) {
+    const rows = await this.prisma.business
+      .findMany({
+        where: {
+          deletedAt: null,
+          employees: { some: { userId, deletedAt: null } },
+        },
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          ownerId: true,
+          slug: true,
+          deletedAt: true,
+          logoUrl: true,
+          branches: { select: { id: true } },
+          employees: {
+            where: { userId, deletedAt: null },
+            select: {
+              services: {
+                where: { service: { deletedAt: null } },
+                select: { service: { select: { branchId: true } } },
+              },
+            },
+          },
+        },
+      })
+      .catch(translateError);
+    return rows.map(({ branches, employees, ...business }) => ({
+      business: toBusiness(business),
+      branchIds:
+        business.ownerId === userId
+          ? branches.map((branch) => branch.id)
+          : [
+              ...new Set(
+                employees.flatMap((employee) =>
+                  employee.services.flatMap(({ service }) =>
+                    service.branchId === null ? [] : [service.branchId],
+                  ),
+                ),
+              ),
+            ],
+    }));
+  }
+
   async update(
     id: number,
     data: Partial<Pick<Business, 'name' | 'description' | 'slug' | 'logoUrl'>>,

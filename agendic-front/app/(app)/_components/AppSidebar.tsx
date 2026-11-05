@@ -10,12 +10,14 @@ import {
     Clock,
     EllipsisVertical,
     ExternalLink,
+    Flame,
     LayoutGrid,
     Link as LinkIcon,
     LogOut,
     Settings,
     SlidersHorizontal,
     Store,
+    Trophy,
     User,
     UserX,
 } from 'lucide-react';
@@ -46,7 +48,7 @@ import {
 } from '@/app/_components/ui/sidebar';
 import { Logo } from '@/app/_components/Logo';
 import { cn } from '@/app/_components/utils';
-import { SIGNED_IN_HOME_PATH, sectionOf } from '@/app/routes';
+import { ACHIEVEMENTS_PATH, SIGNED_IN_HOME_PATH, sectionOf } from '@/app/routes';
 import type { Preferences } from '@/src/entities/models/user';
 import { PreferencesDialog } from './PreferencesDialog';
 import { RetireAccountDialog } from './RetireAccountDialog';
@@ -58,6 +60,7 @@ const ICONS: Record<SectionId, React.ComponentType> = {
     services: LayoutGrid,
     business: Store,
     analytics: ChartColumn,
+    streaks: Flame,
 };
 
 // The primitive hovers with the active item's token; the panel hovers a lighter celeste. Only on inactive items:
@@ -247,6 +250,13 @@ function NavUser({
                         >
                             <User className="size-[15px]" />
                             Mi perfil
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            render={<Link href={ACHIEVEMENTS_PATH} />}
+                            onClick={() => setOpenMobile(false)}
+                        >
+                            <Trophy className="size-[15px]" />
+                            Logros
                         </DropdownMenuItem>
                         <DropdownMenuItem disabled className="opacity-50">
                             <Settings className="size-[15px]" />

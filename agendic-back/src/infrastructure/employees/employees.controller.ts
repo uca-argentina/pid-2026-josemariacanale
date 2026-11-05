@@ -24,6 +24,7 @@ import { presentInvitation } from '../invitations/invitation.presenter';
 import {
   presentBranchChangeBooking,
   presentEmployee,
+  presentStaffMember,
 } from './employee.presenter';
 import { ChangeEmployeeBranchesUseCase } from '../../application/employees/change-employee-branches.use-case';
 import { PreviewEmployeeBranchesUseCase } from '../../application/employees/preview-employee-branches.use-case';
@@ -187,6 +188,6 @@ export class EmployeesController {
   ) {
     return (
       await this.listEmployeesByBusinessUseCase.execute(userId, businessId)
-    ).map(presentEmployee);
+    ).map(presentStaffMember);
   }
 }

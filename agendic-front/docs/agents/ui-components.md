@@ -14,6 +14,8 @@ Start a component at the narrowest tier. Promote it one tier up only when a seco
 
 There is no `src/features/` or `src/components/`: `src/` holds only the clean architecture layers. A component never fetches data or calls a backend itself. A server component (or server action) calls `getInjection('I…Controller')` and passes the presenter's output down as props.
 
+**Exception: data that depends on the browser.** When the request needs something only the browser knows (today's date in the viewer's time zone), a client component may call a server action, which goes through the controller as always. It never reaches the backend itself. Example: `EmployeeSheet` loads the last 30 days of stats.
+
 ## Server vs. client
 
 Components are Server Components by default. Add `'use client'` only when the component needs at least one of these:

@@ -1,11 +1,20 @@
 import type { IBusinessesRepository } from '@/src/application/repositories/businesses.repository.interface';
 import type { IAuthenticationService } from '@/src/application/services/authentication.service.interface';
-import { AlreadyOwnerError, BranchImageLimitError, LastBranchImageError, InvalidSlugError, SlugTakenError } from '@/src/entities/errors/business';
+import {
+    AlreadyOwnerError,
+    BranchImageLimitError,
+    InvalidLocationError,
+    LastBranchImageError,
+    InvalidSlugError,
+    SlugTakenError,
+} from '@/src/entities/errors/business';
 import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
 import { branchImageSchema, type BranchImage } from '@/src/entities/models/branch-image';
 import { throwIfBranchImagesRejected } from './branch-images-rejection';
 import {
     businessSchema,
+    myBusinessSchema,
+    type MyBusiness,
     createdBusinessSchema,
     type Business,
     type CreateBusiness,
@@ -64,6 +73,18 @@ export class BusinessesRepository implements IBusinessesRepository {
     }
 
     /**
+     * `GET /users/me/businesses`.
+     *
+     * @throws {ApiRequestError} cualquier status que no sea 2xx (401 sin Sesión), o un body que no es una lista de Negocios
+     */
+    async listMyBusinesses(): Promise<MyBusiness[]> {
+        const { response, body, message } = await this.request('GET /users/me/businesses', '/users/me/businesses');
+        if (!response.ok) throw new ApiRequestError(message, { status: response.status });
+
+        return parseOrFail(() => myBusinessSchema.array().parse(body), 'GET /users/me/businesses');
+    }
+
+    /**
      * `POST /businesses`, multipart: los campos como JSON en `data` y las imágenes de la primera Sucursal en `images`.
      *
      * Solo un 400 que habla del `business.slug` se traduce a `InvalidSlugError`; cualquier otro campo inválido sale
@@ -73,6 +94,7 @@ export class BusinessesRepository implements IBusinessesRepository {
      * @throws {AlreadyOwnerError} 409 "Ya tenés un Negocio"
      * @throws {SlugTakenError} el otro 409, dirección en uso
      * @throws {InvalidSlugError} 400 sobre `business.slug`
+     * @throws {InvalidLocationError} 400 sobre el punto de la Sucursal
      * @throws {BranchImagesRejectedError} 400 sobre las imágenes, o 413
      * @throws {ApiRequestError} cualquier otra falla, o un body que no es un Negocio creado
      */
@@ -85,6 +107,7 @@ export class BusinessesRepository implements IBusinessesRepository {
             throw /ya ten[eé]s un negocio/i.test(message) ? new AlreadyOwnerError(message) : new SlugTakenError(message);
         }
         if (response.status === 400 && /business\.slug/i.test(message)) throw new InvalidSlugError(message);
+        if (response.status === 400 && /\blocation\b/i.test(message)) throw new InvalidLocationError(message);
         throwIfBranchImagesRejected(response.status, message);
         if (!response.ok) throw new ApiRequestError(message, { status: response.status });
 

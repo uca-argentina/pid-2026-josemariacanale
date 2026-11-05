@@ -449,6 +449,28 @@ describe('Servicio personal', () => {
       expect(res.body.employeeName).toBe(ANA.name);
     });
 
+    it('confirms the Turno without an address', async () => {
+      await t.http
+        .post('/bookings')
+        .send({
+          serviceId: PERSONAL.id,
+          startsAt: '2026-01-02T00:00:00.000Z',
+          clientName: 'Bruno Díaz',
+          clientEmail: 'bruno@example.com',
+          code: 'A1B2C3',
+        })
+        .expect(201);
+
+      expect(t.mailer.sendBookingConfirmation).toHaveBeenCalledWith(
+        'bruno@example.com',
+        BOOKING.link,
+        null,
+        null,
+        undefined,
+        undefined,
+      );
+    });
+
     it('counts the Límite diario in the zone of the Availability', async () => {
       t.services.findById.mockResolvedValue({ ...PERSONAL, dailyLimit: 1 });
       t.bookings.listOccupiedStartsByService.mockResolvedValue([]);

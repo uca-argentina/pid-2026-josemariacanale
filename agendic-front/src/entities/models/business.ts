@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { BRANCH_IMAGES } from './branch';
+import { BRANCH_IMAGES, locationSchema } from './branch';
 
 export const SERVICE_CATEGORIES = ['CLINICA', 'SPA', 'GIMNASIO', 'ACADEMIA', 'OTRO'] as const;
 
@@ -26,6 +26,17 @@ export const businessSchema = z.object({
 });
 export type Business = z.infer<typeof businessSchema>;
 
+/**
+ * A Negocio where the Usuario is an active Empleado, as GET /users/me/businesses returns it. `role` is the Usuario's in
+ * that Negocio; `branchIds` are the Sucursales where they work: all of them for the Dueño, those of the Servicios they
+ * Ofrece otherwise.
+ */
+export const myBusinessSchema = businessSchema.omit({ ownerId: true }).extend({
+    role: z.enum(['owner', 'employee']),
+    branchIds: z.array(z.number()),
+});
+export type MyBusiness = z.infer<typeof myBusinessSchema>;
+
 /** The exact shape POST /businesses expects: a Negocio with its first Sucursal, without a Servicio. */
 export const createBusinessSchema = z.object({
     business: z.object({ name: z.string(), description: z.string(), slug: z.string() }),
@@ -35,6 +46,7 @@ export const createBusinessSchema = z.object({
         timeZone: z.string(),
         slug: z.string(),
         description: z.string().optional(),
+        location: locationSchema,
     }),
     /** Las imágenes de la primera Sucursal, en orden: nunca nace sin una. */
     images: z.array(z.instanceof(File)).min(BRANCH_IMAGES.min).max(BRANCH_IMAGES.max),

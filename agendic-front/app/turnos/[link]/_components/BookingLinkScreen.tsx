@@ -2,15 +2,17 @@
 
 import { useState } from 'react';
 import { ClientBookingDetail } from '@/app/_components/client-booking/ClientBookingDetail';
-import type { ClientBooking } from '@/app/_components/client-booking/types';
+import type { ClientBooking, ClientStreakView } from '@/app/_components/client-booking/types';
 import { cancelBookingByLinkAction, cancelBookingSeriesByLinkAction, markEmployeeNoShowByLinkAction, payDepositByLinkAction, rateBookingByLinkAction, rescheduleBookingByLinkAction } from '../../actions';
 import { BookAgainLink } from './BookAgainLink';
+import { StreakBlock } from './StreakBlock';
 
 /**
  * Muestra el Turno de un Enlace del Turno (ADR 0022), solo, con Pagar la Seña, Cancelar y Reagendar. El Enlace es la credencial:
- * no hay acceso que venza, así que no hay vuelta a pedir un código.
+ * no hay acceso que venza, así que no hay vuelta a pedir un código. Debajo va la Racha del Cliente (`streak`), si hay: la
+ * trae solo la lectura del Enlace, y ninguna acción de acá la cambia, así que se queda como llegó.
  */
-export function BookingLinkScreen({ link, booking: initial, now }: { link: string; booking: ClientBooking; now: number }) {
+export function BookingLinkScreen({ link, booking: initial, streak, now }: { link: string; booking: ClientBooking; streak: ClientStreakView; now: number }) {
     const [booking, setBooking] = useState(initial);
 
     return (
@@ -27,6 +29,8 @@ export function BookingLinkScreen({ link, booking: initial, now }: { link: strin
                 rate={(score, comment) => rateBookingByLinkAction(link, score, comment)}
                 onUpdated={setBooking}
             />
+
+            {streak && <StreakBlock streak={streak} />}
 
             <BookAgainLink booking={booking} />
         </div>
