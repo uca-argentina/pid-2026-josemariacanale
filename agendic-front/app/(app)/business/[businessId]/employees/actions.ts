@@ -6,9 +6,18 @@ import { isSessionExpired } from '@/app/api-error';
 import { SIGN_IN_PATH } from '@/app/routes';
 import { getInjection } from '@/di/container';
 import type { DI_RETURN_TYPES } from '@/di/types';
-import { ApiRequestError, InputParseError } from '@/src/entities/errors/common';
+import type { LeftOutsidePreview, LeftOutsideSaved } from '@/app/(app)/_components/use-left-outside-save';
+import { ApiRequestError, InputParseError, NotFoundError } from '@/src/entities/errors/common';
 import type { EmployeeStatsQuery } from '@/src/entities/models/analytics';
-import { AlreadyEmployeeError, BranchesRequiredError, BranchNotOfBusinessError, InvitationNotPendingError, LastEmployeeError } from '@/src/entities/errors/employee';
+import {
+    AlreadyEmployeeError,
+    BranchesRequiredError,
+    BranchNotOfBusinessError,
+    EmployeeBranchesBookingsChangedError,
+    InvitationNotPendingError,
+    LastEmployeeError,
+    OwnerWorksAtEveryBranchError,
+} from '@/src/entities/errors/employee';
 
 export type EmployeeActionResult = { ok: true } | { ok: false; message: string; field?: 'email' | 'branchIds' };
 
@@ -84,6 +93,60 @@ export async function resendInvitationAction(payload: unknown): Promise<Employee
 /** Cancela la Invitación pendiente; la fila sale de la tabla. */
 export async function cancelInvitationAction(payload: unknown): Promise<EmployeeActionResult> {
     return runInvitationAction('ICancelInvitationController', payload, 'No pudimos cancelar la invitación. Intentá de nuevo.');
+}
+
+/** Un Turno que cambiar las Sucursales del Empleado cancela, como lo muestra el diálogo de confirmación. */
+export type EmployeeBranchesBooking = Awaited<ReturnType<DI_RETURN_TYPES['IPreviewEmployeeBranchesController']>>[number];
+
+/**
+ * Corre la acción sobre las Sucursales de un Empleado y traduce sus fallos a un mensaje para el Dueño. El 409 de
+ * Turnos vuelve como `leftOutChanged`, sin mensaje. Si el Empleado ya no existe (404) refresca la tabla.
+ */
+async function settleEmployeeBranches<T>(
+    run: () => Promise<T>,
+    unexpected: string,
+): Promise<{ ok: true; value: T } | { ok: false; message: string } | { ok: false; leftOutChanged: true }> {
+    try {
+        return { ok: true, value: await run() };
+    } catch (error) {
+        if (error instanceof EmployeeBranchesBookingsChangedError) return { ok: false, leftOutChanged: true };
+        unstable_rethrow(error);
+        if (isSessionExpired(error)) redirect(SIGN_IN_PATH);
+        if (error instanceof LastEmployeeError) return { ok: false, message: 'Es el último Empleado de un Servicio de esa Sucursal.' };
+        if (error instanceof OwnerWorksAtEveryBranchError) return { ok: false, message: 'El Dueño trabaja en todas las Sucursales.' };
+        if (error instanceof BranchesRequiredError) return { ok: false, message: 'Elegí al menos una Sucursal.' };
+        if (error instanceof BranchNotOfBusinessError)
+            return { ok: false, message: 'Una de las Sucursales ya no es de tu Negocio. Recargá la página y elegí de nuevo.' };
+        if (error instanceof NotFoundError) {
+            refresh();
+            return { ok: false, message: 'Este Empleado ya no está en tu Negocio. Actualizamos la lista.' };
+        }
+        if (error instanceof InputParseError) return { ok: false, message: 'Revisá los datos e intentá de nuevo.' };
+        getInjection('ICrashReporterService').report(error);
+        return { ok: false, message: unexpected };
+    }
+}
+
+/** Los Turnos que cambiar las Sucursales del Empleado cancelaría. No guarda ni refresca nada. */
+export async function previewEmployeeBranchesAction(employeeId: number, branchIds: number[]): Promise<LeftOutsidePreview<EmployeeBranchesBooking>> {
+    const unexpected = 'No pudimos revisar los Turnos del Empleado. Intentá de nuevo.';
+    const result = await settleEmployeeBranches(() => getInjection('IPreviewEmployeeBranchesController')({ employeeId, branchIds }), unexpected);
+    if (result.ok) return { ok: true, bookings: result.value };
+    return 'message' in result ? result : { ok: false, message: unexpected };
+}
+
+/**
+ * Cambia las Sucursales del Empleado y cancela los Turnos de `cancelBookingIds`. Con el 409 de Turnos responde
+ * `leftOutChanged` y no refresca la tabla: nada se guardó.
+ */
+export async function changeEmployeeBranchesAction(employeeId: number, branchIds: number[], cancelBookingIds: number[]): Promise<LeftOutsideSaved> {
+    const result = await settleEmployeeBranches(
+        () => getInjection('IChangeEmployeeBranchesController')({ employeeId, branchIds, cancelBookingIds }),
+        'No pudimos guardar las Sucursales. Intentá de nuevo.',
+    );
+    if (!result.ok) return result;
+    refresh();
+    return { ok: true, cancelledBookings: result.value.cancelledBookings };
 }
 
 /** Las estadísticas del Empleado para las tarjetas de su perfil. */

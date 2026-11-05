@@ -33,6 +33,7 @@ function presenter(
                     email: e.email,
                     imageUrl: e.imageUrl,
                     badges: e.badges,
+                    branchIds: e.branchIds,
                     branchNames: branchNames(e.branchIds),
                     role: isOwner(e) ? ('owner' as const) : ('employee' as const),
                 }))

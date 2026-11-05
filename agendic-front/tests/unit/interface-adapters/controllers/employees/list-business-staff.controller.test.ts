@@ -26,8 +26,8 @@ describe('listBusinessStaffController', () => {
             businessId: 1,
             viewerIsOwner: true,
             employees: [
-                { id: 3, name: 'Ana', email: 'Ana@Estudio.com', role: 'owner', badges: [], branchNames: ['Centro', 'Norte'] },
-                { id: 4, name: 'Martina', email: 'martina@estudio.com', role: 'employee', badges: [oro], branchNames: ['Norte'] },
+                { id: 3, name: 'Ana', email: 'Ana@Estudio.com', role: 'owner', badges: [], branchIds: [1, 2], branchNames: ['Centro', 'Norte'] },
+                { id: 4, name: 'Martina', email: 'martina@estudio.com', role: 'employee', badges: [oro], branchIds: [2], branchNames: ['Norte'] },
             ],
             invitations: [{ id: 5, email: 'nuevo@estudio.com', expiresAt: 'x', branchNames: ['Centro'] }],
             branches: [{ id: 1, name: 'Centro' }, { id: 2, name: 'Norte' }],

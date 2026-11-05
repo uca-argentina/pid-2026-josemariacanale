@@ -4,8 +4,10 @@ import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import type { LeftOutsideBooking } from '@/src/entities/models/left-outside-booking';
 
-type Preview = { ok: true; bookings: LeftOutsideBooking[] } | { ok: false; message: string };
-type Save = { ok: true; cancelledBookings: number } | { ok: false; message: string } | { ok: false; leftOutChanged: true };
+/** Lo que devuelve la acción de vista previa: los Turnos que se cancelan, o el mensaje para el Usuario. */
+export type LeftOutsidePreview<TBooking> = { ok: true; bookings: TBooking[] } | { ok: false; message: string };
+/** Lo que devuelve la acción de guardar: cuántos Turnos canceló, el mensaje para el Usuario, o que la lista cambió (409). */
+export type LeftOutsideSaved = { ok: true; cancelledBookings: number } | { ok: false; message: string } | { ok: false; leftOutChanged: true };
 
 /**
  * El flujo de guardar un cambio de horario que puede dejar Turnos afuera, reusable por cualquier formulario:
@@ -18,18 +20,18 @@ type Save = { ok: true; cancelledBookings: number } | { ok: false; message: stri
  * @param onSaved se llama al guardar, con cuántos Turnos se cancelaron
  * @param onError se llama con el mensaje de un fallo de la vista previa o del guardado
  */
-export function useLeftOutsideSave<I>({
+export function useLeftOutsideSave<I, TBooking extends { id: number } = LeftOutsideBooking>({
     preview,
     save,
     onSaved,
     onError,
 }: {
-    preview: (input: I) => Promise<Preview>;
-    save: (input: I, cancelBookingIds: number[]) => Promise<Save>;
+    preview: (input: I) => Promise<LeftOutsidePreview<TBooking>>;
+    save: (input: I, cancelBookingIds: number[]) => Promise<LeftOutsideSaved>;
     onSaved: (cancelledBookings: number) => void;
     onError: (message: string) => void;
 }) {
-    const [review, setReview] = useState<{ input: I; bookings: LeftOutsideBooking[] } | null>(null);
+    const [review, setReview] = useState<{ input: I; bookings: TBooking[] } | null>(null);
     const [isPending, startTransition] = useTransition();
 
     const check = async (input: I): Promise<void> => {
@@ -42,7 +44,7 @@ export function useLeftOutsideSave<I>({
         setReview({ input, bookings: previewed.bookings });
     };
 
-    const commit = async (input: I, bookings: LeftOutsideBooking[]): Promise<void> => {
+    const commit = async (input: I, bookings: TBooking[]): Promise<void> => {
         const saved = await save(
             input,
             bookings.map((b) => b.id),

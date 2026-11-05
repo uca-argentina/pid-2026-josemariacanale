@@ -1,4 +1,13 @@
-import type { CreateEmployee, Employee, Invitation, MyInvitation } from '@/src/entities/models/employee';
+import type {
+    BranchCancelledBooking,
+    ConfirmedEmployeeBranches,
+    CreateEmployee,
+    Employee,
+    EmployeeBranches,
+    Invitation,
+    MyInvitation,
+} from '@/src/entities/models/employee';
+import type { CancelledBookings } from '@/src/entities/models/left-outside-booking';
 
 // "Only the Dueño" is enforced by the back: anyone else gets ApiRequestError (403).
 export interface IEmployeesRepository {
@@ -39,4 +48,23 @@ export interface IEmployeesRepository {
      * @throws {ApiRequestError} no existe o no es del Negocio (404) u otro error de la API
      */
     cancelInvitation(invitationId: number): Promise<void>;
+    /**
+     * Los Turnos que cambiar las Sucursales del Empleado cancelaría, ordenados por inicio. No guarda nada.
+     *
+     * @throws {BranchesRequiredError} `branchIds` vino vacío (400)
+     * @throws {BranchNotOfBusinessError} una Sucursal no es del Negocio (422)
+     * @throws {OwnerWorksAtEveryBranchError} al Empleado del Dueño se le saca una Sucursal (422)
+     * @throws {LastEmployeeError} un Servicio se queda sin Empleados (422)
+     * @throws {NotFoundError} el Empleado no existe o está dado de baja (404)
+     * @throws {ApiRequestError} no es el Dueño (403) u otro error de la API
+     */
+    previewEmployeeBranches(input: EmployeeBranches): Promise<BranchCancelledBooking[]>;
+    /**
+     * Cambia las Sucursales del Empleado y cancela los Turnos de `cancelBookingIds`.
+     *
+     * @returns cuántos Turnos canceló
+     * @throws {EmployeeBranchesBookingsChangedError} se cancelaría un Turno que no está en `cancelBookingIds` (409)
+     * @throws los mismos errores que `previewEmployeeBranches`
+     */
+    changeEmployeeBranches(input: ConfirmedEmployeeBranches): Promise<CancelledBookings>;
 }
