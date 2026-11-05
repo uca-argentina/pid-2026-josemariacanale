@@ -27,6 +27,7 @@ import { PrismaBookingsRepository } from './bookings/prisma-bookings.repository'
 import { readBookingCodeSecret, TotpBookingVerificationCodes } from './bookings/totp-booking-verification-codes';
 import { BookingsModule } from './bookings/bookings.module';
 import { CABINS_REPOSITORY } from '../domain/cabins/cabins.repository';
+import { STREAK_PROGRAMS_REPOSITORY } from '../domain/streaks/streak-programs.repository';
 import { CabinsModule } from './cabins/cabins.module';
 import { PrismaCabinsRepository } from './cabins/prisma-cabins.repository';
 import { BranchImagesModule } from './branch-images/branch-images.module';
@@ -52,6 +53,8 @@ import { ServicesModule } from './services/services.module';
 import { SlugsModule } from './slugs/slugs.module';
 import { SystemClock } from './system-clock';
 import { ClerkBackendAuth } from './users/clerk-backend-auth';
+import { PrismaStreakProgramsRepository } from './streaks/prisma-streak-programs.repository';
+import { StreaksModule } from './streaks/streaks.module';
 import { PrismaUsersRepository } from './users/prisma-users.repository';
 import { UsersModule } from './users/users.module';
 import { PrismaWaitlistRepository } from './waitlist/prisma-waitlist.repository';
@@ -75,6 +78,7 @@ import { WaitlistModule } from './waitlist/waitlist.module';
     HolidaysModule,
     AnalyticsModule,
     WaitlistModule,
+    StreaksModule,
   ],
   providers: [
     PrismaService,
@@ -122,6 +126,10 @@ import { WaitlistModule } from './waitlist/waitlist.module';
     { provide: GOOGLE_CALENDAR_CLIENT, useClass: GoogleCalendarApiClient },
     { provide: ANALYTICS_REPOSITORY, useClass: PrismaAnalyticsRepository },
     { provide: WAITLIST_REPOSITORY, useClass: PrismaWaitlistRepository },
+    {
+      provide: STREAK_PROGRAMS_REPOSITORY,
+      useClass: PrismaStreakProgramsRepository,
+    },
   ],
   exports: [
     CLOCK,
@@ -145,6 +153,7 @@ import { WaitlistModule } from './waitlist/waitlist.module';
     GOOGLE_CALENDAR_CLIENT,
     ANALYTICS_REPOSITORY,
     WAITLIST_REPOSITORY,
+    STREAK_PROGRAMS_REPOSITORY,
   ],
 })
 export class InfrastructureModule {}

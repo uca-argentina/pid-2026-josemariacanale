@@ -80,6 +80,10 @@ import {
   ClerkAuth,
   ClerkIdentity,
 } from './domain/users/clerk-auth';
+import {
+  STREAK_PROGRAMS_REPOSITORY,
+  StreakProgramsRepository,
+} from './domain/streaks/streak-programs.repository';
 import { User } from './domain/users/user';
 import {
   USERS_REPOSITORY,
@@ -295,6 +299,14 @@ export async function createTestApp() {
     businessServices: jest.fn(),
     bookingRows: jest.fn(),
   };
+  const streakPrograms: jest.Mocked<StreakProgramsRepository> = {
+    findByOwnerIncludeRewards: jest.fn(),
+    save: jest.fn(),
+    createReward: jest.fn(),
+    findRewardById: jest.fn(),
+    updateReward: jest.fn(),
+    deleteReward: jest.fn(),
+  };
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(CLOCK)
     .useValue(clock)
@@ -338,6 +350,8 @@ export async function createTestApp() {
     .useValue(googleCalendar)
     .overrideProvider(ANALYTICS_REPOSITORY)
     .useValue(analytics)
+    .overrideProvider(STREAK_PROGRAMS_REPOSITORY)
+    .useValue(streakPrograms)
     .compile();
   const app = setupApp(moduleRef.createNestApplication());
   await app.init();
@@ -364,6 +378,7 @@ export async function createTestApp() {
     userHolidaySettings,
     googleCalendar,
     analytics,
+    streakPrograms,
     http: request(app.getHttpServer()),
   };
 }

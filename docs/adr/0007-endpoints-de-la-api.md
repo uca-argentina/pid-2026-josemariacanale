@@ -456,3 +456,31 @@ como uno que no existe.
 - **`GET /waitlist-links/:secret`**: sin Sesión. **200** `{ date, timeZone, left: boolean, service: { name, slug }, business: { name, slug } | null, branch: { name, slug } | null, user: { slug } | null }`, con la convención de `ClientBooking`: `business` y `branch` nulos en un Servicio personal, `user` (el Enlace de reserva del Usuario) nulo en uno del Negocio. `timeZone` es la del Servicio. Responde aunque la fecha haya pasado o el Servicio esté dado de baja. **404** `Anotación not found`.
 - **`POST /waitlist-links/:secret/leave`**: sin Sesión, sin body. **204**; también **204**, sin tocar nada, si ya había Salido. **404** `Anotación not found`. El front lo llama desde un botón, nunca con un GET, porque los antivirus del mail abren los links.
 - `lista-de-espera` es palabra reservada del primer tramo del Enlace de reserva: Crear Negocio y editar el Negocio o el Usuario con ese slug dan **409** `Booking link already in use`. Su migración falla si un Negocio o Usuario ya lo tiene.
+
+## Rachas (#428)
+
+Configuración de las Rachas de un Negocio y de los Servicios personales de un Usuario. Solo se guarda la configuración: todavía no se gana nada. Todos exigen Sesión.
+
+| Método | Ruta | Auth | Qué hace |
+|---|---|---|---|
+| GET | `/businesses/:id/streak-program` | sí | El programa del Negocio (solo el Dueño) |
+| PUT | `/businesses/:id/streak-program` | sí | Prende o apaga las Rachas y fija el Tiempo de quemada (solo el Dueño); lo crea si no existe |
+| POST | `/businesses/:id/streak-rewards` | sí | Crea una Recompensa del Negocio (solo el Dueño); 201 |
+| GET | `/users/me/streak-program` | sí | El programa de los Servicios personales del Usuario de la Sesión |
+| PUT | `/users/me/streak-program` | sí | Igual que el PUT del Negocio, para los Servicios personales |
+| POST | `/users/me/streak-rewards` | sí | Crea una Recompensa de los Servicios personales; 201 |
+| PATCH | `/streak-rewards/:id` | sí | Edita una Recompensa (solo el dueño del programa); 200 |
+| DELETE | `/streak-rewards/:id` | sí | Borra una Recompensa (solo el dueño del programa); 204. El borrado es lógico (`deletedAt`) |
+
+- Respuesta del programa (`presentStreakProgram`, GET y PUT): `{ active, burnAfterDays: number | null, rewards: Reward[] }`. `rewards` va sin las borradas y por `requiredCount` ascendente. Sin programa: `{ active: false, burnAfterDays: null, rewards: [] }`.
+- `Reward` (`presentStreakReward`): `{ id, requiredCount, repeatable, type, value: number | null, description: string | null, service: { id, name } | null, validForDays: number | null }`. `service` se sigue mostrando con su nombre si el Servicio se dio de baja después.
+- `SaveStreakProgramDto` (PUT): `{ active: boolean, burnAfterDays: number }`, los dos obligatorios. `burnAfterDays` es un entero de 1 a 365; fuera de eso → 400. No toca las Recompensas.
+- `CreateStreakRewardDto` (POST): `{ requiredCount, repeatable, type, value?, description?, serviceId?, validForDays? }`. Si no existe el programa, lo crea apagado y con `burnAfterDays` nulo.
+- `UpdateStreakRewardDto` (PATCH): el mismo body, parcial. Lo que no viene queda como estaba; `null` en `value`, `description`, `serviceId` o `validForDays` lo saca. El tipo se valida sobre el resultado: cambiar `type` sin mandar el campo que pide, si la Recompensa no lo tenía, es 400.
+- `requiredCount` y `validForDays` son enteros mayores que 0. `type` es `PERCENT_DISCOUNT | AMOUNT_DISCOUNT | GIFT | FREE_SERVICE`.
+- Validación por `type`: `PERCENT_DISCOUNT` exige `value` entre 1 y 100; `AMOUNT_DISCOUNT` exige `value` > 0; `GIFT` exige `description` de 1 a 200 caracteres, que se guarda recortada; `FREE_SERVICE` exige `serviceId`. `value` admite hasta dos decimales. Los campos que no corresponden al tipo se guardan nulos, aunque vengan en el body.
+- **400** si la forma es inválida, `burnAfterDays` está fuera de 1–365 o falta el campo que pide el tipo.
+- **403** `Only the Dueño of Business <id> can change its Rachas`: en las rutas de `/businesses/:id/...`, cualquier Usuario que no sea el Dueño, también un Empleado; en `/streak-rewards/:id`, un Empleado de ese Negocio que no es el Dueño.
+- **404** `Business not found` en las rutas de `/businesses/:id/...` si el Negocio no existe o está dado de baja (ADR 0024).
+- **404** `Streak reward <id> not found` si no existe, está borrada o es de otro. Un Usuario que no es Empleado del Negocio de la Recompensa recibe este 404, no el 403: un id no dice nada de los programas ajenos.
+- **422** `Service <id> cannot be a free Service for this program` si el Servicio no existe, no es del Negocio (o no es Servicio personal del Usuario) o está dado de baja. En el PATCH se valida solo si el body trae `serviceId`: que el Servicio se haya dado de baja después no impide editar el resto de la Recompensa. El front lo muestra debajo del selector de Servicio.
