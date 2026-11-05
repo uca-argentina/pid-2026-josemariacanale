@@ -590,13 +590,37 @@ describe('Empleado', () => {
       );
     });
 
-    it('answers 403 for a session that is not the Dueño', async () => {
+    it('lets an Empleado who is not the Dueño see the Staff', async () => {
       scriptOtherSession(t);
+      t.employees.listActiveByBusiness.mockResolvedValue([
+        ANAS_EMPLOYEE,
+        OTHER_EMPLOYEE,
+      ]);
 
-      await t.http
+      const res = await t.http
+        .get(`/businesses/${ANAS_BUSINESS.id}/employees`)
+        .set(bearer(OTHER_CLERK_TOKEN))
+        .expect(200);
+
+      expect(res.body).toHaveLength(2);
+    });
+
+    it('answers 403 for a session that is not an Empleado of the Business', async () => {
+      scriptOtherSession(t);
+      t.employees.listActiveByBusiness.mockResolvedValue([ANAS_EMPLOYEE]);
+
+      const res = await t.http
         .get(`/businesses/${ANAS_BUSINESS.id}/employees`)
         .set(bearer(OTHER_CLERK_TOKEN))
         .expect(403);
+
+      expect(res.body.message).toBe(
+        `Only Employees of Business ${ANAS_BUSINESS.id} can see its Staff`,
+      );
+    });
+
+    it('answers 401 without a session', async () => {
+      await t.http.get(`/businesses/${ANAS_BUSINESS.id}/employees`).expect(401);
     });
 
     it('answers 404 for an unknown Business', async () => {

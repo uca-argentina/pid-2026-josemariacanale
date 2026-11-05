@@ -16,11 +16,10 @@ import {
     PanelInput,
     PanelMenu,
 } from '@/app/(app)/_components/panel-ui';
-import { cn } from '@/app/_components/utils';
 import { inviteEmployeeSchema, fieldErrorsOf, type FieldErrors } from '@/app/_components/business-schemas';
 import { RoleBadge, type BusinessRole } from '../../_components/business-ui';
 import { addEmployeeAction, cancelInvitationAction, resendInvitationAction, retireEmployeeAction } from '../actions';
-import { EmployeeDialog } from './EmployeeDialog';
+import { EmployeeSheet } from './EmployeeSheet';
 
 export type EmployeeRow = { id: number; name: string; email: string; imageUrl: string | null; role: BusinessRole };
 /** Invitación pendiente del Negocio; `expiresAt` es ISO y se muestra en hora de Buenos Aires. */
@@ -98,10 +97,13 @@ function InviteEmployeeDialog({ businessId, onClose }: { businessId: number; onC
 /** El Staff del Negocio. La lista viene del server: invitar y dar de baja la refrescan. */
 export function EmployeesView({
     businessId,
+    viewerIsOwner,
     employees,
     invitations,
 }: {
     businessId: number;
+    /** Si quien mira es el Dueño del Negocio: solo él ve las estadísticas de un Empleado. */
+    viewerIsOwner: boolean;
     employees: EmployeeRow[];
     invitations: InvitationRow[];
 }) {
@@ -252,12 +254,14 @@ export function EmployeesView({
                 </table>
             </div>
 
-            <p className={cn('m-0 text-center text-[13px] font-medium text-[#9ca3af]', noResults && 'mt-10')}>
-                {noResults ? 'No hay empleados que coincidan con la búsqueda' : 'No hay más resultados'}
-            </p>
+            {noResults && (
+                <p className="m-0 mt-10 text-center text-[13px] font-medium text-[#9ca3af]">No hay empleados que coincidan con la búsqueda</p>
+            )}
 
             {inviting && <InviteEmployeeDialog businessId={businessId} onClose={() => setInviting(false)} />}
-            {viewing && <EmployeeDialog employee={viewing} onClose={() => setViewing(undefined)} />}
+            {viewing && (
+                <EmployeeSheet businessId={businessId} employee={viewing} showStats={viewerIsOwner} onClose={() => setViewing(undefined)} />
+            )}
             <PanelConfirm
                 open={Boolean(retiring)}
                 onOpenChange={(open) => !open && setRetiring(undefined)}

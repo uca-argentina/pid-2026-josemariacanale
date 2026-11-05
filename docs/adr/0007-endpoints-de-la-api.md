@@ -47,6 +47,23 @@ actualizarlo a mano cuando se agregue, cambie o borre un endpoint.
 - `UpdateMeDto`: `{ name?, email? }`
 - Respuesta (`presentUser`): `{ id, name, email, pendingEmail? (solo si está seteado), role }`. Suma `imageUrl: string | null`: la foto de perfil, la de Clerk al crearse el Usuario; `null` sin una foto real o con una URL que no se pudo parsear. Se refresca en cada request desde los claims `imageUrl` / `hasImage` del session token (como el nombre y el email, ADR 0009): sin los claims no se toca; si Clerk dice que no hay foto real pasa a `null`; si no cambió no se escribe; una falla al refrescar no tumba el request.
 
+### Insignias del Usuario (#421)
+
+| Método | Ruta | Auth | Qué hace |
+|---|---|---|---|
+| GET | `/users/me/badges` | sí | Evalúa al Usuario y responde sus Insignias |
+| GET | `/users/me/badges/unseen` | sí | Evalúa al Usuario y responde los Niveles ganados que todavía no vio |
+| POST | `/users/me/badges/seen` | sí | Marca como vistos todos sus Niveles sin ver; **204** sin body |
+
+- Sin Sesión, los tres responden **401**. Ninguno tiene body ni parámetros.
+- El catálogo vive en el dominio: `first-booking` (Primer Turno), `attended` (Turnos atendidos), `five-stars` (Cinco estrellas), `loyal-clients` (Clientes fieles) y `always-present` (Siempre presente). Los Niveles son `bronze`, `silver`, `gold` y `platinum`; una Insignia de un solo Nivel usa `bronze`.
+- Cuenta el trabajo del Usuario como quien atiende: Turnos de sus Servicios personales y de todo Negocio donde es o fue Empleado. Dejar un Negocio no resta. Un Turno atendido sigue la regla del KPI `attended`.
+- **`GET /users/me/badges`**: **200** `[{ badge, name, level, progress, levels }]`, una entrada por Insignia del catálogo y en su orden. `level` es el Nivel más alto ganado, o `null` si no ganó ninguno. `progress` es `{ current, target }` hacia el próximo Nivel sin ganar, o `null` si ya ganó el último. `levels` es `[{ level, target, earnedAt }]` con `earnedAt` en ISO, o `null` si ese Nivel no se ganó.
+- **`GET /users/me/badges/unseen`**: **200** `[{ badge, name, level, earnedAt }]` (`earnedAt` en ISO) ordenado por `earnedAt`; `[]` si no hay nada sin ver.
+- Evaluar guarda los Niveles alcanzados que faltaban, todos los intermedios si se alcanzan varios de golpe, con `earnedAt` = el momento de la evaluación. Un Nivel ganado nunca se borra ni se baja: si el conteo baja, `level` no cambia (`progress.current` sí).
+- `seen` no evalúa: marca lo que ya estaba guardado.
+- El front usa `GET /users/me/badges` en la pantalla Logros; al abrir la app pide `unseen`, muestra un modal por Nivel y, al cerrar el último, llama a `seen`.
+
 ## Businesses (Negocio)
 
 | Método | Ruta | Auth | Qué hace |
@@ -181,7 +198,8 @@ Todo Empleado es un Usuario (ADR 0013): nombre y email los presta su cuenta, no 
 | POST | `/invitations/:id/resend` | sí | El Dueño reenvía la Invitación (ADR 0019): renueva el vencimiento a 7 días y reenvía el mail de Clerk solo si la persona todavía no es Usuario; 200 con la Invitación; 404 si no existe o no es de su Negocio; 422 si ya se aceptó o rechazó; 502 si Clerk falla |
 | DELETE | `/invitations/:id` | sí | El Dueño cancela la Invitación pendiente: la cierra, deja de listarse y ya no se puede aceptar; 204; 404 / 422 como arriba |
 | DELETE | `/employees/:id` | sí | Da de baja (soft-delete) un empleado (solo el dueño); 422 si es el Dueño dándose de baja a sí mismo. Le manda el Aviso de cambio del Turno al Cliente por mail; si el mail falla, igual responde OK. |
-| GET | `/businesses/:id/employees` | sí | Lista empleados activos de un negocio (solo el dueño) |
+| GET | `/businesses/:id/employees` | sí | Lista empleados activos de un negocio (el Staff): lo ve cualquier Empleado activo del Negocio, no solo el Dueño; 403 `Only Employees of Business <id> can see its Staff` si el Usuario no es Empleado activo; 404 si el Negocio no existe o está dado de baja |
+| GET | `/users/me/businesses` | sí | Los Negocios no dados de baja donde el Usuario es Empleado activo: `200 [{ id, name, description, slug, logoUrl, role: "owner" \| "employee", branchIds: number[] }]`. El Negocio del que es Dueño va primero (`role: "owner"`) y los demás por nombre. `branchIds` son las Sucursales donde trabaja: todas las del Negocio si es Dueño, y las de los Servicios que Ofrece si no; `[]` si no Ofrece ninguno. `[]` (200) si no es Empleado de ninguno; 401 sin Sesión |
 | GET | `/employees/me/services` | sí | Catálogo de Servicios del panel: un grupo por cada Negocio del que el Usuario es Empleado activo; `[]` (200) si no lo es de ninguno |
 
 - Respuesta de `GET /employees/me/services` (`presentCatalogGroup`): `[{ business: { id, name, slug, logoUrl }, role: "owner" | "employee", employeeId, branches: [{ id, name, slug, services: [Servicio] }] }]`. `employeeId` es el Empleado del Usuario en ese Negocio; `role` es `owner` si es su Dueño. Las sucursales van ordenadas por `slug` y aparecen aunque no tengan servicios; no trae servicios dados de baja; un servicio oculto sale solo si el Usuario es Dueño del Negocio o lo atiende. Un Empleado dado de baja de un Negocio deja de recibir ese grupo. Los Servicios van con la misma vista que la pública (`presentService`).
