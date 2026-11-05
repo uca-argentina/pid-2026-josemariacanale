@@ -214,7 +214,7 @@ Acción del Cliente de tomar un turno disponible. Exige Verificar email: el Turn
 _Avoid_: agendar, sacar turno, pedir turno
 
 **Mis turnos**:
-Pantalla del panel donde un Empleado ve los Turnos que atiende, en todos los Negocios donde lo es, y desde donde los Acepta, Rechaza, Cancela, Reagenda, o los marca como atendidos o con Ausencia del Invitado. Es del Empleado: el Cliente no tiene una, vuelve a su Turno por el Enlace del Turno.
+Pantalla del panel donde un Empleado ve los Turnos que atiende, en todos los Negocios donde lo es, y desde donde los Acepta, Rechaza, Cancela, Reagenda o les marca la Ausencia del Invitado. Es del Empleado: el Cliente no tiene una, vuelve a su Turno por el Enlace del Turno.
 _Avoid_: mis reservas, agenda, turnos del cliente (no existe)
 
 **Enlace del Turno**:
@@ -266,7 +266,7 @@ Por qué se Canceló un Turno cuando lo cancela un cambio en el horario de quien
 _Avoid_: motivo (eso es el Motivo de cancelación, o el Motivo de Fuera de la oficina), razón
 
 **Ausencia del Invitado**:
-Turno al que el Cliente no se presentó sin cancelarlo. La marca a mano quien lo atiende, solo en Turnos ya aceptados cuyo horario ya pasó. Excluye a Turno atendido y a Ausencia del Anfitrión: gana la primera que se marca.
+Turno al que el Cliente no se presentó sin cancelarlo. La marca a mano quien lo atiende, solo en Turnos ya aceptados cuyo horario ya pasó. Excluye a Ausencia del Anfitrión: gana la primera que se marca. Un Turno con Ausencia del Invitado no es Turno atendido.
 _Avoid_: Ausencia (a secas), ausencia del Cliente, inasistencia, no-show, ausencia del Usuario (eso es Fuera de la oficina)
 
 **Ausencia del Anfitrión**:
@@ -274,7 +274,7 @@ Turno al que no se presentó quien lo atiende: el Empleado, o el Usuario en un S
 _Avoid_: Falta del Empleado, ausencia del Empleado, Fuera de la oficina (es otra cosa)
 
 **Turno atendido**:
-Turno aceptado cuyo horario ya pasó y que el Empleado marcó a mano como atendido. Excluye a Ausencia del Invitado. Un Turno que pasó sin ninguna de las dos marcas no cuenta como atendido.
+Turno aceptado cuyo horario ya terminó, sin Ausencia del Invitado ni Ausencia del Anfitrión. Se deduce: nadie lo marca.
 _Avoid_: completado, realizado, finalizado
 
 **Turno pendiente**:
@@ -327,6 +327,40 @@ _Avoid_: desanotarse, darse de baja (eso es otra cosa), cancelar la anotación
 Mail que recibe el Cliente una hora después de que termina un Turno que se puede Calificar, con el Enlace del Turno. Se manda una sola vez por Turno, hasta 7 días después de que terminó.
 _Avoid_: recordatorio, encuesta
 
+**Aviso de Premio**:
+Mail que recibe el Cliente cuando su Ficha gana un Premio, con lo prometido y su vencimiento, si tiene.
+_Avoid_: notificación (a secas), Aviso de cambio del Turno (es otro)
+
 **Confirmación de asistencia**:
 Acción del Cliente, previa al turno, indicando que va a asistir.
 _Avoid_: confirmación (a secas), confirmar turno
+
+### Reconocimiento
+
+**Insignia**:
+Meta que un Usuario alcanza con su trabajo, como "Turnos atendidos". Es del Usuario y cuenta sus Turnos en todos sus Negocios y en sus Servicios personales. Sube de Nivel a medida que avanza; cada Nivel alcanzado queda ganado para siempre, aunque después el conteo baje. El progreso hacia el próximo Nivel lo ve solo el Usuario, en Logros; el Dueño y el resto del Staff ven solo los Niveles ganados.
+_Avoid_: logro (como concepto aparte), medalla, achievement, badge
+
+**Nivel**:
+Escalón de una Insignia (bronce, plata, oro, platino), cada uno con su meta. Ganar un Nivel se celebra igual que ganar la Insignia.
+_Avoid_: rango, tier
+
+**Racha**:
+Cantidad de Turnos seguidos de una Ficha del Cliente, sin que entre uno y el siguiente pase más que el Tiempo de quemada. Suma cada Turno atendido. Un Turno con Ausencia del Invitado la quema: el siguiente empieza una Racha nueva. Cancelar, Rechazar o una Ausencia del Anfitrión no suman ni la queman. Recalcularla no quita los Premios ya ganados. Es de la Ficha del Cliente: una por Negocio y email, sumando todas sus Sucursales y Servicios; en los Servicios personales, del Usuario que los atiende. Se dice "Racha de 5 Turnos", no "5 rachas".
+_Avoid_: streak, racha del invitado, fidelidad (a secas)
+
+**Tiempo de quemada**:
+Días que pueden pasar desde el inicio del último Turno que sumó a una Racha antes de que se queme. Lo fija el Dueño para todo su Negocio; en los Servicios personales, el Usuario. Corre siempre, también mientras nadie atiende (Fuera de la oficina, Días festivos): la Racha no se congela. Cambiarlo vale también para las Rachas en curso.
+_Avoid_: vencimiento, plazo (a secas; se confunde con Plazo de cambios)
+
+**Recompensa**:
+Lo que el Dueño promete a la Ficha del Cliente cuya Racha llega a cierta cantidad de Turnos: un descuento porcentual, un descuento de monto fijo, un regalo descrito en texto o un Servicio gratis. Se gana una vez por Racha al llegar a esa cantidad, o cada vez que la Racha suma esa cantidad, según elija el Dueño; una Recompensa nueva la ganan también las Rachas en curso que ya pasaron su cantidad. El Servicio gratis es de un Servicio concreto, pero el Turno igual pide su Seña. Viene apagada: sin Recompensas no hay Rachas a la vista. Agendic no cobra: el descuento lo aplica el Negocio al cobrar. En los Servicios personales la define el Usuario.
+_Avoid_: beneficio, promoción, cupón
+
+**Premio**:
+Recompensa que ganó una Ficha del Cliente. Guarda lo prometido aunque después el Dueño cambie o borre la Recompensa. No se pierde cuando la Racha se quema. Vence solo si la Recompensa tiene vigencia. Se usa una sola vez, al Canjear.
+_Avoid_: recompensa (cuando ya se ganó), voucher, cupón
+
+**Canjear**:
+Acción del Empleado de dar por usado un Premio en un Turno de esa Ficha del Cliente, de cualquier Servicio, desde el detalle del Turno en Mis turnos. El Cliente ve su Racha y sus Premios en el Enlace del Turno y en la Confirmación de reserva, pero no Canjea.
+_Avoid_: redimir, aplicar, usar el premio
