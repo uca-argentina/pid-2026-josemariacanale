@@ -1,7 +1,5 @@
+import type { Ubicacion } from '@/app/_components/maps/directions';
 import type { Location } from '@/src/entities/models/branch';
-
-/** La Ubicación de una Sucursal (ADR 0037): su dirección y su punto, `null` en una Sucursal anterior a la Ubicación. */
-type BranchUbicacion = { address: string; location: Location | null };
 
 const EARTH_RADIUS_KM = 6371;
 
@@ -20,7 +18,7 @@ function distanceKm(a: Location, b: Location): number {
  * Las que no tienen punto no tienen distancia y quedan al final, en el orden en que vinieron. Sin `origin` (el Cliente
  * no compartió su ubicación) quedan todas como vinieron.
  */
-export function sortByDistance<T extends BranchUbicacion>(
+export function sortByDistance<T extends Ubicacion>(
     branches: T[],
     origin: Location | null,
 ): (T & { distanceKm: number | null })[] {
@@ -31,10 +29,4 @@ export function sortByDistance<T extends BranchUbicacion>(
         }))
         // Stable sort: equal keys (two without a distance) keep their order.
         .sort((a, b) => (a.distanceKm ?? Number.MAX_VALUE) - (b.distanceKm ?? Number.MAX_VALUE));
-}
-
-/** Arma el enlace "Cómo llegar": la ruta de Google Maps hasta el punto de la Sucursal, o hasta su dirección si no tiene. */
-export function directionsUrl({ address, location }: BranchUbicacion): string {
-    const destination = location ? `${location.lat},${location.lng}` : encodeURIComponent(address);
-    return `https://www.google.com/maps/dir/?api=1&destination=${destination}`;
 }

@@ -29,7 +29,7 @@ const booking = {
     service: { name: 'Corte', durationMinutes: 60, price: 5000, depositPercent: null },
     employeeName: 'Ana',
     business: { name: 'Peluquería Luna', slug: 'peluqueria-luna' },
-    branch: { name: 'Centro', slug: 'centro', address: 'Av. Siempreviva 742', coverUrl: null },
+    branch: { name: 'Centro', slug: 'centro', address: 'Av. Siempreviva 742', coverUrl: null, location: null },
     user: null,
     cancellationReason: null,
     series: null,
@@ -51,6 +51,13 @@ describe('ClientBookingsRepository.getBookingByLink', () => {
 
         await expect(repo().getBookingByLink('s3cr3t-l1nk')).resolves.toEqual({ ...booking, streak: null });
         expect(fetchSpy).toHaveBeenCalledWith('http://api/booking-links/s3cr3t-l1nk', { method: 'GET', headers: {} });
+    });
+
+    it('trae el punto de la Sucursal, para el enlace "Cómo llegar"', async () => {
+        const location = { lat: -34.6037, lng: -58.3816 };
+        respond(200, { ...booking, branch: { ...booking.branch, location }, streak: null });
+
+        await expect(repo().getBookingByLink('s3cr3t-l1nk')).resolves.toMatchObject({ branch: { location } });
     });
 
     it('trae la Racha del Cliente, con lo que falta para la próxima Recompensa y sus Premios', async () => {

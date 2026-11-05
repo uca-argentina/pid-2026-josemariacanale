@@ -3,6 +3,8 @@
 import { useState, useTransition } from 'react';
 import { formatPrice as formatPriceWithCents } from '@/app/_components/booking/format';
 import Link from 'next/link';
+import { MapPin } from 'lucide-react';
+import { DirectionsLink } from '@/app/_components/maps/DirectionsLink';
 import { Button } from '@/app/_components/ui/button';
 import { bookingPath } from '@/app/routes';
 import { Textarea } from '@/app/_components/ui/textarea';
@@ -24,7 +26,7 @@ import { RescheduleOverlay } from './RescheduleOverlay';
 import type { ClientBooking, ClientBookingActionResult } from './types';
 
 /**
- * Muestra el detalle de un Turno del Cliente, con Pagar seña, Reagendar y Cancelar abajo cuando todavía se puede, la lista
+ * Muestra el detalle de un Turno del Cliente (en uno del Negocio, la dirección de la Sucursal y "Cómo llegar"), con Pagar seña, Reagendar y Cancelar abajo cuando todavía se puede, la lista
  * de su Serie si es de una (cada Turno con su estado y su Enlace del Turno), y el aviso de
  * que quien lo atiende no vino (Ausencia del Anfitrión) cuando el back lo permite, y la Calificación (formulario o solo lectura).
  * Quien lo usa pasa sus propias acciones en `payDeposit`, `cancel`, `reschedule`, `markEmployeeNoShow` y `rate`.
@@ -107,7 +109,16 @@ export function ClientBookingDetail({
                 <p className="mt-3 text-[14px] font-semibold">Ausencia del Anfitrión: marcaste que {booking.employeeName} no vino</p>
             )}
 
-            {booking.branch && <p className="mt-4 text-[13.5px] text-muted-foreground">{booking.branch.address}</p>}
+            {booking.branch && (
+                <div className="mt-4 text-[13.5px]">
+                    <p className="flex gap-2 text-muted-foreground">
+                        <MapPin aria-hidden className="mt-0.5 size-4 shrink-0" />
+                        <span className="sr-only">Dirección: </span>
+                        <span className="min-w-0 break-words">{booking.branch.address}</span>
+                    </p>
+                    <DirectionsLink ubicacion={booking.branch} className="mt-1" />
+                </div>
+            )}
 
             {series && (
                 <section aria-label="Tu Serie de turnos">

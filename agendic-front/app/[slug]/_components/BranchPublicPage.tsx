@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { MapPin, Images, Building2, Navigation } from 'lucide-react';
+import { MapPin, Images, Building2 } from 'lucide-react';
 import { LocationMap } from '@/app/_components/maps/LocationMap';
 import { useGoogleMaps } from '@/app/_components/maps/google-maps';
 import { Avatar, AvatarFallback, AvatarImage } from '@/app/_components/ui/avatar';
@@ -17,7 +17,7 @@ import { initials } from '@/app/_components/booking/format';
 import type { BookingPrefill } from '@/app/_components/booking/booking-prefill';
 import type { Service } from '@/app/_components/booking/types';
 import { BranchGalleryModal } from './BranchGalleryModal';
-import { directionsUrl } from './branch-location';
+import { DirectionsLink } from '@/app/_components/maps/DirectionsLink';
 import { galleryLayout } from './gallery-layout';
 import { ShareBranchButton } from './ShareBranchButton';
 import type { Branch, BranchImage, Business, Employee, OtherBranch } from './types';
@@ -268,16 +268,7 @@ export function BranchPublicPage({
                                     className="mt-3 h-40 rounded-xl"
                                 />
                             )}
-                            <a
-                                href={directionsUrl(branch)}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="mt-1 inline-flex min-h-11 items-center gap-1.5 text-[13.5px] font-bold underline-offset-2 hover:underline"
-                            >
-                                <Navigation className="size-4" />
-                                Cómo llegar
-                                <span className="sr-only"> (se abre en otra pestaña)</span>
-                            </a>
+                            <DirectionsLink ubicacion={branch} className="mt-1 text-[13.5px]" />
 
                             {otherBranches.length > 0 && (
                                 <div className="mt-4 border-t border-border pt-4">
