@@ -3,7 +3,7 @@ import { AlreadyEmployeeError, InvitationNotAcceptableError, InvitationNotPendin
 import { EmployeesRepository } from '@/src/infrastructure/repositories/employees.repository';
 import { authWith } from '@/tests/unit/stubs';
 
-const employee = { id: 3, userId: 9, name: 'Martina', email: 'martina@estudio.com', imageUrl: null };
+const employee = { id: 3, userId: 9, name: 'Martina', email: 'martina@estudio.com', imageUrl: null, badges: [{ badge: 'attended', name: 'Turnos atendidos', level: 'gold' }] };
 const invitation = { id: 5, email: 'martina@estudio.com', expiresAt: '2026-10-08T00:00:00.000Z' };
 
 const repo = (apiUrl: string | undefined = 'http://api') =>
@@ -22,6 +22,16 @@ describe('EmployeesRepository.listEmployees', () => {
             'http://api/businesses/1/employees',
             expect.objectContaining({ headers: expect.objectContaining({ Authorization: 'Bearer tok' }) }),
         );
+    });
+
+    it('maps an Empleado without Insignias to an empty badges list', async () => {
+        respond(200, [{ ...employee, badges: [] }]);
+        await expect(repo().listEmployees(1)).resolves.toEqual([{ ...employee, badges: [] }]);
+    });
+
+    it('rejects a badge whose level is not a Nivel', async () => {
+        respond(200, [{ ...employee, badges: [{ badge: 'attended', name: 'Turnos atendidos', level: 'diamond' }] }]);
+        await expect(repo().listEmployees(1)).rejects.toBeInstanceOf(ApiRequestError);
     });
 
     it('translates a 403 to ApiRequestError carrying the status', async () => {

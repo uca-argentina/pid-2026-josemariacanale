@@ -6,8 +6,9 @@ import { authWith, instrumentation } from '@/tests/unit/stubs';
 const user = { id: 'user_1', name: 'Ana', email: 'ana@estudio.com' };
 const signedIn = () => authWith({ getCurrentUser: jest.fn().mockResolvedValue(user) });
 const business = { id: 1, name: 'Estudio', description: 'Desc', slug: 'estudio', logoUrl: null, branchIds: [] };
-const martina = { id: 4, name: 'Martina', email: 'martina@estudio.com' };
-const ana = { id: 3, name: 'Ana', email: 'Ana@Estudio.com' };
+const oro = { badge: 'attended', name: 'Turnos atendidos', level: 'gold' as const };
+const martina = { id: 4, name: 'Martina', email: 'martina@estudio.com', badges: [oro] };
+const ana = { id: 3, name: 'Ana', email: 'Ana@Estudio.com', badges: [] };
 const invitation = { id: 5, email: 'nuevo@estudio.com', expiresAt: 'x' };
 
 describe('listBusinessStaffController', () => {
@@ -22,8 +23,8 @@ describe('listBusinessStaffController', () => {
             businessId: 1,
             viewerIsOwner: true,
             employees: [
-                { id: 3, name: 'Ana', email: 'Ana@Estudio.com', role: 'owner' },
-                { id: 4, name: 'Martina', email: 'martina@estudio.com', role: 'employee' },
+                { id: 3, name: 'Ana', email: 'Ana@Estudio.com', role: 'owner', badges: [] },
+                { id: 4, name: 'Martina', email: 'martina@estudio.com', role: 'employee', badges: [oro] },
             ],
             invitations: [{ id: 5, email: 'nuevo@estudio.com', expiresAt: 'x' }],
         });
