@@ -1,6 +1,7 @@
 import { UnauthenticatedError } from '@/src/entities/errors/auth';
 import { BookingNotAllowedError, BookingStateError, CancellationReasonTooLongError, SlotTakenError, SlotUnavailableError } from '@/src/entities/errors/booking';
 import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
+import { PrizeAlreadyRedeemedError, PrizeExpiredError, PrizeOfAnotherClientError } from '@/src/entities/errors/streak';
 import { UserBookingsRepository } from '@/src/infrastructure/repositories/user-bookings.repository';
 import { authWith } from '@/tests/unit/stubs';
 
@@ -247,5 +248,110 @@ describe('UserBookingsRepository actions', () => {
     it('translates another status to ApiRequestError carrying it', async () => {
         respond(500, { message: 'boom' });
         await expect(repo().accept(7)).rejects.toMatchObject({ status: 500 });
+    });
+});
+
+describe('UserBookingsRepository.getStreak', () => {
+    const streak = {
+        streak: { count: 2, burnsAt: '2026-10-13T15:00:00.000Z' },
+        nextReward: {
+            reward: { id: 7, requiredCount: 5, repeatable: false, type: 'GIFT', value: null, description: 'Un lavado', service: null, validForDays: null },
+            remaining: 3,
+        },
+        prizes: [{ id: 3, type: 'GIFT', value: null, description: 'Un lavado', serviceName: null, grantedAt: '2026-10-01T12:00:00.000Z', expiresAt: null }],
+    };
+
+    it('GETs /bookings/:id/streak with the bearer token and parses it', async () => {
+        const fetchSpy = respond(200, streak);
+
+        await expect(repo().getStreak(7)).resolves.toEqual(streak);
+        expect(fetchSpy).toHaveBeenCalledWith(
+            'http://api/bookings/7/streak',
+            expect.objectContaining({ method: 'GET', headers: expect.objectContaining({ Authorization: 'Bearer tok' }) }),
+        );
+    });
+
+    it('accepts the program off: no Racha, but Premios', async () => {
+        const off = { streak: null, nextReward: null, prizes: streak.prizes };
+        respond(200, off);
+
+        await expect(repo().getStreak(7)).resolves.toEqual(off);
+    });
+
+    it('accepts a Racha that has not started: burnsAt null', async () => {
+        respond(200, { ...streak, streak: { count: 0, burnsAt: null } });
+
+        await expect(repo().getStreak(7)).resolves.toMatchObject({ streak: { count: 0, burnsAt: null } });
+    });
+
+    it('translates 403 to BookingNotAllowedError and 404 to NotFoundError', async () => {
+        respond(403, { message: 'Only the assigned Employee can act on this Turno' });
+        await expect(repo().getStreak(7)).rejects.toBeInstanceOf(BookingNotAllowedError);
+        jest.restoreAllMocks();
+        respond(404, { message: 'Booking not found' });
+        await expect(repo().getStreak(7)).rejects.toBeInstanceOf(NotFoundError);
+    });
+
+    it('rejects a body that is not a Racha', async () => {
+        respond(200, { streak: 'yes' });
+
+        await expect(repo().getStreak(7)).rejects.toBeInstanceOf(ApiRequestError);
+    });
+});
+
+describe('UserBookingsRepository.redeemPrize', () => {
+    const redeemed = {
+        id: 3,
+        type: 'GIFT',
+        value: null,
+        description: 'Un lavado',
+        serviceName: null,
+        grantedAt: '2026-10-01T12:00:00.000Z',
+        expiresAt: null,
+        redeemedAt: '2026-10-05T12:00:00.000Z',
+    };
+
+    it('PATCHes /bookings/:id/redeem-prize with the prizeId and parses the Premio', async () => {
+        const fetchSpy = respond(200, redeemed);
+
+        await expect(repo().redeemPrize(7, 3)).resolves.toEqual(redeemed);
+        expect(fetchSpy).toHaveBeenCalledWith(
+            'http://api/bookings/7/redeem-prize',
+            expect.objectContaining({ method: 'PATCH', body: JSON.stringify({ prizeId: 3 }) }),
+        );
+    });
+
+    it('translates the 409 to PrizeAlreadyRedeemedError, not to a taken horario', async () => {
+        respond(409, { message: 'Prize 3 already redeemed' });
+
+        const error = await repo().redeemPrize(7, 3).catch((e) => e);
+
+        expect(error).toBeInstanceOf(PrizeAlreadyRedeemedError);
+        expect(error).not.toBeInstanceOf(SlotTakenError);
+    });
+
+    it('translates the two 422 of a Premio apart from the Turno one', async () => {
+        respond(422, { message: 'Prize 3 expired' });
+        await expect(repo().redeemPrize(7, 3)).rejects.toBeInstanceOf(PrizeExpiredError);
+        jest.restoreAllMocks();
+        respond(422, { message: 'Prize 3 belongs to another Ficha del Cliente' });
+        await expect(repo().redeemPrize(7, 3)).rejects.toBeInstanceOf(PrizeOfAnotherClientError);
+        jest.restoreAllMocks();
+        respond(422, { message: 'Booking 7 is not accepted' });
+        await expect(repo().redeemPrize(7, 3)).rejects.toBeInstanceOf(BookingStateError);
+    });
+
+    it('translates 403 and 404, and a 404 of the Premio', async () => {
+        respond(403, { message: 'Only the assigned Employee can act on this Turno' });
+        await expect(repo().redeemPrize(7, 3)).rejects.toBeInstanceOf(BookingNotAllowedError);
+        jest.restoreAllMocks();
+        respond(404, { message: 'Prize 3 not found' });
+        await expect(repo().redeemPrize(7, 3)).rejects.toBeInstanceOf(NotFoundError);
+    });
+
+    it('rejects a body without the redeemedAt', async () => {
+        respond(200, { ...redeemed, redeemedAt: undefined });
+
+        await expect(repo().redeemPrize(7, 3)).rejects.toBeInstanceOf(ApiRequestError);
     });
 });

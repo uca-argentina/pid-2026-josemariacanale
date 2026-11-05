@@ -2,6 +2,8 @@ import {
     acceptBookingAction,
     cancelBookingAction,
     getBookingHistoryAction,
+    getBookingStreakAction,
+    redeemPrizeAction,
     markBookingNoShowAction,
     rejectBookingAction,
     unmarkBookingNoShowAction,
@@ -10,6 +12,7 @@ import {
 import { UnauthenticatedError } from '@/src/entities/errors/auth';
 import { BookingNotAllowedError, BookingStateError, CancellationReasonTooLongError, SlotTakenError, SlotUnavailableError } from '@/src/entities/errors/booking';
 import { InputParseError, NotFoundError } from '@/src/entities/errors/common';
+import { PrizeAlreadyRedeemedError, PrizeExpiredError, PrizeOfAnotherClientError } from '@/src/entities/errors/streak';
 
 const mockControllers: Record<string, jest.Mock> = {
     IAcceptBookingController: jest.fn(),
@@ -19,6 +22,8 @@ const mockControllers: Record<string, jest.Mock> = {
     IMarkBookingNoShowController: jest.fn(),
     IGetBookingHistoryController: jest.fn(),
     IUnmarkBookingNoShowController: jest.fn(),
+    IGetBookingStreakController: jest.fn(),
+    IRedeemPrizeController: jest.fn(),
 };
 const mockReport = jest.fn();
 const mockRefresh = jest.fn();
@@ -171,5 +176,82 @@ describe('rescheduleBookingAction', () => {
         const result = await rescheduleBookingAction(7, '2026-10-02T15:00:00.000Z');
         expect(result).toMatchObject({ ok: false, slotTaken: true, message: expect.stringContaining('Elegí otro horario') });
         expect(mockReport).not.toHaveBeenCalled();
+    });
+});
+
+describe('getBookingStreakAction', () => {
+    it('returns the Racha block, with the days in the zone of the panel, without refreshing the page', async () => {
+        const streak = { streak: { title: 'Racha de 2 Turnos', until: 'Dura hasta el 13 oct' }, nextReward: null, prizes: [] };
+        mockControllers.IGetBookingStreakController.mockResolvedValue(streak);
+
+        await expect(getBookingStreakAction(7)).resolves.toEqual({ ok: true, streak });
+        expect(mockControllers.IGetBookingStreakController).toHaveBeenCalledWith({ bookingId: 7, timeZone: 'America/Argentina/Buenos_Aires' });
+        expect(mockRefresh).not.toHaveBeenCalled();
+    });
+
+    it('passes through a block with nothing to show', async () => {
+        mockControllers.IGetBookingStreakController.mockResolvedValue(null);
+
+        await expect(getBookingStreakAction(7)).resolves.toEqual({ ok: true, streak: null });
+    });
+
+    it('sends the Usuario to sign-in when the Sesión expired', async () => {
+        mockControllers.IGetBookingStreakController.mockRejectedValue(new UnauthenticatedError('no'));
+
+        await expect(getBookingStreakAction(7)).rejects.toThrow('REDIRECT:');
+    });
+
+    it('reports an unexpected error and returns a message for the panel', async () => {
+        const boom = new Error('boom');
+        mockControllers.IGetBookingStreakController.mockRejectedValue(boom);
+
+        await expect(getBookingStreakAction(7)).resolves.toEqual({ ok: false, message: 'No pudimos cargar la Racha del Cliente.' });
+        expect(mockReport).toHaveBeenCalledWith(boom);
+    });
+
+    it.each([new NotFoundError('404'), new BookingNotAllowedError('403')])('does not report %p', async (error) => {
+        mockControllers.IGetBookingStreakController.mockRejectedValue(error);
+
+        await expect(getBookingStreakAction(7)).resolves.toEqual({ ok: false, message: 'No pudimos cargar la Racha del Cliente.' });
+        expect(mockReport).not.toHaveBeenCalled();
+    });
+});
+
+describe('redeemPrizeAction', () => {
+    it('redeems and returns what was delivered, without refreshing the page', async () => {
+        mockControllers.IRedeemPrizeController.mockResolvedValue({ text: '10% de descuento' });
+
+        await expect(redeemPrizeAction(7, 3)).resolves.toEqual({ ok: true, text: '10% de descuento' });
+        expect(mockControllers.IRedeemPrizeController).toHaveBeenCalledWith({ bookingId: 7, prizeId: 3 });
+        expect(mockRefresh).not.toHaveBeenCalled();
+    });
+
+    it.each([
+        [new PrizeAlreadyRedeemedError('409'), 'Este Premio ya se canjeó.'],
+        [new PrizeExpiredError('422'), 'Este Premio venció.'],
+        [new PrizeOfAnotherClientError('422'), 'Este Premio es de otro Cliente.'],
+        [new BookingStateError('422'), 'El turno tiene que estar aceptado para canjear un Premio.'],
+        [new BookingNotAllowedError('403'), 'Este turno no es tuyo.'],
+        [new NotFoundError('404'), 'Ese Premio o este turno ya no existe.'],
+        [new InputParseError('400'), 'Revisá los datos e intentá de nuevo.'],
+    ])('answers the message of %p without reporting it', async (error, message) => {
+        mockControllers.IRedeemPrizeController.mockRejectedValue(error);
+
+        await expect(redeemPrizeAction(7, 3)).resolves.toEqual({ ok: false, message });
+        expect(mockReport).not.toHaveBeenCalled();
+    });
+
+    it('sends the Usuario to sign-in when the Sesión expired', async () => {
+        mockControllers.IRedeemPrizeController.mockRejectedValue(new UnauthenticatedError('no'));
+
+        await expect(redeemPrizeAction(7, 3)).rejects.toThrow('REDIRECT:');
+    });
+
+    it('reports anything else and answers a generic message', async () => {
+        const boom = new Error('boom');
+        mockControllers.IRedeemPrizeController.mockRejectedValue(boom);
+
+        await expect(redeemPrizeAction(7, 3)).resolves.toEqual({ ok: false, message: 'No pudimos canjear el Premio. Intentá de nuevo.' });
+        expect(mockReport).toHaveBeenCalledWith(boom);
     });
 });

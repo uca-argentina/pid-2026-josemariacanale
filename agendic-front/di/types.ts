@@ -126,6 +126,10 @@ import type { IMarkBookingNoShowUseCase } from '@/src/application/use-cases/book
 import type { IMarkBookingNoShowController } from '@/src/interface-adapters/controllers/bookings/mark-booking-no-show.controller';
 import type { IGetBookingHistoryUseCase } from '@/src/application/use-cases/bookings/get-booking-history.use-case';
 import type { IGetBookingHistoryController } from '@/src/interface-adapters/controllers/bookings/get-booking-history.controller';
+import type { IGetBookingStreakUseCase } from '@/src/application/use-cases/bookings/get-booking-streak.use-case';
+import type { IGetBookingStreakController } from '@/src/interface-adapters/controllers/bookings/get-booking-streak.controller';
+import type { IRedeemPrizeUseCase } from '@/src/application/use-cases/bookings/redeem-prize.use-case';
+import type { IRedeemPrizeController } from '@/src/interface-adapters/controllers/bookings/redeem-prize.controller';
 import type { IUnmarkBookingNoShowUseCase } from '@/src/application/use-cases/bookings/unmark-booking-no-show.use-case';
 import type { IUnmarkBookingNoShowController } from '@/src/interface-adapters/controllers/bookings/unmark-booking-no-show.controller';
 
@@ -274,6 +278,8 @@ export const DI_SYMBOLS = {
     IListMyBookingsUseCase: Symbol.for('IListMyBookingsUseCase'),
     IMarkBookingNoShowUseCase: Symbol.for('IMarkBookingNoShowUseCase'),
     IGetBookingHistoryUseCase: Symbol.for('IGetBookingHistoryUseCase'),
+    IGetBookingStreakUseCase: Symbol.for('IGetBookingStreakUseCase'),
+    IRedeemPrizeUseCase: Symbol.for('IRedeemPrizeUseCase'),
     IUnmarkBookingNoShowUseCase: Symbol.for('IUnmarkBookingNoShowUseCase'),
 
     IRescheduleBookingUseCase: Symbol.for('IRescheduleBookingUseCase'),
@@ -378,6 +384,8 @@ export const DI_SYMBOLS = {
     IListMyBookingsController: Symbol.for('IListMyBookingsController'),
     IMarkBookingNoShowController: Symbol.for('IMarkBookingNoShowController'),
     IGetBookingHistoryController: Symbol.for('IGetBookingHistoryController'),
+    IGetBookingStreakController: Symbol.for('IGetBookingStreakController'),
+    IRedeemPrizeController: Symbol.for('IRedeemPrizeController'),
     IUnmarkBookingNoShowController: Symbol.for('IUnmarkBookingNoShowController'),
 
     IRescheduleBookingController: Symbol.for('IRescheduleBookingController'),
@@ -488,6 +496,8 @@ export interface DI_RETURN_TYPES {
     IListMyBookingsUseCase: IListMyBookingsUseCase;
     IMarkBookingNoShowUseCase: IMarkBookingNoShowUseCase;
     IGetBookingHistoryUseCase: IGetBookingHistoryUseCase;
+    IGetBookingStreakUseCase: IGetBookingStreakUseCase;
+    IRedeemPrizeUseCase: IRedeemPrizeUseCase;
     IUnmarkBookingNoShowUseCase: IUnmarkBookingNoShowUseCase;
 
     IRescheduleBookingUseCase: IRescheduleBookingUseCase;
@@ -592,6 +602,8 @@ export interface DI_RETURN_TYPES {
     IListMyBookingsController: IListMyBookingsController;
     IMarkBookingNoShowController: IMarkBookingNoShowController;
     IGetBookingHistoryController: IGetBookingHistoryController;
+    IGetBookingStreakController: IGetBookingStreakController;
+    IRedeemPrizeController: IRedeemPrizeController;
     IUnmarkBookingNoShowController: IUnmarkBookingNoShowController;
 
     IRescheduleBookingController: IRescheduleBookingController;
