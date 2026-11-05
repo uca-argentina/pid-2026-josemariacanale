@@ -1,4 +1,5 @@
 import type { BookingHistoryEntry } from '@/src/entities/models/booking-history';
+import type { BookingStreak, RedeemedPrize } from '@/src/entities/models/booking-streak';
 import type { UserBooking } from '@/src/entities/models/user-booking';
 
 /**
@@ -84,4 +85,23 @@ export interface IUserBookingsRepository {
      */
     getHistory(bookingId: number): Promise<BookingHistoryEntry[]>;
 
+    /**
+     * La Racha del Cliente del Turno, lo que le falta para la próxima Recompensa y sus Premios disponibles (#431).
+     *
+     * @throws {BookingNotAllowedError} no es su Turno (403)
+     * @throws {NotFoundError} el Turno no existe (404)
+     */
+    getStreak(bookingId: number): Promise<BookingStreak>;
+
+    /**
+     * Canjea un Premio de la Ficha del Cliente en el Turno aceptado (#431).
+     *
+     * @throws {BookingNotAllowedError} no es su Turno (403)
+     * @throws {NotFoundError} el Turno o el Premio no existen (404)
+     * @throws {PrizeAlreadyRedeemedError} el Premio ya se Canjeó (409)
+     * @throws {PrizeExpiredError} el Premio venció (422)
+     * @throws {PrizeOfAnotherClientError} el Premio es de otra Ficha del Cliente (422)
+     * @throws {BookingStateError} el Turno no está aceptado (422)
+     */
+    redeemPrize(bookingId: number, prizeId: number): Promise<RedeemedPrize>;
 }

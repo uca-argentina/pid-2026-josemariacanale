@@ -12,6 +12,7 @@ import { createAnalyticsModule } from '@/di/modules/analytics.module';
 import { createOutOfOfficeModule } from '@/di/modules/out-of-office.module';
 import { createHolidaysModule } from '@/di/modules/holidays.module';
 import { createServicesModule } from '@/di/modules/services.module';
+import { createStreaksModule } from '@/di/modules/streaks.module';
 import { createUsersModule } from '@/di/modules/users.module';
 import { createWaitlistModule } from '@/di/modules/waitlist.module';
 
@@ -26,6 +27,7 @@ ApplicationContainer.load(Symbol('EmployeesModule'), createEmployeesModule());
 ApplicationContainer.load(Symbol('BookingsModule'), createBookingsModule());
 ApplicationContainer.load(Symbol('AvailabilitiesModule'), createAvailabilitiesModule());
 ApplicationContainer.load(Symbol('AnalyticsModule'), createAnalyticsModule());
+ApplicationContainer.load(Symbol('StreaksModule'), createStreaksModule());
 ApplicationContainer.load(Symbol('OutOfOfficeModule'), createOutOfOfficeModule());
 ApplicationContainer.load(Symbol('HolidaysModule'), createHolidaysModule());
 ApplicationContainer.load(Symbol('ServicesModule'), createServicesModule());

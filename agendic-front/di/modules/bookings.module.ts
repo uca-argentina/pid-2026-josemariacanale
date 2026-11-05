@@ -9,6 +9,10 @@ import { markBookingNoShowUseCase } from '@/src/application/use-cases/bookings/m
 import { markBookingNoShowController } from '@/src/interface-adapters/controllers/bookings/mark-booking-no-show.controller';
 import { getBookingHistoryUseCase } from '@/src/application/use-cases/bookings/get-booking-history.use-case';
 import { getBookingHistoryController } from '@/src/interface-adapters/controllers/bookings/get-booking-history.controller';
+import { getBookingStreakUseCase } from '@/src/application/use-cases/bookings/get-booking-streak.use-case';
+import { getBookingStreakController } from '@/src/interface-adapters/controllers/bookings/get-booking-streak.controller';
+import { redeemPrizeUseCase } from '@/src/application/use-cases/bookings/redeem-prize.use-case';
+import { redeemPrizeController } from '@/src/interface-adapters/controllers/bookings/redeem-prize.controller';
 import { unmarkBookingNoShowUseCase } from '@/src/application/use-cases/bookings/unmark-booking-no-show.use-case';
 import { unmarkBookingNoShowController } from '@/src/interface-adapters/controllers/bookings/unmark-booking-no-show.controller';
 
@@ -183,6 +187,30 @@ export function createBookingsModule() {
             DI_SYMBOLS.IAuthenticationService,
             DI_SYMBOLS.IGetBookingHistoryUseCase,
 
+        ]);
+
+    bookingsModule
+        .bind(DI_SYMBOLS.IGetBookingStreakUseCase)
+        .toHigherOrderFunction(getBookingStreakUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IUserBookingsRepository]);
+
+    bookingsModule
+        .bind(DI_SYMBOLS.IGetBookingStreakController)
+        .toHigherOrderFunction(getBookingStreakController, [
+            DI_SYMBOLS.IInstrumentationService,
+            DI_SYMBOLS.IAuthenticationService,
+            DI_SYMBOLS.IGetBookingStreakUseCase,
+        ]);
+
+    bookingsModule
+        .bind(DI_SYMBOLS.IRedeemPrizeUseCase)
+        .toHigherOrderFunction(redeemPrizeUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IUserBookingsRepository]);
+
+    bookingsModule
+        .bind(DI_SYMBOLS.IRedeemPrizeController)
+        .toHigherOrderFunction(redeemPrizeController, [
+            DI_SYMBOLS.IInstrumentationService,
+            DI_SYMBOLS.IAuthenticationService,
+            DI_SYMBOLS.IRedeemPrizeUseCase,
         ]);
 
     bookingsModule.bind(DI_SYMBOLS.IClientBookingsRepository).toClass(ClientBookingsRepository, [DI_SYMBOLS.IInstrumentationService]);

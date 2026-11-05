@@ -35,7 +35,7 @@ describe('rateBookingByLinkAction', () => {
     it('en el 409 avisa y recarga el Turno', async () => {
         const reloaded = { id: 7, rating: { score: 5 } };
         mockRate.mockRejectedValue(new BookingAlreadyRatedError('Turno already rated'));
-        mockGet.mockResolvedValue(reloaded);
+        mockGet.mockResolvedValue({ booking: reloaded, streak: null });
         await expect(rateBookingByLinkAction('l', 4)).resolves.toEqual({
             ok: false,
             message: 'Este Turno ya tiene una Calificación',

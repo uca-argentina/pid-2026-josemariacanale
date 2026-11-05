@@ -1,12 +1,12 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
+import { ScopeSelect } from '@/app/(app)/_components/ScopeSelect';
 import type { AnalyticsBusiness } from '@/src/entities/models/analytics';
 import type { Preferences } from '@/src/entities/models/user';
 import { businessSearch, parseBusinessFilters } from './analytics-range';
 import { BusinessAnalyticsView } from './BusinessAnalyticsView';
 import { PersonalAnalyticsView } from './PersonalAnalyticsView';
-import { ScopeSelect } from './ScopeSelect';
 
 /**
  * Analíticas en una sola página: con `?businessId=` de uno de `businesses`, las de ese Negocio; si no, las personales
@@ -25,6 +25,7 @@ export function AnalyticsView({
     const { business } = parseBusinessFilters(searchParams, businesses);
     const selector = (
         <ScopeSelect
+            label="Ver analíticas de"
             user={user}
             businesses={businesses}
             selected={business?.id}

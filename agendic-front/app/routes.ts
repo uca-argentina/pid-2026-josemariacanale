@@ -6,6 +6,9 @@ export const BUSINESS_PATH = '/business';
 export const BRANCHES_PATH = '/business/branches';
 export const SERVICES_PATH = '/services';
 
+/** La pantalla Rachas: las del Negocio `businessId` o, sin él, las de los Servicios personales. */
+export const streaksPath = (businessId?: number) => (businessId === undefined ? '/streaks' : `/streaks?businessId=${businessId}`);
+
 /**
  * La ruta del Enlace de reserva, sin prefijo (ADR 0026): sin tramo de Sucursal, la página del Negocio (ADR 0014); con
  * el tramo de un Servicio (ADR 0018), la de la Sucursal con ese Servicio ya elegido, y con el de un Empleado que lo
