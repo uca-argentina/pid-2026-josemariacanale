@@ -23,6 +23,7 @@ import { addEmployeeAction, cancelInvitationAction, resendInvitationAction, reti
 import { EmployeeMedals } from './EmployeeMedals';
 import { EmployeeSheet } from './EmployeeSheet';
 
+/** Una fila del Staff; `badges` viene de mayor a menor Nivel. */
 export type EmployeeRow = { id: number; name: string; email: string; imageUrl: string | null; badges: EmployeeBadge[]; role: BusinessRole };
 /** Invitación pendiente del Negocio; `expiresAt` es ISO y se muestra en hora de Buenos Aires. */
 export type InvitationRow = { id: number; email: string; expiresAt: string };

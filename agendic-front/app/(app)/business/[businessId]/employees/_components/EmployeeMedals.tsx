@@ -43,7 +43,7 @@ export function EmployeeMedals({ badges }: { badges: EmployeeBadge[] }) {
     );
 }
 
-/** Todas las Insignias de un Empleado en tamaño grande, con su nombre y Nivel. Sin Insignias no renderiza nada. */
+/** Todas las Insignias de un Empleado en tamaño grande, con su nombre y Nivel, en el orden de `badges` (de mayor a menor Nivel). Sin Insignias no renderiza nada. */
 export function EmployeeMedalsLarge({ badges }: { badges: EmployeeBadge[] }) {
     if (badges.length === 0) return null;
     return (
