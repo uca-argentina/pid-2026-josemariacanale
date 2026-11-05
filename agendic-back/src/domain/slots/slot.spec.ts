@@ -88,4 +88,61 @@ describe('computeSlots', () => {
 
     expect(day).toEqual({ date: '2026-03-29', slots: [], reason: 'NOT_WORKING' });
   });
+
+  describe('Ocupados externos', () => {
+    const working = {
+      from: '2026-01-05',
+      to: '2026-01-05',
+      timeZone: 'UTC',
+      availability: { timeZone: 'UTC', schedule: week('09:00', '13:00'), overrides: [] },
+      now: new Date('2026-01-01T00:00:00.000Z'),
+    };
+
+    it('restan Horarios reservables como un Turno tomado', () => {
+      const [day] = computeSlots(
+        base({
+          ...working,
+          externalBusy: [
+            { start: new Date('2026-01-05T10:00:00.000Z'), end: new Date('2026-01-05T11:00:00.000Z') },
+          ],
+        }),
+      );
+
+      expect(day.slots).toEqual([
+        '2026-01-05T09:00:00.000Z',
+        '2026-01-05T11:00:00.000Z',
+        '2026-01-05T12:00:00.000Z',
+      ]);
+    });
+
+    it('bloquean también el Tiempo de preparación que sigue', () => {
+      const [day] = computeSlots(
+        base({
+          ...working,
+          prepMinutes: 30,
+          slotInterval: 30,
+          durationMinutes: 30,
+          externalBusy: [
+            { start: new Date('2026-01-05T10:00:00.000Z'), end: new Date('2026-01-05T11:00:00.000Z') },
+          ],
+        }),
+      );
+
+      expect(day.slots).not.toContain('2026-01-05T11:00:00.000Z');
+      expect(day.slots).toContain('2026-01-05T11:30:00.000Z');
+    });
+
+    it('un día que se queda sin horarios por ellos es FULLY_BOOKED, no NOT_WORKING', () => {
+      const [day] = computeSlots(
+        base({
+          ...working,
+          externalBusy: [
+            { start: new Date('2026-01-05T00:00:00.000Z'), end: new Date('2026-01-06T00:00:00.000Z') },
+          ],
+        }),
+      );
+
+      expect(day).toEqual({ date: '2026-01-05', slots: [], reason: 'FULLY_BOOKED' });
+    });
+  });
 });

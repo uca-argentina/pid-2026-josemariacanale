@@ -1,6 +1,7 @@
 import { disconnectCalendarUseCase } from '@/src/application/use-cases/calendar/disconnect-calendar.use-case';
 import { getCalendarConnectionUseCase } from '@/src/application/use-cases/calendar/get-calendar-connection.use-case';
 import { startGoogleCalendarConnectionUseCase } from '@/src/application/use-cases/calendar/start-google-calendar-connection.use-case';
+import { startMicrosoftCalendarConnectionUseCase } from '@/src/application/use-cases/calendar/start-microsoft-calendar-connection.use-case';
 import { UnauthenticatedError } from '@/src/entities/errors/auth';
 import { CalendarAlreadyConnectedError } from '@/src/entities/errors/calendar';
 import { NotFoundError } from '@/src/entities/errors/common';
@@ -39,6 +40,22 @@ describe('startGoogleCalendarConnectionUseCase', () => {
         const startGoogleConnection = jest.fn().mockRejectedValue(new CalendarAlreadyConnectedError('Calendar already connected for User 1'));
         await expect(
             startGoogleCalendarConnectionUseCase(instrumentation, calendarConnectionsWith({ startGoogleConnection }))(),
+        ).rejects.toBeInstanceOf(CalendarAlreadyConnectedError);
+    });
+});
+
+describe('startMicrosoftCalendarConnectionUseCase', () => {
+    it('returns the address Microsoft asks the Usuario to go to', async () => {
+        const startMicrosoftConnection = jest.fn().mockResolvedValue({ authorizationUrl: 'https://login.microsoftonline.com/x' });
+        await expect(
+            startMicrosoftCalendarConnectionUseCase(instrumentation, calendarConnectionsWith({ startMicrosoftConnection }))(),
+        ).resolves.toEqual({ authorizationUrl: 'https://login.microsoftonline.com/x' });
+    });
+
+    it('lets CalendarAlreadyConnectedError through', async () => {
+        const startMicrosoftConnection = jest.fn().mockRejectedValue(new CalendarAlreadyConnectedError('Calendar already connected for User 1'));
+        await expect(
+            startMicrosoftCalendarConnectionUseCase(instrumentation, calendarConnectionsWith({ startMicrosoftConnection }))(),
         ).rejects.toBeInstanceOf(CalendarAlreadyConnectedError);
     });
 });

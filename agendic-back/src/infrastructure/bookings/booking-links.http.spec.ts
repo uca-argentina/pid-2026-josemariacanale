@@ -219,6 +219,8 @@ describe('Enlace del Turno', () => {
         BOOKED.clientEmail,
         BOOKED.link,
         null,
+        undefined,
+        expect.objectContaining({ method: 'CANCEL' }),
       );
     });
 
@@ -236,6 +238,8 @@ describe('Enlace del Turno', () => {
         BOOKED.clientEmail,
         BOOKED.link,
         'Me mudé',
+        undefined,
+        expect.objectContaining({ method: 'CANCEL' }),
       );
       expect(res.body.cancellationReason).toBe('Me mudé');
     });
@@ -427,6 +431,7 @@ describe('Enlace del Turno', () => {
       expect(t.mailer.sendBookingReschedule).toHaveBeenCalledWith(
         BOOKED.clientEmail,
         BOOKED.link,
+        expect.objectContaining({ method: 'REQUEST' }),
       );
     });
 

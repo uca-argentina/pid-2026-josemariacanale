@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import {
-  GoogleCalendarOauth,
-  GoogleGrant,
-} from '../../domain/calendar/google-calendar-oauth';
+  ProviderCalendarOauth,
+  CalendarGrant,
+} from '../../domain/calendar/calendar-oauth';
 import { ExternalServiceError } from '../../domain/errors';
 import { readCalendarOauthConfig } from './calendar-oauth-config';
 
@@ -35,15 +35,15 @@ interface GoogleTokenResponse {
 
 /** OAuth de Google con el cliente propio del back (`GOOGLE_OAUTH_*`); sin credenciales el back arranca igual (ADR 0036). */
 @Injectable()
-export class GoogleOauthApiClient implements GoogleCalendarOauth {
+export class GoogleOauthApiClient implements ProviderCalendarOauth {
   /** @throws {NotConfiguredError} faltan las credenciales OAuth de Google */
   assertConfigured() {
-    readCalendarOauthConfig();
+    readCalendarOauthConfig('GOOGLE');
   }
 
   /** @throws {NotConfiguredError} faltan las credenciales OAuth de Google */
   authorizationUrl(state: string) {
-    const { clientId, redirectUri } = readCalendarOauthConfig();
+    const { clientId, redirectUri } = readCalendarOauthConfig('GOOGLE');
     const query = new URLSearchParams({
       client_id: clientId,
       redirect_uri: redirectUri,
@@ -61,8 +61,9 @@ export class GoogleOauthApiClient implements GoogleCalendarOauth {
    * @throws {NotConfiguredError} faltan las credenciales OAuth de Google
    * @throws {ExternalServiceError} Google rechazó el código, no respondió o no mandó refresh token
    */
-  async exchangeCode(code: string): Promise<GoogleGrant> {
-    const { clientId, clientSecret, redirectUri } = readCalendarOauthConfig();
+  async exchangeCode(code: string): Promise<CalendarGrant> {
+    const { clientId, clientSecret, redirectUri } =
+      readCalendarOauthConfig('GOOGLE');
     let data: GoogleTokenResponse;
     try {
       const res = await fetch(TOKEN_ENDPOINT, {
@@ -107,7 +108,9 @@ export class GoogleOauthApiClient implements GoogleCalendarOauth {
       });
     }
     if (status !== 200)
-      throw new ExternalServiceError(`Google token revocation failed: ${status}`);
+      throw new ExternalServiceError(
+        `Google token revocation failed: ${status}`,
+      );
   }
 
   /** Si `scopes` incluye los tres permisos de calendario que se piden. */

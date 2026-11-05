@@ -4,15 +4,16 @@ import {
   CalendarConnectionsRepository,
 } from '../../domain/calendar/calendar-connections.repository';
 import {
-  GOOGLE_CALENDAR_OAUTH,
-  GoogleCalendarOauth,
-} from '../../domain/calendar/google-calendar-oauth';
+  CALENDAR_OAUTH,
+  CalendarOauth,
+} from '../../domain/calendar/calendar-oauth';
 import { NotFoundError } from '../../domain/errors';
+import { DeleteFutureBookingEventsService } from './delete-future-booking-events.service';
 
 const logger = new Logger('DisconnectCalendar');
 
 /**
- * Desconecta el Calendario conectado del Usuario y revoca el token en Google.
+ * Desconecta el Calendario conectado del Usuario: borra sus Eventos del Turno futuros y después revoca el token en el proveedor.
  *
  * Si la revocación falla, o el token guardado no se puede descifrar (clave rotada), se loguea y la conexión se
  * borra igual: dejarla viva, o trabar la baja del Usuario, sería peor que dejar un token sin revocar que ya nadie guarda.
@@ -22,8 +23,9 @@ export class DisconnectCalendarUseCase {
   constructor(
     @Inject(CALENDAR_CONNECTIONS_REPOSITORY)
     private readonly connections: CalendarConnectionsRepository,
-    @Inject(GOOGLE_CALENDAR_OAUTH)
-    private readonly google: GoogleCalendarOauth,
+    @Inject(CALENDAR_OAUTH)
+    private readonly oauth: CalendarOauth,
+    private readonly deleteFutureEvents: DeleteFutureBookingEventsService,
   ) {}
 
   /** @throws {NotFoundError} el Usuario no tiene un Calendario conectado */
@@ -40,12 +42,14 @@ export class DisconnectCalendarUseCase {
   async disconnectIfAny(userId: number): Promise<boolean> {
     if (!(await this.connections.findByUserId(userId))) return false;
     try {
-      const refreshToken =
-        await this.connections.findRefreshTokenByUserId(userId);
-      if (refreshToken !== null) await this.google.revoke(refreshToken);
+      const credentials =
+        await this.connections.findCredentialsByUserId(userId);
+      await this.deleteFutureEvents.execute(userId, credentials);
+      if (credentials !== null)
+        await this.oauth.revoke(credentials.provider, credentials.refreshToken);
     } catch (error) {
       logger.error(
-        `Google token of User ${userId} not revoked`,
+        `Calendar token of User ${userId} not revoked`,
         error instanceof Error ? error.stack : String(error),
       );
     }
