@@ -47,7 +47,10 @@ export class PreviewEmployeeBranchesUseCase {
    * Los Turnos pendientes o aceptados del Empleado, que todavía no empezaron, en las Sucursales que pierde, por
    * `startsAt`, sin guardar nada. Falla igual que el cambio y en el mismo orden, antes de calcular.
    *
-   * @throws ver `planBranchChange`
+   * @throws {NotFoundError} el Empleado no existe o está dado de baja
+   * @throws {ForbiddenError} el Usuario no es el Dueño del Negocio del Empleado
+   * @throws {BadRequestError} `branchIds` viene vacío
+   * @throws {BusinessRuleError} una Sucursal no es del Negocio, se le saca una Sucursal al Dueño, o sacarlo deja sin Empleados a un Servicio
    */
   async execute(
     userId: number,

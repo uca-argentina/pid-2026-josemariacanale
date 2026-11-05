@@ -184,15 +184,20 @@ export class PrismaEmployeesRepository implements EmployeesRepository {
           },
           include: EMPLOYEE_RELATIONS,
         });
+        // Read inside the transaction: a Turno booked since the vista previa is not confirmed, and the Empleado no longer
+        // Ofrece its Servicio, so it must not stay behind.
         const open = await tx.booking.findMany({
           where: {
-            id: { in: cancelBookingIds },
             employeeId: id,
             status: { in: ['PENDING', 'BOOKED'] },
             startsAt: { gt: now },
+            service: { branchId: { in: lost } },
           },
           select: { id: true },
         });
+        const confirmed = new Set(cancelBookingIds);
+        if (open.some((row) => !confirmed.has(row.id)))
+          throw new ConflictError('Los Turnos que se cancelan cambiaron');
         const cancelledIds = open.map((row) => row.id);
         await tx.booking.updateMany({
           where: { id: { in: cancelledIds } },
@@ -220,6 +225,7 @@ export const toEmployee = (row: EmployeeRowWithUser): Employee => ({
 });
 
 const translateError = (error: unknown): never => {
+  if (error instanceof ConflictError) throw error;
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     if (error.code === 'P2002')
       throw new ConflictError(

@@ -54,8 +54,11 @@ export class ChangeEmployeeBranchesUseCase {
    * se cancelan se ignoran.
    *
    * @param cancelBookingIds los Turnos que el Dueño vio en la vista previa y confirmó
-   * @throws {ConflictError} se cancelaría algún Turno que `cancelBookingIds` no incluye
-   * @throws ver `planBranchChange` para el resto
+   * @throws {NotFoundError} el Empleado no existe o está dado de baja
+   * @throws {ForbiddenError} el Usuario no es el Dueño del Negocio del Empleado
+   * @throws {BadRequestError} `branchIds` viene vacío
+   * @throws {BusinessRuleError} una Sucursal no es del Negocio, se le saca una Sucursal al Dueño, o sacarlo deja sin Empleados a un Servicio
+   * @throws {ConflictError} se cancelaría algún Turno que `cancelBookingIds` no incluye, ya sea al calcularlo o al escribir
    */
   async execute(
     userId: number,
@@ -105,11 +108,9 @@ export class ChangeEmployeeBranchesUseCase {
     const single: BranchChangeBooking[] = [];
     for (const booking of cancelled) {
       if (booking.seriesId === null) single.push(booking);
-      else
-        series.set(booking.seriesId, [
-          ...(series.get(booking.seriesId) ?? []),
-          booking,
-        ]);
+      else if (series.has(booking.seriesId))
+        series.get(booking.seriesId)!.push(booking);
+      else series.set(booking.seriesId, [booking]);
     }
     await notifyClients(single, (email, link, reason) =>
       send(email, link, reason),

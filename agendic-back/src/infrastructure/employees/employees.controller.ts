@@ -21,7 +21,10 @@ import { RespondToInvitationUseCase } from '../../application/invitations/respon
 import { RetireEmployeeUseCase } from '../../application/employees/retire-employee.use-case';
 import { ClerkGuard, CurrentUser } from '../users/clerk.guard';
 import { presentInvitation } from '../invitations/invitation.presenter';
-import { presentEmployee } from './employee.presenter';
+import {
+  presentBranchChangeBooking,
+  presentEmployee,
+} from './employee.presenter';
 import { ChangeEmployeeBranchesUseCase } from '../../application/employees/change-employee-branches.use-case';
 import { PreviewEmployeeBranchesUseCase } from '../../application/employees/preview-employee-branches.use-case';
 import {
@@ -155,25 +158,7 @@ export class EmployeesController {
         id,
         dto.branchIds,
       )
-    ).map(
-      ({
-        id,
-        startsAt,
-        endsAt,
-        timeZone,
-        serviceName,
-        clientName,
-        branch,
-      }) => ({
-        id,
-        startsAt,
-        endsAt,
-        timeZone,
-        serviceName,
-        clientName,
-        branch,
-      }),
-    );
+    ).map(presentBranchChangeBooking);
   }
 
   /** Cambia las Sucursales del Empleado y cancela los Turnos que el Dueño confirmó. */

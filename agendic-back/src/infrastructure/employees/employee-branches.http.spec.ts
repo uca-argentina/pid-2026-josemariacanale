@@ -317,6 +317,12 @@ describe('Cambiar las Sucursales de un Empleado', () => {
       nothingWritten();
     });
 
+    it('lets the Dueño keep every Sucursal even when the Negocio has one their Empleado lacks', async () => {
+      t.employees.findById.mockResolvedValue({ ...ANAS_EMPLOYEE, branchIds: [ANAS_BRANCH.id] });
+
+      await call([ANAS_BRANCH.id]).expect(200);
+    });
+
     it('lets them go when another Empleado also Ofrece the Servicio', async () => {
       t.services.listActiveByEmployee.mockResolvedValue([
         {

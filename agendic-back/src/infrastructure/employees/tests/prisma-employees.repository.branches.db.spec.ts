@@ -199,6 +199,20 @@ describe('PrismaEmployeesRepository branches (real database)', () => {
       expect((await prisma.booking.findUniqueOrThrow({ where: { id: started.id } })).status).toBe('BOOKED');
     });
 
+    it('answers a conflict and writes nothing when a Turno appeared in a lost Sucursal since the vista previa', async () => {
+      const seen = await book(serviceB, 15);
+      const appeared = await book(serviceB, 16);
+
+      await expect(
+        repository.changeBranches(employeeId, [branchA], [seen.id], now),
+      ).rejects.toThrow('Los Turnos que se cancelan cambiaron');
+
+      expect(await branchesOf()).toEqual([branchA, branchB]);
+      expect(await servicesOf()).toEqual([serviceA, serviceB]);
+      const rows = await prisma.booking.findMany({ where: { id: { in: [seen.id, appeared.id] } } });
+      expect(rows.map((r) => r.status)).toEqual(['BOOKED', 'BOOKED']);
+    });
+
     it('leaves the Sucursales and the Servicios as they were when the transaction fails', async () => {
       await expect(
         repository.changeBranches(employeeId, [branchA, 999_999_999], [], now),
