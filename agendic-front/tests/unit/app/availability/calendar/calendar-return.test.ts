@@ -16,6 +16,10 @@ describe('CALENDAR_RETURN_MESSAGES', () => {
         expect(new Set(messages).size).toBe(4);
     });
 
+    it('explains on denied that a company account may need its administrator', () => {
+        expect(CALENDAR_RETURN_MESSAGES.denied.message).toContain('administrador');
+    });
+
     it('is a success only for connected', () => {
         expect(CALENDAR_RETURN_MESSAGES.connected.kind).toBe('success');
         expect(CALENDAR_RETURN_MESSAGES.denied.kind).toBe('error');

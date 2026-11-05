@@ -29,3 +29,5 @@ El Usuario puede conectar una cuenta de Microsoft (Outlook o Microsoft 365) en v
 - **Microsoft no revoca refresh tokens**: al desconectar solo se borra el token guardado (el Usuario puede quitar el permiso desde su cuenta de Microsoft).
 - **El Cliente va en la descripción del evento y no como invitado**: Graph no deja crear un evento con invitados sin que Microsoft les mande la invitación. Ver `docs/agents/domain.md`.
 - **Reemplazar un proveedor**: conectar Microsoft con un Google `DISCONNECTED` (o al revés) primero intenta borrar los Eventos del Turno futuros con el token viejo; si no se puede, se dejan.
+- **Rotación del refresh token**: al renovar el acceso, Microsoft puede devolver un refresh token nuevo. Se guarda (`CalendarCredentials.onRefreshTokenRotated`, `CalendarConnectionsRepository.replaceRefreshToken`) para que la conexión no venza a los 90 días sin uso del token original. Si guardarlo falla, se loguea y se usa el acceso renovado igual.
+- **Otra cuenta del mismo proveedor** se trata como un reemplazo: ver ADR 0038.

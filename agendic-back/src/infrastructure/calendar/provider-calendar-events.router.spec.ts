@@ -26,14 +26,14 @@ describe('ProviderCalendarEventsRouter', () => {
     microsoft as never,
   );
 
-  it('talks to Google with a Google connection, passing only the refresh token', async () => {
+  it('talks to Google with a Google connection, without a rotation callback', async () => {
     const credentials = { provider: 'GOOGLE' as const, refreshToken: 'g' };
 
     await router.createEvent(credentials, content);
     await router.deleteEvent(credentials, 'evt');
 
-    expect(google.createEvent).toHaveBeenCalledWith('g', content);
-    expect(google.deleteEvent).toHaveBeenCalledWith('g', 'evt');
+    expect(google.createEvent).toHaveBeenCalledWith('g', content, undefined);
+    expect(google.deleteEvent).toHaveBeenCalledWith('g', 'evt', undefined);
     expect(microsoft.createEvent).not.toHaveBeenCalled();
   });
 
@@ -46,9 +46,36 @@ describe('ProviderCalendarEventsRouter', () => {
     await router.listBusy(credentials, ['primary'], from, to);
     await router.updateEvent(credentials, 'evt', content);
 
-    expect(microsoft.listCalendars).toHaveBeenCalledWith('m');
-    expect(microsoft.listBusy).toHaveBeenCalledWith('m', ['primary'], from, to);
-    expect(microsoft.updateEvent).toHaveBeenCalledWith('m', 'evt', content);
+    expect(microsoft.listCalendars).toHaveBeenCalledWith('m', undefined);
+    expect(microsoft.listBusy).toHaveBeenCalledWith('m',
+      ['primary'],
+      from,
+      to,
+      undefined,
+    );
+    expect(microsoft.updateEvent).toHaveBeenCalledWith(
+      'm',
+      'evt',
+      content,
+      undefined,
+    );
     expect(google.listCalendars).not.toHaveBeenCalled();
+  });
+
+  it('hands the connection its rotation callback to the provider', async () => {
+    const onRefreshTokenRotated = jest.fn();
+    const credentials = {
+      provider: 'MICROSOFT' as const,
+      refreshToken: 'm',
+      onRefreshTokenRotated,
+    };
+
+    await router.deleteEvent(credentials, 'evt');
+
+    expect(microsoft.deleteEvent).toHaveBeenCalledWith(
+      'm',
+      'evt',
+      onRefreshTokenRotated,
+    );
   });
 });

@@ -11,11 +11,11 @@ import {
 import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
 import {
     accountCalendarsSchema,
-    googleAuthorizationSchema,
+    calendarAuthorizationSchema,
     myCalendarSchema,
     type AccountCalendar,
     type CalendarConnection,
-    type GoogleAuthorization,
+    type CalendarAuthorization,
 } from '@/src/entities/models/calendar-connection';
 import { apiRequest, type ErrorByStatus } from './api-request';
 
@@ -67,21 +67,33 @@ export class CalendarConnectionsRepository implements ICalendarConnectionsReposi
      * @throws {CalendarNotConfiguredError} la API respondió 503
      * @throws {ApiRequestError} falla de red, otro status no-OK o cuerpo inesperado
      */
-    async startGoogleConnection(): Promise<GoogleAuthorization> {
-        return this.instrumentationService.startSpan(
-            { name: 'CalendarConnectionsRepository > startGoogleConnection', op: 'http.client' },
-            async () => {
-                const path = '/users/me/calendar/google';
-                const json = await apiRequest(this.authenticationService, this.apiUrl, 'POST', path, {
-                    errors: { 409: CalendarAlreadyConnectedError, 503: CalendarNotConfiguredError },
-                });
-                try {
-                    return googleAuthorizationSchema.parse(json);
-                } catch (cause) {
-                    throw new ApiRequestError(`POST ${path} responded with an unexpected body`, { cause });
-                }
-            },
-        );
+    async startGoogleConnection(): Promise<CalendarAuthorization> {
+        return this.startConnection('google');
+    }
+
+    /**
+     * @throws {UnauthenticatedError} la API respondió 401
+     * @throws {CalendarAlreadyConnectedError} la API respondió 409
+     * @throws {CalendarNotConfiguredError} la API respondió 503
+     * @throws {ApiRequestError} falla de red, otro status no-OK o cuerpo inesperado
+     */
+    async startMicrosoftConnection(): Promise<CalendarAuthorization> {
+        return this.startConnection('microsoft');
+    }
+
+    private startConnection(provider: 'google' | 'microsoft'): Promise<CalendarAuthorization> {
+        const name = provider === 'google' ? 'startGoogleConnection' : 'startMicrosoftConnection';
+        return this.instrumentationService.startSpan({ name: `CalendarConnectionsRepository > ${name}`, op: 'http.client' }, async () => {
+            const path = `/users/me/calendar/${provider}`;
+            const json = await apiRequest(this.authenticationService, this.apiUrl, 'POST', path, {
+                errors: { 409: CalendarAlreadyConnectedError, 503: CalendarNotConfiguredError },
+            });
+            try {
+                return calendarAuthorizationSchema.parse(json);
+            } catch (cause) {
+                throw new ApiRequestError(`POST ${path} responded with an unexpected body`, { cause });
+            }
+        });
     }
 
     /**

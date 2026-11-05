@@ -63,6 +63,46 @@ describe('MicrosoftCalendarEventsClient', () => {
     ]);
   });
 
+  it('guarda el refresh token nuevo cuando Microsoft lo rota al renovar el acceso', async () => {
+    const rotated = jest.fn().mockResolvedValue(undefined);
+    fetchMock
+      .mockResolvedValueOnce(
+        json({ access_token: 'token', refresh_token: 'refresh-2' }),
+      )
+      .mockResolvedValueOnce(json({ value: [] }));
+
+    await client.listBusy('refresh', ['primary'], from, to, rotated);
+
+    expect(rotated).toHaveBeenCalledWith('refresh-2');
+  });
+
+  it('no guarda nada si Microsoft devuelve el mismo refresh token', async () => {
+    const rotated = jest.fn();
+    fetchMock
+      .mockResolvedValueOnce(
+        json({ access_token: 'token', refresh_token: 'refresh' }),
+      )
+      .mockResolvedValueOnce(json({ value: [] }));
+
+    await client.listBusy('refresh', ['primary'], from, to, rotated);
+
+    expect(rotated).not.toHaveBeenCalled();
+  });
+
+  it('usa el acceso renovado aunque no pueda guardar el refresh token nuevo', async () => {
+    fetchMock
+      .mockResolvedValueOnce(
+        json({ access_token: 'token', refresh_token: 'refresh-2' }),
+      )
+      .mockResolvedValueOnce(json({ value: [] }));
+
+    await expect(
+      client.listBusy('refresh', ['primary'], from, to, () =>
+        Promise.reject(new Error('db down')),
+      ),
+    ).resolves.toEqual([]);
+  });
+
   it('un evento de día entero ocupa ese día, que Graph ya devuelve en UTC', async () => {
     answerWith([
       {

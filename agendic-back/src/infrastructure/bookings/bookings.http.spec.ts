@@ -3,6 +3,7 @@ import {
   Booking,
   BookingActor,
   BookingStatus,
+  ClientBooking,
   CancellationCause,
 } from '../../domain/bookings/booking';
 import {
@@ -858,22 +859,51 @@ describe('Turno', () => {
     it(
       action === 'reject'
         ? 'mails the Cliente the Aviso de cambio del Turno, and a mail failure does not undo the Rechazo'
-        : 'sends the Cliente no Aviso de cambio del Turno',
+        : 'mails the Cliente the Aviso de cambio del Turno, and a mail failure does not undo the Aceptación',
       async () => {
         t.mailer.sendBookingRejection.mockRejectedValue(new Error('SMTP down'));
+        t.mailer.sendBookingAcceptance.mockRejectedValue(new Error('SMTP down'));
 
-        await patch(CLERK_TOKEN).expect(200);
+        const res = await patch(CLERK_TOKEN).expect(200);
 
-        if (action === 'reject')
+        expect(res.body).toMatchObject({ id: BOOKING.id, status });
+        if (action === 'reject') {
           expect(t.mailer.sendBookingRejection).toHaveBeenCalledWith(
             BOOKING.clientEmail,
             BOOKING.link,
             null,
           );
-        else expect(t.mailer.sendBookingRejection).not.toHaveBeenCalled();
+          expect(t.mailer.sendBookingAcceptance).not.toHaveBeenCalled();
+        } else {
+          expect(t.mailer.sendBookingAcceptance).toHaveBeenCalledWith(
+            BOOKING.clientEmail,
+            BOOKING.link,
+            undefined,
+            undefined,
+          );
+          expect(t.mailer.sendBookingRejection).not.toHaveBeenCalled();
+        }
         expect(t.mailer.sendBookingCancellation).not.toHaveBeenCalled();
       },
     );
+
+    if (action === 'accept')
+      it('hands the confirmed calendar file to the Aviso de cambio del Turno', async () => {
+        t.bookings.findByLink.mockResolvedValue({
+          ...BOOKING,
+          employeeName: 'Luis',
+          service: { name: 'Corte' },
+          business: { name: 'Peluquería' },
+          branch: { name: 'Centro', address: 'Calle 1' },
+        } as unknown as ClientBooking);
+
+        await patch(CLERK_TOKEN).expect(200);
+
+        const invite = t.mailer.sendBookingAcceptance.mock.calls[0][3];
+        expect(invite).toMatchObject({ method: 'REQUEST' });
+        expect(invite?.ics).toContain('STATUS:CONFIRMED');
+        expect(invite?.ics).toContain(`UID:${BOOKING.link}@agendic`);
+      });
 
     it('answers 422 when the Turno is not PENDING', async () => {
       t.bookings.findById.mockResolvedValue(BOOKING);

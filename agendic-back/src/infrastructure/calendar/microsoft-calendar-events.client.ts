@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { BookingEventContent } from '../../domain/calendar/booking-event';
 import {
   AGENDIC_EVENT_MARKER,
@@ -14,6 +14,8 @@ import {
   MICROSOFT_REQUESTED_SCOPES,
   MICROSOFT_TOKEN_ENDPOINT,
 } from './microsoft-oauth-api.client';
+
+const logger = new Logger('MicrosoftCalendarEvents');
 
 const GRAPH_API = 'https://graph.microsoft.com/v1.0';
 
@@ -60,8 +62,11 @@ export class MicrosoftCalendarEventsClient implements ProviderCalendarEvents {
    * @throws {NotConfiguredError} faltan las credenciales OAuth de Microsoft
    * @throws {ExternalServiceError} Microsoft respondió con error o no respondió
    */
-  async listCalendars(refreshToken: string) {
-    const accessToken = await this.refreshAccessToken(refreshToken);
+  async listCalendars(refreshToken: string, onRefreshTokenRotated?: (refreshToken: string) => Promise<void>) {
+    const accessToken = await this.refreshAccessToken(
+      refreshToken,
+      onRefreshTokenRotated,
+    );
     const calendars: CalendarSummary[] = [];
     let url: string | undefined =
       `${GRAPH_API}/me/calendars?$select=id,name,isDefaultCalendar&$top=100`;
@@ -97,8 +102,12 @@ export class MicrosoftCalendarEventsClient implements ProviderCalendarEvents {
     calendarIds: string[],
     from: Date,
     to: Date,
+    onRefreshTokenRotated?: (refreshToken: string) => Promise<void>,
   ) {
-    const accessToken = await this.refreshAccessToken(refreshToken);
+    const accessToken = await this.refreshAccessToken(
+      refreshToken,
+      onRefreshTokenRotated,
+    );
     const busy: ExternalBusy[] = [];
     for (const calendarId of calendarIds) {
       let url: string | undefined = calendarViewUrl(calendarId, from, to);
@@ -128,8 +137,15 @@ export class MicrosoftCalendarEventsClient implements ProviderCalendarEvents {
    * @throws {NotConfiguredError} faltan las credenciales OAuth de Microsoft
    * @throws {ExternalServiceError} Microsoft respondió con error o no respondió
    */
-  async createEvent(refreshToken: string, content: BookingEventContent) {
-    const accessToken = await this.refreshAccessToken(refreshToken);
+  async createEvent(
+    refreshToken: string,
+    content: BookingEventContent,
+    onRefreshTokenRotated?: (refreshToken: string) => Promise<void>,
+  ) {
+    const accessToken = await this.refreshAccessToken(
+      refreshToken,
+      onRefreshTokenRotated,
+    );
     const res = await this.send(
       'POST',
       `${PRIMARY_CALENDAR_URL}/events`,
@@ -158,8 +174,12 @@ export class MicrosoftCalendarEventsClient implements ProviderCalendarEvents {
     refreshToken: string,
     eventId: string,
     content: BookingEventContent,
+    onRefreshTokenRotated?: (refreshToken: string) => Promise<void>,
   ) {
-    const accessToken = await this.refreshAccessToken(refreshToken);
+    const accessToken = await this.refreshAccessToken(
+      refreshToken,
+      onRefreshTokenRotated,
+    );
     const res = await this.send(
       'PATCH',
       `${GRAPH_API}/me/events/${encodeURIComponent(eventId)}`,
@@ -179,8 +199,15 @@ export class MicrosoftCalendarEventsClient implements ProviderCalendarEvents {
    * @throws {NotConfiguredError} faltan las credenciales OAuth de Microsoft
    * @throws {ExternalServiceError} Microsoft respondió con error o no respondió
    */
-  async deleteEvent(refreshToken: string, eventId: string) {
-    const accessToken = await this.refreshAccessToken(refreshToken);
+  async deleteEvent(
+    refreshToken: string,
+    eventId: string,
+    onRefreshTokenRotated?: (refreshToken: string) => Promise<void>,
+  ) {
+    const accessToken = await this.refreshAccessToken(
+      refreshToken,
+      onRefreshTokenRotated,
+    );
     const res = await this.send(
       'DELETE',
       `${GRAPH_API}/me/events/${encodeURIComponent(eventId)}`,
@@ -216,7 +243,14 @@ export class MicrosoftCalendarEventsClient implements ProviderCalendarEvents {
     }
   }
 
-  private async refreshAccessToken(refreshToken: string): Promise<string> {
+  /**
+   * Microsoft puede devolver un refresh token nuevo al renovar el acceso; el anterior deja de ser el vigente, así que
+   * se guarda. Si guardarlo falla se loguea y el acceso renovado se usa igual: el token viejo sigue sirviendo.
+   */
+  private async refreshAccessToken(
+    refreshToken: string,
+    onRefreshTokenRotated?: (refreshToken: string) => Promise<void>,
+  ): Promise<string> {
     const { clientId, clientSecret } = readCalendarOauthConfig('MICROSOFT');
     let res: Response;
     try {
@@ -237,6 +271,7 @@ export class MicrosoftCalendarEventsClient implements ProviderCalendarEvents {
     }
     const data = (await res.json().catch(() => ({}))) as {
       access_token?: string;
+      refresh_token?: string;
       error?: string;
     };
     if (data.error && REVOKED_ERRORS.includes(data.error))
@@ -246,6 +281,17 @@ export class MicrosoftCalendarEventsClient implements ProviderCalendarEvents {
     if (!res.ok || !data.access_token)
       throw new ExternalServiceError(
         `Microsoft token refresh failed: ${data.error ?? res.status}`,
+      );
+    if (
+      data.refresh_token &&
+      data.refresh_token !== refreshToken &&
+      onRefreshTokenRotated
+    )
+      await onRefreshTokenRotated(data.refresh_token).catch((error) =>
+        logger.error(
+          'Microsoft refresh token rotated but not saved; the previous one keeps working',
+          error instanceof Error ? error.stack : String(error),
+        ),
       );
     return data.access_token;
   }
