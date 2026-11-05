@@ -7,10 +7,10 @@ import {
   AGENDIC_EVENT_MARKER,
   CalendarAccessRevokedError,
   ExternalBusy,
-  GoogleCalendarEvents,
-  GoogleCalendarSummary,
+  ProviderCalendarEvents,
+  CalendarSummary,
   PRIMARY_CALENDAR_ID,
-} from '../../domain/calendar/google-calendar-events';
+} from '../../domain/calendar/calendar-events';
 import { ExternalServiceError } from '../../domain/errors';
 import { readCalendarOauthConfig } from './calendar-oauth-config';
 
@@ -51,7 +51,7 @@ interface GoogleEventsPage {
  * porque no deja distinguir los Eventos del Turno que escribe Agendic.
  */
 @Injectable()
-export class GoogleCalendarEventsClient implements GoogleCalendarEvents {
+export class GoogleCalendarEventsClient implements ProviderCalendarEvents {
   /**
    * @throws {CalendarAccessRevokedError} Google rechazó el refresh token
    * @throws {NotConfiguredError} faltan las credenciales OAuth de Google
@@ -59,7 +59,7 @@ export class GoogleCalendarEventsClient implements GoogleCalendarEvents {
    */
   async listCalendars(refreshToken: string) {
     const accessToken = await this.refreshAccessToken(refreshToken);
-    const calendars: GoogleCalendarSummary[] = [];
+    const calendars: CalendarSummary[] = [];
     let pageToken: string | undefined;
     do {
       const query = new URLSearchParams({
@@ -184,7 +184,9 @@ export class GoogleCalendarEventsClient implements GoogleCalendarEvents {
       accessToken,
     );
     if (res.ok || res.status === 404 || res.status === 410) return;
-    throw new ExternalServiceError(`Google event deletion failed: ${res.status}`);
+    throw new ExternalServiceError(
+      `Google event deletion failed: ${res.status}`,
+    );
   }
 
   private async send(
@@ -222,7 +224,7 @@ export class GoogleCalendarEventsClient implements GoogleCalendarEvents {
   }
 
   private async refreshAccessToken(refreshToken: string): Promise<string> {
-    const { clientId, clientSecret } = readCalendarOauthConfig();
+    const { clientId, clientSecret } = readCalendarOauthConfig('GOOGLE');
     let res: Response;
     try {
       res = await fetch(TOKEN_ENDPOINT, {

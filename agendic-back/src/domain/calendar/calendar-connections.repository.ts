@@ -1,4 +1,4 @@
-import { CalendarConnection } from './calendar-connection';
+import { CalendarConnection, CalendarCredentials } from './calendar-connection';
 
 export const CALENDAR_CONNECTIONS_REPOSITORY = Symbol(
   'CalendarConnectionsRepository',
@@ -18,13 +18,13 @@ export interface CalendarConnectionsRepository {
   findByUserId(userId: number): Promise<CalendarConnection | null>;
 
   /**
-   * El refresh token ya descifrado, solo para hablar con Google; `null` sin conexión.
+   * El proveedor y el refresh token ya descifrado, solo para hablar con el proveedor; `null` sin conexión.
    *
    * @throws {DatabaseOperationError} la base falló
    * @throws {NotConfiguredError} falta `CALENDAR_TOKEN_KEY`
    * @throws {Error} la clave no es la que cifró, o el dato fue alterado
    */
-  findRefreshTokenByUserId(userId: number): Promise<string | null>;
+  findCredentialsByUserId(userId: number): Promise<CalendarCredentials | null>;
 
   /**
    * Los calendarios que cuentan como Ocupado externo (`'primary'` es el principal); `[]` si no hay conexión.
@@ -48,6 +48,14 @@ export interface CalendarConnectionsRepository {
    * @throws {NotConfiguredError} falta `CALENDAR_TOKEN_KEY`
    */
   save(userId: number, connection: NewCalendarConnection): Promise<void>;
+
+  /**
+   * Reemplaza el refresh token de la conexión por el que el proveedor rotó; sin conexión no hace nada.
+   *
+   * @throws {DatabaseOperationError} la base falló
+   * @throws {NotConfiguredError} falta `CALENDAR_TOKEN_KEY`
+   */
+  replaceRefreshToken(userId: number, refreshToken: string): Promise<void>;
 
   /**
    * Pasa la conexión a `DISCONNECTED`; sin conexión no hace nada.

@@ -1,0 +1,1 @@
+ALTER TYPE "CalendarProvider" ADD VALUE 'MICROSOFT';

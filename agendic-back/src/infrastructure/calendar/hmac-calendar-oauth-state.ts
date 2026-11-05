@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { CalendarOauthState } from '../../domain/calendar/calendar-oauth-state';
-import { readCalendarOauthConfig } from './calendar-oauth-config';
+import { readSharedCalendarConfig } from './calendar-oauth-config';
 
 /** El `state` vive lo que tarda el Usuario en dar el permiso en Google. */
 const STATE_TTL_MS = 10 * 60 * 1000;
@@ -9,7 +9,7 @@ const STATE_TTL_MS = 10 * 60 * 1000;
 /** `state` firmado con HMAC-SHA256: `<payload>.<firma>`, con el payload `{ userId, expiresAt }` en base64url. */
 @Injectable()
 export class HmacCalendarOauthState implements CalendarOauthState {
-  /** @throws {NotConfiguredError} faltan las variables de {@link readCalendarOauthConfig} */
+  /** @throws {NotConfiguredError} faltan las variables de {@link readSharedCalendarConfig} */
   sign(userId: number, now: Date): string {
     const payload = Buffer.from(
       JSON.stringify({ userId, expiresAt: now.getTime() + STATE_TTL_MS }),
@@ -17,7 +17,7 @@ export class HmacCalendarOauthState implements CalendarOauthState {
     return `${payload}.${this.signature(payload)}`;
   }
 
-  /** @throws {NotConfiguredError} faltan las variables de {@link readCalendarOauthConfig} */
+  /** @throws {NotConfiguredError} faltan las variables de {@link readSharedCalendarConfig} */
   verify(state: string, now: Date): number | null {
     const [payload, signature, ...rest] = state.split('.');
     if (!payload || !signature || rest.length > 0) return null;
@@ -41,7 +41,7 @@ export class HmacCalendarOauthState implements CalendarOauthState {
   }
 
   private signature(payload: string) {
-    return createHmac('sha256', readCalendarOauthConfig().stateKey)
+    return createHmac('sha256', readSharedCalendarConfig().stateKey)
       .update(payload)
       .digest('base64url');
   }

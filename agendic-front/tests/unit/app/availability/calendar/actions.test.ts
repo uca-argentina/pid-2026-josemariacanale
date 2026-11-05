@@ -1,4 +1,9 @@
-import { connectGoogleCalendarAction, disconnectCalendarAction, setCheckedCalendarsAction } from '@/app/(app)/availability/calendar/actions';
+import {
+    connectGoogleCalendarAction,
+    connectMicrosoftCalendarAction,
+    disconnectCalendarAction,
+    setCheckedCalendarsAction,
+} from '@/app/(app)/availability/calendar/actions';
 import { UnauthenticatedError } from '@/src/entities/errors/auth';
 import {
     CalendarAlreadyConnectedError,
@@ -11,6 +16,7 @@ import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
 
 const mockControllers: Record<string, jest.Mock> = {
     IStartGoogleCalendarConnectionController: jest.fn(),
+    IStartMicrosoftCalendarConnectionController: jest.fn(),
     IDisconnectCalendarController: jest.fn(),
     ISetCheckedCalendarsController: jest.fn(),
 };
@@ -45,7 +51,7 @@ describe('connectGoogleCalendarAction', () => {
     it('flags a back without Google configured, so the option is disabled', async () => {
         mockControllers.IStartGoogleCalendarConnectionController.mockRejectedValue(new CalendarNotConfiguredError('no'));
 
-        await expect(connectGoogleCalendarAction()).resolves.toMatchObject({ ok: false, notConfigured: true });
+        await expect(connectGoogleCalendarAction()).resolves.toMatchObject({ ok: false, notConfigured: true, message: expect.stringContaining('Google') });
         expect(mockReport).not.toHaveBeenCalled();
     });
 
@@ -66,6 +72,47 @@ describe('connectGoogleCalendarAction', () => {
         mockControllers.IStartGoogleCalendarConnectionController.mockRejectedValue(error);
 
         await expect(connectGoogleCalendarAction()).resolves.toMatchObject({ ok: false });
+        expect(mockReport).toHaveBeenCalledWith(error);
+    });
+});
+
+describe('connectMicrosoftCalendarAction', () => {
+    it('returns the address to take the browser to, without refreshing', async () => {
+        mockControllers.IStartMicrosoftCalendarConnectionController.mockResolvedValue({ authorizationUrl: 'https://login.microsoftonline.com/x' });
+
+        await expect(connectMicrosoftCalendarAction()).resolves.toEqual({ ok: true, authorizationUrl: 'https://login.microsoftonline.com/x' });
+        expect(mockControllers.IStartGoogleCalendarConnectionController).not.toHaveBeenCalled();
+        expect(mockRefresh).not.toHaveBeenCalled();
+    });
+
+    it('flags a back without Microsoft configured, naming Microsoft', async () => {
+        mockControllers.IStartMicrosoftCalendarConnectionController.mockRejectedValue(new CalendarNotConfiguredError('no'));
+
+        await expect(connectMicrosoftCalendarAction()).resolves.toMatchObject({
+            ok: false,
+            notConfigured: true,
+            message: expect.stringContaining('Microsoft'),
+        });
+        expect(mockReport).not.toHaveBeenCalled();
+    });
+
+    it('refreshes the screen on a 409, since a connection already exists', async () => {
+        mockControllers.IStartMicrosoftCalendarConnectionController.mockRejectedValue(new CalendarAlreadyConnectedError('ya'));
+
+        await expect(connectMicrosoftCalendarAction()).resolves.toMatchObject({ ok: false });
+        expect(mockRefresh).toHaveBeenCalledTimes(1);
+    });
+
+    it('redirects to sign-in when the Sesión expired', async () => {
+        mockControllers.IStartMicrosoftCalendarConnectionController.mockRejectedValue(new UnauthenticatedError('no'));
+        await expect(connectMicrosoftCalendarAction()).rejects.toThrow('REDIRECT:/sign-in');
+    });
+
+    it('reports anything else and answers a generic message', async () => {
+        const error = new ApiRequestError('boom', { status: 500 });
+        mockControllers.IStartMicrosoftCalendarConnectionController.mockRejectedValue(error);
+
+        await expect(connectMicrosoftCalendarAction()).resolves.toMatchObject({ ok: false });
         expect(mockReport).toHaveBeenCalledWith(error);
     });
 });

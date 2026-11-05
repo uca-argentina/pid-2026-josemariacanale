@@ -1,6 +1,6 @@
 import type { ICalendarConnectionsRepository } from '@/src/application/repositories/calendar-connections.repository.interface';
 import type { IInstrumentationService } from '@/src/application/services/instrumentation.service.interface';
-import type { GoogleAuthorization } from '@/src/entities/models/calendar-connection';
+import type { CalendarAuthorization } from '@/src/entities/models/calendar-connection';
 
 /** Tipo del caso de uso ya compuesto, como lo consumen los controllers. */
 export type IStartGoogleCalendarConnectionUseCase = ReturnType<typeof startGoogleCalendarConnectionUseCase>;
@@ -14,7 +14,7 @@ export type IStartGoogleCalendarConnectionUseCase = ReturnType<typeof startGoogl
  */
 export const startGoogleCalendarConnectionUseCase =
     (instrumentationService: IInstrumentationService, calendarConnectionsRepository: ICalendarConnectionsRepository) =>
-    (): Promise<GoogleAuthorization> =>
+    (): Promise<CalendarAuthorization> =>
         instrumentationService.startSpan({ name: 'startGoogleCalendarConnection Use Case', op: 'function' }, () =>
             calendarConnectionsRepository.startGoogleConnection(),
         );

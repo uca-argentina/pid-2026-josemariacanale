@@ -7,8 +7,8 @@ import {
 import { CalendarConnectionsRepository } from '../../../domain/calendar/calendar-connections.repository';
 import {
   CalendarAccessRevokedError,
-  GoogleCalendarEvents,
-} from '../../../domain/calendar/google-calendar-events';
+  CalendarEvents,
+} from '../../../domain/calendar/calendar-events';
 import { ExternalServiceError } from '../../../domain/errors';
 import { ReconcileBookingCalendarEventsUseCase } from '../reconcile-booking-calendar-events.use-case';
 
@@ -63,14 +63,17 @@ const setup = (
       bookings.map((b) => ({ ...b, event: table.get(b.id) ?? null })),
     ),
     listOfEndedBookingsOfConnectedUsers: jest.fn(async () =>
-      endedRows.filter((r) => table.has(r.bookingId)).map((r) => table.get(r.bookingId)!),
+      endedRows
+        .filter((r) => table.has(r.bookingId))
+        .map((r) => table.get(r.bookingId)!),
     ),
     findEventOfPreviousBooking: jest.fn(async (bookingId: number) => {
       const from = bookings.find((b) => b.id === bookingId)?.fromRescheduleId;
       return from == null ? null : (table.get(from) ?? null);
     }),
     save: jest.fn(
-      async (event: StoredBookingEvent) => void table.set(event.bookingId, event),
+      async (event: StoredBookingEvent) =>
+        void table.set(event.bookingId, event),
     ),
     moveToBooking: jest.fn(async (from: number, to: number) => {
       const row = table.get(from)!;
@@ -80,9 +83,10 @@ const setup = (
     deleteByBookingId: jest.fn(async (id: number) => void table.delete(id)),
   } as unknown as jest.Mocked<BookingCalendarEventsRepository>;
   const connections = {
-    findRefreshTokenByUserId: jest.fn(
-      async (userId: number) => `token-${userId}`,
-    ),
+    findCredentialsByUserId: jest.fn(async (userId: number) => ({
+      provider: 'GOOGLE' as const,
+      refreshToken: `token-${userId}`,
+    })),
     markDisconnected: jest.fn(),
   } as unknown as jest.Mocked<CalendarConnectionsRepository>;
   const google = {
@@ -101,7 +105,7 @@ const setup = (
     deleteEvent: jest.fn(
       async (_token: string, id: string) => void calendar.delete(id),
     ),
-  } as unknown as jest.Mocked<GoogleCalendarEvents>;
+  } as unknown as jest.Mocked<CalendarEvents>;
   const useCase = new ReconcileBookingCalendarEventsUseCase(
     events,
     connections,
@@ -118,16 +122,19 @@ describe('ReconcileBookingCalendarEventsUseCase', () => {
 
     await useCase.execute();
 
-    expect(google.createEvent).toHaveBeenCalledWith('token-10', {
-      bookingId: 1,
-      title: 'Corte · Ana',
-      description:
-        'Comentario: Alergia al tinte\nPeluquería · Centro\nTurno en Agendic: https://agendic.test/bookings/1',
-      location: 'Calle 1',
-      start: new Date('2026-11-05T15:00:00Z'),
-      end: new Date('2026-11-05T16:00:00Z'),
-      attendeeEmail: 'ana@example.com',
-    });
+    expect(google.createEvent).toHaveBeenCalledWith(
+      { provider: 'GOOGLE', refreshToken: 'token-10' },
+      {
+        bookingId: 1,
+        title: 'Corte · Ana',
+        description:
+          'Comentario: Alergia al tinte\nPeluquería · Centro\nTurno en Agendic: https://agendic.test/bookings/1',
+        location: 'Calle 1',
+        start: new Date('2026-11-05T15:00:00Z'),
+        end: new Date('2026-11-05T16:00:00Z'),
+        attendeeEmail: 'ana@example.com',
+      },
+    );
   });
 
   it('marks a Turno pendiente in the title, and a Servicio personal in the description', async () => {
@@ -232,7 +239,7 @@ describe('ReconcileBookingCalendarEventsUseCase', () => {
     await useCase.execute();
 
     expect(google.updateEvent).toHaveBeenCalledWith(
-      'token-10',
+      { provider: 'GOOGLE', refreshToken: 'token-10' },
       eventId,
       expect.objectContaining({ bookingId: 2 }),
     );
@@ -253,10 +260,13 @@ describe('ReconcileBookingCalendarEventsUseCase', () => {
     await useCase.execute();
 
     expect(google.createEvent).toHaveBeenCalledWith(
-      'token-20',
+      { provider: 'GOOGLE', refreshToken: 'token-20' },
       expect.objectContaining({ bookingId: 2 }),
     );
-    expect(google.deleteEvent).toHaveBeenCalledWith('token-10', 'evt-prev');
+    expect(google.deleteEvent).toHaveBeenCalledWith(
+      { provider: 'GOOGLE', refreshToken: 'token-10' },
+      'evt-prev',
+    );
     expect(table.has(1)).toBe(false);
     expect(table.get(2)?.userId).toBe(20);
   });
@@ -266,7 +276,10 @@ describe('ReconcileBookingCalendarEventsUseCase', () => {
 
     await useCase.execute();
 
-    expect(google.deleteEvent).toHaveBeenCalledWith('token-10', 'old-5');
+    expect(google.deleteEvent).toHaveBeenCalledWith(
+      { provider: 'GOOGLE', refreshToken: 'token-10' },
+      'old-5',
+    );
     expect(table.has(5)).toBe(false);
   });
 
@@ -301,14 +314,14 @@ describe('ReconcileBookingCalendarEventsUseCase', () => {
     expect(connections.markDisconnected).toHaveBeenCalledWith(10);
     expect(google.createEvent).toHaveBeenCalledTimes(2);
     expect(google.createEvent).toHaveBeenLastCalledWith(
-      'token-20',
+      { provider: 'GOOGLE', refreshToken: 'token-20' },
       expect.anything(),
     );
   });
 
   it('skips a User without a usable token', async () => {
     const { useCase, google, connections } = setup([live()]);
-    connections.findRefreshTokenByUserId.mockResolvedValue(null);
+    connections.findCredentialsByUserId.mockResolvedValue(null);
 
     await useCase.execute();
 

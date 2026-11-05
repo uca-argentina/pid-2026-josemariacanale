@@ -1,6 +1,7 @@
 import { disconnectCalendarController } from '@/src/interface-adapters/controllers/calendar/disconnect-calendar.controller';
 import { getMyCalendarConnectionController } from '@/src/interface-adapters/controllers/calendar/get-my-calendar-connection.controller';
 import { startGoogleCalendarConnectionController } from '@/src/interface-adapters/controllers/calendar/start-google-calendar-connection.controller';
+import { startMicrosoftCalendarConnectionController } from '@/src/interface-adapters/controllers/calendar/start-microsoft-calendar-connection.controller';
 import { UnauthenticatedError } from '@/src/entities/errors/auth';
 import { authWith, instrumentation } from '@/tests/unit/stubs';
 
@@ -37,6 +38,23 @@ describe('startGoogleCalendarConnectionController', () => {
     it('throws UnauthenticatedError without starting', async () => {
         const start = jest.fn();
         await expect(startGoogleCalendarConnectionController(instrumentation, signedOut(), start)()).rejects.toBeInstanceOf(UnauthenticatedError);
+        expect(start).not.toHaveBeenCalled();
+    });
+});
+
+describe('startMicrosoftCalendarConnectionController', () => {
+    it('returns the authorization address', async () => {
+        const start = jest.fn().mockResolvedValue({ authorizationUrl: 'https://login.microsoftonline.com/x', state: 'otro' });
+        await expect(startMicrosoftCalendarConnectionController(instrumentation, signedIn, start)()).resolves.toEqual({
+            authorizationUrl: 'https://login.microsoftonline.com/x',
+        });
+    });
+
+    it('throws UnauthenticatedError without starting', async () => {
+        const start = jest.fn();
+        await expect(startMicrosoftCalendarConnectionController(instrumentation, signedOut(), start)()).rejects.toBeInstanceOf(
+            UnauthenticatedError,
+        );
         expect(start).not.toHaveBeenCalled();
     });
 });

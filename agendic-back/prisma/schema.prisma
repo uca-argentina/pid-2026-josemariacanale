@@ -46,6 +46,7 @@ enum CancellationCause {
 /// Proveedor del Calendario conectado (ADR 0036).
 enum CalendarProvider {
   GOOGLE
+  MICROSOFT
 }
 
 /// Estado del Calendario conectado (ADR 0036): DISCONNECTED es una conexión que Google dejó de aceptar.
@@ -416,12 +417,12 @@ model WaitlistEntry {
   service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
 }
 
-/// Calendario conectado (ADR 0036): la cuenta de Google de un Usuario. Una sola por Usuario (unique, ADR 0004).
+/// Calendario conectado (ADR 0036): la cuenta de Google o de Microsoft de un Usuario. Una sola por Usuario (unique, ADR 0004).
 model CalendarConnection {
   id                    Int                      @id @default(autoincrement())
   userId                Int                      @unique
   provider              CalendarProvider
-  email                 String // la cuenta de Google conectada
+  email                 String // la cuenta de Google o de Microsoft conectada
   status                CalendarConnectionStatus @default(CONNECTED)
   encryptedRefreshToken String // AES-256-GCM con CALENDAR_TOKEN_KEY; nunca sale en una respuesta ni en un log
   connectedAt           DateTime                 @db.Timestamptz(3)
