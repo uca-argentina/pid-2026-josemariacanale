@@ -1,6 +1,13 @@
 import type { IBusinessesRepository } from '@/src/application/repositories/businesses.repository.interface';
 import type { IAuthenticationService } from '@/src/application/services/authentication.service.interface';
-import { AlreadyOwnerError, BranchImageLimitError, LastBranchImageError, InvalidSlugError, SlugTakenError } from '@/src/entities/errors/business';
+import {
+    AlreadyOwnerError,
+    BranchImageLimitError,
+    InvalidLocationError,
+    LastBranchImageError,
+    InvalidSlugError,
+    SlugTakenError,
+} from '@/src/entities/errors/business';
 import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
 import { branchImageSchema, type BranchImage } from '@/src/entities/models/branch-image';
 import { throwIfBranchImagesRejected } from './branch-images-rejection';
@@ -73,6 +80,7 @@ export class BusinessesRepository implements IBusinessesRepository {
      * @throws {AlreadyOwnerError} 409 "Ya tenés un Negocio"
      * @throws {SlugTakenError} el otro 409, dirección en uso
      * @throws {InvalidSlugError} 400 sobre `business.slug`
+     * @throws {InvalidLocationError} 400 sobre el punto de la Sucursal
      * @throws {BranchImagesRejectedError} 400 sobre las imágenes, o 413
      * @throws {ApiRequestError} cualquier otra falla, o un body que no es un Negocio creado
      */
@@ -85,6 +93,7 @@ export class BusinessesRepository implements IBusinessesRepository {
             throw /ya ten[eé]s un negocio/i.test(message) ? new AlreadyOwnerError(message) : new SlugTakenError(message);
         }
         if (response.status === 400 && /business\.slug/i.test(message)) throw new InvalidSlugError(message);
+        if (response.status === 400 && /\blocation\b/i.test(message)) throw new InvalidLocationError(message);
         throwIfBranchImagesRejected(response.status, message);
         if (!response.ok) throw new ApiRequestError(message, { status: response.status });
 

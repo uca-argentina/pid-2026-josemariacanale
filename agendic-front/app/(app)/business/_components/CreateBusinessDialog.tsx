@@ -30,6 +30,7 @@ import {
 import { ImageUploader } from '@/app/_components/image-uploader/ImageUploader';
 import { BRANCH_IMAGES } from '@/src/entities/models/branch';
 import { createBusinessAction } from '../actions';
+import { AddressField } from './AddressField';
 import { BusinessFieldset } from './BusinessFieldset';
 import { RoleBadge } from './business-ui';
 
@@ -88,7 +89,7 @@ export function CreateBusinessDialog({ owner, onClose }: { owner: Owner; onClose
     const [business, setBusiness] = useState<BusinessFields>({ name: '', description: '', slug: '' });
     // Una vez que el Dueño edita el Enlace de reserva a mano, deja de seguir al nombre.
     const [slugEdited, setSlugEdited] = useState(false);
-    const [branch, setBranch] = useState<BranchFields>({ name: '', address: '', timeZone: 'America/Argentina/Buenos_Aires' });
+    const [branch, setBranch] = useState<BranchFields>({ name: '', address: '', timeZone: 'America/Argentina/Buenos_Aires', location: null });
     const [employees, setEmployees] = useState<string[]>([]);
     // El mini formulario de Invitar; null mientras está cerrado.
     const [draft, setDraft] = useState<InviteFields | null>(null);
@@ -157,7 +158,10 @@ export function CreateBusinessDialog({ owner, onClose }: { owner: Owner; onClose
         startTransition(async () => {
             const result = await createBusinessAction(form);
             if (!result.ok) {
-                setSubmitError(result.message);
+                if (result.field === 'address') {
+                    goTo(BRANCH_STEP);
+                    setErrors({ address: result.message });
+                } else setSubmitError(result.message);
                 return;
             }
             toast.success(`${payload.business.name}: negocio creado`);
@@ -236,7 +240,7 @@ export function CreateBusinessDialog({ owner, onClose }: { owner: Owner; onClose
                 {step === BRANCH_STEP && (
                     <BranchStep
                         value={branch}
-                        onChange={setBranch}
+                        onChange={(patch) => setBranch((b) => ({ ...b, ...patch }))}
                         errors={errors}
                         images={images}
                         onImagesAdded={() => setErrors((current) => Object.fromEntries(Object.entries(current).filter(([field]) => field !== 'images')))}
@@ -295,7 +299,7 @@ function BranchStep({
     onImagesAdded,
 }: {
     value: BranchFields;
-    onChange: (value: BranchFields) => void;
+    onChange: (patch: Partial<BranchFields>) => void;
     errors: FieldErrors;
     images: PickedImages;
     /** Avisa que se sumaron imágenes, para sacar el error de que falta al menos una. */
@@ -308,24 +312,24 @@ function BranchStep({
                     id="branch-name"
                     placeholder="Sucursal Centro"
                     value={value.name}
-                    onChange={(e) => onChange({ ...value, name: e.target.value })}
+                    onChange={(e) => onChange({ name: e.target.value })}
                     {...invalid(errors, 'name', 'branch-name')}
                 />
             </PanelField>
-            <PanelField label="Dirección" htmlFor="branch-address" error={errors.address}>
-                <PanelInput
+            <PanelField label="Dirección" htmlFor="branch-address" error={errors.address ?? errors.location}>
+                <AddressField
                     id="branch-address"
-                    placeholder="Av. Cabildo 1234"
-                    value={value.address}
-                    onChange={(e) => onChange({ ...value, address: e.target.value })}
-                    {...invalid(errors, 'address', 'branch-address')}
+                    address={value.address}
+                    location={value.location}
+                    onChange={onChange}
+                    invalid={{ ...invalid(errors, 'address', 'branch-address'), ...invalid(errors, 'location', 'branch-address') }}
                 />
             </PanelField>
             <PanelField label="Zona horaria" htmlFor="branch-timezone" error={errors.timeZone}>
                 <TimezoneSelect
                     id="branch-timezone"
                     value={value.timeZone}
-                    onChange={(tz) => onChange({ ...value, timeZone: tz })}
+                    onChange={(tz) => onChange({ timeZone: tz })}
                 />
             </PanelField>
             <PanelField

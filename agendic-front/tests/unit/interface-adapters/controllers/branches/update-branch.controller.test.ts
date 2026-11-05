@@ -5,8 +5,18 @@ import { authWith, instrumentation } from '@/tests/unit/stubs';
 
 const user = { id: 'user_1', name: 'Ana', email: 'a@a.com' };
 const signedIn = () => authWith({ getCurrentUser: jest.fn().mockResolvedValue(user) });
-const input = { id: 10, slug: 'norte', description: null };
-const branch = { id: 10, businessId: 1, name: 'Centro', address: 'Av. 1', timeZone: 'America/Argentina/Buenos_Aires', slug: 'norte', description: null };
+const location = { lat: -34.6, lng: -58.4 };
+const input = { id: 10, slug: 'norte', description: null, location };
+const branch = {
+    id: 10,
+    businessId: 1,
+    name: 'Centro',
+    address: 'Av. 1',
+    timeZone: 'America/Argentina/Buenos_Aires',
+    slug: 'norte',
+    description: null,
+    location,
+};
 
 describe('updateBranchController', () => {
     it('returns the presented Sucursal, without businessId', async () => {
@@ -21,6 +31,8 @@ describe('updateBranchController', () => {
         ['a missing id', { ...input, id: undefined }],
         ['a non-string slug', { ...input, slug: 3 }],
         ['no input', undefined],
+        ['a removed location', { ...input, location: null }],
+        ['a lat out of range', { ...input, location: { lat: -91, lng: 0 } }],
     ])('throws InputParseError for %s', async (_case, bad) => {
         const useCase = jest.fn();
 

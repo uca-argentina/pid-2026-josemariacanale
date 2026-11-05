@@ -5,7 +5,7 @@ import { authWith, instrumentation } from '@/tests/unit/stubs';
 
 const user = { id: 'user_1', name: 'Ana', email: 'a@a.com' };
 const signedIn = () => authWith({ getCurrentUser: jest.fn().mockResolvedValue(user) });
-const branch = { id: 10, businessId: 1, name: 'Centro', address: 'Av. 1', timeZone: 'America/Argentina/Buenos_Aires', slug: 'centro', description: null };
+const branch = { id: 10, businessId: 1, name: 'Centro', address: 'Av. 1', timeZone: 'America/Argentina/Buenos_Aires', slug: 'centro', description: null, location: null };
 
 describe('listBranchesWithImagesController', () => {
     it('returns each Sucursal with its Imágenes, without businessId nor image order', async () => {

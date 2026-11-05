@@ -1,11 +1,17 @@
-import { AlreadyOwnerError, BranchImagesRejectedError, InvalidSlugError, SlugTakenError } from '@/src/entities/errors/business';
+import { AlreadyOwnerError, BranchImagesRejectedError, InvalidLocationError, InvalidSlugError, SlugTakenError } from '@/src/entities/errors/business';
 import { ApiRequestError } from '@/src/entities/errors/common';
 import { BusinessesRepository } from '@/src/infrastructure/repositories/businesses.repository';
 import { authWith } from '@/tests/unit/stubs';
 
 const fields = {
     business: { name: 'Estudio', description: 'Desc', slug: 'estudio' },
-    branch: { name: 'Centro', address: 'Av. 1', timeZone: 'America/Argentina/Buenos_Aires', slug: 'centro' },
+    branch: {
+        name: 'Centro',
+        address: 'Av. 1',
+        timeZone: 'America/Argentina/Buenos_Aires',
+        slug: 'centro',
+        location: { lat: -34.6, lng: -58.4 },
+    },
 };
 const input = {
     ...fields,
@@ -52,6 +58,14 @@ describe('BusinessesRepository.createBusiness', () => {
         respond(400, { statusCode: 400, message: ['business.slug must match /^[a-z0-9]+$/'] });
         await expect(repo().createBusiness(input)).rejects.toBeInstanceOf(InvalidSlugError);
     });
+
+    it.each(['branch.location is required', 'branch.location.lat must be between -90 and 90'])(
+        'translates the 400 %j to InvalidLocationError',
+        async (message) => {
+            respond(400, { statusCode: 400, message: [message] });
+            await expect(repo().createBusiness(input)).rejects.toBeInstanceOf(InvalidLocationError);
+        },
+    );
 
     it('keeps a 400 about the service slug as ApiRequestError, not as the Negocio slug', async () => {
         respond(400, { statusCode: 400, message: ['service.slug must be longer than or equal to 3 characters'] });

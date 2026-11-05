@@ -2,7 +2,7 @@ import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
 import { PublicBusinessesRepository } from '@/src/infrastructure/repositories/public-businesses.repository';
 
 const business = { id: 1, name: 'Vitalia', description: 'Desc', slug: 'vitalia', logoUrl: null, ownerId: 7 };
-const branch = { id: 10, businessId: 1, name: 'Centro', address: 'Av. 1', timeZone: 'America/Argentina/Buenos_Aires', slug: 'centro', description: null };
+const branch = { id: 10, businessId: 1, name: 'Centro', address: 'Av. 1', timeZone: 'America/Argentina/Buenos_Aires', slug: 'centro', description: null, location: { lat: -34.6, lng: -58.4 } };
 const service = { id: 100, branchId: 10, name: 'Masaje', description: null, category: 'SPA', durationMinutes: 60, price: 20000, depositPercent: null, repeatEveryWeeks: null, repeatMaxBookings: null, employees: [{ id: 1, name: 'Ana', imageUrl: null, slug: 'ana' }] };
 
 const repo = (apiUrl: string | undefined = 'http://api') => new PublicBusinessesRepository(apiUrl);
@@ -58,6 +58,11 @@ describe('PublicBusinessesRepository.listBranches', () => {
 
         await expect(repo().listBranches(1)).resolves.toEqual([branch]);
         expect(fetchSpy).toHaveBeenCalledWith('http://api/businesses/1/branches');
+    });
+
+    it('keeps an old Sucursal without a punto', async () => {
+        respond(200, [{ ...branch, location: null }]);
+        await expect(repo().listBranches(1)).resolves.toEqual([{ ...branch, location: null }]);
     });
 
     it('translates a Sucursal without slug to ApiRequestError', async () => {

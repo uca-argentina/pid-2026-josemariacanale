@@ -5,7 +5,13 @@ import { imagesStub, instrumentation } from '@/tests/unit/stubs';
 
 const input = {
     business: { name: 'Estudio', description: 'Desc', slug: 'estudio' },
-    branch: { name: 'Centro', address: 'Av. 1', timeZone: 'America/Argentina/Buenos_Aires', slug: 'centro' },
+    branch: {
+        name: 'Centro',
+        address: 'Av. 1',
+        timeZone: 'America/Argentina/Buenos_Aires',
+        slug: 'centro',
+        location: { lat: -34.6, lng: -58.4 },
+    },
     images: [new File(['a'], 'a.png', { type: 'image/png' })],
 };
 const business = {

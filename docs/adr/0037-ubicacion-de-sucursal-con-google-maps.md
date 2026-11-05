@@ -9,5 +9,6 @@ El mapa sigue dentro del Enlace de reserva de un Negocio: no es un catálogo de 
 ## Consecuencias
 
 - Hace falta una API key de Google con facturación habilitada, restringida por dominio para el front.
+- La zona horaria que se precarga desde el punto sale de la Time Zone API, que es un web service: Google no la acepta con una key restringida por dominio, así que el front la pide desde su servidor con una segunda key, sin exponerla al navegador.
 - Se guardan las coordenadas, no el identificador de lugar de Google: cambiar de proveedor después solo cambia el autocompletado y el dibujo del mapa, no los datos.
 - La dirección que ve el Cliente es la que eligió el Dueño, no una que se recalcula desde las coordenadas.

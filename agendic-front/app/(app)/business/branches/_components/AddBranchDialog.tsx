@@ -25,7 +25,14 @@ export function AddBranchDialog({
     businessSlug: string;
     onClose: () => void;
 }) {
-    const [values, setValues] = useState<BranchFormFields>({ name: '', slug: '', description: '', address: '', timeZone: '' });
+    const [values, setValues] = useState<BranchFormFields>({
+        name: '',
+        slug: '',
+        description: '',
+        address: '',
+        timeZone: '',
+        location: null,
+    });
     const [slugEdited, setSlugEdited] = useState(false);
     const [images, setImages] = useState<Pending[]>([]);
     const [errors, setErrors] = useState<FieldErrors>({});
