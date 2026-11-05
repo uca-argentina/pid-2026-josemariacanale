@@ -8,7 +8,15 @@ import { getInjection } from '@/di/container';
 import type { DI_RETURN_TYPES } from '@/di/types';
 import { ApiRequestError, InputParseError } from '@/src/entities/errors/common';
 import type { EmployeeStatsQuery } from '@/src/entities/models/analytics';
-import { AlreadyEmployeeError, BranchesRequiredError, BranchNotOfBusinessError, InvitationNotPendingError, LastEmployeeError } from '@/src/entities/errors/employee';
+import {
+    AlreadyEmployeeError,
+    BranchesRequiredError,
+    BranchNotOfBusinessError,
+    EmployeeBranchesBookingsChangedError,
+    InvitationNotPendingError,
+    LastEmployeeError,
+    OwnerWorksAtEveryBranchError,
+} from '@/src/entities/errors/employee';
 
 export type EmployeeActionResult = { ok: true } | { ok: false; message: string; field?: 'email' | 'branchIds' };
 
@@ -84,6 +92,67 @@ export async function resendInvitationAction(payload: unknown): Promise<Employee
 /** Cancela la Invitación pendiente; la fila sale de la tabla. */
 export async function cancelInvitationAction(payload: unknown): Promise<EmployeeActionResult> {
     return runInvitationAction('ICancelInvitationController', payload, 'No pudimos cancelar la invitación. Intentá de nuevo.');
+}
+
+/** Lo que devuelve la vista previa: los Turnos que se cancelan, o el mensaje para el Dueño. */
+export type PreviewEmployeeBranchesResult =
+    | { ok: true; bookings: Awaited<ReturnType<DI_RETURN_TYPES['IPreviewEmployeeBranchesController']>> }
+    | { ok: false; message: string };
+
+/** Lo que devuelve guardar: cuántos Turnos canceló, el mensaje para el Dueño, o que la lista de Turnos cambió (409). */
+export type ChangeEmployeeBranchesResult = { ok: true; cancelledBookings: number } | { ok: false; message: string } | { ok: false; leftOutChanged: true };
+
+/**
+ * Corre la acción sobre las Sucursales de un Empleado y traduce sus fallos a un mensaje para el Dueño. Si el
+ * Empleado ya no existe (404) refresca la tabla.
+ */
+async function settleEmployeeBranches<T>(run: () => Promise<T>, unexpected: string): Promise<{ ok: true; value: T } | { ok: false; message: string }> {
+    try {
+        return { ok: true, value: await run() };
+    } catch (error) {
+        unstable_rethrow(error);
+        if (isSessionExpired(error)) redirect(SIGN_IN_PATH);
+        if (error instanceof LastEmployeeError) return { ok: false, message: 'Es el último Empleado de un Servicio de esa Sucursal.' };
+        if (error instanceof OwnerWorksAtEveryBranchError) return { ok: false, message: 'El Dueño trabaja en todas las Sucursales.' };
+        if (error instanceof BranchesRequiredError) return { ok: false, message: 'Elegí al menos una Sucursal.' };
+        if (error instanceof BranchNotOfBusinessError)
+            return { ok: false, message: 'Una de las Sucursales ya no es de tu Negocio. Recargá la página y elegí de nuevo.' };
+        if (error instanceof ApiRequestError && error.status === 404) {
+            refresh();
+            return { ok: false, message: 'Este Empleado ya no está en tu Negocio. Actualizamos la lista.' };
+        }
+        if (error instanceof InputParseError) return { ok: false, message: 'Revisá los datos e intentá de nuevo.' };
+        getInjection('ICrashReporterService').report(error);
+        return { ok: false, message: unexpected };
+    }
+}
+
+/** Los Turnos que cambiar las Sucursales del Empleado cancelaría. No guarda ni refresca nada. */
+export async function previewEmployeeBranchesAction(employeeId: number, branchIds: number[]): Promise<PreviewEmployeeBranchesResult> {
+    const result = await settleEmployeeBranches(
+        () => getInjection('IPreviewEmployeeBranchesController')({ employeeId, branchIds }),
+        'No pudimos revisar los Turnos del Empleado. Intentá de nuevo.',
+    );
+    return result.ok ? { ok: true, bookings: result.value } : result;
+}
+
+/**
+ * Cambia las Sucursales del Empleado y cancela los Turnos de `cancelBookingIds`. Con el 409 de Turnos responde
+ * `leftOutChanged` y no refresca la tabla: nada se guardó.
+ */
+export async function changeEmployeeBranchesAction(employeeId: number, branchIds: number[], cancelBookingIds: number[]): Promise<ChangeEmployeeBranchesResult> {
+    const result = await settleEmployeeBranches(async () => {
+        try {
+            return await getInjection('IChangeEmployeeBranchesController')({ employeeId, branchIds, cancelBookingIds });
+        } catch (error) {
+            if (error instanceof EmployeeBranchesBookingsChangedError) return 'leftOutChanged' as const;
+            throw error;
+        }
+    }, 'No pudimos guardar las Sucursales. Intentá de nuevo.');
+    if (!result.ok) return result;
+    if (result.value === 'leftOutChanged') return { ok: false, leftOutChanged: true };
+    refresh();
+    return { ok: true, cancelledBookings: result.value.cancelledBookings };
 }
 
 /** Las estadísticas del Empleado para las tarjetas de su perfil. */

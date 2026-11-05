@@ -13,6 +13,8 @@ const repoWith = (listInvitations: jest.Mock): IEmployeesRepository => ({
     rejectInvitation: jest.fn(),
     resendInvitation: jest.fn(),
     cancelInvitation: jest.fn(),
+    previewEmployeeBranches: jest.fn(),
+    changeEmployeeBranches: jest.fn(),
 });
 
 describe('listInvitationsUseCase', () => {

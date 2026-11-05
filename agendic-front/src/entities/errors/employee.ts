@@ -39,3 +39,20 @@ export class BranchNotOfBusinessError extends Error {
         super(message, options);
     }
 }
+
+/** 422 `The Dueño works at every Branch`: al Empleado del Dueño no se le saca ninguna Sucursal. */
+export class OwnerWorksAtEveryBranchError extends Error {
+    constructor(message: string, options?: ErrorOptions) {
+        super(message, options);
+    }
+}
+
+/**
+ * 409 `Los Turnos que se cancelan cambiaron`: entre la vista previa y el guardado cambió la lista de Turnos que
+ * cancela cambiar las Sucursales del Empleado, y el back no guardó nada. El Dueño no ve este mensaje: ve la lista nueva.
+ */
+export class EmployeeBranchesBookingsChangedError extends Error {
+    constructor(message: string, options?: ErrorOptions) {
+        super(message, options);
+    }
+}

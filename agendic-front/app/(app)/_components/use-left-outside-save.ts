@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import type { LeftOutsideBooking } from '@/src/entities/models/left-outside-booking';
 
-type Preview = { ok: true; bookings: LeftOutsideBooking[] } | { ok: false; message: string };
+type Preview<B> = { ok: true; bookings: B[] } | { ok: false; message: string };
 type Save = { ok: true; cancelledBookings: number } | { ok: false; message: string } | { ok: false; leftOutChanged: true };
 
 /**
@@ -18,18 +18,18 @@ type Save = { ok: true; cancelledBookings: number } | { ok: false; message: stri
  * @param onSaved se llama al guardar, con cuántos Turnos se cancelaron
  * @param onError se llama con el mensaje de un fallo de la vista previa o del guardado
  */
-export function useLeftOutsideSave<I>({
+export function useLeftOutsideSave<I, B extends { id: number } = LeftOutsideBooking>({
     preview,
     save,
     onSaved,
     onError,
 }: {
-    preview: (input: I) => Promise<Preview>;
+    preview: (input: I) => Promise<Preview<B>>;
     save: (input: I, cancelBookingIds: number[]) => Promise<Save>;
     onSaved: (cancelledBookings: number) => void;
     onError: (message: string) => void;
 }) {
-    const [review, setReview] = useState<{ input: I; bookings: LeftOutsideBooking[] } | null>(null);
+    const [review, setReview] = useState<{ input: I; bookings: B[] } | null>(null);
     const [isPending, startTransition] = useTransition();
 
     const check = async (input: I): Promise<void> => {
@@ -42,7 +42,7 @@ export function useLeftOutsideSave<I>({
         setReview({ input, bookings: previewed.bookings });
     };
 
-    const commit = async (input: I, bookings: LeftOutsideBooking[]): Promise<void> => {
+    const commit = async (input: I, bookings: B[]): Promise<void> => {
         const saved = await save(
             input,
             bookings.map((b) => b.id),

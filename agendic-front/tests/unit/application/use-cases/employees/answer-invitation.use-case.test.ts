@@ -16,6 +16,8 @@ const repoWith = (overrides: Partial<IEmployeesRepository>): IEmployeesRepositor
     rejectInvitation: jest.fn(),
     resendInvitation: jest.fn(),
     cancelInvitation: jest.fn(),
+    previewEmployeeBranches: jest.fn(),
+    changeEmployeeBranches: jest.fn(),
     ...overrides,
 });
 

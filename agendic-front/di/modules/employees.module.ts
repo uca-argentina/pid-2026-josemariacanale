@@ -18,6 +18,10 @@ import { EmployeesRepository } from '@/src/infrastructure/repositories/employees
 import { addEmployeeController } from '@/src/interface-adapters/controllers/employees/add-employee.controller';
 import { listBusinessStaffController } from '@/src/interface-adapters/controllers/employees/list-business-staff.controller';
 import { retireEmployeeController } from '@/src/interface-adapters/controllers/employees/retire-employee.controller';
+import { previewEmployeeBranchesUseCase } from '@/src/application/use-cases/employees/preview-employee-branches.use-case';
+import { changeEmployeeBranchesUseCase } from '@/src/application/use-cases/employees/change-employee-branches.use-case';
+import { previewEmployeeBranchesController } from '@/src/interface-adapters/controllers/employees/preview-employee-branches.controller';
+import { changeEmployeeBranchesController } from '@/src/interface-adapters/controllers/employees/change-employee-branches.controller';
 
 export function createEmployeesModule() {
     const employeesModule = createModule();
@@ -125,6 +129,30 @@ export function createEmployeesModule() {
             DI_SYMBOLS.IInstrumentationService,
             DI_SYMBOLS.IAuthenticationService,
             DI_SYMBOLS.ICancelInvitationUseCase,
+        ]);
+
+    employeesModule
+        .bind(DI_SYMBOLS.IPreviewEmployeeBranchesUseCase)
+        .toHigherOrderFunction(previewEmployeeBranchesUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IEmployeesRepository]);
+
+    employeesModule
+        .bind(DI_SYMBOLS.IChangeEmployeeBranchesUseCase)
+        .toHigherOrderFunction(changeEmployeeBranchesUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IEmployeesRepository]);
+
+    employeesModule
+        .bind(DI_SYMBOLS.IPreviewEmployeeBranchesController)
+        .toHigherOrderFunction(previewEmployeeBranchesController, [
+            DI_SYMBOLS.IInstrumentationService,
+            DI_SYMBOLS.IAuthenticationService,
+            DI_SYMBOLS.IPreviewEmployeeBranchesUseCase,
+        ]);
+
+    employeesModule
+        .bind(DI_SYMBOLS.IChangeEmployeeBranchesController)
+        .toHigherOrderFunction(changeEmployeeBranchesController, [
+            DI_SYMBOLS.IInstrumentationService,
+            DI_SYMBOLS.IAuthenticationService,
+            DI_SYMBOLS.IChangeEmployeeBranchesUseCase,
         ]);
 
     return employeesModule;

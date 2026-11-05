@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { badgeLevelSchema } from './badge';
+import { cancelBookingIdsSchema } from './left-outside-booking';
 
 /**
  * Una Insignia ganada por un Empleado, como la trae el Staff: su Nivel más alto, sin progreso (ADR 0007).
@@ -49,6 +50,32 @@ export const createEmployeeSchema = z.object({
     branchIds: z.array(z.number()).optional(),
 });
 export type CreateEmployee = z.infer<typeof createEmployeeSchema>;
+
+/** Las Sucursales nuevas de un Empleado: el `employeeId` va en la ruta y `branchIds` en el cuerpo. */
+export const employeeBranchesSchema = z.object({
+    employeeId: z.number().int().positive(),
+    branchIds: z.array(z.number().int().positive()),
+});
+export type EmployeeBranches = z.infer<typeof employeeBranchesSchema>;
+
+/** Cambiar las Sucursales con los Turnos que el Dueño confirmó cancelar: el cuerpo de `PUT /employees/:id/branches`. */
+export const confirmedEmployeeBranchesSchema = employeeBranchesSchema.extend({ cancelBookingIds: cancelBookingIdsSchema.optional() });
+export type ConfirmedEmployeeBranches = z.infer<typeof confirmedEmployeeBranchesSchema>;
+
+/**
+ * Un Turno pendiente o aceptado que cambiar las Sucursales del Empleado cancelaría, como lo devuelve
+ * `POST /employees/:id/branches/preview`; `timeZone` es la de la Sucursal.
+ */
+export const branchCancelledBookingSchema = z.object({
+    id: z.number(),
+    startsAt: z.string(),
+    endsAt: z.string(),
+    timeZone: z.string(),
+    serviceName: z.string(),
+    clientName: z.string(),
+    branch: z.object({ id: z.number(), name: z.string() }),
+});
+export type BranchCancelledBooking = z.infer<typeof branchCancelledBookingSchema>;
 
 /** La Invitación pendiente del Usuario, como la lista GET /invitations/me; `branches` son donde va a trabajar. */
 export const myInvitationSchema = z.object({

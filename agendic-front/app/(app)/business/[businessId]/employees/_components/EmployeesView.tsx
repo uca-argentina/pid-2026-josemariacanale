@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { Loader2, MailX, MoreHorizontal, PanelRightOpen, Plus, RotateCw, Search, UserRound, UserX } from 'lucide-react';
+import { Loader2, MailX, MapPin, MoreHorizontal, PanelRightOpen, Plus, RotateCw, Search, UserRound, UserX } from 'lucide-react';
 import { toast } from 'sonner';
 import {
     PanelAvatar,
@@ -21,16 +21,18 @@ import { inviteEmployeeSchema, fieldErrorsOf, type FieldErrors } from '@/app/_co
 import type { EmployeeBadge } from '@/src/entities/models/employee';
 import { RoleBadge, type BusinessRole } from '../../../_components/business-ui';
 import { addEmployeeAction, cancelInvitationAction, resendInvitationAction, retireEmployeeAction } from '../actions';
+import { EmployeeBranchesDialog } from './EmployeeBranchesDialog';
 import { EmployeeMedals } from './EmployeeMedals';
 import { EmployeeSheet } from './EmployeeSheet';
 
-/** Una fila del Staff; `badges` viene de mayor a menor Nivel y `branchNames` son las Sucursales donde trabaja. */
+/** Una fila del Staff; `badges` viene de mayor a menor Nivel y `branchIds`/`branchNames` son las Sucursales donde trabaja. */
 export type EmployeeRow = {
     id: number;
     name: string;
     email: string;
     imageUrl: string | null;
     badges: EmployeeBadge[];
+    branchIds: number[];
     branchNames: string[];
     role: BusinessRole;
 };
@@ -169,6 +171,7 @@ export function EmployeesView({
     const [inviting, setInviting] = useState(false);
     const [viewing, setViewing] = useState<EmployeeRow>();
     const [retiring, setRetiring] = useState<EmployeeRow>();
+    const [editingBranches, setEditingBranches] = useState<EmployeeRow>();
     const [cancelling, setCancelling] = useState<InvitationRow>();
     const [, startTransition] = useTransition();
 
@@ -268,6 +271,10 @@ export function EmployeesView({
                                                     }
                                                     items={[
                                                         { label: 'Ver perfil', icon: <UserRound />, onSelect: () => setViewing(employee) },
+                                                        // Con una sola Sucursal no hay nada que elegir.
+                                                        ...(branches.length > 1
+                                                            ? [{ label: 'Editar Sucursales', icon: <MapPin />, onSelect: () => setEditingBranches(employee) }]
+                                                            : []),
                                                         {
                                                             label: 'Dar de baja',
                                                             icon: <UserX />,
@@ -324,6 +331,9 @@ export function EmployeesView({
             {inviting && <InviteEmployeeDialog businessId={businessId} branches={branches} onClose={() => setInviting(false)} />}
             {viewing && (
                 <EmployeeSheet businessId={businessId} employee={viewing} showStats={viewerIsOwner} onClose={() => setViewing(undefined)} />
+            )}
+            {editingBranches && (
+                <EmployeeBranchesDialog employee={editingBranches} branches={branches} onClose={() => setEditingBranches(undefined)} />
             )}
             <PanelConfirm
                 open={Boolean(retiring)}
