@@ -315,7 +315,7 @@ export async function createTestApp() {
   };
   const streakPrizes: jest.Mocked<StreakPrizesRepository> = {
     listEmailsAttendedBetween: jest.fn(),
-    listFichaBookings: jest.fn(),
+    listClientFileBookings: jest.fn(),
     listGrantedKeys: jest.fn(),
     createMany: jest.fn(),
   };

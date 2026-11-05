@@ -140,7 +140,7 @@ describe('PrismaStreakPrizesRepository (real database)', () => {
     await prisma.$disconnect();
   });
 
-  describe('listFichaBookings', () => {
+  describe('listClientFileBookings', () => {
     const email = `carla-${tag}@example.com`;
 
     it('toma los Turnos de todas las Sucursales del Negocio, en orden y sin los Servicios personales', async () => {
@@ -148,7 +148,7 @@ describe('PrismaStreakPrizesRepository (real database)', () => {
       const earlier = await createTurno(otherBranchServiceId, email, { startsAt: hoursAgo(90) });
       await createTurno(personalServiceId, email, { startsAt: hoursAgo(70) });
 
-      const found = await prizes.listFichaBookings(ofBusiness, [email]);
+      const found = await prizes.listClientFileBookings(ofBusiness, [email]);
 
       expect(found.map((b) => b.startsAt)).toEqual([earlier.startsAt, later.startsAt]);
       expect(found[0]).toEqual(
@@ -168,15 +168,34 @@ describe('PrismaStreakPrizesRepository (real database)', () => {
       await createTurno(branchServiceId, email);
       const own = await createTurno(personalServiceId, email);
 
-      const found = await prizes.listFichaBookings(personal, [email]);
+      const found = await prizes.listClientFileBookings(personal, [email]);
 
       expect(found).toEqual([expect.objectContaining({ link: own.link, timeZone: 'Europe/Madrid' })]);
+    });
+
+    it('con un Servicio personal dado de baja, usa la zona de la Availability predeterminada del Usuario', async () => {
+      const retired = await service({ userId, availabilityId }, 'retirado');
+      const fallback = await prisma.availability.create({
+        data: { userId, name: `${tag}-default`, timeZone: 'Asia/Tokyo', isDefault: true },
+      });
+      await createTurno(retired.id, email);
+      await prisma.service.update({
+        where: { id: retired.id },
+        data: { deletedAt: NOW, availabilityId: null },
+      });
+
+      const found = await prizes.listClientFileBookings(personal, [email]);
+
+      expect(found).toEqual([expect.objectContaining({ timeZone: 'Asia/Tokyo' })]);
+      await prisma.booking.deleteMany({ where: { serviceId: retired.id } });
+      await prisma.service.delete({ where: { id: retired.id } });
+      await prisma.availability.delete({ where: { id: fallback.id } });
     });
 
     it('junta el email sin distinguir mayúsculas y lo devuelve en minúsculas', async () => {
       await createTurno(branchServiceId, email.toUpperCase());
 
-      const found = await prizes.listFichaBookings(ofBusiness, [email]);
+      const found = await prizes.listClientFileBookings(ofBusiness, [email]);
 
       expect(found).toEqual([expect.objectContaining({ email })]);
     });
@@ -184,7 +203,7 @@ describe('PrismaStreakPrizesRepository (real database)', () => {
     it('no trae a otro email', async () => {
       await createTurno(branchServiceId, `otra-${email}`);
 
-      await expect(prizes.listFichaBookings(ofBusiness, [email])).resolves.toEqual([]);
+      await expect(prizes.listClientFileBookings(ofBusiness, [email])).resolves.toEqual([]);
     });
 
     it('saca los originales reagendados y trae los cancelados y las Ausencias, que decide el cálculo', async () => {
@@ -192,7 +211,7 @@ describe('PrismaStreakPrizesRepository (real database)', () => {
       await createTurno(branchServiceId, email, { status: BookingStatus.CANCELLED });
       await createTurno(branchServiceId, email, { noShowAt: NOW });
 
-      const found = await prizes.listFichaBookings(ofBusiness, [email]);
+      const found = await prizes.listClientFileBookings(ofBusiness, [email]);
 
       expect(found.map((b) => b.status)).toEqual(expect.arrayContaining([BookingStatus.CANCELLED, BookingStatus.BOOKED]));
       expect(found).toHaveLength(2);
@@ -310,6 +329,13 @@ describe('PrismaStreakPrizesRepository (real database)', () => {
 
       await expect(mine()).resolves.toEqual([]);
       await prisma.streakReward.update({ where: { id: rewardId }, data: { deletedAt: null } });
+    });
+
+    it('no trae el programa de un Negocio dado de baja', async () => {
+      await prisma.business.update({ where: { id: businessId }, data: { deletedAt: NOW } });
+
+      await expect(mine()).resolves.toEqual([]);
+      await prisma.business.update({ where: { id: businessId }, data: { deletedAt: null } });
     });
 
     it('no trae un Servicio gratis dado de baja', async () => {

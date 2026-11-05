@@ -34,7 +34,7 @@ const formatWhen = (startsAt: Date, timeZone: string) =>
     timeZone,
   }).format(startsAt);
 
-/** What a Premio gives, in the Cliente's words; what the Dueño typed goes escaped. */
+// What the Dueño typed goes escaped.
 const promisedText = ({ type, value, description, serviceName }: PromisedPrize) => {
   switch (type) {
     case StreakRewardType.PERCENT_DISCOUNT:
@@ -175,6 +175,11 @@ export class NodemailerMailer implements Mailer {
     });
   }
 
+  /**
+   * Manda el Aviso de Premio.
+   *
+   * @throws {Error} el transporte SMTP rechazó el mail
+   */
   async sendStreakPrizeNotice(
     email: string,
     clientName: string,

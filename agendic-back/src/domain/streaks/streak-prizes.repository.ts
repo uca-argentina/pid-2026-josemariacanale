@@ -1,6 +1,6 @@
 import { StreakProgramOwner } from './streak-program';
 import {
-  FichaBooking,
+  ClientFileBooking,
   NewStreakPrize,
   StreakPrizeKey,
 } from './streak-prize';
@@ -20,10 +20,10 @@ export interface StreakPrizesRepository {
     to: Date,
   ): Promise<string[]>;
   /** Every Turno of those Fichas, in any casing of the email and without rescheduled originals, ascending by `startsAt`. */
-  listFichaBookings(
+  listClientFileBookings(
     owner: StreakProgramOwner,
     emails: string[],
-  ): Promise<FichaBooking[]>;
+  ): Promise<ClientFileBooking[]>;
   /** The Premios already granted of those Recompensas to those emails. */
   listGrantedKeys(
     rewardIds: number[],

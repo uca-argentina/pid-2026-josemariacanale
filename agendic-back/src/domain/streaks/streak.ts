@@ -1,6 +1,7 @@
 import { BookingStatus } from '../bookings/booking';
 
-const DAY_MS = 86_400_000;
+/** A day of the Tiempo de quemada or of a vigencia: 24 hours sharp, whatever the zone. */
+export const DAY_MS = 86_400_000;
 
 /** What the calculation of a Racha reads of a Turno. */
 export interface StreakBooking {
@@ -21,7 +22,7 @@ export interface Streak<T> {
   last: T;
 }
 
-/** Turno atendido: the same rule as the `attended` KPI of the analíticas (ADR 0007). */
+// Turno atendido: the same rule as the `attended` KPI of the analíticas (ADR 0007).
 const isAttended = (booking: StreakBooking, now: Date) =>
   booking.status === BookingStatus.BOOKED &&
   booking.endsAt < now &&
@@ -29,7 +30,7 @@ const isAttended = (booking: StreakBooking, now: Date) =>
   booking.employeeNoShowAt === null;
 
 /**
- * The Racha in course of a Ficha, null if it has none: it is calculated on read, so Canceling, unmarking an Ausencia or
+ * Calculates the Racha in course of a Ficha, null if it has none: it is calculated on read, so Canceling, unmarking an Ausencia or
  * changing the Tiempo de quemada need nothing to undo. Each Turno atendido starting within `burnAfterDays` of the
  * previous one continues it, an Ausencia del Invitado cuts it, and every other Turno neither adds nor burns.
  *

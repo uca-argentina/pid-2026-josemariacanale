@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
+import { DEFAULT_AVAILABILITY } from '../../domain/availabilities/availability';
 import { DatabaseOperationError } from '../../domain/errors';
 import { StreakProgramOwner, StreakRewardType } from '../../domain/streaks/streak-program';
 import {
-  FichaBooking,
+  ClientFileBooking,
   NewStreakPrize,
   StreakPrizeKey,
 } from '../../domain/streaks/streak-prize';
@@ -21,7 +22,7 @@ export class PrismaStreakPrizesRepository implements StreakPrizesRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * The conditions repeat the `attended` KPI of the analíticas.
+   * Lists the emails with a Turno atendido in the range; the conditions repeat the `attended` KPI of the analíticas.
    *
    * @throws {DatabaseOperationError} the query failed
    */
@@ -39,7 +40,7 @@ export class PrismaStreakPrizesRepository implements StreakPrizesRepository {
         AND b."endsAt" < ${to}
         AND b."noShowAt" IS NULL
         AND b."employeeNoShowAt" IS NULL`.catch((error: unknown) => {
-      throw new DatabaseOperationError('Emails with a Turno atendido not read', {
+      throw new DatabaseOperationError(`Emails with a Turno atendido of ${JSON.stringify(owner)} from ${from.toISOString()} not read`, {
         cause: error,
       });
     });
@@ -47,17 +48,19 @@ export class PrismaStreakPrizesRepository implements StreakPrizesRepository {
   }
 
   /**
-   * `rescheduled` is null in every Turno that is not an original, hence `IS NOT TRUE` (ADR 0031).
+   * Lists the Turnos of those Fichas. `rescheduled` is null in every Turno that is not an original, hence `IS NOT TRUE`
+   * (ADR 0031). A Servicio personal dado de baja loses its Availability, so its zone falls back to the Usuario's default
+   * one, as in the rest of the Turnos.
    *
    * @throws {DatabaseOperationError} the query failed
    */
-  async listFichaBookings(owner: StreakProgramOwner, emails: string[]) {
-    return this.prisma.$queryRaw<FichaBooking[]>`
+  async listClientFileBookings(owner: StreakProgramOwner, emails: string[]) {
+    return this.prisma.$queryRaw<ClientFileBooking[]>`
       SELECT
         lower(c."email") AS "email",
         c."name" AS "clientName",
         b."link",
-        COALESCE(br."timeZone", a."timeZone") AS "timeZone",
+        COALESCE(br."timeZone", a."timeZone", d."timeZone", ${DEFAULT_AVAILABILITY.timeZone}) AS "timeZone",
         b."startsAt",
         b."endsAt",
         b."status",
@@ -68,12 +71,13 @@ export class PrismaStreakPrizesRepository implements StreakPrizesRepository {
       JOIN "Service" s ON s."id" = b."serviceId"
       LEFT JOIN "Branch" br ON br."id" = s."branchId"
       LEFT JOIN "Availability" a ON a."id" = s."availabilityId"
+      LEFT JOIN "Availability" d ON d."userId" = s."userId" AND d."isDefault" = TRUE
       WHERE ${ownerFilter(owner)}
         AND b."rescheduled" IS NOT TRUE
         AND lower(c."email") = ANY(${emails}::text[])
       ORDER BY b."startsAt", b."id"`.catch((error: unknown) => {
       throw new DatabaseOperationError(
-        `Turnos of ${emails.length} Fichas not read`,
+        `Turnos of ${emails.length} Fichas of ${JSON.stringify(owner)} not read`,
         { cause: error },
       );
     });
@@ -92,7 +96,7 @@ export class PrismaStreakPrizesRepository implements StreakPrizesRepository {
         },
       })
       .catch((error: unknown) => {
-        throw new DatabaseOperationError('Premios already granted not read', {
+        throw new DatabaseOperationError(`Premios already granted of Recompensas ${rewardIds.join(', ')} not read`, {
           cause: error,
         });
       });
@@ -124,7 +128,7 @@ export class PrismaStreakPrizesRepository implements StreakPrizesRepository {
         },
       })
       .catch((error: unknown) => {
-        throw new DatabaseOperationError(`${prizes.length} Premios not saved`, {
+        throw new DatabaseOperationError(`${prizes.length} Premios of ${JSON.stringify(prizes[0]?.owner)} not saved`, {
           cause: error,
         });
       });
@@ -133,9 +137,10 @@ export class PrismaStreakPrizesRepository implements StreakPrizesRepository {
       type: type as StreakRewardType,
       value: value === null ? null : value.toNumber(),
       owner:
+        // StreakPrize_exactly_one_owner guarantees that without a Negocio there's a Usuario (ADR 0004).
         businessId !== null
           ? { kind: 'business', businessId }
-          : { kind: 'personal', userId: userId as number },
+          : { kind: 'personal', userId: userId! },
     }));
   }
 }

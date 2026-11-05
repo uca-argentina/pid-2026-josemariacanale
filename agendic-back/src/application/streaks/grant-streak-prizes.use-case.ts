@@ -1,9 +1,9 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { CLOCK, Clock } from '../../domain/clock';
 import { MAILER, Mailer } from '../../domain/mailer';
-import { currentStreak, earnedCounts, Streak } from '../../domain/streaks/streak';
+import { currentStreak, DAY_MS, earnedCounts, Streak } from '../../domain/streaks/streak';
 import {
-  FichaBooking,
+  ClientFileBooking,
   NewStreakPrize,
   StreakPrizeKey,
 } from '../../domain/streaks/streak-prize';
@@ -20,15 +20,13 @@ import {
   StreakPrizesRepository,
 } from '../../domain/streaks/streak-prizes.repository';
 
-const DAY_MS = 86_400_000;
-
 const logger = new Logger('GrantStreakPrizes');
 
 const keyOf = ({ rewardId, clientEmail, streakStartedAt, reachedCount }: StreakPrizeKey) =>
   `${rewardId}|${clientEmail}|${streakStartedAt.getTime()}|${reachedCount}`;
 
-const groupByEmail = (bookings: FichaBooking[]) => {
-  const byEmail = new Map<string, FichaBooking[]>();
+const groupByEmail = (bookings: ClientFileBooking[]) => {
+  const byEmail = new Map<string, ClientFileBooking[]>();
   for (const booking of bookings) {
     const ficha = byEmail.get(booking.email);
     if (ficha) ficha.push(booking);
@@ -40,7 +38,7 @@ const groupByEmail = (bookings: FichaBooking[]) => {
 const prizesEarned = (
   { owner, rewards }: ActiveStreakProgram,
   email: string,
-  streak: Streak<FichaBooking>,
+  streak: Streak<ClientFileBooking>,
   now: Date,
 ) =>
   rewards.flatMap((reward: GrantableStreakReward): NewStreakPrize[] =>
@@ -82,7 +80,7 @@ export class GrantStreakPrizesUseCase {
   ) {}
 
   /**
-   * Una pasada por todos los programas activos.
+   * Corre una pasada por todos los programas activos.
    *
    * @throws {DatabaseOperationError} falló la base al buscar los programas
    */
@@ -108,12 +106,12 @@ export class GrantStreakPrizesUseCase {
     );
     if (emails.length === 0) return;
 
-    const fichas = groupByEmail(
-      await this.prizes.listFichaBookings(program.owner, emails),
+    const clientFiles = groupByEmail(
+      await this.prizes.listClientFileBookings(program.owner, emails),
     );
-    const lastOf = new Map<string, FichaBooking>();
+    const lastOf = new Map<string, ClientFileBooking>();
     const earned: NewStreakPrize[] = [];
-    for (const [email, bookings] of fichas) {
+    for (const [email, bookings] of clientFiles) {
       const streak = currentStreak(bookings, program.burnAfterDays, now);
       if (!streak) continue;
       lastOf.set(email, streak.last);
@@ -132,12 +130,15 @@ export class GrantStreakPrizesUseCase {
     if (missing.length === 0) return;
 
     for (const prize of await this.prizes.createMany(missing)) {
-      await this.notify(prize, lastOf.get(prize.clientEmail) as FichaBooking);
+      await this.notify(prize, lastOf.get(prize.clientEmail) as ClientFileBooking);
     }
   }
 
-  private async notify(prize: NewStreakPrize, last: FichaBooking) {
-    if (last.link === null) return;
+  private async notify(prize: NewStreakPrize, last: ClientFileBooking) {
+    if (last.link === null) {
+      logger.error(`Aviso de Premio of Recompensa ${prize.rewardId} not sent: its Turno has no Enlace del Turno`);
+      return;
+    }
     const { type, value, description, serviceName } = prize;
     try {
       await this.mailer.sendStreakPrizeNotice(

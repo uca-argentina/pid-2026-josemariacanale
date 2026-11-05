@@ -68,6 +68,8 @@ export interface Mailer {
   /**
    * Aviso de Premio: tells the Cliente what their Racha earned and until when it lasts (`expiresAt` shown in `timeZone`,
    * null when it does not expire), with the Enlace del Turno of the Turno that gave it.
+   *
+   * @throws {Error} the SMTP transport rejected the mail
    */
   sendStreakPrizeNotice(
     email: string,

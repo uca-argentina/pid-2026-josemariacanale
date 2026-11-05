@@ -80,13 +80,15 @@ export class PrismaStreakProgramsRepository implements StreakProgramsRepository 
           },
         },
       })
-      .catch(translateError);
+      .catch((error: unknown) => {
+        throw new DatabaseOperationError('Active Rachas programs not read', {
+          cause: error,
+        });
+      });
     return rows.map(({ businessId, userId, burnAfterDays, rewards }) => ({
-      owner:
-        businessId !== null
-          ? { kind: 'business', businessId }
-          : { kind: 'personal', userId: userId as number },
-      burnAfterDays: burnAfterDays as number,
+      owner: toOwner({ businessId, userId }),
+      // The query asks for it not null.
+      burnAfterDays: burnAfterDays!,
       rewards: rewards.map(({ value, service, type, ...reward }) => ({
         ...reward,
         type: type as StreakRewardType,

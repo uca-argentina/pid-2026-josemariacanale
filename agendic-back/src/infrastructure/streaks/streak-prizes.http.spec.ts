@@ -6,7 +6,7 @@ import {
   StreakProgramOwner,
   StreakRewardType,
 } from '../../domain/streaks/streak-program';
-import { FichaBooking, NewStreakPrize } from '../../domain/streaks/streak-prize';
+import { ClientFileBooking, NewStreakPrize } from '../../domain/streaks/streak-prize';
 import { createTestApp, TestApp } from '../../test-app';
 
 const DAY_MS = 86_400_000;
@@ -16,7 +16,7 @@ const OF_BUSINESS: StreakProgramOwner = { kind: 'business', businessId: 3 };
 const TIME_ZONE = 'America/Argentina/Buenos_Aires';
 
 /** A Turno atendido that started `days` days before NOW. */
-const turno = (days: number, over: Partial<FichaBooking> = {}): FichaBooking => {
+const turno = (days: number, over: Partial<ClientFileBooking> = {}): ClientFileBooking => {
   const startsAt = new Date(NOW.getTime() - days * DAY_MS);
   return {
     email: EMAIL,
@@ -57,9 +57,9 @@ describe('GrantStreakPrizesUseCase', () => {
   /** The Premios saved so far: what the unique of the table would keep. */
   let saved: NewStreakPrize[];
 
-  const stubFicha = (bookings: FichaBooking[], emails = [EMAIL]) => {
+  const stubFicha = (bookings: ClientFileBooking[], emails = [EMAIL]) => {
     t.streakPrizes.listEmailsAttendedBetween.mockResolvedValue(emails);
-    t.streakPrizes.listFichaBookings.mockResolvedValue(bookings);
+    t.streakPrizes.listClientFileBookings.mockResolvedValue(bookings);
   };
   const reachedCounts = () => saved.map((p) => p.reachedCount);
   const setClock = (date: Date) => t.clock.advance(date.getTime() - t.clock.now().getTime());
@@ -295,7 +295,7 @@ describe('GrantStreakPrizesUseCase', () => {
       new Date(NOW.getTime() - 30 * DAY_MS),
       NOW,
     );
-    expect(t.streakPrizes.listFichaBookings).not.toHaveBeenCalled();
+    expect(t.streakPrizes.listClientFileBookings).not.toHaveBeenCalled();
   });
 
   it('el mail falla: se loguea, el Premio queda y los demás Avisos salen', async () => {
@@ -332,7 +332,7 @@ describe('GrantStreakPrizesUseCase', () => {
       program({ owner: { kind: 'personal', userId: 9 } }),
     ]);
     t.streakPrizes.listEmailsAttendedBetween.mockRejectedValueOnce(new Error('boom')).mockResolvedValue([EMAIL]);
-    t.streakPrizes.listFichaBookings.mockResolvedValue([turno(30), turno(20), turno(10)]);
+    t.streakPrizes.listClientFileBookings.mockResolvedValue([turno(30), turno(20), turno(10)]);
 
     await run();
 
@@ -347,7 +347,7 @@ describe('GrantStreakPrizesUseCase', () => {
     t.streakPrizes.listEmailsAttendedBetween.mockImplementation(async (owner) =>
       owner.kind === 'business' ? [EMAIL, 'dani@example.com'] : [EMAIL],
     );
-    t.streakPrizes.listFichaBookings.mockImplementation(async (owner) =>
+    t.streakPrizes.listClientFileBookings.mockImplementation(async (owner) =>
       owner.kind === 'business'
         ? [turno(30), turno(25, { email: 'dani@example.com' }), turno(20), turno(15, { email: 'dani@example.com' }), turno(10)]
         : [turno(12), turno(11)],
@@ -364,6 +364,6 @@ describe('GrantStreakPrizesUseCase', () => {
     await run();
 
     expect(t.streakPrizes.listGrantedKeys).toHaveBeenCalledWith([7], [EMAIL]);
-    expect(t.streakPrizes.listFichaBookings).toHaveBeenCalledWith(OF_BUSINESS, [EMAIL]);
+    expect(t.streakPrizes.listClientFileBookings).toHaveBeenCalledWith(OF_BUSINESS, [EMAIL]);
   });
 });

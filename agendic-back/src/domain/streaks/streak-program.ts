@@ -1,3 +1,4 @@
+import type { PromisedPrize } from './streak-prize';
 import { BadRequestError } from '../errors';
 
 /** The shortest Tiempo de quemada, in days. */
@@ -65,14 +66,10 @@ export interface StreakProgram {
 }
 
 /** A Recompensa as the job of Premios reads it: what it asks for and the copy of what it promises. */
-export interface GrantableStreakReward {
+export interface GrantableStreakReward extends PromisedPrize {
   id: number;
   requiredCount: number;
   repeatable: boolean;
-  type: StreakRewardType;
-  value: number | null;
-  description: string | null;
-  serviceName: string | null;
   validForDays: number | null;
 }
 

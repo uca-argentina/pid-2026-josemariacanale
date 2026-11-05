@@ -1,5 +1,5 @@
 import { StreakBooking } from './streak';
-import { StreakProgramOwner, StreakRewardType } from './streak-program';
+import type { StreakProgramOwner, StreakRewardType } from './streak-program';
 
 /** What a Premio promises: a copy, so editing the Recompensa does not change a Premio already won. */
 export interface PromisedPrize {
@@ -27,7 +27,7 @@ export interface NewStreakPrize extends StreakPrizeKey, PromisedPrize {
 }
 
 /** A Turno of a Ficha del Cliente, with what the Aviso de Premio needs if it is the last of the Racha. */
-export interface FichaBooking extends StreakBooking {
+export interface ClientFileBooking extends StreakBooking {
   /** Lowercase. */
   email: string;
   clientName: string;
