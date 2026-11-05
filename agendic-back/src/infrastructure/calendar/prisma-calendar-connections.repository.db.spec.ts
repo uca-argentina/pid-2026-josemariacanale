@@ -10,9 +10,9 @@ describe('PrismaCalendarConnectionsRepository checked calendars (real database)'
   const original = { ...process.env };
   let userId: number;
 
-  const connect = (email: string) =>
+  const connect = (email: string, provider: 'GOOGLE' | 'MICROSOFT' = 'GOOGLE') =>
     repository.save(userId, {
-      provider: 'GOOGLE',
+      provider,
       email,
       refreshToken: 'refresh',
       connectedAt: new Date(),
@@ -20,6 +20,7 @@ describe('PrismaCalendarConnectionsRepository checked calendars (real database)'
 
   beforeAll(async () => {
     process.env.CALENDAR_TOKEN_KEY = Buffer.alloc(32, 7).toString('base64');
+    process.env.CALENDAR_RETURN_URL = 'https://app.agendic.test/availability/calendar';
     userId = (
       await prisma.user.create({
         data: { clerkId: tag, name: tag, email: `${tag}@example.com` },
@@ -40,15 +41,21 @@ describe('PrismaCalendarConnectionsRepository checked calendars (real database)'
   it('a new connection ticks only the primary calendar', async () => {
     await connect('ana@gmail.com');
 
-    await expect(repository.findCheckedCalendarIdsByUserId(userId)).resolves.toEqual(['primary']);
+    await expect(
+      repository.findCheckedCalendarIdsByUserId(userId),
+    ).resolves.toEqual(['primary']);
   });
 
   it('saves the ticked calendars, an empty list included', async () => {
     await repository.saveCheckedCalendarIds(userId, ['trabajo']);
-    await expect(repository.findCheckedCalendarIdsByUserId(userId)).resolves.toEqual(['trabajo']);
+    await expect(
+      repository.findCheckedCalendarIdsByUserId(userId),
+    ).resolves.toEqual(['trabajo']);
 
     await repository.saveCheckedCalendarIds(userId, []);
-    await expect(repository.findCheckedCalendarIdsByUserId(userId)).resolves.toEqual([]);
+    await expect(
+      repository.findCheckedCalendarIdsByUserId(userId),
+    ).resolves.toEqual([]);
   });
 
   it('reconnecting the same account keeps the selection', async () => {
@@ -56,7 +63,9 @@ describe('PrismaCalendarConnectionsRepository checked calendars (real database)'
 
     await connect('Ana@gmail.com');
 
-    await expect(repository.findCheckedCalendarIdsByUserId(userId)).resolves.toEqual(['trabajo']);
+    await expect(
+      repository.findCheckedCalendarIdsByUserId(userId),
+    ).resolves.toEqual(['trabajo']);
   });
 
   it('connecting another account goes back to the primary calendar', async () => {
@@ -64,12 +73,44 @@ describe('PrismaCalendarConnectionsRepository checked calendars (real database)'
 
     await connect('otra@gmail.com');
 
+    await expect(
+      repository.findCheckedCalendarIdsByUserId(userId),
+    ).resolves.toEqual(['primary']);
+  });
+
+  it('connecting another provider goes back to the primary calendar, even with the same email', async () => {
+    await connect('ana@gmail.com');
+    await repository.saveCheckedCalendarIds(userId, ['trabajo']);
+
+    await connect('ana@gmail.com', 'MICROSOFT');
+
     await expect(repository.findCheckedCalendarIdsByUserId(userId)).resolves.toEqual(['primary']);
+    await expect(repository.findCredentialsByUserId(userId)).resolves.toMatchObject({
+      provider: 'MICROSOFT',
+      refreshToken: 'refresh',
+    });
+  });
+
+  it('replaces the refresh token with the one the provider rotated, keeping the rest of the connection', async () => {
+    await connect('ana@outlook.com', 'MICROSOFT');
+
+    await repository.replaceRefreshToken(userId, 'refresh-2');
+
+    await expect(repository.findCredentialsByUserId(userId)).resolves.toMatchObject({
+      provider: 'MICROSOFT',
+      refreshToken: 'refresh-2',
+    });
+    await expect(repository.findByUserId(userId)).resolves.toMatchObject({
+      email: 'ana@outlook.com',
+      status: 'CONNECTED',
+    });
   });
 
   it('answers an empty list without a connection', async () => {
     await repository.deleteByUserId(userId);
 
-    await expect(repository.findCheckedCalendarIdsByUserId(userId)).resolves.toEqual([]);
+    await expect(
+      repository.findCheckedCalendarIdsByUserId(userId),
+    ).resolves.toEqual([]);
   });
 });

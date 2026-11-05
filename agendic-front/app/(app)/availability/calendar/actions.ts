@@ -8,7 +8,7 @@ import { getInjection } from '@/di/container';
 import {
     CALENDAR_CONNECT_FAILED_MESSAGE,
     CALENDAR_DISCONNECTED_NOTICE,
-    CALENDAR_NOT_CONFIGURED_MESSAGE,
+    calendarNotConfiguredMessage,
     CALENDARS_UNAVAILABLE_MESSAGE,
 } from '@/app/(app)/_components/calendar-copy';
 import {
@@ -19,9 +19,9 @@ import {
     CalendarsUnavailableError,
 } from '@/src/entities/errors/calendar';
 import { NotFoundError } from '@/src/entities/errors/common';
-import type { AccountCalendar } from '@/src/entities/models/calendar-connection';
+import type { AccountCalendar, CalendarProvider } from '@/src/entities/models/calendar-connection';
 
-/** Lo que devuelve conectar: a dónde llevar el navegador, o el mensaje para el Usuario (`notConfigured`: Google no está configurado). */
+/** Lo que devuelve conectar: a dónde llevar el navegador, o el mensaje para el Usuario (`notConfigured`: el proveedor no está configurado en el back). */
 export type ConnectCalendarResult =
     | { ok: true; authorizationUrl: string }
     | { ok: false; message: string; notConfigured?: true };
@@ -34,14 +34,23 @@ export type DisconnectCalendarResult = { ok: true } | { ok: false; message: stri
  * (ya hay una conexión) refresca la pantalla, así muestra la que hay.
  */
 export async function connectGoogleCalendarAction(): Promise<ConnectCalendarResult> {
+    return connectCalendar('GOOGLE', () => getInjection('IStartGoogleCalendarConnectionController')());
+}
+
+/** Lo mismo con la cuenta de Microsoft (Outlook o Microsoft 365) del Usuario. */
+export async function connectMicrosoftCalendarAction(): Promise<ConnectCalendarResult> {
+    return connectCalendar('MICROSOFT', () => getInjection('IStartMicrosoftCalendarConnectionController')());
+}
+
+async function connectCalendar(provider: CalendarProvider, start: () => Promise<{ authorizationUrl: string }>): Promise<ConnectCalendarResult> {
     try {
-        const { authorizationUrl } = await getInjection('IStartGoogleCalendarConnectionController')();
+        const { authorizationUrl } = await start();
         return { ok: true, authorizationUrl };
     } catch (error) {
         unstable_rethrow(error);
         if (isSessionExpired(error)) redirect(SIGN_IN_PATH);
         if (error instanceof CalendarNotConfiguredError) {
-            return { ok: false, notConfigured: true, message: CALENDAR_NOT_CONFIGURED_MESSAGE };
+            return { ok: false, notConfigured: true, message: calendarNotConfiguredMessage(provider) };
         }
         if (error instanceof CalendarAlreadyConnectedError) {
             refresh();

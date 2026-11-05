@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { DeleteFutureBookingEventsService } from '../../application/calendar/delete-future-booking-events.service';
 import { DisconnectCalendarUseCase } from '../../application/calendar/disconnect-calendar.use-case';
 import { GetMeUseCase } from '../../application/users/get-me.use-case';
 import { ResolveCurrentUserUseCase } from '../../application/users/resolve-current-user.use-case';
@@ -13,6 +14,7 @@ import { UsersController } from './users.controller';
     UpdateMeUseCase,
     RetireMeUseCase,
     DisconnectCalendarUseCase,
+    DeleteFutureBookingEventsService,
     ResolveCurrentUserUseCase,
   ],
   exports: [ResolveCurrentUserUseCase],

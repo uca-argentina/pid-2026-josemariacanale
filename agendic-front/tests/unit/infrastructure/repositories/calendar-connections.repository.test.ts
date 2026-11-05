@@ -74,6 +74,34 @@ describe('CalendarConnectionsRepository.startGoogleConnection', () => {
     });
 });
 
+describe('CalendarConnectionsRepository.startMicrosoftConnection', () => {
+    it('POSTs to the Microsoft path and returns the authorization address', async () => {
+        const fetchSpy = respond(200, { authorizationUrl: 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize?x=1' });
+
+        await expect(repo().startMicrosoftConnection()).resolves.toEqual({
+            authorizationUrl: 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize?x=1',
+        });
+        expect(fetchSpy).toHaveBeenCalledWith('http://api/users/me/calendar/microsoft', expect.objectContaining({ method: 'POST' }));
+    });
+
+    it('translates a 409 to CalendarAlreadyConnectedError with the back message', async () => {
+        respond(409, { message: 'Calendar already connected for User 3' });
+        const error = await repo().startMicrosoftConnection().catch((e) => e);
+        expect(error).toBeInstanceOf(CalendarAlreadyConnectedError);
+        expect(error.message).toBe('Calendar already connected for User 3');
+    });
+
+    it('translates a 503 to CalendarNotConfiguredError', async () => {
+        respond(503, { message: 'Calendario conectado no configurado' });
+        await expect(repo().startMicrosoftConnection()).rejects.toBeInstanceOf(CalendarNotConfiguredError);
+    });
+
+    it('translates an unexpected body to ApiRequestError', async () => {
+        respond(200, { authorizationUrl: 'no es una url' });
+        await expect(repo().startMicrosoftConnection()).rejects.toBeInstanceOf(ApiRequestError);
+    });
+});
+
 describe('CalendarConnectionsRepository.disconnect', () => {
     it('DELETEs the Calendario conectado', async () => {
         const fetchSpy = respond(204);

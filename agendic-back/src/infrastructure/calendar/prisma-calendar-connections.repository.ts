@@ -3,11 +3,14 @@ import {
   CalendarConnectionsRepository,
   NewCalendarConnection,
 } from '../../domain/calendar/calendar-connections.repository';
-import { PRIMARY_CALENDAR_ID } from '../../domain/calendar/google-calendar-events';
+import { PRIMARY_CALENDAR_ID } from '../../domain/calendar/calendar-events';
 import { DatabaseOperationError } from '../../domain/errors';
 import { PrismaService } from '../prisma.service';
-import { readCalendarOauthConfig } from './calendar-oauth-config';
-import { decryptRefreshToken, encryptRefreshToken } from './refresh-token-cipher';
+import { readSharedCalendarConfig } from './calendar-oauth-config';
+import {
+  decryptRefreshToken,
+  encryptRefreshToken,
+} from './refresh-token-cipher';
 
 /** Acceso al Calendario conectado (`CalendarConnection`); el refresh token se guarda cifrado (ADR 0036). */
 @Injectable()
@@ -33,15 +36,41 @@ export class PrismaCalendarConnectionsRepository implements CalendarConnectionsR
    * @throws {DatabaseOperationError} la base falló
    * @throws {NotConfiguredError} falta `CALENDAR_TOKEN_KEY`
    */
-  async findRefreshTokenByUserId(userId: number) {
+  async findCredentialsByUserId(userId: number) {
     const row = await this.prisma.calendarConnection
-      .findUnique({ where: { userId }, select: { encryptedRefreshToken: true } })
+      .findUnique({
+        where: { userId },
+        select: { provider: true, encryptedRefreshToken: true },
+      })
       .catch(translateError);
     if (!row) return null;
-    return decryptRefreshToken(
-      row.encryptedRefreshToken,
-      readCalendarOauthConfig().tokenKey,
-    );
+    return {
+      provider: row.provider,
+      refreshToken: decryptRefreshToken(
+        row.encryptedRefreshToken,
+        readSharedCalendarConfig().tokenKey,
+      ),
+      onRefreshTokenRotated: (refreshToken: string) =>
+        this.replaceRefreshToken(userId, refreshToken),
+    };
+  }
+
+  /**
+   * @throws {DatabaseOperationError} la base falló
+   * @throws {NotConfiguredError} falta `CALENDAR_TOKEN_KEY`
+   */
+  async replaceRefreshToken(userId: number, refreshToken: string) {
+    await this.prisma.calendarConnection
+      .updateMany({
+        where: { userId },
+        data: {
+          encryptedRefreshToken: encryptRefreshToken(
+            refreshToken,
+            readSharedCalendarConfig().tokenKey,
+          ),
+        },
+      })
+      .catch(translateError);
   }
 
   /**
@@ -53,11 +82,12 @@ export class PrismaCalendarConnectionsRepository implements CalendarConnectionsR
     const previous = await this.prisma.calendarConnection
       .findUnique({
         where: { userId },
-        select: { email: true, checkedCalendarIds: true },
+        select: { provider: true, email: true, checkedCalendarIds: true },
       })
       .catch(translateError);
     const sameAccount =
-      previous?.email.toLowerCase() === connection.email.toLowerCase();
+      previous?.provider === connection.provider &&
+      previous.email.toLowerCase() === connection.email.toLowerCase();
     const data = {
       ...rest,
       checkedCalendarIds: sameAccount
@@ -66,7 +96,7 @@ export class PrismaCalendarConnectionsRepository implements CalendarConnectionsR
       status: 'CONNECTED' as const,
       encryptedRefreshToken: encryptRefreshToken(
         refreshToken,
-        readCalendarOauthConfig().tokenKey,
+        readSharedCalendarConfig().tokenKey,
       ),
     };
     await this.prisma.calendarConnection
