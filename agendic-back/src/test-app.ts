@@ -52,6 +52,22 @@ import {
   WAITLIST_REPOSITORY,
   WaitlistRepository,
 } from './domain/waitlist/waitlist.repository';
+import {
+  BOOKING_CALENDAR_EVENTS_REPOSITORY,
+  BookingCalendarEventsRepository,
+} from './domain/calendar/booking-calendar-events.repository';
+import {
+  CALENDAR_CONNECTIONS_REPOSITORY,
+  CalendarConnectionsRepository,
+} from './domain/calendar/calendar-connections.repository';
+import {
+  CALENDAR_EVENTS,
+  CalendarEvents,
+} from './domain/calendar/calendar-events';
+import {
+  CALENDAR_OAUTH,
+  CalendarOauth,
+} from './domain/calendar/calendar-oauth';
 import { Business } from './domain/businesses/business';
 import {
   BUSINESSES_REPOSITORY,
@@ -131,6 +147,7 @@ export async function createTestApp() {
     sendBookingCancellation: jest.fn(),
     sendBookingReschedule: jest.fn(),
     sendBookingRejection: jest.fn(),
+    sendBookingAcceptance: jest.fn(),
     sendRatingRequest: jest.fn(),
     sendWaitlistConfirmation: jest.fn(),
     sendFreeSlotNotice: jest.fn(),
@@ -291,6 +308,40 @@ export async function createTestApp() {
     assertConfigured: jest.fn(),
     fetchHolidays: jest.fn(),
   };
+  const calendarConnections: jest.Mocked<CalendarConnectionsRepository> = {
+    findByUserId: jest.fn(),
+    findCredentialsByUserId: jest.fn().mockResolvedValue(null),
+    findCheckedCalendarIdsByUserId: jest.fn().mockResolvedValue(['primary']),
+    saveCheckedCalendarIds: jest.fn(),
+    save: jest.fn(),
+    markDisconnected: jest.fn(),
+    replaceRefreshToken: jest.fn(),
+    deleteByUserId: jest.fn(),
+  };
+  const calendarEvents: jest.Mocked<CalendarEvents> = {
+    listCalendars: jest.fn().mockResolvedValue([]),
+    listBusy: jest.fn().mockResolvedValue([]),
+    createEvent: jest.fn(),
+    updateEvent: jest.fn(),
+    deleteEvent: jest.fn(),
+  };
+  const bookingCalendarEvents: jest.Mocked<BookingCalendarEventsRepository> = {
+    listLiveOfConnectedUsers: jest.fn().mockResolvedValue([]),
+    listOfEndedBookingsOfConnectedUsers: jest.fn().mockResolvedValue([]),
+    findEventOfPreviousBooking: jest.fn().mockResolvedValue(null),
+    save: jest.fn(),
+    moveToBooking: jest.fn(),
+    deleteByBookingId: jest.fn(),
+    listFutureByUserId: jest.fn().mockResolvedValue([]),
+    deleteByUserId: jest.fn(),
+  };
+  const calendarOauth: jest.Mocked<CalendarOauth> = {
+    assertConfigured: jest.fn(),
+    authorizationUrl: jest.fn(),
+    exchangeCode: jest.fn(),
+    revoke: jest.fn(),
+    hasRequiredScopes: jest.fn().mockReturnValue(true),
+  };
   const analytics: jest.Mocked<AnalyticsRepository> = {
     kpis: jest.fn(),
     breakdown: jest.fn(),
@@ -347,6 +398,14 @@ export async function createTestApp() {
     .useValue(userHolidaySettings)
     .overrideProvider(GOOGLE_CALENDAR_CLIENT)
     .useValue(googleCalendar)
+    .overrideProvider(CALENDAR_CONNECTIONS_REPOSITORY)
+    .useValue(calendarConnections)
+    .overrideProvider(CALENDAR_EVENTS)
+    .useValue(calendarEvents)
+    .overrideProvider(BOOKING_CALENDAR_EVENTS_REPOSITORY)
+    .useValue(bookingCalendarEvents)
+    .overrideProvider(CALENDAR_OAUTH)
+    .useValue(calendarOauth)
     .overrideProvider(ANALYTICS_REPOSITORY)
     .useValue(analytics)
     .overrideProvider(BADGES_REPOSITORY)
@@ -376,6 +435,10 @@ export async function createTestApp() {
     holidays,
     userHolidaySettings,
     googleCalendar,
+    calendarConnections,
+    calendarEvents,
+    bookingCalendarEvents,
+    calendarOauth,
     analytics,
     badges,
     http: request(app.getHttpServer()),

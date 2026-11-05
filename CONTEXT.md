@@ -174,16 +174,16 @@ Feriado de un país o de un calendario religioso que el Usuario elige. Todos los
 _Avoid_: feriado, holiday
 
 **Calendario conectado**:
-Cuenta de Google o de Microsoft que un Usuario vincula a Agendic, una sola a la vez. Agendic escribe ahí un Evento del Turno por cada Turno que ese Usuario atiende, en el calendario principal, y lee los Ocupados externos de los calendarios de la cuenta que el Usuario elige (el principal, si no elige otro). Es del Usuario, no de su vínculo con un Negocio. El Cliente no tiene uno: recibe el Turno como archivo de calendario en sus mails.
-_Avoid_: integración, sincronización (a secas), calendario externo (a secas)
+Cuenta de Google o de Microsoft (Outlook o Microsoft 365) que un Usuario vincula a Agendic, una sola a la vez. Agendic escribe ahí un Evento del Turno por cada Turno que ese Usuario atiende, en el calendario principal, y lee los Ocupados externos de los calendarios de la cuenta que el Usuario elige (el principal, si no elige otro). Es del Usuario, no de su vínculo con un Negocio: una conexión cubre todos los Turnos que atiende. El Usuario la conecta y la desconecta él mismo, con un OAuth propio de Agendic, no el de Clerk. Está `CONNECTED`, o `DISCONNECTED` cuando el proveedor dejó de aceptar su permiso: en ese caso se puede reconectar, con el mismo proveedor o con el otro. Dar de baja al Usuario la desconecta. El Cliente no tiene uno: recibe el Turno como archivo de calendario en sus mails.
+_Avoid_: integración, sincronización (a secas), cuenta de Google (a secas), calendario externo (a secas)
 
 **Evento del Turno**:
-Evento que Agendic escribe en el Calendario conectado de quien atiende un Turno, y que sigue al Turno: nace al Reservar (también pendiente), cambia al Aceptar o Reagendar, y se borra al Cancelar o Rechazar. Lleva al Cliente como invitado. Nunca lleva la Nota interna ni las Preferencias del Cliente. Al desconectar el Calendario conectado se borran los futuros; los pasados quedan.
-_Avoid_: evento (a secas), cita, invitación (eso es la del Empleado)
+Evento que Agendic escribe en el Calendario conectado de quien atiende un Turno, y que sigue al Turno: nace al Reservar (también pendiente), cambia al Aceptar o Reagendar, y se borra al Cancelar o Rechazar. Lo escribe un job, así que tarda hasta un minuto. Lleva al Cliente como invitado (en Microsoft, en la descripción). Nunca lleva la Nota interna ni las Preferencias del Cliente. Si el Usuario lo borra a mano, no se recrea hasta que cambie algo del Turno. Al desconectar el Calendario conectado se borran los futuros; los pasados quedan.
+_Avoid_: evento (a secas), cita, sincronización, invitación (eso es la del Empleado)
 
 **Ocupado externo**:
-Tramo en que un Calendario conectado figura ocupado por algo que no escribió Agendic. Resta Horarios reservables a ese Usuario en todos sus Servicios, también en su Tiempo de preparación, pero nunca Cancela un Turno ya tomado. Si el calendario no responde, se ignora. Nadie lo ve en Agendic, ni el Dueño ni el propio Usuario: solo se ve su efecto, menos Horarios reservables.
-_Avoid_: evento externo, bloqueo, busy
+Tramo en que un Calendario conectado figura ocupado por algo que no escribió Agendic. Se lee en vivo, de los calendarios de la cuenta que el Usuario tilda (por defecto, el principal). Resta Horarios reservables a ese Usuario en todos sus Servicios, como un Turno tomado y también en su Tiempo de preparación, pero nunca Cancela un Turno ya tomado. No cuentan los eventos que se muestran como disponibles ni los cancelados. Si el proveedor no responde, se ignora: el Usuario se atiende como si no tuviera Ocupados externos. Nadie lo ve en Agendic, ni el Dueño ni el propio Usuario: solo se ve su efecto, menos Horarios reservables.
+_Avoid_: evento externo, bloqueo, conflicto, busy
 
 **Horario reservable**:
 Hora concreta en la que un Cliente puede Reservar un Turno para un Servicio, ya descontadas las Anulaciones, los días Fuera de la oficina, los Días festivos, los Ocupados externos, la Anticipación mínima y los Turnos tomados. En un Servicio del Negocio, basta con que un Empleado que lo Ofrece esté libre y, si el Servicio admite Cabinas, también una de ellas. Los Turnos ocupan al Usuario que los atiende en todos sus Servicios, personales o de cualquier Negocio.
@@ -300,7 +300,7 @@ Aviso automático que recibe el Cliente cuando su turno queda creado. Lleva el T
 _Avoid_: confirmación (a secas)
 
 **Aviso de cambio del Turno**:
-Aviso automático por mail que recibe el Cliente cuando su Turno se Acepta, se Cancela, se Reagenda, se Rechaza o queda cancelado por una baja, lo haga el Empleado o el propio Cliente. Cuando lo Cancela un cambio en el horario de quien lo atiende, lleva además la Causa de cancelación. Lleva el Enlace del Turno y el archivo de calendario que actualiza o borra el evento que trajo la Confirmación de reserva. Marcarlo atendido o con una Ausencia, Pagar la Seña o Calificar no mandan Aviso. Si el mail falla, el cambio igual queda hecho.
+Aviso automático por mail que recibe el Cliente cuando su Turno se Acepta (si estaba pendiente), se Cancela, se Reagenda, se Rechaza o queda cancelado por una baja, lo haga el Empleado o el propio Cliente. Cuando lo Cancela un cambio en el horario de quien lo atiende, lleva además la Causa de cancelación. Lleva el Enlace del Turno y el archivo de calendario que actualiza o borra el evento que trajo la Confirmación de reserva. Marcarlo atendido o con una Ausencia, Pagar la Seña o Calificar no mandan Aviso. Si el mail falla, el cambio igual queda hecho.
 _Avoid_: notificación (a secas), recordatorio
 
 **Lista de espera**:

@@ -1,0 +1,145 @@
+import { Injectable } from '@nestjs/common';
+import {
+  CalendarConnectionsRepository,
+  NewCalendarConnection,
+} from '../../domain/calendar/calendar-connections.repository';
+import { PRIMARY_CALENDAR_ID } from '../../domain/calendar/calendar-events';
+import { DatabaseOperationError } from '../../domain/errors';
+import { PrismaService } from '../prisma.service';
+import { readSharedCalendarConfig } from './calendar-oauth-config';
+import {
+  decryptRefreshToken,
+  encryptRefreshToken,
+} from './refresh-token-cipher';
+
+/** Acceso al Calendario conectado (`CalendarConnection`); el refresh token se guarda cifrado (ADR 0036). */
+@Injectable()
+export class PrismaCalendarConnectionsRepository implements CalendarConnectionsRepository {
+  constructor(private readonly prisma: PrismaService) {}
+
+  /** @throws {DatabaseOperationError} la base falló */
+  async findByUserId(userId: number) {
+    return this.prisma.calendarConnection
+      .findUnique({
+        where: { userId },
+        select: {
+          provider: true,
+          email: true,
+          status: true,
+          connectedAt: true,
+        },
+      })
+      .catch(translateError);
+  }
+
+  /**
+   * @throws {DatabaseOperationError} la base falló
+   * @throws {NotConfiguredError} falta `CALENDAR_TOKEN_KEY`
+   */
+  async findCredentialsByUserId(userId: number) {
+    const row = await this.prisma.calendarConnection
+      .findUnique({
+        where: { userId },
+        select: { provider: true, encryptedRefreshToken: true },
+      })
+      .catch(translateError);
+    if (!row) return null;
+    return {
+      provider: row.provider,
+      refreshToken: decryptRefreshToken(
+        row.encryptedRefreshToken,
+        readSharedCalendarConfig().tokenKey,
+      ),
+      onRefreshTokenRotated: (refreshToken: string) =>
+        this.replaceRefreshToken(userId, refreshToken),
+    };
+  }
+
+  /**
+   * @throws {DatabaseOperationError} la base falló
+   * @throws {NotConfiguredError} falta `CALENDAR_TOKEN_KEY`
+   */
+  async replaceRefreshToken(userId: number, refreshToken: string) {
+    await this.prisma.calendarConnection
+      .updateMany({
+        where: { userId },
+        data: {
+          encryptedRefreshToken: encryptRefreshToken(
+            refreshToken,
+            readSharedCalendarConfig().tokenKey,
+          ),
+        },
+      })
+      .catch(translateError);
+  }
+
+  /**
+   * @throws {DatabaseOperationError} la base falló
+   * @throws {NotConfiguredError} falta `CALENDAR_TOKEN_KEY`
+   */
+  async save(userId: number, connection: NewCalendarConnection) {
+    const { refreshToken, ...rest } = connection;
+    const previous = await this.prisma.calendarConnection
+      .findUnique({
+        where: { userId },
+        select: { provider: true, email: true, checkedCalendarIds: true },
+      })
+      .catch(translateError);
+    const sameAccount =
+      previous?.provider === connection.provider &&
+      previous.email.toLowerCase() === connection.email.toLowerCase();
+    const data = {
+      ...rest,
+      checkedCalendarIds: sameAccount
+        ? previous.checkedCalendarIds
+        : [PRIMARY_CALENDAR_ID],
+      status: 'CONNECTED' as const,
+      encryptedRefreshToken: encryptRefreshToken(
+        refreshToken,
+        readSharedCalendarConfig().tokenKey,
+      ),
+    };
+    await this.prisma.calendarConnection
+      .upsert({
+        where: { userId },
+        create: { userId, ...data },
+        update: data,
+      })
+      .catch(translateError);
+  }
+
+  /** @throws {DatabaseOperationError} la base falló */
+  async findCheckedCalendarIdsByUserId(userId: number) {
+    const row = await this.prisma.calendarConnection
+      .findUnique({ where: { userId }, select: { checkedCalendarIds: true } })
+      .catch(translateError);
+    return row?.checkedCalendarIds ?? [];
+  }
+
+  /** @throws {DatabaseOperationError} la base falló */
+  async saveCheckedCalendarIds(userId: number, ids: string[]) {
+    await this.prisma.calendarConnection
+      .updateMany({ where: { userId }, data: { checkedCalendarIds: ids } })
+      .catch(translateError);
+  }
+
+  /** @throws {DatabaseOperationError} la base falló */
+  async markDisconnected(userId: number) {
+    await this.prisma.calendarConnection
+      .updateMany({ where: { userId }, data: { status: 'DISCONNECTED' } })
+      .catch(translateError);
+  }
+
+  /** @throws {DatabaseOperationError} la base falló */
+  async deleteByUserId(userId: number) {
+    await this.prisma.calendarConnection
+      .deleteMany({ where: { userId } })
+      .catch(translateError);
+  }
+}
+
+const translateError = (error: unknown): never => {
+  throw new DatabaseOperationError('Calendar connection query failed', {
+    cause: error,
+  });
+};

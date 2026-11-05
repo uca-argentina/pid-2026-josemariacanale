@@ -135,6 +135,8 @@ export interface ComputeSlotsInput {
   availability: Pick<Availability, 'timeZone' | 'schedule' | 'overrides'>;
   /** PENDING and BOOKED Turnos of this Empleado, in any of their Servicios, each from its own preparation on. */
   bookedRanges: { prepStartsAt: Date; endsAt: Date }[];
+  /** Ocupados externos of the Empleado's Calendario conectado (ADR 0038): they take the Empleado like a Turno, from their start. */
+  externalBusy?: { start: Date; end: Date }[];
   durationMinutes: number;
   /** Tiempo de preparación of the Servicio asked for: held before each Horario reservable. */
   prepMinutes: number;
@@ -151,7 +153,7 @@ export interface ComputeSlotsInput {
 
 /**
  * Horarios reservables, after cal.diy: Franjas (or the Anulación) of each date in the Availability's zone become
- * ranges → the Empleado's Turnos, each from its preparation, are subtracted → each range is cut every
+ * ranges → the Empleado's Turnos, each from its preparation, and his Ocupados externos are subtracted → each range is cut every
  * Intervalo from the later of its start plus preparation and `now` plus Anticipación mínima, rounded up to the
  * alignment → grouped by date of the Sucursal, the Límite diario emptying a full day. Pure: no I/O.
  */
@@ -161,6 +163,7 @@ export function computeSlots({
   timeZone,
   availability,
   bookedRanges,
+  externalBusy = [],
   durationMinutes,
   prepMinutes,
   slotInterval,
@@ -205,9 +208,16 @@ export function computeSlots({
   working.sort((a, b) => a.start - b.start);
   open.sort((a, b) => a.start - b.start);
 
-  const busy = bookedRanges
-    .map((b) => ({ start: b.prepStartsAt.getTime(), end: b.endsAt.getTime() }))
-    .sort((a, b) => a.start - b.start);
+  const busy = [
+    ...bookedRanges.map((b) => ({
+      start: b.prepStartsAt.getTime(),
+      end: b.endsAt.getTime(),
+    })),
+    ...externalBusy.map((b) => ({
+      start: b.start.getTime(),
+      end: b.end.getTime(),
+    })),
+  ].sort((a, b) => a.start - b.start);
 
   const byDate = (starts: Set<number>) => {
     const dates = new Map<string, number[]>();

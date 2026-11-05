@@ -3,6 +3,7 @@ import {
   Booking,
   BookingActor,
   BookingStatus,
+  ClientBooking,
   CancellationCause,
 } from '../../domain/bookings/booking';
 import {
@@ -384,6 +385,29 @@ describe('Turno', () => {
         .send({ ...VALID_BOOKING, startsAt: '2026-01-02T10:00:00.000Z' }) // 07:00 ARG, after now but before the Franja
         .expect(422);
 
+      expect(t.bookings.create).not.toHaveBeenCalled();
+    });
+
+    it('answers 422 when an Ocupado externo appeared on the Calendario conectado since the slot was offered', async () => {
+      t.calendarConnections.findByUserId.mockResolvedValue({
+        provider: 'GOOGLE',
+        email: 'ana@gmail.com',
+        status: 'CONNECTED',
+        connectedAt: new Date('2025-12-01T00:00:00.000Z'),
+      });
+      t.calendarConnections.findCredentialsByUserId.mockResolvedValue({ provider: 'GOOGLE', refreshToken: 'refresh' });
+      t.calendarEvents.listBusy.mockResolvedValue([
+        {
+          start: new Date('2026-01-01T12:00:00.000Z'),
+          end: new Date('2026-01-01T13:00:00.000Z'),
+        },
+      ]);
+
+      const res = await t.http.post('/bookings').send(VALID_BOOKING).expect(422);
+
+      expect(res.body.message).toBe(
+        `Slot ${VALID_BOOKING.startsAt} is not available for Service ${SERVICE.id}`,
+      );
       expect(t.bookings.create).not.toHaveBeenCalled();
     });
 
@@ -835,22 +859,51 @@ describe('Turno', () => {
     it(
       action === 'reject'
         ? 'mails the Cliente the Aviso de cambio del Turno, and a mail failure does not undo the Rechazo'
-        : 'sends the Cliente no Aviso de cambio del Turno',
+        : 'mails the Cliente the Aviso de cambio del Turno, and a mail failure does not undo the Aceptación',
       async () => {
         t.mailer.sendBookingRejection.mockRejectedValue(new Error('SMTP down'));
+        t.mailer.sendBookingAcceptance.mockRejectedValue(new Error('SMTP down'));
 
-        await patch(CLERK_TOKEN).expect(200);
+        const res = await patch(CLERK_TOKEN).expect(200);
 
-        if (action === 'reject')
+        expect(res.body).toMatchObject({ id: BOOKING.id, status });
+        if (action === 'reject') {
           expect(t.mailer.sendBookingRejection).toHaveBeenCalledWith(
             BOOKING.clientEmail,
             BOOKING.link,
             null,
           );
-        else expect(t.mailer.sendBookingRejection).not.toHaveBeenCalled();
+          expect(t.mailer.sendBookingAcceptance).not.toHaveBeenCalled();
+        } else {
+          expect(t.mailer.sendBookingAcceptance).toHaveBeenCalledWith(
+            BOOKING.clientEmail,
+            BOOKING.link,
+            undefined,
+            undefined,
+          );
+          expect(t.mailer.sendBookingRejection).not.toHaveBeenCalled();
+        }
         expect(t.mailer.sendBookingCancellation).not.toHaveBeenCalled();
       },
     );
+
+    if (action === 'accept')
+      it('hands the confirmed calendar file to the Aviso de cambio del Turno', async () => {
+        t.bookings.findByLink.mockResolvedValue({
+          ...BOOKING,
+          employeeName: 'Luis',
+          service: { name: 'Corte' },
+          business: { name: 'Peluquería' },
+          branch: { name: 'Centro', address: 'Calle 1' },
+        } as unknown as ClientBooking);
+
+        await patch(CLERK_TOKEN).expect(200);
+
+        const invite = t.mailer.sendBookingAcceptance.mock.calls[0][3];
+        expect(invite).toMatchObject({ method: 'REQUEST' });
+        expect(invite?.ics).toContain('STATUS:CONFIRMED');
+        expect(invite?.ics).toContain(`UID:${BOOKING.link}@agendic`);
+      });
 
     it('answers 422 when the Turno is not PENDING', async () => {
       t.bookings.findById.mockResolvedValue(BOOKING);

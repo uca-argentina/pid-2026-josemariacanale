@@ -29,6 +29,7 @@ import {
   localDayBounds,
   withoutBusyCabins,
 } from '../../domain/slots/slot';
+import { ListExternalBusyService } from '../calendar/list-external-busy.service';
 import { ListUserHolidayPeriodsUseCase } from '../holidays/list-user-holiday-periods.use-case';
 import { serviceTimeZone } from '../services/service-time-zone';
 import { assertChosenEmployee } from './assert-chosen-employee';
@@ -88,6 +89,7 @@ export class ListSlotsUseCase {
     @Inject(OUT_OF_OFFICE_REPOSITORY)
     private readonly outOfOffice: OutOfOfficeRepository,
     private readonly holidayPeriods: ListUserHolidayPeriodsUseCase,
+    private readonly externalBusy: ListExternalBusyService,
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
@@ -198,13 +200,21 @@ export class ListSlotsUseCase {
         if (!availability)
           throw new NotFoundError(`Availability ${availabilityId} not found`);
         // A day of slack either side (wider than any UTC offset) keeps every local date in [from, to] covered.
-        const [bookedRanges, periods, holidays] = await Promise.all([
+        const slackFrom = new Date(
+          new Date(`${from}T00:00:00.000Z`).getTime() - 86_400_000,
+        );
+        const slackTo = new Date(
+          new Date(`${to}T00:00:00.000Z`).getTime() + 2 * 86_400_000,
+        );
+        const [bookedRanges, externalBusy, periods, holidays] =
+          await Promise.all([
           this.bookings.listOccupiedByUser(
             userId,
-            new Date(new Date(`${from}T00:00:00.000Z`).getTime() - 86_400_000),
-            new Date(new Date(`${to}T00:00:00.000Z`).getTime() + 2 * 86_400_000),
+            slackFrom,
+            slackTo,
             excludeBookingId,
           ),
+          this.externalBusy.execute(userId, slackFrom, slackTo),
           this.outOfOffice.listByUserEndingFrom(userId, addDays(from, -1)),
           this.holidayPeriods.execute(userId, addDays(from, -1), addDays(to, 1)),
         ]);
@@ -214,6 +224,7 @@ export class ListSlotsUseCase {
           timeZone,
           availability,
           bookedRanges,
+          externalBusy,
           durationMinutes: service.durationMinutes,
           prepMinutes: service.prepMinutes,
           slotInterval: service.slotInterval,

@@ -2,6 +2,14 @@ import { Global, Module } from '@nestjs/common';
 import { ANALYTICS_REPOSITORY } from '../domain/analytics/analytics.repository';
 import { BADGES_REPOSITORY } from '../domain/badges/badges.repository';
 import { AVAILABILITIES_REPOSITORY } from '../domain/availabilities/availabilities.repository';
+import { BOOKING_CALENDAR_EVENTS_REPOSITORY } from '../domain/calendar/booking-calendar-events.repository';
+import { BOOKING_PANEL_LINKS } from '../domain/calendar/booking-event';
+import { CALENDAR_CONNECTIONS_REPOSITORY } from '../domain/calendar/calendar-connections.repository';
+import { CALENDAR_EVENTS } from '../domain/calendar/calendar-events';
+import { ClientInvites } from '../application/bookings/client-invites.service';
+import { ListExternalBusyService } from '../application/calendar/list-external-busy.service';
+import { CALENDAR_OAUTH_STATE } from '../domain/calendar/calendar-oauth-state';
+import { CALENDAR_OAUTH } from '../domain/calendar/calendar-oauth';
 import { CLOCK, Clock } from '../domain/clock';
 import { FILE_STORAGE } from '../domain/file-storage';
 import { MAILER } from '../domain/mailer';
@@ -27,7 +35,21 @@ import { PrismaBadgesRepository } from './badges/prisma-badges.repository';
 import { AvailabilitiesModule } from './availabilities/availabilities.module';
 import { PrismaAvailabilitiesRepository } from './availabilities/prisma-availabilities.repository';
 import { PrismaBookingsRepository } from './bookings/prisma-bookings.repository';
-import { readBookingCodeSecret, TotpBookingVerificationCodes } from './bookings/totp-booking-verification-codes';
+import {
+  readBookingCodeSecret,
+  TotpBookingVerificationCodes,
+} from './bookings/totp-booking-verification-codes';
+import { CalendarModule } from './calendar/calendar.module';
+import { EnvBookingPanelLinks } from './calendar/env-booking-panel-links';
+import { PrismaBookingCalendarEventsRepository } from './calendar/prisma-booking-calendar-events.repository';
+import { HmacCalendarOauthState } from './calendar/hmac-calendar-oauth-state';
+import { GoogleCalendarEventsClient } from './calendar/google-calendar-events.client';
+import { GoogleOauthApiClient } from './calendar/google-oauth-api.client';
+import { MicrosoftCalendarEventsClient } from './calendar/microsoft-calendar-events.client';
+import { MicrosoftOauthApiClient } from './calendar/microsoft-oauth-api.client';
+import { ProviderCalendarEventsRouter } from './calendar/provider-calendar-events.router';
+import { ProviderCalendarOauthRouter } from './calendar/provider-calendar-oauth.router';
+import { PrismaCalendarConnectionsRepository } from './calendar/prisma-calendar-connections.repository';
 import { BookingsModule } from './bookings/bookings.module';
 import { CABINS_REPOSITORY } from '../domain/cabins/cabins.repository';
 import { CabinsModule } from './cabins/cabins.module';
@@ -78,6 +100,7 @@ import { WaitlistModule } from './waitlist/waitlist.module';
     HolidaysModule,
     AnalyticsModule,
     WaitlistModule,
+    CalendarModule,
     BadgesModule,
   ],
   providers: [
@@ -126,9 +149,29 @@ import { WaitlistModule } from './waitlist/waitlist.module';
     { provide: GOOGLE_CALENDAR_CLIENT, useClass: GoogleCalendarApiClient },
     { provide: ANALYTICS_REPOSITORY, useClass: PrismaAnalyticsRepository },
     { provide: WAITLIST_REPOSITORY, useClass: PrismaWaitlistRepository },
+    {
+      provide: CALENDAR_CONNECTIONS_REPOSITORY,
+      useClass: PrismaCalendarConnectionsRepository,
+    },
+    {
+      provide: BOOKING_CALENDAR_EVENTS_REPOSITORY,
+      useClass: PrismaBookingCalendarEventsRepository,
+    },
+    { provide: BOOKING_PANEL_LINKS, useClass: EnvBookingPanelLinks },
+    GoogleOauthApiClient,
+    MicrosoftOauthApiClient,
+    GoogleCalendarEventsClient,
+    MicrosoftCalendarEventsClient,
+    { provide: CALENDAR_OAUTH, useClass: ProviderCalendarOauthRouter },
+    { provide: CALENDAR_EVENTS, useClass: ProviderCalendarEventsRouter },
+    ListExternalBusyService,
+    ClientInvites,
+    { provide: CALENDAR_OAUTH_STATE, useClass: HmacCalendarOauthState },
     { provide: BADGES_REPOSITORY, useClass: PrismaBadgesRepository },
   ],
   exports: [
+    ListExternalBusyService,
+    ClientInvites,
     CLOCK,
     MAILER,
     FILE_STORAGE,
@@ -150,6 +193,12 @@ import { WaitlistModule } from './waitlist/waitlist.module';
     GOOGLE_CALENDAR_CLIENT,
     ANALYTICS_REPOSITORY,
     WAITLIST_REPOSITORY,
+    CALENDAR_CONNECTIONS_REPOSITORY,
+    CALENDAR_OAUTH,
+    CALENDAR_OAUTH_STATE,
+    CALENDAR_EVENTS,
+    BOOKING_CALENDAR_EVENTS_REPOSITORY,
+    BOOKING_PANEL_LINKS,
     BADGES_REPOSITORY,
   ],
 })

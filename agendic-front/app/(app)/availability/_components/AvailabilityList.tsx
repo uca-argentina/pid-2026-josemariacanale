@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { Clock, Plus } from 'lucide-react';
 import { TimezoneSelect } from '@/app/(app)/_components/TimezoneSelect';
-import { newOutOfOfficePath } from '@/app/routes';
+import { CALENDAR_PATH, newOutOfOfficePath } from '@/app/routes';
 import { Button } from '@/app/_components/ui/button';
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/app/_components/ui/dialog';
 import { Input } from '@/app/_components/ui/input';
@@ -158,10 +158,16 @@ export function AvailabilityList({
                 )}
             </div>
 
-            <p className="mt-4 mb-16 text-center text-sm text-muted-foreground">
+            <p className="mt-4 text-center text-sm text-muted-foreground">
                 ¿Fuera de la oficina temporalmente?{' '}
                 <Link href={newOutOfOfficePath} className="underline">
                     Cargar un período
+                </Link>
+            </p>
+            <p className="mt-1 mb-16 text-center text-sm text-muted-foreground">
+                ¿Querés ver tus Turnos en Google Calendar?{' '}
+                <Link href={CALENDAR_PATH} className="underline">
+                    Calendario conectado
                 </Link>
             </p>
 

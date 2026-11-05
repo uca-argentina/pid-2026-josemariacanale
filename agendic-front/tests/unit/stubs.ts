@@ -1,4 +1,5 @@
 import type { IAvailabilitiesRepository } from '@/src/application/repositories/availabilities.repository.interface';
+import type { ICalendarConnectionsRepository } from '@/src/application/repositories/calendar-connections.repository.interface';
 import type { IHolidaysRepository } from '@/src/application/repositories/holidays.repository.interface';
 import type { IOutOfOfficeRepository } from '@/src/application/repositories/out-of-office.repository.interface';
 import type { IWaitlistRepository } from '@/src/application/repositories/waitlist.repository.interface';
@@ -87,6 +88,16 @@ export const outOfOfficeWith = (stubs: Partial<IOutOfOfficeRepository>): IOutOfO
     previewUpdateOutOfOffice: jest.fn(notStubbed('previewUpdateOutOfOffice')),
     updateOutOfOffice: jest.fn(notStubbed('updateOutOfOffice')),
     deleteOutOfOffice: jest.fn(notStubbed('deleteOutOfOffice')),
+    ...stubs,
+});
+
+export const calendarConnectionsWith = (stubs: Partial<ICalendarConnectionsRepository>): ICalendarConnectionsRepository => ({
+    getConnection: jest.fn(notStubbed('getConnection')),
+    startGoogleConnection: jest.fn(notStubbed('startGoogleConnection')),
+    startMicrosoftConnection: jest.fn(notStubbed('startMicrosoftConnection')),
+    disconnect: jest.fn(notStubbed('disconnect')),
+    listCalendars: jest.fn(notStubbed('listCalendars')),
+    setCheckedCalendars: jest.fn(notStubbed('setCheckedCalendars')),
     ...stubs,
 });
 
