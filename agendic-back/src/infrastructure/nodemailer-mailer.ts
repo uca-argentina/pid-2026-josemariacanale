@@ -164,6 +164,27 @@ export class NodemailerMailer implements Mailer {
     );
   }
 
+  /** Avisa que el Negocio aceptó el Turno pendiente; de varios Turnos de una Serie, los lista en un solo mail. */
+  async sendBookingAcceptance(
+    email: string,
+    link: string,
+    series?: SeriesNotice,
+    invite?: ClientInvite,
+  ) {
+    if (series) {
+      await this.sendSeriesMail(email, 'Your bookings were accepted', 'Your Turnos were accepted', null, series, invite);
+      return;
+    }
+    await this.sendBookingMail(
+      email,
+      link,
+      'Your booking was accepted',
+      'Your Turno was accepted. See it here',
+      invite,
+      addLinks(invite, link),
+    );
+  }
+
   /** Invita al Cliente a Calificar el Turno, con el Servicio y el día y la hora en la zona del Turno.
    *
    * @throws el transporte SMTP rechazó el mail

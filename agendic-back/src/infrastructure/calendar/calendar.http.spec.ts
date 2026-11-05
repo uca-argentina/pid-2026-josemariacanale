@@ -673,11 +673,12 @@ describe('Calendario conectado', () => {
       );
     });
 
-    it('reconnecting the same provider does not touch the Eventos del Turno', async () => {
+    it('reconnecting the same account does not touch the Eventos del Turno', async () => {
       const state = await stateOfAnaMicrosoft();
       t.calendarConnections.findByUserId.mockResolvedValue({
         ...CONNECTION,
         provider: 'MICROSOFT',
+        email: microsoftGrant.email,
         status: 'DISCONNECTED',
       });
       t.calendarOauth.exchangeCode.mockResolvedValue(microsoftGrant);
@@ -685,6 +686,27 @@ describe('Calendario conectado', () => {
       await callbackMicrosoft({ code: 'abc', state }).expect(302);
 
       expect(t.bookingCalendarEvents.deleteByUserId).not.toHaveBeenCalled();
+      expect(t.calendarConnections.save).toHaveBeenCalled();
+    });
+
+    it('connecting another account of the same provider forgets the Eventos del Turno so the job writes them in the new one', async () => {
+      const state = await stateOfAnaMicrosoft();
+      t.calendarConnections.findByUserId.mockResolvedValue({
+        ...CONNECTION,
+        provider: 'MICROSOFT',
+        email: 'ana@vieja.com',
+        status: 'DISCONNECTED',
+      });
+      t.calendarConnections.findCredentialsByUserId.mockResolvedValue({
+        provider: 'MICROSOFT',
+        refreshToken: 'old-refresh',
+      });
+      t.bookingCalendarEvents.listFutureByUserId.mockResolvedValue([]);
+      t.calendarOauth.exchangeCode.mockResolvedValue(microsoftGrant);
+
+      await callbackMicrosoft({ code: 'abc', state }).expect(302);
+
+      expect(t.bookingCalendarEvents.deleteByUserId).toHaveBeenCalledWith(ANA.id);
       expect(t.calendarConnections.save).toHaveBeenCalled();
     });
 

@@ -26,7 +26,7 @@ export interface Mailer {
   /** Sends an email with a Código de verificación to Reservar. */
   sendVerificationCode(email: string, code: string): Promise<void>;
   /**
-   * Every mail that tells about a Turno takes an optional `invite` (#404): the archivo de calendario to attach (`REQUEST` in the Confirmación de reserva and when Reagendar, `CANCEL` when cancelled or rejected). Without it the mail goes out as usual.
+   * Every mail that tells about a Turno takes an optional `invite` (#404): the archivo de calendario to attach (`REQUEST` in the Confirmación de reserva, when Reagendar and when Aceptar turno, `CANCEL` when cancelled or rejected). Without it the mail goes out as usual.
    *
    * Confirmación de reserva: the Turno was created, with its Enlace del Turno (ADR 0022) and, if it has one, the Seña to pay from there.
    * For a Serie (#304), `series` lists every Turno with its own Enlace, the dates shown in `timeZone`, in this one mail.
@@ -63,6 +63,16 @@ export interface Mailer {
     email: string,
     link: string,
     reason?: string | null,
+    series?: SeriesNotice,
+    invite?: ClientInvite,
+  ): Promise<void>;
+  /**
+   * Aviso de cambio del Turno: the Negocio accepted the pending Turno, with its Enlace del Turno.
+   * Accepting a Serie (#305), `series` lists every Turno accepted, with their dates, in this one mail.
+   */
+  sendBookingAcceptance(
+    email: string,
+    link: string,
     series?: SeriesNotice,
     invite?: ClientInvite,
   ): Promise<void>;

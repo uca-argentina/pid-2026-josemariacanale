@@ -17,7 +17,7 @@ import { ClientInvites } from './client-invites.service';
 
 /**
  * Acepta o rechaza los Turnos pendientes de una Serie (#305, ADR 0032): los de quien atiende que todavía no
- * terminaron, en un solo `UPDATE`. Al rechazar manda un solo Aviso de cambio del Turno con todas las fechas.
+ * terminaron, en un solo `UPDATE`. Manda un solo Aviso de cambio del Turno con todas las fechas, al aceptar y al rechazar.
  */
 @Injectable()
 export class ResolvePendingSeriesUseCase {
@@ -58,12 +58,22 @@ export class ResolvePendingSeriesUseCase {
       this.clock.now(),
       reason,
     );
+    const timeZoneOf = async () =>
+      (await this.bookings.findByLink(resolved[0].link!)).timeZone;
     if (status === BookingStatus.REJECTED)
       await notifySeries(
         resolved,
-        async () => (await this.bookings.findByLink(resolved[0].link!)).timeZone,
+        timeZoneOf,
         (...notice) => this.mailer.sendBookingRejection(...notice),
         (links) => this.invites.cancel(links),
+      );
+    else
+      await notifySeries(
+        resolved,
+        timeZoneOf,
+        (email, link, _reason, series, invite) =>
+          this.mailer.sendBookingAcceptance(email, link, series, invite),
+        (links) => this.invites.accept(links),
       );
     return resolved;
   }

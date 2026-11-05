@@ -143,6 +143,7 @@ export async function createTestApp() {
     sendBookingCancellation: jest.fn(),
     sendBookingReschedule: jest.fn(),
     sendBookingRejection: jest.fn(),
+    sendBookingAcceptance: jest.fn(),
     sendRatingRequest: jest.fn(),
     sendWaitlistConfirmation: jest.fn(),
     sendFreeSlotNotice: jest.fn(),
@@ -309,6 +310,7 @@ export async function createTestApp() {
     saveCheckedCalendarIds: jest.fn(),
     save: jest.fn(),
     markDisconnected: jest.fn(),
+    replaceRefreshToken: jest.fn(),
     deleteByUserId: jest.fn(),
   };
   const calendarEvents: jest.Mocked<CalendarEvents> = {

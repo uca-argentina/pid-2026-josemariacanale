@@ -231,6 +231,45 @@ describe.each([
   });
 });
 
+describe('NodemailerMailer.sendBookingAcceptance', () => {
+  const sendMail = jest.fn().mockResolvedValue(undefined);
+
+  beforeEach(() => {
+    process.env.FRONTEND_URL = 'http://localhost:3000';
+    (createTransport as jest.Mock).mockReturnValue({ sendMail });
+    sendMail.mockClear();
+  });
+
+  it('says the Turno was accepted, with its Enlace del Turno and the confirmed calendar file', async () => {
+    await new NodemailerMailer().sendBookingAcceptance('a@b.com', 'secret', undefined, {
+      method: 'REQUEST',
+      ics: 'BEGIN:VCALENDAR',
+      events: [],
+    });
+
+    const mail = sendMail.mock.calls[0][0];
+    expect(mail.subject).toBe('Your booking was accepted');
+    expect(mail.html).toContain('http://localhost:3000/turnos/secret');
+    expect(mail.icalEvent).toEqual({ method: 'REQUEST', content: 'BEGIN:VCALENDAR' });
+  });
+
+  it('lists every Turno of a Serie in one mail', async () => {
+    await new NodemailerMailer().sendBookingAcceptance('a@b.com', 'one', {
+      bookings: [
+        { startsAt: new Date('2026-10-19T01:30:00.000Z'), link: 'one' },
+        { startsAt: new Date('2026-10-26T01:30:00.000Z'), link: 'two' },
+      ],
+      timeZone: 'America/Argentina/Buenos_Aires',
+    });
+
+    expect(sendMail).toHaveBeenCalledTimes(1);
+    const { html } = sendMail.mock.calls[0][0];
+    expect(html).toContain('Turnos were accepted');
+    expect(html).toContain('http://localhost:3000/turnos/one');
+    expect(html).toContain('http://localhost:3000/turnos/two');
+  });
+});
+
 describe('NodemailerMailer con archivo de calendario (#404)', () => {
   const sendMail = jest.fn().mockResolvedValue(undefined);
   const invite = (method: 'REQUEST' | 'CANCEL') => ({

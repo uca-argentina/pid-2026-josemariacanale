@@ -50,7 +50,27 @@ export class PrismaCalendarConnectionsRepository implements CalendarConnectionsR
         row.encryptedRefreshToken,
         readSharedCalendarConfig().tokenKey,
       ),
+      onRefreshTokenRotated: (refreshToken: string) =>
+        this.replaceRefreshToken(userId, refreshToken),
     };
+  }
+
+  /**
+   * @throws {DatabaseOperationError} la base falló
+   * @throws {NotConfiguredError} falta `CALENDAR_TOKEN_KEY`
+   */
+  async replaceRefreshToken(userId: number, refreshToken: string) {
+    await this.prisma.calendarConnection
+      .updateMany({
+        where: { userId },
+        data: {
+          encryptedRefreshToken: encryptRefreshToken(
+            refreshToken,
+            readSharedCalendarConfig().tokenKey,
+          ),
+        },
+      })
+      .catch(translateError);
   }
 
   /**

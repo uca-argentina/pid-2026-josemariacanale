@@ -50,6 +50,14 @@ export interface CalendarConnectionsRepository {
   save(userId: number, connection: NewCalendarConnection): Promise<void>;
 
   /**
+   * Reemplaza el refresh token de la conexión por el que el proveedor rotó; sin conexión no hace nada.
+   *
+   * @throws {DatabaseOperationError} la base falló
+   * @throws {NotConfiguredError} falta `CALENDAR_TOKEN_KEY`
+   */
+  replaceRefreshToken(userId: number, refreshToken: string): Promise<void>;
+
+  /**
    * Pasa la conexión a `DISCONNECTED`; sin conexión no hace nada.
    *
    * @throws {DatabaseOperationError} la base falló

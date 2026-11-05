@@ -54,7 +54,7 @@ describe('ClientInvites', () => {
     const invite = await invites.request(['abc123']);
 
     expect(invite?.ics).toContain('UID:abc123@agendic');
-    expect(invite?.ics).toContain('SEQUENCE:2');
+    expect(invite?.ics).toContain('SEQUENCE:4');
   });
 
   it('cancels every Turno of a Serie with a SEQUENCE above its last REQUEST', async () => {
@@ -66,7 +66,31 @@ describe('ClientInvites', () => {
     expect(invite?.ics.match(/BEGIN:VEVENT/g)).toHaveLength(2);
     expect(invite?.ics).toContain('UID:a1@agendic');
     expect(invite?.ics).toContain('UID:b2@agendic');
+    expect(invite?.ics).toContain('SEQUENCE:2');
+  });
+
+  it('confirms the Turno on Aceptar turno with the same UID and a SEQUENCE above its REQUEST', async () => {
+    findByLink.mockResolvedValue(booking());
+
+    const invite = await invites.accept(['abc123']);
+
+    expect(invite?.method).toBe('REQUEST');
+    expect(invite?.ics).toContain('UID:abc123@agendic');
+    expect(invite?.ics).toContain('STATUS:CONFIRMED');
     expect(invite?.ics).toContain('SEQUENCE:1');
+  });
+
+  it('never repeats a SEQUENCE between the REQUEST, the acceptance and the CANCEL of a Reagendar chain', async () => {
+    findByLink.mockResolvedValue(booking({ id: 7, fromRescheduleId: 6 }));
+    findHistoryChain.mockResolvedValue([{ id: 6 }, { id: 7 }]);
+
+    const sequences = await Promise.all(
+      [invites.request(['abc123']), invites.accept(['abc123']), invites.cancel(['abc123'])].map(
+        async (invite) => (await invite)?.ics.match(/SEQUENCE:(\d+)/)?.[1],
+      ),
+    );
+
+    expect(sequences).toEqual(['2', '3', '4']);
   });
 
   it('returns nothing, without failing, when the file cannot be built', async () => {

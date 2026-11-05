@@ -39,7 +39,10 @@ export interface ProviderCalendarEvents {
    * @throws {NotConfiguredError} faltan las credenciales OAuth del proveedor
    * @throws {ExternalServiceError} el proveedor respondió con error o no respondió
    */
-  listCalendars(refreshToken: string): Promise<CalendarSummary[]>;
+  listCalendars(
+    refreshToken: string,
+    onRefreshTokenRotated?: (refreshToken: string) => Promise<void>,
+  ): Promise<CalendarSummary[]>;
 
   /**
    * Los ocupados de `calendarIds` que se cruzan con `[from, to)`: eventos marcados como ocupados (no los transparentes ni los cancelados),
@@ -55,6 +58,7 @@ export interface ProviderCalendarEvents {
     calendarIds: string[],
     from: Date,
     to: Date,
+    onRefreshTokenRotated?: (refreshToken: string) => Promise<void>,
   ): Promise<ExternalBusy[]>;
 
   /**
@@ -67,6 +71,7 @@ export interface ProviderCalendarEvents {
   createEvent(
     refreshToken: string,
     content: BookingEventContent,
+    onRefreshTokenRotated?: (refreshToken: string) => Promise<void>,
   ): Promise<string>;
 
   /**
@@ -80,6 +85,7 @@ export interface ProviderCalendarEvents {
     refreshToken: string,
     eventId: string,
     content: BookingEventContent,
+    onRefreshTokenRotated?: (refreshToken: string) => Promise<void>,
   ): Promise<boolean>;
 
   /**
@@ -89,7 +95,11 @@ export interface ProviderCalendarEvents {
    * @throws {NotConfiguredError} faltan las credenciales OAuth del proveedor
    * @throws {ExternalServiceError} el proveedor respondió con error o no respondió
    */
-  deleteEvent(refreshToken: string, eventId: string): Promise<void>;
+  deleteEvent(
+    refreshToken: string,
+    eventId: string,
+    onRefreshTokenRotated?: (refreshToken: string) => Promise<void>,
+  ): Promise<void>;
 }
 
 /** Lectura y escritura del Calendario conectado, sea cual sea su proveedor: quien lo implementa elige a quién llamar según `credentials.provider` (ADR 0038). */

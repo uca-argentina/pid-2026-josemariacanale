@@ -16,4 +16,6 @@ export interface CalendarConnection {
 export interface CalendarCredentials {
   provider: CalendarProvider;
   refreshToken: string;
+  /** Guarda el refresh token nuevo cuando el proveedor lo rota al renovar el acceso (Microsoft). */
+  onRefreshTokenRotated?: (refreshToken: string) => Promise<void>;
 }

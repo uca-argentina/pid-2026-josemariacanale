@@ -20,6 +20,7 @@ describe('PrismaCalendarConnectionsRepository checked calendars (real database)'
 
   beforeAll(async () => {
     process.env.CALENDAR_TOKEN_KEY = Buffer.alloc(32, 7).toString('base64');
+    process.env.CALENDAR_RETURN_URL = 'https://app.agendic.test/availability/calendar';
     userId = (
       await prisma.user.create({
         data: { clerkId: tag, name: tag, email: `${tag}@example.com` },
@@ -84,9 +85,24 @@ describe('PrismaCalendarConnectionsRepository checked calendars (real database)'
     await connect('ana@gmail.com', 'MICROSOFT');
 
     await expect(repository.findCheckedCalendarIdsByUserId(userId)).resolves.toEqual(['primary']);
-    await expect(repository.findCredentialsByUserId(userId)).resolves.toEqual({
+    await expect(repository.findCredentialsByUserId(userId)).resolves.toMatchObject({
       provider: 'MICROSOFT',
       refreshToken: 'refresh',
+    });
+  });
+
+  it('replaces the refresh token with the one the provider rotated, keeping the rest of the connection', async () => {
+    await connect('ana@outlook.com', 'MICROSOFT');
+
+    await repository.replaceRefreshToken(userId, 'refresh-2');
+
+    await expect(repository.findCredentialsByUserId(userId)).resolves.toMatchObject({
+      provider: 'MICROSOFT',
+      refreshToken: 'refresh-2',
+    });
+    await expect(repository.findByUserId(userId)).resolves.toMatchObject({
+      email: 'ana@outlook.com',
+      status: 'CONNECTED',
     });
   });
 
