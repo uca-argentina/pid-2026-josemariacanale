@@ -1,5 +1,6 @@
 import { Global, Module } from '@nestjs/common';
 import { ANALYTICS_REPOSITORY } from '../domain/analytics/analytics.repository';
+import { BADGES_REPOSITORY } from '../domain/badges/badges.repository';
 import { AVAILABILITIES_REPOSITORY } from '../domain/availabilities/availabilities.repository';
 import { CLOCK, Clock } from '../domain/clock';
 import { FILE_STORAGE } from '../domain/file-storage';
@@ -21,6 +22,8 @@ import { WAITLIST_REPOSITORY } from '../domain/waitlist/waitlist.repository';
 import { USERS_REPOSITORY } from '../domain/users/users.repository';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { PrismaAnalyticsRepository } from './analytics/prisma-analytics.repository';
+import { BadgesModule } from './badges/badges.module';
+import { PrismaBadgesRepository } from './badges/prisma-badges.repository';
 import { AvailabilitiesModule } from './availabilities/availabilities.module';
 import { PrismaAvailabilitiesRepository } from './availabilities/prisma-availabilities.repository';
 import { PrismaBookingsRepository } from './bookings/prisma-bookings.repository';
@@ -75,6 +78,7 @@ import { WaitlistModule } from './waitlist/waitlist.module';
     HolidaysModule,
     AnalyticsModule,
     WaitlistModule,
+    BadgesModule,
   ],
   providers: [
     PrismaService,
@@ -122,6 +126,7 @@ import { WaitlistModule } from './waitlist/waitlist.module';
     { provide: GOOGLE_CALENDAR_CLIENT, useClass: GoogleCalendarApiClient },
     { provide: ANALYTICS_REPOSITORY, useClass: PrismaAnalyticsRepository },
     { provide: WAITLIST_REPOSITORY, useClass: PrismaWaitlistRepository },
+    { provide: BADGES_REPOSITORY, useClass: PrismaBadgesRepository },
   ],
   exports: [
     CLOCK,
@@ -145,6 +150,7 @@ import { WaitlistModule } from './waitlist/waitlist.module';
     GOOGLE_CALENDAR_CLIENT,
     ANALYTICS_REPOSITORY,
     WAITLIST_REPOSITORY,
+    BADGES_REPOSITORY,
   ],
 })
 export class InfrastructureModule {}

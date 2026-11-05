@@ -8,6 +8,10 @@ import {
   AnalyticsRepository,
 } from './domain/analytics/analytics.repository';
 import {
+  BADGES_REPOSITORY,
+  BadgesRepository,
+} from './domain/badges/badges.repository';
+import {
   AVAILABILITIES_REPOSITORY,
   AvailabilitiesRepository,
 } from './domain/availabilities/availabilities.repository';
@@ -296,6 +300,12 @@ export async function createTestApp() {
     businessServices: jest.fn(),
     bookingRows: jest.fn(),
   };
+  const badges: jest.Mocked<BadgesRepository> = {
+    measure: jest.fn(),
+    listEarned: jest.fn(),
+    saveEarned: jest.fn(),
+    markSeen: jest.fn(),
+  };
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(CLOCK)
     .useValue(clock)
@@ -339,6 +349,8 @@ export async function createTestApp() {
     .useValue(googleCalendar)
     .overrideProvider(ANALYTICS_REPOSITORY)
     .useValue(analytics)
+    .overrideProvider(BADGES_REPOSITORY)
+    .useValue(badges)
     .compile();
   const app = setupApp(moduleRef.createNestApplication());
   await app.init();
@@ -365,6 +377,7 @@ export async function createTestApp() {
     userHolidaySettings,
     googleCalendar,
     analytics,
+    badges,
     http: request(app.getHttpServer()),
   };
 }
