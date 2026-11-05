@@ -8,9 +8,9 @@ import { getInjection } from '@/di/container';
 import type { DI_RETURN_TYPES } from '@/di/types';
 import { ApiRequestError, InputParseError } from '@/src/entities/errors/common';
 import type { EmployeeStatsQuery } from '@/src/entities/models/analytics';
-import { AlreadyEmployeeError, InvitationNotPendingError, LastEmployeeError } from '@/src/entities/errors/employee';
+import { AlreadyEmployeeError, BranchesRequiredError, BranchNotOfBusinessError, InvitationNotPendingError, LastEmployeeError } from '@/src/entities/errors/employee';
 
-export type EmployeeActionResult = { ok: true } | { ok: false; message: string; field?: 'email' };
+export type EmployeeActionResult = { ok: true } | { ok: false; message: string; field?: 'email' | 'branchIds' };
 
 // Las dos refrescan la página: la tabla sale siempre de lo que devuelve el back.
 
@@ -22,6 +22,9 @@ export async function addEmployeeAction(payload: unknown): Promise<EmployeeActio
     } catch (error) {
         unstable_rethrow(error); // redirect/notFound/dynamic usage are Next's control flow, not failures
         if (error instanceof AlreadyEmployeeError) return { ok: false, message: 'Esa persona ya es Empleado de tu Negocio.', field: 'email' };
+        if (error instanceof BranchesRequiredError) return { ok: false, message: 'Elegí al menos una Sucursal.', field: 'branchIds' };
+        if (error instanceof BranchNotOfBusinessError)
+            return { ok: false, message: 'Una de las Sucursales ya no es de tu Negocio. Recargá la página y elegí de nuevo.', field: 'branchIds' };
         // La Sesión vencida la resuelve el Usuario solo: se lo manda a Iniciar sesión.
         if (isSessionExpired(error)) redirect(SIGN_IN_PATH);
         if (error instanceof InputParseError) return { ok: false, message: 'Revisá los datos e intentá de nuevo.' };

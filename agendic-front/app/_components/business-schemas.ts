@@ -74,7 +74,7 @@ export const SERVICE_CATEGORIES = [
 
 export type ServiceCategoryValue = (typeof SERVICE_CATEGORIES)[number]['value'];
 
-/** La forma de POST /businesses/:id/employees (una Invitación): solo el email. */
+/** El email del formulario de Invitación; las Sucursales, cuando hay que elegirlas, las valida el diálogo. */
 export const inviteEmployeeSchema = z.object({
     email: required('el email').pipe(z.email('Ingresá un email válido.')),
 });

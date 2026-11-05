@@ -1,10 +1,10 @@
 import { ApiRequestError } from '@/src/entities/errors/common';
-import { AlreadyEmployeeError, InvitationNotAcceptableError, InvitationNotPendingError, LastEmployeeError } from '@/src/entities/errors/employee';
+import { AlreadyEmployeeError, BranchesRequiredError, BranchNotOfBusinessError, InvitationNotAcceptableError, InvitationNotPendingError, LastEmployeeError } from '@/src/entities/errors/employee';
 import { EmployeesRepository } from '@/src/infrastructure/repositories/employees.repository';
 import { authWith } from '@/tests/unit/stubs';
 
-const employee = { id: 3, userId: 9, name: 'Martina', email: 'martina@estudio.com', imageUrl: null, badges: [{ badge: 'attended', name: 'Turnos atendidos', level: 'gold' }] };
-const invitation = { id: 5, email: 'martina@estudio.com', expiresAt: '2026-10-08T00:00:00.000Z' };
+const employee = { id: 3, userId: 9, name: 'Martina', email: 'martina@estudio.com', imageUrl: null, branchIds: [1, 2], badges: [{ badge: 'attended', name: 'Turnos atendidos', level: 'gold' }] };
+const invitation = { id: 5, email: 'martina@estudio.com', expiresAt: '2026-10-08T00:00:00.000Z', branchIds: [2] };
 
 const repo = (apiUrl: string | undefined = 'http://api') =>
     new EmployeesRepository(authWith({ getAccessToken: jest.fn().mockResolvedValue('tok') }), apiUrl);
@@ -114,6 +114,30 @@ describe('EmployeesRepository.addEmployee already Empleado', () => {
     });
 });
 
+describe('EmployeesRepository.addEmployee with Sucursales', () => {
+    it('sends the branchIds in the body', async () => {
+        const fetchSpy = respond(201, invitation);
+
+        await repo().addEmployee({ businessId: 1, email: 'martina@estudio.com', branchIds: [2] });
+        expect(fetchSpy).toHaveBeenCalledWith(
+            'http://api/businesses/1/employees',
+            expect.objectContaining({ body: JSON.stringify({ email: 'martina@estudio.com', branchIds: [2] }) }),
+        );
+    });
+
+    it('translates the 400 of no Sucursal to BranchesRequiredError', async () => {
+        respond(400, { statusCode: 400, message: 'branchIds must have at least one Branch' });
+        await expect(repo().addEmployee({ businessId: 1, email: 'martina@estudio.com' })).rejects.toBeInstanceOf(BranchesRequiredError);
+    });
+
+    it('translates the 422 of a Sucursal of another Negocio to BranchNotOfBusinessError', async () => {
+        respond(422, { statusCode: 422, message: 'Branch 9 is not a Branch of Business 1' });
+        await expect(repo().addEmployee({ businessId: 1, email: 'martina@estudio.com', branchIds: [9] })).rejects.toBeInstanceOf(
+            BranchNotOfBusinessError,
+        );
+    });
+});
+
 describe('EmployeesRepository.listInvitations', () => {
     it('GETs the pending Invitaciones of the Negocio with the bearer token', async () => {
         const fetchSpy = respond(200, [invitation]);
@@ -133,7 +157,7 @@ describe('EmployeesRepository.listInvitations', () => {
 
 describe('EmployeesRepository.listMyInvitations', () => {
     it('GETs the Invitaciones of the Usuario with the bearer token', async () => {
-        const mine = { id: 5, business: { name: 'Estudio Norte', slug: 'estudio-norte' } };
+        const mine = { id: 5, business: { name: 'Estudio Norte', slug: 'estudio-norte' }, branches: [{ id: 2, name: 'Centro' }] };
         const fetchSpy = respond(200, [mine]);
 
         await expect(repo().listMyInvitations()).resolves.toEqual([mine]);

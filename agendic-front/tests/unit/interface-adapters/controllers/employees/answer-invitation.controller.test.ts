@@ -9,11 +9,13 @@ const signedIn = () => authWith({ getCurrentUser: jest.fn().mockResolvedValue({ 
 const signedOut = () => authWith({ getCurrentUser: jest.fn().mockRejectedValue(new UnauthenticatedError('No hay Sesión')) });
 
 describe('listMyInvitationsController', () => {
-    it('presents the Invitaciones with their Negocio', async () => {
-        const useCase = jest.fn().mockResolvedValue([{ id: 1, business: { name: 'Estudio', slug: 'estudio', extra: 1 } }]);
+    it('presents the Invitaciones with their Negocio and the Sucursales where they would work', async () => {
+        const useCase = jest
+            .fn()
+            .mockResolvedValue([{ id: 1, business: { name: 'Estudio', slug: 'estudio', extra: 1 }, branches: [{ id: 2, name: 'Centro', extra: 1 }] }]);
 
         await expect(listMyInvitationsController(instrumentation, signedIn(), useCase)()).resolves.toEqual([
-            { id: 1, business: { name: 'Estudio', slug: 'estudio' } },
+            { id: 1, business: { name: 'Estudio', slug: 'estudio' }, branches: [{ id: 2, name: 'Centro' }] },
         ]);
     });
 

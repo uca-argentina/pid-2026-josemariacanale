@@ -10,7 +10,7 @@ import { InvalidSlugError, SlugTakenError } from '@/src/entities/errors/business
 import { CabinNotOfBranchError } from '@/src/entities/errors/cabin';
 import { ApiRequestError, InputParseError, NotFoundError } from '@/src/entities/errors/common';
 import { LastEmployeeError } from '@/src/entities/errors/employee';
-import { AvailabilityNotOfEmployeeError, EmployeeNotAssignableError, ServiceNameTakenError, ServiceSlugTakenError, ServiceRepetitionError } from '@/src/entities/errors/service';
+import { AvailabilityNotOfEmployeeError, EmployeeNotAssignableError, EmployeeNotAtBranchError, ServiceNameTakenError, ServiceSlugTakenError, ServiceRepetitionError } from '@/src/entities/errors/service';
 
 /** Lo que el diálogo de alta necesita para cerrar, o para mostrar el error bajo su campo o al pie. */
 export type CreateServiceResult = { ok: true; name: string } | { ok: false; message: string; field?: 'name' | 'slug' };
@@ -28,6 +28,7 @@ export async function createServiceAction(payload: unknown): Promise<CreateServi
         unstable_rethrow(error);
         if (error instanceof ServiceSlugTakenError) return { ok: false, field: 'slug', message: error.message };
         if (error instanceof ServiceNameTakenError) return { ok: false, field: 'name', message: error.message };
+        if (error instanceof EmployeeNotAtBranchError) return { ok: false, message: 'Uno de los Empleados elegidos no trabaja en esta Sucursal.' };
         if (isSessionExpired(error)) redirect(SIGN_IN_PATH);
         if (error instanceof InputParseError || (error instanceof ApiRequestError && error.status === 400))
             return { ok: false, message: 'Revisá los datos e intentá de nuevo.' };
@@ -160,6 +161,7 @@ export async function assignEmployeeAction(payload: { serviceId: number; employe
         return { ok: true, name };
     } catch (error) {
         unstable_rethrow(error);
+        if (error instanceof EmployeeNotAtBranchError) return { ok: false, message: 'Ese Empleado no trabaja en la Sucursal de este Servicio.' };
         if (error instanceof EmployeeNotAssignableError) return { ok: false, message: error.message };
         if (error instanceof NotFoundError) return { ok: false, message: 'El Servicio o el Empleado ya no existen.' };
         if (isSessionExpired(error)) redirect(SIGN_IN_PATH);
