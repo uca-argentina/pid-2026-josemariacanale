@@ -1,6 +1,7 @@
 import { AvailabilitiesRepository } from '../../domain/availabilities/availabilities.repository';
 import { BranchesRepository } from '../../domain/branches/branches.repository';
-import { BusinessRuleError } from '../../domain/errors';
+import { Branch } from '../../domain/branches/branch';
+import { BusinessRuleError, NotFoundError } from '../../domain/errors';
 import { Service } from '../../domain/services/service';
 import { ServicesRepository } from '../../domain/services/services.repository';
 import { serviceTimeZone } from '../services/service-time-zone';
@@ -31,6 +32,10 @@ export function assertNotPast(startsAt: Date, now: Date): void {
  * Every rule shared by creation and verification, except the Horario reservable check: Reservar runs it
  * apart with `pickEmployee`, and verification does not run it. Without `employeeId` (Reservar, which still
  * has to assign one) it skips the Empleado check.
+ *
+ * @returns the Servicio, its Sucursal (null in a Servicio personal) and the zone its day is read in
+ * @throws {BusinessRuleError} the Servicio doesn't exist or is retired, the Empleado doesn't attend it, or `startsAt` is past
+ * @throws {NotFoundError} the Sucursal or the Availability doesn't exist
  */
 export async function assertBookable(
   services: ServicesRepository,
@@ -40,13 +45,18 @@ export async function assertBookable(
   employeeId: number | undefined,
   startsAt: Date,
   now: Date,
-): Promise<{ service: Service; timeZone: string }> {
+): Promise<{ service: Service; branch: Branch | null; timeZone: string }> {
   const service = await services.findById(serviceId);
   assertServiceBookable(service);
   if (employeeId !== undefined) assertEmployeeInCharge(service, employeeId);
   assertNotPast(startsAt, now);
-  return {
-    service,
-    timeZone: await serviceTimeZone(branches, availabilities, service),
-  };
+  if (service.branchId === null)
+    return {
+      service,
+      branch: null,
+      timeZone: await serviceTimeZone(branches, availabilities, service),
+    };
+  const branch = await branches.findById(service.branchId);
+  if (!branch) throw new NotFoundError(`Branch ${service.branchId} not found`);
+  return { service, branch, timeZone: branch.timeZone };
 }

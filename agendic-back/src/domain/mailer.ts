@@ -1,4 +1,9 @@
+import { Branch } from './branches/branch';
+
 export const MAILER = Symbol('Mailer');
+
+/** Where the Turno happens, for the address and Cómo llegar of its Confirmación de reserva. */
+export type ConfirmationBranch = Pick<Branch, 'address' | 'location'>;
 
 /** The Turnos of a Serie to list in its Confirmación de reserva, with the zone their dates are shown in. */
 export type SeriesConfirmation = {
@@ -26,11 +31,14 @@ export interface Mailer {
   /**
    * Confirmación de reserva: the Turno was created, with its Enlace del Turno (ADR 0022) and, if it has one, the Seña to pay from there.
    * For a Serie (#304), `series` lists every Turno with its own Enlace, the dates shown in `timeZone`, in this one mail.
+   *
+   * @param branch the Sucursal's address and Cómo llegar, once even in a Serie; null in a Servicio personal, which carries no address
    */
   sendBookingConfirmation(
     email: string,
     link: string,
     depositAmount: number | null,
+    branch: ConfirmationBranch | null,
     series?: SeriesConfirmation,
   ): Promise<void>;
   /**

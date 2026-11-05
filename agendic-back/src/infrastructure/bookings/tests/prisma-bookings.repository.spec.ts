@@ -355,6 +355,49 @@ describe('PrismaBookingsRepository', () => {
         expect.objectContaining({ where: { link: 'unknown' } }),
       );
     });
+
+    const clientRow = (latitude: number | null, longitude: number | null) => ({
+      ...BOOKING_ROW,
+      link: 'secret',
+      seriesId: null,
+      rating: null,
+      user: { name: 'Ana', slug: 'ana', availabilities: [] },
+      employee: { user: { name: 'Ana' } },
+      service: {
+        name: 'Corte',
+        durationMinutes: 30,
+        price: 50,
+        depositPercent: null,
+        availability: null,
+        branch: {
+          name: 'Downtown',
+          slug: 'downtown',
+          address: '123 Main St',
+          timeZone: 'America/Argentina/Buenos_Aires',
+          latitude,
+          longitude,
+          business: { name: 'Ana', slug: 'ana' },
+          images: [],
+        },
+      },
+    });
+
+    it.each([
+      [-34.6037, -58.3816, { lat: -34.6037, lng: -58.3816 }],
+      [null, null, null],
+    ])('gives the Sucursal its Ubicación (%p, %p)', async (latitude, longitude, location) => {
+      prisma.booking.findUnique.mockResolvedValue(clientRow(latitude, longitude));
+
+      const found = await repository.findByLink('secret');
+
+      expect(found.branch).toEqual({
+        name: 'Downtown',
+        slug: 'downtown',
+        address: '123 Main St',
+        coverUrl: null,
+        location,
+      });
+    });
   });
 
   describe('translates other Prisma errors, keeping the original as cause', () => {

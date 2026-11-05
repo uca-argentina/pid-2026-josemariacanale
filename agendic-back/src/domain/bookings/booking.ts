@@ -1,3 +1,5 @@
+import { MapPoint } from '../branches/branch';
+
 export enum BookingStatus {
   PENDING = 'PENDING',
   BOOKED = 'BOOKED',
@@ -160,6 +162,8 @@ export interface ClientBooking extends Booking {
     address: string;
     /** The first Imagen de Sucursal by order, if there is one. */
     coverUrl: string | null;
+    /** The Ubicación's point, as in `Branch.location`. */
+    location: MapPoint | null;
   } | null;
   /** The Enlace de reserva del Usuario that attends a Servicio personal. Null in a Servicio del Negocio. */
   user: { slug: string | null } | null;

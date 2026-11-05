@@ -32,18 +32,42 @@ describe('NodemailerMailer.sendBookingConfirmation', () => {
   });
 
   it('adds the Seña and where to pay it when the Turno has one', async () => {
-    await new NodemailerMailer().sendBookingConfirmation('a@b.com', 'secret', 6);
+    await new NodemailerMailer().sendBookingConfirmation('a@b.com', 'secret', 6, null);
 
     const { html } = sendMail.mock.calls[0][0];
     expect(html).toContain('6.00');
     expect(html).toContain('http://localhost:3000/turnos/secret');
   });
 
-  it('is unchanged without a Seña', async () => {
-    await new NodemailerMailer().sendBookingConfirmation('a@b.com', 'secret', null);
+  it('is unchanged without a Seña nor Sucursal', async () => {
+    await new NodemailerMailer().sendBookingConfirmation('a@b.com', 'secret', null, null);
 
     expect(sendMail.mock.calls[0][0].html).toBe(
       '<p>Your Turno is confirmed. Manage it here: <a href="http://localhost:3000/turnos/secret">http://localhost:3000/turnos/secret</a></p>',
+    );
+  });
+
+  it('adds the Sucursal address and Cómo llegar to its point', async () => {
+    await new NodemailerMailer().sendBookingConfirmation('a@b.com', 'secret', null, {
+      address: 'Av. <Corrientes> 1234',
+      location: { lat: -34.6037, lng: -58.3816 },
+    });
+
+    const { html } = sendMail.mock.calls[0][0];
+    expect(html).toContain('Av. &#60;Corrientes&#62; 1234');
+    expect(html).toContain(
+      '<a href="https://www.google.com/maps/dir/?api=1&#38;destination=-34.6037,-58.3816">Cómo llegar</a>',
+    );
+  });
+
+  it('points Cómo llegar to the address when the Sucursal has no point', async () => {
+    await new NodemailerMailer().sendBookingConfirmation('a@b.com', 'secret', null, {
+      address: 'Av. Corrientes 1234, CABA',
+      location: null,
+    });
+
+    expect(sendMail.mock.calls[0][0].html).toContain(
+      'href="https://www.google.com/maps/dir/?api=1&#38;destination=Av.%20Corrientes%201234%2C%20CABA"',
     );
   });
 });
@@ -57,8 +81,28 @@ describe('NodemailerMailer.sendBookingConfirmation de una Serie', () => {
     sendMail.mockClear();
   });
 
+  it('lleva la dirección y Cómo llegar una sola vez', async () => {
+    await new NodemailerMailer().sendBookingConfirmation(
+      'a@b.com',
+      'uno',
+      null,
+      { address: '123 Main St', location: { lat: 1, lng: 2 } },
+      {
+        timeZone: 'America/Argentina/Buenos_Aires',
+        bookings: [
+          { startsAt: new Date('2026-01-05T12:00:00Z'), link: 'uno' },
+          { startsAt: new Date('2026-01-12T12:00:00Z'), link: 'dos' },
+        ],
+      },
+    );
+
+    const { html } = sendMail.mock.calls[0][0];
+    expect(html.split('123 Main St')).toHaveLength(2);
+    expect(html.split('Cómo llegar')).toHaveLength(2);
+  });
+
   it('lista en un solo mail cada fecha en la zona del Turno con su Enlace', async () => {
-    await new NodemailerMailer().sendBookingConfirmation('a@b.com', 'uno', null, {
+    await new NodemailerMailer().sendBookingConfirmation('a@b.com', 'uno', null, null, {
       timeZone: 'America/Argentina/Buenos_Aires',
       bookings: [
         { startsAt: new Date('2026-01-05T12:00:00Z'), link: 'uno' },

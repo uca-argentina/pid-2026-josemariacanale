@@ -426,7 +426,7 @@ describe('Servicio personal', () => {
       expect(res.body.days[0].slots).not.toContain('2026-01-02T00:00:00.000Z');
     });
 
-    it('books the Turno with the Usuario as who attends it and no Empleado', async () => {
+    it('books the Turno with the Usuario as who attends it and no Empleado, and confirms it without an address', async () => {
       const res = await t.http
         .post('/bookings')
         .send({
@@ -447,6 +447,12 @@ describe('Servicio personal', () => {
         undefined,
       );
       expect(res.body.employeeName).toBe(ANA.name);
+      expect(t.mailer.sendBookingConfirmation).toHaveBeenCalledWith(
+        'bruno@example.com',
+        BOOKING.link,
+        null,
+        null,
+      );
     });
 
     it('counts the Límite diario in the zone of the Availability', async () => {

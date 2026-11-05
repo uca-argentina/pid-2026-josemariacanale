@@ -92,6 +92,16 @@ export const toPointColumns = (point: MapPoint | undefined) => ({
   longitude: point?.lng,
 });
 
+/** A Sucursal's point from its two columns; `null` when it has none. */
+export const toMapPoint = (row: {
+  latitude: number | null;
+  longitude: number | null;
+}): MapPoint | null =>
+  // The CHECK Branch_location_both_or_neither keeps the two in step: one null means both are.
+  row.latitude === null || row.longitude === null
+    ? null
+    : { lat: row.latitude, lng: row.longitude };
+
 export const toBranch = (row: BranchRow): Branch => ({
   id: row.id,
   businessId: row.businessId,
@@ -100,11 +110,7 @@ export const toBranch = (row: BranchRow): Branch => ({
   timeZone: row.timeZone,
   slug: row.slug,
   description: row.description,
-  // The CHECK Branch_location_both_or_neither keeps the two in step: one null means both are.
-  location:
-    row.latitude === null || row.longitude === null
-      ? null
-      : { lat: row.latitude, lng: row.longitude },
+  location: toMapPoint(row),
 });
 
 const translateError = (error: unknown): never => {

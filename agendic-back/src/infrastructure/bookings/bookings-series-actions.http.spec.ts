@@ -59,7 +59,7 @@ const asClient = (booking: Booking): ClientBooking => ({
     depositPercent: ANAS_SERVICE.depositPercent,
   },
   business: { name: ANAS_BUSINESS.name, slug: ANAS_BUSINESS.slug },
-  branch: { name: ANAS_BRANCH.name, slug: ANAS_BRANCH.slug, address: ANAS_BRANCH.address, coverUrl: null },
+  branch: { name: ANAS_BRANCH.name, slug: ANAS_BRANCH.slug, address: ANAS_BRANCH.address, coverUrl: null, location: ANAS_BRANCH.location },
   user: null,
   series: null,
 });

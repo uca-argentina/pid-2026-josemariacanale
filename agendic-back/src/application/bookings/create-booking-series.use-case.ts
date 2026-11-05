@@ -112,7 +112,7 @@ export class CreateBookingSeriesUseCase {
     const busy = booked.filter(({ available }) => !available).map(({ date }) => date);
     if (busy.length > 0) throw new ConflictError(seriesDatesNotAvailable(busy));
 
-    const { service, timeZone } = await assertBookable(
+    const { service, branch, timeZone } = await assertBookable(
       this.services,
       this.branches,
       this.availabilities,
@@ -173,10 +173,16 @@ export class CreateBookingSeriesUseCase {
       throw new NotFoundError(`User ${userId} not found`);
     // The Serie is already saved: a mail that fails is logged, since a 500 would not undo it.
     try {
-      await this.mailer.sendBookingConfirmation(input.clientEmail, first.link!, first.depositAmount, {
-        bookings: created.map(({ startsAt, link }) => ({ startsAt, link: link! })),
-        timeZone,
-      });
+      await this.mailer.sendBookingConfirmation(
+        input.clientEmail,
+        first.link!,
+        first.depositAmount,
+        branch && { address: branch.address, location: branch.location },
+        {
+          bookings: created.map(({ startsAt, link }) => ({ startsAt, link: link! })),
+          timeZone,
+        },
+      );
     } catch (error) {
       logger.error(
         `Confirmación de reserva de la Serie ${first.seriesId} a ${input.clientEmail} falló`,
