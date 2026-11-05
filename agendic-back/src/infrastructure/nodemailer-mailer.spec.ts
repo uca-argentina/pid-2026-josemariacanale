@@ -1,3 +1,6 @@
+import { SeriesConfirmation } from '../domain/mailer';
+import { PromisedPrize, StreakProgress } from '../domain/streaks/streak-prize';
+import { StreakRewardType } from '../domain/streaks/streak-program';
 import { createTransport } from 'nodemailer';
 import { NodemailerMailer, readFrontendUrl } from './nodemailer-mailer';
 
@@ -146,6 +149,109 @@ describe('NodemailerMailer.sendRatingRequest', () => {
   });
 });
 
+describe('NodemailerMailer.sendBookingConfirmation con la Racha', () => {
+  const sendMail = jest.fn().mockResolvedValue(undefined);
+  const gift = { type: StreakRewardType.GIFT, value: null, description: 'Un lavado <b>', serviceName: null };
+  const send = (streak?: StreakProgress, series?: SeriesConfirmation) =>
+    new NodemailerMailer().sendBookingConfirmation('a@b.com', 'secret', null, null, series, streak);
+  const html = () => sendMail.mock.calls[0][0].html as string;
+
+  beforeEach(() => {
+    process.env.FRONTEND_URL = 'http://localhost:3000';
+    (createTransport as jest.Mock).mockReturnValue({ sendMail });
+    sendMail.mockClear();
+  });
+
+  it('dice los Turnos de la Racha y cuántos faltan para la Recompensa, con el texto escapado', async () => {
+    await send({ count: 2, next: { reward: gift, remaining: 3 } });
+
+    expect(html()).toContain('Tu Racha: 2 Turnos. Te faltan 3 para Un lavado &#60;b&#62;.');
+  });
+
+  it('en singular dice 1 Turno y Te falta 1', async () => {
+    await send({ count: 1, next: { reward: { ...gift, type: StreakRewardType.PERCENT_DISCOUNT, value: 12.5 }, remaining: 1 } });
+
+    expect(html()).toContain('Tu Racha: 1 Turno. Te falta 1 para 12,5% de descuento.');
+  });
+
+  it('con la cuenta en 0 invita a empezar la Racha', async () => {
+    await send({ count: 0, next: { reward: { ...gift, type: StreakRewardType.FREE_SERVICE, serviceName: 'Corte' }, remaining: 5 } });
+
+    expect(html()).toContain('Empezá tu Racha: con 5 Turnos ganás Corte gratis.');
+    expect(html()).not.toContain('Tu Racha:');
+  });
+
+  it('sin Recompensa que falte, solo dice la Racha', async () => {
+    await send({ count: 7, next: null });
+
+    expect(html()).toContain('Tu Racha: 7 Turnos.');
+    expect(html()).not.toContain('Te falta');
+  });
+
+  it('sin Racha, el mail es el de siempre', async () => {
+    await send();
+
+    expect(html()).not.toContain('Racha');
+  });
+
+  it('en la Confirmación de una Serie también va la línea', async () => {
+    await send(
+      { count: 2, next: { reward: gift, remaining: 3 } },
+      { bookings: [{ startsAt: new Date('2026-10-20T01:30:00Z'), link: 'uno' }], timeZone: 'America/Argentina/Buenos_Aires' },
+    );
+
+    expect(html()).toContain('Tu Racha: 2 Turnos.');
+    expect(html()).toContain('/turnos/uno');
+  });
+});
+
+describe('NodemailerMailer.sendStreakPrizeNotice', () => {
+  const sendMail = jest.fn().mockResolvedValue(undefined);
+  const nothing = { value: null, description: null, serviceName: null };
+  const send = (promised: PromisedPrize, expiresAt: Date | null = null) =>
+    new NodemailerMailer().sendStreakPrizeNotice(
+      'a@b.com',
+      'Carla <i>',
+      promised,
+      expiresAt,
+      'America/Argentina/Buenos_Aires',
+      'secret',
+    );
+
+  beforeEach(() => {
+    process.env.FRONTEND_URL = 'http://localhost:3000';
+    (createTransport as jest.Mock).mockReturnValue({ sendMail });
+    sendMail.mockClear();
+  });
+
+  it('names the Cliente, escaped, and links the Enlace del Turno', async () => {
+    await send({ ...nothing, type: StreakRewardType.GIFT, description: 'Un lavado <b>' });
+
+    const { to, html } = sendMail.mock.calls[0][0];
+    expect(to).toBe('a@b.com');
+    expect(html).toContain('Carla &#60;i&#62;');
+    expect(html).toContain('Un lavado &#60;b&#62;');
+    expect(html).toContain('http://localhost:3000/turnos/secret');
+    expect(html).not.toContain('Vale hasta');
+  });
+
+  it('says the expiry day in the zone of the Turno', async () => {
+    await send({ ...nothing, type: StreakRewardType.GIFT, description: 'x' }, new Date('2026-10-20T01:30:00Z'));
+
+    expect(sendMail.mock.calls[0][0].html).toContain('Vale hasta el lunes, 19 de octubre de 2026');
+  });
+
+  it.each([
+    [{ ...nothing, type: StreakRewardType.PERCENT_DISCOUNT, value: 12.5 }, '12,5% de descuento'],
+    [{ ...nothing, type: StreakRewardType.AMOUNT_DISCOUNT, value: 3600 }, '$3.600 de descuento'],
+    [{ ...nothing, type: StreakRewardType.FREE_SERVICE, serviceName: 'Corte <b>' }, 'Corte &#60;b&#62; gratis'],
+  ])('says what %j promises', async (promised, text) => {
+    await send(promised);
+
+    expect(sendMail.mock.calls[0][0].html).toContain(text);
+  });
+});
+
 describe('NodemailerMailer.sendBookingCancellationWithCause', () => {
   const sendMail = jest.fn().mockResolvedValue(undefined);
   const turno = (over = {}) => ({
@@ -272,5 +378,88 @@ describe.each([
     expect(html).toContain('http://localhost:3000/turnos/one');
     expect(html).toContain('domingo, 25 de octubre de 2026');
     expect(html).toContain('http://localhost:3000/turnos/two');
+  });
+});
+
+describe('NodemailerMailer.sendBookingAcceptance', () => {
+  const sendMail = jest.fn().mockResolvedValue(undefined);
+
+  beforeEach(() => {
+    process.env.FRONTEND_URL = 'http://localhost:3000';
+    (createTransport as jest.Mock).mockReturnValue({ sendMail });
+    sendMail.mockClear();
+  });
+
+  it('says the Turno was accepted, with its Enlace del Turno and the confirmed calendar file', async () => {
+    await new NodemailerMailer().sendBookingAcceptance('a@b.com', 'secret', undefined, {
+      method: 'REQUEST',
+      ics: 'BEGIN:VCALENDAR',
+      events: [],
+    });
+
+    const mail = sendMail.mock.calls[0][0];
+    expect(mail.subject).toBe('Your booking was accepted');
+    expect(mail.html).toContain('http://localhost:3000/turnos/secret');
+    expect(mail.icalEvent).toEqual({ method: 'REQUEST', content: 'BEGIN:VCALENDAR' });
+  });
+
+  it('lists every Turno of a Serie in one mail', async () => {
+    await new NodemailerMailer().sendBookingAcceptance('a@b.com', 'one', {
+      bookings: [
+        { startsAt: new Date('2026-10-19T01:30:00.000Z'), link: 'one' },
+        { startsAt: new Date('2026-10-26T01:30:00.000Z'), link: 'two' },
+      ],
+      timeZone: 'America/Argentina/Buenos_Aires',
+    });
+
+    expect(sendMail).toHaveBeenCalledTimes(1);
+    const { html } = sendMail.mock.calls[0][0];
+    expect(html).toContain('Turnos were accepted');
+    expect(html).toContain('http://localhost:3000/turnos/one');
+    expect(html).toContain('http://localhost:3000/turnos/two');
+  });
+});
+
+describe('NodemailerMailer con archivo de calendario (#404)', () => {
+  const sendMail = jest.fn().mockResolvedValue(undefined);
+  const invite = (method: 'REQUEST' | 'CANCEL') => ({
+    method,
+    ics: 'BEGIN:VCALENDAR',
+    events: [
+      { link: 'secret', googleUrl: 'https://google.test/add', outlookUrl: 'https://outlook.test/add' },
+    ],
+  });
+
+  beforeEach(() => {
+    process.env.FRONTEND_URL = 'http://localhost:3000';
+    (createTransport as jest.Mock).mockReturnValue({ sendMail });
+    sendMail.mockClear();
+  });
+
+  it('attaches the REQUEST and links "Agregar a Google / Outlook" in the Confirmación de reserva', async () => {
+    await new NodemailerMailer().sendBookingConfirmation('a@b.com', 'secret', null, null, undefined, undefined, invite('REQUEST'));
+
+    const mail = sendMail.mock.calls[0][0];
+    expect(mail.icalEvent).toEqual({ method: 'REQUEST', content: 'BEGIN:VCALENDAR' });
+    expect(mail.html).toContain('href="https://google.test/add"');
+    expect(mail.html).toContain('href="https://outlook.test/add"');
+  });
+
+  it('attaches the CANCEL in the Aviso de cambio del Turno', async () => {
+    await new NodemailerMailer().sendBookingCancellation('a@b.com', 'secret', null, undefined, invite('CANCEL'));
+
+    expect(sendMail.mock.calls[0][0].icalEvent).toEqual({ method: 'CANCEL', content: 'BEGIN:VCALENDAR' });
+  });
+
+  it('attaches the REQUEST when Reagendar', async () => {
+    await new NodemailerMailer().sendBookingReschedule('a@b.com', 'secret', invite('REQUEST'));
+
+    expect(sendMail.mock.calls[0][0].icalEvent.method).toBe('REQUEST');
+  });
+
+  it('sends the same mail as before without an archivo de calendario', async () => {
+    await new NodemailerMailer().sendBookingReschedule('a@b.com', 'secret');
+
+    expect(sendMail.mock.calls[0][0]).not.toHaveProperty('icalEvent');
   });
 });

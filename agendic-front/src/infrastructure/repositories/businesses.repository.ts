@@ -13,6 +13,8 @@ import { branchImageSchema, type BranchImage } from '@/src/entities/models/branc
 import { throwIfBranchImagesRejected } from './branch-images-rejection';
 import {
     businessSchema,
+    myBusinessSchema,
+    type MyBusiness,
     createdBusinessSchema,
     type Business,
     type CreateBusiness,
@@ -68,6 +70,18 @@ export class BusinessesRepository implements IBusinessesRepository {
         if (!response.ok) throw new ApiRequestError(message, { status: response.status });
 
         return parseOrFail(() => businessSchema.array().parse(body), 'GET /businesses');
+    }
+
+    /**
+     * `GET /users/me/businesses`.
+     *
+     * @throws {ApiRequestError} cualquier status que no sea 2xx (401 sin Sesión), o un body que no es una lista de Negocios
+     */
+    async listMyBusinesses(): Promise<MyBusiness[]> {
+        const { response, body, message } = await this.request('GET /users/me/businesses', '/users/me/businesses');
+        if (!response.ok) throw new ApiRequestError(message, { status: response.status });
+
+        return parseOrFail(() => myBusinessSchema.array().parse(body), 'GET /users/me/businesses');
     }
 
     /**

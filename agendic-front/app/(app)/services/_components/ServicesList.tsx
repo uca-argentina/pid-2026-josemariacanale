@@ -571,7 +571,7 @@ export function ServicesList({
                     <p className="m-0 max-w-[420px] text-[13px] font-medium text-[#6b7280]">
                         Creá tu Negocio, o aceptá la invitación de un Negocio para atender sus Servicios.
                     </p>
-                    <PanelButton onClick={() => router.push(BUSINESS_PATH)}>Ir a Mi Negocio</PanelButton>
+                    <PanelButton onClick={() => router.push(BUSINESS_PATH)}>Ir a Negocios</PanelButton>
                 </div>
             ) : (
                 <p className={cn('mt-6 text-center text-[13px] font-medium text-[#9ca3af]', nothingShown && 'mt-16')}>

@@ -213,3 +213,31 @@ describe('BusinessesRepository.updateBusiness', () => {
         expect(error.status).toBeUndefined();
     });
 });
+
+describe('BusinessesRepository.listMyBusinesses', () => {
+    const mine = { id: 1, name: 'Estudio', description: 'Desc', slug: 'estudio', logoUrl: null, role: 'owner', branchIds: [3] };
+
+    it('GETs /users/me/businesses with the bearer token and returns them', async () => {
+        const fetchSpy = respond(200, [mine]);
+
+        await expect(repo().listMyBusinesses()).resolves.toEqual([mine]);
+        expect(fetchSpy).toHaveBeenCalledWith(
+            'http://api/users/me/businesses',
+            expect.objectContaining({ headers: expect.objectContaining({ Authorization: 'Bearer tok' }) }),
+        );
+    });
+
+    it('translates a 401 to ApiRequestError with status 401', async () => {
+        respond(401, { statusCode: 401, message: 'Invalid or expired Clerk token' });
+        const error = await repo().listMyBusinesses().catch((e) => e);
+        expect(error).toBeInstanceOf(ApiRequestError);
+        expect(error.status).toBe(401);
+    });
+
+    it('translates a body that does not match the schema to ApiRequestError without status', async () => {
+        respond(200, [{ ...mine, role: 'admin' }]);
+        const error = await repo().listMyBusinesses().catch((e) => e);
+        expect(error).toBeInstanceOf(ApiRequestError);
+        expect(error.status).toBeUndefined();
+    });
+});

@@ -1,10 +1,17 @@
 import type { BranchImage } from '@/src/entities/models/branch-image';
-import type { Business, CreateBusiness, CreatedBusiness, UpdateBusiness } from '@/src/entities/models/business';
+import type { Business, CreateBusiness, MyBusiness, CreatedBusiness, UpdateBusiness } from '@/src/entities/models/business';
 
 /** The Negocio of the Dueño of the Sesión, its Logo and the Imágenes of its Sucursales. */
 export interface IBusinessesRepository {
     /** The Negocios of the Dueño of the Sesión: 0 or 1 (ADR 0012). */
     listBusinesses(): Promise<Business[]>;
+    /**
+     * Every Negocio where the Usuario is an active Empleado, their own first and the rest by name; empty if they are
+     * Empleado of none.
+     *
+     * @throws {ApiRequestError} the back answered with an error, or with a body that is not a list of Negocios
+     */
+    listMyBusinesses(): Promise<MyBusiness[]>;
     /**
      * Creates the Negocio with its first Sucursal and that Sucursal's images, in one request.
      *

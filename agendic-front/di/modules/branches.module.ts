@@ -1,5 +1,6 @@
 import { createModule } from '@evyweb/ioctopus';
 import { DI_SYMBOLS } from '@/di/types';
+import { listBusinessBranchesUseCase } from '@/src/application/use-cases/branches/list-business-branches.use-case';
 import { createBranchUseCase } from '@/src/application/use-cases/branches/create-branch.use-case';
 import { listBranchesWithImagesUseCase } from '@/src/application/use-cases/branches/list-branches-with-images.use-case';
 import { updateBranchUseCase } from '@/src/application/use-cases/branches/update-branch.use-case';
@@ -42,6 +43,12 @@ export function createBranchesModule() {
     branchesModule
         .bind(DI_SYMBOLS.IListBranchesWithImagesUseCase)
         .toHigherOrderFunction(listBranchesWithImagesUseCase, [
+            DI_SYMBOLS.IInstrumentationService,
+            DI_SYMBOLS.IPublicBusinessesRepository,
+        ]);
+    branchesModule
+        .bind(DI_SYMBOLS.IListBusinessBranchesUseCase)
+        .toHigherOrderFunction(listBusinessBranchesUseCase, [
             DI_SYMBOLS.IInstrumentationService,
             DI_SYMBOLS.IPublicBusinessesRepository,
         ]);

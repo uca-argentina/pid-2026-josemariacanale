@@ -23,7 +23,7 @@ Las direcciones con `/business/` y `/u/` dejan de existir, sin redirigir. Los en
 
 ## Palabras reservadas
 
-`bookings, services, business, availability, analytics, turnos, sign-in, sign-up, api, trpc, u, lista-de-espera` no valen como slug de Negocio ni de Usuario: 409 `Booking link already in use`. Es una lista fija en el dominio (`RESERVED_SLUGS`), validada por los casos de uso de Crear Negocio, editar el Negocio y editar el Usuario. La Sucursal y el Servicio pueden usarlas: no ocupan el primer tramo.
+`bookings, services, business, availability, analytics, turnos, sign-in, sign-up, api, trpc, u, lista-de-espera, logros, streaks` no valen como slug de Negocio ni de Usuario: 409 `Booking link already in use`. Es una lista fija en el dominio (`RESERVED_SLUGS`), validada por los casos de uso de Crear Negocio, editar el Negocio y editar el Usuario. La Sucursal y el Servicio pueden usarlas: no ocupan el primer tramo.
 
 **Regla: toda ruta nueva de primer nivel del front se suma a esa lista**, en el mismo cambio que crea la ruta. Si no, un Negocio o un Usuario podría tapar la pantalla.
 
@@ -38,7 +38,7 @@ Un Turno reservado por el enlace de un Empleado guarda `Booking.employeeChosen`.
 ## Qué no cambia
 
 - Un Servicio oculto se sigue Reservando solo por su propio tramo, también con el tramo de Empleado.
-- Las pantallas del panel (`/bookings`, `/services`, `/availability`, `/analytics`, `/business`) siguen siendo del panel: las rutas estáticas les ganan a las dinámicas y sus nombres están en la lista de reservadas.
+- Las pantallas del panel (`/bookings`, `/services`, `/availability`, `/analytics`, `/business`, `/streaks`) siguen siendo del panel: las rutas estáticas les ganan a las dinámicas y sus nombres están en la lista de reservadas.
 - El Enlace del Turno (`/turnos/<link>`) no cambia.
 
 ## Alternativas descartadas

@@ -1,6 +1,8 @@
 import { Availability } from '../../domain/availabilities/availability';
 import { Booking, BookingStatus, ClientBooking } from '../../domain/bookings/booking';
 import { BusinessRuleError, ConflictError, NotFoundError } from '../../domain/errors';
+import { StreakPrize } from '../../domain/streaks/streak-prize';
+import { StreakRewardType } from '../../domain/streaks/streak-program';
 import {
   ANAS_BRANCH,
   ANAS_BUSINESS,
@@ -106,6 +108,170 @@ describe('Enlace del Turno', () => {
 
       expect(withPoint.body.branch.location).toEqual({ lat: -34.6037, lng: -58.3816 });
       expect(withoutPoint.body.branch.location).toBeNull();
+    });
+
+    describe('streak', () => {
+      const DAY_MS = 86_400_000;
+      const reward = (over = {}) => ({
+        id: 7,
+        requiredCount: 5,
+        repeatable: false,
+        type: StreakRewardType.GIFT,
+        value: null,
+        description: 'Un lavado',
+        service: null,
+        validForDays: null,
+        ...over,
+      });
+      const attended = (daysAgo: number) => {
+        const startsAt = new Date(t.clock.now().getTime() - daysAgo * DAY_MS);
+        return {
+          email: 'carla@example.com',
+          clientName: 'Carla',
+          link: `link-${daysAgo}`,
+          timeZone: ANAS_BRANCH.timeZone,
+          startsAt,
+          endsAt: new Date(startsAt.getTime() + 3_600_000),
+          status: BookingStatus.BOOKED,
+          noShowAt: null,
+          employeeNoShowAt: null,
+        };
+      };
+      const prize = (over: Partial<StreakPrize> = {}): StreakPrize => ({
+        id: 3,
+        type: StreakRewardType.GIFT,
+        value: null,
+        description: 'Un lavado',
+        serviceName: null,
+        grantedAt: new Date('2025-12-20T10:00:00.000Z'),
+        expiresAt: new Date('2026-02-01T10:00:00.000Z'),
+        redeemedAt: null,
+        ...over,
+      });
+
+      beforeEach(() => {
+        t.bookings.findByLink.mockResolvedValue({ ...CLIENT_BOOKED, clientEmail: 'Carla@Example.com' });
+        t.streakPrizes.findOwnerByBookingId.mockResolvedValue({ kind: 'business', businessId: ANAS_BUSINESS.id });
+        t.streakPrizes.listAvailable.mockResolvedValue([]);
+        t.streakPrograms.findByOwnerIncludeRewards.mockResolvedValue({
+          active: true,
+          burnAfterDays: 30,
+          rewards: [reward()],
+        });
+        t.streakPrizes.listClientFileBookings.mockResolvedValue([attended(20), attended(10)]);
+      });
+
+      const get = () => t.http.get(`/booking-links/${LINK}`).expect(200);
+
+      it('trae la Racha del Cliente del Turno, hasta cuándo dura, la próxima Recompensa y sus Premios', async () => {
+        t.streakPrizes.listAvailable.mockResolvedValue([prize()]);
+
+        const { body } = await get();
+
+        expect(t.streakPrizes.listAvailable).toHaveBeenCalledWith(
+          { kind: 'business', businessId: ANAS_BUSINESS.id },
+          'carla@example.com',
+          t.clock.now(),
+        );
+        expect(body.streak).toEqual({
+          count: 2,
+          burnsAt: new Date(attended(10).startsAt.getTime() + 30 * DAY_MS).toISOString(),
+          nextReward: {
+            reward: {
+              id: 7,
+              requiredCount: 5,
+              repeatable: false,
+              type: 'GIFT',
+              value: null,
+              description: 'Un lavado',
+              service: null,
+              validForDays: null,
+            },
+            remaining: 3,
+          },
+          prizes: [
+            {
+              id: 3,
+              type: 'GIFT',
+              value: null,
+              description: 'Un lavado',
+              serviceName: null,
+              grantedAt: '2025-12-20T10:00:00.000Z',
+              expiresAt: '2026-02-01T10:00:00.000Z',
+            },
+          ],
+        });
+      });
+
+      it('el Premio vencido no aparece: el repositorio lo deja afuera al pedir los disponibles a esa hora', async () => {
+        t.clock.advance(60 * DAY_MS);
+        t.streakPrizes.listAvailable.mockImplementation(async (_owner, _email, now) =>
+          [prize()].filter(({ expiresAt }) => !expiresAt || expiresAt > now),
+        );
+        t.streakPrizes.listClientFileBookings.mockResolvedValue([attended(10)]);
+
+        const { body } = await get();
+
+        expect(body.streak.prizes).toEqual([]);
+      });
+
+      it('con el programa apagado es null, aunque haya Premios disponibles', async () => {
+        t.streakPrograms.findByOwnerIncludeRewards.mockResolvedValue({
+          active: false,
+          burnAfterDays: 30,
+          rewards: [reward()],
+        });
+        t.streakPrizes.listAvailable.mockResolvedValue([prize()]);
+
+        const { body } = await get();
+
+        expect(body.streak).toBeNull();
+      });
+
+      it.each([
+        ['sin Recompensas', { active: true, burnAfterDays: 30, rewards: [] }],
+        ['sin programa', null],
+      ])('%s es null', async (_case, program) => {
+        t.streakPrograms.findByOwnerIncludeRewards.mockResolvedValue(program);
+
+        const { body } = await get();
+
+        expect(body.streak).toBeNull();
+      });
+
+      it('sin Racha en curso y sin Premios es null: no hay nada que mostrar', async () => {
+        t.streakPrizes.listClientFileBookings.mockResolvedValue([]);
+
+        const { body } = await get();
+
+        expect(body.streak).toBeNull();
+      });
+
+      it('sin Racha en curso pero con un Premio disponible trae la cuenta en 0 y el Premio', async () => {
+        t.streakPrizes.listClientFileBookings.mockResolvedValue([attended(100)]);
+        t.streakPrizes.listAvailable.mockResolvedValue([prize()]);
+
+        const { body } = await get();
+
+        expect(body.streak).toMatchObject({ count: 0, burnsAt: null, prizes: [{ id: 3 }] });
+        expect(body.streak.nextReward.remaining).toBe(5);
+      });
+
+      it('si no se puede leer la Racha, el Turno abre igual y streak es null', async () => {
+        t.streakPrograms.findByOwnerIncludeRewards.mockRejectedValue(new Error('database down'));
+
+        const { body } = await get();
+
+        expect(body).toMatchObject({ id: BOOKED.id, streak: null });
+      });
+
+      it('las acciones no traen la Racha', async () => {
+        t.bookings.cancelPendingOrBooked.mockResolvedValue({ ...CLIENT_BOOKED, status: BookingStatus.CANCELLED });
+
+        const { body } = await t.http.patch(`/booking-links/${LINK}/cancel`).send({}).expect(200);
+
+        expect(body).not.toHaveProperty('streak');
+      });
     });
 
     it('un Turno suelto trae series null', async () => {
@@ -234,6 +400,8 @@ describe('Enlace del Turno', () => {
         BOOKED.clientEmail,
         BOOKED.link,
         null,
+        undefined,
+        expect.objectContaining({ method: 'CANCEL' }),
       );
     });
 
@@ -251,6 +419,8 @@ describe('Enlace del Turno', () => {
         BOOKED.clientEmail,
         BOOKED.link,
         'Me mudé',
+        undefined,
+        expect.objectContaining({ method: 'CANCEL' }),
       );
       expect(res.body.cancellationReason).toBe('Me mudé');
     });
@@ -442,6 +612,7 @@ describe('Enlace del Turno', () => {
       expect(t.mailer.sendBookingReschedule).toHaveBeenCalledWith(
         BOOKED.clientEmail,
         BOOKED.link,
+        expect.objectContaining({ method: 'REQUEST' }),
       );
     });
 

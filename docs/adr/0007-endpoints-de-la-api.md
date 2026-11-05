@@ -47,6 +47,24 @@ actualizarlo a mano cuando se agregue, cambie o borre un endpoint.
 - `UpdateMeDto`: `{ name?, email? }`
 - Respuesta (`presentUser`): `{ id, name, email, pendingEmail? (solo si está seteado), role }`. Suma `imageUrl: string | null`: la foto de perfil, la de Clerk al crearse el Usuario; `null` sin una foto real o con una URL que no se pudo parsear. Se refresca en cada request desde los claims `imageUrl` / `hasImage` del session token (como el nombre y el email, ADR 0009): sin los claims no se toca; si Clerk dice que no hay foto real pasa a `null`; si no cambió no se escribe; una falla al refrescar no tumba el request.
 
+### Insignias del Usuario (#421)
+
+| Método | Ruta | Auth | Qué hace |
+|---|---|---|---|
+| GET | `/users/me/badges` | sí | Evalúa al Usuario y responde sus Insignias |
+| GET | `/users/me/badges/unseen` | sí | Evalúa al Usuario y responde los Niveles ganados que todavía no vio |
+| POST | `/users/me/badges/seen` | sí | Marca como vistos todos sus Niveles sin ver; **204** sin body |
+
+- Sin Sesión, los tres responden **401**. Ninguno tiene body ni parámetros.
+- El catálogo vive en el dominio: `first-booking` (Primer Turno), `attended` (Turnos atendidos), `five-stars` (Cinco estrellas), `loyal-clients` (Clientes fieles) y `always-present` (Siempre presente). Los Niveles son `bronze`, `silver`, `gold` y `platinum`; una Insignia de un solo Nivel usa `bronze`.
+- Cuenta el trabajo del Usuario como quien atiende: Turnos de sus Servicios personales y de todo Negocio donde es o fue Empleado. Dejar un Negocio no resta. Un Turno atendido sigue la regla del KPI `attended`.
+- **`GET /users/me/badges`**: **200** `[{ badge, name, level, progress, levels }]`, una entrada por Insignia del catálogo y en su orden. `level` es el Nivel más alto ganado, o `null` si no ganó ninguno. `progress` es `{ current, target }` hacia el próximo Nivel sin ganar, o `null` si ya ganó el último. `levels` es `[{ level, target, earnedAt }]` con `earnedAt` en ISO, o `null` si ese Nivel no se ganó.
+- **`GET /users/me/badges/unseen`**: **200** `[{ badge, name, level, earnedAt }]` (`earnedAt` en ISO) ordenado por `earnedAt`; `[]` si no hay nada sin ver.
+- **`badges` en `GET /businesses/:id/employees`**: `[{ badge, name, level }]`, el Nivel más alto ganado de cada Insignia del Empleado, de mayor a menor Nivel y, a igual Nivel, en el orden del catálogo; `[]` si no ganó ninguna. Antes de responder se evalúa a todo el Staff en un solo lote (una consulta por métrica), así que un Nivel recién alcanzado queda guardado sin ver aunque el Empleado no haya abierto la app. Si esa evaluación falla por la base, el Staff igual se responde (200) con `badges: []` en cada fila y el error queda en el log. Nunca trae `progress` ni los demás campos de `GET /users/me/badges`. El front muestra hasta 3 medallas por fila más "+N", y las Insignias grandes en el panel lateral del Empleado.
+- Evaluar guarda los Niveles alcanzados que faltaban, todos los intermedios si se alcanzan varios de golpe, con `earnedAt` = el momento de la evaluación. Un Nivel ganado nunca se borra ni se baja: si el conteo baja, `level` no cambia (`progress.current` sí).
+- `seen` no evalúa: marca lo que ya estaba guardado.
+- El front usa `GET /users/me/badges` en la pantalla Logros; al abrir la app pide `unseen`, muestra un modal por Nivel y, al cerrar el último, llama a `seen`.
+
 ## Businesses (Negocio)
 
 | Método | Ruta | Auth | Qué hace |
@@ -63,7 +81,7 @@ actualizarlo a mano cuando se agregue, cambie o borre un endpoint.
 - POST: `multipart/form-data`, con la misma forma que el alta de Sucursal. El campo `data` lleva el `CreateBusinessDto` como JSON string, con la misma validación que un body JSON: falta `data`, JSON inválido, que no es un objeto o que no pasa el DTO → 400. El campo `images` lleva de 1 a 5 archivos, las imágenes de la primera Sucursal, con las mismas validaciones que `POST /branches/:id/images`: tipo que no es JPEG, PNG, WebP o GIF → 400 `La imagen tiene que ser JPEG, PNG, WebP o GIF`; más de 5 MB → 413. Sin archivos → 400 `At least one image is required`; más de 5 → 400 `Unexpected field - images`. Ningún 400/413 crea nada ni sube archivos, y tampoco se sube nada si el Usuario ya es Dueño o el Enlace de reserva es una palabra reservada. Las imágenes quedan en la primera Sucursal (con `order` según el orden recibido) en la misma transacción que crea Negocio, Sucursal, Servicio y Empleado; si una subida o el alta fallan (por ejemplo el 409 de Enlace de reserva en uso), los archivos ya subidos se borran. El Logo sigue subiéndose aparte con `PUT /businesses/:id/logo`
 - `CreateBusinessDto`: `{ business: { name, description, slug }, branch: { name, address, timeZone, slug, location }, service?: ServiceFieldsDto }`; `service` es opcional; `branch` valida sus campos igual que `CreateBranchDto` del endpoint de Sucursales, `slug` incluido: es requerido y sin él es 400 (antes, sin él la primera Sucursal tomaba el `slug` del Negocio y el Enlace de reserva quedaba `/x/x`). `location` también es requerida (#384): los 400 llevan el prefijo del campo, `branch.location is required`, `branch.location.lat must be between -90 and 90` y `branch.location.lng must be between -180 and 180`
 - `UpdateBusinessDto`: `{ name?, description?, slug? }`
-- `slug` (Enlace de reserva): se pasa a minúsculas, 3-40 caracteres, palabras de letras y dígitos unidas por guiones (`^[a-z0-9]+(-[a-z0-9]+)*$`); formato inválido → 400, slug ya tomado por otro Negocio o por un Usuario (aunque esté dado de baja) o palabra reservada (`bookings, services, business, availability, analytics, turnos, sign-in, sign-up, api, trpc, u, lista-de-espera`) → 409 `Booking link already in use` (ADR 0026); `POST /businesses` y `PATCH /businesses/:id` comparten esa regla
+- `slug` (Enlace de reserva): se pasa a minúsculas, 3-40 caracteres, palabras de letras y dígitos unidas por guiones (`^[a-z0-9]+(-[a-z0-9]+)*$`); formato inválido → 400, slug ya tomado por otro Negocio o por un Usuario (aunque esté dado de baja) o palabra reservada (`bookings, services, business, availability, analytics, turnos, sign-in, sign-up, api, trpc, u, lista-de-espera, logros, streaks`) → 409 `Booking link already in use` (ADR 0026); `POST /businesses` y `PATCH /businesses/:id` comparten esa regla
 - Respuesta (`presentBusiness`): `{ id, name, description, slug, ownerId }`
 - Respuesta del POST: `{ business, branch, service, employee, images }` (cada uno con su propio presenter; `images` es la lista de imágenes de la primera Sucursal con `presentBranchImage`, en orden)
 
@@ -181,7 +199,8 @@ Todo Empleado es un Usuario (ADR 0013): nombre y email los presta su cuenta, no 
 | POST | `/invitations/:id/resend` | sí | El Dueño reenvía la Invitación (ADR 0019): renueva el vencimiento a 7 días y reenvía el mail de Clerk solo si la persona todavía no es Usuario; 200 con la Invitación; 404 si no existe o no es de su Negocio; 422 si ya se aceptó o rechazó; 502 si Clerk falla |
 | DELETE | `/invitations/:id` | sí | El Dueño cancela la Invitación pendiente: la cierra, deja de listarse y ya no se puede aceptar; 204; 404 / 422 como arriba |
 | DELETE | `/employees/:id` | sí | Da de baja (soft-delete) un empleado (solo el dueño); 422 si es el Dueño dándose de baja a sí mismo. Le manda el Aviso de cambio del Turno al Cliente por mail; si el mail falla, igual responde OK. |
-| GET | `/businesses/:id/employees` | sí | Lista empleados activos de un negocio (solo el dueño) |
+| GET | `/businesses/:id/employees` | sí | Lista empleados activos de un negocio (el Staff): lo ve cualquier Empleado activo del Negocio, no solo el Dueño; 403 `Only Employees of Business <id> can see its Staff` si el Usuario no es Empleado activo; 404 si el Negocio no existe o está dado de baja. Cada fila es `{ id, userId, name, email, imageUrl, badges }`; ver abajo |
+| GET | `/users/me/businesses` | sí | Los Negocios no dados de baja donde el Usuario es Empleado activo: `200 [{ id, name, description, slug, logoUrl, role: "owner" \| "employee", branchIds: number[] }]`. El Negocio del que es Dueño va primero (`role: "owner"`) y los demás por nombre. `branchIds` son las Sucursales donde trabaja: todas las del Negocio si es Dueño, y las de los Servicios que Ofrece si no; `[]` si no Ofrece ninguno. `[]` (200) si no es Empleado de ninguno; 401 sin Sesión |
 | GET | `/employees/me/services` | sí | Catálogo de Servicios del panel: un grupo por cada Negocio del que el Usuario es Empleado activo; `[]` (200) si no lo es de ninguno |
 
 - Respuesta de `GET /employees/me/services` (`presentCatalogGroup`): `[{ business: { id, name, slug, logoUrl }, role: "owner" | "employee", employeeId, branches: [{ id, name, slug, services: [Servicio] }] }]`. `employeeId` es el Empleado del Usuario en ese Negocio; `role` es `owner` si es su Dueño. Las sucursales van ordenadas por `slug` y aparecen aunque no tengan servicios; no trae servicios dados de baja; un servicio oculto sale solo si el Usuario es Dueño del Negocio o lo atiende. Un Empleado dado de baja de un Negocio deja de recibir ese grupo. Los Servicios van con la misma vista que la pública (`presentService`).
@@ -265,6 +284,14 @@ como uno que no existe.
 | POST | `/users/me/holidays/:holidayId/preview` | sí | Body como el del `PATCH`. Los Turnos que prender el Día festivo dejaría afuera (ADR 0034); solo lectura, 200 |
 | PATCH | `/users/me/holidays/:holidayId` | sí | Body `{ enabled: boolean, cancelBookingIds?: number[] }`. Apaga o vuelve a prender el Día festivo; al prenderlo cancela los Turnos de ese día que deja afuera, en una transacción. Responde como el `GET` más `cancelledBookings: number` |
 | GET | `/users/me/holidays/conflicts` | sí | `200 [{ holidayId, holidayName, date, bookings: [{ id, startsAt, clientName }] }]`: los Turnos pendientes o aceptados, futuros, que atiende el Usuario y que caen en Días festivos prendidos, por fecha del Día festivo. El día de cada Turno se lee en la zona de la Availability con la que se atiende. Sin país, `[]` |
+| GET | `/users/me/calendar` | sí | `200 { connection: { provider: 'GOOGLE' \| 'MICROSOFT', email, status: 'CONNECTED' \| 'DISCONNECTED', connectedAt } \| null }`: el Calendario conectado del Usuario (ADR 0036). Nunca trae el token |
+| POST | `/users/me/calendar/google` | sí | `200 { authorizationUrl }`: la dirección de Google a la que el front lleva al navegador para dar el permiso. El `state` va firmado y vence a los 10 minutos |
+| POST | `/users/me/calendar/microsoft` | sí | Lo mismo con Microsoft (Outlook o Microsoft 365, #402): `200 { authorizationUrl }`, la dirección de Microsoft. Mismos errores que el de Google |
+| GET | `/calendar-oauth/google/callback` | no | Lo llama Google. Identifica al Usuario por el `state`. Responde 302 a `CALENDAR_RETURN_URL` con `?calendar=connected \| denied \| missing-scope \| error` |
+| GET | `/calendar-oauth/microsoft/callback` | no | Lo llama Microsoft. Mismo redirect y mismos valores de `?calendar=` que el de Google |
+| GET | `/users/me/calendar/calendars` | sí | `200 { calendars: [{ id, name, primary, checked }] }`: los calendarios de la cuenta conectada (Google o Microsoft), leídos del proveedor en el momento, el principal primero. `checked` es si cuenta como Ocupado externo. Una conexión nueva arranca con solo el principal tildado |
+| PUT | `/users/me/calendar/calendars` | sí | Body `{ checkedIds: string[] }`. Guarda cuáles calendarios cuentan como Ocupado externo y responde `200` con la misma forma que el `GET`. Una lista vacía vale: no se lee ninguno |
+| DELETE | `/users/me/calendar` | sí | Desconecta y revoca el token en el proveedor (Microsoft no tiene cómo revocarlo: solo se borra). 204 sin body |
 
 - Sin `GOOGLE_CALENDAR_API_KEY` → 503 `Días festivos no configurados`. Todos los endpoints de Días festivos que vengan después responden igual
 - `PUT /users/me/holidays`: `countryCode` ausente o que no es texto → 400; un código que no está en `GET /holidays/countries` → 400 `Unknown holiday country <código>`
@@ -272,6 +299,18 @@ como uno que no existe.
 - `POST /users/me/holidays/preview` y `POST /users/me/holidays/:holidayId/preview` (ADR 0034): fallan igual que el `PUT` y el `PATCH` (400, 404 `Holiday <id> not found`, 503). Devuelven, por `startsAt`, los Turnos pendientes o aceptados que todavía no empezaron, que estaban dentro del horario y los Días festivos nuevos dejan afuera, con la misma forma que `POST /users/me/out-of-office/preview`. La Causa es `PUBLIC_HOLIDAY` y `cancellationReason` es `<Nombre> no atiende por <nombre del Día festivo de ese día>. Podés reservar otro horario.`, distinto en cada día. Elegir un país prende de nuevo todos sus Días festivos, así que la lista puede ser larga; se miran todos los Turnos futuros. Prender un Día festivo mira solo los Turnos de ese día. Un Día festivo que cae en un día que el Usuario no trabaja no deja afuera nada. `countryCode: null` y `enabled: false` responden `[]` sin consultar a Google, y apagar un Día festivo o sacar el país no cancela ni descancela nada. El horario de después se calcula con la configuración nueva, con todos los años del rango de los Turnos y en modo estricto: si Google falla, el error se propaga (502) y no se guarda nada; el de antes usa la lectura tolerante de siempre
 - `PUT` y `PATCH` suman `cancelBookingIds?: number[]` (por defecto `[]`; si no es un arreglo de enteros, 400), con las mismas reglas que en `POST /users/me/out-of-office`: si queda afuera algún Turno que no está en la lista, 409 `Los Turnos que quedan fuera de tu horario cambiaron` sin escribir nada (la configuración queda como estaba); los ids que ya no quedan afuera se ignoran; la configuración y las cancelaciones van en una sola transacción. Después de guardar, cada Cliente recibe el Aviso de cambio del Turno con Causa; si un mail falla se loguea y la escritura sigue en pie. `GET /users/me/holidays/conflicts` queda como está. El front pasa por la vista previa y el diálogo al elegir un país o prender un Día festivo, y guarda directo al sacar el país o apagar uno
 - Los Días festivos llegan de Google Calendar con IDs `es.*` y se cachean en Postgres (`HolidayCache`); se piden de nuevo cuando la caché tiene más de 7 días
+
+Calendario conectado (ADR 0036):
+
+- `POST /users/me/calendar/google`: 409 `Calendar already connected for User <id>` si ya tiene uno `CONNECTED`; uno `DISCONNECTED` se puede reconectar y la conexión nueva lo reemplaza. Sin credenciales OAuth de Google en el entorno → 503 `Calendario conectado no configurado`
+- `POST /users/me/calendar/microsoft` (#402): 409 `Calendar already connected for User <id>` si ya tiene uno `CONNECTED`, **de cualquier proveedor** (hay una sola conexión a la vez); sin credenciales OAuth de Microsoft (`MICROSOFT_OAUTH_CLIENT_ID`, `MICROSOFT_OAUTH_CLIENT_SECRET`, `MICROSOFT_OAUTH_REDIRECT_URI`) → 503 `Calendario conectado no configurado`, el mismo mensaje que el de Google
+- Conectar un proveedor distinto del que tenía un Calendario conectado `DISCONNECTED` lo reemplaza: antes se intentan borrar los Eventos del Turno futuros del calendario anterior con el token viejo y, si no se puede, se dejan en ese calendario (Agendic los olvida igual). Reconectar el mismo proveedor no toca los eventos
+- `GET /calendar-oauth/microsoft/callback`: la app es multi-tenant y acepta cuentas personales y de trabajo; si el administrador de la empresa tiene que dar el consentimiento (`error=access_denied` o `consent_required`), termina en `?calendar=denied`
+- `GET /calendar-oauth/google/callback`: `?calendar=denied` si el Usuario rechazó el permiso, `missing-scope` si destildó el de calendario, `error` si el `state` es inválido o venció, o si falla el intercambio del código. Sin credenciales → 503
+- `DELETE /users/me/calendar`: 404 `User <id> has no Calendario conectado` si no tiene uno. Si Google no revoca el token, se loguea y la conexión se borra igual
+- `GET` y `PUT /users/me/calendar/calendars`: 404 `User <id> has no Calendario conectado`; 409 `Calendario conectado of User <id> is disconnected` (también cuando Google rechaza el token al leer: la conexión pasa a `DISCONNECTED`); 502 si Google no responde (el mismo código que el resto de las fallas de servicios externos, `ExternalServiceError`; el ticket decía 503, que en la API es solo "sin configuración"); `PUT`: 400 si `checkedIds` no es un arreglo de textos, 422 `Calendar <id> is not in the connected account` si trae un id que no es de la cuenta (no se guarda nada)
+- Los Ocupados externos se leen de los calendarios tildados; los Eventos del Turno se siguen escribiendo solo en el principal. Un calendario tildado que desaparece de la cuenta se ignora sin error y sale de la lista en el próximo `GET`. Reconectar la misma cuenta (mismo email, sin importar mayúsculas) conserva la selección; conectar otra vuelve al principal. Guardar la selección descarta la caché de un minuto de los Ocupados externos del Usuario
+- `DELETE /users/me` (ADR 0024) también desconecta el Calendario conectado
 
 ## Slots (Horario reservable)
 
@@ -283,6 +322,7 @@ como uno que no existe.
 - Query: `from`/`to` (`YYYY-MM-DD`, fechas locales de la Sucursal, inclusive, requeridos); falta alguno o formato inválido → 400
 - Rango de hasta 31 días; más, o `to` anterior a `from` → 422
 - Servicio inexistente o dado de baja → 404
+- Si quien atiende tiene un Calendario conectado (ADR 0036), sus Ocupados externos restan Horarios reservables como un Turno tomado, también con el Tiempo de preparación (ADR 0038). Se piden en vivo a Google, con una caché de un minuto por Usuario y rango; si Google falla, la respuesta se calcula sin ellos. Un día que se queda sin horarios por ellos sale `FULLY_BOOKED`. Al Reservar y al Reagendar se recalculan: un Ocupado externo nuevo da el mismo 422 `Slot <startsAt> is not available for Service <id>` que un horario tomado.
 - Cada Empleado activo que Ofrece el Servicio aporta sus Horarios reservables, calculados con su propia Availability y su propia ocupación (por Usuario); sin `employeeId`, la respuesta es la unión de los de cada Empleado. El Límite diario se cuenta sumando a todos
 - Algoritmo de cal.diy, con dayjs (`utc` y `timezone`); la respuesta trae instantes UTC:
   1. Rangos por día: las Franjas de la Availability con la que ese Empleado atiende ese Servicio, leídas en la zona de la Availability, pasan a rangos concretos (el horario de verano lo resuelve dayjs). Una Franja que termina a las 23:59 llega hasta la medianoche
@@ -456,3 +496,63 @@ como uno que no existe.
 - **`GET /waitlist-links/:secret`**: sin Sesión. **200** `{ date, timeZone, left: boolean, service: { name, slug }, business: { name, slug } | null, branch: { name, slug } | null, user: { slug } | null }`, con la convención de `ClientBooking`: `business` y `branch` nulos en un Servicio personal, `user` (el Enlace de reserva del Usuario) nulo en uno del Negocio. `timeZone` es la del Servicio. Responde aunque la fecha haya pasado o el Servicio esté dado de baja. **404** `Anotación not found`.
 - **`POST /waitlist-links/:secret/leave`**: sin Sesión, sin body. **204**; también **204**, sin tocar nada, si ya había Salido. **404** `Anotación not found`. El front lo llama desde un botón, nunca con un GET, porque los antivirus del mail abren los links.
 - `lista-de-espera` es palabra reservada del primer tramo del Enlace de reserva: Crear Negocio y editar el Negocio o el Usuario con ese slug dan **409** `Booking link already in use`. Su migración falla si un Negocio o Usuario ya lo tiene.
+
+## Rachas (#428)
+
+Configuración de las Rachas de un Negocio y de los Servicios personales de un Usuario. Solo se guarda la configuración: todavía no se gana nada. Todos exigen Sesión.
+
+| Método | Ruta | Auth | Qué hace |
+|---|---|---|---|
+| GET | `/businesses/:id/streak-program` | sí | El programa del Negocio (solo el Dueño) |
+| PUT | `/businesses/:id/streak-program` | sí | Prende o apaga las Rachas y fija el Tiempo de quemada (solo el Dueño); lo crea si no existe |
+| POST | `/businesses/:id/streak-rewards` | sí | Crea una Recompensa del Negocio (solo el Dueño); 201 |
+| GET | `/users/me/streak-program` | sí | El programa de los Servicios personales del Usuario de la Sesión |
+| PUT | `/users/me/streak-program` | sí | Igual que el PUT del Negocio, para los Servicios personales |
+| POST | `/users/me/streak-rewards` | sí | Crea una Recompensa de los Servicios personales; 201 |
+| PATCH | `/streak-rewards/:id` | sí | Edita una Recompensa (solo el dueño del programa); 200 |
+| DELETE | `/streak-rewards/:id` | sí | Borra una Recompensa (solo el dueño del programa); 204. El borrado es lógico (`deletedAt`) |
+
+- Respuesta del programa (`presentStreakProgram`, GET y PUT): `{ active, burnAfterDays: number | null, rewards: Reward[] }`. `rewards` va sin las borradas y por `requiredCount` ascendente. Sin programa: `{ active: false, burnAfterDays: null, rewards: [] }`.
+- `Reward` (`presentStreakReward`): `{ id, requiredCount, repeatable, type, value: number | null, description: string | null, service: { id, name } | null, validForDays: number | null }`. `service` se sigue mostrando con su nombre si el Servicio se dio de baja después.
+- `SaveStreakProgramDto` (PUT): `{ active: boolean, burnAfterDays: number }`, los dos obligatorios. `burnAfterDays` es un entero de 1 a 365; fuera de eso → 400. No toca las Recompensas.
+- `CreateStreakRewardDto` (POST): `{ requiredCount, repeatable, type, value?, description?, serviceId?, validForDays? }`; en los opcionales, `null` es lo mismo que no mandarlos. Si no existe el programa, lo crea apagado y con `burnAfterDays` nulo.
+- `UpdateStreakRewardDto` (PATCH): el mismo body, parcial. Lo que no viene queda como estaba; `null` en `value`, `description`, `serviceId` o `validForDays` lo saca. El tipo se valida sobre el resultado: cambiar `type` sin mandar el campo que pide, si la Recompensa no lo tenía, es 400.
+- `requiredCount` y `validForDays` son enteros mayores que 0. `type` es `PERCENT_DISCOUNT | AMOUNT_DISCOUNT | GIFT | FREE_SERVICE`.
+- Validación por `type`: `PERCENT_DISCOUNT` exige `value` entre 1 y 100; `AMOUNT_DISCOUNT` exige `value` > 0; `GIFT` exige `description` de 1 a 200 caracteres, que se guarda recortada; `FREE_SERVICE` exige `serviceId`. `value` admite hasta dos decimales y como mucho 99999999.99; si no → 400. Los campos que no corresponden al tipo se guardan nulos, aunque vengan en el body.
+- **400** si la forma es inválida, `burnAfterDays` está fuera de 1–365 o falta el campo que pide el tipo.
+- **403** `Only the Dueño of Business <id> can change its Rachas`: en las rutas de `/businesses/:id/...`, cualquier Usuario que no sea el Dueño, también un Empleado; en `/streak-rewards/:id`, un Empleado de ese Negocio que no es el Dueño.
+- **404** `Business not found` en las rutas de `/businesses/:id/...` si el Negocio no existe o está dado de baja (ADR 0024).
+- **404** `Streak reward <id> not found` si no existe, está borrada o es de otro. Un Usuario que no es Empleado del Negocio de la Recompensa recibe este 404, no el 403: un id no dice nada de los programas ajenos.
+- **422** `Service <id> cannot be a free Service for this program` si el Servicio no existe, no es del Negocio (o no es Servicio personal del Usuario) o está dado de baja. En el PATCH se valida solo si `serviceId` cambia: que el Servicio se haya dado de baja después no impide editar el resto de la Recompensa, aunque el body reenvíe el mismo. El front lo muestra debajo del selector de Servicio.
+
+## Racha en el detalle del Turno y Canjear (#431)
+
+Lo que el Empleado ve de la Racha del Cliente en el detalle del Turno, y cómo Canjea un Premio. Los dos exigen Sesión y que el Usuario sea quien atiende el Turno (como `/bookings/:id/history`).
+
+| Método | Ruta | Auth | Qué hace |
+|---|---|---|---|
+| GET | `/bookings/:id/streak` | sí | La Racha de la Ficha del Cliente del Turno, lo que le falta para la próxima Recompensa y sus Premios disponibles |
+| PATCH | `/bookings/:id/redeem-prize` | sí | Canjea un Premio de esa Ficha en este Turno |
+
+- La Ficha es la del Turno: el Negocio del Servicio (o el Usuario, en un Servicio personal) y el email del Cliente sin distinguir mayúsculas.
+- Respuesta del GET: `{ streak: { count, burnsAt: string | null } | null, nextReward: { reward: Reward, remaining: number } | null, prizes: Prize[] }`. `Reward` es el de las Rachas (#428).
+  - `streak` es `null` si el programa no está activo, no tiene Recompensas o no tiene Tiempo de quemada. Con el programa activo y sin Racha en curso es `{ count: 0, burnsAt: null }`: el front distingue "Rachas apagadas" de "todavía no empezó".
+  - `nextReward` es la Recompensa con la menor cantidad que la Racha todavía no alcanzó; en una repetible, su próximo múltiplo. `remaining` son los Turnos que faltan. Es `null` si todas las de "una vez" ya se alcanzaron, y siempre que `streak` es `null`.
+  - `prizes` son los Premios disponibles (sin Canjear y sin vencer), del más viejo al más nuevo, también con el programa apagado: ya estaban prometidos.
+- `Prize` = `{ id, type, value: number | null, description: string | null, serviceName: string | null, grantedAt, expiresAt: string | null }`. `serviceName` es la copia del nombre del Servicio al ganarlo.
+- Body del PATCH: `{ prizeId }`, un entero; si no, 400. Responde 200 con el `Prize` y `redeemedAt`. Se puede Canjear en un Turno de cualquier Servicio de la misma Ficha.
+- **404** `Booking not found` si el Turno no existe; **404** `Prize <id> not found` si el Premio no existe.
+- **403** `Only the assigned Employee can act on this Turno`.
+- **422** `Booking <id> is not accepted`; **422** `Prize <id> belongs to another Ficha del Cliente`; **422** `Prize <id> expired`, que vale desde el momento exacto de `expiresAt`.
+- **409** `Prize <id> already redeemed`. La escritura lleva la guarda `redeemedAt IS NULL`: de dos Canjes a la vez gana uno y el otro recibe este 409.
+- Se revisa en este orden: el Turno (404, 403), que esté aceptado (422), el Premio (404), que sea de la misma Ficha (422), que no esté Canjeado (409) y que no haya vencido (422). Un Premio ya Canjeado da 409 aunque además haya vencido, y un Premio que no existe en un Turno que no está aceptado da el 422 del Turno.
+
+## Racha en el Enlace del Turno y en la Confirmación de reserva (#432)
+
+Lo que el Cliente ve de su Racha. No hay endpoints nuevos.
+
+- `GET /booking-links/:secret` suma `streak: { count, burnsAt: string | null, nextReward: { reward: Reward, remaining: number } | null, prizes: Prize[] } | null`. `Reward` y `Prize` son los de `GET /bookings/:id/streak` (#431), y las reglas de `nextReward` y `prizes` son las mismas. La Ficha es la del Turno: el Negocio del Servicio (o el Usuario, en un Servicio personal) y el email del Cliente sin distinguir mayúsculas. El Enlace del Turno prueba que se tiene un Turno de ese email (ADR 0022): los Premios no se exponen en ningún otro lado sin Sesión.
+- `streak` es `null` si el programa no está activo, no tiene Recompensas o no tiene Tiempo de quemada, **aunque haya Premios disponibles** (un Negocio que apagó las Rachas no muestra nada al Cliente); y también si `count` es 0 y no hay Premios disponibles. Con `count` 0 y algún Premio disponible, `burnsAt` es `null`.
+- `streak` solo viaja en el GET: las respuestas de `PATCH /booking-links/:secret/...` no lo traen, así que el front lo vuelve a pedir si necesita refrescarlo.
+- Si la Racha no se puede leer, el Turno abre igual con `streak: null` y el error queda en el log.
+- Confirmación de reserva: con el programa activo y con Recompensas suma una línea al mail, también en el de una Serie. Con Racha en curso dice `Tu Racha: N Turnos. Te faltan M para <Recompensa>.` (`Te falta 1` si falta uno); con la cuenta en 0, `Empezá tu Racha: con M Turnos ganás <Recompensa>.`; si ya alcanzó todas las Recompensas de "una vez", solo `Tu Racha: N Turnos.`. La Racha es la de antes de ese Turno: todavía no se atendió. Sin programa activo el mail no cambia, y si la Racha no se puede leer el mail sale sin la línea.

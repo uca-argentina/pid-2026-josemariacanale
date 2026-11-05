@@ -466,6 +466,8 @@ describe('Servicio personal', () => {
         BOOKING.link,
         null,
         null,
+        undefined,
+        undefined,
       );
     });
 

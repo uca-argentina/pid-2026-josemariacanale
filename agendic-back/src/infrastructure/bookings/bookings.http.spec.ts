@@ -3,6 +3,7 @@ import {
   Booking,
   BookingActor,
   BookingStatus,
+  ClientBooking,
   CancellationCause,
 } from '../../domain/bookings/booking';
 import {
@@ -12,6 +13,7 @@ import {
   TooManyRequestsError,
 } from '../../domain/errors';
 import { OutOfOfficeReason } from '../../domain/out-of-office/out-of-office';
+import { StreakRewardType } from '../../domain/streaks/streak-program';
 import {
   ANAS_BRANCH,
   ANAS_BUSINESS,
@@ -181,6 +183,8 @@ describe('Turno', () => {
         BOOKING.link,
         null,
         BRANCH,
+        undefined,
+        undefined,
       );
     });
 
@@ -199,6 +203,8 @@ describe('Turno', () => {
         BOOKING.link,
         1.51,
         BRANCH,
+        undefined,
+        undefined,
       );
     });
 
@@ -216,7 +222,116 @@ describe('Turno', () => {
         BOOKING.link,
         null,
         BRANCH,
+        undefined,
+        undefined,
       );
+    });
+
+    describe('la línea de la Racha en la Confirmación de reserva', () => {
+      const GIFT_REWARD = {
+        id: 7,
+        requiredCount: 5,
+        repeatable: false,
+        type: StreakRewardType.GIFT,
+        value: null,
+        description: 'Un lavado',
+        service: null,
+        validForDays: null,
+      };
+      const attended = (daysAgo: number) => {
+        const startsAt = new Date(t.clock.now().getTime() - daysAgo * 86_400_000);
+        return {
+          email: VALID_BOOKING.clientEmail,
+          clientName: 'Carla',
+          link: `link-${daysAgo}`,
+          timeZone: ANAS_BRANCH.timeZone,
+          startsAt,
+          endsAt: new Date(startsAt.getTime() + 3_600_000),
+          status: BookingStatus.BOOKED,
+          noShowAt: null,
+          employeeNoShowAt: null,
+        };
+      };
+
+      beforeEach(() => {
+        t.streakPrizes.findOwnerByBookingId.mockResolvedValue({ kind: 'business', businessId: ANAS_BUSINESS.id });
+        t.streakPrizes.listAvailable.mockResolvedValue([]);
+        t.streakPrograms.findByOwnerIncludeRewards.mockResolvedValue({
+          active: true,
+          burnAfterDays: 30,
+          rewards: [GIFT_REWARD],
+        });
+        t.streakPrizes.listClientFileBookings.mockResolvedValue([attended(20), attended(10)]);
+      });
+
+      it('con el programa activo, manda cuántos Turnos lleva y qué Recompensa sigue', async () => {
+        await t.http.post('/bookings').send(VALID_BOOKING).expect(201);
+
+        expect(t.streakPrizes.findOwnerByBookingId).toHaveBeenCalledWith(BOOKING.id);
+        expect(t.mailer.sendBookingConfirmation).toHaveBeenCalledWith(
+          VALID_BOOKING.clientEmail,
+          BOOKING.link,
+          null,
+          BRANCH,
+          undefined,
+          {
+            count: 2,
+            next: {
+              reward: { type: 'GIFT', value: null, description: 'Un lavado', serviceName: null },
+              remaining: 3,
+            },
+          },
+        );
+      });
+
+      it('sin Racha en curso manda la cuenta en 0, para que el mail invite a empezarla', async () => {
+        t.streakPrizes.listClientFileBookings.mockResolvedValue([]);
+
+        await t.http.post('/bookings').send(VALID_BOOKING).expect(201);
+
+        expect(t.mailer.sendBookingConfirmation).toHaveBeenCalledWith(
+          VALID_BOOKING.clientEmail,
+          BOOKING.link,
+          null,
+          BRANCH,
+          undefined,
+          expect.objectContaining({ count: 0, next: expect.objectContaining({ remaining: 5 }) }),
+        );
+      });
+
+      it.each([
+        ['apagado', { active: false, burnAfterDays: 30, rewards: [GIFT_REWARD] }],
+        ['sin Recompensas', { active: true, burnAfterDays: 30, rewards: [] }],
+        ['inexistente', null],
+      ])('con el programa %s, el mail no cambia', async (_case, program) => {
+        t.streakPrograms.findByOwnerIncludeRewards.mockResolvedValue(program);
+
+        await t.http.post('/bookings').send(VALID_BOOKING).expect(201);
+
+        expect(t.mailer.sendBookingConfirmation).toHaveBeenCalledWith(
+          VALID_BOOKING.clientEmail,
+          BOOKING.link,
+          null,
+          BRANCH,
+          undefined,
+          undefined,
+        );
+      });
+
+      it('si no se puede leer la Racha, el Turno queda reservado y el mail sale sin la línea', async () => {
+        t.streakPrograms.findByOwnerIncludeRewards.mockRejectedValue(new Error('database down'));
+
+        await t.http.post('/bookings').send(VALID_BOOKING).expect(201);
+
+        expect(t.mailer.sendBookingConfirmation).toHaveBeenCalledWith(
+          VALID_BOOKING.clientEmail,
+          BOOKING.link,
+          null,
+          BRANCH,
+          undefined,
+          undefined,
+        );
+      });
     });
 
     it('leaves the Turno PENDING when the Servicio requires approval', async () => {
@@ -387,6 +502,29 @@ describe('Turno', () => {
         .send({ ...VALID_BOOKING, startsAt: '2026-01-02T10:00:00.000Z' }) // 07:00 ARG, after now but before the Franja
         .expect(422);
 
+      expect(t.bookings.create).not.toHaveBeenCalled();
+    });
+
+    it('answers 422 when an Ocupado externo appeared on the Calendario conectado since the slot was offered', async () => {
+      t.calendarConnections.findByUserId.mockResolvedValue({
+        provider: 'GOOGLE',
+        email: 'ana@gmail.com',
+        status: 'CONNECTED',
+        connectedAt: new Date('2025-12-01T00:00:00.000Z'),
+      });
+      t.calendarConnections.findCredentialsByUserId.mockResolvedValue({ provider: 'GOOGLE', refreshToken: 'refresh' });
+      t.calendarEvents.listBusy.mockResolvedValue([
+        {
+          start: new Date('2026-01-01T12:00:00.000Z'),
+          end: new Date('2026-01-01T13:00:00.000Z'),
+        },
+      ]);
+
+      const res = await t.http.post('/bookings').send(VALID_BOOKING).expect(422);
+
+      expect(res.body.message).toBe(
+        `Slot ${VALID_BOOKING.startsAt} is not available for Service ${SERVICE.id}`,
+      );
       expect(t.bookings.create).not.toHaveBeenCalled();
     });
 
@@ -838,22 +976,51 @@ describe('Turno', () => {
     it(
       action === 'reject'
         ? 'mails the Cliente the Aviso de cambio del Turno, and a mail failure does not undo the Rechazo'
-        : 'sends the Cliente no Aviso de cambio del Turno',
+        : 'mails the Cliente the Aviso de cambio del Turno, and a mail failure does not undo the Aceptación',
       async () => {
         t.mailer.sendBookingRejection.mockRejectedValue(new Error('SMTP down'));
+        t.mailer.sendBookingAcceptance.mockRejectedValue(new Error('SMTP down'));
 
-        await patch(CLERK_TOKEN).expect(200);
+        const res = await patch(CLERK_TOKEN).expect(200);
 
-        if (action === 'reject')
+        expect(res.body).toMatchObject({ id: BOOKING.id, status });
+        if (action === 'reject') {
           expect(t.mailer.sendBookingRejection).toHaveBeenCalledWith(
             BOOKING.clientEmail,
             BOOKING.link,
             null,
           );
-        else expect(t.mailer.sendBookingRejection).not.toHaveBeenCalled();
+          expect(t.mailer.sendBookingAcceptance).not.toHaveBeenCalled();
+        } else {
+          expect(t.mailer.sendBookingAcceptance).toHaveBeenCalledWith(
+            BOOKING.clientEmail,
+            BOOKING.link,
+            undefined,
+            undefined,
+          );
+          expect(t.mailer.sendBookingRejection).not.toHaveBeenCalled();
+        }
         expect(t.mailer.sendBookingCancellation).not.toHaveBeenCalled();
       },
     );
+
+    if (action === 'accept')
+      it('hands the confirmed calendar file to the Aviso de cambio del Turno', async () => {
+        t.bookings.findByLink.mockResolvedValue({
+          ...BOOKING,
+          employeeName: 'Luis',
+          service: { name: 'Corte' },
+          business: { name: 'Peluquería' },
+          branch: { name: 'Centro', address: 'Calle 1' },
+        } as unknown as ClientBooking);
+
+        await patch(CLERK_TOKEN).expect(200);
+
+        const invite = t.mailer.sendBookingAcceptance.mock.calls[0][3];
+        expect(invite).toMatchObject({ method: 'REQUEST' });
+        expect(invite?.ics).toContain('STATUS:CONFIRMED');
+        expect(invite?.ics).toContain(`UID:${BOOKING.link}@agendic`);
+      });
 
     it('answers 422 when the Turno is not PENDING', async () => {
       t.bookings.findById.mockResolvedValue(BOOKING);

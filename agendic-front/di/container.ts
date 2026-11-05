@@ -9,9 +9,12 @@ import { createBusinessesModule } from '@/di/modules/businesses.module';
 import { createEmployeesModule } from '@/di/modules/employees.module';
 import { createMonitoringModule } from '@/di/modules/monitoring.module';
 import { createAnalyticsModule } from '@/di/modules/analytics.module';
+import { createCalendarModule } from '@/di/modules/calendar.module';
 import { createOutOfOfficeModule } from '@/di/modules/out-of-office.module';
 import { createHolidaysModule } from '@/di/modules/holidays.module';
 import { createServicesModule } from '@/di/modules/services.module';
+import { createStreaksModule } from '@/di/modules/streaks.module';
+import { createBadgesModule } from '@/di/modules/badges.module';
 import { createUsersModule } from '@/di/modules/users.module';
 import { createWaitlistModule } from '@/di/modules/waitlist.module';
 
@@ -26,10 +29,13 @@ ApplicationContainer.load(Symbol('EmployeesModule'), createEmployeesModule());
 ApplicationContainer.load(Symbol('BookingsModule'), createBookingsModule());
 ApplicationContainer.load(Symbol('AvailabilitiesModule'), createAvailabilitiesModule());
 ApplicationContainer.load(Symbol('AnalyticsModule'), createAnalyticsModule());
+ApplicationContainer.load(Symbol('StreaksModule'), createStreaksModule());
 ApplicationContainer.load(Symbol('OutOfOfficeModule'), createOutOfOfficeModule());
+ApplicationContainer.load(Symbol('CalendarModule'), createCalendarModule());
 ApplicationContainer.load(Symbol('HolidaysModule'), createHolidaysModule());
 ApplicationContainer.load(Symbol('ServicesModule'), createServicesModule());
 ApplicationContainer.load(Symbol('UsersModule'), createUsersModule());
+ApplicationContainer.load(Symbol('BadgesModule'), createBadgesModule());
 ApplicationContainer.load(Symbol('WaitlistModule'), createWaitlistModule());
 
 export function getInjection<K extends keyof typeof DI_SYMBOLS>(symbol: K): DI_RETURN_TYPES[K] {

@@ -11,8 +11,24 @@ import {
     SlotUnavailableError,
 } from '@/src/entities/errors/booking';
 import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
+import {
+    PRIZE_EXPIRED_MESSAGE,
+    PRIZE_OF_ANOTHER_CLIENT_MESSAGE,
+    PrizeAlreadyRedeemedError,
+    PrizeExpiredError,
+    PrizeOfAnotherClientError,
+} from '@/src/entities/errors/streak';
 import { bookingHistorySchema, type BookingHistoryEntry } from '@/src/entities/models/booking-history';
+import { bookingStreakSchema, redeemedPrizeSchema, type BookingStreak, type RedeemedPrize } from '@/src/entities/models/booking-streak';
 import { userBookingSchema, type UserBooking } from '@/src/entities/models/user-booking';
+
+/** Los errores de Canjear que no son los de las demás acciones sobre un Turno: el 409 no es un horario ocupado. */
+const redeemFailure = (status: number, message: string): Error | undefined => {
+    if (status === 409) return new PrizeAlreadyRedeemedError(message);
+    if (status === 422 && PRIZE_EXPIRED_MESSAGE.test(message)) return new PrizeExpiredError(message);
+    if (status === 422 && PRIZE_OF_ANOTHER_CLIENT_MESSAGE.test(message)) return new PrizeOfAnotherClientError(message);
+    return undefined;
+};
 
 /** El body de Cancelar o Rechazar: el Motivo de cancelación si hay, si no ninguno. */
 const reasonBody = (reason?: string) => (reason === undefined ? undefined : { reason });
@@ -26,7 +42,8 @@ const seriesBody = (flag: 'series' | 'andFollowing', on: boolean, reason?: strin
  *
  * Cada método traduce el status del back así: el 400 de un Motivo de cancelación muy largo a
  * `CancellationReasonTooLongError`, 401 a `UnauthenticatedError`, 403 a
- * `BookingNotAllowedError`, 404 a `NotFoundError`, 409 a `SlotTakenError`, 422 a `BookingStateError`;
+ * `BookingNotAllowedError`, 404 a `NotFoundError`, 409 a `SlotTakenError`, 422 a `BookingStateError` (al Canjear un Premio, 409 a
+ * `PrizeAlreadyRedeemedError` y los 422 de Premio a `PrizeExpiredError` y `PrizeOfAnotherClientError`);
  * cualquier otro no-OK, o una falla de red, a `ApiRequestError`.
  */
 export class UserBookingsRepository implements IUserBookingsRepository {
@@ -135,7 +152,41 @@ export class UserBookingsRepository implements IUserBookingsRepository {
         await this.request('DELETE', `/bookings/${bookingId}/no-show`);
     }
 
-    private async request(method: string, path: string, body?: unknown) {
+    /**
+     * @throws {UnauthenticatedError} la API respondió 401
+     * @throws {BookingNotAllowedError} la API respondió 403
+     * @throws {NotFoundError} la API respondió 404
+     * @throws {ApiRequestError} falla de red, otro status no-OK o cuerpo inesperado
+     */
+    async getStreak(bookingId: number): Promise<BookingStreak> {
+        const json = await this.request('GET', `/bookings/${bookingId}/streak`);
+        try {
+            return bookingStreakSchema.parse(json);
+        } catch (cause) {
+            throw new ApiRequestError('GET /bookings/:id/streak responded with an unexpected body', { cause });
+        }
+    }
+
+    /**
+     * @throws {UnauthenticatedError} la API respondió 401
+     * @throws {BookingNotAllowedError} la API respondió 403
+     * @throws {NotFoundError} la API respondió 404
+     * @throws {PrizeAlreadyRedeemedError} la API respondió 409
+     * @throws {PrizeExpiredError} la API respondió 422 `Prize <id> expired`
+     * @throws {PrizeOfAnotherClientError} la API respondió 422 `Prize <id> belongs to another Ficha del Cliente`
+     * @throws {BookingStateError} la API respondió cualquier otro 422
+     * @throws {ApiRequestError} falla de red, otro status no-OK o cuerpo inesperado
+     */
+    async redeemPrize(bookingId: number, prizeId: number): Promise<RedeemedPrize> {
+        const json = await this.request('PATCH', `/bookings/${bookingId}/redeem-prize`, { prizeId }, redeemFailure);
+        try {
+            return redeemedPrizeSchema.parse(json);
+        } catch (cause) {
+            throw new ApiRequestError('PATCH /bookings/:id/redeem-prize responded with an unexpected body', { cause });
+        }
+    }
+
+    private async request(method: string, path: string, body?: unknown, translate?: (status: number, message: string) => Error | undefined) {
         const what = `${method} ${path}`;
         if (!this.apiUrl) throw new ApiRequestError(`${what} failed: API_URL is not set`);
         const token = await this.authenticationService.getAccessToken();
@@ -156,6 +207,8 @@ export class UserBookingsRepository implements IUserBookingsRepository {
 
         const json = await response.json().catch(() => undefined);
         const message = String(json?.message ?? `${what} responded ${response.status}`);
+        const translated = translate?.(response.status, message);
+        if (translated) throw translated;
         if (response.status === 400 && message === CANCELLATION_REASON_TOO_LONG_MESSAGE) throw new CancellationReasonTooLongError(message);
         if (response.status === 401) throw new UnauthenticatedError(message);
         if (response.status === 403) throw new BookingNotAllowedError(message);

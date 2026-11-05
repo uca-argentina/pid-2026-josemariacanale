@@ -122,3 +122,10 @@ export const employeesPerPeriodSchema = z.object({
     rows: z.array(z.object({ employeeId: z.number(), name: z.string(), imageUrl: z.string().nullable(), counts: z.array(z.number()) })),
 });
 export type EmployeesPerPeriod = z.infer<typeof employeesPerPeriodSchema>;
+
+/** El período y el Empleado de sus estadísticas dentro de un Negocio. */
+export const employeeStatsQuerySchema = businessAnalyticsQuerySchema.required({ employeeId: true }).omit({ branchId: true, serviceId: true });
+export type EmployeeStatsQuery = z.infer<typeof employeeStatsQuerySchema>;
+
+/** Los conteos de un Empleado en un Negocio y un período: lo que muestran las tarjetas de su perfil. */
+export type EmployeeStats = { attended: number; employeeNoShows: number; rescheduled: number; cancelled: number };
