@@ -5,6 +5,8 @@ import { listAnalyticsBusinessesUseCase } from '@/src/application/use-cases/anal
 import { getPersonalAnalyticsUseCase } from '@/src/application/use-cases/analytics/get-personal-analytics.use-case';
 import { getEmployeesPerPeriodUseCase } from '@/src/application/use-cases/analytics/get-employees-per-period.use-case';
 import { getEmployeesPerPeriodController } from '@/src/interface-adapters/controllers/analytics/get-employees-per-period.controller';
+import { getEmployeeStatsUseCase } from '@/src/application/use-cases/analytics/get-employee-stats.use-case';
+import { getEmployeeStatsController } from '@/src/interface-adapters/controllers/analytics/get-employee-stats.controller';
 import { downloadBookingsCsvUseCase } from '@/src/application/use-cases/analytics/download-bookings-csv.use-case';
 import { downloadBookingsCsvController } from '@/src/interface-adapters/controllers/analytics/download-bookings-csv.controller';
 import { AnalyticsRepository } from '@/src/infrastructure/repositories/analytics.repository';
@@ -66,6 +68,18 @@ export function createAnalyticsModule() {
             DI_SYMBOLS.IInstrumentationService,
             DI_SYMBOLS.IAuthenticationService,
             DI_SYMBOLS.IGetEmployeesPerPeriodUseCase,
+        ]);
+
+    analyticsModule
+        .bind(DI_SYMBOLS.IGetEmployeeStatsUseCase)
+        .toHigherOrderFunction(getEmployeeStatsUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IAnalyticsRepository]);
+
+    analyticsModule
+        .bind(DI_SYMBOLS.IGetEmployeeStatsController)
+        .toHigherOrderFunction(getEmployeeStatsController, [
+            DI_SYMBOLS.IInstrumentationService,
+            DI_SYMBOLS.IAuthenticationService,
+            DI_SYMBOLS.IGetEmployeeStatsUseCase,
         ]);
 
     analyticsModule

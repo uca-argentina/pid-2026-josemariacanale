@@ -1,4 +1,5 @@
 import type { IAvailabilitiesRepository } from '@/src/application/repositories/availabilities.repository.interface';
+import type { ICalendarConnectionsRepository } from '@/src/application/repositories/calendar-connections.repository.interface';
 import type { IHolidaysRepository } from '@/src/application/repositories/holidays.repository.interface';
 import type { IOutOfOfficeRepository } from '@/src/application/repositories/out-of-office.repository.interface';
 import type { IWaitlistRepository } from '@/src/application/repositories/waitlist.repository.interface';
@@ -92,6 +93,16 @@ export const outOfOfficeWith = (stubs: Partial<IOutOfOfficeRepository>): IOutOfO
     ...stubs,
 });
 
+export const calendarConnectionsWith = (stubs: Partial<ICalendarConnectionsRepository>): ICalendarConnectionsRepository => ({
+    getConnection: jest.fn(notStubbed('getConnection')),
+    startGoogleConnection: jest.fn(notStubbed('startGoogleConnection')),
+    startMicrosoftConnection: jest.fn(notStubbed('startMicrosoftConnection')),
+    disconnect: jest.fn(notStubbed('disconnect')),
+    listCalendars: jest.fn(notStubbed('listCalendars')),
+    setCheckedCalendars: jest.fn(notStubbed('setCheckedCalendars')),
+    ...stubs,
+});
+
 export const holidaysWith = (stubs: Partial<IHolidaysRepository>): IHolidaysRepository => ({
     listCountries: jest.fn(notStubbed('listCountries')),
     getSettings: jest.fn(notStubbed('getSettings')),
@@ -116,8 +127,9 @@ export const servicesWith = (stubs: Partial<IServicesRepository>): IServicesRepo
     ...stubs,
 });
 
-// The Imágenes de Sucursal methods of IBusinessesRepository, for tests that build the whole repository.
+// The methods of IBusinessesRepository that most tests don't exercise (Imágenes de Sucursal, Logo, listMyBusinesses), for tests that build the whole repository.
 export const imagesStub = {
+    listMyBusinesses: jest.fn(),
     uploadBranchImage: jest.fn(),
     deleteBranchImage: jest.fn(),
     reorderBranchImages: jest.fn(),

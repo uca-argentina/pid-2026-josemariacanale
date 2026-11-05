@@ -16,6 +16,7 @@ export const RESERVED_SLUGS: readonly string[] = [
   'trpc',
   'u',
   'lista-de-espera',
+  'logros',
   'streaks',
 ];
 

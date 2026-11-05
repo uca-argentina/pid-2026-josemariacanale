@@ -2,6 +2,8 @@ import { createModule } from '@evyweb/ioctopus';
 import { DI_SYMBOLS } from '@/di/types';
 import { createBusinessUseCase } from '@/src/application/use-cases/businesses/create-business.use-case';
 import { listBusinessesUseCase } from '@/src/application/use-cases/businesses/list-businesses.use-case';
+import { listMyBusinessesUseCase } from '@/src/application/use-cases/businesses/list-my-businesses.use-case';
+import { listMyBusinessesController } from '@/src/interface-adapters/controllers/businesses/list-my-businesses.controller';
 import { getMyBusinessController } from '@/src/interface-adapters/controllers/businesses/get-my-business.controller';
 import { updateBusinessUseCase } from '@/src/application/use-cases/businesses/update-business.use-case';
 import { updateBusinessController } from '@/src/interface-adapters/controllers/businesses/update-business.controller';
@@ -49,6 +51,19 @@ export function createBusinessesModule() {
     businessesModule
         .bind(DI_SYMBOLS.IListBusinessesUseCase)
         .toHigherOrderFunction(listBusinessesUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IBusinessesRepository]);
+
+    businessesModule
+        .bind(DI_SYMBOLS.IListMyBusinessesUseCase)
+        .toHigherOrderFunction(listMyBusinessesUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IBusinessesRepository]);
+
+    businessesModule
+        .bind(DI_SYMBOLS.IListMyBusinessesController)
+        .toHigherOrderFunction(listMyBusinessesController, [
+            DI_SYMBOLS.IInstrumentationService,
+            DI_SYMBOLS.IAuthenticationService,
+            DI_SYMBOLS.IListMyBusinessesUseCase,
+            DI_SYMBOLS.IListBusinessBranchesUseCase,
+        ]);
 
     businessesModule
         .bind(DI_SYMBOLS.IGetMyBusinessController)

@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { createTransport, Transporter } from 'nodemailer';
+import { ClientInvite } from '../domain/calendar/client-invite';
 import {
   CausedCancellation,
   Mailer,
@@ -24,6 +25,18 @@ export function readFrontendUrl(
 /** The Servicio name is typed by the Dueño; it goes into HTML. */
 const escapeHtml = (text: string) =>
   text.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+
+/** The archivo de calendario as nodemailer attaches it: a `text/calendar` alternative with its `METHOD`, which is what Gmail and Outlook read as an invitation. */
+const calendarOf = (invite?: ClientInvite) =>
+  invite ? { icalEvent: { method: invite.method, content: invite.ics } } : {};
+
+/** "Agregar a Google Calendar" and "Agregar a Outlook" of a Turno. */
+const addLinks = (invite: ClientInvite | undefined, link: string) => {
+  const urls = invite?.events.find((event) => event.link === link);
+  return urls
+    ? ` <a href="${escapeHtml(urls.googleUrl)}">Agregar a Google Calendar</a> · <a href="${escapeHtml(urls.outlookUrl)}">Agregar a Outlook</a>`
+    : '';
+};
 
 /** Day and hour of a Turno in the zone it is shown in; the same in the Invitación a calificar and the Aviso con Causa. */
 const formatWhen = (startsAt: Date, timeZone: string) =>
@@ -92,6 +105,7 @@ export class NodemailerMailer implements Mailer {
     depositAmount: number | null,
     series?: SeriesConfirmation,
     streak?: StreakProgress,
+    invite?: ClientInvite,
   ) {
     const racha = streak ? ` ${streakLine(streak)}` : '';
     const deposit =
@@ -103,12 +117,13 @@ export class NodemailerMailer implements Mailer {
         depositAmount === null
           ? ''
           : ` Seña per Turno: ${depositAmount.toFixed(2)}. You can pay each from its own link.`;
-      const items = this.seriesItems(series);
+      const items = this.seriesItems(series, invite);
       await this.transporter.sendMail({
         from: process.env.SMTP_FROM,
         to: email,
         subject: 'Your bookings are confirmed',
         html: `<p>Your Turnos are confirmed.${seriesDeposit}${racha} Manage each one from its link:</p><ul>${items}</ul>`,
+        ...calendarOf(invite),
       });
       return;
     }
@@ -117,6 +132,8 @@ export class NodemailerMailer implements Mailer {
       link,
       'Your booking is confirmed',
       `Your Turno is confirmed.${deposit}${racha} Manage it here`,
+      invite,
+      addLinks(invite, link),
     );
   }
 
@@ -126,9 +143,10 @@ export class NodemailerMailer implements Mailer {
     link: string,
     reason?: string | null,
     series?: SeriesNotice,
+    invite?: ClientInvite,
   ) {
     if (series) {
-      await this.sendSeriesMail(email, 'Your bookings were cancelled', 'Your Turnos were cancelled', reason, series);
+      await this.sendSeriesMail(email, 'Your bookings were cancelled', 'Your Turnos were cancelled', reason, series, invite);
       return;
     }
     await this.sendBookingMail(
@@ -136,16 +154,22 @@ export class NodemailerMailer implements Mailer {
       link,
       'Your booking was cancelled',
       withReason('Your Turno was cancelled', reason) + '. See it here',
+      invite,
     );
   }
 
   /** Avisa que el Turno pasó a otro horario. */
-  async sendBookingReschedule(email: string, link: string) {
+  async sendBookingReschedule(
+    email: string,
+    link: string,
+    invite?: ClientInvite,
+  ) {
     await this.sendBookingMail(
       email,
       link,
       'Your booking was rescheduled',
       'Your Turno was moved to another time. See the new time here',
+      invite,
     );
   }
 
@@ -155,9 +179,10 @@ export class NodemailerMailer implements Mailer {
     link: string,
     reason?: string | null,
     series?: SeriesNotice,
+    invite?: ClientInvite,
   ) {
     if (series) {
-      await this.sendSeriesMail(email, 'Your bookings were rejected', 'Your Turnos were rejected', reason, series);
+      await this.sendSeriesMail(email, 'Your bookings were rejected', 'Your Turnos were rejected', reason, series, invite);
       return;
     }
     await this.sendBookingMail(
@@ -165,6 +190,28 @@ export class NodemailerMailer implements Mailer {
       link,
       'Your booking was rejected',
       withReason('Your Turno was rejected', reason) + '. See it here',
+      invite,
+    );
+  }
+
+  /** Avisa que el Negocio aceptó el Turno pendiente; de varios Turnos de una Serie, los lista en un solo mail. */
+  async sendBookingAcceptance(
+    email: string,
+    link: string,
+    series?: SeriesNotice,
+    invite?: ClientInvite,
+  ) {
+    if (series) {
+      await this.sendSeriesMail(email, 'Your bookings were accepted', 'Your Turnos were accepted', null, series, invite);
+      return;
+    }
+    await this.sendBookingMail(
+      email,
+      link,
+      'Your booking was accepted',
+      'Your Turno was accepted. See it here',
+      invite,
+      addLinks(invite, link),
     );
   }
 
@@ -215,7 +262,7 @@ export class NodemailerMailer implements Mailer {
   }
 
   /** One `<li>` per Turno of the Serie: its date, in the zone of the Turno, and its Enlace del Turno. */
-  private seriesItems(series: SeriesConfirmation) {
+  private seriesItems(series: SeriesConfirmation, invite?: ClientInvite) {
     const when = new Intl.DateTimeFormat('es-AR', {
       dateStyle: 'full',
       timeStyle: 'short',
@@ -225,7 +272,7 @@ export class NodemailerMailer implements Mailer {
     return series.bookings
       .map(({ startsAt, link }) => {
         const url = `${this.frontendUrl}/turnos/${link}`;
-        return `<li>${when.format(startsAt)}: <a href="${url}">${url}</a></li>`;
+        return `<li>${when.format(startsAt)}: <a href="${url}">${url}</a>${addLinks(invite, link)}</li>`;
       })
       .join('');
   }
@@ -236,12 +283,14 @@ export class NodemailerMailer implements Mailer {
     text: string,
     reason: string | null | undefined,
     series: SeriesNotice,
+    invite?: ClientInvite,
   ) {
     await this.transporter.sendMail({
       from: process.env.SMTP_FROM,
       to: email,
       subject,
       html: `<p>${withReason(text, reason)}. See each one here:</p><ul>${this.seriesItems(series)}</ul>`,
+      ...calendarOf(invite),
     });
   }
 
@@ -253,6 +302,7 @@ export class NodemailerMailer implements Mailer {
   async sendBookingCancellationWithCause(
     email: string,
     bookings: CausedCancellation[],
+    invite?: ClientInvite,
   ) {
     const sameReason = bookings.every((b) => b.reason === bookings[0].reason);
     const items = bookings.map((b) => {
@@ -269,6 +319,7 @@ export class NodemailerMailer implements Mailer {
           ? 'Tu turno fue cancelado'
           : 'Tus turnos fueron cancelados',
       html: `${intro}<ul>${items.join('')}</ul>`,
+      ...calendarOf(invite),
     });
   }
 
@@ -329,13 +380,16 @@ export class NodemailerMailer implements Mailer {
     link: string,
     subject: string,
     text: string,
+    invite?: ClientInvite,
+    extra = '',
   ) {
     const url = `${this.frontendUrl}/turnos/${link}`;
     await this.transporter.sendMail({
       from: process.env.SMTP_FROM,
       to: email,
       subject,
-      html: `<p>${text}: <a href="${url}">${url}</a></p>`,
+      html: `<p>${text}: <a href="${url}">${url}</a></p>${extra && `<p>${extra.trim()}</p>`}`,
+      ...calendarOf(invite),
     });
   }
 }

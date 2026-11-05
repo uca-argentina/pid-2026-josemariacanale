@@ -22,6 +22,7 @@ import type { IRetireCabinController } from '@/src/interface-adapters/controller
 import type { IBranchesRepository } from '@/src/application/repositories/branches.repository.interface';
 import type { ICreateBranchUseCase } from '@/src/application/use-cases/branches/create-branch.use-case';
 import type { IUpdateBranchUseCase } from '@/src/application/use-cases/branches/update-branch.use-case';
+import type { IListBusinessBranchesUseCase } from '@/src/application/use-cases/branches/list-business-branches.use-case';
 import type { IListBranchesWithImagesUseCase } from '@/src/application/use-cases/branches/list-branches-with-images.use-case';
 import type { ICreateBranchController } from '@/src/interface-adapters/controllers/branches/create-branch.controller';
 import type { IUpdateBranchController } from '@/src/interface-adapters/controllers/branches/update-branch.controller';
@@ -36,6 +37,8 @@ import type { IGetPublicBranchController } from '@/src/interface-adapters/contro
 import type { IAuthenticationService } from '@/src/application/services/authentication.service.interface';
 import type { ICrashReporterService } from '@/src/application/services/crash-reporter.service.interface';
 import type { IInstrumentationService } from '@/src/application/services/instrumentation.service.interface';
+import type { IListMyBusinessesUseCase } from '@/src/application/use-cases/businesses/list-my-businesses.use-case';
+import type { IListMyBusinessesController } from '@/src/interface-adapters/controllers/businesses/list-my-businesses.controller';
 import type { IListBusinessesUseCase } from '@/src/application/use-cases/businesses/list-businesses.use-case';
 import type { IGetMyBusinessController } from '@/src/interface-adapters/controllers/businesses/get-my-business.controller';
 import type { ICreateBusinessUseCase } from '@/src/application/use-cases/businesses/create-business.use-case';
@@ -58,7 +61,7 @@ import type { IListEmployeesUseCase } from '@/src/application/use-cases/employee
 import type { IListInvitationsUseCase } from '@/src/application/use-cases/employees/list-invitations.use-case';
 import type { IAddEmployeeUseCase } from '@/src/application/use-cases/employees/add-employee.use-case';
 import type { IRetireEmployeeUseCase } from '@/src/application/use-cases/employees/retire-employee.use-case';
-import type { IListMyEmployeesController } from '@/src/interface-adapters/controllers/employees/list-my-employees.controller';
+import type { IListBusinessStaffController } from '@/src/interface-adapters/controllers/employees/list-business-staff.controller';
 import type { IAddEmployeeController } from '@/src/interface-adapters/controllers/employees/add-employee.controller';
 import type { IListMyInvitationsUseCase } from '@/src/application/use-cases/employees/list-my-invitations.use-case';
 import type { IAcceptInvitationUseCase } from '@/src/application/use-cases/employees/accept-invitation.use-case';
@@ -104,6 +107,13 @@ import type { IRetireServiceController } from '@/src/interface-adapters/controll
 import type { IAssignEmployeeController } from '@/src/interface-adapters/controllers/services/assign-employee.controller';
 import type { IRemoveEmployeeController } from '@/src/interface-adapters/controllers/services/remove-employee.controller';
 import type { IChangeEmployeeAvailabilityController } from '@/src/interface-adapters/controllers/services/change-employee-availability.controller';
+import type { IBadgesRepository } from '@/src/application/repositories/badges.repository.interface';
+import type { IListMyBadgesUseCase } from '@/src/application/use-cases/badges/list-my-badges.use-case';
+import type { IListUnseenBadgesUseCase } from '@/src/application/use-cases/badges/list-unseen-badges.use-case';
+import type { IMarkBadgesSeenUseCase } from '@/src/application/use-cases/badges/mark-badges-seen.use-case';
+import type { IListUnseenBadgesController } from '@/src/interface-adapters/controllers/badges/list-unseen-badges.controller';
+import type { IMarkBadgesSeenController } from '@/src/interface-adapters/controllers/badges/mark-badges-seen.controller';
+import type { IListMyBadgesController } from '@/src/interface-adapters/controllers/badges/list-my-badges.controller';
 import type { IUsersRepository } from '@/src/application/repositories/users.repository.interface';
 import type { IGetMeUseCase } from '@/src/application/use-cases/users/get-me.use-case';
 import type { IUpdateMySlugUseCase } from '@/src/application/use-cases/users/update-my-slug.use-case';
@@ -170,11 +180,26 @@ import type { IGetBusinessAnalyticsUseCase } from '@/src/application/use-cases/a
 import type { IListAnalyticsBusinessesUseCase } from '@/src/application/use-cases/analytics/list-analytics-businesses.use-case';
 import type { IDownloadBookingsCsvUseCase } from '@/src/application/use-cases/analytics/download-bookings-csv.use-case';
 import type { IDownloadBookingsCsvController } from '@/src/interface-adapters/controllers/analytics/download-bookings-csv.controller';
+import type { IGetEmployeeStatsUseCase } from '@/src/application/use-cases/analytics/get-employee-stats.use-case';
+import type { IGetEmployeeStatsController } from '@/src/interface-adapters/controllers/analytics/get-employee-stats.controller';
 import type { IGetEmployeesPerPeriodUseCase } from '@/src/application/use-cases/analytics/get-employees-per-period.use-case';
 import type { IGetEmployeesPerPeriodController } from '@/src/interface-adapters/controllers/analytics/get-employees-per-period.controller';
 import type { IGetBusinessAnalyticsController } from '@/src/interface-adapters/controllers/analytics/get-business-analytics.controller';
 import type { IListAnalyticsBusinessesController } from '@/src/interface-adapters/controllers/analytics/list-analytics-businesses.controller';
 import type { IGetPersonalAnalyticsController } from '@/src/interface-adapters/controllers/analytics/get-personal-analytics.controller';
+import type { ICalendarConnectionsRepository } from '@/src/application/repositories/calendar-connections.repository.interface';
+import type { IGetCalendarConnectionUseCase } from '@/src/application/use-cases/calendar/get-calendar-connection.use-case';
+import type { IStartGoogleCalendarConnectionUseCase } from '@/src/application/use-cases/calendar/start-google-calendar-connection.use-case';
+import type { IStartMicrosoftCalendarConnectionUseCase } from '@/src/application/use-cases/calendar/start-microsoft-calendar-connection.use-case';
+import type { IDisconnectCalendarUseCase } from '@/src/application/use-cases/calendar/disconnect-calendar.use-case';
+import type { IGetMyCalendarConnectionController } from '@/src/interface-adapters/controllers/calendar/get-my-calendar-connection.controller';
+import type { IStartGoogleCalendarConnectionController } from '@/src/interface-adapters/controllers/calendar/start-google-calendar-connection.controller';
+import type { IStartMicrosoftCalendarConnectionController } from '@/src/interface-adapters/controllers/calendar/start-microsoft-calendar-connection.controller';
+import type { IDisconnectCalendarController } from '@/src/interface-adapters/controllers/calendar/disconnect-calendar.controller';
+import type { IListAccountCalendarsUseCase } from '@/src/application/use-cases/calendar/list-account-calendars.use-case';
+import type { ISetCheckedCalendarsUseCase } from '@/src/application/use-cases/calendar/set-checked-calendars.use-case';
+import type { IListAccountCalendarsController } from '@/src/interface-adapters/controllers/calendar/list-account-calendars.controller';
+import type { ISetCheckedCalendarsController } from '@/src/interface-adapters/controllers/calendar/set-checked-calendars.controller';
 import type { IOutOfOfficeRepository } from '@/src/application/repositories/out-of-office.repository.interface';
 import type { IListOutOfOfficeUseCase } from '@/src/application/use-cases/out-of-office/list-out-of-office.use-case';
 import type { IListMyOutOfOfficeController } from '@/src/interface-adapters/controllers/out-of-office/list-my-out-of-office.controller';
@@ -227,6 +252,7 @@ export const DI_SYMBOLS = {
     IWaitlistRepository: Symbol.for('IWaitlistRepository'),
     IAvailabilitiesRepository: Symbol.for('IAvailabilitiesRepository'),
     IOutOfOfficeRepository: Symbol.for('IOutOfOfficeRepository'),
+    ICalendarConnectionsRepository: Symbol.for('ICalendarConnectionsRepository'),
     IAnalyticsRepository: Symbol.for('IAnalyticsRepository'),
     IHolidaysRepository: Symbol.for('IHolidaysRepository'),
     IServicesRepository: Symbol.for('IServicesRepository'),
@@ -234,6 +260,7 @@ export const DI_SYMBOLS = {
     ICreateBranchUseCase: Symbol.for('ICreateBranchUseCase'),
     IUpdateBranchUseCase: Symbol.for('IUpdateBranchUseCase'),
     IListBranchesWithImagesUseCase: Symbol.for('IListBranchesWithImagesUseCase'),
+    IListBusinessBranchesUseCase: Symbol.for('IListBusinessBranchesUseCase'),
     IListCabinsUseCase: Symbol.for('IListCabinsUseCase'),
     ICreateCabinUseCase: Symbol.for('ICreateCabinUseCase'),
     IRenameCabinUseCase: Symbol.for('IRenameCabinUseCase'),
@@ -245,6 +272,7 @@ export const DI_SYMBOLS = {
     IDeleteStreakRewardUseCase: Symbol.for('IDeleteStreakRewardUseCase'),
     ICreateBusinessUseCase: Symbol.for('ICreateBusinessUseCase'),
     IListBusinessesUseCase: Symbol.for('IListBusinessesUseCase'),
+    IListMyBusinessesUseCase: Symbol.for('IListMyBusinessesUseCase'),
     IUpdateBusinessUseCase: Symbol.for('IUpdateBusinessUseCase'),
     IUploadBusinessLogoUseCase: Symbol.for('IUploadBusinessLogoUseCase'),
     IDeleteBusinessLogoUseCase: Symbol.for('IDeleteBusinessLogoUseCase'),
@@ -307,8 +335,15 @@ export const DI_SYMBOLS = {
     IListAnalyticsBusinessesUseCase: Symbol.for('IListAnalyticsBusinessesUseCase'),
     IGetBusinessAnalyticsUseCase: Symbol.for('IGetBusinessAnalyticsUseCase'),
     IGetEmployeesPerPeriodUseCase: Symbol.for('IGetEmployeesPerPeriodUseCase'),
+    IGetEmployeeStatsUseCase: Symbol.for('IGetEmployeeStatsUseCase'),
     IDownloadBookingsCsvUseCase: Symbol.for('IDownloadBookingsCsvUseCase'),
     IListOutOfOfficeUseCase: Symbol.for('IListOutOfOfficeUseCase'),
+    IGetCalendarConnectionUseCase: Symbol.for('IGetCalendarConnectionUseCase'),
+    IStartGoogleCalendarConnectionUseCase: Symbol.for('IStartGoogleCalendarConnectionUseCase'),
+    IStartMicrosoftCalendarConnectionUseCase: Symbol.for('IStartMicrosoftCalendarConnectionUseCase'),
+    IDisconnectCalendarUseCase: Symbol.for('IDisconnectCalendarUseCase'),
+    IListAccountCalendarsUseCase: Symbol.for('IListAccountCalendarsUseCase'),
+    ISetCheckedCalendarsUseCase: Symbol.for('ISetCheckedCalendarsUseCase'),
     ICreateOutOfOfficeUseCase: Symbol.for('ICreateOutOfOfficeUseCase'),
     IUpdateOutOfOfficeUseCase: Symbol.for('IUpdateOutOfOfficeUseCase'),
     IDeleteOutOfOfficeUseCase: Symbol.for('IDeleteOutOfOfficeUseCase'),
@@ -337,6 +372,7 @@ export const DI_SYMBOLS = {
     IDeleteStreakRewardController: Symbol.for('IDeleteStreakRewardController'),
     ICreateBusinessController: Symbol.for('ICreateBusinessController'),
     IGetMyBusinessController: Symbol.for('IGetMyBusinessController'),
+    IListMyBusinessesController: Symbol.for('IListMyBusinessesController'),
     IUpdateBusinessController: Symbol.for('IUpdateBusinessController'),
     IUploadBusinessLogoController: Symbol.for('IUploadBusinessLogoController'),
     IDeleteBusinessLogoController: Symbol.for('IDeleteBusinessLogoController'),
@@ -346,7 +382,7 @@ export const DI_SYMBOLS = {
     IGetPublicBusinessController: Symbol.for('IGetPublicBusinessController'),
     IGetPublicBranchController: Symbol.for('IGetPublicBranchController'),
     IResolveBookingLinkController: Symbol.for('IResolveBookingLinkController'),
-    IListMyEmployeesController: Symbol.for('IListMyEmployeesController'),
+    IListBusinessStaffController: Symbol.for('IListBusinessStaffController'),
     IAddEmployeeController: Symbol.for('IAddEmployeeController'),
     IRetireEmployeeController: Symbol.for('IRetireEmployeeController'),
     IListMyServicesController: Symbol.for('IListMyServicesController'),
@@ -357,6 +393,13 @@ export const DI_SYMBOLS = {
     IAssignEmployeeController: Symbol.for('IAssignEmployeeController'),
     IRemoveEmployeeController: Symbol.for('IRemoveEmployeeController'),
     IChangeEmployeeAvailabilityController: Symbol.for('IChangeEmployeeAvailabilityController'),
+    IBadgesRepository: Symbol.for('IBadgesRepository'),
+    IListMyBadgesUseCase: Symbol.for('IListMyBadgesUseCase'),
+    IListMyBadgesController: Symbol.for('IListMyBadgesController'),
+    IListUnseenBadgesUseCase: Symbol.for('IListUnseenBadgesUseCase'),
+    IMarkBadgesSeenUseCase: Symbol.for('IMarkBadgesSeenUseCase'),
+    IListUnseenBadgesController: Symbol.for('IListUnseenBadgesController'),
+    IMarkBadgesSeenController: Symbol.for('IMarkBadgesSeenController'),
     IUsersRepository: Symbol.for('IUsersRepository'),
     IGetMeUseCase: Symbol.for('IGetMeUseCase'),
     IUpdateMySlugUseCase: Symbol.for('IUpdateMySlugUseCase'),
@@ -412,8 +455,15 @@ export const DI_SYMBOLS = {
     IListAnalyticsBusinessesController: Symbol.for('IListAnalyticsBusinessesController'),
     IGetBusinessAnalyticsController: Symbol.for('IGetBusinessAnalyticsController'),
     IGetEmployeesPerPeriodController: Symbol.for('IGetEmployeesPerPeriodController'),
+    IGetEmployeeStatsController: Symbol.for('IGetEmployeeStatsController'),
     IDownloadBookingsCsvController: Symbol.for('IDownloadBookingsCsvController'),
     IListMyOutOfOfficeController: Symbol.for('IListMyOutOfOfficeController'),
+    IGetMyCalendarConnectionController: Symbol.for('IGetMyCalendarConnectionController'),
+    IStartGoogleCalendarConnectionController: Symbol.for('IStartGoogleCalendarConnectionController'),
+    IStartMicrosoftCalendarConnectionController: Symbol.for('IStartMicrosoftCalendarConnectionController'),
+    IDisconnectCalendarController: Symbol.for('IDisconnectCalendarController'),
+    IListAccountCalendarsController: Symbol.for('IListAccountCalendarsController'),
+    ISetCheckedCalendarsController: Symbol.for('ISetCheckedCalendarsController'),
     ICreateOutOfOfficeController: Symbol.for('ICreateOutOfOfficeController'),
     IUpdateOutOfOfficeController: Symbol.for('IUpdateOutOfOfficeController'),
     IDeleteOutOfOfficeController: Symbol.for('IDeleteOutOfOfficeController'),
@@ -445,6 +495,7 @@ export interface DI_RETURN_TYPES {
     IWaitlistRepository: IWaitlistRepository;
     IAvailabilitiesRepository: IAvailabilitiesRepository;
     IOutOfOfficeRepository: IOutOfOfficeRepository;
+    ICalendarConnectionsRepository: ICalendarConnectionsRepository;
     IAnalyticsRepository: IAnalyticsRepository;
     IHolidaysRepository: IHolidaysRepository;
     IServicesRepository: IServicesRepository;
@@ -452,6 +503,7 @@ export interface DI_RETURN_TYPES {
     ICreateBranchUseCase: ICreateBranchUseCase;
     IUpdateBranchUseCase: IUpdateBranchUseCase;
     IListBranchesWithImagesUseCase: IListBranchesWithImagesUseCase;
+    IListBusinessBranchesUseCase: IListBusinessBranchesUseCase;
     IListCabinsUseCase: IListCabinsUseCase;
     ICreateCabinUseCase: ICreateCabinUseCase;
     IRenameCabinUseCase: IRenameCabinUseCase;
@@ -463,6 +515,7 @@ export interface DI_RETURN_TYPES {
     IDeleteStreakRewardUseCase: IDeleteStreakRewardUseCase;
     ICreateBusinessUseCase: ICreateBusinessUseCase;
     IListBusinessesUseCase: IListBusinessesUseCase;
+    IListMyBusinessesUseCase: IListMyBusinessesUseCase;
     IUpdateBusinessUseCase: IUpdateBusinessUseCase;
     IUploadBusinessLogoUseCase: IUploadBusinessLogoUseCase;
     IDeleteBusinessLogoUseCase: IDeleteBusinessLogoUseCase;
@@ -525,8 +578,15 @@ export interface DI_RETURN_TYPES {
     IListAnalyticsBusinessesUseCase: IListAnalyticsBusinessesUseCase;
     IGetBusinessAnalyticsUseCase: IGetBusinessAnalyticsUseCase;
     IGetEmployeesPerPeriodUseCase: IGetEmployeesPerPeriodUseCase;
+    IGetEmployeeStatsUseCase: IGetEmployeeStatsUseCase;
     IDownloadBookingsCsvUseCase: IDownloadBookingsCsvUseCase;
     IListOutOfOfficeUseCase: IListOutOfOfficeUseCase;
+    IGetCalendarConnectionUseCase: IGetCalendarConnectionUseCase;
+    IStartGoogleCalendarConnectionUseCase: IStartGoogleCalendarConnectionUseCase;
+    IStartMicrosoftCalendarConnectionUseCase: IStartMicrosoftCalendarConnectionUseCase;
+    IDisconnectCalendarUseCase: IDisconnectCalendarUseCase;
+    IListAccountCalendarsUseCase: IListAccountCalendarsUseCase;
+    ISetCheckedCalendarsUseCase: ISetCheckedCalendarsUseCase;
     ICreateOutOfOfficeUseCase: ICreateOutOfOfficeUseCase;
     IUpdateOutOfOfficeUseCase: IUpdateOutOfOfficeUseCase;
     IDeleteOutOfOfficeUseCase: IDeleteOutOfOfficeUseCase;
@@ -555,6 +615,7 @@ export interface DI_RETURN_TYPES {
     IDeleteStreakRewardController: IDeleteStreakRewardController;
     ICreateBusinessController: ICreateBusinessController;
     IGetMyBusinessController: IGetMyBusinessController;
+    IListMyBusinessesController: IListMyBusinessesController;
     IUpdateBusinessController: IUpdateBusinessController;
     IUploadBusinessLogoController: IUploadBusinessLogoController;
     IDeleteBusinessLogoController: IDeleteBusinessLogoController;
@@ -564,7 +625,7 @@ export interface DI_RETURN_TYPES {
     IGetPublicBusinessController: IGetPublicBusinessController;
     IGetPublicBranchController: IGetPublicBranchController;
     IResolveBookingLinkController: IResolveBookingLinkController;
-    IListMyEmployeesController: IListMyEmployeesController;
+    IListBusinessStaffController: IListBusinessStaffController;
     IAddEmployeeController: IAddEmployeeController;
     IRetireEmployeeController: IRetireEmployeeController;
     IListMyServicesController: IListMyServicesController;
@@ -576,6 +637,13 @@ export interface DI_RETURN_TYPES {
     IRemoveEmployeeController: IRemoveEmployeeController;
     IChangeEmployeeAvailabilityController: IChangeEmployeeAvailabilityController;
     IUsersRepository: IUsersRepository;
+    IBadgesRepository: IBadgesRepository;
+    IListMyBadgesUseCase: IListMyBadgesUseCase;
+    IListMyBadgesController: IListMyBadgesController;
+    IListUnseenBadgesUseCase: IListUnseenBadgesUseCase;
+    IMarkBadgesSeenUseCase: IMarkBadgesSeenUseCase;
+    IListUnseenBadgesController: IListUnseenBadgesController;
+    IMarkBadgesSeenController: IMarkBadgesSeenController;
     IGetMeUseCase: IGetMeUseCase;
     IUpdateMySlugUseCase: IUpdateMySlugUseCase;
     IGetUserPageUseCase: IGetUserPageUseCase;
@@ -630,8 +698,15 @@ export interface DI_RETURN_TYPES {
     IListAnalyticsBusinessesController: IListAnalyticsBusinessesController;
     IGetBusinessAnalyticsController: IGetBusinessAnalyticsController;
     IGetEmployeesPerPeriodController: IGetEmployeesPerPeriodController;
+    IGetEmployeeStatsController: IGetEmployeeStatsController;
     IDownloadBookingsCsvController: IDownloadBookingsCsvController;
     IListMyOutOfOfficeController: IListMyOutOfOfficeController;
+    IGetMyCalendarConnectionController: IGetMyCalendarConnectionController;
+    IStartGoogleCalendarConnectionController: IStartGoogleCalendarConnectionController;
+    IStartMicrosoftCalendarConnectionController: IStartMicrosoftCalendarConnectionController;
+    IDisconnectCalendarController: IDisconnectCalendarController;
+    IListAccountCalendarsController: IListAccountCalendarsController;
+    ISetCheckedCalendarsController: ISetCheckedCalendarsController;
     ICreateOutOfOfficeController: ICreateOutOfOfficeController;
     IUpdateOutOfOfficeController: IUpdateOutOfOfficeController;
     IDeleteOutOfOfficeController: IDeleteOutOfOfficeController;

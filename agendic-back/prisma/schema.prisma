@@ -45,12 +45,32 @@ enum CancellationCause {
   SCHEDULE_CHANGE
 }
 
+/// Proveedor del Calendario conectado (ADR 0036).
+enum CalendarProvider {
+  GOOGLE
+  MICROSOFT
+}
+
+/// Estado del Calendario conectado (ADR 0036): DISCONNECTED es una conexión que Google dejó de aceptar.
+enum CalendarConnectionStatus {
+  CONNECTED
+  DISCONNECTED
+}
+
 enum ServiceCategory {
   CLINICA
   SPA
   GIMNASIO
   ACADEMIA
   OTRO
+}
+
+/// Nivel de una Insignia (CONTEXT.md, Reconocimiento). Una Insignia de un solo Nivel usa BRONZE.
+enum BadgeLevel {
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
 }
 
 enum OutOfOfficeReason {
@@ -80,17 +100,20 @@ model User {
   timeFormat Int       @default(24) // preferencia de hora: 12 o 24 h
   weekStart  Int       @default(1) // primer día de la semana, 0 = domingo como dayjs().day()
 
-  businesses      Business[]
-  services        Service[]
-  bookings        Booking[]
-  employees       Employee[]
-  availabilities  Availability[]
-  bookingSlug     BookingSlug?
-  outOfOffices    OutOfOffice[]
-  holidaySettings UserHolidaySettings?
-  streakProgram   StreakProgram?
-  streakPrizes    StreakPrize[] @relation("StreakPrizeOwner")
-  redeemedStreakPrizes StreakPrize[] @relation("StreakPrizeRedeemedBy")
+  businesses            Business[]
+  services              Service[]
+  bookings              Booking[]
+  employees             Employee[]
+  availabilities        Availability[]
+  bookingSlug           BookingSlug?
+  outOfOffices          OutOfOffice[]
+  holidaySettings       UserHolidaySettings?
+  calendar              CalendarConnection?
+  bookingCalendarEvents BookingCalendarEvent[]
+  badges                UserBadge[]
+  streakProgram         StreakProgram?
+  streakPrizes          StreakPrize[]          @relation("StreakPrizeOwner")
+  redeemedStreakPrizes  StreakPrize[]          @relation("StreakPrizeRedeemedBy")
 }
 
 model Business {
@@ -299,43 +322,44 @@ model OutOfOffice {
 }
 
 model Booking {
-  id               Int           @id @default(autoincrement())
-  serviceId        Int
-  employeeId       Int? // the Empleado of a Servicio del Negocio; null in a Servicio personal
-  userId           Int // the User who attends it: occupancy is per User, across Servicios personales and of any Negocio (ADR 0021)
-  cabinId          Int? // the Cabina it occupies from prepStartsAt (ADR 0030); null in a Servicio without Cabinas, and in Turnos taken before it admitted them
-  prepStartsAt     DateTime      @db.Timestamptz(3) // startsAt - Service.prepMinutes, fixed at booking: the attending User's agenda is held from here
-  startsAt         DateTime      @db.Timestamptz(3)
-  endsAt           DateTime      @db.Timestamptz(3) // startsAt + Service.durationMinutes, fixed at booking
-  status           BookingStatus // fijado al crear: BOOKED, o PENDING con Aprobación manual (ADR 0022)
-  notes            String? // Comentario del Turno, up to 500 characters (checked by the API)
-  noShowAt         DateTime?     @db.Timestamptz(3) // Ausencia del Invitado: when the Empleado marked it; never replaces status
-  employeeNoShowAt DateTime?     @db.Timestamptz(3) // Ausencia del Anfitrión: when the Cliente marked it from the Enlace del Turno; never replaces status, and excludes noShowAt (CHECK, ADR 0004)
-  link             String?       @unique // Enlace del Turno (ADR 0022): secret, random, URL-safe, generated at creation; Reagendar moves it to the new Turno (ADR 0031), leaving null in the original
-  employeeChosen   Boolean       @default(false) // Empleado elegido (ADR 0026): the Cliente came in by this Empleado's Enlace de reserva; Reagendar never moves it to another
-  depositAmount    Decimal?      @db.Decimal(10, 2) // Seña pendiente: price × depositPercent / 100 at booking, rounded to the cent; null if the Servicio asked for none. Later changes to the Servicio don't touch it
-  depositPaidAt    DateTime?     @db.Timestamptz(3) // Pagar la Seña: when the Cliente paid it; null while pending
-  price            Decimal       @db.Decimal(10, 2) // the Servicio's price fixed at booking, like depositAmount; later changes to the Servicio don't touch it
-  cancelledAt      DateTime?     @db.Timestamptz(3) // Cancelar: when it was cancelled; only with status CANCELLED (CHECK, ADR 0004)
-  rejectedAt       DateTime?     @db.Timestamptz(3) // Rechazar turno: when it was rejected; only with status REJECTED (CHECK, ADR 0004)
-  acceptedAt       DateTime?     @db.Timestamptz(3) // Aceptar turno: when it was accepted, or created already BOOKED; null while PENDING (ADR 0033)
-  cancelledBy      BookingActor? // who cancelled or rejected it, or Reagendó it in the original; only with status CANCELLED or REJECTED (CHECK, ADR 0004); null in Turnos cancelled before it existed
-  cancellationReason String? // Motivo de cancelación, up to 500 characters (checked by the API); only with cancelledBy (CHECK, ADR 0004)
-  cancellationCause CancellationCause? // Causa de cancelación; only CANCELLED by EMPLOYEE with a cancellationReason (CHECK, ADR 0004)
-  rescheduled      Boolean? // Reagendar (ADR 0031): true only in the original, which stays CANCELLED; null otherwise
-  fromRescheduleId Int?          @unique // the original Turno this one replaced; null if it was not born from a Reagendar
-  ratingRequestSentAt DateTime? @db.Timestamptz(3) // Invitación a calificar: when the mail was sent; null while not sent, so each Turno gets one
-  seriesId         String?       @db.Uuid // Serie (#303): shared by the Turnos booked together with Repetición; null in a Turno suelto. Reagendar copies it to the new Turno
-  createdAt        DateTime      @default(now()) @db.Timestamptz(3)
+  id                  Int                @id @default(autoincrement())
+  serviceId           Int
+  employeeId          Int? // the Empleado of a Servicio del Negocio; null in a Servicio personal
+  userId              Int // the User who attends it: occupancy is per User, across Servicios personales and of any Negocio (ADR 0021)
+  cabinId             Int? // the Cabina it occupies from prepStartsAt (ADR 0030); null in a Servicio without Cabinas, and in Turnos taken before it admitted them
+  prepStartsAt        DateTime           @db.Timestamptz(3) // startsAt - Service.prepMinutes, fixed at booking: the attending User's agenda is held from here
+  startsAt            DateTime           @db.Timestamptz(3)
+  endsAt              DateTime           @db.Timestamptz(3) // startsAt + Service.durationMinutes, fixed at booking
+  status              BookingStatus // fijado al crear: BOOKED, o PENDING con Aprobación manual (ADR 0022)
+  notes               String? // Comentario del Turno, up to 500 characters (checked by the API)
+  noShowAt            DateTime?          @db.Timestamptz(3) // Ausencia del Invitado: when the Empleado marked it; never replaces status
+  employeeNoShowAt    DateTime?          @db.Timestamptz(3) // Ausencia del Anfitrión: when the Cliente marked it from the Enlace del Turno; never replaces status, and excludes noShowAt (CHECK, ADR 0004)
+  link                String?            @unique // Enlace del Turno (ADR 0022): secret, random, URL-safe, generated at creation; Reagendar moves it to the new Turno (ADR 0031), leaving null in the original
+  employeeChosen      Boolean            @default(false) // Empleado elegido (ADR 0026): the Cliente came in by this Empleado's Enlace de reserva; Reagendar never moves it to another
+  depositAmount       Decimal?           @db.Decimal(10, 2) // Seña pendiente: price × depositPercent / 100 at booking, rounded to the cent; null if the Servicio asked for none. Later changes to the Servicio don't touch it
+  depositPaidAt       DateTime?          @db.Timestamptz(3) // Pagar la Seña: when the Cliente paid it; null while pending
+  price               Decimal            @db.Decimal(10, 2) // the Servicio's price fixed at booking, like depositAmount; later changes to the Servicio don't touch it
+  cancelledAt         DateTime?          @db.Timestamptz(3) // Cancelar: when it was cancelled; only with status CANCELLED (CHECK, ADR 0004)
+  rejectedAt          DateTime?          @db.Timestamptz(3) // Rechazar turno: when it was rejected; only with status REJECTED (CHECK, ADR 0004)
+  acceptedAt          DateTime?          @db.Timestamptz(3) // Aceptar turno: when it was accepted, or created already BOOKED; null while PENDING (ADR 0033)
+  cancelledBy         BookingActor? // who cancelled or rejected it, or Reagendó it in the original; only with status CANCELLED or REJECTED (CHECK, ADR 0004); null in Turnos cancelled before it existed
+  cancellationReason  String? // Motivo de cancelación, up to 500 characters (checked by the API); only with cancelledBy (CHECK, ADR 0004)
+  cancellationCause   CancellationCause? // Causa de cancelación; only CANCELLED by EMPLOYEE with a cancellationReason (CHECK, ADR 0004)
+  rescheduled         Boolean? // Reagendar (ADR 0031): true only in the original, which stays CANCELLED; null otherwise
+  fromRescheduleId    Int?               @unique // the original Turno this one replaced; null if it was not born from a Reagendar
+  ratingRequestSentAt DateTime?          @db.Timestamptz(3) // Invitación a calificar: when the mail was sent; null while not sent, so each Turno gets one
+  seriesId            String?            @db.Uuid // Serie (#303): shared by the Turnos booked together with Repetición; null in a Turno suelto. Reagendar copies it to the new Turno
+  createdAt           DateTime           @default(now()) @db.Timestamptz(3)
 
-  service        Service   @relation(fields: [serviceId], references: [id])
-  employee       Employee? @relation(fields: [employeeId], references: [id])
-  user           User      @relation(fields: [userId], references: [id])
-  cabin          Cabin?    @relation(fields: [cabinId], references: [id])
-  client         Client?
-  fromReschedule Booking?  @relation("Reschedule", fields: [fromRescheduleId], references: [id])
-  rescheduledTo  Booking?  @relation("Reschedule")
-  rating         BookingRating?
+  service              Service               @relation(fields: [serviceId], references: [id])
+  employee             Employee?             @relation(fields: [employeeId], references: [id])
+  user                 User                  @relation(fields: [userId], references: [id])
+  cabin                Cabin?                @relation(fields: [cabinId], references: [id])
+  client               Client?
+  fromReschedule       Booking?              @relation("Reschedule", fields: [fromRescheduleId], references: [id])
+  rescheduledTo        Booking?              @relation("Reschedule")
+  rating               BookingRating?
+  calendarEvent        BookingCalendarEvent?
   redeemedStreakPrizes StreakPrize[]
 
   @@index([seriesId])
@@ -481,4 +505,48 @@ model StreakPrize {
   @@unique([rewardId, clientEmail, streakStartedAt, reachedCount])
   @@index([businessId, clientEmail])
   @@index([userId, clientEmail])
+}
+
+/// Calendario conectado (ADR 0036): la cuenta de Google o de Microsoft de un Usuario. Una sola por Usuario (unique, ADR 0004).
+model CalendarConnection {
+  id                    Int                      @id @default(autoincrement())
+  userId                Int                      @unique
+  provider              CalendarProvider
+  email                 String // la cuenta de Google o de Microsoft conectada
+  status                CalendarConnectionStatus @default(CONNECTED)
+  encryptedRefreshToken String // AES-256-GCM con CALENDAR_TOKEN_KEY; nunca sale en una respuesta ni en un log
+  connectedAt           DateTime                 @db.Timestamptz(3)
+  checkedCalendarIds    String[]                 @default(["primary"]) // los calendarios que cuentan como Ocupado externo; "primary" es el principal, y [] no lee ninguno (ADR 0038)
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+/// Evento del Turno (#401, ADR 0038): el evento que el job escribió en el calendario principal del Usuario que atiende el Turno. Una fila por Turno (índice único); Reagendar la pasa al Turno nuevo. `fingerprint` es lo último que se escribió: si el Turno sigue igual, el job no toca Google (y un evento que el Usuario borró a mano no se recrea).
+model BookingCalendarEvent {
+  id            Int      @id @default(autoincrement())
+  bookingId     Int      @unique
+  userId        Int // el Usuario dueño del calendario donde está el evento
+  googleEventId String
+  fingerprint   String
+  syncedAt      DateTime @db.Timestamptz(3)
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@unique([userId, googleEventId])
+  @@index([userId])
+}
+
+/// Nivel de una Insignia que el Usuario ganó. El catálogo vive en el dominio, por eso `badge` es su clave y no una FK. Nunca se borra: ganado, no se pierde aunque el conteo baje. `seenAt` es null hasta que el Usuario ve el aviso.
+model UserBadge {
+  id       Int        @id @default(autoincrement())
+  userId   Int
+  badge    String
+  level    BadgeLevel
+  earnedAt DateTime   @db.Timestamptz(3)
+  seenAt   DateTime?  @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, badge, level])
 }

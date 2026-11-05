@@ -40,6 +40,7 @@ import { ClientFileStreakReader } from '../streaks/client-file-streak.reader';
 import { assertBookable } from './assert-booking-rules';
 import { pickCabin } from './pick-cabin';
 import { pickEmployee } from './pick-employee';
+import { ClientInvites } from './client-invites.service';
 
 @Injectable()
 export class CreateBookingUseCase {
@@ -56,6 +57,7 @@ export class CreateBookingUseCase {
     @Inject(MAILER) private readonly mailer: Mailer,
     private readonly listSlots: ListSlotsUseCase,
     private readonly streaks: ClientFileStreakReader,
+    private readonly invites: ClientInvites,
   ) {}
 
   /**
@@ -151,13 +153,10 @@ export class CreateBookingUseCase {
       input.clientEmail,
       now,
     );
-    await this.mailer.sendBookingConfirmation(
-      input.clientEmail,
-      booking.link!,
-      booking.depositAmount,
-      undefined,
-      streak,
-    );
+    const invite = await this.invites.request([booking.link!]);
+    await (invite
+      ? this.mailer.sendBookingConfirmation(input.clientEmail, booking.link!, booking.depositAmount, undefined, streak, invite)
+      : this.mailer.sendBookingConfirmation(input.clientEmail, booking.link!, booking.depositAmount, undefined, streak));
     return {
       ...booking,
       employeeName: (employee ?? attendingUser!).name,
