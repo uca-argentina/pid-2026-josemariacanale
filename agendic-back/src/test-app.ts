@@ -8,6 +8,10 @@ import {
   AnalyticsRepository,
 } from './domain/analytics/analytics.repository';
 import {
+  BADGES_REPOSITORY,
+  BadgesRepository,
+} from './domain/badges/badges.repository';
+import {
   AVAILABILITIES_REPOSITORY,
   AvailabilitiesRepository,
 } from './domain/availabilities/availabilities.repository';
@@ -173,6 +177,7 @@ export async function createTestApp() {
     findById: jest.fn(),
     findBySlug: jest.fn(),
     listByOwner: jest.fn(),
+    listByEmployeeUser: jest.fn(),
     update: jest.fn(),
   };
   const branches: jest.Mocked<BranchesRepository> = {
@@ -346,6 +351,12 @@ export async function createTestApp() {
     businessServices: jest.fn(),
     bookingRows: jest.fn(),
   };
+  const badges: jest.Mocked<BadgesRepository> = {
+    measure: jest.fn(),
+    listEarned: jest.fn(),
+    saveEarned: jest.fn(),
+    markSeen: jest.fn(),
+  };
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(CLOCK)
     .useValue(clock)
@@ -397,6 +408,8 @@ export async function createTestApp() {
     .useValue(calendarOauth)
     .overrideProvider(ANALYTICS_REPOSITORY)
     .useValue(analytics)
+    .overrideProvider(BADGES_REPOSITORY)
+    .useValue(badges)
     .compile();
   const app = setupApp(moduleRef.createNestApplication());
   await app.init();
@@ -427,6 +440,7 @@ export async function createTestApp() {
     bookingCalendarEvents,
     calendarOauth,
     analytics,
+    badges,
     http: request(app.getHttpServer()),
   };
 }
@@ -477,6 +491,7 @@ export const ANAS_BRANCH: Branch = {
   timeZone: 'America/Argentina/Buenos_Aires',
   slug: 'downtown',
   description: null,
+  location: { lat: -34.6037, lng: -58.3816 },
 };
 
 /** Ana as the Empleado of her own Negocio. */

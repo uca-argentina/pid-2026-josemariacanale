@@ -1,8 +1,12 @@
-# El Calendario se conecta con un OAuth propio del back
+# El calendario externo se conecta con OAuth propio, no a través de Clerk
 
-El Calendario conectado (Google, y después Microsoft) necesita permisos que el login de Clerk no pide, y un refresh token que sobreviva a la Sesión: el back lo usa solo, sin Usuario delante, para leer los Ocupados externos y escribir Eventos del Turno. Clerk guarda las credenciales de la identidad, no un token de larga vida para llamar a la API de Calendar con scopes propios, y atarlo a Clerk haría que desconectar el calendario dependiera de cerrar la cuenta.
+Quien atiende Turnos puede conectar su Google Calendar o su Microsoft Calendar. El back hace su propio flujo OAuth contra Google y Microsoft y guarda el refresh token cifrado en Postgres. No usa la conexión del Proveedor de identidad de Clerk con scopes extra. El front lleva al navegador a la dirección que el back le da y lee el resultado en la query al volver.
 
-Por eso el back hace su propio flujo OAuth contra Google, con un cliente OAuth propio. Solo aplica al back; el front lleva al navegador a la dirección que el back le da y lee el resultado en la query al volver.
+Clerk ya habla con Google y Microsoft, y podría pedir `calendar.events` / `Calendars.ReadWrite` y darle el access token al back. Lo descartamos por tres motivos:
+
+- **Ata el calendario a la cuenta con la que se Inicia sesión.** Quien entra con contraseña, o con su Gmail personal, no podría conectar el calendario del trabajo.
+- **No anda en desarrollo.** Las credenciales compartidas de Clerk no aceptan scopes extra.
+- **Se va con la baja.** Dar de baja borra al Usuario en Clerk (ADR 0024), y la integración desaparecería con él sin que el back se entere.
 
 ## Decisiones
 
@@ -15,11 +19,6 @@ Por eso el back hace su propio flujo OAuth contra Google, con un cliente OAuth p
 - **El callback siempre vuelve al front.** Responde 302 a `CALENDAR_RETURN_URL` con `?calendar=connected | denied | missing-scope | error`; ninguna falla del intercambio se muestra como JSON en el navegador. El callback lee sus parámetros uno por uno: Google suma otros (`scope`, `authuser`, `prompt`) que la validación global rechazaría.
 - **Sin credenciales el back arranca igual**, como con los Días festivos (ADR 0028). `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, `GOOGLE_OAUTH_REDIRECT_URI`, `CALENDAR_RETURN_URL` y `CALENDAR_TOKEN_KEY` se leen al usarse, y sin alguna los endpoints que las necesitan responden 503.
 
-## Consecuencias
-
-- Mientras la app de Google no esté verificada, funciona en modo de prueba: los testers se cargan a mano en la consola de Google y el refresh token vence a los 7 días, así que hay que reconectar.
-- Perder o rotar `CALENDAR_TOKEN_KEY` deja ilegibles los tokens guardados: los Usuarios tienen que reconectar.
-
 ## Microsoft (#402)
 
 El Usuario puede conectar una cuenta de Microsoft (Outlook o Microsoft 365) en vez de una de Google, con el mismo flujo y el mismo `state`; sigue habiendo una sola conexión por Usuario. Los casos de uso hablan con un puerto sin proveedor y un enrutador manda cada llamada al cliente de Google o de Microsoft según la conexión.
@@ -31,3 +30,11 @@ El Usuario puede conectar una cuenta de Microsoft (Outlook o Microsoft 365) en v
 - **Reemplazar un proveedor**: conectar Microsoft con un Google `DISCONNECTED` (o al revés) primero intenta borrar los Eventos del Turno futuros con el token viejo; si no se puede, se dejan.
 - **Rotación del refresh token**: al renovar el acceso, Microsoft puede devolver un refresh token nuevo. Se guarda (`CalendarCredentials.onRefreshTokenRotated`, `CalendarConnectionsRepository.replaceRefreshToken`) para que la conexión no venza a los 90 días sin uso del token original. Si guardarlo falla, se loguea y se usa el acceso renovado igual.
 - **Otra cuenta del mismo proveedor** se trata como un reemplazo: ver ADR 0038.
+
+## Consecuencias
+
+- El back necesita una app OAuth propia en Google Cloud y otra en Microsoft Entra, con sus secretos en el env. Igual que la key de Días festivos (ADR 0028), un entorno sin ellos arranca igual, sin la opción de conectar.
+- El back es dueño del ciclo de vida del token: refresh, revocación al desconectar o al Dar de baja, y qué hacer cuando el proveedor lo invalida.
+- Perder o rotar `CALENDAR_TOKEN_KEY` deja ilegibles los tokens guardados: los Usuarios tienen que reconectar.
+- **La app de Google queda en modo de prueba.** El scope de calendario es sensible, y sin la verificación de Google (política de privacidad pública, dominio verificado y una revisión de semanas) solo pueden conectar los testers cargados a mano, hasta 100, y el refresh token vence a los 7 días. El Usuario ve su Calendario conectado como desconectado y lo vuelve a conectar. Verificar la app solo hace falta si Agendic sale a producción con usuarios reales. Microsoft no exige esto para cuentas personales; algunas cuentas de empresa piden una app con editor verificado o el consentimiento de su administrador.
+- La conexión es del Usuario, no de su vínculo con un Negocio: una sola cubre todos los Turnos que atiende. Hay una sola a la vez, Google o Microsoft.

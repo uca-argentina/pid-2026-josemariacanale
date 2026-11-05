@@ -1,6 +1,10 @@
 # El Calendario conectado se lee en vivo y se escribe con un job
 
-El Calendario conectado (ADR 0036) cumple dos funciones con necesidades opuestas. Leerlo (los Ocupados externos) tiene que reflejar lo que el Usuario agendó hace un instante, porque decide qué Horarios reservables se ofrecen. Escribirlo (los Eventos del Turno) no es urgente, y no puede ser parte de la transacción de Reservar: si Google o Microsoft están caídos, el Turno igual tiene que quedar hecho.
+La sincronización con el Calendario conectado (ADR 0036) va en los dos sentidos, y cada sentido se resuelve distinto.
+
+**Leer: en vivo.** Cada cálculo de Horarios reservables le pide al proveedor los ocupados de los Usuarios involucrados, con una caché corta (alrededor de un minuto por Usuario y rango). El cálculo se vuelve a hacer al ingresar el Código de verificación y al Reagendar: un Ocupado externo que apareció en el medio es un 409, igual que un horario tomado. Copiar los ocupados a Postgres con un job habría hecho rápido a `computeSlots` y lo habría independizado del proveedor. Lo descartamos porque, durante un ciclo de demora, el Cliente puede Reservar encima de una reunión recién cargada, que es justo lo que la sincronización viene a evitar.
+
+**Escribir: con un job.** Un job reconcilia cada minuto los Turnos cuyo estado cambió desde su última sincronización, y crea, actualiza o borra su Evento del Turno. Es por la misma razón que la ADR 0035: un Turno cambia por muchos caminos (Reservar, Aceptar, Rechazar, Reagendar, Cancelar, una Serie, una baja, las cancelaciones de la ADR 0034), y engancharse en cada caso de uso es fácil de olvidar en el próximo que se sume. Además, el job reintenta solo.
 
 ## Decisiones
 
@@ -17,7 +21,10 @@ El Calendario conectado (ADR 0036) cumple dos funciones con necesidades opuestas
 
 ## Consecuencias
 
-- Un Turno tarda hasta un minuto en aparecer en el calendario del Usuario.
+- **Un Ocupado externo nunca Cancela.** Agendic no se entera en el momento de lo que pasa en el calendario externo. A diferencia de la ADR 0034, solo resta Horarios reservables.
+- Si el proveedor invalida el token, la conexión queda desconectada y el Usuario ve un aviso en el panel.
+- Un Evento del Turno tarda hasta un minuto en aparecer, cambiar o borrarse en el calendario del Usuario.
+- Un Servicio del Negocio con muchos Empleados hace una consulta externa por cada uno. El job de la Lista de espera (ADR 0035) también, en cada vuelta.
+- La lectura en vivo hace que cada pedido de Horarios reservables dependa de la latencia del proveedor, acotada por la caché y por el fallo abierto.
 - El job lee cada minuto todos los Turnos vivos de los Usuarios conectados. `syncedAt` se guarda y todavía no se usa para acotar la consulta: si el volumen crece, acotar por rango o por `syncedAt`.
 - Si `createEvent` anda y guardar la fila falla, el reintento crea un evento duplicado. Se acepta: la alternativa, un id determinístico elegido por Agendic, falla con 409 si el Usuario borró ese evento, porque un id borrado no se puede reusar.
-- La lectura en vivo hace que cada pedido de Horarios reservables dependa de la latencia del proveedor, acotada por la caché y por el fallo abierto.

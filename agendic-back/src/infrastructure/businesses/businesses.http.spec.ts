@@ -26,6 +26,7 @@ const BRANCH_PART = {
   address: ANAS_BRANCH.address,
   timeZone: ANAS_BRANCH.timeZone,
   slug: ANAS_BRANCH.slug,
+  location: ANAS_BRANCH.location,
 };
 
 const SERVICE_PART = {
@@ -379,6 +380,7 @@ describe('Negocio', () => {
       'api',
       'trpc',
       'lista-de-espera',
+      'logros',
     ])(
       'answers 409 and creates nothing when the Enlace de reserva is the reserved word %j',
       async (slug) => {
@@ -430,6 +432,36 @@ describe('Negocio', () => {
         expect.objectContaining({ branchImageUrls: Array(5).fill(URLS[0]) }),
       );
     });
+
+    it('answers 400 when the first Sucursal has no location, creating nothing nor uploading images', async () => {
+      const { location: _, ...branch } = BRANCH_PART;
+
+      const res = await post({ ...VALID_BODY, branch }).expect(400);
+
+      expect(res.body.message).toContain('branch.location is required');
+      expect(t.fileStorage.upload).not.toHaveBeenCalled();
+      expect(t.businesses.create).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      [{ lat: 91, lng: 0 }, 'branch.location.lat must be between -90 and 90'],
+      [
+        { lat: 0, lng: 181 },
+        'branch.location.lng must be between -180 and 180',
+      ],
+    ])(
+      'answers 400 for the first Sucursal at %j, creating nothing',
+      async (location, message) => {
+        const res = await post({
+          ...VALID_BODY,
+          branch: { ...BRANCH_PART, location },
+        }).expect(400);
+
+        expect(res.body.message).toContain(message);
+        expect(t.fileStorage.upload).not.toHaveBeenCalled();
+        expect(t.businesses.create).not.toHaveBeenCalled();
+      },
+    );
 
     it('answers 400 without images, creating nothing', async () => {
       const res = await post(VALID_BODY, []).expect(400);
@@ -729,7 +761,10 @@ describe('Negocio', () => {
     const put = (id: number = ANAS_BUSINESS.id) =>
       t.http.put(`/businesses/${id}/logo`);
     const withPng = (req: ReturnType<typeof put>) =>
-      req.attach('file', PNG, { filename: 'logo.png', contentType: 'image/png' });
+      req.attach('file', PNG, {
+        filename: 'logo.png',
+        contentType: 'image/png',
+      });
 
     beforeEach(() => {
       scriptSession(t);
@@ -1007,6 +1042,92 @@ describe('Negocio', () => {
       t.businesses.findBySlug.mockResolvedValue(null);
 
       await t.http.get('/businesses/by-slug/unknown-salon').expect(404);
+    });
+  });
+
+  describe('GET /users/me/businesses', () => {
+    const ZETA_BUSINESS = { ...ANAS_BUSINESS, id: 3, name: 'Zeta', ownerId: 9 };
+    const ALFA_BUSINESS = { ...ANAS_BUSINESS, id: 4, name: 'Alfa', ownerId: 8 };
+
+    beforeEach(() => scriptSession(t));
+
+    it('lists the Dueño Negocio first and the rest by name, with role and branchIds', async () => {
+      t.businesses.listByEmployeeUser.mockResolvedValue([
+        { business: ZETA_BUSINESS, branchIds: [30] },
+        { business: ANAS_BUSINESS, branchIds: [1, 2] },
+        { business: ALFA_BUSINESS, branchIds: [40, 41] },
+      ]);
+
+      const res = await t.http
+        .get('/users/me/businesses')
+        .set(bearer(CLERK_TOKEN))
+        .expect(200);
+
+      expect(t.businesses.listByEmployeeUser).toHaveBeenCalledWith(ANA.id);
+      const shared = {
+        description: ANAS_BUSINESS.description,
+        slug: ANAS_BUSINESS.slug,
+        logoUrl: null,
+      };
+      expect(res.body).toEqual([
+        {
+          ...shared,
+          id: ANAS_BUSINESS.id,
+          name: ANAS_BUSINESS.name,
+          role: 'owner',
+          branchIds: [1, 2],
+        },
+        {
+          ...shared,
+          id: 4,
+          name: 'Alfa',
+          role: 'employee',
+          branchIds: [40, 41],
+        },
+        { ...shared, id: 3, name: 'Zeta', role: 'employee', branchIds: [30] },
+      ]);
+    });
+
+    it('puts the Dueño Negocio first even when its name sorts last', async () => {
+      t.businesses.listByEmployeeUser.mockResolvedValue([
+        { business: ALFA_BUSINESS, branchIds: [] },
+        { business: { ...ANAS_BUSINESS, name: 'Zzz' }, branchIds: [1] },
+      ]);
+
+      const res = await t.http
+        .get('/users/me/businesses')
+        .set(bearer(CLERK_TOKEN))
+        .expect(200);
+
+      expect(res.body.map((b: { id: number }) => b.id)).toEqual([1, 4]);
+    });
+
+    it('answers [] for a Usuario who is Empleado of none', async () => {
+      t.businesses.listByEmployeeUser.mockResolvedValue([]);
+
+      const res = await t.http
+        .get('/users/me/businesses')
+        .set(bearer(CLERK_TOKEN))
+        .expect(200);
+
+      expect(res.body).toEqual([]);
+    });
+
+    it('answers 401 without a session', async () => {
+      await t.http.get('/users/me/businesses').expect(401);
+    });
+
+    it('answers a database failure with a generic 500', async () => {
+      t.businesses.listByEmployeeUser.mockRejectedValue(
+        new DatabaseOperationError('Database operation failed', {
+          cause: new Error('connection refused'),
+        }),
+      );
+
+      await t.http
+        .get('/users/me/businesses')
+        .set(bearer(CLERK_TOKEN))
+        .expect(500);
     });
   });
 });

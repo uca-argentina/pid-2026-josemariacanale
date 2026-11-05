@@ -1,5 +1,6 @@
 import { Global, Module } from '@nestjs/common';
 import { ANALYTICS_REPOSITORY } from '../domain/analytics/analytics.repository';
+import { BADGES_REPOSITORY } from '../domain/badges/badges.repository';
 import { AVAILABILITIES_REPOSITORY } from '../domain/availabilities/availabilities.repository';
 import { BOOKING_CALENDAR_EVENTS_REPOSITORY } from '../domain/calendar/booking-calendar-events.repository';
 import { BOOKING_PANEL_LINKS } from '../domain/calendar/booking-event';
@@ -29,10 +30,15 @@ import { WAITLIST_REPOSITORY } from '../domain/waitlist/waitlist.repository';
 import { USERS_REPOSITORY } from '../domain/users/users.repository';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { PrismaAnalyticsRepository } from './analytics/prisma-analytics.repository';
+import { BadgesModule } from './badges/badges.module';
+import { PrismaBadgesRepository } from './badges/prisma-badges.repository';
 import { AvailabilitiesModule } from './availabilities/availabilities.module';
 import { PrismaAvailabilitiesRepository } from './availabilities/prisma-availabilities.repository';
 import { PrismaBookingsRepository } from './bookings/prisma-bookings.repository';
-import { readBookingCodeSecret, TotpBookingVerificationCodes } from './bookings/totp-booking-verification-codes';
+import {
+  readBookingCodeSecret,
+  TotpBookingVerificationCodes,
+} from './bookings/totp-booking-verification-codes';
 import { CalendarModule } from './calendar/calendar.module';
 import { EnvBookingPanelLinks } from './calendar/env-booking-panel-links';
 import { PrismaBookingCalendarEventsRepository } from './calendar/prisma-booking-calendar-events.repository';
@@ -95,6 +101,7 @@ import { WaitlistModule } from './waitlist/waitlist.module';
     AnalyticsModule,
     WaitlistModule,
     CalendarModule,
+    BadgesModule,
   ],
   providers: [
     PrismaService,
@@ -160,6 +167,7 @@ import { WaitlistModule } from './waitlist/waitlist.module';
     ListExternalBusyService,
     ClientInvites,
     { provide: CALENDAR_OAUTH_STATE, useClass: HmacCalendarOauthState },
+    { provide: BADGES_REPOSITORY, useClass: PrismaBadgesRepository },
   ],
   exports: [
     ListExternalBusyService,
@@ -191,6 +199,7 @@ import { WaitlistModule } from './waitlist/waitlist.module';
     CALENDAR_EVENTS,
     BOOKING_CALENDAR_EVENTS_REPOSITORY,
     BOOKING_PANEL_LINKS,
+    BADGES_REPOSITORY,
   ],
 })
 export class InfrastructureModule {}

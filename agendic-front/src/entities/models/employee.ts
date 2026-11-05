@@ -1,12 +1,25 @@
 import { z } from 'zod';
+import { badgeLevelSchema } from './badge';
 
-// The Dueño's view of an Empleado, as GET /businesses/:id/employees returns it.
+/**
+ * Una Insignia ganada por un Empleado, como la trae el Staff: su Nivel más alto, sin progreso (ADR 0007).
+ * `badge` sigue siendo un string libre para que una Insignia nueva del back no rompa la tabla.
+ */
+export const employeeBadgeSchema = z.object({
+    badge: z.string(),
+    name: z.string(),
+    level: badgeLevelSchema,
+});
+export type EmployeeBadge = z.infer<typeof employeeBadgeSchema>;
+
+/** El Empleado de un Negocio, como lo devuelve GET /businesses/:id/employees; `badges` viene de mayor a menor Nivel, `[]` si no ganó ninguna. */
 export const employeeSchema = z.object({
     id: z.number(),
     userId: z.union([z.number(), z.string()]),
     name: z.string(),
     email: z.string(),
     imageUrl: z.string().nullable(),
+    badges: z.array(employeeBadgeSchema),
 });
 export type Employee = z.infer<typeof employeeSchema>;
 

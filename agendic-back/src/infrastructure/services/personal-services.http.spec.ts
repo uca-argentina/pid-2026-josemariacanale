@@ -235,6 +235,7 @@ describe('Servicio personal', () => {
         timeZone: 'America/Argentina/Buenos_Aires',
         slug: 'downtown',
         description: null,
+        location: null,
       });
       t.businesses.findById.mockResolvedValue({
         id: 1,

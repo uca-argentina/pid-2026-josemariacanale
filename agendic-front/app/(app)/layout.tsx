@@ -6,6 +6,8 @@ import { SidebarInset, SidebarProvider } from '@/app/_components/ui/sidebar';
 import { AppSidebar } from './_components/AppSidebar';
 import { CalendarDisconnectedBanner } from './_components/CalendarDisconnectedBanner';
 import { SiteHeader } from './_components/SiteHeader';
+import { Suspense } from 'react';
+import { UnseenBadgeCelebration } from './_components/UnseenBadgeCelebration';
 import { SignOutOnDeactivated } from './_components/SignOutOnDeactivated';
 import { getInjection } from '@/di/container';
 import { isSessionExpired, isUserDeactivated } from '@/app/api-error';
@@ -18,7 +20,7 @@ const navItems: NavItem[] = [
     { id: 'bookings', href: '/bookings', label: 'Turnos' },
     { id: 'availability', href: '/availability', label: 'Horas laborables' },
     { id: 'services', href: '/services', label: 'Servicios' },
-    { id: 'business', href: '/business', label: 'Mi Negocio' },
+    { id: 'business', href: '/business', label: 'Negocios' },
     { id: 'analytics', href: '/analytics', label: 'Analíticas' },
 ];
 
@@ -101,6 +103,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 <div className="@container/main flex flex-1 flex-col md:*:rounded-b-xl">{children}</div>
             </SidebarInset>
             <AppToaster />
+            <Suspense>
+                <UnseenBadgeCelebration />
+            </Suspense>
         </SidebarProvider>
     );
 }

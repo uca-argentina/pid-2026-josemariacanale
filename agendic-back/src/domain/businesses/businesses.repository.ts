@@ -1,5 +1,5 @@
 import { BranchImage } from '../branch-images/branch-image';
-import { Branch } from '../branches/branch';
+import { Branch, CreateBranchInput } from '../branches/branch';
 import { Employee } from '../employees/employee';
 import { Service } from '../services/service';
 import { Business } from './business';
@@ -9,8 +9,7 @@ export const BUSINESSES_REPOSITORY = Symbol('BusinessesRepository');
 /** Everything a Negocio needs to take Turnos, written at once. */
 export interface CreateBusinessData {
   business: Pick<Business, 'name' | 'description' | 'ownerId' | 'slug'>;
-  branch: Pick<Branch, 'name' | 'address' | 'timeZone' | 'slug'> &
-    Partial<Pick<Branch, 'description'>>;
+  branch: CreateBranchInput;
   /** Without it the Negocio is created with no Servicio. */
   service?: Pick<
     Service,
@@ -46,6 +45,13 @@ export interface CreatedBusiness {
   images: BranchImage[];
 }
 
+/** Un Negocio visto por un Empleado suyo, con las Sucursales donde trabaja. */
+export interface EmployeeBusiness {
+  business: Business;
+  /** Las Sucursales donde trabaja el Usuario, sin orden: todas las del Negocio si es su Dueño. */
+  branchIds: number[];
+}
+
 export interface BusinessesRepository {
   /** Generates every id. Atomic: a failure in any part creates nothing. */
   create(data: CreateBusinessData): Promise<CreatedBusiness>;
@@ -53,6 +59,11 @@ export interface BusinessesRepository {
   /** `slug` is matched as stored, so the caller normalizes case beforehand. */
   findBySlug(slug: string): Promise<Business | null>;
   listByOwner(ownerId: number): Promise<Business[]>;
+  /**
+   * Los Negocios no dados de baja donde el Usuario es Empleado activo, sin orden. Para quien no es Dueño,
+   * `branchIds` son las Sucursales de los Servicios que Ofrece, sin los dados de baja.
+   */
+  listByEmployeeUser(userId: number): Promise<EmployeeBusiness[]>;
   /** Leaves undefined fields unchanged. */
   update(
     id: number,

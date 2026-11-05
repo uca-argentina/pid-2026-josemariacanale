@@ -125,8 +125,9 @@ export const servicesWith = (stubs: Partial<IServicesRepository>): IServicesRepo
     ...stubs,
 });
 
-// The Imágenes de Sucursal methods of IBusinessesRepository, for tests that build the whole repository.
+// The methods of IBusinessesRepository that most tests don't exercise (Imágenes de Sucursal, Logo, listMyBusinesses), for tests that build the whole repository.
 export const imagesStub = {
+    listMyBusinesses: jest.fn(),
     uploadBranchImage: jest.fn(),
     deleteBranchImage: jest.fn(),
     reorderBranchImages: jest.fn(),

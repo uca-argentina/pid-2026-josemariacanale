@@ -8,6 +8,8 @@ import { Prisma } from '../../../generated/prisma/client';
 import { PrismaService } from '../../prisma.service';
 import { PrismaBranchesRepository } from '../prisma-branches.repository';
 
+const POINT = { lat: -34.6037, lng: -58.3816 };
+
 const BRANCH: Branch = {
   id: 1,
   businessId: 1,
@@ -16,6 +18,7 @@ const BRANCH: Branch = {
   timeZone: 'America/Argentina/Buenos_Aires',
   slug: 'downtown',
   description: null,
+  location: POINT,
 };
 
 const BRANCH_ROW = {
@@ -26,6 +29,8 @@ const BRANCH_ROW = {
   timeZone: 'America/Argentina/Buenos_Aires',
   slug: 'downtown',
   description: null,
+  latitude: -34.6037,
+  longitude: -58.3816,
 };
 
 const knownError = (code: string) =>
@@ -66,6 +71,7 @@ describe('PrismaBranchesRepository', () => {
           address: '123 Main St',
           timeZone: 'America/Argentina/Buenos_Aires',
           slug: 'downtown',
+          location: { lat: -34.6037, lng: -58.3816 },
         },
         ['https://files.example.com/a', 'https://files.example.com/b'],
       ),
@@ -83,6 +89,8 @@ describe('PrismaBranchesRepository', () => {
         address: '123 Main St',
         timeZone: 'America/Argentina/Buenos_Aires',
         slug: 'downtown',
+        latitude: -34.6037,
+        longitude: -58.3816,
         images: {
           create: [
             { url: 'https://files.example.com/a', order: 0 },
@@ -103,6 +111,19 @@ describe('PrismaBranchesRepository', () => {
     prisma.branch.findUnique.mockResolvedValue(BRANCH_ROW);
 
     await expect(repository.findById(1)).resolves.toEqual(BRANCH);
+  });
+
+  it('reads a Sucursal from before Ubicación existed with a null location', async () => {
+    prisma.branch.findUnique.mockResolvedValue({
+      ...BRANCH_ROW,
+      latitude: null,
+      longitude: null,
+    });
+
+    await expect(repository.findById(1)).resolves.toEqual({
+      ...BRANCH,
+      location: null,
+    });
   });
 
   it('lists Branches by Business', async () => {
@@ -127,10 +148,37 @@ describe('PrismaBranchesRepository', () => {
     });
   });
 
+  it('saves a new point as both coordinates', async () => {
+    prisma.branch.update.mockResolvedValue(BRANCH_ROW);
+
+    await repository.update(1, { location: { lat: 10.5, lng: -20.25 } });
+
+    expect(prisma.branch.update).toHaveBeenCalledWith({
+      where: { id: 1 },
+      data: expect.objectContaining({ latitude: 10.5, longitude: -20.25 }),
+    });
+  });
+
+  it('leaves the point unchanged when no location is given', async () => {
+    prisma.branch.update.mockResolvedValue(BRANCH_ROW);
+
+    await repository.update(1, { name: 'New name' });
+
+    expect(prisma.branch.update).toHaveBeenCalledWith({
+      where: { id: 1 },
+      data: expect.objectContaining({
+        latitude: undefined,
+        longitude: undefined,
+      }),
+    });
+  });
+
   describe('translates Prisma errors, keeping the original as cause', () => {
     const calls = {
       createWithImages: () =>
-        repository.createWithImages(BRANCH, ['https://files.example.com/a']),
+        repository.createWithImages({ ...BRANCH, location: POINT }, [
+          'https://files.example.com/a',
+        ]),
       findById: () => repository.findById(1),
       update: () => repository.update(1, { name: 'New name' }),
     };

@@ -38,6 +38,7 @@ describe('BookingSlug (real database)', () => {
         name: tag,
         address: 'Calle 1',
         timeZone: 'America/Argentina/Buenos_Aires',
+        location: { lat: -34.6, lng: -58.4 },
         slug: 'sucursal',
       },
       employee: { userId: ownerId },

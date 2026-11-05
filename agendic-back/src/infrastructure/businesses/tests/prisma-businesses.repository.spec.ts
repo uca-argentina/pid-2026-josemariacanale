@@ -32,6 +32,8 @@ const BRANCH_ROW = {
   address: '123 Main St',
   timeZone: 'America/Argentina/Buenos_Aires',
   slug: ANAS_BUSINESS.slug,
+  latitude: -34.6037,
+  longitude: -58.3816,
   images: [
     { id: 30, branchId: 10, url: 'https://files.example.com/a', order: 0 },
   ],
@@ -87,6 +89,7 @@ const CREATE_DATA = {
     address: '123 Main St',
     timeZone: 'America/Argentina/Buenos_Aires',
     slug: ANAS_BUSINESS.slug,
+    location: { lat: -34.6037, lng: -58.3816 },
   },
   service: {
     name: 'Haircut',
@@ -197,6 +200,7 @@ describe('PrismaBusinessesRepository', () => {
       address: '123 Main St',
       timeZone: 'America/Argentina/Buenos_Aires',
       slug: ANAS_BUSINESS.slug,
+      location: { lat: -34.6037, lng: -58.3816 },
     });
     expect(created.employee).toEqual({
       id: EMPLOYEE_ROW.id,
@@ -240,6 +244,8 @@ describe('PrismaBusinessesRepository', () => {
     expect(tx.branch.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
+          latitude: -34.6037,
+          longitude: -58.3816,
           images: {
             create: [{ url: 'https://files.example.com/a', order: 0 }],
           },
@@ -374,6 +380,68 @@ describe('PrismaBusinessesRepository', () => {
     ).resolves.toEqual([ANAS_BUSINESS]);
     expect(prisma.business.findMany).toHaveBeenCalledWith({
       where: { ownerId: ANAS_BUSINESS.ownerId, deletedAt: null },
+    });
+  });
+
+  describe('listByEmployeeUser', () => {
+    const row = (ownerId: number, branchIds: number[]) => ({
+      ...ANAS_BUSINESS,
+      ownerId,
+      branches: [{ id: 1 }, { id: 2 }, { id: 3 }],
+      employees: [
+        { services: branchIds.map((branchId) => ({ service: { branchId } })) },
+      ],
+    });
+
+    it('asks only for active Businesses where the Usuario is an active Empleado, with select', async () => {
+      prisma.business.findMany.mockResolvedValue([]);
+
+      await repository.listByEmployeeUser(5);
+
+      const args = prisma.business.findMany.mock.calls[0][0]!;
+      expect(args.where).toEqual({
+        deletedAt: null,
+        employees: { some: { userId: 5, deletedAt: null } },
+      });
+      expect(args).toHaveProperty('select');
+      expect(args).not.toHaveProperty('include');
+    });
+
+    it('gives the Dueño every Sucursal of the Negocio', async () => {
+      prisma.business.findMany.mockResolvedValue([row(5, [1])] as never);
+
+      const [result] = await repository.listByEmployeeUser(5);
+
+      expect(result.business).toEqual({ ...ANAS_BUSINESS, ownerId: 5 });
+      expect(result.branchIds).toEqual([1, 2, 3]);
+    });
+
+    it('gives an Empleado the distinct Sucursales of the Servicios they Ofrecen', async () => {
+      prisma.business.findMany.mockResolvedValue([row(9, [2, 2, 3])] as never);
+
+      const [result] = await repository.listByEmployeeUser(5);
+
+      expect(result.branchIds).toEqual([2, 3]);
+    });
+
+    it('gives an Empleado with no Servicios no Sucursales', async () => {
+      prisma.business.findMany.mockResolvedValue([row(9, [])] as never);
+
+      const [result] = await repository.listByEmployeeUser(5);
+
+      expect(result.branchIds).toEqual([]);
+    });
+
+    it('translates a Prisma failure, keeping the original as cause', async () => {
+      const cause = new Error('connection refused');
+      prisma.business.findMany.mockRejectedValue(cause);
+
+      const error = await repository
+        .listByEmployeeUser(5)
+        .catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(DatabaseOperationError);
+      expect(error).toHaveProperty('cause', cause);
     });
   });
 

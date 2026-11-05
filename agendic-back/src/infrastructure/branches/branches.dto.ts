@@ -1,9 +1,11 @@
 import { applyDecorators } from '@nestjs/common';
-import { Transform } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
+  IsObject,
   IsString,
   Matches,
   ValidateIf,
+  ValidateNested,
   registerDecorator,
 } from 'class-validator';
 import { IfPresent, IsName, IsSlug, IsText } from '../users/users.dto';
@@ -35,6 +37,39 @@ export const IsTimeZone = () => (object: object, propertyName: string) =>
     },
   });
 
+/** A number of degrees from `-limit` to `limit`; anything else, a string or `null` included, gets one message. */
+const IsDegrees = (limit: number) => (object: object, propertyName: string) =>
+  registerDecorator({
+    name: 'isDegrees',
+    target: object.constructor,
+    propertyName,
+    validator: {
+      validate: (value: unknown) =>
+        typeof value === 'number' && Math.abs(value) <= limit,
+      defaultMessage: () => `$property must be between -${limit} and ${limit}`,
+    },
+  });
+
+/** The point of a Sucursal's Ubicación (ADR 0037). */
+export class LocationDto {
+  @IsDegrees(90)
+  lat!: number;
+
+  @IsDegrees(180)
+  lng!: number;
+}
+
+/**
+ * A Ubicación's point, validated field by field (`location.lat …`). Not an object is `notObjectMessage`; `null`
+ * falls there too, so an endpoint that accepts it absent decides what `null` means.
+ */
+const IsLocation = (notObjectMessage = '$property is required') =>
+  applyDecorators(
+    IsObject({ message: notObjectMessage }),
+    ValidateNested(),
+    Type(() => LocationDto),
+  );
+
 export class BranchFieldsDto {
   @IsName()
   name!: string;
@@ -47,6 +82,9 @@ export class BranchFieldsDto {
 
   @IsNullableText()
   description?: string | null;
+
+  @IsLocation()
+  location!: LocationDto;
 }
 
 export class CreateBranchDto extends BranchFieldsDto {
@@ -73,4 +111,9 @@ export class UpdateBranchDto {
 
   @IsNullableText()
   description?: string | null;
+
+  /** Can be changed, never removed: `null` is a 400. */
+  @IfPresent()
+  @IsLocation('$property cannot be removed')
+  location?: LocationDto;
 }

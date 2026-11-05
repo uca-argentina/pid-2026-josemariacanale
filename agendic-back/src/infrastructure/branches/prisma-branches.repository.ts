@@ -1,5 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { Branch } from '../../domain/branches/branch';
+import {
+  Branch,
+  CreateBranchInput,
+  MapPoint,
+  UpdateBranchInput,
+} from '../../domain/branches/branch';
 import { BranchesRepository } from '../../domain/branches/branches.repository';
 import { toBranchImage } from '../branch-images/prisma-branch-images.repository';
 import {
@@ -16,11 +21,7 @@ export class PrismaBranchesRepository implements BranchesRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async createWithImages(
-    data: Pick<
-      Branch,
-      'businessId' | 'name' | 'address' | 'timeZone' | 'slug'
-    > &
-      Partial<Pick<Branch, 'description'>>,
+    data: CreateBranchInput & Pick<Branch, 'businessId'>,
     imageUrls: string[],
   ) {
     const row = await this.prisma.branch
@@ -32,6 +33,7 @@ export class PrismaBranchesRepository implements BranchesRepository {
           timeZone: data.timeZone,
           slug: data.slug,
           description: data.description,
+          ...toPointColumns(data.location),
           images: {
             create: imageUrls.map((url, order) => ({ url, order })),
           },
@@ -62,12 +64,7 @@ export class PrismaBranchesRepository implements BranchesRepository {
     ).map(toBranch);
   }
 
-  async update(
-    id: number,
-    data: Partial<
-      Pick<Branch, 'name' | 'address' | 'timeZone' | 'slug' | 'description'>
-    >,
-  ) {
+  async update(id: number, data: UpdateBranchInput) {
     return toBranch(
       await this.prisma.branch
         .update({
@@ -78,6 +75,7 @@ export class PrismaBranchesRepository implements BranchesRepository {
             timeZone: data.timeZone,
             slug: data.slug,
             description: data.description,
+            ...toPointColumns(data.location),
           },
         })
         .catch(translateError),
@@ -88,6 +86,12 @@ export class PrismaBranchesRepository implements BranchesRepository {
 export const toTime = (hhmm: string) => new Date(`1970-01-01T${hhmm}:00.000Z`);
 export const fromTime = (date: Date) => date.toISOString().slice(11, 16);
 
+/** The two columns that store a Sucursal's point; no point leaves both `undefined`, so an update keeps them. */
+export const toPointColumns = (point: MapPoint | undefined) => ({
+  latitude: point?.lat,
+  longitude: point?.lng,
+});
+
 export const toBranch = (row: BranchRow): Branch => ({
   id: row.id,
   businessId: row.businessId,
@@ -96,6 +100,11 @@ export const toBranch = (row: BranchRow): Branch => ({
   timeZone: row.timeZone,
   slug: row.slug,
   description: row.description,
+  // The CHECK Branch_location_both_or_neither keeps the two in step: one null means both are.
+  location:
+    row.latitude === null || row.longitude === null
+      ? null
+      : { lat: row.latitude, lng: row.longitude },
 });
 
 const translateError = (error: unknown): never => {

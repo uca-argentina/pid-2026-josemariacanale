@@ -5,7 +5,9 @@ import { redirect, unstable_rethrow } from 'next/navigation';
 import { isSessionExpired } from '@/app/api-error';
 import { SIGN_IN_PATH } from '@/app/routes';
 import { getInjection } from '@/di/container';
+import type { DI_RETURN_TYPES } from '@/di/types';
 import { ApiRequestError, InputParseError } from '@/src/entities/errors/common';
+import type { EmployeeStatsQuery } from '@/src/entities/models/analytics';
 import { AlreadyEmployeeError, InvitationNotPendingError, LastEmployeeError } from '@/src/entities/errors/employee';
 
 export type EmployeeActionResult = { ok: true } | { ok: false; message: string; field?: 'email' };
@@ -79,4 +81,25 @@ export async function resendInvitationAction(payload: unknown): Promise<Employee
 /** Cancela la Invitación pendiente; la fila sale de la tabla. */
 export async function cancelInvitationAction(payload: unknown): Promise<EmployeeActionResult> {
     return runInvitationAction('ICancelInvitationController', payload, 'No pudimos cancelar la invitación. Intentá de nuevo.');
+}
+
+/** Las estadísticas del Empleado para las tarjetas de su perfil. */
+export type EmployeeStatsData = Awaited<ReturnType<DI_RETURN_TYPES['IGetEmployeeStatsController']>>;
+
+/** Las estadísticas, o un error sin detalle: el Sheet sigue mostrando el perfil (el real va al reporte de fallas). */
+export type EmployeeStatsResult = { ok: true; data: EmployeeStatsData } | { ok: false };
+
+/**
+ * Las estadísticas de un Empleado en un rango de días. El rango sale del browser, que es quien sabe en qué zona
+ * está "hoy": por eso es una acción y no parte de la página.
+ */
+export async function loadEmployeeStatsAction(query: EmployeeStatsQuery): Promise<EmployeeStatsResult> {
+    try {
+        return { ok: true, data: await getInjection('IGetEmployeeStatsController')(query) };
+    } catch (error) {
+        unstable_rethrow(error);
+        if (isSessionExpired(error)) redirect(SIGN_IN_PATH);
+        getInjection('ICrashReporterService').report(error);
+        return { ok: false };
+    }
 }

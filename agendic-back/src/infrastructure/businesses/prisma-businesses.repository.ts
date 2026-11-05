@@ -11,7 +11,10 @@ import {
 } from '../../domain/errors';
 import { Business as BusinessRow, Prisma } from '../../generated/prisma/client';
 import { toBranchImage } from '../branch-images/prisma-branch-images.repository';
-import { toBranch } from '../branches/prisma-branches.repository';
+import {
+  toBranch,
+  toPointColumns,
+} from '../branches/prisma-branches.repository';
 import {
   toEmployee,
   WITH_USER,
@@ -46,6 +49,7 @@ export class PrismaBusinessesRepository implements BusinessesRepository {
             timeZone: data.branch.timeZone,
             slug: data.branch.slug,
             description: data.branch.description,
+            ...toPointColumns(data.branch.location),
             images: {
               create: data.branchImageUrls.map((url, order) => ({
                 url,
@@ -114,6 +118,51 @@ export class PrismaBusinessesRepository implements BusinessesRepository {
         .findMany({ where: { ownerId, deletedAt: null } })
         .catch(translateError)
     ).map(toBusiness);
+  }
+
+  async listByEmployeeUser(userId: number) {
+    const rows = await this.prisma.business
+      .findMany({
+        where: {
+          deletedAt: null,
+          employees: { some: { userId, deletedAt: null } },
+        },
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          ownerId: true,
+          slug: true,
+          deletedAt: true,
+          logoUrl: true,
+          branches: { select: { id: true } },
+          employees: {
+            where: { userId, deletedAt: null },
+            select: {
+              services: {
+                where: { service: { deletedAt: null } },
+                select: { service: { select: { branchId: true } } },
+              },
+            },
+          },
+        },
+      })
+      .catch(translateError);
+    return rows.map(({ branches, employees, ...business }) => ({
+      business: toBusiness(business),
+      branchIds:
+        business.ownerId === userId
+          ? branches.map((branch) => branch.id)
+          : [
+              ...new Set(
+                employees.flatMap((employee) =>
+                  employee.services.flatMap(({ service }) =>
+                    service.branchId === null ? [] : [service.branchId],
+                  ),
+                ),
+              ),
+            ],
+    }));
   }
 
   async update(
