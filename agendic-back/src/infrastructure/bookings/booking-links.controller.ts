@@ -7,6 +7,7 @@ import { MarkEmployeeNoShowByLinkUseCase } from '../../application/bookings/mark
 import { CLOCK, Clock } from '../../domain/clock';
 import { PayDepositByLinkUseCase } from '../../application/bookings/pay-deposit-by-link.use-case';
 import { presentClientBooking } from './booking.presenter';
+import { presentLinkStreak } from '../streaks/streak-program.presenter';
 import { RateBookingByLinkUseCase } from '../../application/bookings/rate-booking-by-link.use-case';
 import { CancelBookingDto, RateBookingDto, reasonOf, RescheduleBookingDto } from './bookings.dto';
 
@@ -24,10 +25,18 @@ export class BookingLinksController {
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
-  /** @throws {NotFoundError} el Enlace no corresponde a ningún Turno */
+  /**
+   * El Turno con la Racha de su Cliente; `streak` solo viaja acá, no en las respuestas de las acciones.
+   *
+   * @throws {NotFoundError} el Enlace no corresponde a ningún Turno
+   */
   @Get(':secret')
   async get(@Param('secret') secret: string) {
-    return presentClientBooking(await this.getBookingByLinkUseCase.execute(secret), this.clock.now());
+    const { booking, streak } = await this.getBookingByLinkUseCase.execute(secret);
+    return {
+      ...presentClientBooking(booking, this.clock.now()),
+      streak: streak && presentLinkStreak(streak),
+    };
   }
 
   /**

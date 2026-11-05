@@ -1,4 +1,4 @@
-import { BookingStreak } from '../../application/streaks/get-booking-streak.use-case';
+import { ClientFileStreak } from '../../application/streaks/client-file-streak.reader';
 import { StreakPrize } from '../../domain/streaks/streak-prize';
 import {
   StreakProgram,
@@ -35,12 +35,29 @@ export const presentStreakPrize = (prize: StreakPrize) => ({
   expiresAt: prize.expiresAt,
 });
 
-/** The Racha block of the detail of a Turno; `nextReward` carries the Recompensa as the program shows it. */
-export const presentBookingStreak = ({ streak, nextReward, prizes }: BookingStreak) => ({
-  streak,
-  nextReward: nextReward && {
+const presentNextReward = (nextReward: ClientFileStreak['nextReward']) =>
+  nextReward && {
     reward: presentStreakReward(nextReward.reward),
     remaining: nextReward.remaining,
-  },
+  };
+
+/** The Racha block of the detail of a Turno; `nextReward` carries the Recompensa as the program shows it. */
+export const presentBookingStreak = ({ streak, nextReward, prizes }: ClientFileStreak) => ({
+  streak,
+  nextReward: presentNextReward(nextReward),
   prizes: prizes.map(presentStreakPrize),
 });
+
+/**
+ * The Racha as the Enlace del Turno shows it: null when the program is off or the Cliente has nothing to show, a Racha
+ * of 0 Turnos and no Premios disponibles.
+ */
+export const presentLinkStreak = ({ streak, nextReward, prizes }: ClientFileStreak) =>
+  !streak || (streak.count === 0 && prizes.length === 0)
+    ? null
+    : {
+        count: streak.count,
+        burnsAt: streak.burnsAt,
+        nextReward: presentNextReward(nextReward),
+        prizes: prizes.map(presentStreakPrize),
+      };

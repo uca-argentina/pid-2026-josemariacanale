@@ -50,3 +50,22 @@ export interface OwnedStreakPrize extends StreakPrize {
   /** Lowercase. */
   clientEmail: string;
 }
+
+/** Copies what a Recompensa promises, as a Premio would. */
+export const promisedOf = (reward: {
+  type: StreakRewardType;
+  value: number | null;
+  description: string | null;
+  service: { name: string } | null;
+}): PromisedPrize => ({
+  type: reward.type,
+  value: reward.value,
+  description: reward.description,
+  serviceName: reward.service?.name ?? null,
+});
+
+/** Where a Cliente's Racha stands, for the Confirmación de reserva: `next` is null once every Recompensa of "una vez" was reached. */
+export interface StreakProgress {
+  count: number;
+  next: { reward: PromisedPrize; remaining: number } | null;
+}
