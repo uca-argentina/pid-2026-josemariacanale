@@ -1,7 +1,7 @@
 'use client';
 
 import { PanelField, PanelInput, PanelTextarea } from '@/app/(app)/_components/panel-ui';
-import { bookingLink } from '@/app/(app)/_components/mock-services';
+import { bookingLink } from '@/app/(app)/_components/booking-link';
 import type { BusinessFields, FieldErrors } from '@/app/_components/business-schemas';
 
 /** Nombre, descripción y Enlace de reserva: el paso 1 de Crear Negocio y el modal de Editar negocio. */

@@ -2,7 +2,7 @@
 
 import { PanelField, PanelInput, PanelTextarea } from '@/app/(app)/_components/panel-ui';
 import { TimezoneSelect } from '@/app/(app)/_components/TimezoneSelect';
-import { bookingLink } from '@/app/(app)/_components/mock-services';
+import { bookingLink } from '@/app/(app)/_components/booking-link';
 import type { BranchFormFields as Fields, FieldErrors } from '@/app/_components/business-schemas';
 import { AddressField } from '../../_components/AddressField';
 

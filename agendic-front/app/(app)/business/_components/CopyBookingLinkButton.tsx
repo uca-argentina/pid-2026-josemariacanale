@@ -3,7 +3,7 @@
 import { Link2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PanelIconButton } from '@/app/(app)/_components/panel-ui';
-import { bookingLink } from '@/app/(app)/_components/mock-services';
+import { bookingLink } from '@/app/(app)/_components/booking-link';
 
 /** Copia el Enlace de reserva del Negocio al portapapeles. */
 export function CopyBookingLinkButton({ slug }: { slug: string }) {

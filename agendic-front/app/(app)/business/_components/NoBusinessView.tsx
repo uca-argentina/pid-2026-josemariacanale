@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react';
 import { Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { PanelAvatar, PanelButton, PanelSection } from '@/app/(app)/_components/panel-ui';
-import { bookingLink } from '@/app/(app)/_components/mock-services';
+import { bookingLink } from '@/app/(app)/_components/booking-link';
 import { CreateBusinessDialog, type Owner } from './CreateBusinessDialog';
 import type { MyInvitation as Invitation } from '@/src/entities/models/employee';
 import { acceptInvitationAction, rejectInvitationAction } from '../actions';

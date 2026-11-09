@@ -13,7 +13,7 @@ import {
     PanelIconButton,
     PanelInput,
 } from '@/app/(app)/_components/panel-ui';
-import { bookingLink } from '@/app/(app)/_components/mock-services';
+import { bookingLink } from '@/app/(app)/_components/booking-link';
 import { TimezoneSelect } from '@/app/(app)/_components/TimezoneSelect';
 import {
     branchSchema,

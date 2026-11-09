@@ -3,7 +3,7 @@
 import { useId, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { PanelAvatar } from '@/app/(app)/_components/panel-ui';
-import { bookingLink } from '@/app/(app)/_components/mock-services';
+import { bookingLink } from '@/app/(app)/_components/booking-link';
 import { RoleBadge, type BusinessRole } from './business-ui';
 
 /**
