@@ -19,7 +19,15 @@ describe('addEmployeeController', () => {
         expect(useCase).toHaveBeenCalledWith(input);
     });
 
+    it('passes the chosen Sucursales to the use case', async () => {
+        const useCase = jest.fn().mockResolvedValue({ id: 4, email: 'martina@estudio.com', expiresAt: 'x', branchIds: [2, 3] });
+
+        await addEmployeeController(instrumentation, signedIn(), useCase)({ ...input, branchIds: [2, 3] });
+        expect(useCase).toHaveBeenCalledWith({ ...input, branchIds: [2, 3] });
+    });
+
     it.each([
+        ['branchIds that are not numbers', { ...input, branchIds: ['2'] }],
         ['a missing businessId', { ...input, businessId: undefined }],
         ['an invalid email', { ...input, email: 'martina' }],
         ['no input', undefined],

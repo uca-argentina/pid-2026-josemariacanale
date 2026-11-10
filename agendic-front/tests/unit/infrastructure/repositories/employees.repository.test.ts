@@ -1,10 +1,19 @@
-import { ApiRequestError } from '@/src/entities/errors/common';
-import { AlreadyEmployeeError, InvitationNotAcceptableError, InvitationNotPendingError, LastEmployeeError } from '@/src/entities/errors/employee';
+import { ApiRequestError, NotFoundError } from '@/src/entities/errors/common';
+import {
+    AlreadyEmployeeError,
+    BranchesRequiredError,
+    BranchNotOfBusinessError,
+    EmployeeBranchesBookingsChangedError,
+    InvitationNotAcceptableError,
+    InvitationNotPendingError,
+    LastEmployeeError,
+    OwnerWorksAtEveryBranchError,
+} from '@/src/entities/errors/employee';
 import { EmployeesRepository } from '@/src/infrastructure/repositories/employees.repository';
 import { authWith } from '@/tests/unit/stubs';
 
-const employee = { id: 3, userId: 9, name: 'Martina', email: 'martina@estudio.com', imageUrl: null, badges: [{ badge: 'attended', name: 'Turnos atendidos', level: 'gold' }] };
-const invitation = { id: 5, email: 'martina@estudio.com', expiresAt: '2026-10-08T00:00:00.000Z' };
+const employee = { id: 3, userId: 9, name: 'Martina', email: 'martina@estudio.com', imageUrl: null, branchIds: [1, 2], badges: [{ badge: 'attended', name: 'Turnos atendidos', level: 'gold' }] };
+const invitation = { id: 5, email: 'martina@estudio.com', expiresAt: '2026-10-08T00:00:00.000Z', branchIds: [2] };
 
 const repo = (apiUrl: string | undefined = 'http://api') =>
     new EmployeesRepository(authWith({ getAccessToken: jest.fn().mockResolvedValue('tok') }), apiUrl);
@@ -114,6 +123,30 @@ describe('EmployeesRepository.addEmployee already Empleado', () => {
     });
 });
 
+describe('EmployeesRepository.addEmployee with Sucursales', () => {
+    it('sends the branchIds in the body', async () => {
+        const fetchSpy = respond(201, invitation);
+
+        await repo().addEmployee({ businessId: 1, email: 'martina@estudio.com', branchIds: [2] });
+        expect(fetchSpy).toHaveBeenCalledWith(
+            'http://api/businesses/1/employees',
+            expect.objectContaining({ body: JSON.stringify({ email: 'martina@estudio.com', branchIds: [2] }) }),
+        );
+    });
+
+    it('translates the 400 of no Sucursal to BranchesRequiredError', async () => {
+        respond(400, { statusCode: 400, message: 'branchIds must have at least one Branch' });
+        await expect(repo().addEmployee({ businessId: 1, email: 'martina@estudio.com' })).rejects.toBeInstanceOf(BranchesRequiredError);
+    });
+
+    it('translates the 422 of a Sucursal of another Negocio to BranchNotOfBusinessError', async () => {
+        respond(422, { statusCode: 422, message: 'Branch 9 is not a Branch of Business 1' });
+        await expect(repo().addEmployee({ businessId: 1, email: 'martina@estudio.com', branchIds: [9] })).rejects.toBeInstanceOf(
+            BranchNotOfBusinessError,
+        );
+    });
+});
+
 describe('EmployeesRepository.listInvitations', () => {
     it('GETs the pending Invitaciones of the Negocio with the bearer token', async () => {
         const fetchSpy = respond(200, [invitation]);
@@ -133,7 +166,7 @@ describe('EmployeesRepository.listInvitations', () => {
 
 describe('EmployeesRepository.listMyInvitations', () => {
     it('GETs the Invitaciones of the Usuario with the bearer token', async () => {
-        const mine = { id: 5, business: { name: 'Estudio Norte', slug: 'estudio-norte' } };
+        const mine = { id: 5, business: { name: 'Estudio Norte', slug: 'estudio-norte' }, branches: [{ id: 2, name: 'Centro' }] };
         const fetchSpy = respond(200, [mine]);
 
         await expect(repo().listMyInvitations()).resolves.toEqual([mine]);
@@ -212,5 +245,75 @@ describe('EmployeesRepository.cancelInvitation', () => {
     it('translates a 422 to InvitationNotPendingError', async () => {
         respond(422, { statusCode: 422, message: 'x' });
         await expect(repo().cancelInvitation(5)).rejects.toThrow(InvitationNotPendingError);
+    });
+});
+
+const cancelledBooking = {
+    id: 40,
+    startsAt: '2026-11-10T13:00:00.000Z',
+    endsAt: '2026-11-10T14:00:00.000Z',
+    timeZone: 'America/Argentina/Buenos_Aires',
+    serviceName: 'Corte',
+    clientName: 'Ana',
+    branch: { id: 2, name: 'Palermo' },
+};
+
+describe('EmployeesRepository.previewEmployeeBranches', () => {
+    it('POSTs the Sucursales and returns the Turnos that would be cancelled', async () => {
+        const fetchSpy = respond(200, [cancelledBooking]);
+
+        await expect(repo().previewEmployeeBranches({ employeeId: 3, branchIds: [1] })).resolves.toEqual([cancelledBooking]);
+        expect(fetchSpy).toHaveBeenCalledWith(
+            'http://api/employees/3/branches/preview',
+            expect.objectContaining({ method: 'POST', body: JSON.stringify({ branchIds: [1] }) }),
+        );
+    });
+
+    it('translates a body that does not match the schema to ApiRequestError', async () => {
+        respond(200, [{ id: 40 }]);
+        await expect(repo().previewEmployeeBranches({ employeeId: 3, branchIds: [1] })).rejects.toBeInstanceOf(ApiRequestError);
+    });
+});
+
+describe('EmployeesRepository.changeEmployeeBranches', () => {
+    const input = { employeeId: 3, branchIds: [1], cancelBookingIds: [40] };
+
+    it('PUTs the Sucursales with the confirmed Turnos and returns how many were cancelled', async () => {
+        const fetchSpy = respond(200, { ...employee, branchIds: [1], cancelledBookings: 1 });
+
+        await expect(repo().changeEmployeeBranches(input)).resolves.toEqual({ cancelledBookings: 1 });
+        expect(fetchSpy).toHaveBeenCalledWith(
+            'http://api/employees/3/branches',
+            expect.objectContaining({ method: 'PUT', body: JSON.stringify({ branchIds: [1], cancelBookingIds: [40] }) }),
+        );
+    });
+
+    it('translates the 409 of Turnos that changed to EmployeeBranchesBookingsChangedError', async () => {
+        respond(409, { statusCode: 409, message: 'Los Turnos que se cancelan cambiaron' });
+        await expect(repo().changeEmployeeBranches(input)).rejects.toBeInstanceOf(EmployeeBranchesBookingsChangedError);
+    });
+
+    it.each([
+        ['the last Empleado of a Servicio', 'Employee 3 is the last Employee of Service 8', LastEmployeeError],
+        ['the Dueño losing a Sucursal', 'The Dueño works at every Branch', OwnerWorksAtEveryBranchError],
+        ['a Sucursal of another Negocio', 'Branch 9 is not a Branch of Business 1', BranchNotOfBusinessError],
+    ])('translates the 422 of %s, keeping the back message', async (_case, message, ErrorClass) => {
+        respond(422, { statusCode: 422, message });
+        await expect(repo().changeEmployeeBranches(input)).rejects.toEqual(expect.objectContaining({ constructor: ErrorClass, message }));
+    });
+
+    it('translates the 422s the same way on the preview', async () => {
+        respond(422, { statusCode: 422, message: 'The Dueño works at every Branch' });
+        await expect(repo().previewEmployeeBranches(input)).rejects.toBeInstanceOf(OwnerWorksAtEveryBranchError);
+    });
+
+    it('translates the 400 without Sucursales to BranchesRequiredError', async () => {
+        respond(400, { statusCode: 400, message: 'branchIds must have at least one Branch' });
+        await expect(repo().changeEmployeeBranches(input)).rejects.toBeInstanceOf(BranchesRequiredError);
+    });
+
+    it('translates a 404 to NotFoundError', async () => {
+        respond(404, { statusCode: 404, message: 'Employee 3 not found' });
+        await expect(repo().changeEmployeeBranches(input)).rejects.toBeInstanceOf(NotFoundError);
     });
 });
