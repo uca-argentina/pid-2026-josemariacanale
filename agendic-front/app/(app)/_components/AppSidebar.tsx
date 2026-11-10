@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useClerk } from '@clerk/nextjs';
+import { useAuthClient } from '@/app/_components/use-auth-client';
 import {
     Calendar,
     ChartColumn,
@@ -207,7 +207,7 @@ function NavUser({
     const [preferences, setPreferences] = useState(initialPreferences);
     const router = useRouter();
     const { isMobile, setOpenMobile } = useSidebar();
-    const { openUserProfile, signOut } = useClerk();
+    const { openUserProfile, signOut } = useAuthClient();
 
     return (
         <SidebarMenu>

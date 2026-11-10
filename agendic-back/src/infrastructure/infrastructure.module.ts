@@ -79,6 +79,7 @@ import { ServicesModule } from './services/services.module';
 import { SlugsModule } from './slugs/slugs.module';
 import { SystemClock } from './system-clock';
 import { ClerkBackendAuth } from './users/clerk-backend-auth';
+import { isAuthOffline, OfflineClerkAuth } from './users/offline-clerk-auth';
 import { PrismaStreakProgramsRepository } from './streaks/prisma-streak-programs.repository';
 import { PrismaStreakPrizesRepository } from './streaks/prisma-streak-prizes.repository';
 import { StreaksModule } from './streaks/streaks.module';
@@ -117,7 +118,10 @@ import { WaitlistModule } from './waitlist/waitlist.module';
       provide: FILE_STORAGE,
       useFactory: () => new S3FileStorage(readS3Config()),
     },
-    { provide: CLERK_AUTH, useClass: ClerkBackendAuth },
+    {
+      provide: CLERK_AUTH,
+      useClass: isAuthOffline() ? OfflineClerkAuth : ClerkBackendAuth,
+    },
     { provide: USERS_REPOSITORY, useClass: PrismaUsersRepository },
     { provide: BUSINESSES_REPOSITORY, useClass: PrismaBusinessesRepository },
     { provide: BRANCHES_REPOSITORY, useClass: PrismaBranchesRepository },

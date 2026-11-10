@@ -31,6 +31,15 @@ npm install
 npm run dev
 ```
 
+## Login sin internet (solo desarrollo)
+
+Para probar sin conectarse a Clerk:
+
+- Back: `AUTH_OFFLINE=true` en `agendic-back/.env`. Acepta `Authorization: Bearer dev:<clerkId>` sin verificar nada y no arranca con `NODE_ENV=production`.
+- Front: `NEXT_PUBLIC_AUTH_OFFLINE=true` en `agendic-front/.env.local` (reiniciá `npm run dev`). Iniciar sesión pide un clerkId: uno que ya está en la base entra como ese Usuario; uno nuevo lo crea.
+
+Editar el perfil (el modal de Clerk) no funciona en este modo, y Maps, Calendar y el mail siguen necesitando internet.
+
 ## Tests
 
 `npm test` dentro de cada app. El back además tiene `npm run lint` con oxlint; el front, con eslint.
