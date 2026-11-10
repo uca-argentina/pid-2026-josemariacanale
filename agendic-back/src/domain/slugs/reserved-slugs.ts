@@ -22,3 +22,5 @@ export const RESERVED_SLUGS: readonly string[] = [
 
 /** `slug` ya viene en minúsculas, como lo deja el DTO. */
 export const isReservedSlug = (slug: string) => RESERVED_SLUGS.includes(slug);
+
+export const SLUG_FORMAT = /^[a-z0-9]+(-[a-z0-9]+)*$/;

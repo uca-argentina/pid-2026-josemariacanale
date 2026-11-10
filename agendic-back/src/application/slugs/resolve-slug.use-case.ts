@@ -8,13 +8,12 @@ import { NotFoundError } from '../../domain/errors';
 import { Service } from '../../domain/services/service';
 import { User } from '../../domain/users/user';
 import { GetUserPageUseCase } from '../users/get-user-page.use-case';
+import { SLUG_FORMAT } from 'src/domain/slugs/reserved-slugs';
 
 /** De quién es un primer tramo: el Negocio, o el Usuario con sus Servicios personales no ocultos. */
 export type ResolvedSlug =
   | { kind: 'business'; business: Business }
   | { kind: 'user'; user: User; services: Service[] };
-
-const SLUG_FORMAT = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
 /** Dice de quién es el primer tramo de un Enlace de reserva: de un Negocio o de un Usuario (ADR 0026). */
 @Injectable()
