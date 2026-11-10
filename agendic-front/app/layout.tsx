@@ -3,6 +3,7 @@ import { clerkLocalization } from './(public)/(auth)/clerk-localization';
 import type { Metadata } from 'next';
 import { Plus_Jakarta_Sans } from 'next/font/google';
 import './globals.css';
+import { AUTH_OFFLINE } from '@/src/entities/models/offline-session';
 
 const plusJakartaSans = Plus_Jakarta_Sans({
     subsets: ['latin'],
@@ -21,7 +22,8 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
             className={`${plusJakartaSans.className} h-full antialiased`}
         >
             <body className="min-h-dvh flex flex-col bg-white text-foreground">
-                <ClerkProvider localization={clerkLocalization}>{children}</ClerkProvider>
+                {/* Offline, ClerkProvider would try to download clerk-js and fail. */}
+                {AUTH_OFFLINE ? children : <ClerkProvider localization={clerkLocalization}>{children}</ClerkProvider>}
             </body>
         </html>
     );
