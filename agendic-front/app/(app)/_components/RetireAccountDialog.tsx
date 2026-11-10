@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { useClerk } from '@clerk/nextjs';
+import { useAuthClient } from '@/app/_components/use-auth-client';
 import { Loader2 } from 'lucide-react';
 import { retireMeAction } from '@/app/(app)/actions';
 import { PanelButton, PanelDialog, PanelDialogClose } from './panel-ui';
@@ -12,7 +12,7 @@ import { PanelButton, PanelDialog, PanelDialogClose } from './panel-ui';
  * abierto para reintentar, que es seguro. `businessName` es el Negocio del Dueño, que el aviso nombra; null si no es Dueño.
  */
 export function RetireAccountDialog({ businessName, onClose }: { businessName: string | null; onClose: () => void }) {
-    const { signOut } = useClerk();
+    const { signOut } = useAuthClient();
     const [error, setError] = useState<string>();
     const [isPending, startTransition] = useTransition();
 
