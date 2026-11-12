@@ -24,3 +24,6 @@ export const RESERVED_SLUGS: readonly string[] = [
 export const isReservedSlug = (slug: string) => RESERVED_SLUGS.includes(slug);
 
 export const SLUG_FORMAT = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+
+/** Largo de un Enlace de reserva, el mismo que valida el DTO. */
+export const SLUG_LENGTH = { min: 3, max: 40 } as const;

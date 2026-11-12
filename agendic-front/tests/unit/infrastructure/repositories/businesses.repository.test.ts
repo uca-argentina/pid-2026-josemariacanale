@@ -241,3 +241,41 @@ describe('BusinessesRepository.listMyBusinesses', () => {
         expect(error.status).toBeUndefined();
     });
 });
+
+describe('BusinessesRepository.checkSlugAvailability', () => {
+    it('GETs /slugs/:slug/availability with the bearer token and returns the answer', async () => {
+        const fetchSpy = respond(200, { available: true });
+
+        await expect(repo().checkSlugAvailability('estudio')).resolves.toEqual({ available: true });
+        expect(fetchSpy).toHaveBeenCalledWith(
+            'http://api/slugs/estudio/availability',
+            expect.objectContaining({ headers: expect.objectContaining({ Authorization: 'Bearer tok' }) }),
+        );
+    });
+
+    it('returns why the slug is not available', async () => {
+        respond(200, { available: false, reason: 'taken' });
+        await expect(repo().checkSlugAvailability('estudio')).resolves.toEqual({ available: false, reason: 'taken' });
+    });
+
+    it('encodes the slug in the path', async () => {
+        const fetchSpy = respond(200, { available: false, reason: 'invalid' });
+
+        await repo().checkSlugAvailability('a/b c');
+        expect(fetchSpy.mock.calls[0][0]).toBe('http://api/slugs/a%2Fb%20c/availability');
+    });
+
+    it('translates a 401 to ApiRequestError with status 401', async () => {
+        respond(401, { statusCode: 401, message: 'Invalid or expired Clerk token' });
+        const error = await repo().checkSlugAvailability('estudio').catch((e) => e);
+        expect(error).toBeInstanceOf(ApiRequestError);
+        expect(error.status).toBe(401);
+    });
+
+    it('translates a body that does not match the schema to ApiRequestError without status', async () => {
+        respond(200, { available: false, reason: 'unknown' });
+        const error = await repo().checkSlugAvailability('estudio').catch((e) => e);
+        expect(error).toBeInstanceOf(ApiRequestError);
+        expect(error.status).toBeUndefined();
+    });
+});

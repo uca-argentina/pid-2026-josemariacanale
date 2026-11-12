@@ -32,6 +32,7 @@ import { BRANCH_IMAGES } from '@/src/entities/models/branch';
 import { createBusinessAction } from '../actions';
 import { AddressField } from './AddressField';
 import { BusinessFieldset } from './BusinessFieldset';
+import { useSlugCheck, withSlugError } from './use-slug-check';
 import { RoleBadge } from './business-ui';
 
 const STEPS = [
@@ -97,6 +98,7 @@ export function CreateBusinessDialog({ owner, onClose }: { owner: Owner; onClose
     const images = usePickedImages(BRANCH_IMAGES.max);
     const [submitError, setSubmitError] = useState<string>();
     const [isPending, startTransition] = useTransition();
+    const slugCheck = useSlugCheck(business.slug, setErrors);
 
     const goTo = (next: number) => {
         setErrors({});
@@ -139,6 +141,15 @@ export function CreateBusinessDialog({ owner, onClose }: { owner: Owner; onClose
                 }
                 if (step === BRANCH_STEP && images.picked.length < BRANCH_IMAGES.min) {
                     setErrors({ images: 'Elegí al menos una imagen de la Sucursal.' });
+                    return;
+                }
+                // El Enlace de reserva se verifica antes de avanzar, también si se llegó con Enter sin salir del campo.
+                if (step === 1) {
+                    // Los errores de un envío anterior ya no aplican; el del Enlace de reserva lo decide la verificación.
+                    setErrors((current) => withSlugError({}, current.slug));
+                    startTransition(async () => {
+                        if (!(await slugCheck.verify())) goTo(step + 1);
+                    });
                     return;
                 }
             }
@@ -223,8 +234,14 @@ export function CreateBusinessDialog({ owner, onClose }: { owner: Owner; onClose
                         <BusinessFieldset
                             value={business}
                             errors={errors}
+                            slugHint={slugCheck.checking ? 'Verificando…' : undefined}
+                            onNameBlur={() => !slugEdited && slugCheck.verify()}
+                            onSlugBlur={slugCheck.verify}
                             onChange={(patch) => {
                                 if (patch.slug !== undefined) setSlugEdited(patch.slug !== '');
+                                // El Enlace de reserva cambió (a mano o siguiendo al nombre): su error ya no aplica.
+                                if (patch.slug !== undefined || (patch.name !== undefined && !slugEdited))
+                                    setErrors((current) => withSlugError(current, undefined));
                                 setBusiness((b) => ({
                                     ...b,
                                     ...patch,

@@ -1,7 +1,10 @@
 import {
   ANA,
   ANAS_BUSINESS,
+  bearer,
+  CLERK_TOKEN,
   createTestApp,
+  scriptSession,
   TestApp,
 } from '../../test-app';
 
@@ -82,6 +85,90 @@ describe('GET /slugs/:slug', () => {
 
       expect(t.businesses.findBySlug).not.toHaveBeenCalled();
       expect(t.users.findBySlug).not.toHaveBeenCalled();
+    },
+  );
+});
+
+describe('GET /slugs/:slug/availability', () => {
+  let t: TestApp;
+
+  beforeEach(async () => {
+    t = await createTestApp();
+    scriptSession(t);
+    t.businesses.findBookingSlugOwner.mockResolvedValue(null);
+    t.businesses.listByOwner.mockResolvedValue([]);
+  });
+  afterEach(() => t.app.close());
+
+  const check = (slug: string) =>
+    t.http.get(`/slugs/${slug}/availability`).set(bearer(CLERK_TOKEN));
+
+  it('answers 401 without a Sesión', async () => {
+    await t.http.get('/slugs/libre/availability').expect(401);
+  });
+
+  it('says a slug nobody has is available', async () => {
+    const res = await check('libre').expect(200);
+
+    expect(res.body).toEqual({ available: true });
+  });
+
+  it('compares the slug in lowercase', async () => {
+    await check('Libre').expect(200);
+
+    expect(t.businesses.findBookingSlugOwner).toHaveBeenCalledWith('libre');
+  });
+
+  it.each([
+    ['another Negocio', { businessId: 99, userId: null }],
+    ['a Usuario', { businessId: null, userId: 5 }],
+  ])('says a slug of %s is taken', async (_owner, owner) => {
+    t.businesses.findBookingSlugOwner.mockResolvedValue(owner);
+
+    const res = await check('ocupado').expect(200);
+
+    expect(res.body).toEqual({ available: false, reason: 'taken' });
+  });
+
+  it('says the slug of a Negocio dado de baja is still taken', async () => {
+    // findBySlug no lo encuentra, pero la fila de BookingSlug queda (ADR 0024).
+    t.businesses.findBookingSlugOwner.mockResolvedValue({
+      businessId: 99,
+      userId: null,
+    });
+
+    const res = await check('de-baja').expect(200);
+
+    expect(res.body).toEqual({ available: false, reason: 'taken' });
+  });
+
+  it('says the slug of the Negocio of the Sesión is available, for Editar Negocio', async () => {
+    t.businesses.findBookingSlugOwner.mockResolvedValue({
+      businessId: ANAS_BUSINESS.id,
+      userId: null,
+    });
+    t.businesses.listByOwner.mockResolvedValue([ANAS_BUSINESS]);
+
+    const res = await check(ANAS_BUSINESS.slug).expect(200);
+
+    expect(res.body).toEqual({ available: true });
+    expect(t.businesses.listByOwner).toHaveBeenCalledWith(ANA.id);
+  });
+
+  it('says a reserved word is reserved, without searching', async () => {
+    const res = await check('analytics').expect(200);
+
+    expect(res.body).toEqual({ available: false, reason: 'reserved' });
+    expect(t.businesses.findBookingSlugOwner).not.toHaveBeenCalled();
+  });
+
+  it.each(['-lead', 'has_underscore', 'a--b', 'ab', 'a'.repeat(41)])(
+    'says %j is invalid, without searching',
+    async (slug) => {
+      const res = await check(slug).expect(200);
+
+      expect(res.body).toEqual({ available: false, reason: 'invalid' });
+      expect(t.businesses.findBookingSlugOwner).not.toHaveBeenCalled();
     },
   );
 });

@@ -10,11 +10,17 @@ export function BusinessFieldset({
     onChange,
     errors,
     slugHint,
+    onNameBlur,
+    onSlugBlur,
 }: {
     value: BusinessFields;
     onChange: (patch: Partial<BusinessFields>) => void;
     errors: FieldErrors;
     slugHint?: string;
+    /** Al salir del nombre: en Crear Negocio el Enlace de reserva sigue al nombre, así que se verifica ahí también. */
+    onNameBlur?: () => void;
+    /** Al salir del Enlace de reserva, para verificar que esté libre. */
+    onSlugBlur?: () => void;
 }) {
     const invalid = (field: string, id: string) =>
         errors[field] ? { 'aria-invalid': true, 'aria-describedby': `${id}-error` } : {};
@@ -27,6 +33,7 @@ export function BusinessFieldset({
                     placeholder="Estudio Belgrano"
                     value={value.name}
                     onChange={(e) => onChange({ name: e.target.value })}
+                    onBlur={onNameBlur}
                     {...invalid('name', 'business-name')}
                 />
             </PanelField>
@@ -46,6 +53,7 @@ export function BusinessFieldset({
                     placeholder="estudio-belgrano"
                     value={value.slug}
                     onChange={(e) => onChange({ slug: e.target.value })}
+                    onBlur={onSlugBlur}
                     {...invalid('slug', 'business-slug')}
                 />
             </PanelField>

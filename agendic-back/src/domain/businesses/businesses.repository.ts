@@ -35,6 +35,12 @@ export interface CreateBusinessData {
   branchImageUrls: string[];
 }
 
+/** De quién es una fila de `BookingSlug`: de un Negocio o de un Usuario, nunca de los dos (ADR 0026). */
+export interface SlugOwner {
+  businessId: number | null;
+  userId: number | null;
+}
+
 export interface CreatedBusiness {
   business: Business;
   branch: Branch;
@@ -58,6 +64,11 @@ export interface BusinessesRepository {
   findById(id: number): Promise<Business | null>;
   /** `slug` is matched as stored, so the caller normalizes case beforehand. */
   findBySlug(slug: string): Promise<Business | null>;
+  /**
+   * De quién es el slug en `BookingSlug`, aunque su Negocio o Usuario esté dado de baja (ADR 0024); null si está libre.
+   * `slug` is matched as stored, so the caller normalizes case beforehand.
+   */
+  findBookingSlugOwner(slug: string): Promise<SlugOwner | null>;
   listByOwner(ownerId: number): Promise<Business[]>;
   /**
    * Los Negocios no dados de baja donde el Usuario es Empleado activo, sin orden. Para quien no es Dueño,

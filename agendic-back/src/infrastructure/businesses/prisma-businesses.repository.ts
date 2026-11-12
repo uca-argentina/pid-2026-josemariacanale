@@ -3,6 +3,7 @@ import { Business } from '../../domain/businesses/business';
 import {
   BusinessesRepository,
   CreateBusinessData,
+  SlugOwner,
 } from '../../domain/businesses/businesses.repository';
 import {
   ConflictError,
@@ -115,6 +116,15 @@ export class PrismaBusinessesRepository implements BusinessesRepository {
       .findFirst({ where: { slug, deletedAt: null } })
       .catch(translateError);
     return row && toBusiness(row);
+  }
+
+  async findBookingSlugOwner(slug: string): Promise<SlugOwner | null> {
+    return this.prisma.bookingSlug
+      .findUnique({
+        where: { slug },
+        select: { businessId: true, userId: true },
+      })
+      .catch(translateError);
   }
 
   async listByOwner(ownerId: number) {

@@ -20,6 +20,8 @@ import {
     type CreateBusiness,
     type CreatedBusiness,
     type UpdateBusiness,
+    slugAvailabilitySchema,
+    type SlugAvailability,
 } from '@/src/entities/models/business';
 
 /**
@@ -189,5 +191,18 @@ export class BusinessesRepository implements IBusinessesRepository {
         if (!response.ok) throw new ApiRequestError(message, { status: response.status });
 
         return parseOrFail(() => branchImageSchema.array().parse(body), 'PUT /branches/:id/images/order');
+    }
+
+    /**
+     * `GET /slugs/:slug/availability`: whether the Dueño can use the slug as the Enlace de reserva of their Negocio.
+     *
+     * @throws {ApiRequestError} any status other than 2xx (401 without a Sesión), or an unexpected body
+     */
+    async checkSlugAvailability(slug: string): Promise<SlugAvailability> {
+        const what = 'GET /slugs/:slug/availability';
+        const { response, body, message } = await this.request(what, `/slugs/${encodeURIComponent(slug)}/availability`);
+        if (!response.ok) throw new ApiRequestError(message, { status: response.status });
+
+        return parseOrFail(() => slugAvailabilitySchema.parse(body), what);
     }
 }

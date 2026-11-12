@@ -1,0 +1,4 @@
+{
+  "jest.jestCommandLine": "npm test --",
+  "jest.runMode": { "type": "on-save", "testFileOnly": false }
+}

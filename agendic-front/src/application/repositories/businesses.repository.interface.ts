@@ -1,5 +1,5 @@
 import type { BranchImage } from '@/src/entities/models/branch-image';
-import type { Business, CreateBusiness, MyBusiness, CreatedBusiness, UpdateBusiness } from '@/src/entities/models/business';
+import type { Business, CreateBusiness, MyBusiness, CreatedBusiness, SlugAvailability, UpdateBusiness } from '@/src/entities/models/business';
 
 /** The Negocio of the Dueño of the Sesión, its Logo and the Imágenes of its Sucursales. */
 export interface IBusinessesRepository {
@@ -56,4 +56,6 @@ export interface IBusinessesRepository {
      * @returns the images, already sorted
      */
     reorderBranchImages(branchId: number, imageIds: number[]): Promise<BranchImage[]>;
+    /** Whether the Dueño of the Sesión can use `slug` as the Enlace de reserva of their Negocio; their own one counts as available. */
+    checkSlugAvailability(slug: string): Promise<SlugAvailability>;
 }

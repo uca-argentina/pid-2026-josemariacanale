@@ -70,3 +70,10 @@ export type UpdateBusiness = z.infer<typeof updateBusinessSchema>;
 export const uploadBusinessLogoSchema = z.object({ businessId: z.number(), file: z.instanceof(File) });
 /** Input del controller de quitar el Logo del Negocio. */
 export const deleteBusinessLogoSchema = z.object({ businessId: z.number() });
+
+/** What GET /slugs/:slug/availability answers: whether the Dueño can use the slug as the Enlace de reserva of their Negocio. */
+export const slugAvailabilitySchema = z.discriminatedUnion('available', [
+    z.object({ available: z.literal(true) }),
+    z.object({ available: z.literal(false), reason: z.enum(['invalid', 'reserved', 'taken']) }),
+]);
+export type SlugAvailability = z.infer<typeof slugAvailabilitySchema>;

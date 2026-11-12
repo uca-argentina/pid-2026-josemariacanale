@@ -12,6 +12,10 @@ import {
   Min,
   ValidateIf,
 } from 'class-validator';
+import {
+  SLUG_FORMAT,
+  SLUG_LENGTH,
+} from '../../domain/slugs/reserved-slugs';
 
 export const trimmed = (
   normalize: (value: string) => string = (value) => value,
@@ -37,8 +41,8 @@ export const IsSlug = () =>
   applyDecorators(
     trimmed((value) => value.toLowerCase()),
     IsString(),
-    Length(3, 40),
-    Matches(/^[a-z0-9]+(-[a-z0-9]+)*$/),
+    Length(SLUG_LENGTH.min, SLUG_LENGTH.max),
+    Matches(SLUG_FORMAT),
   );
 
 /** Unlike @IsOptional, skips validation only when the field is absent, so null is rejected. */

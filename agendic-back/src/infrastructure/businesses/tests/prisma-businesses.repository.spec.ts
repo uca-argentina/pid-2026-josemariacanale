@@ -132,6 +132,7 @@ describe('PrismaBusinessesRepository', () => {
       findMany: jest.fn(),
       update: jest.fn(),
     },
+    bookingSlug: { findUnique: jest.fn() },
     // Interactive transaction: whatever the callback writes is committed together, or nothing is.
     $transaction: jest.fn((run: (client: typeof tx) => unknown) => run(tx)),
   };
@@ -484,14 +485,39 @@ describe('PrismaBusinessesRepository', () => {
     await expect(repository.findBySlug('unknown-slug')).resolves.toBeNull();
   });
 
+  it('finds who owns a slug in BookingSlug, even if they were dado de baja', async () => {
+    prisma.bookingSlug.findUnique.mockResolvedValue({
+      businessId: ANAS_BUSINESS.id,
+      userId: null,
+    });
+
+    await expect(
+      repository.findBookingSlugOwner(ANAS_BUSINESS.slug),
+    ).resolves.toEqual({ businessId: ANAS_BUSINESS.id, userId: null });
+    expect(prisma.bookingSlug.findUnique).toHaveBeenCalledWith({
+      where: { slug: ANAS_BUSINESS.slug },
+      select: { businessId: true, userId: true },
+    });
+  });
+
+  it('returns null when nobody owns the slug', async () => {
+    prisma.bookingSlug.findUnique.mockResolvedValue(null);
+
+    await expect(
+      repository.findBookingSlugOwner('unknown-slug'),
+    ).resolves.toBeNull();
+  });
+
   describe('translates Prisma errors, keeping the original as cause', () => {
     const calls = {
       findById: () => repository.findById(1),
       update: () => repository.update(1, { name: 'New name' }),
+      findBookingSlugOwner: () => repository.findBookingSlugOwner('estudio'),
     };
     const prismaCall = {
       findById: prisma.business.findFirst,
       update: prisma.business.update,
+      findBookingSlugOwner: prisma.bookingSlug.findUnique,
     };
 
     it.each([['update', 'P2025', NotFoundError]] as const)(

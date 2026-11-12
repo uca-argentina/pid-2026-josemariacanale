@@ -57,6 +57,8 @@ import type { IDeleteBusinessLogoUseCase } from '@/src/application/use-cases/bus
 import type { IDeleteBusinessLogoController } from '@/src/interface-adapters/controllers/businesses/delete-business-logo.controller';
 import type { IUpdateBusinessUseCase } from '@/src/application/use-cases/businesses/update-business.use-case';
 import type { IUpdateBusinessController } from '@/src/interface-adapters/controllers/businesses/update-business.controller';
+import type { ICheckSlugAvailabilityUseCase } from '@/src/application/use-cases/businesses/check-slug-availability.use-case';
+import type { ICheckSlugAvailabilityController } from '@/src/interface-adapters/controllers/businesses/check-slug-availability.controller';
 import type { ICreateBusinessController } from '@/src/interface-adapters/controllers/businesses/create-business.controller';
 import type { IGetCurrentUserController } from '@/src/interface-adapters/controllers/auth/get-current-user.controller';
 import type { IEmployeesRepository } from '@/src/application/repositories/employees.repository.interface';
@@ -279,6 +281,7 @@ export const DI_SYMBOLS = {
     IListBusinessesUseCase: Symbol.for('IListBusinessesUseCase'),
     IListMyBusinessesUseCase: Symbol.for('IListMyBusinessesUseCase'),
     IUpdateBusinessUseCase: Symbol.for('IUpdateBusinessUseCase'),
+    ICheckSlugAvailabilityUseCase: Symbol.for('ICheckSlugAvailabilityUseCase'),
     IUploadBusinessLogoUseCase: Symbol.for('IUploadBusinessLogoUseCase'),
     IDeleteBusinessLogoUseCase: Symbol.for('IDeleteBusinessLogoUseCase'),
     IUploadBranchImageUseCase: Symbol.for('IUploadBranchImageUseCase'),
@@ -380,6 +383,7 @@ export const DI_SYMBOLS = {
     IGetMyBusinessController: Symbol.for('IGetMyBusinessController'),
     IListMyBusinessesController: Symbol.for('IListMyBusinessesController'),
     IUpdateBusinessController: Symbol.for('IUpdateBusinessController'),
+    ICheckSlugAvailabilityController: Symbol.for('ICheckSlugAvailabilityController'),
     IUploadBusinessLogoController: Symbol.for('IUploadBusinessLogoController'),
     IDeleteBusinessLogoController: Symbol.for('IDeleteBusinessLogoController'),
     IUploadBranchImageController: Symbol.for('IUploadBranchImageController'),
@@ -525,6 +529,7 @@ export interface DI_RETURN_TYPES {
     IListBusinessesUseCase: IListBusinessesUseCase;
     IListMyBusinessesUseCase: IListMyBusinessesUseCase;
     IUpdateBusinessUseCase: IUpdateBusinessUseCase;
+    ICheckSlugAvailabilityUseCase: ICheckSlugAvailabilityUseCase;
     IUploadBusinessLogoUseCase: IUploadBusinessLogoUseCase;
     IDeleteBusinessLogoUseCase: IDeleteBusinessLogoUseCase;
     IUploadBranchImageUseCase: IUploadBranchImageUseCase;
@@ -626,6 +631,7 @@ export interface DI_RETURN_TYPES {
     IGetMyBusinessController: IGetMyBusinessController;
     IListMyBusinessesController: IListMyBusinessesController;
     IUpdateBusinessController: IUpdateBusinessController;
+    ICheckSlugAvailabilityController: ICheckSlugAvailabilityController;
     IUploadBusinessLogoController: IUploadBusinessLogoController;
     IDeleteBusinessLogoController: IDeleteBusinessLogoController;
     IUploadBranchImageController: IUploadBranchImageController;

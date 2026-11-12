@@ -31,6 +31,12 @@ Las direcciones con `/business/` y `/u/` dejan de existir, sin redirigir. Los en
 
 `GET /slugs/:slug`, sin Sesión, resuelve de quién es un primer tramo con una sola llamada: `{ kind: 'business', business }` (misma forma que `by-slug`) o `{ kind: 'user', user }` (misma forma que `GET /u/:userSlug`). 404 `Booking link <slug> not found` si nadie lo tiene, si es de un Negocio o Usuario dado de baja, o si no tiene formato de slug.
 
+## Disponibilidad
+
+`GET /slugs/:slug/availability`, con Sesión, dice si el Dueño puede usar el slug como Enlace de reserva de su Negocio, para verificarlo al salir del campo en Crear y Editar Negocio. Siempre 200: `{ available: true }` o `{ available: false, reason }`, con `reason` en `invalid` (sin formato de slug o fuera de 3 a 40 caracteres, como el DTO), `reserved` (palabra reservada) o `taken` (tiene fila en `BookingSlug`, aunque su Negocio o Usuario esté dado de baja). El slug del propio Negocio del Dueño cuenta como disponible. No se usa el resolutor porque contesta 404 para las reservadas y para los dados de baja, que el alta igual rechaza.
+
+Es solo una consulta: el alta y la edición lo vuelven a chequear con las palabras reservadas y la clave primaria, porque otro Dueño puede tomarlo entre el blur y el guardado. El front muestra `taken` y `reserved` con el mismo mensaje que el 409.
+
 ## Empleado elegido
 
 Un Turno reservado por el enlace de un Empleado guarda `Booking.employeeChosen`. El Cliente ve solo los Horarios reservables de esa persona y el Turno queda con ella, sin reasignar si el horario se ocupó. Un Turno con Empleado elegido se Reagenda solo a horarios de ese Empleado, lo Reagende el Cliente o el Empleado; para pasarlo a otro, se Cancela. Si el Empleado deja de Ofrecer el Servicio, los Turnos que ya tiene siguen en pie y el Cliente puede Cancelarlos. Cuenta para el round robin como cualquier otro. Por el enlace de un Empleado que no Ofrece el Servicio (o ya no, o fue dado de baja del Negocio) el Cliente ve "página no encontrada": no se Reserva con otro sin saberlo. Un Empleado sin Enlace de reserva propio (`User.slug` nulo) no tiene enlace directo hasta que lo elige. Esto lo implementan los tickets de #209 que siguen a este.

@@ -7,6 +7,7 @@ import { PanelButton, PanelDialog, PanelDialogClose } from '@/app/(app)/_compone
 import { businessSchema, fieldErrorsOf, type BusinessFields, type FieldErrors } from '@/app/_components/business-schemas';
 import { updateBusinessAction } from '../actions';
 import { BusinessFieldset } from './BusinessFieldset';
+import { useSlugCheck, withSlugError } from './use-slug-check';
 
 export type EditableBusiness = BusinessFields & { id: number; logoUrl?: string | null };
 
@@ -20,6 +21,8 @@ export function EditBusinessDialog({ business, onClose }: { business: EditableBu
     const [errors, setErrors] = useState<FieldErrors>({});
     const [submitError, setSubmitError] = useState<string>();
     const [isPending, startTransition] = useTransition();
+    // Verifica el Enlace de reserva al salir del campo. El chequeo definitivo lo hace el back al guardar.
+    const slugCheck = useSlugCheck(values.slug, setErrors, business.slug);
 
     const handleSubmit = (event: React.FormEvent) => {
         event.preventDefault();
@@ -63,9 +66,15 @@ export function EditBusinessDialog({ business, onClose }: { business: EditableBu
                 <BusinessFieldset
                     value={values}
                     errors={errors}
-                    onChange={(patch) => setValues((v) => ({ ...v, ...patch }))}
+                    onChange={(patch) => {
+                        if (patch.slug !== undefined) setErrors((current) => withSlugError(current, undefined));
+                        setValues((v) => ({ ...v, ...patch }));
+                    }}
+                    onSlugBlur={slugCheck.verify}
                     slugHint={
-                        values.slug !== business.slug
+                        slugCheck.checking
+                            ? 'Verificando…'
+                            : values.slug !== business.slug
                             ? 'Al cambiar el Enlace de reserva, los enlaces que ya compartiste dejan de funcionar.'
                             : undefined
                     }

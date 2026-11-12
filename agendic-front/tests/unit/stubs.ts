@@ -127,7 +127,7 @@ export const servicesWith = (stubs: Partial<IServicesRepository>): IServicesRepo
     ...stubs,
 });
 
-// The methods of IBusinessesRepository that most tests don't exercise (Imágenes de Sucursal, Logo, listMyBusinesses), for tests that build the whole repository.
+// The methods of IBusinessesRepository that most tests don't exercise (Imágenes de Sucursal, Logo, listMyBusinesses, checkSlugAvailability), for tests that build the whole repository.
 export const imagesStub = {
     listMyBusinesses: jest.fn(),
     uploadBranchImage: jest.fn(),
@@ -135,6 +135,7 @@ export const imagesStub = {
     reorderBranchImages: jest.fn(),
     uploadBusinessLogo: jest.fn(),
     deleteBusinessLogo: jest.fn(),
+    checkSlugAvailability: jest.fn(),
 };
 
 /** Una Anotación como la devuelve GET /waitlist-links/:secret, de un Servicio del Negocio. */

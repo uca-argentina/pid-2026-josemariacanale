@@ -11,6 +11,10 @@ import { AlreadyOwnerError, BranchImagesRejectedError, InvalidLocationError, Inv
 import { InputParseError } from '@/src/entities/errors/common';
 import { InvitationNotAcceptableError } from '@/src/entities/errors/employee';
 
+/** Lo que ve el Dueño cuando el back no deja usar el Enlace de reserva: en el alta, en la edición y al verificarlo on blur. */
+const SLUG_TAKEN_MESSAGE = 'Esa dirección ya está en uso.';
+const INVALID_SLUG_MESSAGE = 'El Enlace de reserva no es válido.';
+
 /** `logoFailed`: el Logo no se pudo subir; el Negocio ya existe y el Dueño lo carga después. */
 export type CreateBusinessResult =
     | { ok: true; failedEmployees: string[]; logoFailed: boolean }
@@ -64,8 +68,8 @@ export async function createBusinessAction(form: FormData): Promise<CreateBusine
             refresh(); // la página pasa a mostrar el Negocio que ya tiene
             return { ok: false, message: 'Ya tenés un Negocio.' };
         }
-        if (error instanceof SlugTakenError) return { ok: false, message: 'Esa dirección ya está en uso.' };
-        if (error instanceof InvalidSlugError) return { ok: false, message: 'El Enlace de reserva no es válido.' };
+        if (error instanceof SlugTakenError) return { ok: false, message: SLUG_TAKEN_MESSAGE };
+        if (error instanceof InvalidSlugError) return { ok: false, message: INVALID_SLUG_MESSAGE };
         // The form only builds a punto from a suggestion, so a 400 about it means picking one again.
         if (error instanceof InvalidLocationError) return { ok: false, field: 'address', message: PICK_ADDRESS_MESSAGE };
         if (error instanceof BranchImagesRejectedError) return { ok: false, message: BRANCH_IMAGES_REJECTED[error.reason] };
@@ -90,6 +94,32 @@ export async function createBusinessAction(form: FormData): Promise<CreateBusine
     return { ok: true, failedEmployees, logoFailed };
 }
 
+/** Lo que muestra el campo Enlace de reserva según por qué el back no lo deja usar. Las reservadas salen como "en uso", igual que en el alta. */
+const SLUG_UNAVAILABLE_MESSAGES = {
+    taken: SLUG_TAKEN_MESSAGE,
+    reserved: SLUG_TAKEN_MESSAGE,
+    invalid: INVALID_SLUG_MESSAGE,
+} as const;
+
+export type CheckSlugResult = { ok: true } | { ok: false; message: string };
+
+/**
+ * Verifica el Enlace de reserva al salir del campo, en Crear y Editar Negocio. Si el chequeo falla (red, back caído)
+ * no bloquea al Dueño: el alta y la edición lo vuelven a verificar.
+ */
+export async function checkSlugAction(slug: string): Promise<CheckSlugResult> {
+    try {
+        const result = await getInjection('ICheckSlugAvailabilityController')(slug);
+        return result.available ? { ok: true } : { ok: false, message: SLUG_UNAVAILABLE_MESSAGES[result.reason] };
+    } catch (error) {
+        unstable_rethrow(error); // redirect/notFound/dynamic usage are Next's control flow, not failures
+        // La Sesión vencida la resuelve el Usuario solo: se lo manda a Iniciar sesión.
+        if (isSessionExpired(error)) redirect(SIGN_IN_PATH);
+        getInjection('ICrashReporterService').report(error);
+        return { ok: true };
+    }
+}
+
 export type UpdateBusinessResult =
     | { ok: true; business: { id: number; name: string; description: string; slug: string } }
     | { ok: false; message: string; field?: 'slug' };
@@ -101,8 +131,8 @@ export async function updateBusinessAction(payload: unknown): Promise<UpdateBusi
         return { ok: true, business };
     } catch (error) {
         unstable_rethrow(error); // redirect/notFound/dynamic usage are Next's control flow, not failures
-        if (error instanceof SlugTakenError) return { ok: false, field: 'slug', message: 'Esa dirección ya está en uso.' };
-        if (error instanceof InvalidSlugError) return { ok: false, field: 'slug', message: 'El Enlace de reserva no es válido.' };
+        if (error instanceof SlugTakenError) return { ok: false, field: 'slug', message: SLUG_TAKEN_MESSAGE };
+        if (error instanceof InvalidSlugError) return { ok: false, field: 'slug', message: INVALID_SLUG_MESSAGE };
         // La Sesión vencida la resuelve el Usuario solo: se lo manda a Iniciar sesión.
         if (isSessionExpired(error)) redirect(SIGN_IN_PATH);
         if (error instanceof InputParseError) return { ok: false, message: 'Revisá los datos e intentá de nuevo.' };

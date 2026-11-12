@@ -7,6 +7,8 @@ import { listMyBusinessesController } from '@/src/interface-adapters/controllers
 import { getMyBusinessController } from '@/src/interface-adapters/controllers/businesses/get-my-business.controller';
 import { updateBusinessUseCase } from '@/src/application/use-cases/businesses/update-business.use-case';
 import { updateBusinessController } from '@/src/interface-adapters/controllers/businesses/update-business.controller';
+import { checkSlugAvailabilityUseCase } from '@/src/application/use-cases/businesses/check-slug-availability.use-case';
+import { checkSlugAvailabilityController } from '@/src/interface-adapters/controllers/businesses/check-slug-availability.controller';
 import { BusinessesRepository } from '@/src/infrastructure/repositories/businesses.repository';
 import { createBusinessController } from '@/src/interface-adapters/controllers/businesses/create-business.controller';
 import { PublicBusinessesRepository } from '@/src/infrastructure/repositories/public-businesses.repository';
@@ -83,6 +85,18 @@ export function createBusinessesModule() {
             DI_SYMBOLS.IInstrumentationService,
             DI_SYMBOLS.IAuthenticationService,
             DI_SYMBOLS.IUpdateBusinessUseCase,
+        ]);
+
+    businessesModule
+        .bind(DI_SYMBOLS.ICheckSlugAvailabilityUseCase)
+        .toHigherOrderFunction(checkSlugAvailabilityUseCase, [DI_SYMBOLS.IInstrumentationService, DI_SYMBOLS.IBusinessesRepository]);
+
+    businessesModule
+        .bind(DI_SYMBOLS.ICheckSlugAvailabilityController)
+        .toHigherOrderFunction(checkSlugAvailabilityController, [
+            DI_SYMBOLS.IInstrumentationService,
+            DI_SYMBOLS.IAuthenticationService,
+            DI_SYMBOLS.ICheckSlugAvailabilityUseCase,
         ]);
 
     businessesModule
