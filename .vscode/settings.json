@@ -1,0 +1,7 @@
+{
+  "jest.runMode": { "type": "on-save", "testFileOnly": false },
+  "jest.virtualFolders": [
+    { "name": "agendic-back", "rootPath": "agendic-back", "jestCommandLine": "npm test --" },
+    { "name": "agendic-front", "rootPath": "agendic-front", "jestCommandLine": "npm test --" }
+  ]
+}
