@@ -376,7 +376,7 @@ export class NodemailerMailer implements Mailer {
       from: process.env.SMTP_FROM,
       to: email,
       subject: 'Se liberó un horario',
-      html: `<p>Hola ${escapeHtml(clientName)}, se liberó un horario de ${escapeHtml(serviceName)} para el ${day}. Se lo lleva quien reserve primero: <a href="${escapeHtml(bookingUrl)}">${escapeHtml(bookingUrl)}</a></p><p>Si ya no lo necesitás, podés salir de la lista de espera: <a href="${leaveUrl}">${leaveUrl}</a></p>`,
+      html: `<p>Hola ${escapeHtml(clientName)}, se liberó un horario de ${escapeHtml(serviceName)} para el ${day}. Tenes hasta 15 minutos para aceptar o se lo ofrecemos al proximo cliente.<a href="${escapeHtml(bookingUrl)}">${escapeHtml(bookingUrl)}</a></p><p>Si ya no lo necesitás, podés salir de la lista de espera: <a href="${leaveUrl}">${leaveUrl}</a></p>`,
     });
   }
 

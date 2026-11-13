@@ -12,7 +12,8 @@ export class FreeSlotNoticesJob {
    *
    * @throws {DatabaseOperationError} falló la base al buscar las Anotaciones
    */
-  @Cron('*/5 * * * *')
+  /*Holax<d*/
+  @Cron('*/15 * * * *')
   run() {
     return this.sendFreeSlotNotices.execute();
   }
