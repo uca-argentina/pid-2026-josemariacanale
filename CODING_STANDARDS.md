@@ -2,11 +2,11 @@
 
 Las reglas contra las que se revisa una diff. Las aplica el review (`/code-review`), no la implementación: quien implementa hace que funcione, el review lo deja bien.
 
-Aplicá cada archivo a los cambios dentro de su alcance. Algunos también los lee la implementación (`errors.md` siempre, la parte de `data-layer.md` que dice cómo migrar); el review igual los chequea completos. La clean architecture (front y back) se verifica **solo** en el review: la implementación no la lee ni la cita.
+Aplicá cada archivo a los cambios dentro de su alcance. Algunos también los lee la implementación (`errors.md` y `comments.md` siempre, la parte de `data-layer.md` que dice cómo migrar); el review igual los chequea completos. La clean architecture (front y back) se verifica **solo** en el review: la implementación no la lee ni la cita.
 
 | Archivo | Alcance | Qué cubre |
 |---|---|---|
-| `docs/agents/comments.md` | `.ts` / `.tsx` de front y back | TSDoc en símbolos exportados, `//` solo para un *por qué*, `@throws` siempre |
+| `docs/agents/comments.md` | `.ts` / `.tsx` de front y back | Sin TSDoc; pocos comentarios `//`, solo para un *por qué* que el código no muestra |
 | `docs/agents/errors.md` | front y back | Clases de error de dominio, mensajes con el valor que falló, `{ cause }` al envolver vendors, mensajes del back como contrato (ADR 0007) |
 | `agendic-back/docs/agents/data-layer.md` | repositorios Prisma y `prisma/` | `select` sobre `include`, nombres de métodos de repositorio, solo acceso a datos, migraciones |
 | `agendic-back/docs/agents/performance.md` | back | Loops cuadráticos, costo del cálculo de Horarios reservables |
