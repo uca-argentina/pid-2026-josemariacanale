@@ -31,6 +31,7 @@ enum BookingStatus {
   BOOKED
   REJECTED
   CANCELLED
+  OFFERED
 }
 
 /// Quién hizo que un Turno terminara CANCELLED o REJECTED (ADR 0033).
@@ -247,14 +248,15 @@ model Service {
   repeatEveryWeeks     Int? // Repetición: weeks between the Turnos of a Serie; null with repeatMaxBookings when there is none (CHECK: both or neither)
   repeatMaxBookings    Int? // Repetición: most Turnos a Serie may have, 2 to 10
 
-  branch        Branch?           @relation(fields: [branchId], references: [id], onDelete: Restrict)
-  user          User?             @relation(fields: [userId], references: [id], onDelete: Restrict)
-  availability  Availability?     @relation(fields: [availabilityId], references: [id], onDelete: Restrict)
-  employees     EmployeeService[]
-  cabins        ServiceCabin[]
-  bookings      Booking[]
-  waitlist      WaitlistEntry[]
-  streakRewards StreakReward[]
+  branch           Branch?             @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  user             User?               @relation(fields: [userId], references: [id], onDelete: Restrict)
+  availability     Availability?       @relation(fields: [availabilityId], references: [id], onDelete: Restrict)
+  employees        EmployeeService[]
+  cabins           ServiceCabin[]
+  bookings         Booking[]
+  waitlist         WaitlistEntry[]
+  slotWatlistEntry SlotWaitlistEntry[]
+  streakRewards    StreakReward[]
 }
 
 model Employee {
@@ -263,11 +265,12 @@ model Employee {
   businessId Int
   deletedAt  DateTime? @db.Timestamptz(3) // when dado de baja; null while employed
 
-  user     User              @relation(fields: [userId], references: [id])
-  business Business          @relation(fields: [businessId], references: [id])
-  services EmployeeService[]
-  bookings Booking[]
-  branches EmployeeBranch[]
+  user             User                @relation(fields: [userId], references: [id])
+  business         Business            @relation(fields: [businessId], references: [id])
+  services         EmployeeService[]
+  bookings         Booking[]
+  branches         EmployeeBranch[]
+  slotWatlistEntry SlotWaitlistEntry[]
 
   @@unique([id, businessId]) // target of EmployeeBranch's foreign key, so its Sucursal is of the Empleado's Negocio
 }
@@ -399,6 +402,7 @@ model Booking {
   rating               BookingRating?
   calendarEvent        BookingCalendarEvent?
   redeemedStreakPrizes StreakPrize[]
+  slotWaitlistEntry    SlotWaitlistEntry?
 
   @@index([seriesId])
 }
@@ -480,6 +484,29 @@ model WaitlistEntry {
   createdAt  DateTime  @default(now()) @db.Timestamptz(3)
 
   service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+}
+
+model SlotWaitlistEntry {
+  id         Int      @id @default(autoincrement())
+  serviceId  Int
+  employeeId Int?
+  startsAt   DateTime @db.Timestamptz(3)
+  clientName String
+  email      String
+  link       String   @unique
+
+  offerBookingId Int?      @unique
+  createdAt      DateTime  @default(now()) @db.Timestamptz(3)
+  offeredAt      DateTime? @db.Timestamptz(3)
+  acceptedAt     DateTime? @db.Timestamptz(3)
+  leftAt         DateTime? @db.Timestamptz(3)
+  expiredAt      DateTime? @db.Timestamptz(3)
+
+  service  Service   @relation(fields: [serviceId], references: [id])
+  employee Employee? @relation(fields: [employeeId], references: [id])
+  booking  Booking?  @relation(fields: [offerBookingId], references: [id])
+
+  @@index([serviceId, employeeId, startsAt, createdAt])
 }
 
 /// Las Rachas de un Negocio o de los Servicios personales de un Usuario: uno de los dos, exactamente (CHECK).
