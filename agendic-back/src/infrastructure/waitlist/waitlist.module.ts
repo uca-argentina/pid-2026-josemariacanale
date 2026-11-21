@@ -7,6 +7,7 @@ import { HolidaysModule } from '../holidays/holidays.module';
 import { SendFreeSlotNoticesUseCase } from '../../application/waitlist/send-free-slot-notices.use-case';
 import { FreeSlotNoticesJob } from './free-slot-notices.job';
 import { WaitlistController } from './waitlist.controller';
+import { JoinSlotWaitlistUseCase } from '../../application/slot-waitlist/join-slot-waitlist.use-case';
 
 /** Anotarse en la Lista de espera, abrir su enlace y Salir (ADR 0034). */
 @Module({
@@ -14,6 +15,7 @@ import { WaitlistController } from './waitlist.controller';
   controllers: [WaitlistController],
   providers: [
     JoinWaitlistUseCase,
+    JoinSlotWaitlistUseCase,
     GetWaitlistEntryByLinkUseCase,
     LeaveWaitlistUseCase,
     ListSlotsUseCase,

@@ -14,6 +14,7 @@ import { GetWaitlistEntryByLinkUseCase } from '../../application/waitlist/get-wa
 import { LeaveWaitlistUseCase } from '../../application/waitlist/leave-waitlist.use-case';
 import { JoinWaitlistUseCase } from '../../application/waitlist/join-waitlist.use-case';
 import { JoinWaitlistDto } from './waitlist.dto';
+import { JoinSlotWaitlistUseCase } from '../../application/slot-waitlist/join-slot-waitlist.use-case';
 
 /** Lista de espera de un Servicio. */
 @Controller()
@@ -22,6 +23,7 @@ export class WaitlistController {
     private readonly joinWaitlistUseCase: JoinWaitlistUseCase,
     private readonly getWaitlistEntryByLinkUseCase: GetWaitlistEntryByLinkUseCase,
     private readonly leaveWaitlistUseCase: LeaveWaitlistUseCase,
+    private readonly joinSlotWaitlistUseCase: JoinSlotWaitlistUseCase,
   ) {}
 
   /**
@@ -47,6 +49,23 @@ export class WaitlistController {
       code: dto.code,
     });
     res.status(created ? HttpStatus.CREATED : HttpStatus.OK);
+    return entry;
+  }
+
+  @Post('services/:id/slot-waitlist')
+  async joinSlot(
+    @Param('id', ParseIntPipe) serviceId: number,
+    @Body() dto: JoinWaitlistDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const { created, ...entry } = await this.joinSlotWaitlistUseCase.execute({
+      serviceId,
+      startsAt: dto.date,
+      clientName: dto.clientName,
+      clientEmail: dto.clientEmail,
+      code: dto.code,
+    });
+    //res.status(created ? HttpStatus.CREATED : HttpStatus.OK);
     return entry;
   }
 
