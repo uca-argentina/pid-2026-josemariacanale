@@ -6,7 +6,7 @@ import { PanelInput } from '@/app/(app)/_components/panel-ui';
 import { LocationMap } from '@/app/_components/maps/LocationMap';
 import { loadGoogleMaps, useGoogleMaps } from '@/app/_components/maps/google-maps';
 import { Combobox, ComboboxEmpty, ComboboxInput, ComboboxItem, ComboboxList, ComboboxPopup } from '@/app/_components/ui/combobox';
-import type { Location } from '@/src/entities/models/branch';
+import { isBranchLocationOptional, type Location } from '@/src/entities/models/branch';
 import { getTimeZoneAction } from '../branches/actions';
 
 type Suggestion = { text: string; prediction?: google.maps.places.PlacePrediction };
@@ -56,7 +56,9 @@ export function AddressField({
                     {...invalid}
                 />
                 <p className="m-0 text-[12.5px] font-medium text-[#6b7280]">
-                    No pudimos cargar el mapa. Podés escribir la dirección en texto; la Sucursal se guarda sin punto en el mapa.
+                    {isBranchLocationOptional()
+                        ? 'No pudimos cargar el mapa. Podés escribir la dirección en texto; la Sucursal se guarda sin punto en el mapa.'
+                        : 'No pudimos cargar el mapa. Podés corregir la dirección en texto; una Sucursal nueva necesita su punto, probá más tarde.'}
                 </p>
             </div>
         );

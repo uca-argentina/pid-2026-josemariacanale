@@ -40,6 +40,11 @@ Para probar sin conectarse a Clerk:
 
 Editar el perfil (el modal de Clerk) no funciona en este modo, y Maps, Calendar y el mail siguen necesitando internet.
 
+## Atajos de desarrollo
+
+- Código de verificación fijo: `BOOKING_CODE_FIXED=AAAAAA` en `agendic-back/.env`. Todo email recibe ese código y siempre es válido, sin límite de pedidos. Sin la variable se usan los códigos TOTP reales (`BOOKING_CODE_SECRET`).
+- Sucursal sin Google Maps: `BRANCH_LOCATION_OPTIONAL=true` en `agendic-back/.env` y `NEXT_PUBLIC_BRANCH_LOCATION_OPTIONAL=true` en `agendic-front/.env.local`. Crear un Negocio o una Sucursal acepta una dirección escrita sin elegirla de la lista, y la Sucursal queda sin punto en el mapa. Sin las variables, el punto es obligatorio.
+
 ## Tests
 
 `npm test` dentro de cada app. El back además tiene `npm run lint` con oxlint; el front, con eslint.

@@ -35,7 +35,14 @@ import { PrismaBadgesRepository } from './badges/prisma-badges.repository';
 import { AvailabilitiesModule } from './availabilities/availabilities.module';
 import { PrismaAvailabilitiesRepository } from './availabilities/prisma-availabilities.repository';
 import { PrismaBookingsRepository } from './bookings/prisma-bookings.repository';
-import { FixedBookingVerificationCodes } from './bookings/fixed-booking-verification-codes';
+import {
+  FixedBookingVerificationCodes,
+  readFixedBookingCode,
+} from './bookings/fixed-booking-verification-codes';
+import {
+  readBookingCodeSecret,
+  TotpBookingVerificationCodes,
+} from './bookings/totp-booking-verification-codes';
 import { CalendarModule } from './calendar/calendar.module';
 import { EnvBookingPanelLinks } from './calendar/env-booking-panel-links';
 import { PrismaBookingCalendarEventsRepository } from './calendar/prisma-booking-calendar-events.repository';
@@ -136,7 +143,13 @@ import { WaitlistModule } from './waitlist/waitlist.module';
     { provide: BOOKINGS_REPOSITORY, useClass: PrismaBookingsRepository },
     {
       provide: BOOKING_VERIFICATION_CODES,
-      useClass: FixedBookingVerificationCodes,
+      useFactory: (clock: Clock) => {
+        const fixedCode = readFixedBookingCode();
+        return fixedCode
+          ? new FixedBookingVerificationCodes(fixedCode)
+          : new TotpBookingVerificationCodes(readBookingCodeSecret(), clock);
+      },
+      inject: [CLOCK],
     },
     {
       provide: AVAILABILITIES_REPOSITORY,

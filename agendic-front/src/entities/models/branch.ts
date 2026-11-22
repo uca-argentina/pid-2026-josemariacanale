@@ -7,6 +7,10 @@ export const locationSchema = z.object({
 });
 export type Location = z.infer<typeof locationSchema>;
 
+// With NEXT_PUBLIC_BRANCH_LOCATION_OPTIONAL=true a new Sucursal may skip the Google Maps pick and save without a punto;
+// the back needs BRANCH_LOCATION_OPTIONAL=true too. Read on each call so tests can toggle it.
+export const isBranchLocationOptional = () => process.env.NEXT_PUBLIC_BRANCH_LOCATION_OPTIONAL === 'true';
+
 /**
  * A Sucursal as GET /businesses/:businessId/branches returns it.
  *
