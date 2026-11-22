@@ -83,8 +83,10 @@ export class BranchFieldsDto {
   @IsNullableText()
   description?: string | null;
 
+  // Optional while the Google Maps pick is not required to create a Sucursal; absent or `null` saves no point.
+  @ValidateIf((_, value) => value != null)
   @IsLocation()
-  location!: LocationDto;
+  location?: LocationDto | null;
 }
 
 export class CreateBranchDto extends BranchFieldsDto {

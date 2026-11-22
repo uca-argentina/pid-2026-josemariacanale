@@ -56,7 +56,7 @@ export function AddressField({
                     {...invalid}
                 />
                 <p className="m-0 text-[12.5px] font-medium text-[#6b7280]">
-                    No pudimos cargar el mapa. Podés corregir la dirección en texto; una Sucursal nueva necesita su punto, probá más tarde.
+                    No pudimos cargar el mapa. Podés escribir la dirección en texto; la Sucursal se guarda sin punto en el mapa.
                 </p>
             </div>
         );

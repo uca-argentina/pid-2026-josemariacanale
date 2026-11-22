@@ -46,7 +46,7 @@ export const createBusinessSchema = z.object({
         timeZone: z.string(),
         slug: z.string(),
         description: z.string().optional(),
-        location: locationSchema,
+        location: locationSchema.nullable(),
     }),
     /** Las imágenes de la primera Sucursal, en orden: nunca nace sin una. */
     images: z.array(z.instanceof(File)).min(BRANCH_IMAGES.min).max(BRANCH_IMAGES.max),

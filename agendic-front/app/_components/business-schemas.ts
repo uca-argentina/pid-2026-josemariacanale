@@ -40,12 +40,8 @@ const branchFields = z.object({
     }),
     address: required('la dirección'),
     timeZone: required('la zona horaria'),
-    // Null until the Dueño picks a suggestion; the form shows this error under the address, where the fix is.
-    location: locationSchema.nullable().transform((location, ctx) => {
-        if (location) return location;
-        ctx.addIssue({ code: 'custom', message: PICK_ADDRESS_MESSAGE });
-        return z.NEVER;
-    }),
+    // Null until the Dueño picks a suggestion; picking one is optional for now, so a typed address saves without a punto.
+    location: locationSchema.nullable(),
 });
 
 export const branchSchema = branchFields.transform((b) => ({

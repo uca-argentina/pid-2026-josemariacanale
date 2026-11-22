@@ -32,8 +32,8 @@ export interface CreateBranchInput {
   slug: string;
   /** Opcional; sin ella, la Sucursal queda sin descripción propia (`null`). */
   description?: string | null;
-  /** Obligatoria: toda Sucursal nueva nace con su punto en el mapa. */
-  location: MapPoint;
+  // Optional: a Sucursal can be created without picking its address on Google Maps; it then has no point.
+  location?: MapPoint | null;
 }
 
 export interface UpdateBranchInput {

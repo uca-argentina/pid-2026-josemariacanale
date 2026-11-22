@@ -435,14 +435,12 @@ describe('Negocio', () => {
       );
     });
 
-    it('answers 400 when the first Sucursal has no location, creating nothing nor uploading images', async () => {
+    it('creates the Negocio when the first Sucursal has no location', async () => {
       const { location: _, ...branch } = BRANCH_PART;
 
-      const res = await post({ ...VALID_BODY, branch }).expect(400);
+      await post({ ...VALID_BODY, branch }).expect(201);
 
-      expect(res.body.message).toContain('branch.location is required');
-      expect(t.fileStorage.upload).not.toHaveBeenCalled();
-      expect(t.businesses.create).not.toHaveBeenCalled();
+      expect(t.businesses.create).toHaveBeenCalledTimes(1);
     });
 
     it.each([
