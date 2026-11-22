@@ -6,9 +6,6 @@ import {
   InvalidCodeError,
   NotFoundError,
 } from '../../domain/errors';
-import { localDate } from '../../domain/slots/slot';
-import { WaitlistEntry } from '../../domain/waitlist/waitlist-entry';
-import { serviceTimeZone } from '../services/service-time-zone';
 import { SLOT_WAITLIST_REPOSITORY } from '../../domain/slot-waitlist/slot-waitlist.repository';
 import { SlotWaitlistRepository } from '../../domain/slot-waitlist/slot-waitlist.repository';
 import {
@@ -19,6 +16,8 @@ import {
   SERVICES_REPOSITORY,
   ServicesRepository,
 } from '../../domain/services/services.repository';
+import { CLOCK, Clock } from '../../domain/clock';
+import { serviceTimeZone } from '../services/service-time-zone';
 import {
   BRANCHES_REPOSITORY,
   BranchesRepository,
@@ -27,18 +26,17 @@ import {
   AVAILABILITIES_REPOSITORY,
   AvailabilitiesRepository,
 } from '../../domain/availabilities/availabilities.repository';
-import { CLOCK, Clock } from '../../domain/clock';
-import {
-  WAITLIST_REPOSITORY,
-  WaitlistRepository,
-} from '../../domain/waitlist/waitlist.repository';
+import { addDays, localDate } from 'src/domain/slots/slot';
+import { ListSlotsUseCase } from '../slots/list-slots.use-case';
+import { SlotWaitlistEntry } from '../../domain/slot-waitlist/slot-waitlist-entry';
 
 export interface JoinSlotWaitlistInput {
+  serviceId: number;
+  startsAt: string;
+  employeeId?: number;
   clientName: string;
   clientEmail: string;
-  serviceId: number;
   code: string;
-  startsAt: string;
 }
 const logger = new Logger('JoinSlotWaitlist');
 
@@ -48,6 +46,10 @@ export class JoinSlotWaitlistUseCase {
     @Inject(SERVICES_REPOSITORY) private readonly services: ServicesRepository,
     @Inject(BOOKING_VERIFICATION_CODES)
     private readonly codes: BookingVerificationCodes,
+    @Inject(BRANCHES_REPOSITORY) private readonly branches: BranchesRepository,
+    @Inject(AVAILABILITIES_REPOSITORY)
+    private readonly availabilities: AvailabilitiesRepository,
+    private readonly listSlots: ListSlotsUseCase,
     @Inject(CLOCK) private readonly clock: Clock,
     @Inject(SLOT_WAITLIST_REPOSITORY)
     private readonly waitlist: SlotWaitlistRepository,
@@ -68,6 +70,53 @@ export class JoinSlotWaitlistUseCase {
     if (startsAt < this.clock.now())
       throw new BusinessRuleError(`Slot ${input.startsAt} is in the past`);
 
-    return { serviceId: 0, date: 'cuming date', created: true };
+    const timezone = await serviceTimeZone(
+      this.branches,
+      this.availabilities,
+      service,
+    );
+    const date = localDate(startsAt, timezone);
+    const timeSlots = await this.listSlots.execute(
+      service.id,
+      date,
+      date,
+      undefined,
+      input.employeeId,
+    );
+    if (timeSlots.days[0]?.slots.includes(startsAt.toISOString())) {
+      throw new ConflictError(
+        `Slot ${input.startsAt} is free for Service ${service.id}`,
+      );
+    }
+
+    const employeeId = input.employeeId ?? null;
+    const result = {
+      serviceId: service.id,
+      date: startsAt.toISOString(),
+    };
+    const alive = await this.waitlist.findAlive(
+      service.id,
+      employeeId,
+      startsAt,
+      input.clientEmail,
+    );
+    if (alive) return { ...result, created: false };
+
+    let entry: SlotWaitlistEntry;
+    const dbEntry = {
+      clientName: input.clientName,
+      email: input.clientEmail,
+      employeeId: employeeId,
+      serviceId: service.id,
+      startsAt: startsAt,
+    };
+    try {
+      entry = await this.waitlist.create(dbEntry);
+    } catch (error) {
+      // Lost a race against the same Anotación: it exists now, which is the idempotent answer.
+      if (error instanceof ConflictError) return { ...result, created: false };
+      throw error;
+    }
+    return { ...result, created: true };
   }
 }

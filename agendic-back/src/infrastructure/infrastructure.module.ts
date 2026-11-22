@@ -91,6 +91,8 @@ import { PrismaUsersRepository } from './users/prisma-users.repository';
 import { UsersModule } from './users/users.module';
 import { PrismaWaitlistRepository } from './waitlist/prisma-waitlist.repository';
 import { WaitlistModule } from './waitlist/waitlist.module';
+import { SLOT_WAITLIST_REPOSITORY } from '../domain/slot-waitlist/slot-waitlist.repository';
+import { PrismaSlotWaitlistRepository } from './waitlist/prisma-slot-waitlist.repository';
 
 /** Binds every port to its adapter, globally, and wires the REST feature modules. */
 @Global()
@@ -168,6 +170,10 @@ import { WaitlistModule } from './waitlist/waitlist.module';
     { provide: ANALYTICS_REPOSITORY, useClass: PrismaAnalyticsRepository },
     { provide: WAITLIST_REPOSITORY, useClass: PrismaWaitlistRepository },
     {
+      provide: SLOT_WAITLIST_REPOSITORY,
+      useClass: PrismaSlotWaitlistRepository,
+    },
+    {
       provide: STREAK_PROGRAMS_REPOSITORY,
       useClass: PrismaStreakProgramsRepository,
     },
@@ -219,6 +225,7 @@ import { WaitlistModule } from './waitlist/waitlist.module';
     GOOGLE_CALENDAR_CLIENT,
     ANALYTICS_REPOSITORY,
     WAITLIST_REPOSITORY,
+    SLOT_WAITLIST_REPOSITORY,
     STREAK_PROGRAMS_REPOSITORY,
     STREAK_PRIZES_REPOSITORY,
     CALENDAR_CONNECTIONS_REPOSITORY,

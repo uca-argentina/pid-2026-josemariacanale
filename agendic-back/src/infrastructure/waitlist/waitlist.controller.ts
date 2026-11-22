@@ -15,6 +15,7 @@ import { LeaveWaitlistUseCase } from '../../application/waitlist/leave-waitlist.
 import { JoinWaitlistUseCase } from '../../application/waitlist/join-waitlist.use-case';
 import { JoinWaitlistDto } from './waitlist.dto';
 import { JoinSlotWaitlistUseCase } from '../../application/slot-waitlist/join-slot-waitlist.use-case';
+import { JoinSlotWaitlistDto } from './waitlist.dto copy';
 
 /** Lista de espera de un Servicio. */
 @Controller()
@@ -55,15 +56,12 @@ export class WaitlistController {
   @Post('services/:id/slot-waitlist')
   async joinSlot(
     @Param('id', ParseIntPipe) serviceId: number,
-    @Body() dto: JoinWaitlistDto,
+    @Body() dto: JoinSlotWaitlistDto,
     @Res({ passthrough: true }) res: Response,
   ) {
     const { created, ...entry } = await this.joinSlotWaitlistUseCase.execute({
       serviceId,
-      startsAt: dto.date,
-      clientName: dto.clientName,
-      clientEmail: dto.clientEmail,
-      code: dto.code,
+      ...dto,
     });
     //res.status(created ? HttpStatus.CREATED : HttpStatus.OK);
     return entry;
