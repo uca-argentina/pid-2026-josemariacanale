@@ -16,6 +16,8 @@ import { JoinWaitlistUseCase } from '../../application/waitlist/join-waitlist.us
 import { JoinWaitlistDto } from './waitlist.dto';
 import { JoinSlotWaitlistUseCase } from '../../application/slot-waitlist/join-slot-waitlist.use-case';
 import { JoinSlotWaitlistDto } from './waitlist.dto copy';
+import { GetSlotWaitlistEntryByLinkUseCase } from '../../application/slot-waitlist/get-slot-waitlist-entry-by-link.use-case';
+import { LeaveSlotWaitlistUseCase } from '../../application/slot-waitlist/leave-slot-waitlist.use-case';
 
 /** Lista de espera de un Servicio. */
 @Controller()
@@ -25,6 +27,8 @@ export class WaitlistController {
     private readonly getWaitlistEntryByLinkUseCase: GetWaitlistEntryByLinkUseCase,
     private readonly leaveWaitlistUseCase: LeaveWaitlistUseCase,
     private readonly joinSlotWaitlistUseCase: JoinSlotWaitlistUseCase,
+    private readonly getSlotWaitlistEntryByLinkUseCase: GetSlotWaitlistEntryByLinkUseCase,
+    private readonly leaveSlotWaitlistUseCase: LeaveSlotWaitlistUseCase,
   ) {}
 
   /**
@@ -63,7 +67,7 @@ export class WaitlistController {
       serviceId,
       ...dto,
     });
-    //res.status(created ? HttpStatus.CREATED : HttpStatus.OK);
+    res.status(created ? HttpStatus.CREATED : HttpStatus.OK);
     return entry;
   }
 
@@ -86,5 +90,21 @@ export class WaitlistController {
   @HttpCode(HttpStatus.NO_CONTENT)
   leave(@Param('secret') secret: string) {
     return this.leaveWaitlistUseCase.execute(secret);
+  }
+
+  @Get('slot-waitlist-links/:secret')
+  getSlot(@Param('secret') secret: string) {
+    return this.getSlotWaitlistEntryByLinkUseCase.execute(secret);
+  }
+
+  /**
+   * Saca al Cliente de la Lista de espera; 204 también si ya había Salido.
+   *
+   * @throws {NotFoundError} el enlace no corresponde a ninguna Anotación
+   */
+  @Post('slot-waitlist-links/:secret/leave')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  leaveSlot(@Param('secret') secret: string) {
+    return this.leaveSlotWaitlistUseCase.execute(secret);
   }
 }

@@ -38,7 +38,6 @@ export interface JoinSlotWaitlistInput {
   clientEmail: string;
   code: string;
 }
-const logger = new Logger('JoinSlotWaitlist');
 
 @Injectable()
 export class JoinSlotWaitlistUseCase {

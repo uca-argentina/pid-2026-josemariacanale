@@ -1,3 +1,4 @@
+import { SlotWaitlistEntryView } from './slot-waitlist-entry';
 import {
   SlotWaitlistEntry,
   CreateSlotWaitlistEntryInput,
@@ -13,4 +14,6 @@ export interface SlotWaitlistRepository {
     startsAt: Date,
     email: string,
   ): Promise<SlotWaitlistEntry | null>;
+  findByLinkIncludeService(link: string): Promise<SlotWaitlistEntryView | null>;
+  leave(id: number, now: Date): Promise<void>;
 }

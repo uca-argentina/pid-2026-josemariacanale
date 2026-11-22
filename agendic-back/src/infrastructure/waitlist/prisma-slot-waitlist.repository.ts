@@ -18,6 +18,8 @@ import { SlotWaitlistRepository } from '../../domain/slot-waitlist/slot-waitlist
 import {
   SlotWaitlistEntry,
   CreateSlotWaitlistEntryInput,
+  SlotWaitlistEntryView,
+  AliveSlotWaitlistEntry,
 } from '../../domain/slot-waitlist/slot-waitlist-entry';
 
 const ALIVE_ENTRY_UNIQUE = 'WaitlistEntry_email_service_date_key';
@@ -71,8 +73,8 @@ export class PrismaSlotWaitlistRepository implements SlotWaitlistRepository {
   /** @throws {DatabaseOperationError} the query failed */
   async findByLinkIncludeService(
     link: string,
-  ): Promise<WaitlistEntryView | null> {
-    const row = await this.prisma.waitlistEntry
+  ): Promise<SlotWaitlistEntryView | null> {
+    const row = await this.prisma.slotWaitlistEntry
       .findUnique({ where: { link }, select: VIEW_SELECT })
       .catch((error) => translateLinkError(error, 'read'));
     return row && toView(row);
@@ -80,44 +82,44 @@ export class PrismaSlotWaitlistRepository implements SlotWaitlistRepository {
 
   /** @throws {DatabaseOperationError} the update failed */
   async leave(id: number, now: Date) {
-    await this.prisma.waitlistEntry
+    await this.prisma.slotWaitlistEntry
       .updateMany({ where: { id, leftAt: null }, data: { leftAt: now } })
       .catch((error) => translateLinkError(error, 'saved'));
   }
 
-  /** @throws {DatabaseOperationError} the query failed */
-  async listAliveIncludeService(now: Date): Promise<AliveWaitlistEntry[]> {
-    // The widest zone (UTC+14) is ahead of UTC, so a date from yesterday (UTC) may still be today somewhere.
-    const yesterday = new Date(now.getTime() - 24 * 3_600_000);
-    yesterday.setUTCHours(0, 0, 0, 0);
-    const rows = await this.prisma.waitlistEntry
-      .findMany({
-        where: {
-          leftAt: null,
-          date: { gte: yesterday },
-          service: { deletedAt: null },
-        },
-        select: {
-          ...VIEW_SELECT,
-          clientName: true,
-          email: true,
-          link: true,
-          notifiedAt: true,
-          createdAt: true,
-        },
-        orderBy: { id: 'asc' },
-      })
-      .catch((error) => translateLinkError(error, 'listed'));
-    return rows.map((row) => ({
-      ...toView(row),
-      clientName: row.clientName,
-      email: row.email,
-      link: row.link,
-      notifiedAt: row.notifiedAt,
-      leftAt: null,
-      createdAt: row.createdAt,
-    }));
-  }
+  // /** @throws {DatabaseOperationError} the query failed */
+  // async listAliveIncludeService(now: Date): Promise<AliveSlotWaitlistEntry[]> {
+  //   // The widest zone (UTC+14) is ahead of UTC, so a date from yesterday (UTC) may still be today somewhere.
+  //   const yesterday = new Date(now.getTime() - 24 * 3_600_000);
+  //   yesterday.setUTCHours(0, 0, 0, 0);
+  //   const rows = await this.prisma.waitlistEntry
+  //     .findMany({
+  //       where: {
+  //         leftAt: null,
+  //         date: { gte: yesterday },
+  //         service: { deletedAt: null },
+  //       },
+  //       select: {
+  //         ...VIEW_SELECT,
+  //         clientName: true,
+  //         email: true,
+  //         link: true,
+  //         notifiedAt: true,
+  //         createdAt: true,
+  //       },
+  //       orderBy: { id: 'asc' },
+  //     })
+  //     .catch((error) => translateLinkError(error, 'listed'));
+  //   return rows.map((row) => ({
+  //     ...toView(row),
+  //     clientName: row.clientName,
+  //     email: row.email,
+  //     link: row.link,
+  //     notifiedAt: row.notifiedAt,
+  //     leftAt: null,
+  //     createdAt: row.createdAt,
+  //   }));
+  // }
 
   /** @throws {DatabaseOperationError} the query failed */
   async listWithLiveBooking(entries: AliveWaitlistEntry[]) {
@@ -161,7 +163,7 @@ export class PrismaSlotWaitlistRepository implements SlotWaitlistRepository {
 const VIEW_SELECT = {
   id: true,
   serviceId: true,
-  date: true,
+  startsAt: true,
   leftAt: true,
   service: {
     select: {
@@ -188,17 +190,17 @@ const VIEW_SELECT = {
       },
     },
   },
-} satisfies Prisma.WaitlistEntrySelect;
+} satisfies Prisma.SlotWaitlistEntrySelect;
 
 const toView = (
-  row: Prisma.WaitlistEntryGetPayload<{ select: typeof VIEW_SELECT }>,
-): WaitlistEntryView => {
+  row: Prisma.SlotWaitlistEntryGetPayload<{ select: typeof VIEW_SELECT }>,
+): SlotWaitlistEntryView => {
   const { service } = row;
   const { branch } = service;
   return {
     id: row.id,
     serviceId: row.serviceId,
-    date: row.date.toISOString().slice(0, 10),
+    startsAt: row.startsAt.toISOString(),
     // A personal Service dado de baja has lost its Availability: it falls back to the Usuario's default one.
     timeZone: branch
       ? branch.timeZone
@@ -220,17 +222,17 @@ const translateLinkError = (error: unknown, action: string): never => {
   });
 };
 
-const toEntry = (row: WaitlistEntryRow): WaitlistEntry => ({
-  id: row.id,
-  serviceId: row.serviceId,
-  date: row.date.toISOString().slice(0, 10),
-  clientName: row.clientName,
-  email: row.email,
-  link: row.link,
-  notifiedAt: row.notifiedAt,
-  leftAt: row.leftAt,
-  createdAt: row.createdAt,
-});
+// const toEntry = (row: SlotWaitlistEntry): SlotWaitlistEntry => ({
+//   id: row.id,
+//   serviceId: row.serviceId,
+//   startsAt: row.startsAt,
+//   clientName: row.clientName,
+//   email: row.email,
+//   link: row.link,
+//   offeredAt: row.offeredAt,
+//   leftAt: row.leftAt,
+//   createdAt: row.createdAt,
+// });
 
 const translateError = (
   error: unknown,
