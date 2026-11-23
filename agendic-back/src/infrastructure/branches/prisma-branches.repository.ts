@@ -91,7 +91,7 @@ export const toTime = (hhmm: string) => new Date(`1970-01-01T${hhmm}:00.000Z`);
 export const fromTime = (date: Date) => date.toISOString().slice(11, 16);
 
 /** The two columns that store a Sucursal's point; no point leaves both `undefined`, so an update keeps them. */
-export const toPointColumns = (point: MapPoint | undefined) => ({
+export const toPointColumns = (point: MapPoint | null | undefined) => ({
   latitude: point?.lat,
   longitude: point?.lng,
 });

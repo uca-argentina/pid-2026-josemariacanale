@@ -79,7 +79,7 @@ describe('Sucursal', () => {
       t.fileStorage.upload.mockImplementation(async () => URLS[uploaded++]);
       t.fileStorage.delete.mockResolvedValue();
       t.branches.createWithImages.mockImplementation(async (data, urls) => ({
-        branch: { id: 1, description: null, ...data },
+        branch: { id: 1, description: null, ...data, location: data.location ?? null },
         images: urls.map((url, order) => ({
           id: 10 + order,
           branchId: 1,
@@ -301,15 +301,14 @@ describe('Sucursal', () => {
       expect(t.branches.createWithImages).not.toHaveBeenCalled();
     });
 
-    it('answers 400 without a location, creating nothing nor uploading images', async () => {
-      const { location: _, ...withoutLocation } = VALID_BRANCH;
+    it.each([undefined, null])(
+      'creates a Sucursal without a point when location is %s',
+      async (location) => {
+        await post({ ...VALID_BRANCH, location }).expect(201);
 
-      const res = await post(withoutLocation).expect(400);
-
-      expect(res.body.message).toContain('location is required');
-      expect(t.fileStorage.upload).not.toHaveBeenCalled();
-      expect(t.branches.createWithImages).not.toHaveBeenCalled();
-    });
+        expect(t.branches.createWithImages).toHaveBeenCalledTimes(1);
+      },
+    );
 
     it.each([
       [{ lat: 90.1, lng: 0 }, 'location.lat must be between -90 and 90'],

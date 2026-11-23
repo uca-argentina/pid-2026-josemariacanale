@@ -30,14 +30,14 @@ export const BRANCH_IMAGES = { min: 1, max: 5 } as const;
 
 /**
  * What POST /businesses/:businessId/branches takes in one multipart request: the fields, the businessId that goes in
- * the path, and its first images, in order. A new Sucursal always has a punto.
+ * the path, and its first images, in order. `location` is null when the Dueño did not pick the address on the map.
  */
 export const createBranchSchema = branchSchema
     .pick({ name: true, address: true, timeZone: true, slug: true })
     .extend({
         businessId: z.number(),
         description: z.string().optional(),
-        location: locationSchema,
+        location: locationSchema.nullable(),
         images: z.array(z.instanceof(File)).min(BRANCH_IMAGES.min).max(BRANCH_IMAGES.max),
     });
 export type CreateBranch = z.infer<typeof createBranchSchema>;
