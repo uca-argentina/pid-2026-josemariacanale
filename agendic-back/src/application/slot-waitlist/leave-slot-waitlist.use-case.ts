@@ -1,8 +1,12 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
-import { SLOT_WAITLIST_REPOSITORY } from '../../domain/slot-waitlist/slot-waitlist.repository';
-import { SlotWaitlistRepository } from '../../domain/slot-waitlist/slot-waitlist.repository';
+import { Inject, Injectable } from '@nestjs/common';
 import { CLOCK, Clock } from '../../domain/clock';
-import { NotFoundError } from '../../domain/errors';
+import { BusinessRuleError } from '../../domain/errors';
+import {
+  SLOT_WAITLIST_REPOSITORY,
+  SlotWaitlistRepository,
+} from '../../domain/slot-waitlist/slot-waitlist.repository';
+import { findSlotWaitlistEntry } from './find-slot-waitlist-entry';
+import { OfferFreedSlotUseCase } from './offer-freed-slot.use-case';
 
 @Injectable()
 export class LeaveSlotWaitlistUseCase {
@@ -10,10 +14,18 @@ export class LeaveSlotWaitlistUseCase {
     @Inject(SLOT_WAITLIST_REPOSITORY)
     private readonly waitlist: SlotWaitlistRepository,
     @Inject(CLOCK) private readonly clock: Clock,
+    private readonly offers: OfferFreedSlotUseCase,
   ) {}
+
   async execute(link: string): Promise<void> {
-    const entry = await this.waitlist.findByLinkIncludeService(link);
-    if (!entry) throw new NotFoundError('Anotación not found');
-    if (!entry.left) await this.waitlist.leave(entry.id, this.clock.now());
+    const entry = await findSlotWaitlistEntry(this.waitlist, link);
+    if (entry.acceptedAt)
+      throw new BusinessRuleError(
+        `Anotación ${entry.id} already accepted its offer: cancel the Turno instead`,
+      );
+    if (entry.leftAt) return;
+    // Leaving with an offer in hand gives the horario to the next in line right away.
+    const freed = await this.waitlist.leave(entry.id, this.clock.now());
+    if (freed) await this.offers.execute(freed);
   }
 }

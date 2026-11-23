@@ -41,7 +41,7 @@ const knownError = (code: string) =>
 describe('PrismaEmployeesRepository', () => {
   const tx = {
     employee: { update: jest.fn() },
-    booking: { findMany: jest.fn(), updateMany: jest.fn() },
+    booking: { findMany: jest.fn(), updateMany: jest.fn(), deleteMany: jest.fn() },
   };
   const prisma = {
     employee: {

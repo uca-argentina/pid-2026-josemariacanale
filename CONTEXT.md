@@ -323,6 +323,10 @@ _Avoid_: Aviso de cambio del Turno (es otro), notificación (a secas)
 Acción del Cliente de terminar su Anotación, desde el enlace que traen la Confirmación de anotación y cada Aviso de horario libre. No hace falta Verificar email de nuevo. Después puede volver a anotarse.
 _Avoid_: desanotarse, darse de baja (eso es otra cosa), cancelar la anotación
 
+**Oferta de horario**:
+Reserva temporal de un horario que se liberó, para la primera persona anotada en la Lista de espera de ese horario. Dura 15 minutos: mientras está vigente nadie más puede tomar el horario. Si la persona la acepta a tiempo, el Turno pasa a ser suyo con la Seña del Servicio. Si vence, sin aceptarla, pasa a la siguiente persona anotada; si no queda nadie, el horario vuelve a estar libre. El vencimiento se procesa recién cuando alguien abre o intenta aceptar la oferta.
+_Avoid_: reserva provisoria, hold
+
 **Invitación a calificar**:
 Mail que recibe el Cliente una hora después de que termina un Turno que se puede Calificar, con el Enlace del Turno. Se manda una sola vez por Turno, hasta 7 días después de que terminó.
 _Avoid_: recordatorio, encuesta

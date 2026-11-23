@@ -15,6 +15,7 @@ import { notifyClients } from './notify-clients';
 import { findBookingByLink } from './find-booking-by-link';
 import { rescheduleResolvedBooking } from './reschedule-resolved-booking';
 import { ClientInvites } from './client-invites.service';
+import { OfferFreedSlotUseCase } from '../slot-waitlist/offer-freed-slot.use-case';
 
 /**
  * Reagenda un Turno pendiente o aceptado por su Enlace del Turno a otro Horario reservable del mismo Servicio
@@ -29,6 +30,7 @@ export class RescheduleBookingByLinkUseCase {
     @Inject(MAILER) private readonly mailer: Mailer,
     @Inject(CLOCK) private readonly clock: Clock,
     private readonly invites: ClientInvites,
+    private readonly offers: OfferFreedSlotUseCase,
   ) {}
 
   /**
@@ -46,6 +48,8 @@ export class RescheduleBookingByLinkUseCase {
       startsAt,
       this.clock.now(),
     );
+    // The original horario is the one freed.
+    await this.offers.execute(booking);
     await notifyClients(
       [rescheduled],
       (email, noticeLink, _reason, invite) =>

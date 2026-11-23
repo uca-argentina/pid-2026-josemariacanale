@@ -77,7 +77,7 @@ const knownError = (code: string) =>
 describe('PrismaServicesRepository', () => {
   const tx = {
     service: { update: jest.fn() },
-    booking: { findMany: jest.fn(), updateMany: jest.fn() },
+    booking: { findMany: jest.fn(), updateMany: jest.fn(), deleteMany: jest.fn() },
   };
   const prisma = {
     service: {
@@ -434,6 +434,9 @@ describe('PrismaServicesRepository', () => {
       expect(tx.booking.updateMany).toHaveBeenCalledWith({
         where: { id: { in: [10] } },
         data: { status: 'CANCELLED', cancelledAt: deletedAt, cancelledBy: 'RETIREMENT' },
+      });
+      expect(tx.booking.deleteMany).toHaveBeenCalledWith({
+        where: { serviceId: 1, status: 'OFFERED', startsAt: { gt: deletedAt } },
       });
     });
   });

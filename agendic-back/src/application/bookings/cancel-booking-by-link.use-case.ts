@@ -10,6 +10,7 @@ import { notifyClients } from './notify-clients';
 import { cancelResolvedBooking } from './cancel-resolved-booking';
 import { findBookingByLink } from './find-booking-by-link';
 import { ClientInvites } from './client-invites.service';
+import { OfferFreedSlotUseCase } from '../slot-waitlist/offer-freed-slot.use-case';
 
 /** Cancela un Turno pendiente o aceptado por su Enlace del Turno, hasta que empieza (ADR 0022), y le avisa por mail al Cliente. */
 @Injectable()
@@ -19,13 +20,17 @@ export class CancelBookingByLinkUseCase {
     @Inject(CLOCK) private readonly clock: Clock,
     @Inject(MAILER) private readonly mailer: Mailer,
     private readonly invites: ClientInvites,
+    private readonly offers: OfferFreedSlotUseCase,
   ) {}
 
   /**
    * @throws {NotFoundError} el Enlace no corresponde a ningún Turno
    * @throws {BusinessRuleError} el Turno no está pendiente ni aceptado, o ya empezó
    */
-  async execute(link: string, reason: string | null = null): Promise<ClientBooking> {
+  async execute(
+    link: string,
+    reason: string | null = null,
+  ): Promise<ClientBooking> {
     const booking = await findBookingByLink(this.bookings, link);
     const cancelled = await cancelResolvedBooking(
       this.bookings,
@@ -33,12 +38,23 @@ export class CancelBookingByLinkUseCase {
       booking,
       reason,
     );
+    await this.offers.execute(booking);
     await notifyClients(
       [cancelled],
       (email, noticeLink, noticeReason, invite) =>
         invite
-          ? this.mailer.sendBookingCancellation(email, noticeLink, noticeReason, undefined, invite)
-          : this.mailer.sendBookingCancellation(email, noticeLink, noticeReason),
+          ? this.mailer.sendBookingCancellation(
+              email,
+              noticeLink,
+              noticeReason,
+              undefined,
+              invite,
+            )
+          : this.mailer.sendBookingCancellation(
+              email,
+              noticeLink,
+              noticeReason,
+            ),
       (links) => this.invites.cancel(links),
     );
     return cancelled;

@@ -20,6 +20,7 @@ import { pickCabin } from './pick-cabin';
 import { chosenEmployeeIdOf, pickEmployee } from './pick-employee';
 import { findOwnBookedBooking } from './find-own-booked-booking';
 import { ClientInvites } from './client-invites.service';
+import { OfferFreedSlotUseCase } from '../slot-waitlist/offer-freed-slot.use-case';
 
 /** Mueve un Turno aceptado a otro Horario reservable del mismo Servicio, con el mismo Empleado si está libre y si no con otro (ver `pickEmployee`; un Turno con Empleado elegido solo a horarios de ese Empleado), y le avisa por mail al Cliente. */
 @Injectable()
@@ -33,6 +34,7 @@ export class RescheduleBookingUseCase {
     @Inject(MAILER) private readonly mailer: Mailer,
     @Inject(CLOCK) private readonly clock: Clock,
     private readonly invites: ClientInvites,
+    private readonly offers: OfferFreedSlotUseCase,
   ) {}
 
   /**
@@ -87,6 +89,8 @@ export class RescheduleBookingUseCase {
       { ...attendant, cabinId, prepStartsAt, startsAt, endsAt },
       this.clock.now(),
     );
+    // The original horario is the one freed.
+    await this.offers.execute(booking);
     await notifyClients(
       [rescheduled],
       (email, link, _reason, invite) =>

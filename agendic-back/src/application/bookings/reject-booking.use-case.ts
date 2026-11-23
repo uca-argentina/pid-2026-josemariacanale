@@ -13,6 +13,7 @@ import { notifyClients } from './notify-clients';
 import { CLOCK, Clock } from '../../domain/clock';
 import { resolvePendingBooking } from './resolve-pending-booking';
 import { ClientInvites } from './client-invites.service';
+import { OfferFreedSlotUseCase } from '../slot-waitlist/offer-freed-slot.use-case';
 
 /** Rechaza un Turno pendiente, liberando su horario, y le avisa por mail al Cliente. */
 @Injectable()
@@ -24,6 +25,7 @@ export class RejectBookingUseCase {
     @Inject(MAILER) private readonly mailer: Mailer,
     @Inject(CLOCK) private readonly clock: Clock,
     private readonly invites: ClientInvites,
+    private readonly offers: OfferFreedSlotUseCase,
   ) {}
 
   /**
@@ -45,6 +47,7 @@ export class RejectBookingUseCase {
       this.clock.now(),
       reason,
     );
+    await this.offers.execute(rejected);
     await notifyClients(
       [rejected],
       (email, link, noticeReason, invite) =>

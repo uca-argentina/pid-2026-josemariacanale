@@ -5,6 +5,7 @@ export enum BookingStatus {
   BOOKED = 'BOOKED',
   REJECTED = 'REJECTED',
   CANCELLED = 'CANCELLED',
+  OFFERED = 'OFFERED',
 }
 
 /** Quién cancela o rechaza un Turno, o Reagenda el original (ADR 0033); `RETIREMENT` es una baja. */
@@ -110,11 +111,10 @@ export interface PanelBooking extends Booking {
 }
 
 /** A pending or accepted Turno still to come, with the Availability its Usuario attends it with. */
-export interface UpcomingBooking
-  extends Pick<
-    Booking,
-    'id' | 'startsAt' | 'prepStartsAt' | 'endsAt' | 'clientName' | 'clientEmail'
-  > {
+export interface UpcomingBooking extends Pick<
+  Booking,
+  'id' | 'startsAt' | 'prepStartsAt' | 'endsAt' | 'clientName' | 'clientEmail'
+> {
   /** The Availability the Turno is attended with: the Empleado's for the Servicio, or the Servicio personal's. */
   availabilityId: number;
   /** The zone of that Availability. */
@@ -204,4 +204,5 @@ export const seriesDatesNotAvailable = (dates: string[]) =>
   `Series dates not available: ${dates.join(',')}`;
 
 /** The 409 of a Servicio whose Límite diario that day is already reached, wherever it is detected. */
-export const DAILY_LIMIT_REACHED = 'The Service reached its Límite diario that day';
+export const DAILY_LIMIT_REACHED =
+  'The Service reached its Límite diario that day';

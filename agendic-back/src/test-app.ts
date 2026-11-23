@@ -53,6 +53,10 @@ import {
   WaitlistRepository,
 } from './domain/waitlist/waitlist.repository';
 import {
+  SLOT_WAITLIST_REPOSITORY,
+  SlotWaitlistRepository,
+} from './domain/slot-waitlist/slot-waitlist.repository';
+import {
   BOOKING_CALENDAR_EVENTS_REPOSITORY,
   BookingCalendarEventsRepository,
 } from './domain/calendar/booking-calendar-events.repository';
@@ -286,6 +290,17 @@ export async function createTestApp() {
     markNotified: jest.fn(),
     rearm: jest.fn(),
   };
+  const slotWaitlist: jest.Mocked<SlotWaitlistRepository> = {
+    create: jest.fn(),
+    findAlive: jest.fn(),
+    findByLink: jest.fn(),
+    // Most Turnos freed in tests have nobody waiting for their horario.
+    findFirstEligible: jest.fn().mockResolvedValue(null),
+    createOffer: jest.fn(),
+    expireOffer: jest.fn(),
+    leave: jest.fn(),
+    accept: jest.fn(),
+  };
   const availabilities: jest.Mocked<AvailabilitiesRepository> = {
     listByUser: jest.fn(),
     findById: jest.fn(),
@@ -417,6 +432,8 @@ export async function createTestApp() {
     .useValue(bookings)
     .overrideProvider(WAITLIST_REPOSITORY)
     .useValue(waitlist)
+    .overrideProvider(SLOT_WAITLIST_REPOSITORY)
+    .useValue(slotWaitlist)
     .overrideProvider(BOOKING_VERIFICATION_CODES)
     .useValue(bookingCodes)
     .overrideProvider(AVAILABILITIES_REPOSITORY)
@@ -465,6 +482,7 @@ export async function createTestApp() {
     bookings,
     bookingCodes,
     waitlist,
+    slotWaitlist,
     availabilities,
     outOfOffice,
     holidays,

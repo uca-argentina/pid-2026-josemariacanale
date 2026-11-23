@@ -11,6 +11,7 @@ import { findBookingByLink } from './find-booking-by-link';
 import { notifySeries } from './notify-clients';
 import { serieOf } from './serie-of';
 import { ClientInvites } from './client-invites.service';
+import { OfferFreedSlotUseCase } from '../slot-waitlist/offer-freed-slot.use-case';
 
 /**
  * Cancela, por su Enlace del Turno, ese Turno y los siguientes de su Serie (#305, ADR 0032). Manda un solo Aviso de
@@ -22,6 +23,7 @@ export class CancelBookingSeriesByLinkUseCase {
     @Inject(BOOKINGS_REPOSITORY) private readonly bookings: BookingsRepository,
     @Inject(CLOCK) private readonly clock: Clock,
     @Inject(MAILER) private readonly mailer: Mailer,
+    private readonly offers: OfferFreedSlotUseCase,
     private readonly invites: ClientInvites,
   ) {}
 
@@ -45,6 +47,7 @@ export class CancelBookingSeriesByLinkUseCase {
       now,
       reason,
     );
+    for (const freed of cancelled) await this.offers.execute(freed);
     await notifySeries(
       cancelled,
       async () => booking.timeZone,

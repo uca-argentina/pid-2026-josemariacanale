@@ -1,0 +1,9 @@
+{
+  "typescript.preferences.autoImportFileExcludePatterns": [
+    "**/dist/**",
+    "**/.next/**",
+    "*.d.ts",
+    "agendic-back/src/**/*.d.ts",
+    "agendic-front/src/**/*.d.ts"
+  ]
+}

@@ -41,7 +41,15 @@ import { PrismaService } from '../prisma.service';
 import { generateSecretLink } from '../secret-link';
 
 /** Statuses that hold a Usuario's horario, as the Booking_no_overlap constraint does. */
-const OCCUPYING = [BookingStatus.PENDING, BookingStatus.BOOKED];
+const OCCUPYING = [
+  BookingStatus.PENDING,
+  BookingStatus.BOOKED,
+  BookingStatus.OFFERED,
+];
+
+// An offer of the Lista de espera holds the horario but isn't the Cliente's Turno yet: it can't be cancelled,
+// rescheduled or paid like one, nor listed as one.
+const PENDING_OR_BOOKED = [BookingStatus.PENDING, BookingStatus.BOOKED];
 
 /**
  * First key of the advisory locks that serialize verifications per Servicio: an arbitrary namespace (the issue that
@@ -169,7 +177,8 @@ export class PrismaBookingsRepository implements BookingsRepository {
           },
         },
       });
-    if (!dailyLimit) return toBooking(await insert(this.prisma).catch(translateError));
+    if (!dailyLimit)
+      return toBooking(await insert(this.prisma).catch(translateError));
     const { serviceId, limit, from, to } = dailyLimit;
     return toBooking(
       await this.prisma
@@ -205,7 +214,11 @@ export class PrismaBookingsRepository implements BookingsRepository {
     const rows = await this.prisma
       .$transaction(async (tx) => {
         const limited = [
-          ...new Set(items.flatMap(({ dailyLimit }) => (dailyLimit ? [dailyLimit.serviceId] : []))),
+          ...new Set(
+            items.flatMap(({ dailyLimit }) =>
+              dailyLimit ? [dailyLimit.serviceId] : [],
+            ),
+          ),
         ].sort((a, b) => a - b);
         for (const serviceId of limited)
           await tx.$executeRaw`SELECT pg_advisory_xact_lock(${DAILY_LIMIT_LOCK}::int, ${serviceId}::int)`;
@@ -213,11 +226,20 @@ export class PrismaBookingsRepository implements BookingsRepository {
         const created: BookingRow[] = [];
         const failed: string[] = [];
         let previousCabinId: number | null = null;
-        for (const { data: { clientName, clientEmail, ...booking }, date, cabinIds, dailyLimit } of items) {
+        for (const {
+          data: { clientName, clientEmail, ...booking },
+          date,
+          cabinIds,
+          dailyLimit,
+        } of items) {
           if (dailyLimit) {
             const { serviceId, limit, from, to } = dailyLimit;
             const taken = await tx.booking.count({
-              where: { serviceId, status: { in: OCCUPYING }, startsAt: { gte: from, lt: to } },
+              where: {
+                serviceId,
+                status: { in: OCCUPYING },
+                startsAt: { gte: from, lt: to },
+              },
             });
             if (taken >= limit) {
               failed.push(date);
@@ -229,7 +251,10 @@ export class PrismaBookingsRepository implements BookingsRepository {
             cabinIds.length === 0
               ? [null]
               : previousCabinId !== null && cabinIds.includes(previousCabinId)
-                ? [previousCabinId, ...cabinIds.filter((id) => id !== previousCabinId)]
+                ? [
+                    previousCabinId,
+                    ...cabinIds.filter((id) => id !== previousCabinId),
+                  ]
                 : cabinIds;
           let row: BookingRow | null = null;
           for (const cabinId of candidates) {
@@ -242,7 +267,12 @@ export class PrismaBookingsRepository implements BookingsRepository {
                   cabinId,
                   seriesId,
                   link: generateSecretLink(),
-                  client: { create: { name: clientName, email: normalizeEmail(clientEmail) } },
+                  client: {
+                    create: {
+                      name: clientName,
+                      email: normalizeEmail(clientEmail),
+                    },
+                  },
                 },
               });
               await tx.$executeRaw`RELEASE SAVEPOINT series_booking`;
@@ -250,7 +280,8 @@ export class PrismaBookingsRepository implements BookingsRepository {
             } catch (error) {
               await tx.$executeRaw`ROLLBACK TO SAVEPOINT series_booking`;
               if (error instanceof Prisma.PrismaClientKnownRequestError) {
-                if (isExclusionViolation(error, BOOKING_CABIN_NO_OVERLAP)) continue;
+                if (isExclusionViolation(error, BOOKING_CABIN_NO_OVERLAP))
+                  continue;
                 // Another Cabina doesn't help if it is the Empleado who is taken.
                 if (isExclusionViolation(error, BOOKING_NO_OVERLAP)) break;
               }
@@ -263,11 +294,14 @@ export class PrismaBookingsRepository implements BookingsRepository {
             previousCabinId = row.cabinId;
           }
         }
-        if (failed.length > 0) throw new ConflictError(seriesDatesNotAvailable(failed));
+        if (failed.length > 0)
+          throw new ConflictError(seriesDatesNotAvailable(failed));
         return created;
       })
       .catch((error: unknown) =>
-        error instanceof ConflictError ? Promise.reject(error) : translateError(error),
+        error instanceof ConflictError
+          ? Promise.reject(error)
+          : translateError(error),
       );
     return rows.map(toBooking);
   }
@@ -404,7 +438,11 @@ export class PrismaBookingsRepository implements BookingsRepository {
     return (
       await this.prisma.booking
         .findMany({
-          where: { employee: { businessId }, rescheduled: null },
+          where: {
+            employee: { businessId },
+            rescheduled: null,
+            status: { not: BookingStatus.OFFERED },
+          },
           select: PANEL_BOOKING_SELECT,
         })
         .catch(translateError)
@@ -435,7 +473,11 @@ export class PrismaBookingsRepository implements BookingsRepository {
         .findUnique({ where: { id: nextId }, select: HISTORY_SELECT })
         .catch(translateError);
       if (!row) throw new NotFoundError('Booking not found');
-      chain.unshift({ ...toBooking(row), createdAt: row.createdAt, rating: row.rating });
+      chain.unshift({
+        ...toBooking(row),
+        createdAt: row.createdAt,
+        rating: row.rating,
+      });
       nextId = row.fromRescheduleId;
     }
     return chain;
@@ -470,9 +512,13 @@ export class PrismaBookingsRepository implements BookingsRepository {
   }
 
   /** `withSeries` for many rows with one query for all their Series, not one per row. */
-  private async withSeriesAll(rows: ClientBookingRow[]): Promise<ClientBooking[]> {
+  private async withSeriesAll(
+    rows: ClientBookingRow[],
+  ): Promise<ClientBooking[]> {
     const seriesIds = [
-      ...new Set(rows.flatMap(({ seriesId }) => (seriesId === null ? [] : [seriesId]))),
+      ...new Set(
+        rows.flatMap(({ seriesId }) => (seriesId === null ? [] : [seriesId])),
+      ),
     ];
     const bySeries = new Map<string, SeriesBooking[]>();
     if (seriesIds.length > 0) {
@@ -490,7 +536,12 @@ export class PrismaBookingsRepository implements BookingsRepository {
       }
     }
     return rows.map((row) =>
-      toClientBooking(row, row.seriesId === null ? null : { bookings: bySeries.get(row.seriesId) ?? [] }),
+      toClientBooking(
+        row,
+        row.seriesId === null
+          ? null
+          : { bookings: bySeries.get(row.seriesId) ?? [] },
+      ),
     );
   }
 
@@ -557,7 +608,7 @@ export class PrismaBookingsRepository implements BookingsRepository {
     reason: string | null,
   ) {
     const ids = await this.updateSeries(
-      { seriesId, userId, status: { in: OCCUPYING }, startsAt: { gte: from } },
+      { seriesId, userId, status: { in: PENDING_OR_BOOKED }, startsAt: { gte: from } },
       {
         status: BookingStatus.CANCELLED,
         cancelledAt: now,
@@ -578,7 +629,7 @@ export class PrismaBookingsRepository implements BookingsRepository {
     reason: string | null,
   ) {
     const ids = await this.updateSeries(
-      { seriesId, status: { in: OCCUPYING }, startsAt: { gte: from } },
+      { seriesId, status: { in: PENDING_OR_BOOKED }, startsAt: { gte: from } },
       {
         status: BookingStatus.CANCELLED,
         cancelledAt: now,
@@ -650,7 +701,7 @@ export class PrismaBookingsRepository implements BookingsRepository {
       .findMany({
         where: {
           userId,
-          status: { in: OCCUPYING },
+          status: { in: PENDING_OR_BOOKED },
           startsAt: { gte: from, ...(to && { lt: to }) },
         },
         select: {
@@ -721,6 +772,7 @@ export class PrismaBookingsRepository implements BookingsRepository {
         where: {
           userId,
           rescheduled: null,
+          status: { not: BookingStatus.OFFERED },
           // A Negocio that dio de baja the Usuario no longer shows its Turnos to them.
           OR: [{ employeeId: null }, { employee: { deletedAt: null } }],
         },
@@ -779,7 +831,7 @@ export class PrismaBookingsRepository implements BookingsRepository {
   async cancelPendingOrBooked(id: number, now: Date, reason: string | null) {
     await this.updateStatus(
       id,
-      OCCUPYING,
+      PENDING_OR_BOOKED,
       {
         status: BookingStatus.CANCELLED,
         cancelledAt: now,
@@ -830,7 +882,7 @@ export class PrismaBookingsRepository implements BookingsRepository {
     return this.findEnriched(
       await this.replace(
         id,
-        OCCUPYING,
+        PENDING_OR_BOOKED,
         times,
         now,
         BookingActor.CLIENT,
@@ -880,10 +932,14 @@ export class PrismaBookingsRepository implements BookingsRepository {
   async payDeposit(id: number, now: Date) {
     await this.updateStatus(
       id,
-      OCCUPYING,
+      PENDING_OR_BOOKED,
       { depositPaidAt: now },
       'Turno is not pending or booked, has already started, has no Seña, or already has its Seña paid',
-      { startsAt: { gt: now }, depositAmount: { not: null }, depositPaidAt: null },
+      {
+        startsAt: { gt: now },
+        depositAmount: { not: null },
+        depositPaidAt: null,
+      },
     );
     return this.findEnriched(id);
   }
@@ -965,7 +1021,11 @@ export class PrismaBookingsRepository implements BookingsRepository {
       'Employee no-show not allowed for this Turno',
       {
         startsAt: { lte: now },
-        endsAt: { gte: new Date(now.getTime() - EMPLOYEE_NO_SHOW_WINDOW_HOURS * 3_600_000) },
+        endsAt: {
+          gte: new Date(
+            now.getTime() - EMPLOYEE_NO_SHOW_WINDOW_HOURS * 3_600_000,
+          ),
+        },
         noShowAt: null,
         employeeNoShowAt: null,
       },
@@ -983,7 +1043,10 @@ export class PrismaBookingsRepository implements BookingsRepository {
     await this.prisma.bookingRating
       .create({ data: { bookingId: id, score, comment } })
       .catch((error: unknown) => {
-        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002')
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2002'
+        )
           throw new ConflictError('Turno already rated', { cause: error });
         return translateError(error);
       });
@@ -1088,8 +1151,8 @@ const toClientBooking = (
     // A personal Service dado de baja has lost its Availability: its Turnos fall back to the Usuario's default one.
     timeZone: branch
       ? branch.timeZone
-      : (row.service.availability ?? row.user.availabilities[0])?.timeZone ??
-        DEFAULT_AVAILABILITY.timeZone,
+      : ((row.service.availability ?? row.user.availabilities[0])?.timeZone ??
+        DEFAULT_AVAILABILITY.timeZone),
     employeeName: row.employee ? row.employee.user.name : row.user.name,
     rating: row.rating,
     service: {

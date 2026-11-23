@@ -13,6 +13,7 @@ import { MAILER, Mailer } from '../../domain/mailer';
 import { notifyClients } from './notify-clients';
 import { findOwnBookedBooking } from './find-own-booked-booking';
 import { ClientInvites } from './client-invites.service';
+import { OfferFreedSlotUseCase } from '../slot-waitlist/offer-freed-slot.use-case';
 
 /** Cancela un Turno aceptado, liberando su horario, y le avisa por mail al Cliente. */
 @Injectable()
@@ -24,6 +25,7 @@ export class CancelBookingUseCase {
     @Inject(MAILER) private readonly mailer: Mailer,
     @Inject(CLOCK) private readonly clock: Clock,
     private readonly invites: ClientInvites,
+    private readonly offers: OfferFreedSlotUseCase,
   ) {}
 
   /**
@@ -43,6 +45,7 @@ export class CancelBookingUseCase {
       bookingId,
     );
     const cancelled = await this.bookings.cancel(bookingId, this.clock.now(), reason);
+    await this.offers.execute(cancelled);
     await notifyClients(
       [cancelled],
       (email, link, noticeReason, invite) =>

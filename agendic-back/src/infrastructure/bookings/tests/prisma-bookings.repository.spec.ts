@@ -145,7 +145,7 @@ describe('PrismaBookingsRepository', () => {
         where: {
           serviceId: 4,
           employeeId: { in: [1, 2] },
-          status: { in: [BookingStatus.PENDING, BookingStatus.BOOKED] },
+          status: { in: [BookingStatus.PENDING, BookingStatus.BOOKED, BookingStatus.OFFERED] },
         },
       }),
     );
@@ -174,7 +174,7 @@ describe('PrismaBookingsRepository', () => {
       expect.objectContaining({
         where: {
           cabinId: { in: [3, 4] },
-          status: { in: [BookingStatus.PENDING, BookingStatus.BOOKED] },
+          status: { in: [BookingStatus.PENDING, BookingStatus.BOOKED, BookingStatus.OFFERED] },
         },
       }),
     );
@@ -189,7 +189,7 @@ describe('PrismaBookingsRepository', () => {
     expect(prisma.booking.count).toHaveBeenCalledWith({
       where: {
         cabinId: 3,
-        status: { in: [BookingStatus.PENDING, BookingStatus.BOOKED] },
+        status: { in: [BookingStatus.PENDING, BookingStatus.BOOKED, BookingStatus.OFFERED] },
         endsAt: { gt: now },
       },
     });
@@ -205,7 +205,7 @@ describe('PrismaBookingsRepository', () => {
     expect(prisma.booking.findMany).toHaveBeenCalledWith({
       where: {
         userId: 1,
-        status: { in: [BookingStatus.PENDING, BookingStatus.BOOKED] },
+        status: { in: [BookingStatus.PENDING, BookingStatus.BOOKED, BookingStatus.OFFERED] },
         prepStartsAt: { lt: to },
         endsAt: { gt: from },
       },
@@ -216,7 +216,7 @@ describe('PrismaBookingsRepository', () => {
   describe('Límite diario', () => {
     const FROM = new Date('2026-01-01T03:00:00.000Z');
     const TO = new Date('2026-01-02T03:00:00.000Z');
-    const OCCUPYING = { in: [BookingStatus.PENDING, BookingStatus.BOOKED] };
+    const OCCUPYING = { in: [BookingStatus.PENDING, BookingStatus.BOOKED, BookingStatus.OFFERED] };
 
     it('lists when the PENDING and BOOKED Turnos of the Servicio start, of every Empleado: not CANCELLED or REJECTED', async () => {
       prisma.booking.findMany.mockResolvedValue([
@@ -283,9 +283,9 @@ describe('PrismaBookingsRepository', () => {
   });
 
   describe('PENDING Turnos hold their horario', () => {
-    const OCCUPYING = { in: [BookingStatus.PENDING, BookingStatus.BOOKED] };
+    const OCCUPYING = { in: [BookingStatus.PENDING, BookingStatus.BOOKED, BookingStatus.OFFERED] };
 
-    it('listOccupiedByUser looks at PENDING and BOOKED', async () => {
+    it('listOccupiedByUser looks at PENDING, BOOKED and OFFERED', async () => {
       prisma.booking.findMany.mockResolvedValue([]);
 
       await repository.listOccupiedByUser(1, new Date(), new Date());

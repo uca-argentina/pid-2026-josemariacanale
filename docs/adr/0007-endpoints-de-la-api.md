@@ -499,6 +499,23 @@ Calendario conectado (ADR 0036):
 - **`POST /waitlist-links/:secret/leave`**: sin Sesión, sin body. **204**; también **204**, sin tocar nada, si ya había Salido. **404** `Anotación not found`. El front lo llama desde un botón, nunca con un GET, porque los antivirus del mail abren los links.
 - `lista-de-espera` es palabra reservada del primer tramo del Enlace de reserva: Crear Negocio y editar el Negocio o el Usuario con ese slug dan **409** `Booking link already in use`. Su migración falla si un Negocio o Usuario ya lo tiene.
 
+### Lista de espera de un horario (práctica)
+
+| Método | Ruta | Auth | Qué hace |
+|---|---|---|---|
+| POST | `/services/:id/slot-waitlist` | no | Anota a un Cliente para un horario tomado |
+| GET | `/slot-waitlist-links/:secret` | no | Abre la Anotación y su Oferta de horario; vence la oferta si pasó su tiempo |
+| POST | `/slot-waitlist-links/:secret/accept` | no | Acepta la Oferta de horario |
+| POST | `/slot-waitlist-links/:secret/leave` | no | Sale de la Lista de espera del horario |
+
+- `JoinSlotWaitlistDto`: `{ startsAt: ISO 8601, employeeId?, clientName, clientEmail, code }`, con las mismas reglas de `clientName`, `clientEmail` y `code` que `JoinWaitlistDto`. `employeeId` pide el horario de ese Empleado; sin él, sirve el de cualquiera.
+- **201** `{ serviceId, startsAt, link }` si la Anotación es nueva; **200** con el mismo body si ya había una viva para ese email y horario. `link` es el secreto de `/slot-waitlist-links/:secret`: todavía no hay mail, así que el front lo muestra al anotarse.
+- **400** si falta un campo o el código no vale (`Invalid or expired verification code for <email>`). **404** `Service not found or retired`. **422** `Slot <startsAt> is in the past`; **422** `No Turno at <startsAt> in Service <id> to wait for` si en ese horario no hay ningún Turno. **409** `Slot <startsAt> is free for Service <id>`: el front ofrece reservarlo.
+- Al liberarse un horario (el Cliente o el Empleado Cancela, Rechaza o Reagenda; en una Serie, cada horario) se le ofrece a la primera Anotación viva de ese horario, por orden de llegada. La oferta es un Turno `OFFERED` que ocupa el horario y no aparece en los paneles. El back loguea el enlace de la Anotación ofrecida.
+- **`GET /slot-waitlist-links/:secret`**: **200** `{ startsAt, timeZone, status, offerExpiresAt, bookingLink, service, business, branch, user }`, con `service`/`business`/`branch`/`user` como en `GET /waitlist-links/:secret`. `status` es `WAITING`, `OFFERED`, `ACCEPTED`, `EXPIRED` o `LEFT`. `offerExpiresAt` solo con `OFFERED` (15 minutos después de ofrecer); `bookingLink`, el Enlace del Turno, solo con `ACCEPTED`. Si la oferta ya venció, la vence al responder, se la ofrece a la siguiente Anotación (o el horario queda libre) y responde `EXPIRED`. **404** `Anotación not found`.
+- **`POST /slot-waitlist-links/:secret/accept`**: sin body. **200** `{ bookingLink, status: "BOOKED" | "PENDING" }` (`PENDING` con Aprobación manual); aceptar de nuevo responde lo mismo. La Seña es la del Servicio al ofrecer, y se paga desde el Enlace del Turno como en cualquier reserva. **422** `Offer expired at <ISO>` si venció: no la acepta, la vence y se la ofrece a la siguiente Anotación; el front lo reconoce por el prefijo `Offer expired`. **422** `Anotación <id> has no open offer: it is <status>`. **409** `Offer to Anotación <id> changed while accepting it`. **404** `Anotación not found`.
+- **`POST /slot-waitlist-links/:secret/leave`**: **204**, también si ya había Salido. Si tenía una oferta abierta, se la pasa a la siguiente Anotación. **422** `Anotación <id> already accepted its offer: cancel the Turno instead`. **404** `Anotación not found`.
+
 ## Rachas (#428)
 
 Configuración de las Rachas de un Negocio y de los Servicios personales de un Usuario. Solo se guarda la configuración: todavía no se gana nada. Todos exigen Sesión.

@@ -1,10 +1,4 @@
-import {
-  IsDateString,
-  IsInt,
-  IsISO8601,
-  IsString,
-  Matches,
-} from 'class-validator';
+import { IsDateString, IsInt, IsString } from 'class-validator';
 import { IfPresent, IsName, IsNormalizedEmail } from '../users/users.dto';
 
 export class JoinSlotWaitlistDto {

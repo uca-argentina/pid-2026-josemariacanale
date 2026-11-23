@@ -14,6 +14,7 @@ import { findOwnBookedBooking } from './find-own-booked-booking';
 import { notifySeries } from './notify-clients';
 import { serieOf } from './serie-of';
 import { ClientInvites } from './client-invites.service';
+import { OfferFreedSlotUseCase } from '../slot-waitlist/offer-freed-slot.use-case';
 
 /**
  * Cancela un Turno aceptado y los siguientes de su Serie (#305, ADR 0032), pendientes o aceptados, en un solo
@@ -28,6 +29,7 @@ export class CancelBookingSeriesUseCase {
     @Inject(MAILER) private readonly mailer: Mailer,
     @Inject(CLOCK) private readonly clock: Clock,
     private readonly invites: ClientInvites,
+    private readonly offers: OfferFreedSlotUseCase,
   ) {}
 
   /**
@@ -54,6 +56,7 @@ export class CancelBookingSeriesUseCase {
       this.clock.now(),
       reason,
     );
+    for (const freed of cancelled) await this.offers.execute(freed);
     await notifySeries(
       cancelled,
       async () => (await this.bookings.findByLink(cancelled[0].link!)).timeZone,

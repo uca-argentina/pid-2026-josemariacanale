@@ -1,58 +1,42 @@
 import { Injectable } from '@nestjs/common';
 import { DEFAULT_AVAILABILITY } from '../../domain/availabilities/availability';
-import { ConflictError, DatabaseOperationError } from '../../domain/errors';
-import {
-  AliveWaitlistEntry,
-  CreateWaitlistEntryInput,
-  WaitlistEntry,
-  WaitlistEntryView,
-} from '../../domain/waitlist/waitlist-entry';
-import {
-  Prisma,
-  WaitlistEntry as WaitlistEntryRow,
-} from '../../generated/prisma/client';
-import { violatedIndex } from '../prisma-errors';
-import { PrismaService } from '../prisma.service';
-import { generateSecretLink } from '../secret-link';
+import { BookingStatus } from '../../domain/bookings/booking';
+import { DatabaseOperationError } from '../../domain/errors';
 import { SlotWaitlistRepository } from '../../domain/slot-waitlist/slot-waitlist.repository';
 import {
-  SlotWaitlistEntry,
+  AcceptedOfferStatus,
   CreateSlotWaitlistEntryInput,
-  SlotWaitlistEntryView,
-  AliveSlotWaitlistEntry,
+  FreedSlot,
+  OfferHold,
+  SlotWaitlistEntry,
+  SlotWaitlistEntryDetail,
 } from '../../domain/slot-waitlist/slot-waitlist-entry';
+import { Prisma } from '../../generated/prisma/client';
+import { PrismaService } from '../prisma.service';
+import { generateSecretLink } from '../secret-link';
 
-const ALIVE_ENTRY_UNIQUE = 'WaitlistEntry_email_service_date_key';
-
-/** Acceso a Anotaciones contra Postgres. */
 @Injectable()
 export class PrismaSlotWaitlistRepository implements SlotWaitlistRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  /**
-   * @throws {ConflictError} ya hay una viva de ese email, Servicio y fecha
-   * @throws {DatabaseOperationError} the insert failed
-   */
   async create(input: CreateSlotWaitlistEntryInput) {
-    return await this.prisma.slotWaitlistEntry
-      .create({
-        data: { ...input, link: generateSecretLink() },
-      })
-      .catch((error) => {
-        throw new DatabaseOperationError(
-          `Slot waitlist entry for ${input.email} at ${input.startsAt.toISOString()} in Service ${input.serviceId} not saved`,
-          { cause: error },
-        );
-      });
+    return this.prisma.slotWaitlistEntry
+      .create({ data: { ...input, link: generateSecretLink() } })
+      .catch((error: unknown) =>
+        fail(
+          `Anotación for ${input.email} at ${input.startsAt.toISOString()} in Service ${input.serviceId} not saved`,
+          error,
+        ),
+      );
   }
-  /** @throws {DatabaseOperationError} the query failed */
+
   async findAlive(
     serviceId: number,
     employeeId: number | null,
     startsAt: Date,
     email: string,
   ) {
-    const row = await this.prisma.slotWaitlistEntry
+    return this.prisma.slotWaitlistEntry
       .findFirst({
         where: {
           serviceId,
@@ -64,107 +48,190 @@ export class PrismaSlotWaitlistRepository implements SlotWaitlistRepository {
           acceptedAt: null,
         },
       })
-      .catch((error) =>
-        translateError(error, serviceId, startsAt.toISOString(), email),
+      .catch((error: unknown) =>
+        fail(
+          `Anotación for ${email} at ${startsAt.toISOString()} in Service ${serviceId} not read`,
+          error,
+        ),
       );
-    return row;
   }
 
-  /** @throws {DatabaseOperationError} the query failed */
-  async findByLinkIncludeService(
-    link: string,
-  ): Promise<SlotWaitlistEntryView | null> {
+  async findByLink(link: string): Promise<SlotWaitlistEntryDetail | null> {
     const row = await this.prisma.slotWaitlistEntry
-      .findUnique({ where: { link }, select: VIEW_SELECT })
-      .catch((error) => translateLinkError(error, 'read'));
-    return row && toView(row);
+      .findUnique({ where: { link }, select: DETAIL_SELECT })
+      .catch((error: unknown) => fail('Anotación by link not read', error));
+    return row && toDetail(row);
   }
 
-  /** @throws {DatabaseOperationError} the update failed */
+  async findFirstEligible(
+    serviceId: number,
+    employeeId: number | null,
+    startsAt: Date,
+  ) {
+    return this.prisma.slotWaitlistEntry
+      .findFirst({
+        where: {
+          serviceId,
+          startsAt,
+          // Whoever asked for the freed Empleado, or for anyone.
+          OR: [{ employeeId }, { employeeId: null }],
+          offeredAt: null,
+          leftAt: null,
+          acceptedAt: null,
+          expiredAt: null,
+        },
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      })
+      .catch((error: unknown) =>
+        fail(
+          `Next Anotación at ${startsAt.toISOString()} in Service ${serviceId} not read`,
+          error,
+        ),
+      );
+  }
+
+  async createOffer(entry: SlotWaitlistEntry, hold: OfferHold, now: Date) {
+    return this.prisma
+      .$transaction(async (tx) => {
+        // Claiming the Anotación first makes a second concurrent offer of it a no-op.
+        const { count } = await tx.slotWaitlistEntry.updateMany({
+          where: { id: entry.id, offeredAt: null, leftAt: null },
+          data: { offeredAt: now },
+        });
+        if (count === 0) return false;
+        const booking = await tx.booking.create({
+          select: { id: true },
+          data: {
+            ...hold,
+            serviceId: entry.serviceId,
+            startsAt: entry.startsAt,
+            employeeChosen: entry.employeeId !== null,
+            status: BookingStatus.OFFERED,
+            link: generateSecretLink(),
+            client: {
+              create: {
+                name: entry.clientName,
+                email: entry.email.trim().toLowerCase(),
+              },
+            },
+          },
+        });
+        await tx.slotWaitlistEntry.update({
+          where: { id: entry.id },
+          data: { offerBookingId: booking.id },
+        });
+        return true;
+      })
+      .catch((error: unknown) =>
+        fail(`Offer to Anotación ${entry.id} not saved`, error),
+      );
+  }
+
+  async expireOffer(id: number, now: Date) {
+    return this.prisma
+      .$transaction(async (tx) => {
+        const rows = await tx.slotWaitlistEntry.updateManyAndReturn({
+          where: {
+            id,
+            offeredAt: { not: null },
+            acceptedAt: null,
+            expiredAt: null,
+            leftAt: null,
+          },
+          data: { expiredAt: now },
+          select: { offerBookingId: true },
+        });
+        return rows.length === 0 ? null : releaseHold(tx, rows[0].offerBookingId);
+      })
+      .catch((error: unknown) =>
+        fail(`Offer to Anotación ${id} not expired`, error),
+      );
+  }
+
   async leave(id: number, now: Date) {
-    await this.prisma.slotWaitlistEntry
-      .updateMany({ where: { id, leftAt: null }, data: { leftAt: now } })
-      .catch((error) => translateLinkError(error, 'saved'));
+    return this.prisma
+      .$transaction(async (tx) => {
+        const rows = await tx.slotWaitlistEntry.updateManyAndReturn({
+          where: { id, leftAt: null, acceptedAt: null },
+          data: { leftAt: now },
+          select: { offerBookingId: true, expiredAt: true },
+        });
+        if (rows.length === 0 || rows[0].expiredAt !== null) return null;
+        return releaseHold(tx, rows[0].offerBookingId);
+      })
+      .catch((error: unknown) =>
+        fail(`Anotación ${id} not left`, error),
+      );
   }
 
-  // /** @throws {DatabaseOperationError} the query failed */
-  // async listAliveIncludeService(now: Date): Promise<AliveSlotWaitlistEntry[]> {
-  //   // The widest zone (UTC+14) is ahead of UTC, so a date from yesterday (UTC) may still be today somewhere.
-  //   const yesterday = new Date(now.getTime() - 24 * 3_600_000);
-  //   yesterday.setUTCHours(0, 0, 0, 0);
-  //   const rows = await this.prisma.waitlistEntry
-  //     .findMany({
-  //       where: {
-  //         leftAt: null,
-  //         date: { gte: yesterday },
-  //         service: { deletedAt: null },
-  //       },
-  //       select: {
-  //         ...VIEW_SELECT,
-  //         clientName: true,
-  //         email: true,
-  //         link: true,
-  //         notifiedAt: true,
-  //         createdAt: true,
-  //       },
-  //       orderBy: { id: 'asc' },
-  //     })
-  //     .catch((error) => translateLinkError(error, 'listed'));
-  //   return rows.map((row) => ({
-  //     ...toView(row),
-  //     clientName: row.clientName,
-  //     email: row.email,
-  //     link: row.link,
-  //     notifiedAt: row.notifiedAt,
-  //     leftAt: null,
-  //     createdAt: row.createdAt,
-  //   }));
-  // }
-
-  /** @throws {DatabaseOperationError} the query failed */
-  async listWithLiveBooking(entries: AliveWaitlistEntry[]) {
-    if (entries.length === 0) return new Set<number>();
-    const rows = await this.prisma.$queryRaw<{ id: number }[]>`
-        SELECT e."id"
-        FROM unnest(
-          ${entries.map((e) => e.id)}::int[],
-          ${entries.map((e) => e.serviceId)}::int[],
-          ${entries.map((e) => e.date)}::date[],
-          ${entries.map((e) => e.email)}::text[],
-          ${entries.map((e) => e.timeZone)}::text[]
-        ) AS e("id", "serviceId", "date", "email", "zone")
-        WHERE EXISTS (
-          SELECT 1
-          FROM "Booking" b
-          JOIN "Client" c ON c."bookingId" = b."id"
-          WHERE b."serviceId" = e."serviceId"
-            AND b."status" IN ('PENDING', 'BOOKED')
-            AND lower(c."email") = lower(e."email")
-            AND (b."startsAt" AT TIME ZONE e."zone")::date = e."date"
-        )`.catch((error) => translateLinkError(error, 'listed'));
-    return new Set(rows.map((row) => row.id));
-  }
-
-  /** @throws {DatabaseOperationError} the update failed */
-  async markNotified(id: number, now: Date) {
-    await this.prisma.waitlistEntry
-      .update({ where: { id }, data: { notifiedAt: now } })
-      .catch((error) => translateLinkError(error, 'saved'));
-  }
-
-  /** @throws {DatabaseOperationError} the update failed */
-  async rearm(id: number) {
-    await this.prisma.waitlistEntry
-      .update({ where: { id }, data: { notifiedAt: null } })
-      .catch((error) => translateLinkError(error, 'saved'));
+  async accept(
+    id: number,
+    status: AcceptedOfferStatus,
+    now: Date,
+    offeredAfter: Date,
+  ) {
+    return this.prisma
+      .$transaction(async (tx) => {
+        // The time guard sits in the WHERE so an offer that lapses between the read and this write is never accepted.
+        const rows = await tx.slotWaitlistEntry.updateManyAndReturn({
+          where: {
+            id,
+            offeredAt: { gt: offeredAfter },
+            offerBookingId: { not: null },
+            acceptedAt: null,
+            expiredAt: null,
+            leftAt: null,
+          },
+          data: { acceptedAt: now },
+          select: { offerBookingId: true },
+        });
+        if (rows.length === 0) return null;
+        const booking = await tx.booking.update({
+          where: { id: rows[0].offerBookingId!, status: BookingStatus.OFFERED },
+          data: {
+            status,
+            acceptedAt: status === BookingStatus.BOOKED ? now : null,
+          },
+          select: { link: true },
+        });
+        return booking.link;
+      })
+      .catch((error: unknown) =>
+        fail(`Offer to Anotación ${id} not accepted`, error),
+      );
   }
 }
 
-const VIEW_SELECT = {
+// Deleting the OFFERED Turno rather than cancelling it keeps an offer nobody took out of the panel and the stats.
+const releaseHold = async (
+  tx: Prisma.TransactionClient,
+  bookingId: number | null,
+): Promise<FreedSlot | null> => {
+  if (bookingId === null) return null;
+  const hold = await tx.booking.findFirst({
+    where: { id: bookingId, status: BookingStatus.OFFERED },
+    select: { serviceId: true, employeeId: true, startsAt: true },
+  });
+  if (!hold) return null;
+  await tx.booking.delete({ where: { id: bookingId } });
+  return hold;
+};
+
+const DETAIL_SELECT = {
   id: true,
   serviceId: true,
+  employeeId: true,
   startsAt: true,
+  clientName: true,
+  email: true,
+  link: true,
+  offerBookingId: true,
+  createdAt: true,
+  offeredAt: true,
+  acceptedAt: true,
   leftAt: true,
+  expiredAt: true,
+  booking: { select: { link: true } },
   service: {
     select: {
       name: true,
@@ -192,67 +259,28 @@ const VIEW_SELECT = {
   },
 } satisfies Prisma.SlotWaitlistEntrySelect;
 
-const toView = (
-  row: Prisma.SlotWaitlistEntryGetPayload<{ select: typeof VIEW_SELECT }>,
-): SlotWaitlistEntryView => {
-  const { service } = row;
+const toDetail = (
+  row: Prisma.SlotWaitlistEntryGetPayload<{ select: typeof DETAIL_SELECT }>,
+): SlotWaitlistEntryDetail => {
+  const { service, booking, ...entry } = row;
   const { branch } = service;
   return {
-    id: row.id,
-    serviceId: row.serviceId,
-    startsAt: row.startsAt.toISOString(),
+    ...entry,
     // A personal Service dado de baja has lost its Availability: it falls back to the Usuario's default one.
     timeZone: branch
       ? branch.timeZone
       : ((service.availability ?? service.user?.availabilities[0])?.timeZone ??
         DEFAULT_AVAILABILITY.timeZone),
-    left: row.leftAt !== null,
     service: { name: service.name, slug: service.slug },
     business: branch
       ? { name: branch.business.name, slug: branch.business.slug }
       : null,
     branch: branch ? { name: branch.name, slug: branch.slug } : null,
     user: branch || !service.user ? null : { slug: service.user.slug },
+    bookingLink: booking?.link ?? null,
   };
 };
 
-const translateLinkError = (error: unknown, action: string): never => {
-  throw new DatabaseOperationError(`Waitlist entry not ${action}`, {
-    cause: error,
-  });
-};
-
-// const toEntry = (row: SlotWaitlistEntry): SlotWaitlistEntry => ({
-//   id: row.id,
-//   serviceId: row.serviceId,
-//   startsAt: row.startsAt,
-//   clientName: row.clientName,
-//   email: row.email,
-//   link: row.link,
-//   offeredAt: row.offeredAt,
-//   leftAt: row.leftAt,
-//   createdAt: row.createdAt,
-// });
-
-const translateError = (
-  error: unknown,
-  serviceId: number,
-  date: string,
-  email: string,
-): never => {
-  if (
-    error instanceof Prisma.PrismaClientKnownRequestError &&
-    error.code === 'P2002' &&
-    violatedIndex(error) === ALIVE_ENTRY_UNIQUE
-  )
-    throw new ConflictError(
-      `Waitlist entry for ${email} on ${date} in Service ${serviceId} already exists`,
-      { cause: error },
-    );
-  throw new DatabaseOperationError(
-    `Waitlist entry for ${email} on ${date} in Service ${serviceId} not saved or read`,
-    {
-      cause: error,
-    },
-  );
+const fail = (message: string, error: unknown): never => {
+  throw new DatabaseOperationError(message, { cause: error });
 };

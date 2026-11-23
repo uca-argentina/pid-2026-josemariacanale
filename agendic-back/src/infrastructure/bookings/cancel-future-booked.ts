@@ -34,6 +34,15 @@ export async function cancelFutureBooked(
     where: { id: { in: rows.map(({ id }) => id) } },
     data: { status: 'CANCELLED', cancelledAt: now, cancelledBy: 'RETIREMENT' },
   });
+  // An offer of the Lista de espera on these horarios goes too, without an Aviso: it was never the Cliente's Turno.
+  // Losing its hold is what ends the offer (see `slotWaitlistStatusOf`).
+  await tx.booking.deleteMany({
+    where: {
+      ...rest,
+      ...(businessId !== undefined && { service: { branch: { businessId } } }),
+      status: 'OFFERED', startsAt: { gt: now },
+    },
+  });
   // Every Turno has its Cliente (ADR 0005), so the filter only narrows the type.
   return rows.flatMap(({ link, client }) => (client ? [{ clientEmail: client.email, link }] : []));
 }

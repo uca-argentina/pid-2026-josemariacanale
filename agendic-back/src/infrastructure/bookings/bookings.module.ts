@@ -29,11 +29,13 @@ import { SendRatingRequestsUseCase } from '../../application/bookings/send-ratin
 import { RatingRequestsJob } from './rating-requests.job';
 import { BookingLinksController } from './booking-links.controller';
 import { BookingsController } from './bookings.controller';
+import { OfferFreedSlotUseCase } from '../../application/slot-waitlist/offer-freed-slot.use-case';
 
 @Module({
   imports: [UsersModule, HolidaysModule, StreaksModule],
   controllers: [BookingsController, BookingLinksController],
   providers: [
+    OfferFreedSlotUseCase,
     CreateBookingUseCase,
     CreateBookingSeriesUseCase,
     ListSeriesSlotsUseCase,

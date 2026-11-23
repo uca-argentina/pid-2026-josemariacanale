@@ -1,25 +1,31 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { NotFoundError } from '../../domain/errors';
-import { SlotWaitlistEntryView } from '../../domain/slot-waitlist/slot-waitlist-entry';
+import { CLOCK, Clock } from '../../domain/clock';
 import {
-  SlotWaitlistRepository,
+  SlotWaitlistEntryView,
+  toSlotWaitlistEntryView,
+} from '../../domain/slot-waitlist/slot-waitlist-entry';
+import {
   SLOT_WAITLIST_REPOSITORY,
+  SlotWaitlistRepository,
 } from '../../domain/slot-waitlist/slot-waitlist.repository';
+import { expireIfLapsed, findSlotWaitlistEntry } from './find-slot-waitlist-entry';
+import { OfferFreedSlotUseCase } from './offer-freed-slot.use-case';
 
 @Injectable()
 export class GetSlotWaitlistEntryByLinkUseCase {
   constructor(
     @Inject(SLOT_WAITLIST_REPOSITORY)
     private readonly waitlist: SlotWaitlistRepository,
+    @Inject(CLOCK) private readonly clock: Clock,
+    private readonly offers: OfferFreedSlotUseCase,
   ) {}
 
-  /** @throws {NotFoundError} el enlace no corresponde a ninguna Anotación */
-  async execute(
-    link: string,
-  ): Promise<Omit<SlotWaitlistEntryView, 'id' | 'serviceId'>> {
-    const entry = await this.waitlist.findByLinkIncludeService(link);
-    if (!entry) throw new NotFoundError('Anotación not found');
-    const { id, serviceId, ...view } = entry;
-    return view;
+  async execute(link: string): Promise<SlotWaitlistEntryView> {
+    const entry = await findSlotWaitlistEntry(this.waitlist, link);
+    if (await expireIfLapsed(this.waitlist, this.offers, entry, this.clock.now()))
+      return toSlotWaitlistEntryView(
+        await findSlotWaitlistEntry(this.waitlist, link),
+      );
+    return toSlotWaitlistEntryView(entry);
   }
 }
