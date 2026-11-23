@@ -56,11 +56,23 @@ describe('branchSchema', () => {
         location: { lat: -34.56, lng: -58.46 },
     };
 
-    it('acepta una dirección escrita sin punto en el mapa', () => {
+    it('pide elegir la dirección de la lista mientras no hay punto', () => {
         const result = branchSchema.safeParse({ ...branch, location: null });
 
-        expect(result.success).toBe(true);
-        expect(result.data?.location).toBeNull();
+        expect(result.success).toBe(false);
+        expect(fieldErrorsOf(result.error!).location).toBe('Elegí una dirección de la lista.');
+    });
+
+    it('acepta una dirección escrita sin punto con NEXT_PUBLIC_BRANCH_LOCATION_OPTIONAL=true', () => {
+        process.env.NEXT_PUBLIC_BRANCH_LOCATION_OPTIONAL = 'true';
+        try {
+            const result = branchSchema.safeParse({ ...branch, location: null });
+
+            expect(result.success).toBe(true);
+            expect(result.data?.location).toBeNull();
+        } finally {
+            delete process.env.NEXT_PUBLIC_BRANCH_LOCATION_OPTIONAL;
+        }
     });
 
     it('no pide Servicio: la Sucursal y el Negocio alcanzan para Crear Negocio', () => {

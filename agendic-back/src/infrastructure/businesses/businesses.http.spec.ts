@@ -435,12 +435,28 @@ describe('Negocio', () => {
       );
     });
 
-    it('creates the Negocio when the first Sucursal has no location', async () => {
+    it('answers 400 when the first Sucursal has no location, creating nothing nor uploading images', async () => {
       const { location: _, ...branch } = BRANCH_PART;
 
-      await post({ ...VALID_BODY, branch }).expect(201);
+      const res = await post({ ...VALID_BODY, branch }).expect(400);
 
-      expect(t.businesses.create).toHaveBeenCalledTimes(1);
+      expect(res.body.message).toContain('branch.location is required');
+      expect(t.fileStorage.upload).not.toHaveBeenCalled();
+      expect(t.businesses.create).not.toHaveBeenCalled();
+    });
+
+    it('creates the Negocio without a point for its first Sucursal with BRANCH_LOCATION_OPTIONAL=true', async () => {
+      process.env.BRANCH_LOCATION_OPTIONAL = 'true';
+      t.businesses.create.mockResolvedValue(CREATED);
+      try {
+        const { location: _, ...branch } = BRANCH_PART;
+
+        await post({ ...VALID_BODY, branch }).expect(201);
+
+        expect(t.businesses.create).toHaveBeenCalledTimes(1);
+      } finally {
+        delete process.env.BRANCH_LOCATION_OPTIONAL;
+      }
     });
 
     it.each([

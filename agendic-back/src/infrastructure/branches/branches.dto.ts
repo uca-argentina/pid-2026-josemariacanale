@@ -11,6 +11,10 @@ import {
 import { IfPresent, IsName, IsSlug, IsText } from '../users/users.dto';
 import { isIanaTimeZone } from '../../domain/time-zone';
 
+export function isBranchLocationOptional(): boolean {
+  return process.env.BRANCH_LOCATION_OPTIONAL === 'true';
+}
+
 export const IsTimeOfDay = () =>
   applyDecorators(
     Matches(/^([01]\d|2[0-3]):[0-5]\d$/, { message: 'must be a HH:mm time' }),
@@ -83,8 +87,8 @@ export class BranchFieldsDto {
   @IsNullableText()
   description?: string | null;
 
-  // Optional while the Google Maps pick is not required to create a Sucursal; absent or `null` saves no point.
-  @ValidateIf((_, value) => value != null)
+  // With BRANCH_LOCATION_OPTIONAL=true a new Sucursal may skip the Google Maps pick: absent or `null` saves no point.
+  @ValidateIf((_, value) => value != null || !isBranchLocationOptional())
   @IsLocation()
   location?: LocationDto | null;
 }

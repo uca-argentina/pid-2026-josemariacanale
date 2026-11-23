@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { locationSchema } from '@/src/entities/models/branch';
+import { isBranchLocationOptional, locationSchema } from '@/src/entities/models/branch';
 import { CABIN_NAME_MAX } from '@/src/entities/models/cabin';
 
 // La forma exacta que espera POST /businesses del back. No lleva Servicio.
@@ -40,8 +40,12 @@ const branchFields = z.object({
     }),
     address: required('la dirección'),
     timeZone: required('la zona horaria'),
-    // Null until the Dueño picks a suggestion; picking one is optional for now, so a typed address saves without a punto.
-    location: locationSchema.nullable(),
+    // Null until the Dueño picks a suggestion; the form shows this error under the address, where the fix is.
+    location: locationSchema.nullable().transform((location, ctx) => {
+        if (location || isBranchLocationOptional()) return location;
+        ctx.addIssue({ code: 'custom', message: PICK_ADDRESS_MESSAGE });
+        return z.NEVER;
+    }),
 });
 
 export const branchSchema = branchFields.transform((b) => ({

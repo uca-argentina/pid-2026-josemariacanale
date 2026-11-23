@@ -79,7 +79,12 @@ describe('Sucursal', () => {
       t.fileStorage.upload.mockImplementation(async () => URLS[uploaded++]);
       t.fileStorage.delete.mockResolvedValue();
       t.branches.createWithImages.mockImplementation(async (data, urls) => ({
-        branch: { id: 1, description: null, ...data, location: data.location ?? null },
+        branch: {
+          id: 1,
+          description: null,
+          ...data,
+          location: data.location ?? null,
+        },
         images: urls.map((url, order) => ({
           id: 10 + order,
           branchId: 1,
@@ -301,14 +306,44 @@ describe('Sucursal', () => {
       expect(t.branches.createWithImages).not.toHaveBeenCalled();
     });
 
-    it.each([undefined, null])(
-      'creates a Sucursal without a point when location is %s',
-      async (location) => {
-        await post({ ...VALID_BRANCH, location }).expect(201);
+    it('answers 400 without a location, creating nothing nor uploading images', async () => {
+      const { location: _, ...withoutLocation } = VALID_BRANCH;
 
-        expect(t.branches.createWithImages).toHaveBeenCalledTimes(1);
-      },
-    );
+      const res = await post(withoutLocation).expect(400);
+
+      expect(res.body.message).toContain('location is required');
+      expect(t.fileStorage.upload).not.toHaveBeenCalled();
+      expect(t.branches.createWithImages).not.toHaveBeenCalled();
+    });
+
+    describe('with BRANCH_LOCATION_OPTIONAL=true', () => {
+      beforeEach(() => {
+        process.env.BRANCH_LOCATION_OPTIONAL = 'true';
+      });
+      afterEach(() => {
+        delete process.env.BRANCH_LOCATION_OPTIONAL;
+      });
+
+      it.each([undefined, null])(
+        'creates a Sucursal without a point when location is %s',
+        async (location) => {
+          await post({ ...VALID_BRANCH, location }).expect(201);
+
+          expect(t.branches.createWithImages).toHaveBeenCalledTimes(1);
+        },
+      );
+
+      it('still answers 400 for a point out of range', async () => {
+        const res = await post({
+          ...VALID_BRANCH,
+          location: { lat: 91, lng: 0 },
+        }).expect(400);
+
+        expect(res.body.message).toContain(
+          'location.lat must be between -90 and 90',
+        );
+      });
+    });
 
     it.each([
       [{ lat: 90.1, lng: 0 }, 'location.lat must be between -90 and 90'],
