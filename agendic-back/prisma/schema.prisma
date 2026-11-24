@@ -33,6 +33,11 @@ enum BookingStatus {
   CANCELLED
 }
 
+enum ClaimStatus {
+  OPEN
+  CLOSED
+}
+
 /// Quién hizo que un Turno terminara CANCELLED o REJECTED (ADR 0033).
 enum BookingActor {
   EMPLOYEE
@@ -399,6 +404,7 @@ model Booking {
   rating               BookingRating?
   calendarEvent        BookingCalendarEvent?
   redeemedStreakPrizes StreakPrize[]
+  claim                Claim?
 
   @@index([seriesId])
 }
@@ -587,4 +593,16 @@ model UserBadge {
   user User @relation(fields: [userId], references: [id])
 
   @@unique([userId, badge, level])
+}
+
+model Claim {
+  id          Int         @id @default(autoincrement())
+  bookingId   Int         @unique
+  status      ClaimStatus
+  reason      String
+  clientName  String
+  clientEmail String
+  response    String?
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 }
