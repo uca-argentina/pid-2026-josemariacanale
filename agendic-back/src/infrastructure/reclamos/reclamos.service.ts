@@ -12,28 +12,40 @@ import { BookingStatus } from '../../domain/bookings/booking';
 export class ReclamosService {
   constructor(private readonly prisma: PrismaService) {}
   async create(input: CreateReclamoDto) {
-    const booking = await this.prisma.booking.findFirst({
-      select: { id: true, status: true },
-      where: { id: input.bookingId },
+    const booking = await this.prisma.booking.findUnique({
+      select: { id: true, status: true, startsAt: true },
+      where: { link: input.link },
     });
     if (!booking) {
-      throw new NotFoundError(`Booking ${input.bookingId} not found`);
+      throw new NotFoundError(`Booking ${input.link} not found`);
+    }
+    if (booking.startsAt < new Date()) {
+      throw new BusinessRuleError(`Booking is hasn't started yet`);
     }
     if (booking.status !== BookingStatus.BOOKED) {
       throw new BusinessRuleError(
-        `Booking ${input.bookingId} is not in a valid state for creating a reclamo`,
+        `Booking is not in a valid state for creating a reclamo`,
+      );
+    }
+    const existingClaim = await this.prisma.claim.findUnique({
+      where: { bookingId: booking.id },
+    });
+    if (existingClaim) {
+      throw new BusinessRuleError(
+        `Claim for booking ${booking.id} already exists`,
       );
     }
     try {
       await this.prisma.claim.create({
         data: {
           ...input,
+          bookingId: booking.id,
           status: 'OPEN',
         },
       });
     } catch (error) {
       throw new DatabaseOperationError(
-        `Error creating reclamo for booking ${input.bookingId}`,
+        `Error creating reclamo for booking ${booking.id}`,
         { cause: error },
       );
     }

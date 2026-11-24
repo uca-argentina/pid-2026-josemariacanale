@@ -13,6 +13,9 @@ export class ReclamosController {
   }
 
   @Get()
+  find() {}
+
+  @Get()
   @UseGuards(ClerkGuard)
   findAll() {}
 

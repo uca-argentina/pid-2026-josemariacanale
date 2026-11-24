@@ -2,9 +2,8 @@ import { IsInt, IsPositive, IsString } from 'class-validator';
 import { IsName, IsNormalizedEmail } from '../../users/users.dto';
 
 export class CreateReclamoDto {
-  @IsInt()
-  @IsPositive()
-  bookingId!: number;
+  @IsString()
+  link!: string;
 
   @IsNormalizedEmail()
   clientEmail!: string;
