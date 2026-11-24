@@ -596,13 +596,12 @@ model UserBadge {
 }
 
 model Claim {
-  id          Int         @id @default(autoincrement())
-  bookingId   Int         @unique
-  status      ClaimStatus
-  reason      String
-  clientName  String
-  clientEmail String
-  response    String?
+  id        Int         @id @default(autoincrement())
+  bookingId Int         @unique
+  status    ClaimStatus @default(OPEN)
+  reason    String
+  createdAt DateTime    @default(now()) @db.Timestamptz(3)
+  response  String?
 
   booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 }
