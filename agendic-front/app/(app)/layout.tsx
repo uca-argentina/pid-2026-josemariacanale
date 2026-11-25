@@ -13,7 +13,10 @@ import { getInjection } from '@/di/container';
 import { isSessionExpired, isUserDeactivated } from '@/app/api-error';
 import { loadMyBookings } from '@/app/(app)/bookings/load-my-bookings';
 import { myPreferences } from './my-preferences';
-import { isCalendarDisconnected, type CalendarProvider } from '@/src/entities/models/calendar-connection';
+import {
+    isCalendarDisconnected,
+    type CalendarProvider,
+} from '@/src/entities/models/calendar-connection';
 import type { NavItem } from './_components/types';
 
 const navItems: NavItem[] = [
@@ -23,6 +26,7 @@ const navItems: NavItem[] = [
     { id: 'business', href: '/business', label: 'Negocios' },
     { id: 'analytics', href: '/analytics', label: 'Analíticas' },
     { id: 'streaks', href: '/streaks', label: 'Rachas' },
+    { id: 'claims', href: '/reclamos', label: 'Reclamos' },
 ];
 
 function initialsOf(name: string) {
@@ -42,10 +46,14 @@ function initialsOf(name: string) {
 async function countPendingBookings() {
     try {
         const bookings = await loadMyBookings();
-        return { count: bookings.filter((b) => b.status === 'PENDING').length, deactivated: false };
+        return {
+            count: bookings.filter((b) => b.status === 'PENDING').length,
+            deactivated: false,
+        };
     } catch (error) {
         const deactivated = isUserDeactivated(error);
-        if (!deactivated && !isSessionExpired(error)) getInjection('ICrashReporterService').report(error);
+        if (!deactivated && !isSessionExpired(error))
+            getInjection('ICrashReporterService').report(error);
         return { count: 0, deactivated };
     }
 }
@@ -55,7 +63,8 @@ async function ownedBusinessName() {
     try {
         return (await getInjection('IGetMyBusinessController')())?.name ?? null;
     } catch (error) {
-        if (!isSessionExpired(error) && !isUserDeactivated(error)) getInjection('ICrashReporterService').report(error);
+        if (!isSessionExpired(error) && !isUserDeactivated(error))
+            getInjection('ICrashReporterService').report(error);
         return null;
     }
 }
@@ -63,18 +72,32 @@ async function ownedBusinessName() {
 /** El proveedor del Calendario conectado del Usuario si dejó de dar acceso, o `null`; si la consulta falla, `null`: el aviso no vale un error de página. */
 async function calendarDisconnected(): Promise<CalendarProvider | null> {
     try {
-        const connection = await getInjection('IGetMyCalendarConnectionController')();
-        return connection && isCalendarDisconnected(connection) ? connection.provider : null;
+        const connection = await getInjection(
+            'IGetMyCalendarConnectionController',
+        )();
+        return connection && isCalendarDisconnected(connection)
+            ? connection.provider
+            : null;
     } catch (error) {
-        if (!isSessionExpired(error) && !isUserDeactivated(error)) getInjection('ICrashReporterService').report(error);
+        if (!isSessionExpired(error) && !isUserDeactivated(error))
+            getInjection('ICrashReporterService').report(error);
         return null;
     }
 }
 
-export default async function AppLayout({ children }: { children: React.ReactNode }) {
+export default async function AppLayout({
+    children,
+}: {
+    children: React.ReactNode;
+}) {
     const user = await getCurrentUser();
     if (!user) redirect(SIGN_IN_PATH);
-    const [{ count: pendingCount, deactivated }, businessName, preferences, disconnectedCalendar] = await Promise.all([
+    const [
+        { count: pendingCount, deactivated },
+        businessName,
+        preferences,
+        disconnectedCalendar,
+    ] = await Promise.all([
         countPendingBookings(),
         ownedBusinessName(),
         myPreferences(),
@@ -92,16 +115,31 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             }
         >
             <AppSidebar
-                user={{ name: user.name, email: user.email, initials: initialsOf(user.name), imageUrl: user.imageUrl }}
+                user={{
+                    name: user.name,
+                    email: user.email,
+                    initials: initialsOf(user.name),
+                    imageUrl: user.imageUrl,
+                }}
                 businessName={businessName}
                 preferences={preferences}
-                navItems={navItems.map((item) => (item.id === 'bookings' ? { ...item, count: pendingCount } : item))}
+                navItems={navItems.map((item) =>
+                    item.id === 'bookings'
+                        ? { ...item, count: pendingCount }
+                        : item,
+                )}
             />
             <SidebarInset className="min-w-0">
                 <SiteHeader sections={navItems} />
-                {disconnectedCalendar && <CalendarDisconnectedBanner provider={disconnectedCalendar} />}
+                {disconnectedCalendar && (
+                    <CalendarDisconnectedBanner
+                        provider={disconnectedCalendar}
+                    />
+                )}
                 {/* The pages paint their own white background; rounding it keeps the inset's corners without clipping wide content. */}
-                <div className="@container/main flex flex-1 flex-col md:*:rounded-b-xl">{children}</div>
+                <div className="@container/main flex flex-1 flex-col md:*:rounded-b-xl">
+                    {children}
+                </div>
             </SidebarInset>
             <AppToaster />
             <Suspense>

@@ -4,7 +4,8 @@ export type SectionId =
     | 'services'
     | 'business'
     | 'analytics'
-    | 'streaks';
+    | 'streaks'
+    | 'claims';
 
 export interface NavItem {
     id: SectionId;

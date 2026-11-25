@@ -3,11 +3,15 @@ import { unstable_rethrow } from 'next/navigation';
 import { ViewTransition } from 'react';
 import { readClock } from '@/app/_components/clock';
 import { BackendErrorNotice } from '@/app/_components/BackendErrorNotice';
-import type { ClientBooking, ClientStreakView } from '@/app/_components/client-booking/types';
+import type {
+    ClientBooking,
+    ClientStreakView,
+} from '@/app/_components/client-booking/types';
 import { Footer } from '@/app/_components/Footer';
 import { Header } from '@/app/_components/Header';
 import { getInjection } from '@/di/container';
 import { InputParseError, NotFoundError } from '@/src/entities/errors/common';
+import { checkReclamo } from '../actions';
 import { BookingLinkScreen } from './_components/BookingLinkScreen';
 
 export const metadata: Metadata = {
@@ -23,11 +27,15 @@ type LoadedBooking =
 
 async function loadBooking(link: string): Promise<LoadedBooking> {
     try {
-        return { found: true, ...(await getInjection('IGetBookingByLinkController')({ link })) };
+        return {
+            found: true,
+            ...(await getInjection('IGetBookingByLinkController')({ link })),
+        };
     } catch (error) {
         unstable_rethrow(error);
         // Un Enlace mal formado no puede ser de ningún Turno: es el mismo aviso que uno que no existe.
-        if (error instanceof NotFoundError || error instanceof InputParseError) return { found: false, failed: false };
+        if (error instanceof NotFoundError || error instanceof InputParseError)
+            return { found: false, failed: false };
         getInjection('ICrashReporterService').report(error);
         return { found: false, failed: true };
     }
@@ -37,19 +45,33 @@ async function loadBooking(link: string): Promise<LoadedBooking> {
  * La página del Enlace del Turno (ADR 0022): abre ese Turno sin Código de verificación. Sin Sesión a propósito:
  * quien tiene el Enlace puede ver, Cancelar y Reagendar ese Turno.
  */
-export default async function BookingLinkPage({ params }: { params: Promise<{ link: string }> }) {
+export default async function BookingLinkPage({
+    params,
+}: {
+    params: Promise<{ link: string }>;
+}) {
     const { link } = await params;
     const now = readClock();
     const loaded = await loadBooking(link);
+    const reclamo = loaded.found ? await checkReclamo(link) : null;
 
     return (
         <>
             <Header user={null} nav={false} />
             {/* `booked` lo pone Reservar al navegar acá: el Turno recién creado entra con un fundido. */}
-            <ViewTransition enter={{ booked: 'booked-in', default: 'none' }} default="none">
+            <ViewTransition
+                enter={{ booked: 'booked-in', default: 'none' }}
+                default="none"
+            >
                 <div className="flex flex-1 flex-col">
                     {loaded.found ? (
-                        <BookingLinkScreen link={link} booking={loaded.booking} streak={loaded.streak} now={now} />
+                        <BookingLinkScreen
+                            link={link}
+                            booking={loaded.booking}
+                            streak={loaded.streak}
+                            reclamo={reclamo}
+                            now={now}
+                        />
                     ) : loaded.failed ? (
                         <BackendErrorNotice />
                     ) : (
@@ -65,9 +87,12 @@ export default async function BookingLinkPage({ params }: { params: Promise<{ li
 function UnknownBookingLink() {
     return (
         <div className="mx-auto flex w-full max-w-[420px] flex-1 flex-col justify-center px-4 py-16 sm:px-8">
-            <h1 className="text-[32px] leading-none font-extrabold tracking-[-0.03em]">No encontramos este turno</h1>
+            <h1 className="text-[32px] leading-none font-extrabold tracking-[-0.03em]">
+                No encontramos este turno
+            </h1>
             <p className="mt-3 text-[14px] text-muted-foreground">
-                Revisá que el link esté completo: es el que te llegó por mail cuando reservaste.
+                Revisá que el link esté completo: es el que te llegó por mail
+                cuando reservaste.
             </p>
         </div>
     );

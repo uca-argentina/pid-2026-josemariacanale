@@ -20,8 +20,13 @@ import {
     Trophy,
     User,
     UserX,
+    MessageSquareWarning,
 } from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/app/_components/ui/avatar';
+import {
+    Avatar,
+    AvatarFallback,
+    AvatarImage,
+} from '@/app/_components/ui/avatar';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -48,7 +53,11 @@ import {
 } from '@/app/_components/ui/sidebar';
 import { Logo } from '@/app/_components/Logo';
 import { cn } from '@/app/_components/utils';
-import { ACHIEVEMENTS_PATH, SIGNED_IN_HOME_PATH, sectionOf } from '@/app/routes';
+import {
+    ACHIEVEMENTS_PATH,
+    SIGNED_IN_HOME_PATH,
+    sectionOf,
+} from '@/app/routes';
 import type { Preferences } from '@/src/entities/models/user';
 import { PreferencesDialog } from './PreferencesDialog';
 import { RetireAccountDialog } from './RetireAccountDialog';
@@ -61,6 +70,7 @@ const ICONS: Record<SectionId, React.ComponentType> = {
     business: Store,
     analytics: ChartColumn,
     streaks: Flame,
+    claims: MessageSquareWarning,
 };
 
 // The primitive hovers with the active item's token; the panel hovers a lighter celeste. Only on inactive items:
@@ -101,7 +111,11 @@ export function AppSidebar({
                 <NavSecondary />
             </SidebarContent>
             <SidebarFooter>
-                <NavUser user={user} businessName={businessName} preferences={preferences} />
+                <NavUser
+                    user={user}
+                    businessName={businessName}
+                    preferences={preferences}
+                />
             </SidebarFooter>
         </Sidebar>
     );
@@ -123,11 +137,16 @@ function NavMain({ items }: { items: NavItem[] }) {
                             <SidebarMenuItem key={item.id}>
                                 <SidebarMenuButton
                                     isActive={isActive}
-                                    className={cn('font-semibold', !isActive && HOVER)}
+                                    className={cn(
+                                        'font-semibold',
+                                        !isActive && HOVER,
+                                    )}
                                     render={
                                         <Link
                                             href={item.href}
-                                            aria-current={isActive ? 'page' : undefined}
+                                            aria-current={
+                                                isActive ? 'page' : undefined
+                                            }
                                             onClick={() => setOpenMobile(false)}
                                         />
                                     }
@@ -138,20 +157,36 @@ function NavMain({ items }: { items: NavItem[] }) {
                                 {item.count ? (
                                     <SidebarMenuBadge>
                                         {item.count}
-                                        <span className="sr-only"> pendientes</span>
+                                        <span className="sr-only">
+                                            {' '}
+                                            pendientes
+                                        </span>
                                     </SidebarMenuBadge>
                                 ) : null}
                                 {item.children && (
                                     <SidebarMenuSub>
                                         {item.children.map((child) => (
-                                            <SidebarMenuSubItem key={child.href}>
+                                            <SidebarMenuSubItem
+                                                key={child.href}
+                                            >
                                                 <SidebarMenuSubButton
-                                                    isActive={pathname === child.href}
+                                                    isActive={
+                                                        pathname === child.href
+                                                    }
                                                     render={
                                                         <Link
                                                             href={child.href}
-                                                            aria-current={pathname === child.href ? 'page' : undefined}
-                                                            onClick={() => setOpenMobile(false)}
+                                                            aria-current={
+                                                                pathname ===
+                                                                child.href
+                                                                    ? 'page'
+                                                                    : undefined
+                                                            }
+                                                            onClick={() =>
+                                                                setOpenMobile(
+                                                                    false,
+                                                                )
+                                                            }
                                                         />
                                                     }
                                                 >
@@ -176,13 +211,17 @@ function NavSecondary() {
             <SidebarGroupContent>
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <SidebarMenuButton className={cn('font-semibold', HOVER)}>
+                        <SidebarMenuButton
+                            className={cn('font-semibold', HOVER)}
+                        >
                             <ExternalLink />
                             <span>Ver página pública</span>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
-                        <SidebarMenuButton className={cn('font-semibold', HOVER)}>
+                        <SidebarMenuButton
+                            className={cn('font-semibold', HOVER)}
+                        >
                             <LinkIcon />
                             <span>Copiar link para reservar</span>
                         </SidebarMenuButton>
@@ -217,19 +256,31 @@ function NavUser({
                         render={
                             <SidebarMenuButton
                                 size="lg"
-                                className={cn(HOVER, 'data-popup-open:bg-sidebar-accent data-popup-open:text-sidebar-accent-foreground')}
+                                className={cn(
+                                    HOVER,
+                                    'data-popup-open:bg-sidebar-accent data-popup-open:text-sidebar-accent-foreground',
+                                )}
                             />
                         }
                     >
                         <Avatar>
-                            {user.imageUrl ? <AvatarImage src={user.imageUrl} alt={user.name} /> : null}
+                            {user.imageUrl ? (
+                                <AvatarImage
+                                    src={user.imageUrl}
+                                    alt={user.name}
+                                />
+                            ) : null}
                             <AvatarFallback className="bg-secondary text-[12px] font-extrabold text-primary">
                                 {user.initials}
                             </AvatarFallback>
                         </Avatar>
                         <div className="grid flex-1 text-left text-sm leading-tight">
-                            <span className="truncate font-semibold">{user.name}</span>
-                            <span className="truncate text-xs text-muted-foreground">{user.email}</span>
+                            <span className="truncate font-semibold">
+                                {user.name}
+                            </span>
+                            <span className="truncate text-xs text-muted-foreground">
+                                {user.email}
+                            </span>
                         </div>
                         <EllipsisVertical className="ml-auto" />
                     </DropdownMenuTrigger>
@@ -270,7 +321,9 @@ function NavUser({
                             <LogOut className="size-[15px]" />
                             Cerrar sesión
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setEditingPreferences(true)}>
+                        <DropdownMenuItem
+                            onClick={() => setEditingPreferences(true)}
+                        >
                             <SlidersHorizontal className="size-[15px]" />
                             Preferencias
                         </DropdownMenuItem>
@@ -295,7 +348,12 @@ function NavUser({
                     onClose={() => setEditingPreferences(false)}
                 />
             )}
-            {retiring && <RetireAccountDialog businessName={businessName} onClose={() => setRetiring(false)} />}
+            {retiring && (
+                <RetireAccountDialog
+                    businessName={businessName}
+                    onClose={() => setRetiring(false)}
+                />
+            )}
         </SidebarMenu>
     );
 }
