@@ -42,6 +42,7 @@ import {
   RequestBookingCodeDto,
   RescheduleBookingDto,
 } from './bookings.dto';
+import { LlegadaService } from '../llegada/llegada.service';
 
 @Controller()
 export class BookingsController {
@@ -60,6 +61,7 @@ export class BookingsController {
     private readonly unmarkNoShowUseCase: UnmarkNoShowUseCase,
     private readonly getBookingHistoryUseCase: GetBookingHistoryUseCase,
     private readonly listMyBookingsUseCase: ListMyBookingsUseCase,
+    private readonly llegada: LlegadaService,
   ) {}
 
   /**
@@ -116,7 +118,6 @@ export class BookingsController {
       link: booking.link,
     };
   }
-
   /**
    * Con `series`, acepta los Turnos pendientes de la Serie que no terminaron (#305) y responde `{ accepted }`.
    *
@@ -184,6 +185,7 @@ export class BookingsController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: CancelBookingDto,
   ) {
+    await this.llegada.asegurarQueNoLlego({ id }, 'cancelar');
     if (dto.andFollowing) {
       const cancelled = await this.cancelBookingSeriesUseCase.execute(
         userId,
@@ -210,6 +212,7 @@ export class BookingsController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: RescheduleBookingDto,
   ) {
+    await this.llegada.asegurarQueNoLlego({ id }, 'reagendar');
     return presentPanelBooking(
       await this.rescheduleBookingUseCase.execute(
         userId,
@@ -230,6 +233,7 @@ export class BookingsController {
     @CurrentUser() userId: number,
     @Param('id', ParseIntPipe) id: number,
   ) {
+    await this.llegada.asegurarQueNoLlego({ id }, 'marcar con Ausencia');
     return presentBookingWithNoShow(
       await this.markNoShowUseCase.execute(userId, id),
     );

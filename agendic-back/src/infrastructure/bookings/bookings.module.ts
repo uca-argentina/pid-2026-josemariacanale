@@ -29,9 +29,10 @@ import { SendRatingRequestsUseCase } from '../../application/bookings/send-ratin
 import { RatingRequestsJob } from './rating-requests.job';
 import { BookingLinksController } from './booking-links.controller';
 import { BookingsController } from './bookings.controller';
+import { LlegadaModule } from '../llegada/llegada.module';
 
 @Module({
-  imports: [UsersModule, HolidaysModule, StreaksModule],
+  imports: [UsersModule, HolidaysModule, StreaksModule, LlegadaModule],
   controllers: [BookingsController, BookingLinksController],
   providers: [
     CreateBookingUseCase,

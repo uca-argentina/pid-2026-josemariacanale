@@ -1,0 +1,3 @@
+Para poner credenciales en postman para probar el back usen en sessionId dev:user_offline
+y despues para lo demas hice lo que pude
+el dto lo deje viene de nest g resource que use para aniadir el controlador

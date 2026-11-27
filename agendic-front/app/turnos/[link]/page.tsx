@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import { unstable_rethrow } from 'next/navigation';
 import { ViewTransition } from 'react';
 import { readClock } from '@/app/_components/clock';
+import { back } from '@/app/_components/back';
+import { fmtTime } from '@/app/_components/quick/dates';
 import { BackendErrorNotice } from '@/app/_components/BackendErrorNotice';
 import type { ClientBooking, ClientStreakView } from '@/app/_components/client-booking/types';
 import { Footer } from '@/app/_components/Footer';
@@ -9,6 +11,8 @@ import { Header } from '@/app/_components/Header';
 import { getInjection } from '@/di/container';
 import { InputParseError, NotFoundError } from '@/src/entities/errors/common';
 import { BookingLinkScreen } from './_components/BookingLinkScreen';
+
+type Llegada = { llegoEn: string | null; llegoTarde: boolean };
 
 export const metadata: Metadata = {
     title: 'Tu turno · Agendic',
@@ -40,7 +44,7 @@ async function loadBooking(link: string): Promise<LoadedBooking> {
 export default async function BookingLinkPage({ params }: { params: Promise<{ link: string }> }) {
     const { link } = await params;
     const now = readClock();
-    const loaded = await loadBooking(link);
+    const [loaded, llegada] = await Promise.all([loadBooking(link), back<Llegada>('GET', `/booking-links/${link}/llegada`)]);
 
     return (
         <>
@@ -48,6 +52,12 @@ export default async function BookingLinkPage({ params }: { params: Promise<{ li
             {/* `booked` lo pone Reservar al navegar acá: el Turno recién creado entra con un fundido. */}
             <ViewTransition enter={{ booked: 'booked-in', default: 'none' }} default="none">
                 <div className="flex flex-1 flex-col">
+                    {llegada.ok && llegada.data.llegoEn && (
+                        <p className="mx-auto w-full max-w-[720px] px-4 pt-6 font-semibold sm:px-8">
+                            {llegada.data.llegoTarde ? 'Llegaste tarde' : 'Llegaste'} (
+                            {fmtTime(llegada.data.llegoEn)})
+                        </p>
+                    )}
                     {loaded.found ? (
                         <BookingLinkScreen link={link} booking={loaded.booking} streak={loaded.streak} now={now} />
                     ) : loaded.failed ? (

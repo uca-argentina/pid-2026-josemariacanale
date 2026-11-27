@@ -91,6 +91,7 @@ import { PrismaUsersRepository } from './users/prisma-users.repository';
 import { UsersModule } from './users/users.module';
 import { PrismaWaitlistRepository } from './waitlist/prisma-waitlist.repository';
 import { WaitlistModule } from './waitlist/waitlist.module';
+import { LlegadaModule } from './llegada/llegada.module';
 
 /** Binds every port to its adapter, globally, and wires the REST feature modules. */
 @Global()
@@ -113,6 +114,7 @@ import { WaitlistModule } from './waitlist/waitlist.module';
     StreaksModule,
     CalendarModule,
     BadgesModule,
+    LlegadaModule,
   ],
   providers: [
     PrismaService,
@@ -196,6 +198,7 @@ import { WaitlistModule } from './waitlist/waitlist.module';
     { provide: BADGES_REPOSITORY, useClass: PrismaBadgesRepository },
   ],
   exports: [
+    PrismaService,
     ListExternalBusyService,
     ClientInvites,
     CLOCK,

@@ -7,6 +7,7 @@ import { MarkEmployeeNoShowByLinkUseCase } from '../../application/bookings/mark
 import { CLOCK, Clock } from '../../domain/clock';
 import { PayDepositByLinkUseCase } from '../../application/bookings/pay-deposit-by-link.use-case';
 import { presentClientBooking } from './booking.presenter';
+import { LlegadaService } from '../llegada/llegada.service';
 import { presentLinkStreak } from '../streaks/streak-program.presenter';
 import { RateBookingByLinkUseCase } from '../../application/bookings/rate-booking-by-link.use-case';
 import { CancelBookingDto, RateBookingDto, reasonOf, RescheduleBookingDto } from './bookings.dto';
@@ -23,6 +24,7 @@ export class BookingLinksController {
     private readonly markEmployeeNoShowByLinkUseCase: MarkEmployeeNoShowByLinkUseCase,
     private readonly rateBookingByLinkUseCase: RateBookingByLinkUseCase,
     @Inject(CLOCK) private readonly clock: Clock,
+    private readonly llegada: LlegadaService,
   ) {}
 
   /**
@@ -47,6 +49,7 @@ export class BookingLinksController {
    */
   @Patch(':secret/cancel')
   async cancel(@Param('secret') secret: string, @Body() dto: CancelBookingDto) {
+    await this.llegada.asegurarQueNoLlego({ link: secret }, 'cancelar');
     if (dto.andFollowing) {
       const { cancelled, kept } = await this.cancelBookingSeriesByLinkUseCase.execute(
         secret,
@@ -71,6 +74,7 @@ export class BookingLinksController {
    */
   @Patch(':secret/reschedule')
   async reschedule(@Param('secret') secret: string, @Body() dto: RescheduleBookingDto) {
+    await this.llegada.asegurarQueNoLlego({ link: secret }, 'reagendar');
     return presentClientBooking(
       await this.rescheduleBookingByLinkUseCase.execute(secret, new Date(dto.startsAt)),
       this.clock.now(),
