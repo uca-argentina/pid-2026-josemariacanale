@@ -588,3 +588,11 @@ model UserBadge {
 
   @@unique([userId, badge, level])
 }
+
+model CheckIn {
+  id Int @id @default(autoincrement())
+  userId Int
+  bookingId Int
+  arrivalTime DateTime @db.Timestamptz(3)
+  status String  // ON TIME or DELAYED
+}

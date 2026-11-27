@@ -91,10 +91,12 @@ import { PrismaUsersRepository } from './users/prisma-users.repository';
 import { UsersModule } from './users/users.module';
 import { PrismaWaitlistRepository } from './waitlist/prisma-waitlist.repository';
 import { WaitlistModule } from './waitlist/waitlist.module';
+import { CheckInController } from './checkIn.controller';
 
 /** Binds every port to its adapter, globally, and wires the REST feature modules. */
 @Global()
 @Module({
+  controllers: [CheckInController],
   imports: [
     UsersModule,
     BusinessesModule,
