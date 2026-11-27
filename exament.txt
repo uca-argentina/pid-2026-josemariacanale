@@ -1,0 +1,6 @@
+la logica de registro lo guardo en la tabla que cree CheckIn.
+
+todos los metodos funcionan en en el back.
+
+una vez que ya paso el turno y el cliente no se presento, se puede marcar la ausencia desde el panel de los turnos pasados.
+

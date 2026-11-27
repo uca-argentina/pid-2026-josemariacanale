@@ -588,3 +588,10 @@ model UserBadge {
 
   @@unique([userId, badge, level])
 }
+
+model CheckIn {
+  id       Int        @id @default(autoincrement())
+  bookingId   Int
+  status    String
+  arrivedAt DateTime   @db.Timestamptz(3)
+}
