@@ -4,3 +4,4 @@ todos los metodos funcionan en en el back.
 
 una vez que ya paso el turno y el cliente no se presento, se puede marcar la ausencia desde el panel de los turnos pasados.
 
+lamentablemente no llegue a poner el boton en el front, pero probe todos los metodos con curl, y visto desde la url y funciona.

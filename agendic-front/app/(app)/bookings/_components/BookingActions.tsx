@@ -15,8 +15,9 @@ import {
 import { actionsOf, type Booking } from './booking-helpers';
 import { ReasonConfirmDialog } from './ReasonConfirmDialog';
 import { RescheduleDialog } from './RescheduleDialog';
+import { CheckInDialog } from './CheckInDialog';
 
-type Dialog = 'reschedule' | 'reject' | 'cancel' | 'cancel-following' | 'no-show' | 'unmark-no-show' | null;
+type Dialog = 'reschedule' | 'reject' | 'checkIn' | 'cancel' | 'cancel-following' | 'no-show' | 'unmark-no-show' | null;
 
 /**
  * Las acciones de un Turno según su estado (`actionsOf`), en la fila de la lista y en el panel lateral:
@@ -50,9 +51,10 @@ export function BookingActions({
         });
 
     const series = seriesPending !== null;
-    const menuItems: Record<'cancel' | 'reschedule' | 'no-show' | 'unmark-no-show', PanelMenuItem> = {
+    const menuItems: Record<'cancel' | 'reschedule' | 'checkIn' | 'no-show' | 'unmark-no-show', PanelMenuItem> = {
         cancel: { label: 'Cancelar', icon: <X />, destructive: true, onSelect: () => setDialog('cancel') },
         reschedule: { label: 'Reagendar', icon: <CalendarClock />, onSelect: () => setDialog('reschedule') },
+        checkIn: { label: 'Check-In', icon: <CalendarClock />, onSelect: () => setDialog('checkIn') },
         'no-show': { label: 'Marcar Ausencia del Invitado', icon: <UserX />, onSelect: () => setDialog('no-show') },
         'unmark-no-show': { label: 'Desmarcar Ausencia del Invitado', icon: <UserCheck />, onSelect: () => setDialog('unmark-no-show') },
     };
@@ -112,6 +114,15 @@ export function BookingActions({
                 confirmLabel="Cancelar turno"
                 confirm={(reason) => cancelBookingAction(booking.id, reason)}
                 success="Turno cancelado"
+            />
+            <ReasonConfirmDialog
+                open={dialog === 'checkIn'}
+                onOpenChange={setOpen('checkIn')}
+                title="¿Queres hacer Check-In?"
+                description={`El horario queda libre y le avisamos a ${booking.clientName}.`}
+                confirmLabel="Hacer Check-In"
+                confirm={(reason) => cancelBookingAction(booking.id, reason)}
+                success="Check-In realizado"
             />
             <ReasonConfirmDialog
                 open={dialog === 'cancel-following'}
